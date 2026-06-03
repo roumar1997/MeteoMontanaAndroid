@@ -14,8 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -33,6 +37,7 @@ import com.meteomontana.android.ui.components.SchoolListItem
 @Composable
 fun SchoolListScreen(
     onSchoolClick: (String) -> Unit,
+    onProfileClick: () -> Unit = {},
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -43,7 +48,8 @@ fun SchoolListScreen(
             // Header
             item {
                 HeaderEscuelas(
-                    count = (state as? SchoolListUiState.Success)?.schools?.size
+                    count = (state as? SchoolListUiState.Success)?.schools?.size,
+                    onProfileClick = onProfileClick
                 )
             }
 
@@ -110,25 +116,34 @@ fun SchoolListScreen(
 }
 
 @Composable
-private fun HeaderEscuelas(count: Int?) {
+private fun HeaderEscuelas(count: Int?, onProfileClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             "Escuelas",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
-        if (count != null) {
-            Text(
-                "$count escuelas",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (count != null) {
+                Text(
+                    "$count escuelas",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onProfileClick) {
+                Icon(
+                    Icons.Outlined.Person,
+                    contentDescription = "Perfil",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
         }
     }
 }

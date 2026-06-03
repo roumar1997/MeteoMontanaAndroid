@@ -23,6 +23,7 @@ import com.meteomontana.android.navigation.Routes
 import com.meteomontana.android.navigation.Tab
 import com.meteomontana.android.navigation.mainTabs
 import com.meteomontana.android.ui.screens.detail.SchoolDetailScreen
+import com.meteomontana.android.ui.screens.profile.ProfileScreen
 import com.meteomontana.android.ui.screens.radar.RadarScreen
 import com.meteomontana.android.ui.screens.schools.SchoolListScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
@@ -79,9 +80,10 @@ fun MainScreen() {
         ) {
             composable(Tab.Weather.route) { WeatherScreen() }
             composable(Tab.Schools.route) {
-                SchoolListScreen(onSchoolClick = { id ->
-                    navController.navigate(Routes.schoolDetail(id))
-                })
+                SchoolListScreen(
+                    onSchoolClick = { id -> navController.navigate(Routes.schoolDetail(id)) },
+                    onProfileClick = { navController.navigate(Routes.PROFILE) }
+                )
             }
             composable(Tab.Radar.route) { RadarScreen() }
 
@@ -90,6 +92,10 @@ fun MainScreen() {
                 arguments = listOf(navArgument("schoolId") { type = NavType.StringType })
             ) {
                 SchoolDetailScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.PROFILE) {
+                ProfileScreen(onBack = { navController.popBackStack() })
             }
         }
     }

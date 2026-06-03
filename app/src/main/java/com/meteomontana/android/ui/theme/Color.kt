@@ -10,7 +10,7 @@ val Bg      = Color(0xFFF5F3EE)
 val Paper   = Color(0xFFEBE7DD)
 val Paper2  = Color(0xFFF0EAD8)
 
-val Ink     = Color(0xFF1C1C1A)
+val Ink     = Color(0xFF1C1C1A) 
 val Ink2    = Color(0xFF5A574F)
 val Ink3    = Color(0xFF8A8478)
 val Rule    = Color(0xFFD6D2C4)

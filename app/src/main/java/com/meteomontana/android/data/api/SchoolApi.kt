@@ -1,18 +1,20 @@
 package com.meteomontana.android.data.api
 
+import com.meteomontana.android.data.api.dto.CreateJournalRequest
+import com.meteomontana.android.data.api.dto.CreateNoteRequest
 import com.meteomontana.android.data.api.dto.ForecastDto
+import com.meteomontana.android.data.api.dto.JournalSessionDto
+import com.meteomontana.android.data.api.dto.JournalStatsDto
+import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.data.api.dto.SchoolDto
+import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-/**
- * Interfaz Retrofit: cada método representa un endpoint HTTP.
- * Retrofit genera la implementación automáticamente.
- *
- * `suspend` => función que se ejecuta en una coroutine (sin bloquear el hilo principal).
- */
 interface SchoolApi {
 
     @GET("schools")
@@ -28,9 +30,27 @@ interface SchoolApi {
     @GET("schools/{id}")
     suspend fun getSchoolById(@Path("id") id: String): SchoolDto
 
+    @GET("schools/{id}/notes")
+    suspend fun getNotesBySchool(@Path("id") id: String): List<NoteDto>
+
+    @POST("schools/{id}/notes")
+    suspend fun createNote(@Path("id") id: String, @Body req: CreateNoteRequest): NoteDto
+
     @GET("schools/{id}/forecast")
     suspend fun getForecast(@Path("id") id: String): ForecastDto
 
     @GET("me")
     suspend fun getMyProfile(): PrivateProfileDto
+
+    @POST("journal")
+    suspend fun createJournalSession(@Body req: CreateJournalRequest): JournalSessionDto
+
+    @GET("journal/me")
+    suspend fun getMyJournal(): List<JournalSessionDto>
+
+    @GET("journal/me/stats")
+    suspend fun getMyJournalStats(): JournalStatsDto
+
+    @DELETE("journal/{id}")
+    suspend fun deleteJournalSession(@Path("id") id: String)
 }

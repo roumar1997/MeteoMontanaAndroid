@@ -45,10 +45,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.meteomontana.android.data.api.dto.CurrentDto
 import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.ui.components.DayRow
 import com.meteomontana.android.ui.components.FactorList
 import com.meteomontana.android.ui.components.HourlyHeatmap
 import com.meteomontana.android.ui.components.HourlyScoreGrid
+import com.meteomontana.android.ui.components.NotesSection
 import com.meteomontana.android.ui.theme.scoreColor
 import com.meteomontana.android.ui.theme.scoreTextColor
 
@@ -69,7 +71,12 @@ fun SchoolDetailScreen(
             is SchoolDetailUiState.Error   -> CenterBox {
                 Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
             }
-            is SchoolDetailUiState.Success -> DetailContent(school = s.school, forecast = s.forecast)
+            is SchoolDetailUiState.Success -> DetailContent(
+                school = s.school,
+                forecast = s.forecast,
+                notes = s.notes,
+                onPublishNote = viewModel::publishNote
+            )
         }
     }
 }
@@ -97,7 +104,12 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun DetailContent(school: School, forecast: ForecastDto) {
+private fun DetailContent(
+    school: School,
+    forecast: ForecastDto,
+    notes: List<NoteDto>,
+    onPublishNote: (String) -> Unit
+) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         // Hero "¿Puedo escalar hoy?"
         item { HeroSection(forecast) }
@@ -139,6 +151,11 @@ private fun DetailContent(school: School, forecast: ForecastDto) {
 
         // Mejor día + roca seca
         item { BestDayBar(forecast) }
+
+        item { SectionDivider() }
+
+        // Notas comunitarias + composer
+        item { NotesSection(notes = notes, onPublish = onPublishNote) }
 
         item { Spacer(Modifier.height(40.dp)) }
     }

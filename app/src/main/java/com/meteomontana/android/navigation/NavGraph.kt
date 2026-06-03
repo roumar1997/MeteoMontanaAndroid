@@ -20,4 +20,5 @@ val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Radar)
 object Routes {
     const val SCHOOL_DETAIL = "schools/{schoolId}"
     fun schoolDetail(id: String) = "schools/$id"
+    const val PROFILE = "profile"
 }
