@@ -1,6 +1,7 @@
 package com.meteomontana.android.data.api
 
 import com.meteomontana.android.data.api.dto.ForecastDto
+import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.data.api.dto.SchoolDto
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -29,4 +30,7 @@ interface SchoolApi {
 
     @GET("schools/{id}/forecast")
     suspend fun getForecast(@Path("id") id: String): ForecastDto
+
+    @GET("me")
+    suspend fun getMyProfile(): PrivateProfileDto
 }

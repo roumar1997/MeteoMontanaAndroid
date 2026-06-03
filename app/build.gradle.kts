@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    // alias(libs.plugins.google.services)  // Activar cuando tengamos google-services.json (Fase 4)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -88,12 +88,17 @@ dependencies {
     // Imágenes
     implementation(libs.coil.compose)
 
-    // Firebase — activar en Fase 4 cuando tengamos google-services.json
-    // implementation(platform(libs.firebase.bom))
-    // implementation(libs.firebase.auth)
-    // implementation(libs.firebase.messaging)
-    // implementation(libs.firebase.firestore)
-    // implementation(libs.firebase.storage)
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+
+    // Credential Manager (Google Sign-In moderno)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     // Tests
     testImplementation(libs.junit)
