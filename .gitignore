@@ -1,0 +1,28 @@
+# IntelliJ / Android Studio
+*.iml
+.idea/
+
+# Gradle
+.gradle/
+local.properties
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Keystore (firmas de release)
+*.jks
+*.keystore
+keystore.properties
+
+# Reportes
+/reports/
+/lint-results.html
