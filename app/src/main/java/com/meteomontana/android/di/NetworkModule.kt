@@ -51,10 +51,12 @@ object NetworkModule {
                 HttpLoggingInterceptor.Level.NONE
         }
         return OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)   // primero auth, luego logging
+            .addInterceptor(authInterceptor)
             .addInterceptor(logging)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(8, TimeUnit.SECONDS)   // antes 15
+            .readTimeout(12, TimeUnit.SECONDS)     // antes 30
+            .writeTimeout(10, TimeUnit.SECONDS)
+            .callTimeout(15, TimeUnit.SECONDS)     // límite máximo total
             .build()
     }
 
