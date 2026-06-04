@@ -28,6 +28,7 @@ import com.meteomontana.android.ui.screens.chat.ChatScreen
 import com.meteomontana.android.ui.screens.detail.SchoolDetailScreen
 import com.meteomontana.android.ui.screens.notifications.NotificationsScreen
 import com.meteomontana.android.ui.screens.profile.EditProfileScreen
+import com.meteomontana.android.ui.screens.profile.JournalEntriesScreen
 import com.meteomontana.android.ui.screens.profile.ProfileScreen
 import com.meteomontana.android.ui.screens.radar.RadarScreen
 import com.meteomontana.android.ui.screens.schools.SchoolListScreen
@@ -116,8 +117,23 @@ fun MainScreen() {
                     onBack = { navController.popBackStack() },
                     onEdit = { navController.navigate(Routes.EDIT_PROFILE) },
                     onSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) },
-                    onAdmin = { navController.navigate(Routes.ADMIN) }
+                    onAdmin = { navController.navigate(Routes.ADMIN) },
+                    onOpenSchoolEntries = { schoolName ->
+                        navController.navigate(Routes.journalEntries("school:$schoolName"))
+                    },
+                    onOpenAllBlocks = { navController.navigate(Routes.journalEntries(null)) },
+                    onOpenMaxGrade = { navController.navigate(Routes.journalEntries("grade-max")) }
                 )
+            }
+            composable(
+                route = Routes.JOURNAL_ENTRIES,
+                arguments = listOf(navArgument("filter") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                })
+            ) {
+                JournalEntriesScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.ADMIN) {
                 AdminScreen(onBack = { navController.popBackStack() })

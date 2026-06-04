@@ -55,6 +55,9 @@ fun ProfileScreen(
     onEdit: () -> Unit = {},
     onSubmissions: () -> Unit = {},
     onAdmin: () -> Unit = {},
+    onOpenSchoolEntries: (String) -> Unit = {},
+    onOpenAllBlocks: () -> Unit = {},
+    onOpenMaxGrade: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -72,6 +75,9 @@ fun ProfileScreen(
                 onEdit = onEdit,
                 onSubmissions = onSubmissions,
                 onAdmin = onAdmin,
+                onOpenSchoolEntries = onOpenSchoolEntries,
+                onOpenAllBlocks = onOpenAllBlocks,
+                onOpenMaxGrade = onOpenMaxGrade,
                 onSignOut = viewModel::signOut
             )
         }
@@ -113,6 +119,9 @@ private fun Content(
     onEdit: () -> Unit,
     onSubmissions: () -> Unit,
     onAdmin: () -> Unit,
+    onOpenSchoolEntries: (String) -> Unit,
+    onOpenAllBlocks: () -> Unit,
+    onOpenMaxGrade: () -> Unit,
     onSignOut: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -127,13 +136,13 @@ private fun Content(
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         item { TogglesSection(profile) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-        item { StatsRow(stats) }
+        item { StatsRow(stats, onOpenAllBlocks, onOpenAllBlocks, onOpenMaxGrade) }
         item {
             AddBlockButton(onClick = onAddBlock)
         }
         if (stats.bySchool.isNotEmpty()) {
             items(stats.bySchool) { entry ->
-                SchoolEntryRow(entry)
+                SchoolEntryRow(entry, onClick = { onOpenSchoolEntries(entry.schoolName) })
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             }
         } else {
@@ -233,14 +242,19 @@ private fun ToggleRow(label: String, value: Boolean, secondaryText: String? = nu
 }
 
 @Composable
-private fun StatsRow(stats: JournalStatsDto) {
+private fun StatsRow(
+    stats: JournalStatsDto,
+    onBlocks: () -> Unit,
+    onSchools: () -> Unit,
+    onMax: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        StatCell("BLOQUES", stats.blockCount.toString(), Modifier.weight(1f))
-        StatCell("ESCUELAS", stats.schoolCount.toString(), Modifier.weight(1f))
-        StatCell("MÁXIMO", stats.maxGrade ?: "—", Modifier.weight(1f))
+        StatCell("BLOQUES", stats.blockCount.toString(), Modifier.weight(1f).clickable(onClick = onBlocks))
+        StatCell("ESCUELAS", stats.schoolCount.toString(), Modifier.weight(1f).clickable(onClick = onSchools))
+        StatCell("MÁXIMO", stats.maxGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
     }
 }
 
@@ -277,9 +291,10 @@ private fun AddBlockButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun SchoolEntryRow(entry: SchoolStatsDto) {
+private fun SchoolEntryRow(entry: SchoolStatsDto, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {

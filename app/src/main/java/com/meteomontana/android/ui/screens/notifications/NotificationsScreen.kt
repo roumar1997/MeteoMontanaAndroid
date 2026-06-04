@@ -69,16 +69,36 @@ class NotificationsViewModel @Inject constructor(
     }
 
     fun markAllRead() {
+        // Optimistic: actualizar UI inmediatamente
+        val cur = _state.value
+        if (cur is NotificationsUiState.Success) {
+            val now = java.time.LocalDateTime.now().toString()
+            val updated = cur.inbox.copy(
+                unreadCount = 0,
+                items = cur.inbox.items.map { if (it.readAt == null) it.copy(readAt = now) else it }
+            )
+            _state.value = NotificationsUiState.Success(updated)
+        }
         viewModelScope.launch {
             runCatching { api.markAllNotificationsRead() }
-            load()
         }
     }
 
     fun onItemClick(id: String) {
+        // Optimistic: marcar leída en UI antes de la network call
+        val cur = _state.value
+        if (cur is NotificationsUiState.Success) {
+            val now = java.time.LocalDateTime.now().toString()
+            val updated = cur.inbox.copy(
+                items = cur.inbox.items.map {
+                    if (it.id == id && it.readAt == null) it.copy(readAt = now) else it
+                },
+                unreadCount = (cur.inbox.unreadCount - 1).coerceAtLeast(0)
+            )
+            _state.value = NotificationsUiState.Success(updated)
+        }
         viewModelScope.launch {
             runCatching { api.markNotificationRead(id) }
-            load()
         }
     }
 }

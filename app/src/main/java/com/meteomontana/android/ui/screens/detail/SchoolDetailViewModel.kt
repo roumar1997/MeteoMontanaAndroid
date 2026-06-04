@@ -1,5 +1,4 @@
 package com.meteomontana.android.ui.screens.detail
-import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -12,6 +11,7 @@ import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.repository.SchoolRepository
+import com.meteomontana.android.util.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +24,8 @@ sealed interface SchoolDetailUiState {
     data class Error(val message: String) : SchoolDetailUiState
     data class Success(
         val school: School,
-        val forecast: ForecastDto,
+        val forecast: ForecastDto?,
+        val forecastError: String?,
         val notes: List<NoteDto>,
         val isFavorite: Boolean,
         val blocks: List<BlockDto>
@@ -50,13 +51,17 @@ class SchoolDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = try {
                 val school = repository.getSchoolById(schoolId)
-                val forecast = api.getForecast(schoolId)
-                val notes = runCatching { api.getNotesBySchool(schoolId) }.getOrDefault(emptyList())
-                val isFav = runCatching {
-                    api.getMyFavorites().any { it.id == schoolId }
-                }.getOrDefault(false)
+                // El forecast puede fallar (Open-Meteo caído). El resto del detalle igual carga.
+                val forecastResult = runCatching { api.getForecast(schoolId) }
+                val notes  = runCatching { api.getNotesBySchool(schoolId) }.getOrDefault(emptyList())
+                val isFav  = runCatching { api.getMyFavorites().any { it.id == schoolId } }.getOrDefault(false)
                 val blocks = runCatching { api.getBlocks(schoolId) }.getOrDefault(emptyList())
-                SchoolDetailUiState.Success(school, forecast, notes, isFav, blocks)
+                SchoolDetailUiState.Success(
+                    school = school,
+                    forecast = forecastResult.getOrNull(),
+                    forecastError = forecastResult.exceptionOrNull()?.toUserMessage(),
+                    notes = notes, isFavorite = isFav, blocks = blocks
+                )
             } catch (t: Throwable) {
                 SchoolDetailUiState.Error(t.toUserMessage())
             }

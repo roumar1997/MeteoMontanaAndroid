@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -60,7 +62,11 @@ fun SchoolDetailScreen(
             is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
             is SchoolDetailUiState.Error -> Center { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
             is SchoolDetailUiState.Success -> Content(
-                school = s.school, forecast = s.forecast, notes = s.notes, blocks = s.blocks,
+                school = s.school,
+                forecast = s.forecast,
+                forecastError = s.forecastError,
+                notes = s.notes,
+                blocks = s.blocks,
                 onPublishNote = viewModel::publishNote,
                 onAddBlock = { addBlockOpen = true },
                 onBlockClick = onOpenBlock
@@ -117,7 +123,8 @@ private fun TopBar(
 @Composable
 private fun Content(
     school: School,
-    forecast: ForecastDto,
+    forecast: ForecastDto?,
+    forecastError: String?,
     notes: List<NoteDto>,
     blocks: List<BlockDto>,
     onPublishNote: (String) -> Unit,
@@ -125,7 +132,28 @@ private fun Content(
     onBlockClick: (String) -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        forecastBody(forecast)
+        if (forecast != null) {
+            forecastBody(forecast)
+        } else if (forecastError != null) {
+            item {
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                    .padding(16.dp)
+                ) {
+                    Column {
+                        Text("Tiempo no disponible",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground)
+                        Spacer(Modifier.height(4.dp))
+                        Text(forecastError,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
         item { BlocksSection(
             blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
