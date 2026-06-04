@@ -29,18 +29,25 @@ import com.meteomontana.android.data.api.dto.BlockDto
 fun BlocksSection(
     blocks: List<BlockDto>,
     onAddBlock: () -> Unit,
-    onBlockClick: (String) -> Unit = {}
+    onBlockClick: (String) -> Unit = {},
+    schoolLat: Double? = null,
+    schoolLon: Double? = null
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("BLOQUES DE LA ESCUELA",
+            Text("MAPA DE LA ESCUELA",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("+ Proponer",
                 modifier = Modifier.clickable(onClick = onAddBlock),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary)
+        }
+
+        if (schoolLat != null && schoolLon != null) {
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
+            SchoolMap(centerLat = schoolLat, centerLon = schoolLon, blocks = blocks)
         }
 
         if (blocks.isEmpty()) {

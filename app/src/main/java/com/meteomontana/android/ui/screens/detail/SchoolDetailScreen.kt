@@ -127,7 +127,10 @@ private fun Content(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         forecastBody(forecast)
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
-        item { BlocksSection(blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick) }
+        item { BlocksSection(
+            blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
+            schoolLat = school.lat, schoolLon = school.lon
+        ) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
         item { NotesSection(notes = notes, onPublish = onPublishNote) }
         item { Spacer(Modifier.height(40.dp)) }

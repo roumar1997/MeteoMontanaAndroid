@@ -104,6 +104,9 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.accompanist.permissions)
 
+    // Maps (MapLibre native)
+    implementation(libs.maplibre)
+
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
