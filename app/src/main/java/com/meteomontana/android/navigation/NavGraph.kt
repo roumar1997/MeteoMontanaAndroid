@@ -28,4 +28,5 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val PUBLIC_PROFILE = "users/{uid}"
     fun publicProfile(uid: String) = "users/$uid"
+    const val ADMIN = "admin"
 }

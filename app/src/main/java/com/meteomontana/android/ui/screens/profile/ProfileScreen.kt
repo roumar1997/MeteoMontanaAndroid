@@ -54,6 +54,7 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit = {},
     onSubmissions: () -> Unit = {},
+    onAdmin: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -70,6 +71,7 @@ fun ProfileScreen(
                 onAddBlock = { addBlockOpen = true },
                 onEdit = onEdit,
                 onSubmissions = onSubmissions,
+                onAdmin = onAdmin,
                 onSignOut = viewModel::signOut
             )
         }
@@ -110,6 +112,7 @@ private fun Content(
     onAddBlock: () -> Unit,
     onEdit: () -> Unit,
     onSubmissions: () -> Unit,
+    onAdmin: () -> Unit,
     onSignOut: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -139,6 +142,22 @@ private fun Content(
                     Text("Aún no has añadido bloques",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        if (profile.isAdmin) {
+            item {
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clickable(onClick = onAdmin)
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                    .padding(14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("PANEL ADMIN", color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

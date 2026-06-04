@@ -22,6 +22,7 @@ import androidx.navigation.navArgument
 import com.meteomontana.android.navigation.Routes
 import com.meteomontana.android.navigation.Tab
 import com.meteomontana.android.navigation.mainTabs
+import com.meteomontana.android.ui.screens.admin.AdminScreen
 import com.meteomontana.android.ui.screens.detail.SchoolDetailScreen
 import com.meteomontana.android.ui.screens.notifications.NotificationsScreen
 import com.meteomontana.android.ui.screens.profile.EditProfileScreen
@@ -106,8 +107,12 @@ fun MainScreen() {
                 ProfileScreen(
                     onBack = { navController.popBackStack() },
                     onEdit = { navController.navigate(Routes.EDIT_PROFILE) },
-                    onSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) }
+                    onSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) },
+                    onAdmin = { navController.navigate(Routes.ADMIN) }
                 )
+            }
+            composable(Routes.ADMIN) {
+                AdminScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.EDIT_PROFILE) {
                 EditProfileScreen(onBack = { navController.popBackStack() })

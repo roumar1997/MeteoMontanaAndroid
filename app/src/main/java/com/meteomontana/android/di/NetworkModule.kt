@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.meteomontana.android.BuildConfig
+import com.meteomontana.android.data.api.AdminApi
 import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.data.auth.AuthInterceptor
 import com.squareup.moshi.Moshi
@@ -64,4 +65,9 @@ object NetworkModule {
     @Singleton
     fun provideSchoolApi(retrofit: Retrofit): SchoolApi =
         retrofit.create(SchoolApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAdminApi(retrofit: Retrofit): AdminApi =
+        retrofit.create(AdminApi::class.java)
 }
