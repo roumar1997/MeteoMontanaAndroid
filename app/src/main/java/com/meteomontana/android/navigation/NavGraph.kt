@@ -31,4 +31,7 @@ object Routes {
     const val ADMIN = "admin"
     const val FOLLOW_LIST = "users/{uid}/follow-list/{mode}"
     fun followList(uid: String, mode: String) = "users/$uid/follow-list/$mode"
+    const val CHAT_LIST = "chats"
+    const val CHAT = "chats/{uid}"
+    fun chat(uid: String) = "chats/$uid"
 }

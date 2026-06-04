@@ -98,6 +98,7 @@ fun PublicProfileScreen(
     onBack: () -> Unit,
     onFollowersClick: (String) -> Unit = {},
     onFollowingClick: (String) -> Unit = {},
+    onOpenChat: (String) -> Unit = {},
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -124,7 +125,8 @@ fun PublicProfileScreen(
             is PublicProfileUiState.Success -> Body(
                 s, viewModel::toggleFollow,
                 onFollowersClick = { onFollowersClick(s.profile.uid) },
-                onFollowingClick = { onFollowingClick(s.profile.uid) }
+                onFollowingClick = { onFollowingClick(s.profile.uid) },
+                onMessage = { onOpenChat(s.profile.uid) }
             )
         }
     }
@@ -135,7 +137,8 @@ private fun Body(
     s: PublicProfileUiState.Success,
     onToggleFollow: () -> Unit,
     onFollowersClick: () -> Unit,
-    onFollowingClick: () -> Unit
+    onFollowingClick: () -> Unit,
+    onMessage: () -> Unit
 ) {
     val p = s.profile
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -169,7 +172,23 @@ private fun Body(
             Stat("Grado máx", p.topGrade ?: "—")
         }
         Spacer(Modifier.height(24.dp))
-        FollowButton(s.status.iFollowThem, onToggleFollow)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.weight(1f)) {
+                FollowButton(s.status.iFollowThem, onToggleFollow)
+            }
+            Box(modifier = Modifier
+                .weight(1f)
+                .height(48.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.surface, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                .clickable(onClick = onMessage),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Mensaje", style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground)
+            }
+        }
         if (s.status.theyFollowMe) {
             Spacer(Modifier.height(8.dp))
             Text("Te sigue", style = MaterialTheme.typography.labelMedium,

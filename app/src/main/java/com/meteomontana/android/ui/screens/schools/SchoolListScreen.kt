@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
@@ -46,6 +47,7 @@ fun SchoolListScreen(
     onSubmitSchool: () -> Unit = {},
     onSearchUsers: () -> Unit = {},
     onNotifications: () -> Unit = {},
+    onChats: () -> Unit = {},
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -63,7 +65,8 @@ fun SchoolListScreen(
                     onProfileClick = onProfileClick,
                     onSubmitSchool = onSubmitSchool,
                     onSearchUsers = onSearchUsers,
-                    onNotifications = onNotifications
+                    onNotifications = onNotifications,
+                    onChats = onChats
                 )
             }
 
@@ -140,7 +143,8 @@ private fun HeaderEscuelas(
     onProfileClick: () -> Unit,
     onSubmitSchool: () -> Unit,
     onSearchUsers: () -> Unit,
-    onNotifications: () -> Unit
+    onNotifications: () -> Unit,
+    onChats: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(
@@ -156,6 +160,10 @@ private fun HeaderEscuelas(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onSearchUsers) {
                     Icon(Icons.Outlined.Search, contentDescription = "Buscar usuarios",
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
+                IconButton(onClick = onChats) {
+                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Chats",
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
                 IconButton(onClick = onNotifications) {

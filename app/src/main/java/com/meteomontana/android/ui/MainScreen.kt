@@ -23,6 +23,8 @@ import com.meteomontana.android.navigation.Routes
 import com.meteomontana.android.navigation.Tab
 import com.meteomontana.android.navigation.mainTabs
 import com.meteomontana.android.ui.screens.admin.AdminScreen
+import com.meteomontana.android.ui.screens.chat.ChatListScreen
+import com.meteomontana.android.ui.screens.chat.ChatScreen
 import com.meteomontana.android.ui.screens.detail.SchoolDetailScreen
 import com.meteomontana.android.ui.screens.notifications.NotificationsScreen
 import com.meteomontana.android.ui.screens.profile.EditProfileScreen
@@ -92,7 +94,8 @@ fun MainScreen() {
                     onProfileClick = { navController.navigate(Routes.PROFILE) },
                     onSubmitSchool = { navController.navigate(Routes.SUBMIT_SCHOOL) },
                     onSearchUsers = { navController.navigate(Routes.SEARCH_USERS) },
-                    onNotifications = { navController.navigate(Routes.NOTIFICATIONS) }
+                    onNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                    onChats = { navController.navigate(Routes.CHAT_LIST) }
                 )
             }
             composable(Tab.Radar.route) { RadarScreen() }
@@ -147,7 +150,8 @@ fun MainScreen() {
                     },
                     onFollowingClick = { uid ->
                         navController.navigate(Routes.followList(uid, "following"))
-                    }
+                    },
+                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) }
                 )
             }
             composable(
@@ -161,6 +165,18 @@ fun MainScreen() {
                     onBack = { navController.popBackStack() },
                     onUserClick = { uid -> navController.navigate(Routes.publicProfile(uid)) }
                 )
+            }
+            composable(Routes.CHAT_LIST) {
+                ChatListScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) }
+                )
+            }
+            composable(
+                route = Routes.CHAT,
+                arguments = listOf(navArgument("uid") { type = NavType.StringType })
+            ) {
+                ChatScreen(onBack = { navController.popBackStack() })
             }
         }
     }
