@@ -16,7 +16,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,6 +42,8 @@ fun SchoolListScreen(
     onSchoolClick: (String) -> Unit,
     onProfileClick: () -> Unit = {},
     onSubmitSchool: () -> Unit = {},
+    onSearchUsers: () -> Unit = {},
+    onNotifications: () -> Unit = {},
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -52,7 +56,9 @@ fun SchoolListScreen(
                 HeaderEscuelas(
                     count = (state as? SchoolListUiState.Success)?.schools?.size,
                     onProfileClick = onProfileClick,
-                    onSubmitSchool = onSubmitSchool
+                    onSubmitSchool = onSubmitSchool,
+                    onSearchUsers = onSearchUsers,
+                    onNotifications = onNotifications
                 )
             }
 
@@ -119,7 +125,13 @@ fun SchoolListScreen(
 }
 
 @Composable
-private fun HeaderEscuelas(count: Int?, onProfileClick: () -> Unit, onSubmitSchool: () -> Unit) {
+private fun HeaderEscuelas(
+    count: Int?,
+    onProfileClick: () -> Unit,
+    onSubmitSchool: () -> Unit,
+    onSearchUsers: () -> Unit,
+    onNotifications: () -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -132,10 +144,13 @@ private fun HeaderEscuelas(count: Int?, onProfileClick: () -> Unit, onSubmitScho
                 color = MaterialTheme.colorScheme.onBackground
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (count != null) {
-                    Text("$count escuelas",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(onClick = onSearchUsers) {
+                    Icon(Icons.Outlined.Search, contentDescription = "Buscar usuarios",
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
+                IconButton(onClick = onNotifications) {
+                    Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
+                        tint = MaterialTheme.colorScheme.onBackground)
                 }
                 IconButton(onClick = onProfileClick) {
                     Icon(Icons.Outlined.Person, contentDescription = "Perfil",
@@ -143,11 +158,14 @@ private fun HeaderEscuelas(count: Int?, onProfileClick: () -> Unit, onSubmitScho
                 }
             }
         }
-        // botón enviar escuela
-        Row(modifier = Modifier
-            .padding(top = 8.dp)
-            .clickable(onClick = onSubmitSchool)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            count?.let {
+                Text("$it escuelas",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Text("+ Enviar escuela",
+                modifier = Modifier.clickable(onClick = onSubmitSchool),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary)
         }

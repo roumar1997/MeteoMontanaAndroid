@@ -24,4 +24,8 @@ object Routes {
     const val EDIT_PROFILE = "profile/edit"
     const val MY_SUBMISSIONS = "submissions/me"
     const val SUBMIT_SCHOOL = "submissions/new"
+    const val SEARCH_USERS = "users/search"
+    const val NOTIFICATIONS = "notifications"
+    const val PUBLIC_PROFILE = "users/{uid}"
+    fun publicProfile(uid: String) = "users/$uid"
 }

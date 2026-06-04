@@ -23,12 +23,15 @@ import com.meteomontana.android.navigation.Routes
 import com.meteomontana.android.navigation.Tab
 import com.meteomontana.android.navigation.mainTabs
 import com.meteomontana.android.ui.screens.detail.SchoolDetailScreen
+import com.meteomontana.android.ui.screens.notifications.NotificationsScreen
 import com.meteomontana.android.ui.screens.profile.EditProfileScreen
 import com.meteomontana.android.ui.screens.profile.ProfileScreen
 import com.meteomontana.android.ui.screens.radar.RadarScreen
 import com.meteomontana.android.ui.screens.schools.SchoolListScreen
 import com.meteomontana.android.ui.screens.submissions.MySubmissionsScreen
 import com.meteomontana.android.ui.screens.submissions.SubmitSchoolScreen
+import com.meteomontana.android.ui.screens.users.PublicProfileScreen
+import com.meteomontana.android.ui.screens.users.SearchUsersScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
 
 @Composable
@@ -37,7 +40,6 @@ fun MainScreen() {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
-    // El bottom nav se muestra solo en las rutas raíz, no en detalles.
     val showBottomBar = currentRoute in mainTabs.map { it.route }
 
     Scaffold(
@@ -86,7 +88,9 @@ fun MainScreen() {
                 SchoolListScreen(
                     onSchoolClick = { id -> navController.navigate(Routes.schoolDetail(id)) },
                     onProfileClick = { navController.navigate(Routes.PROFILE) },
-                    onSubmitSchool = { navController.navigate(Routes.SUBMIT_SCHOOL) }
+                    onSubmitSchool = { navController.navigate(Routes.SUBMIT_SCHOOL) },
+                    onSearchUsers = { navController.navigate(Routes.SEARCH_USERS) },
+                    onNotifications = { navController.navigate(Routes.NOTIFICATIONS) }
                 )
             }
             composable(Tab.Radar.route) { RadarScreen() }
@@ -113,6 +117,24 @@ fun MainScreen() {
             }
             composable(Routes.SUBMIT_SCHOOL) {
                 SubmitSchoolScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.SEARCH_USERS) {
+                SearchUsersScreen(
+                    onBack = { navController.popBackStack() },
+                    onUserClick = { uid -> navController.navigate(Routes.publicProfile(uid)) }
+                )
+            }
+            composable(Routes.NOTIFICATIONS) {
+                NotificationsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenUser = { uid -> navController.navigate(Routes.publicProfile(uid)) }
+                )
+            }
+            composable(
+                route = Routes.PUBLIC_PROFILE,
+                arguments = listOf(navArgument("uid") { type = NavType.StringType })
+            ) {
+                PublicProfileScreen(onBack = { navController.popBackStack() })
             }
         }
     }

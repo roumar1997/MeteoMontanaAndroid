@@ -13,6 +13,9 @@ import com.meteomontana.android.data.api.dto.SubmitSchoolRequest
 import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
 import com.meteomontana.android.data.api.dto.FavoritesGridDto
 import com.meteomontana.android.data.api.dto.FcmTokenRequest
+import com.meteomontana.android.data.api.dto.FollowStatusDto
+import com.meteomontana.android.data.api.dto.InboxDto
+import com.meteomontana.android.data.api.dto.PublicProfileDto
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 import okhttp3.MultipartBody
 import retrofit2.http.Body
@@ -104,5 +107,40 @@ interface SchoolApi {
 
     @GET("submissions/me")
     suspend fun getMySubmissions(): List<SubmissionDto>
+
+    // ===== Social =====
+    @GET("users/search")
+    suspend fun searchUsers(
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 20
+    ): List<PublicProfileDto>
+
+    @GET("users/{uid}")
+    suspend fun getUserProfile(@Path("uid") uid: String): PublicProfileDto
+
+    @POST("users/{uid}/follow")
+    suspend fun follow(@Path("uid") uid: String)
+
+    @DELETE("users/{uid}/follow")
+    suspend fun unfollow(@Path("uid") uid: String)
+
+    @GET("users/{uid}/follow-status")
+    suspend fun getFollowStatus(@Path("uid") uid: String): FollowStatusDto
+
+    @GET("users/{uid}/followers")
+    suspend fun getFollowers(@Path("uid") uid: String): List<PublicProfileDto>
+
+    @GET("users/{uid}/following")
+    suspend fun getFollowing(@Path("uid") uid: String): List<PublicProfileDto>
+
+    // ===== Notifications inbox =====
+    @GET("me/notifications")
+    suspend fun getMyNotifications(@Query("limit") limit: Int = 50): InboxDto
+
+    @POST("me/notifications/{id}/read")
+    suspend fun markNotificationRead(@Path("id") id: String)
+
+    @POST("me/notifications/read-all")
+    suspend fun markAllNotificationsRead()
 }
 
