@@ -52,6 +52,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.theme.colorForGrade
+import com.meteomontana.android.ui.theme.gradeStyle
+import androidx.compose.ui.graphics.PathEffect
 
 private val GRADES = listOf("4", "5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c", "6c+",
     "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+")
@@ -133,7 +135,7 @@ fun TopoEditorScreen(
             ) {
                 state.lines.forEachIndexed { idx, line ->
                     if (line.stroke.points.isEmpty()) return@forEachIndexed
-                    val color = colorForGrade(line.grade)
+                    val style = gradeStyle(line.grade)
                     val path = Path()
                     line.stroke.points.forEachIndexed { i, p ->
                         val x = p.x * size.width
@@ -143,19 +145,23 @@ fun TopoEditorScreen(
                     val isSelected = line.tempId == state.selectedLineId
                     drawPath(
                         path = path,
-                        color = color,
-                        style = Stroke(width = if (isSelected) 8f else 5f)
+                        color = style.stroke,
+                        style = Stroke(
+                            width = if (isSelected) 8f else 5f,
+                            pathEffect = if (style.dashed) PathEffect.dashPathEffect(floatArrayOf(20f, 20f)) else null
+                        )
                     )
-                    // Punto inicio
+                    // Punto inicio (en color del grado)
                     val first = line.stroke.points.first()
-                    drawCircle(color = color,
+                    drawCircle(color = style.stroke,
                         radius = 12f,
                         center = Offset(first.x * size.width, first.y * size.height))
+                    // Punto final con halo blanco
                     val last = line.stroke.points.last()
                     drawCircle(color = Color.White,
                         radius = 14f,
                         center = Offset(last.x * size.width, last.y * size.height))
-                    drawCircle(color = color,
+                    drawCircle(color = style.stroke,
                         radius = 12f,
                         center = Offset(last.x * size.width, last.y * size.height))
                 }

@@ -4,20 +4,38 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * Color por grado de escalada (sistema francés).
- * Replica la paleta de la PWA en `js/topo.js`.
+ * Replica EXACTAMENTE la paleta de la PWA (`js/utils/topo-draw.js`).
+ *
+ * ≤5c+   → blanco (texto interior oscuro)
+ * 6a-6b+ → verde
+ * 6c-6c+ → azul
+ * 7a-7a+ → morado
+ * 7b-7c+ → rojo
+ * ≥8a    → negro
+ * proyecto/sin grado → rosa punteado
  */
-fun colorForGrade(grade: String?): Color {
-    if (grade.isNullOrBlank()) return Color(0xFF9CA3AF)
-    val g = grade.lowercase().trim()
+data class GradeStyle(val stroke: Color, val dashed: Boolean, val dark: Boolean)
+
+fun gradeStyle(grade: String?): GradeStyle {
+    val g = (grade ?: "").trim().uppercase()
+    if (g.isEmpty() || g == "PROY" || g == "PROYECTO" || g == "?") {
+        return GradeStyle(Color(0xFFFF4FA3), dashed = true, dark = false)
+    }
+    val re = Regex("^([3-9])([ABCD])?(\\+)?$")
+    val m = re.matchEntire(g) ?: return GradeStyle(Color(0xFFFF4FA3), dashed = true, dark = false)
+    val num = m.groupValues[1].toInt()
+    val letterScore = mapOf("A" to 0, "B" to 1, "C" to 2, "D" to 3)[m.groupValues[2].ifEmpty { "A" }] ?: 0
+    val plus = if (m.groupValues[3] == "+") 1 else 0
+    val score = num * 100 + letterScore * 10 + plus
     return when {
-        g.startsWith("3") || g.startsWith("4") -> Color(0xFF60A5FA) // azul claro
-        g.startsWith("5")                       -> Color(0xFF34D399) // verde
-        g.startsWith("6a") || g.startsWith("6b")-> Color(0xFFFACC15) // amarillo
-        g.startsWith("6c")                      -> Color(0xFFFB923C) // naranja
-        g.startsWith("7a") || g.startsWith("7b")-> Color(0xFFEF4444) // rojo
-        g.startsWith("7c")                      -> Color(0xFFA855F7) // morado
-        g.startsWith("8")                       -> Color(0xFF1F2937) // gris oscuro
-        g.startsWith("9")                       -> Color(0xFF000000) // negro
-        else                                    -> Color(0xFF9CA3AF)
+        score <= 521 -> GradeStyle(Color(0xFFFFFFFF), false, dark = true)
+        score <= 611 -> GradeStyle(Color(0xFF1FA84E), false, false)
+        score <= 621 -> GradeStyle(Color(0xFF1D6DD6), false, false)
+        score <= 701 -> GradeStyle(Color(0xFF8E3FBF), false, false)
+        score <= 721 -> GradeStyle(Color(0xFFD62828), false, false)
+        else         -> GradeStyle(Color(0xFF111111), false, false)
     }
 }
+
+/** Helper compatible con el uso anterior — solo color. */
+fun colorForGrade(grade: String?): Color = gradeStyle(grade).stroke
