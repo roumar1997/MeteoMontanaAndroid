@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.users
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -70,7 +71,7 @@ class FollowListViewModel @Inject constructor(
                 val list = if (mode == "followers") api.getFollowers(uid) else api.getFollowing(uid)
                 FollowListUiState.Success(list)
             } catch (t: Throwable) {
-                FollowListUiState.Error(t.message ?: "Error")
+                FollowListUiState.Error(t.toUserMessage())
             }
         }
     }

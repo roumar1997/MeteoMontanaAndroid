@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.profile
+import com.meteomontana.android.util.toUserMessage
 
 import android.content.Context
 import android.net.Uri
@@ -41,7 +42,7 @@ class EditProfileViewModel @Inject constructor(
             _state.value = try {
                 EditState.Editing(api.getMyProfile())
             } catch (t: Throwable) {
-                EditState.Error(t.message ?: "Error")
+                EditState.Error(t.toUserMessage())
             }
         }
     }
@@ -53,7 +54,7 @@ class EditProfileViewModel @Inject constructor(
                 api.updateMyProfile(req)
                 EditState.Saved
             } catch (t: Throwable) {
-                EditState.Error(t.message ?: "Error")
+                EditState.Error(t.toUserMessage())
             }
         }
     }

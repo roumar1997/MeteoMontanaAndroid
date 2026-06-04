@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.detail
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -57,7 +58,7 @@ class SchoolDetailViewModel @Inject constructor(
                 val blocks = runCatching { api.getBlocks(schoolId) }.getOrDefault(emptyList())
                 SchoolDetailUiState.Success(school, forecast, notes, isFav, blocks)
             } catch (t: Throwable) {
-                SchoolDetailUiState.Error(t.message ?: "Error desconocido")
+                SchoolDetailUiState.Error(t.toUserMessage())
             }
         }
     }

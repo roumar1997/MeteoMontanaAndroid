@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.profile
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -39,7 +40,7 @@ class ProfileViewModel @Inject constructor(
                 val stats = api.getMyJournalStats()
                 ProfileUiState.Success(profile, stats)
             } catch (t: Throwable) {
-                ProfileUiState.Error(t.message ?: "Error")
+                ProfileUiState.Error(t.toUserMessage())
             }
         }
     }

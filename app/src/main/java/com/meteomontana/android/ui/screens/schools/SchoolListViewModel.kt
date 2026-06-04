@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.schools
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -100,7 +101,7 @@ class SchoolListViewModel @Inject constructor(
                 loadScoresFor(list.take(30).map { it.id })
                 SchoolListUiState.Success(list)
             } catch (t: Throwable) {
-                SchoolListUiState.Error(t.message ?: "Error desconocido")
+                SchoolListUiState.Error(t.toUserMessage())
             }
         }
     }

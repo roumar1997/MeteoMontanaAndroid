@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.weather
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -68,7 +69,7 @@ class WeatherViewModel @Inject constructor(
                     val fc = api.getForecast(schoolId)
                     WeatherUiState.Success(fc, favorites, schoolId, grid)
                 } catch (t: Throwable) {
-                    WeatherUiState.Error(t.message ?: "Error")
+                    WeatherUiState.Error(t.toUserMessage())
                 }
             }
         }
@@ -81,6 +82,6 @@ class WeatherViewModel @Inject constructor(
                 favorites, null, grid
             )
         } catch (t: Throwable) {
-            WeatherUiState.Error(t.message ?: "Error")
+            WeatherUiState.Error(t.toUserMessage())
         }
 }

@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.admin
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -44,7 +45,7 @@ class AdminViewModel @Inject constructor(
                 val logs = runCatching { api.logs() }.getOrDefault(emptyList())
                 _state.update { it.copy(loading = false, stats = stats, pending = pending, logs = logs) }
             } catch (t: Throwable) {
-                _state.update { it.copy(loading = false, error = t.message ?: "Error") }
+                _state.update { it.copy(loading = false, error = t.toUserMessage()) }
             }
         }
     }

@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.topo
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -60,7 +61,7 @@ class TopoEditorViewModel @Inject constructor(
                     loading = false, block = block, lines = lines
                 )
             } catch (t: Throwable) {
-                _state.value = _state.value.copy(loading = false, error = t.message ?: "Error")
+                _state.value = _state.value.copy(loading = false, error = t.toUserMessage())
             }
         }
     }
@@ -135,7 +136,7 @@ class TopoEditorViewModel @Inject constructor(
                 val updated = api.updateBlock(block.id, req)
                 _state.value = _state.value.copy(saving = false, block = updated, savedOk = true)
             } catch (t: Throwable) {
-                _state.value = _state.value.copy(saving = false, error = t.message ?: "Error guardando")
+                _state.value = _state.value.copy(saving = false, error = t.toUserMessage())
             }
         }
     }

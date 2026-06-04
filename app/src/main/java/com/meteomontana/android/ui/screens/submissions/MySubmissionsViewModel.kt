@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.submissions
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,7 +33,7 @@ class MySubmissionsViewModel @Inject constructor(
             _state.value = try {
                 MySubmissionsUiState.Success(api.getMySubmissions())
             } catch (t: Throwable) {
-                MySubmissionsUiState.Error(t.message ?: "Error")
+                MySubmissionsUiState.Error(t.toUserMessage())
             }
         }
     }

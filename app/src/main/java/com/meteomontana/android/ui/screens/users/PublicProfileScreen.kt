@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.users
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -75,7 +76,7 @@ class PublicProfileViewModel @Inject constructor(
                     .getOrDefault(FollowStatusDto(0, 0, false, false))
                 PublicProfileUiState.Success(profile, status)
             } catch (t: Throwable) {
-                PublicProfileUiState.Error(t.message ?: "Error")
+                PublicProfileUiState.Error(t.toUserMessage())
             }
         }
     }

@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.notifications
+import com.meteomontana.android.util.toUserMessage
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -62,7 +63,7 @@ class NotificationsViewModel @Inject constructor(
             _state.value = try {
                 NotificationsUiState.Success(api.getMyNotifications())
             } catch (t: Throwable) {
-                NotificationsUiState.Error(t.message ?: "Error")
+                NotificationsUiState.Error(t.toUserMessage())
             }
         }
     }
