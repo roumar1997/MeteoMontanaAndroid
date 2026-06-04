@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,11 +39,15 @@ fun SchoolDetailScreen(
     viewModel: SchoolDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val success = state as? SchoolDetailUiState.Success
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopBar(
-            title = (state as? SchoolDetailUiState.Success)?.school?.name ?: "",
-            onBack = onBack
+            title = success?.school?.name ?: "",
+            isFavorite = success?.isFavorite ?: false,
+            showFavorite = success != null,
+            onBack = onBack,
+            onToggleFavorite = viewModel::toggleFavorite
         )
         when (val s = state) {
             is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
@@ -52,7 +58,13 @@ fun SchoolDetailScreen(
 }
 
 @Composable
-private fun TopBar(title: String, onBack: () -> Unit) {
+private fun TopBar(
+    title: String,
+    isFavorite: Boolean,
+    showFavorite: Boolean,
+    onBack: () -> Unit,
+    onToggleFavorite: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -63,7 +75,17 @@ private fun TopBar(title: String, onBack: () -> Unit) {
         }
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 4.dp))
+            modifier = Modifier.padding(start = 4.dp).weight(1f))
+        if (showFavorite) {
+            IconButton(onClick = onToggleFavorite) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                    tint = if (isFavorite) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
 }

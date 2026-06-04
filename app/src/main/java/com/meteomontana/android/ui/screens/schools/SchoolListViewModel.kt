@@ -2,6 +2,7 @@ package com.meteomontana.android.ui.screens.schools
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.repository.SchoolRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -11,10 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-// =============================================================================
-// Filtros del catálogo. Reflejan la PWA: distancia, estilo, roca, favoritos, orden.
-// =============================================================================
 
 enum class StyleFilter(val label: String, val apiValue: String?) {
     All("Todos", null),
@@ -32,8 +29,8 @@ val ROCK_TYPES       = listOf("Granito", "Caliza", "Arenisca", "Pizarra", "Basal
 
 data class SchoolFilters(
     val style: StyleFilter = StyleFilter.All,
-    val maxDistanceKm: Double? = null,    // null = Todas
-    val rockTypes: List<String> = emptyList(), // vacío = Todas
+    val maxDistanceKm: Double? = null,
+    val rockTypes: List<String> = emptyList(),
     val onlyFavorites: Boolean = false,
     val sortBy: SortBy = SortBy.Distance,
     val query: String = ""
@@ -47,10 +44,11 @@ sealed interface SchoolListUiState {
 
 @HiltViewModel
 class SchoolListViewModel @Inject constructor(
-    private val schoolRepository: SchoolRepository
+    private val schoolRepository: SchoolRepository,
+    private val api: SchoolApi
 ) : ViewModel() {
 
-    // Ubicación stub: Madrid. TODO: usar Fused Location del dispositivo.
+    // Madrid stub. Mañana: usar FusedLocation.
     private val userLat = 40.4168
     private val userLon = -3.7038
 
@@ -60,20 +58,29 @@ class SchoolListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<SchoolListUiState>(SchoolListUiState.Loading)
     val uiState: StateFlow<SchoolListUiState> = _uiState.asStateFlow()
 
-    init { load() }
+    private var favoriteIds: Set<String> = emptySet()
+
+    init {
+        viewModelScope.launch {
+            favoriteIds = runCatching { api.getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
+            load()
+        }
+    }
 
     fun load() {
         _uiState.value = SchoolListUiState.Loading
         val f = _filters.value
         viewModelScope.launch {
             _uiState.value = try {
-                val list = schoolRepository.getSchools(
+                var list = schoolRepository.getSchools(
                     style = f.style.apiValue,
                     rockType = f.rockTypes.takeIf { it.isNotEmpty() },
                     lat = if (f.maxDistanceKm != null) userLat else null,
                     lon = if (f.maxDistanceKm != null) userLon else null,
                     radioKm = f.maxDistanceKm
-                ).let { filterQuery(it, f.query) }
+                )
+                list = filterQuery(list, f.query)
+                if (f.onlyFavorites) list = list.filter { it.id in favoriteIds }
                 SchoolListUiState.Success(list)
             } catch (t: Throwable) {
                 SchoolListUiState.Error(t.message ?: "Error desconocido")
@@ -99,7 +106,13 @@ class SchoolListViewModel @Inject constructor(
         }
         load()
     }
-    fun setOnlyFavorites(v: Boolean)        { _filters.update { it.copy(onlyFavorites = v) }; load() }
+    fun setOnlyFavorites(v: Boolean) {
+        viewModelScope.launch {
+            if (v) favoriteIds = runCatching { api.getMyFavorites().map { it.id }.toSet() }.getOrDefault(favoriteIds)
+            _filters.update { it.copy(onlyFavorites = v) }
+            load()
+        }
+    }
     fun setSort(s: SortBy)                  { _filters.update { it.copy(sortBy = s) }; load() }
     fun setQuery(q: String)                 { _filters.update { it.copy(query = q) }; load() }
 }

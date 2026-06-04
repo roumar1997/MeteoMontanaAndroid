@@ -7,12 +7,15 @@ import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.messaging.FirebaseMessaging
 import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.dto.FcmTokenRequest
 import com.meteomontana.android.data.auth.AuthManager
 import com.meteomontana.android.ui.screens.login.LoginScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 /**
@@ -46,10 +49,13 @@ class AppRootViewModel @Inject constructor(
     fun ensureUserProvisioned() {
         viewModelScope.launch {
             try {
-                api.getMyProfile()  // back crea el user en BD si es 1er login
-            } catch (_: Throwable) {
-                // silencioso: si falla, lo reintentamos en otra interacción
-            }
+                api.getMyProfile()  // JIT provisioning
+                // Registrar token FCM para push
+                try {
+                    val token = FirebaseMessaging.getInstance().token.await()
+                    api.updateFcmToken(FcmTokenRequest(token))
+                } catch (_: Throwable) {}
+            } catch (_: Throwable) {}
         }
     }
 }

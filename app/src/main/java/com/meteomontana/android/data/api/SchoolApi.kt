@@ -10,12 +10,18 @@ import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.data.api.dto.SchoolDto
 import com.meteomontana.android.data.api.dto.SubmissionDto
 import com.meteomontana.android.data.api.dto.SubmitSchoolRequest
+import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
+import com.meteomontana.android.data.api.dto.FavoritesGridDto
+import com.meteomontana.android.data.api.dto.FcmTokenRequest
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
+import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.PUT
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -61,6 +67,25 @@ interface SchoolApi {
 
     @PUT("me")
     suspend fun updateMyProfile(@Body req: UpdateProfileRequest): PrivateProfileDto
+
+    @Multipart
+    @POST("me/photo")
+    suspend fun uploadMyPhoto(@Part file: MultipartBody.Part): PrivateProfileDto
+
+    @PUT("me/fcm-token")
+    suspend fun updateFcmToken(@Body req: FcmTokenRequest)
+
+    @GET("me/favorites")
+    suspend fun getMyFavorites(): List<FavoriteSchoolDto>
+
+    @POST("me/favorites/{schoolId}")
+    suspend fun addFavorite(@Path("schoolId") id: String)
+
+    @DELETE("me/favorites/{schoolId}")
+    suspend fun removeFavorite(@Path("schoolId") id: String)
+
+    @GET("me/favorites/grid")
+    suspend fun getFavoritesGrid(): FavoritesGridDto
 
     @POST("journal")
     suspend fun createJournalSession(@Body req: CreateJournalRequest): JournalSessionDto

@@ -12,6 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material3.Button
@@ -34,8 +41,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.meteomontana.android.R
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 
 @Composable
@@ -72,24 +83,56 @@ fun EditProfileScreen(
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Text(s.message, color = MaterialTheme.colorScheme.error)
                 }
-            is EditState.Editing -> EditForm(s, viewModel::save)
+            is EditState.Editing -> EditForm(
+                s, viewModel::save,
+                onPickPhoto = viewModel::uploadPhoto
+            )
             EditState.Saved -> {}
         }
     }
 }
 
 @Composable
-private fun EditForm(s: EditState.Editing, onSave: (UpdateProfileRequest) -> Unit) {
+private fun EditForm(
+    s: EditState.Editing,
+    onSave: (UpdateProfileRequest) -> Unit,
+    onPickPhoto: (Uri) -> Unit
+) {
     var username by remember { mutableStateOf(s.profile.username ?: "") }
     var displayName by remember { mutableStateOf(s.profile.displayName ?: "") }
     var bio by remember { mutableStateOf(s.profile.bio ?: "") }
     var topGrade by remember { mutableStateOf(s.profile.topGrade ?: "") }
     var isPublic by remember { mutableStateOf(s.profile.isPublic) }
 
+    val picker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> uri?.let(onPickPhoto) }
+
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Foto perfil clickable
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (s.profile.photoUrl != null) {
+                AsyncImage(
+                    model = s.profile.photoUrl,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
+                )
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.logo_cumbre),
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
+                )
+            }
+            Spacer(Modifier.padding(start = 16.dp))
+            Text("Tocar la foto para cambiarla",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
         Field("USERNAME", username, { username = it.lowercase().replace(" ", "_") },
             placeholder = "ej: alvaro_jara")
         Field("NOMBRE PARA MOSTRAR", displayName, { displayName = it },

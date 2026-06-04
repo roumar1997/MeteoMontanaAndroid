@@ -22,7 +22,8 @@ sealed interface SchoolDetailUiState {
     data class Success(
         val school: School,
         val forecast: ForecastDto,
-        val notes: List<NoteDto>
+        val notes: List<NoteDto>,
+        val isFavorite: Boolean
     ) : SchoolDetailUiState
 }
 
@@ -47,10 +48,24 @@ class SchoolDetailViewModel @Inject constructor(
                 val school = repository.getSchoolById(schoolId)
                 val forecast = api.getForecast(schoolId)
                 val notes = runCatching { api.getNotesBySchool(schoolId) }.getOrDefault(emptyList())
-                SchoolDetailUiState.Success(school, forecast, notes)
+                val isFav = runCatching {
+                    api.getMyFavorites().any { it.id == schoolId }
+                }.getOrDefault(false)
+                SchoolDetailUiState.Success(school, forecast, notes, isFav)
             } catch (t: Throwable) {
                 SchoolDetailUiState.Error(t.message ?: "Error desconocido")
             }
+        }
+    }
+
+    fun toggleFavorite() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        viewModelScope.launch {
+            try {
+                if (cur.isFavorite) api.removeFavorite(schoolId)
+                else api.addFavorite(schoolId)
+                _uiState.value = cur.copy(isFavorite = !cur.isFavorite)
+            } catch (_: Throwable) {}
         }
     }
 
@@ -58,12 +73,9 @@ class SchoolDetailViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 api.createNote(schoolId, CreateNoteRequest(text))
-                // refresca solo las notas
                 val notes = api.getNotesBySchool(schoolId)
                 val cur = _uiState.value
-                if (cur is SchoolDetailUiState.Success) {
-                    _uiState.value = cur.copy(notes = notes)
-                }
+                if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(notes = notes)
             } catch (_: Throwable) {}
         }
     }
