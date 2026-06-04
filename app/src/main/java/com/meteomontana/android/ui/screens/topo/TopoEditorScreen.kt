@@ -39,6 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -106,7 +108,7 @@ fun TopoEditorScreen(
         }
 
         // ───── Foto + Canvas líneas ─────
-        var canvasSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+        var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
         Box(modifier = Modifier.fillMaxWidth().background(Color.Black)) {
             if (!block.photoPath.isNullOrBlank()) {
@@ -317,9 +319,7 @@ private fun NewLineDialog(
     )
 }
 
-// Helper: capturar el tamaño actual del Canvas
+// Helper: captura el tamaño del Canvas usando onSizeChanged de Compose
 private fun Modifier.onGloballyPositionedSize(
-    onSize: (androidx.compose.ui.unit.IntSize) -> Unit
-): Modifier = this.then(
-    androidx.compose.ui.layout.onSizeChanged { onSize(it) }
-)
+    onSize: (IntSize) -> Unit
+): Modifier = this.onSizeChanged { onSize(it) }
