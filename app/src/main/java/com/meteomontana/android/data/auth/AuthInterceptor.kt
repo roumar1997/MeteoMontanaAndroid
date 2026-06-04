@@ -8,11 +8,10 @@ import javax.inject.Singleton
 
 /**
  * Interceptor OkHttp que añade Authorization: Bearer <ID-token> en cada request.
- * Si no hay usuario logueado, no añade nada (el back permite anónimos para
- * endpoints públicos).
  *
- * El token de Firebase caduca cada hora. `getIdToken(false)` lo refresca
- * automáticamente si está caducado — no nos preocupamos por eso.
+ * Si el primer intento recibe 401/403, refresca el token de Firebase forzosamente
+ * y reintenta la petición una vez. Así si el token ha caducado, se recupera
+ * automáticamente sin que el usuario tenga que hacer logout.
  */
 @Singleton
 class AuthInterceptor @Inject constructor(
@@ -21,16 +20,27 @@ class AuthInterceptor @Inject constructor(
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
 
-        // Bloqueamos brevemente para coger el token (es un await rápido).
-        // OkHttp ya corre en hilo de IO, así que es seguro aquí.
-        val token: String? = runBlocking { authManager.currentIdToken() }
+        // Intento 1: token cacheado (rápido)
+        val token: String? = runBlocking { authManager.currentIdToken(forceRefresh = false) }
 
-        val newRequest = if (token != null) {
-            original.newBuilder()
-                .header("Authorization", "Bearer $token")
-                .build()
-        } else original
+        val response = chain.proceed(
+            if (token != null) original.newBuilder()
+                .header("Authorization", "Bearer $token").build()
+            else original
+        )
 
-        return chain.proceed(newRequest)
+        // Si recibimos 401 o 403 Y tenemos usuario, refrescamos el token y reintentamos
+        if ((response.code == 401 || response.code == 403) && token != null) {
+            response.close()
+            val freshToken: String? = runBlocking { authManager.currentIdToken(forceRefresh = true) }
+            if (freshToken != null && freshToken != token) {
+                return chain.proceed(
+                    original.newBuilder()
+                        .header("Authorization", "Bearer $freshToken").build()
+                )
+            }
+        }
+
+        return response
     }
 }
