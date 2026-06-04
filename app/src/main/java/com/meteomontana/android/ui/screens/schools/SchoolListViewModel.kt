@@ -58,12 +58,24 @@ class SchoolListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<SchoolListUiState>(SchoolListUiState.Loading)
     val uiState: StateFlow<SchoolListUiState> = _uiState.asStateFlow()
 
+    private val _unreadCount = MutableStateFlow(0L)
+    val unreadCount: StateFlow<Long> = _unreadCount.asStateFlow()
+
     private var favoriteIds: Set<String> = emptySet()
 
     init {
         viewModelScope.launch {
             favoriteIds = runCatching { api.getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
             load()
+            refreshUnread()
+        }
+    }
+
+    fun refreshUnread() {
+        viewModelScope.launch {
+            runCatching { api.getMyNotifications(limit = 1) }.onSuccess {
+                _unreadCount.value = it.unreadCount
+            }
         }
     }
 

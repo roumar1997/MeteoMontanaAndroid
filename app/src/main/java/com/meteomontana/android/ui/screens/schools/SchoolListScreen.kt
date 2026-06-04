@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,6 +50,7 @@ fun SchoolListScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val filters by viewModel.filters.collectAsState()
+    val unread by viewModel.unreadCount.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -55,6 +58,7 @@ fun SchoolListScreen(
             item {
                 HeaderEscuelas(
                     count = (state as? SchoolListUiState.Success)?.schools?.size,
+                    unread = unread,
                     onProfileClick = onProfileClick,
                     onSubmitSchool = onSubmitSchool,
                     onSearchUsers = onSearchUsers,
@@ -127,6 +131,7 @@ fun SchoolListScreen(
 @Composable
 private fun HeaderEscuelas(
     count: Int?,
+    unread: Long,
     onProfileClick: () -> Unit,
     onSubmitSchool: () -> Unit,
     onSearchUsers: () -> Unit,
@@ -149,8 +154,20 @@ private fun HeaderEscuelas(
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
                 IconButton(onClick = onNotifications) {
-                    Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
-                        tint = MaterialTheme.colorScheme.onBackground)
+                    if (unread > 0) {
+                        BadgedBox(badge = {
+                            Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                Text(if (unread > 9) "9+" else unread.toString(),
+                                    color = androidx.compose.ui.graphics.Color.White)
+                            }
+                        }) {
+                            Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
+                                tint = MaterialTheme.colorScheme.onBackground)
+                        }
+                    } else {
+                        Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
+                            tint = MaterialTheme.colorScheme.onBackground)
+                    }
                 }
                 IconButton(onClick = onProfileClick) {
                     Icon(Icons.Outlined.Person, contentDescription = "Perfil",
