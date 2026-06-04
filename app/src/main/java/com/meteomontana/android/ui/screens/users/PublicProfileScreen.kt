@@ -96,6 +96,8 @@ class PublicProfileViewModel @Inject constructor(
 @Composable
 fun PublicProfileScreen(
     onBack: () -> Unit,
+    onFollowersClick: (String) -> Unit = {},
+    onFollowingClick: (String) -> Unit = {},
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -119,13 +121,22 @@ fun PublicProfileScreen(
             is PublicProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
             }
-            is PublicProfileUiState.Success -> Body(s, viewModel::toggleFollow)
+            is PublicProfileUiState.Success -> Body(
+                s, viewModel::toggleFollow,
+                onFollowersClick = { onFollowersClick(s.profile.uid) },
+                onFollowingClick = { onFollowingClick(s.profile.uid) }
+            )
         }
     }
 }
 
 @Composable
-private fun Body(s: PublicProfileUiState.Success, onToggleFollow: () -> Unit) {
+private fun Body(
+    s: PublicProfileUiState.Success,
+    onToggleFollow: () -> Unit,
+    onFollowersClick: () -> Unit,
+    onFollowingClick: () -> Unit
+) {
     val p = s.profile
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -151,8 +162,10 @@ private fun Body(s: PublicProfileUiState.Success, onToggleFollow: () -> Unit) {
         }
         Spacer(Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Stat("Seguidores", s.status.followers.toString())
-            Stat("Siguiendo", s.status.following.toString())
+            Stat("Seguidores", s.status.followers.toString(),
+                modifier = Modifier.clickable(onClick = onFollowersClick))
+            Stat("Siguiendo", s.status.following.toString(),
+                modifier = Modifier.clickable(onClick = onFollowingClick))
             Stat("Grado máx", p.topGrade ?: "—")
         }
         Spacer(Modifier.height(24.dp))
@@ -167,8 +180,8 @@ private fun Body(s: PublicProfileUiState.Success, onToggleFollow: () -> Unit) {
 }
 
 @Composable
-private fun Stat(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground)
         Text(label, style = MaterialTheme.typography.labelMedium,

@@ -51,6 +51,7 @@ fun SchoolListScreen(
     val state by viewModel.uiState.collectAsState()
     val filters by viewModel.filters.collectAsState()
     val unread by viewModel.unreadCount.collectAsState()
+    val scores by viewModel.scores.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -104,9 +105,13 @@ fun SchoolListScreen(
                 is SchoolListUiState.Error   -> item { ErrorRow(s.message) }
                 is SchoolListUiState.Success -> {
                     itemsIndexed(s.schools, key = { _, it -> it.id }) { index, school ->
+                        val score = scores[school.id]
                         SchoolListItem(
                             rank = index + 1,
                             school = school,
+                            todayScore = score?.todayScore,
+                            hourlyScores = score?.hourlyScores,
+                            dry = score?.dryRock,
                             onClick = { onSchoolClick(school.id) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)

@@ -31,6 +31,7 @@ import com.meteomontana.android.ui.screens.radar.RadarScreen
 import com.meteomontana.android.ui.screens.schools.SchoolListScreen
 import com.meteomontana.android.ui.screens.submissions.MySubmissionsScreen
 import com.meteomontana.android.ui.screens.submissions.SubmitSchoolScreen
+import com.meteomontana.android.ui.screens.users.FollowListScreen
 import com.meteomontana.android.ui.screens.users.PublicProfileScreen
 import com.meteomontana.android.ui.screens.users.SearchUsersScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
@@ -139,7 +140,27 @@ fun MainScreen() {
                 route = Routes.PUBLIC_PROFILE,
                 arguments = listOf(navArgument("uid") { type = NavType.StringType })
             ) {
-                PublicProfileScreen(onBack = { navController.popBackStack() })
+                PublicProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onFollowersClick = { uid ->
+                        navController.navigate(Routes.followList(uid, "followers"))
+                    },
+                    onFollowingClick = { uid ->
+                        navController.navigate(Routes.followList(uid, "following"))
+                    }
+                )
+            }
+            composable(
+                route = Routes.FOLLOW_LIST,
+                arguments = listOf(
+                    navArgument("uid") { type = NavType.StringType },
+                    navArgument("mode") { type = NavType.StringType }
+                )
+            ) {
+                FollowListScreen(
+                    onBack = { navController.popBackStack() },
+                    onUserClick = { uid -> navController.navigate(Routes.publicProfile(uid)) }
+                )
             }
         }
     }

@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.CreateNoteRequest
 import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.NoteDto
@@ -23,7 +25,8 @@ sealed interface SchoolDetailUiState {
         val school: School,
         val forecast: ForecastDto,
         val notes: List<NoteDto>,
-        val isFavorite: Boolean
+        val isFavorite: Boolean,
+        val blocks: List<BlockDto>
     ) : SchoolDetailUiState
 }
 
@@ -51,7 +54,8 @@ class SchoolDetailViewModel @Inject constructor(
                 val isFav = runCatching {
                     api.getMyFavorites().any { it.id == schoolId }
                 }.getOrDefault(false)
-                SchoolDetailUiState.Success(school, forecast, notes, isFav)
+                val blocks = runCatching { api.getBlocks(schoolId) }.getOrDefault(emptyList())
+                SchoolDetailUiState.Success(school, forecast, notes, isFav, blocks)
             } catch (t: Throwable) {
                 SchoolDetailUiState.Error(t.message ?: "Error desconocido")
             }
@@ -76,6 +80,17 @@ class SchoolDetailViewModel @Inject constructor(
                 val notes = api.getNotesBySchool(schoolId)
                 val cur = _uiState.value
                 if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(notes = notes)
+            } catch (_: Throwable) {}
+        }
+    }
+
+    fun addBlock(req: CreateBlockRequest) {
+        viewModelScope.launch {
+            try {
+                api.createBlock(schoolId, req)
+                val blocks = api.getBlocks(schoolId)
+                val cur = _uiState.value
+                if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(blocks = blocks)
             } catch (_: Throwable) {}
         }
     }

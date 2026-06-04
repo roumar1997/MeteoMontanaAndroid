@@ -61,6 +61,9 @@ class SchoolListViewModel @Inject constructor(
     private val _unreadCount = MutableStateFlow(0L)
     val unreadCount: StateFlow<Long> = _unreadCount.asStateFlow()
 
+    private val _scores = MutableStateFlow<Map<String, com.meteomontana.android.data.api.dto.SchoolScoreDto>>(emptyMap())
+    val scores: StateFlow<Map<String, com.meteomontana.android.data.api.dto.SchoolScoreDto>> = _scores.asStateFlow()
+
     private var favoriteIds: Set<String> = emptySet()
 
     init {
@@ -93,9 +96,20 @@ class SchoolListViewModel @Inject constructor(
                 )
                 list = filterQuery(list, f.query)
                 if (f.onlyFavorites) list = list.filter { it.id in favoriteIds }
+                // Cargar scores en background para los primeros 30
+                loadScoresFor(list.take(30).map { it.id })
                 SchoolListUiState.Success(list)
             } catch (t: Throwable) {
                 SchoolListUiState.Error(t.message ?: "Error desconocido")
+            }
+        }
+    }
+
+    private fun loadScoresFor(ids: List<String>) {
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            runCatching { api.getTodayScores(ids) }.onSuccess { results ->
+                _scores.value = results.associateBy { it.id }
             }
         }
     }

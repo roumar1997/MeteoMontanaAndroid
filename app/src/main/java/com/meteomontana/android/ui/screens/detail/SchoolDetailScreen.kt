@@ -23,13 +23,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.ui.components.BlocksSection
 import com.meteomontana.android.ui.components.NotesSection
 import com.meteomontana.android.ui.components.forecastBody
 
@@ -40,6 +45,7 @@ fun SchoolDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val success = state as? SchoolDetailUiState.Success
+    var addBlockOpen by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopBar(
@@ -52,8 +58,24 @@ fun SchoolDetailScreen(
         when (val s = state) {
             is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
             is SchoolDetailUiState.Error -> Center { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
-            is SchoolDetailUiState.Success -> Content(s.school, s.forecast, s.notes, viewModel::publishNote)
+            is SchoolDetailUiState.Success -> Content(
+                school = s.school, forecast = s.forecast, notes = s.notes, blocks = s.blocks,
+                onPublishNote = viewModel::publishNote,
+                onAddBlock = { addBlockOpen = true }
+            )
         }
+    }
+
+    if (addBlockOpen && success != null) {
+        AddBlockToSchoolSheet(
+            schoolLat = success.school.lat,
+            schoolLon = success.school.lon,
+            onDismiss = { addBlockOpen = false },
+            onSave = { req ->
+                viewModel.addBlock(req)
+                addBlockOpen = false
+            }
+        )
     }
 }
 
@@ -80,7 +102,7 @@ private fun TopBar(
             IconButton(onClick = onToggleFavorite) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                    contentDescription = null,
                     tint = if (isFavorite) MaterialTheme.colorScheme.primary
                            else MaterialTheme.colorScheme.onBackground
                 )
@@ -95,10 +117,14 @@ private fun Content(
     school: School,
     forecast: ForecastDto,
     notes: List<NoteDto>,
-    onPublishNote: (String) -> Unit
+    blocks: List<BlockDto>,
+    onPublishNote: (String) -> Unit,
+    onAddBlock: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         forecastBody(forecast)
+        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
+        item { BlocksSection(blocks = blocks, onAddBlock = onAddBlock) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
         item { NotesSection(notes = notes, onPublish = onPublishNote) }
         item { Spacer(Modifier.height(40.dp)) }

@@ -29,4 +29,6 @@ object Routes {
     const val PUBLIC_PROFILE = "users/{uid}"
     fun publicProfile(uid: String) = "users/$uid"
     const val ADMIN = "admin"
+    const val FOLLOW_LIST = "users/{uid}/follow-list/{mode}"
+    fun followList(uid: String, mode: String) = "users/$uid/follow-list/$mode"
 }

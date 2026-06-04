@@ -16,6 +16,9 @@ import com.meteomontana.android.data.api.dto.FcmTokenRequest
 import com.meteomontana.android.data.api.dto.FollowStatusDto
 import com.meteomontana.android.data.api.dto.InboxDto
 import com.meteomontana.android.data.api.dto.PublicProfileDto
+import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.data.api.dto.CreateBlockRequest
+import com.meteomontana.android.data.api.dto.SchoolScoreDto
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 import okhttp3.MultipartBody
 import retrofit2.http.Body
@@ -142,5 +145,19 @@ interface SchoolApi {
 
     @POST("me/notifications/read-all")
     suspend fun markAllNotificationsRead()
+
+    // ===== Blocks =====
+    @GET("schools/{id}/blocks")
+    suspend fun getBlocks(@Path("id") id: String): List<BlockDto>
+
+    @POST("schools/{id}/blocks")
+    suspend fun createBlock(@Path("id") id: String, @Body req: CreateBlockRequest): BlockDto
+
+    @DELETE("blocks/{id}")
+    suspend fun deleteBlock(@Path("id") id: String)
+
+    // ===== Today scores batch =====
+    @GET("forecast/today-scores")
+    suspend fun getTodayScores(@Query("ids") ids: List<String>): List<SchoolScoreDto>
 }
 
