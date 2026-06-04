@@ -28,7 +28,8 @@ import com.meteomontana.android.data.api.dto.BlockDto
 @Composable
 fun BlocksSection(
     blocks: List<BlockDto>,
-    onAddBlock: () -> Unit
+    onAddBlock: () -> Unit,
+    onBlockClick: (String) -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(),
@@ -56,16 +57,17 @@ fun BlocksSection(
             modifier = Modifier.padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(blocks) { b -> BlockCard(b) }
+            items(blocks) { b -> BlockCard(b, onClick = { onBlockClick(b.id) }) }
         }
     }
 }
 
 @Composable
-private fun BlockCard(b: BlockDto) {
+private fun BlockCard(b: BlockDto, onClick: () -> Unit) {
     Column(modifier = Modifier
         .width(160.dp)
         .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
+        .clickable(onClick = onClick)
         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
         .padding(8.dp)
     ) {

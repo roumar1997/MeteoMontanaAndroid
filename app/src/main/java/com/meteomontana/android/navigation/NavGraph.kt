@@ -34,4 +34,6 @@ object Routes {
     const val CHAT_LIST = "chats"
     const val CHAT = "chats/{uid}"
     fun chat(uid: String) = "chats/$uid"
+    const val TOPO_EDITOR = "topo/{blockId}"
+    fun topoEditor(blockId: String) = "topo/$blockId"
 }

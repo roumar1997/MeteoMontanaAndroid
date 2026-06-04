@@ -33,6 +33,7 @@ import com.meteomontana.android.ui.screens.radar.RadarScreen
 import com.meteomontana.android.ui.screens.schools.SchoolListScreen
 import com.meteomontana.android.ui.screens.submissions.MySubmissionsScreen
 import com.meteomontana.android.ui.screens.submissions.SubmitSchoolScreen
+import com.meteomontana.android.ui.screens.topo.TopoEditorScreen
 import com.meteomontana.android.ui.screens.users.FollowListScreen
 import com.meteomontana.android.ui.screens.users.PublicProfileScreen
 import com.meteomontana.android.ui.screens.users.SearchUsersScreen
@@ -104,7 +105,10 @@ fun MainScreen() {
                 route = Routes.SCHOOL_DETAIL,
                 arguments = listOf(navArgument("schoolId") { type = NavType.StringType })
             ) {
-                SchoolDetailScreen(onBack = { navController.popBackStack() })
+                SchoolDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) }
+                )
             }
 
             composable(Routes.PROFILE) {
@@ -177,6 +181,12 @@ fun MainScreen() {
                 arguments = listOf(navArgument("uid") { type = NavType.StringType })
             ) {
                 ChatScreen(onBack = { navController.popBackStack() })
+            }
+            composable(
+                route = Routes.TOPO_EDITOR,
+                arguments = listOf(navArgument("blockId") { type = NavType.StringType })
+            ) {
+                TopoEditorScreen(onBack = { navController.popBackStack() })
             }
         }
     }

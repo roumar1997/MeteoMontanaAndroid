@@ -41,6 +41,7 @@ import com.meteomontana.android.ui.components.forecastBody
 @Composable
 fun SchoolDetailScreen(
     onBack: () -> Unit,
+    onOpenBlock: (String) -> Unit = {},
     viewModel: SchoolDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -61,7 +62,8 @@ fun SchoolDetailScreen(
             is SchoolDetailUiState.Success -> Content(
                 school = s.school, forecast = s.forecast, notes = s.notes, blocks = s.blocks,
                 onPublishNote = viewModel::publishNote,
-                onAddBlock = { addBlockOpen = true }
+                onAddBlock = { addBlockOpen = true },
+                onBlockClick = onOpenBlock
             )
         }
     }
@@ -119,12 +121,13 @@ private fun Content(
     notes: List<NoteDto>,
     blocks: List<BlockDto>,
     onPublishNote: (String) -> Unit,
-    onAddBlock: () -> Unit
+    onAddBlock: () -> Unit,
+    onBlockClick: (String) -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         forecastBody(forecast)
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
-        item { BlocksSection(blocks = blocks, onAddBlock = onAddBlock) }
+        item { BlocksSection(blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
         item { NotesSection(notes = notes, onPublish = onPublishNote) }
         item { Spacer(Modifier.height(40.dp)) }
