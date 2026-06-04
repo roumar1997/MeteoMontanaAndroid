@@ -21,4 +21,7 @@ object Routes {
     const val SCHOOL_DETAIL = "schools/{schoolId}"
     fun schoolDetail(id: String) = "schools/$id"
     const val PROFILE = "profile"
+    const val EDIT_PROFILE = "profile/edit"
+    const val MY_SUBMISSIONS = "submissions/me"
+    const val SUBMIT_SCHOOL = "submissions/new"
 }

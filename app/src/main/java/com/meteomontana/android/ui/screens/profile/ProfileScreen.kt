@@ -52,6 +52,8 @@ import com.meteomontana.android.data.api.dto.SchoolStatsDto
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit,
+    onEdit: () -> Unit = {},
+    onSubmissions: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -66,6 +68,8 @@ fun ProfileScreen(
                 profile = s.profile,
                 stats = s.stats,
                 onAddBlock = { addBlockOpen = true },
+                onEdit = onEdit,
+                onSubmissions = onSubmissions,
                 onSignOut = viewModel::signOut
             )
         }
@@ -104,10 +108,19 @@ private fun Content(
     profile: PrivateProfileDto,
     stats: JournalStatsDto,
     onAddBlock: () -> Unit,
+    onEdit: () -> Unit,
+    onSubmissions: () -> Unit,
     onSignOut: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item { Header(profile) }
+        item {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MiniButton("Editar perfil", onClick = onEdit, modifier = Modifier.weight(1f))
+                MiniButton("Mis propuestas", onClick = onSubmissions, modifier = Modifier.weight(1f))
+            }
+        }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         item { TogglesSection(profile) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -264,6 +277,21 @@ private fun SchoolEntryRow(entry: SchoolStatsDto) {
         }
         Text("›", style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun MiniButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onBackground)
     }
 }
 

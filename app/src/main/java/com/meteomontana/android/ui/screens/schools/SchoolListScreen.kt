@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import com.meteomontana.android.ui.components.SchoolListItem
 fun SchoolListScreen(
     onSchoolClick: (String) -> Unit,
     onProfileClick: () -> Unit = {},
+    onSubmitSchool: () -> Unit = {},
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -49,7 +51,8 @@ fun SchoolListScreen(
             item {
                 HeaderEscuelas(
                     count = (state as? SchoolListUiState.Success)?.schools?.size,
-                    onProfileClick = onProfileClick
+                    onProfileClick = onProfileClick,
+                    onSubmitSchool = onSubmitSchool
                 )
             }
 
@@ -116,34 +119,37 @@ fun SchoolListScreen(
 }
 
 @Composable
-private fun HeaderEscuelas(count: Int?, onProfileClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            "Escuelas",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (count != null) {
-                Text(
-                    "$count escuelas",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+private fun HeaderEscuelas(count: Int?, onProfileClick: () -> Unit, onSubmitSchool: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Escuelas",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (count != null) {
+                    Text("$count escuelas",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onProfileClick) {
+                    Icon(Icons.Outlined.Person, contentDescription = "Perfil",
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
             }
-            IconButton(onClick = onProfileClick) {
-                Icon(
-                    Icons.Outlined.Person,
-                    contentDescription = "Perfil",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
+        }
+        // botón enviar escuela
+        Row(modifier = Modifier
+            .padding(top = 8.dp)
+            .clickable(onClick = onSubmitSchool)) {
+            Text("+ Enviar escuela",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary)
         }
     }
 }

@@ -100,6 +100,10 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
 
+    // Location
+    implementation(libs.play.services.location)
+    implementation(libs.accompanist.permissions)
+
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

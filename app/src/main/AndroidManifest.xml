@@ -4,6 +4,9 @@
 
     <!-- Necesario para llamar a la API REST -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Ubicación aproximada (para Tab Tiempo) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:name=".MeteoMontanaApp"
