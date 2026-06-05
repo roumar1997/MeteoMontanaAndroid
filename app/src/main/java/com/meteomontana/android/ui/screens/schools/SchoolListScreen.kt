@@ -1,19 +1,19 @@
 package com.meteomontana.android.ui.screens.schools
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -33,12 +33,19 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.components.SchoolListItem
+import com.meteomontana.android.ui.theme.Spacing
+import com.meteomontana.android.ui.theme.Terra
+import com.meteomontana.android.ui.theme.TerraBg
 
 @Composable
 fun SchoolListScreen(
@@ -48,36 +55,50 @@ fun SchoolListScreen(
     onSearchUsers: () -> Unit = {},
     onNotifications: () -> Unit = {},
     onChats: () -> Unit = {},
+    onDonate: () -> Unit = {},
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     val filters by viewModel.filters.collectAsState()
     val unread by viewModel.unreadCount.collectAsState()
     val scores by viewModel.scores.collectAsState()
+    var mapExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            // Header
+
+            // Fila de iconos top (no existe en la PWA pero hay que mantener
+            // navegación a chats/notifs/perfil). Discreta para que el header
+            // siguiente sea el foco visual.
             item {
-                HeaderEscuelas(
-                    count = (state as? SchoolListUiState.Success)?.schools?.size,
+                TopIconsRow(
                     unread = unread,
-                    onProfileClick = onProfileClick,
-                    onSubmitSchool = onSubmitSchool,
                     onSearchUsers = onSearchUsers,
+                    onChats = onChats,
                     onNotifications = onNotifications,
-                    onChats = onChats
+                    onProfileClick = onProfileClick
                 )
             }
 
+            // Header PWA: "Escuelas" · "193 escuelas" · [+ Enviar escuela]
+            item {
+                HeaderEscuelas(
+                    count = (state as? SchoolListUiState.Success)?.schools?.size,
+                    onSubmitSchool = onSubmitSchool
+                )
+            }
+
+            // Banner café: ¿Te ayuda la app? · Apóyanos
+            item { CoffeeBanner(onDonate = onDonate) }
+
             // Buscador
             item {
-                Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
                     OutlinedTextField(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Buscar escuela...") },
+                        placeholder = { Text("Buscar escuela…") },
                         singleLine = true,
                         shape = MaterialTheme.shapes.small,
                         colors = TextFieldDefaults.colors(
@@ -88,7 +109,22 @@ fun SchoolListScreen(
                 }
             }
 
-            // Barra de filtros
+            // Mapa global "VER MAPA" — colapsable con markers de las escuelas
+            // visibles (mismas que la lista de abajo: usa los filtros del VM).
+            item {
+                val successState = state as? SchoolListUiState.Success
+                SchoolsMapPanel(
+                    schools = successState?.schools.orEmpty(),
+                    scoresById = scores.mapValues { it.value.todayScore },
+                    userLat = null,   // TODO: pasar ubicación real cuando el VM la exponga.
+                    userLon = null,
+                    expanded = mapExpanded,
+                    onToggle = { mapExpanded = !mapExpanded },
+                    onSchoolDetail = onSchoolClick
+                )
+            }
+
+            // Filtros
             item {
                 SchoolFiltersBar(
                     filters = filters,
@@ -102,7 +138,6 @@ fun SchoolListScreen(
 
             item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
 
-            // Contenido según estado
             when (val s = state) {
                 is SchoolListUiState.Loading -> item { LoaderRow() }
                 is SchoolListUiState.Error   -> item { ErrorRow(s.message) }
@@ -121,7 +156,7 @@ fun SchoolListScreen(
                     }
                     if (s.schools.isEmpty()) {
                         item {
-                            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.fillMaxWidth().padding(Spacing.xl), contentAlignment = Alignment.Center) {
                                 Text(
                                     "No hay escuelas con esos filtros",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -136,82 +171,151 @@ fun SchoolListScreen(
     }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Sub-componentes del header                                                 */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun TopIconsRow(
+    unread: Long,
+    onSearchUsers: () -> Unit,
+    onChats: () -> Unit,
+    onNotifications: () -> Unit,
+    onProfileClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.xs),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onSearchUsers) {
+            Icon(Icons.Outlined.Search, contentDescription = "Buscar usuarios",
+                tint = MaterialTheme.colorScheme.onBackground)
+        }
+        IconButton(onClick = onChats) {
+            Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Chats",
+                tint = MaterialTheme.colorScheme.onBackground)
+        }
+        IconButton(onClick = onNotifications) {
+            if (unread > 0) {
+                BadgedBox(badge = {
+                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                        Text(if (unread > 9) "9+" else unread.toString(), color = Color.White)
+                    }
+                }) {
+                    Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
+            } else {
+                Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
+                    tint = MaterialTheme.colorScheme.onBackground)
+            }
+        }
+        IconButton(onClick = onProfileClick) {
+            Icon(Icons.Outlined.Person, contentDescription = "Perfil",
+                tint = MaterialTheme.colorScheme.onBackground)
+        }
+    }
+}
+
+/** Header como en la PWA: título grande, count debajo, botón outlined a la derecha. */
 @Composable
 private fun HeaderEscuelas(
     count: Int?,
-    unread: Long,
-    onProfileClick: () -> Unit,
-    onSubmitSchool: () -> Unit,
-    onSearchUsers: () -> Unit,
-    onNotifications: () -> Unit,
-    onChats: () -> Unit
+    onSubmitSchool: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 "Escuelas",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onSearchUsers) {
-                    Icon(Icons.Outlined.Search, contentDescription = "Buscar usuarios",
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
-                IconButton(onClick = onChats) {
-                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Chats",
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
-                IconButton(onClick = onNotifications) {
-                    if (unread > 0) {
-                        BadgedBox(badge = {
-                            Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                                Text(if (unread > 9) "9+" else unread.toString(),
-                                    color = androidx.compose.ui.graphics.Color.White)
-                            }
-                        }) {
-                            Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
-                                tint = MaterialTheme.colorScheme.onBackground)
-                        }
-                    } else {
-                        Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
-                            tint = MaterialTheme.colorScheme.onBackground)
-                    }
-                }
-                IconButton(onClick = onProfileClick) {
-                    Icon(Icons.Outlined.Person, contentDescription = "Perfil",
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
+            if (count != null) {
+                Text(
+                    "$count escuelas",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            count?.let {
-                Text("$it escuelas",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text("+ Enviar escuela",
-                modifier = Modifier.clickable(onClick = onSubmitSchool),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary)
+        OutlinedCumbreButton(text = "+ Enviar escuela", onClick = onSubmitSchool)
+    }
+}
+
+/** Banner café. Fondo `terraBg`, borde `rule`, botón outlined a la derecha. */
+@Composable
+private fun CoffeeBanner(onDonate: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .background(TerraBg)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .padding(horizontal = Spacing.md, vertical = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "☕",
+            modifier = Modifier.padding(end = Spacing.sm),
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "¿Te ayuda la app?",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                "Mantenida con amor por la comunidad escaladora",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+        OutlinedCumbreButton(text = "Apóyanos", onClick = onDonate)
+    }
+}
+
+/**
+ * Botón outlined estilo PWA: borde `ink`, texto `ink`, fondo transparente,
+ * radius muy bajo. Material3 OutlinedButton tiene esquinas redondeadas y
+ * padding excesivos, así que lo construimos como Box clickable.
+ */
+@Composable
+private fun OutlinedCumbreButton(text: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (text == "+ Enviar escuela") Terra else MaterialTheme.colorScheme.onBackground
+        )
     }
 }
 
 @Composable
 private fun LoaderRow() {
-    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) {
         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
     }
 }
 
 @Composable
 private fun ErrorRow(message: String) {
-    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) {
         Text(
             "Error: $message",
             style = MaterialTheme.typography.bodyLarge,

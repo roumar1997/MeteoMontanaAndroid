@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.CreateNoteRequest
 import com.meteomontana.android.data.api.dto.ForecastDto
@@ -89,6 +90,10 @@ class SchoolDetailViewModel @Inject constructor(
             } catch (_: Throwable) {}
         }
     }
+
+    /** Envía una propuesta de mejora (parking, piedra, sector, corrección). */
+    suspend fun submitContribution(req: ContributionRequest): Result<Unit> =
+        runCatching { api.submitContribution(schoolId, req); Unit }
 
     fun addBlock(req: CreateBlockRequest) {
         viewModelScope.launch {

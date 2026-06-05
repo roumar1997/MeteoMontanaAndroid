@@ -4,6 +4,7 @@ import com.meteomontana.android.data.api.dto.AdminLogDto
 import com.meteomontana.android.data.api.dto.AdminPushRequest
 import com.meteomontana.android.data.api.dto.AdminPushResponse
 import com.meteomontana.android.data.api.dto.AdminStatsDto
+import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.RejectReason
 import com.meteomontana.android.data.api.dto.SubmissionDto
 import retrofit2.http.Body
@@ -31,4 +32,14 @@ interface AdminApi {
 
     @POST("admin/push")
     suspend fun sendPush(@Body req: AdminPushRequest): AdminPushResponse
+
+    // ── Contributions (mejoras de escuelas existentes) ──
+    @GET("admin/contributions")
+    suspend fun pendingContributions(): List<ContributionDto>
+
+    @POST("admin/contributions/{id}/approve")
+    suspend fun approveContribution(@Path("id") id: String): ContributionDto
+
+    @POST("admin/contributions/{id}/reject")
+    suspend fun rejectContribution(@Path("id") id: String, @Body req: RejectReason): ContributionDto
 }

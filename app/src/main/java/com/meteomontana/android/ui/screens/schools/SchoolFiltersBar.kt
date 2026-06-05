@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.ui.components.CumbreChip
+import com.meteomontana.android.ui.theme.EyebrowTextStyle
 
 /**
  * Barra de filtros estilo PWA: 5 secciones apiladas (distancia, estilo, roca,
@@ -80,7 +81,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             title,
-            style = MaterialTheme.typography.labelMedium,
+            style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 12.dp)
         )

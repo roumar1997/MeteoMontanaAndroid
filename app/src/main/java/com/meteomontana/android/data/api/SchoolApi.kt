@@ -19,6 +19,8 @@ import com.meteomontana.android.data.api.dto.PublicProfileDto
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.SchoolScoreDto
+import com.meteomontana.android.data.api.dto.ContributionDto
+import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 import okhttp3.MultipartBody
 import retrofit2.http.Body
@@ -110,6 +112,17 @@ interface SchoolApi {
 
     @GET("submissions/me")
     suspend fun getMySubmissions(): List<SubmissionDto>
+
+    // ===== Contributions (mejoras de escuelas existentes) =====
+
+    @POST("schools/{schoolId}/contributions")
+    suspend fun submitContribution(
+        @Path("schoolId") schoolId: String,
+        @Body req: ContributionRequest
+    ): ContributionDto
+
+    @GET("contributions/me")
+    suspend fun getMyContributions(): List<ContributionDto>
 
     // ===== Social =====
     @GET("users/search")

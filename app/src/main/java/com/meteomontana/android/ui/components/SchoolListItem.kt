@@ -13,27 +13,33 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.ui.theme.Serif
+import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.scoreColor
-import com.meteomontana.android.ui.theme.scoreTextColor
 
 /**
  * Item de lista al estilo PWA "Cumbre":
- *  - Caja de score a la izquierda (89 EXCELENTE)
- *  - Nombre + ROCA · REGION · KM
- *  - Barra heatmap horario (10 cuadritos) — placeholder hasta endpoint /scores
- *  - Indicador "SECA" / "HÚMEDA" a la derecha
  *
- * Si todayScore o hourlyScores son null mostramos placeholders (—).
+ *   01   ┌────┐  Becedas                                        ★
+ *        │ 78 │  GRANITO · CASTILLA Y LEÓN
+ *        │MUY │  ▰▰▰▰▰▰▰▰░░ heatmap horario              ● SECA
+ *        │BUEN│
+ *        └────┘
+ *
+ * El badge va con fondo `paper` claro y borde `rule`. El color del score
+ * va en el heatmap horizontal, no en el badge: la PWA reserva el color
+ * para el dato, no para el chrome.
  */
 @Composable
 fun SchoolListItem(
@@ -50,11 +56,11 @@ fun SchoolListItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = Spacing.md, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        // Rank
+        // Rank "01", "02"...
         Text(
             text = "%02d".format(rank),
             style = MaterialTheme.typography.labelMedium,
@@ -62,31 +68,35 @@ fun SchoolListItem(
             modifier = Modifier.width(20.dp)
         )
 
-        // Caja de score
         ScoreBadge(score = todayScore)
 
-        // Contenido
+        // Nombre + eyebrow + heatmap
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = school.name,
-                style = MaterialTheme.typography.titleMedium,
+                style = TextStyle(
+                    fontFamily = Serif,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                    letterSpacing = (-0.3).sp,
+                ),
                 color = MaterialTheme.colorScheme.onBackground
             )
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(Spacing.xs))
             Text(
                 text = buildSubtitle(school, distanceKm),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(Spacing.sm))
             HourlyHeatmapBar(scores = hourlyScores)
         }
 
-        // SECA / HÚMEDA
+        // ● SECA / ● MOJADA  (texto exacto de la PWA)
         Text(
             text = when (dry) {
                 true  -> "● SECA"
-                false -> "● HÚMEDA"
+                false -> "● MOJADA"
                 null  -> ""
             },
             style = MaterialTheme.typography.labelMedium,
@@ -96,30 +106,36 @@ fun SchoolListItem(
     }
 }
 
+/**
+ * Caja izquierda con el score de hoy.
+ * Fondo `paper` claro + borde `rule`. Número grande serif. Label mono debajo.
+ */
 @Composable
 private fun ScoreBadge(score: Int?) {
-    val bg = score?.let { scoreColor(it) } ?: MaterialTheme.colorScheme.surfaceVariant
-    val fg = score?.let { scoreTextColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant
-
     Column(
         modifier = Modifier
-            .size(width = 60.dp, height = 56.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(bg)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-            .padding(2.dp),
+            .size(width = 56.dp, height = 60.dp)
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .padding(vertical = Spacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = score?.toString() ?: "—",
-            style = MaterialTheme.typography.headlineMedium,
-            color = fg
+            style = TextStyle(
+                fontFamily = Serif,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+                letterSpacing = (-0.5).sp,
+            ),
+            color = MaterialTheme.colorScheme.onSurface
         )
         Text(
             text = scoreLabel(score),
             style = MaterialTheme.typography.labelMedium.copy(fontSize = 8.sp),
-            color = fg
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -133,13 +149,16 @@ private fun scoreLabel(score: Int?): String = when {
     else          -> "MALO"
 }
 
+/**
+ * Tira horizontal de 10 celdas coloreadas según score por hora.
+ * En la PWA mide unos 12px de alto y ocupa ancho completo de la columna.
+ */
 @Composable
 private fun HourlyHeatmapBar(scores: List<Int>?) {
-    // 10 cuadraditos. Si no hay datos mostramos placeholders grises.
     val items: List<Int?> = scores?.take(10) ?: List(10) { null }
     Row(
-        modifier = Modifier.fillMaxWidth().height(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+        modifier = Modifier.fillMaxWidth().height(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(1.dp)
     ) {
         items.forEach { s ->
             Box(

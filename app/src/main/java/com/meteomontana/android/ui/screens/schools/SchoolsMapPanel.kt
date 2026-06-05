@@ -1,0 +1,486 @@
+package com.meteomontana.android.ui.screens.schools
+
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color as AndroidColor
+import android.graphics.Paint
+import android.graphics.RectF
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.graphics.toColorInt
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.theme.Spacing
+import org.maplibre.android.annotations.IconFactory
+import org.maplibre.android.annotations.Marker
+import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
+import kotlin.math.cos
+import kotlin.math.sqrt
+
+/**
+ * Panel desplegable "VER MAPA" en la pantalla de escuelas.
+ * Equivalente a `js/sectors/map-panel.js` de la PWA:
+ *  - Toggle negro con eyebrow + chevron.
+ *  - Cuando abre, muestra MapView con un marker por escuela visible
+ *    (las que ya filtró el viewmodel).
+ *  - Color del marker según score (verde / ámbar / rojo).
+ *  - Tap en marker → tarjeta abajo con nombre, score, roca, estilo,
+ *    km, "Cómo llegar" (Google Maps) y "Ver detalle".
+ *  - Cuando cambian los filtros (= cambia `schools`), re-sincroniza
+ *    markers automáticamente.
+ *
+ * Markers se re-pintan con un Bitmap generado a mano (diamante rotado
+ * + score blanco encima) para parecerse al pin de la PWA.
+ */
+@Composable
+fun SchoolsMapPanel(
+    schools: List<School>,
+    scoresById: Map<String, Int>,
+    userLat: Double?,
+    userLon: Double?,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onSchoolDetail: (String) -> Unit
+) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = Spacing.lg, vertical = Spacing.xs)) {
+
+        // Toggle "VER MAPA ▾"
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.onBackground)
+                .clickable(onClick = onToggle)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "VER MAPA",
+                style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.background,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                if (expanded) "▴" else "▾",
+                color = MaterialTheme.colorScheme.background,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
+        if (expanded) {
+            MapBody(
+                schools = schools,
+                scoresById = scoresById,
+                userLat = userLat,
+                userLon = userLon,
+                onSchoolDetail = onSchoolDetail
+            )
+        }
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun MapBody(
+    schools: List<School>,
+    scoresById: Map<String, Int>,
+    userLat: Double?,
+    userLon: Double?,
+    onSchoolDetail: (String) -> Unit
+) {
+    val ctx = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    val mapRef     = remember { mutableStateOf<MapLibreMap?>(null) }
+    val mapViewRef = remember { mutableStateOf<MapView?>(null) }
+    var selectedSchool by remember { mutableStateOf<School?>(null) }
+
+    // Lifecycle (replicado del fix de SchoolMap.kt — el MapView nativo
+    // exige onStart/onResume/onPause/onStop o filtrea memoria/contexto).
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            val mv = mapViewRef.value ?: return@LifecycleEventObserver
+            when (event) {
+                Lifecycle.Event.ON_START   -> mv.onStart()
+                Lifecycle.Event.ON_RESUME  -> mv.onResume()
+                Lifecycle.Event.ON_PAUSE   -> mv.onPause()
+                Lifecycle.Event.ON_STOP    -> mv.onStop()
+                Lifecycle.Event.ON_DESTROY -> mv.onDestroy()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapViewRef.value?.onPause()
+            mapViewRef.value?.onStop()
+            mapViewRef.value?.onDestroy()
+            mapViewRef.value = null
+            mapRef.value = null
+        }
+    }
+
+    // Re-sincronizar markers cuando cambian los filtros (= cambia `schools`)
+    // o cuando el mapa ya está listo.
+    LaunchedEffect(schools, scoresById, mapRef.value) {
+        val map = mapRef.value ?: return@LaunchedEffect
+        syncMarkers(ctx, map, schools, scoresById) { tappedSchool ->
+            selectedSchool = tappedSchool
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(320.dp)
+            .padding(top = Spacing.xs)
+    ) {
+        AndroidView(
+            modifier = Modifier.fillMaxWidth().height(320.dp),
+            factory = { context ->
+                MapView(context).apply {
+                    onCreate(null)
+                    mapViewRef.value = this
+                    setOnTouchListener { v, event ->
+                        when (event.action) {
+                            android.view.MotionEvent.ACTION_DOWN ->
+                                v.parent?.requestDisallowInterceptTouchEvent(true)
+                            android.view.MotionEvent.ACTION_UP,
+                            android.view.MotionEvent.ACTION_CANCEL ->
+                                v.parent?.requestDisallowInterceptTouchEvent(false)
+                        }
+                        false
+                    }
+                    getMapAsync { map ->
+                        mapRef.value = map
+                        map.setStyle(Style.Builder().fromJson(OSM_RASTER_STYLE)) {
+                            val center = if (userLat != null && userLon != null)
+                                LatLng(userLat, userLon) else LatLng(40.4, -3.7)
+                            map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
+                                .target(center).zoom(5.0).build()
+                            syncMarkers(context, map, schools, scoresById) { tappedSchool ->
+                                selectedSchool = tappedSchool
+                            }
+                        }
+                        map.uiSettings.apply {
+                            isRotateGesturesEnabled = false
+                            isTiltGesturesEnabled   = false
+                        }
+                    }
+                    onStart()
+                    onResume()
+                }
+            }
+        )
+
+        // Tarjeta inferior con el detalle del marker seleccionado.
+        selectedSchool?.let { sel ->
+            MarkerPreviewCard(
+                school = sel,
+                score = scoresById[sel.id],
+                userLat = userLat,
+                userLon = userLon,
+                onClose = { selectedSchool = null },
+                onSchoolDetail = { onSchoolDetail(sel.id); selectedSchool = null },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(Spacing.md)
+            )
+        }
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Markers                                                                    */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+private val activeMarkers = mutableListOf<Marker>()
+private val markerSchoolBySnippet = mutableMapOf<String, String>()
+
+/**
+ * Borra los markers anteriores y crea uno por escuela visible. Hace fit-bounds
+ * para que la cámara encuadre lo que el usuario está filtrando.
+ */
+private fun syncMarkers(
+    ctx: android.content.Context,
+    map: MapLibreMap,
+    schools: List<School>,
+    scoresById: Map<String, Int>,
+    onMarkerTap: (School) -> Unit
+) {
+    // Limpia los anteriores
+    activeMarkers.forEach { map.removeMarker(it) }
+    activeMarkers.clear()
+    markerSchoolBySnippet.clear()
+    map.setOnMarkerClickListener(null)
+
+    if (schools.isEmpty()) return
+
+    val boundsBuilder = LatLngBounds.Builder()
+    schools.forEach { s ->
+        val score = scoresById[s.id]
+        val icon  = IconFactory.getInstance(ctx).fromBitmap(diamondBitmap(score))
+        val marker = map.addMarker(
+            MarkerOptions()
+                .position(LatLng(s.lat, s.lon))
+                .icon(icon)
+                .snippet(s.id)         // truco: snippet = id para mapear back
+        )
+        activeMarkers += marker
+        markerSchoolBySnippet[s.id] = s.id
+        boundsBuilder.include(LatLng(s.lat, s.lon))
+    }
+
+    // Recupera la escuela a partir del marker pulsado
+    val schoolsById = schools.associateBy { it.id }
+    map.setOnMarkerClickListener { marker ->
+        val id = marker.snippet ?: return@setOnMarkerClickListener false
+        schoolsById[id]?.let(onMarkerTap)
+        true   // consumimos el evento; evita que MapLibre abra su infoWindow por defecto
+    }
+
+    runCatching {
+        map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 48), 400)
+    }
+}
+
+/** Color hex del pin según score, igual que la PWA (`scoreColor` en map-panel.js). */
+private fun pinColorHex(score: Int?): String = when {
+    score == null -> "#888888"
+    score >= 70   -> "#4A7C59"
+    score >= 50   -> "#C8843A"
+    else          -> "#B94040"
+}
+
+/**
+ * Genera el pin diamante con el score blanco encima. Se construye en código
+ * porque MapLibre no acepta vistas Compose como icon, sólo Bitmaps.
+ */
+private fun diamondBitmap(score: Int?): Bitmap {
+    val sizePx = 64
+    val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+
+    val color = pinColorHex(score).toColorInt()
+
+    // Sombra suave bajo el diamante
+    val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = AndroidColor.argb(60, 0, 0, 0)
+    }
+    canvas.drawOval(RectF(10f, sizePx - 16f, sizePx - 10f, sizePx - 6f), shadow)
+
+    // Diamante: cuadrado rotado 45º, esquina inferior es la "punta"
+    val side = sizePx * 0.55f
+    val cx = sizePx / 2f
+    val cy = sizePx / 2f - 4f
+    canvas.save()
+    canvas.rotate(45f, cx, cy)
+    val rect = RectF(cx - side / 2f, cy - side / 2f, cx + side / 2f, cy + side / 2f)
+    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+    canvas.drawRoundRect(rect, 6f, 6f, fill)
+    val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        this.color = AndroidColor.WHITE
+    }
+    canvas.drawRoundRect(rect, 6f, 6f, stroke)
+    canvas.restore()
+
+    // Score blanco centrado
+    val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = AndroidColor.WHITE
+        textSize = 18f
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+    val label = score?.toString() ?: "·"
+    canvas.drawText(label, cx, cy + 6f, txt)
+
+    return bmp
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/*  Tarjeta del marker seleccionado                                            */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun MarkerPreviewCard(
+    school: School,
+    score: Int?,
+    userLat: Double?,
+    userLon: Double?,
+    onClose: () -> Unit,
+    onSchoolDetail: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val ctx = LocalContext.current
+    val distKm = haversineKm(userLat, userLon, school.lat, school.lon)
+    val scoreColor = pinColorHex(score)
+
+    Column(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .padding(Spacing.md)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                school.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                if (score != null) "$score/100" else "—",
+                style = MaterialTheme.typography.titleMedium,
+                color = androidx.compose.ui.graphics.Color(scoreColor.toColorInt())
+            )
+            Text(
+                " ✕",
+                modifier = Modifier
+                    .clickable(onClick = onClose)
+                    .padding(start = Spacing.sm),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
+        Row(
+            modifier = Modifier.padding(top = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            school.rockType?.let { Tag(it) }
+            school.style?.let    { Tag(it) }
+            distKm?.let          { Tag("${it.toInt()} km") }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            OutlinedAction(
+                text = "CÓMO LLEGAR",
+                onClick = {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${school.lat},${school.lon}")
+                    )
+                    runCatching { ctx.startActivity(intent) }
+                },
+                modifier = Modifier.weight(1f)
+            )
+            FilledAction(
+                text = "VER DETALLE ▸",
+                onClick = onSchoolDetail,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun Tag(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+    ) {
+        Text(
+            text.uppercase(),
+            style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun OutlinedAction(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(vertical = Spacing.sm),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onBackground)
+    }
+}
+
+@Composable
+private fun FilledAction(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.onBackground)
+            .clickable(onClick = onClick)
+            .padding(vertical = Spacing.sm),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.background)
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+/** Estilo MapLibre con tiles raster de OSM. Mismo origen que la PWA. */
+private val OSM_RASTER_STYLE = """
+{"version":8,"sources":{"osm":{"type":"raster","tiles":["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png","https://b.tile.openstreetmap.org/{z}/{x}/{y}.png","https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap"}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}
+""".trimIndent()
+
+/** Distancia aproximada en km. Null si no tenemos ubicación del usuario. */
+private fun haversineKm(lat1: Double?, lon1: Double?, lat2: Double, lon2: Double): Double? {
+    if (lat1 == null || lon1 == null) return null
+    val r = 6371.0
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLon = Math.toRadians(lon2 - lon1)
+    val a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+            Math.sin(dLon/2) * Math.sin(dLon/2)
+    val c = 2 * Math.atan2(sqrt(a), sqrt(1 - a))
+    return r * c
+}

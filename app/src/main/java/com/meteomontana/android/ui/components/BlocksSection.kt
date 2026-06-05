@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
 
 @Composable
 fun BlocksSection(
@@ -32,7 +33,9 @@ fun BlocksSection(
     onAddBlock: () -> Unit,
     onBlockClick: (String) -> Unit = {},
     schoolLat: Double? = null,
-    schoolLon: Double? = null
+    schoolLon: Double? = null,
+    viewModel: SchoolDetailViewModel? = null,
+    onMyProposals: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(modifier = Modifier.fillMaxWidth(),
@@ -48,7 +51,15 @@ fun BlocksSection(
 
         if (schoolLat != null && schoolLon != null) {
             androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
-            SchoolMap(centerLat = schoolLat, centerLon = schoolLon, blocks = blocks)
+            viewModel?.let { vm ->
+                SchoolMap(
+                    centerLat     = schoolLat,
+                    centerLon     = schoolLon,
+                    blocks        = blocks,
+                    viewModel     = vm,
+                    onMyProposals = onMyProposals
+                )
+            }
         }
 
         if (blocks.isEmpty()) {

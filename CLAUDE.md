@@ -10,344 +10,271 @@ dejamos"*. Lees este archivo, miras **Estado actual** al final, y arrancas
 desde ahí sin repetir el plan entero.
 
 **Antes de cerrar**: actualiza **Estado actual** y **Bitácora reciente**.
-Marca con `[x]` lo completado en el mapa de fases.
 
 ## Cómo trabaja el usuario
 
 Junior developer aprendiendo. Quiere entender cada línea. Reglas:
 
-1. **Idioma de comunicación: español.** Código en **inglés**.
+1. **Idioma: español.** Código en **inglés**.
 2. **Paso a paso.** Una cosa a la vez. Esperas confirmación antes del siguiente.
-3. **El usuario escribe el código.** Tú das snippets explicados.
-4. **Formato de explicación**: Contexto → Código completo → Línea a línea →
-   Conceptos nuevos → Pregunta de senior al final.
-5. **Verifica antes de proponer.** Lee el código existente antes de tocar algo.
-6. **Trade-offs explícitos** en decisiones de diseño.
+3. **Verifica antes de proponer.** Lee el código existente antes de tocar algo.
+4. **Trade-offs explícitos** en decisiones de diseño.
 
-## Stack decidido
+## Stack
 
-- **Lenguaje**: Kotlin
-- **UI**: Jetpack Compose (declarativa, moderna, equivalente a SwiftUI)
-- **Navegación**: Navigation Compose
-- **Red**: Retrofit + OkHttp (HTTP client estándar Android)
-- **JSON**: Gson o Moshi
-- **Auth**: Firebase Auth SDK para Android (Google Sign-In)
-- **Push**: FCM (Firebase Cloud Messaging) — ya está configurado en el back
-- **Mapas**: MapLibre Android SDK (mismo motor que la PWA)
-- **DI**: Hilt (inyección de dependencias, estándar Android moderno)
-- **Async**: Kotlin Coroutines + Flow
-- **Imagen**: Coil (carga de imágenes async)
-- **Min SDK**: API 26 (Android 8.0) — cubre >95% de dispositivos activos
+- **Lenguaje**: Kotlin, **UI**: Jetpack Compose, **Nav**: Navigation Compose
+- **Red**: Retrofit + OkHttp + Moshi, **DI**: Hilt, **Async**: Coroutines + Flow
+- **Imagen**: Coil, **Mapas**: MapLibre Android SDK
+- **Auth/Push/Chat**: Firebase (Auth, FCM, Firestore para chat)
+- **Min SDK**: API 26 (Android 8.0)
 
 ## Conexión con el backend
 
-Base URL del back:
-- **Local (emulador Android)**: `http://10.0.2.2:8080/api`
-  (el emulador no puede usar `localhost` porque eso es el propio emulador;
-  `10.0.2.2` es el alias al host).
-- **Local (dispositivo físico en misma red)**: `http://<IP-del-PC>:8080/api`
-  (necesitarás el firewall de Windows abierto al puerto 8080).
-- **Producción**: pendiente de desplegar (Railway/Render/Fly.io, ver
-  `MeteoMontanaAPI/DEPLOY.md`).
+Base URL configurada en `app/build.gradle.kts`, bloque `debug {}`:
 
-Firebase project: **climbingteams**
-- Auth provider: Google
-- Config en `google-services.json` (se descarga de Firebase Console →
-  Project settings → Add app → Android, package `com.meteomontana.android`).
-
-**Auth**: el back valida Firebase ID tokens en el header
-`Authorization: Bearer <token>`. La app Android obtiene el token con:
 ```kotlin
-FirebaseAuth.getInstance().currentUser?.getIdToken(false)
+// Emulador Android Studio (VM interna del PC):
+buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/api/\"")
+
+// Móvil físico en la misma red WiFi/Ethernet que el PC:
+buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
 ```
 
-### Endpoints REST disponibles (back ya completo, 11/11 fases)
+**IP del PC de Rodrigo**: `192.168.0.12` (Ethernet, `ipconfig` lo confirma).
+Cambia entre uno y otro, haz **Sync Gradle → Run**.
 
-**Públicos (sin token)**:
+**Cleartext HTTP** permitido en `app/src/main/res/xml/network_security_config.xml`.
+Si añades una IP nueva, añádela también ahí o Android 9+ la bloquea.
+
+Firebase project: **climbingteams** (Auth provider: Google).
+Config en `google-services.json` (excluido de git).
+
+## Diseño visual — tema Cumbre
+
+Sistema Cumbre: papel, tinta, terracota. Sin gradientes, sin blur, radius 0/2/4dp.
+Tokens en `ui/theme/`: `Color.kt`, `Type.kt` (Google Fonts: Inter / Source Serif 4 /
+JetBrains Mono), `Shape.kt`, `Spacing.kt`, `Theme.kt`.
+
+Reglas:
+- **Sin elevation shadows** — bordes `1.dp` color `Rule`
+- **Cards**: fondo `Paper`, borde `Rule` 1dp, radius `2dp`
+- **Botón primario**: fondo `Terra`, texto blanco
+- **Eyebrow** (headers tipo "DISTANCIA", "VER MAPA"): usar `EyebrowTextStyle`
+  (Mono 10sp Bold tracking 1.8sp). **No usar `labelMedium` para esto** — su
+  tracking 0sp es para dígitos (km/h, horas).
+- Doc completo: `DESIGN.md` en la raíz.
+
+## Endpoints del backend (todos disponibles)
+
+**Públicos:**
 | Endpoint | Descripción |
 |---|---|
 | `GET /api/schools[?region&style&rockType&lat&lon&radioKm]` | Catálogo con filtros |
-| `GET /api/schools/{id}` | Detalle de una escuela |
+| `GET /api/schools/{id}` | Detalle |
 | `GET /api/schools/{id}/notes` | Notas comunitarias |
 | `GET /api/schools/{id}/photos` | Fotos (URLs firmadas 60min) |
-| `GET /api/schools/{id}/forecast` | Tiempo + score por hora (cache 30min en back) |
-| `GET /api/users/{uid o username}` | Perfil público (oculta privados con 404) |
+| `GET /api/schools/{id}/forecast` | Tiempo + score por hora (cache back) |
+| `GET /api/schools/{id}/blocks` | Bloques/parkings/zonas del mapa |
+| `GET /api/users/{uid o username}` | Perfil público |
 | `GET /actuator/health` | Healthcheck |
 
-**Autenticados (Bearer token Firebase)**:
+**Auth (Bearer Firebase token):**
 | Endpoint | Descripción |
 |---|---|
-| `GET /api/me` | Perfil privado (crea entrada en BD en primer login — JIT provisioning) |
-| `PUT /api/me` | Actualizar perfil (username, displayName, bio, topGrade, isPublic) |
-| `PUT /api/me/fcm-token` | Registrar token FCM tras login para push |
-| `POST /api/schools/{id}/photos` | Subir foto (multipart, max 5MB image/*) |
+| `GET/PUT /api/me` | Perfil privado (JIT provisioning en primer login) |
+| `PUT /api/me/fcm-token` | Token FCM para push |
+| `POST /api/schools/{id}/photos` | Subir foto (multipart, max 5MB) |
 | `DELETE /api/photos/{photoId}` | Borrar foto propia |
 | `POST /api/submissions` | Proponer escuela nueva |
-| `GET /api/submissions/me` | Mis propuestas y su estado |
+| `GET /api/submissions/me` | Mis propuestas de escuela |
+| `POST /api/schools/{id}/contributions` | Propuesta de mejora (PARKING/BOULDER/SECTOR/POSITION_CORRECTION) |
+| `GET /api/contributions/me` | Mis propuestas de mejora |
+| `POST /api/schools/{id}/notes` | Crear nota |
+| `POST /api/journal` | Nueva entrada de diario |
+| `GET /api/journal/me` | Mi diario |
 
-**Solo admin (`users.is_admin = true` en BD)**:
+**Admin (`is_admin=true` en BD):**
 | Endpoint | Descripción |
 |---|---|
-| `GET /api/admin/submissions` | Cola pending |
-| `POST /api/admin/submissions/{id}/approve` | Aprueba (crea School + log + push al autor) |
-| `POST /api/admin/submissions/{id}/reject` | Rechaza con motivo |
+| `GET /api/admin/submissions` | Cola de escuelas nuevas pending |
+| `POST /api/admin/submissions/{id}/approve\|reject` | Revisar escuela nueva |
+| `GET /api/admin/contributions` | Cola de mejoras pending |
+| `POST /api/admin/contributions/{id}/approve` | Aprueba → materializa en mapa |
+| `POST /api/admin/contributions/{id}/reject` | Rechaza |
 | `GET /api/admin/logs` | Auditoría |
-| `POST /api/admin/push` | Push manual (target uid o broadcast) |
+| `POST /api/admin/push` | Push manual |
 
-### Qué se queda en Firebase (sin pasar por la API)
+**Materialización al aprobar contribuciones:**
+- `PARKING` → crea `school_block` tipo `PARKING` (aparece en mapa escuela)
+- `BOULDER` → crea `school_block` tipo `BLOCK`
+- `SECTOR`  → crea `school_block` tipo `ZONE`
+- `POSITION_CORRECTION` + `targetBlockId` → mueve ese bloque a `proposedLat/Lon`
+- `POSITION_CORRECTION` + `targetBlockId=null` → mueve la escuela entera
 
-- **Auth** — Firebase Auth SDK directo desde la app
-- **Storage** — Firebase Storage para fotos (la API también, pero la app
-  puede leer URLs firmadas devueltas en los DTOs)
-- **FCM** — push directo de Firebase al dispositivo
-- **Chat 1-a-1** — Firestore realtime (decisión consciente, ver back CLAUDE.md)
-
-### Lo que aún no tiene endpoint en el back (TODOs)
-
-Si la app los necesita antes de tiempo, los añadimos en el back:
-- `POST /api/me/photo` — subir foto de perfil
-- `GET /api/users/search?q=...` — búsqueda usuarios
-- `POST /api/schools/{id}/notes` + voto en notas
-- Follows (`POST/DELETE /api/users/{uid}/follow`, listas)
-- Journal (`POST/GET /api/journal`)
-- Bandeja de notificaciones en BD (o leer de Firestore — TBD)
+**Queda en Firebase (decisión consciente):**
+- Auth SDK, Storage (fotos), FCM (push), Firestore (chat 1-a-1 realtime)
 
 ## Arquitectura de la app
 
 ```
-app/
-  src/main/java/com/meteomontana/android/
-    data/
-      api/          — interfaces Retrofit + DTOs
-      repository/   — repositorios que combinan API + caché local
-    domain/
-      model/        — modelos de negocio puros (School, Note, ...)
-      usecase/      — casos de uso
-    ui/
-      screens/      — pantallas Compose (SchoolListScreen, SchoolDetailScreen, ...)
-      components/   — componentes reutilizables (SchoolCard, NoteItem, ...)
-      theme/        — colores, tipografía, tokens de diseño
-    di/             — módulos Hilt
-    navigation/     — grafo de navegación
+app/src/main/java/com/meteomontana/android/
+  data/api/          — interfaces Retrofit + DTOs (SchoolApi, AdminApi)
+  data/repository/   — repositorios
+  domain/model/      — modelos puros (School, ...)
+  ui/
+    screens/
+      schools/       — SchoolListScreen + SchoolListViewModel + SchoolFiltersBar
+                       + SchoolsMapPanel (mapa desplegable con filtros)
+      detail/        — SchoolDetailScreen + VM + ProposeContributionFlow
+      admin/         — AdminScreen + AdminViewModel (contribuciones + submissions)
+      weather/       — WeatherScreen
+      profile/       — ProfileScreen, EditProfileScreen, JournalEntriesScreen
+      users/         — PublicProfileScreen, SearchUsersScreen, FollowListScreen
+      chat/          — ChatListScreen, ChatScreen
+      login/         — LoginScreen
+      notifications/ — NotificationsScreen
+      submissions/   — SubmitSchoolScreen, MySubmissionsScreen
+      radar/         — RadarScreen
+      topo/          — TopoEditorScreen
+    components/
+      SchoolListItem.kt      — item de la lista de escuelas
+      SchoolMap.kt           — mapa colapsable de escuela con "+ PROPONER"
+      HourlyScoreGrid.kt     — grid "Próximas 16h" con WmoWeatherIcon
+      WmoWeatherIcon.kt      — iconos SVG meteo por código WMO (= PWA)
+      FullScreenMapDialog.kt — mapa a pantalla completa (admin "VER EN MAPA")
+      BlocksSection.kt       — sección de bloques en detalle escuela
+      NotesSection.kt        — sección de notas
+      ForecastBody.kt        — hero score + ventana óptima + heatmap
+    theme/
+      Color.kt       — paleta Cumbre light+dark
+      Type.kt        — Google Fonts (Inter/SourceSerif4/JetBrainsMono) + EyebrowTextStyle
+      Shape.kt       — radius 0/2/4dp
+      Spacing.kt     — escala xs/sm/md/lg/xl/xxl/xxxl
+      Theme.kt       — MeteoMontanaTheme
+  di/                — módulos Hilt (NetworkModule, etc.)
 ```
 
-## Diseño visual — tema Cumbre (replicar EXACTO de la PWA)
+## Componentes clave — decisiones de diseño
 
-Sistema de diseño **Cumbre**: papel, tinta, terracota. Sin gradientes, sin
-blur, casi sin border-radius. Hairlines de papel como bordes.
-Fuente: `css/style.css` y `css/tokens.css` de la PWA.
+### SchoolMap.kt
+Mapa colapsable en detalle de escuela. Markers por tipo:
+- `PARKING` → cuadrado azul con "P" blanca. Al tocar: popup con nombre,
+  descripción, coords y botón **"CÓMO LLEGAR"** → Google Maps `dir/?api=1&destination=lat,lon`
+- `BLOCK` → pin terra con "B"
+- `ZONE` → pin verde con "Z"
 
-### Colores light mode
-```kotlin
-// Superficies
-val Bg      = Color(0xFFF5F3EE)  // --bg
-val Paper   = Color(0xFFEBE7DD)  // --paper
-val Paper2  = Color(0xFFF0EAD8)  // --paper-2
+Botón **"+ PROPONER"** (esquina inferior derecha, fondo Terra) abre
+`ProposeContributionFlow`.
 
-// Tinta
-val Ink     = Color(0xFF1C1C1A)  // --ink
-val Ink2    = Color(0xFF5A574F)  // --ink-2
-val Ink3    = Color(0xFF8A8478)  // --ink-3
-val Rule    = Color(0xFFD6D2C4)  // --rule (bordes/divisores)
+Problema histórico: `MapView` dentro de `LazyColumn` roba gestos. Fix:
+`setOnTouchListener { v, event → v.parent?.requestDisallowInterceptTouchEvent(...) }`
 
-// Accent
-val Terra   = Color(0xFFC2410C)  // --terra (acento principal)
-val TerraBg = Color(0xFFFDE4D3)  // --terra-bg
-val Moss    = Color(0xFF5E6B4F)  // --moss (acento secundario)
+### ProposeContributionFlow.kt
+Flujo de propuesta de mejora. Pasos:
+1. `TypePickerDialog` — elige PARKING / BOULDER (próx) / SECTOR (próx) / CORREGIR (próx)
+2. Banner "PULSA EN EL MAPA" — el usuario toca el mapa para fijar coords
+3. `ParkingFormDialog` — nombre (opt), coords auto, notas (opt)
+4. `POST /api/schools/{id}/contributions` con `targetBlockId=null`
+5. `SuccessDialog` — "PROPUESTA ENVIADA · 24-48h" + botones CERRAR / VER MIS PROPUESTAS
 
-// Score states
-val Ok      = Color(0xFF3F6B4A)  // --ok  (verde, score bueno)
-val Warn    = Color(0xFFB45309)  // --warn (ambar, score medio)
-val Bad     = Color(0xFF9A3412)  // --bad  (rojo, score malo)
+### WmoWeatherIcon.kt
+SVG line-art por código WMO (mismo que `wmoSvg()` en `js/utils/weather-icons.js`).
+Usa `DrawScope.scale()` para escalar el viewport 24×24. Sin emojis.
+`HourlyScoreGrid.kt` lo usa para el grid de "Próximas 16h".
+El backend expone `weatherCode` en `HourForecastDto` (campo añadido en esta sesión).
 
-// Meteorológicos
-val Rain    = Color(0xFF2563C7)  // --rain
-val Wind    = Color(0xFF4A7C3F)  // --wind
-```
+### SchoolsMapPanel.kt
+Mapa desplegable en la lista de escuelas (antes de los filtros). Markers de escuelas
+con pin diamante coloreado por score. Tap → popup con nombre, score, tags, y botones
+"CÓMO LLEGAR" (Google Maps) y "VER DETALLE ▸" (navega a SchoolDetailScreen).
+Se sincroniza con los filtros activos.
 
-### Colores dark mode
-```kotlin
-val BgDark      = Color(0xFF15140F)  // --bg dark
-val PaperDark   = Color(0xFF1D1C17)  // --paper dark
-val Paper2Dark  = Color(0xFF211F19)  // --paper-2 dark
-val InkDark     = Color(0xFFECE7D8)  // --ink dark
-val Ink2Dark    = Color(0xFFA8A397)  // --ink-2 dark
-val Ink3Dark    = Color(0xFF6E6A5F)  // --ink-3 dark
-val RuleDark    = Color(0xFF2A281F)  // --rule dark
-val TerraDark   = Color(0xFFE0612B)  // --terra dark
-val MossDark    = Color(0xFF7D8A6A)  // --moss dark
-val OkDark      = Color(0xFF7DA068)  // --ok dark
-val WarnDark    = Color(0xFFD6904A)  // --warn dark
-val BadDark     = Color(0xFFC9543B)  // --bad dark
-```
+### AdminScreen.kt
+Tab "PROPUESTAS" tiene dos secciones:
+- Escuelas nuevas (`SubmissionDto` de `GET /api/admin/submissions`)
+- Mejoras de escuelas (`ContributionDto` de `GET /api/admin/contributions`)
 
-### Score heatmap (colores exactos de tokens.css)
-```kotlin
-fun scoreColor(score: Int): Color = when {
-    score >= 90 -> Color(0xFF5E8B50)  // .s-90 — text blanco
-    score >= 80 -> Color(0xFF82A76E)  // .s-80 — text blanco
-    score >= 70 -> Color(0xFFB7C089)  // .s-70 — text ink
-    score >= 60 -> Color(0xFFE3D599)  // .s-60 — text ink
-    score >= 50 -> Color(0xFFE8B878)  // .s-50 — text ink
-    score >= 40 -> Color(0xFFD99A5A)  // .s-40 — text ink
-    score >= 30 -> Color(0xFFC2410C)  // .s-30 — text blanco
-    score >= 20 -> Color(0xFF9A3412)  // .s-20 — text blanco
-    else        -> Color(0xFF5A1E08)  // .s-10 — text blanco
-}
+Filtros de chips: TODAS / PIEDRAS / SECTORES / PARKINGS / MOVER ESCUELA.
+Agrupado por escuela con badge de cantidad.
+Cada card: badge tipo, nombre, notas, coords, autor, mini-mapa estático (160dp),
+botones VER EN MAPA (abre `FullScreenMapDialog`) / RECHAZAR / APROBAR.
 
-fun scoreTextColor(score: Int): Color =
-    if (score in 40..79) Color(0xFF1C1C1A) else Color.White
-```
-
-### Tipografía
-- `--font-sans`: Inter → en Android usar `FontFamily.Default` (system-ui)
-- `--font-mono`: JetBrains Mono → añadir como font asset, usar en scores y datos numéricos
-- `--font-serif`: Source Serif 4 → añadir como font asset, usar en títulos destacados
-
-### Forma / border-radius
-```kotlin
-// La PWA usa casi cero radius:
-// --radius-sm: 0px  --radius: 2px  --radius-lg: 4px
-val ShapeNone = RoundedCornerShape(0.dp)
-val ShapeSm   = RoundedCornerShape(2.dp)
-val ShapeMd   = RoundedCornerShape(4.dp)
-```
-
-### Reglas visuales clave (no negociables)
-- **Sin blur / elevation shadows** — solo bordes `1.dp` color `Rule`
-- **Sin gradientes de fondo** — color plano `Bg`
-- **Cards**: fondo `Paper`, borde `Rule` 1dp, radius `2dp`
-- **Botón primario**: fondo `Terra`, texto blanco, radius `2dp`
-- **Spinner**: borde `Rule`, top `Terra`, igual que `.cumbre-spinner` de la PWA
-- **Animación entrada**: fade + translateY(4px→0) en 250ms (`.fade-in` de la PWA)
-
-## Features a migrar desde la PWA
-
-En orden de prioridad:
-
-1. **Catálogo de escuelas** — lista con filtros + mapa
-2. **Detalle de escuela** — tiempo + score + notas
-3. **Login con Google** — Firebase Auth
-4. **Perfil de usuario** — foto, bio, topGrade
-5. **Diario personal** — journal de sesiones
-6. **Notas comunitarias** — leer y crear notas
-7. **Follows** — seguir usuarios
-8. **Notificaciones push** — FCM
-9. **Favoritos** — guardar escuelas
-10. **Chat** — mensajería directa (Firestore realtime)
-
-## Mapa de fases
-
-### Fase 1 — Proyecto base ⬜
-- [ ] Crear proyecto Android en Android Studio (Empty Compose Activity)
-- [ ] Añadir dependencias: Retrofit, Hilt, Coil, Navigation Compose
-- [ ] `google-services.json` desde Firebase Console
-- [ ] Estructura de carpetas según arquitectura
-- [ ] Theme Compose con tokens Cumbre exactos (colores, tipografía, shapes)
-
-### Fase 2 — Catálogo de escuelas ⬜
-- [ ] DTO `SchoolDto` + interfaz Retrofit `SchoolApi`
-- [ ] `SchoolRepository` con llamada a `GET /api/schools`
-- [ ] `GetSchoolsUseCase` con filtros
-- [ ] `SchoolListScreen` — lista con LazyColumn + SchoolCard
-- [ ] Filtros básicos: región, estilo, roca
-
-### Fase 3 — Detalle + notas ⬜
-- [ ] `SchoolDetailScreen` — info + notas
-- [ ] `GET /api/schools/{id}/notes` integrado
-- [ ] Score visual (cuando el back lo exponga)
-
-### Fase 4 — Auth Google ⬜
-- [ ] Firebase Auth SDK configurado
-- [ ] Google Sign-In con Credential Manager
-- [ ] Token interceptor en OkHttp (añade `Authorization: Bearer`)
-- [ ] Pantalla de login + estado autenticado global
-
-### Fase 5 — Forecast + score ⬜
-- [ ] `GET /api/schools/{id}/forecast` integrado
-- [ ] Score heatmap por hora (igual que `hourly-heatmap.js` de la PWA)
-- [ ] Comparador de favoritos
-
-### Fase 6 — Perfil + diario ⬜
-- [ ] `GET /api/me`, `PUT /api/me`
-- [ ] `ProfileScreen` — foto, bio, topGrade
-- [ ] `JournalScreen` — lista de sesiones + crear sesión
-
-### Fase 7 — Comunidad ⬜
-- [ ] `POST /api/schools/{id}/notes` — crear nota
-- [ ] Votos up/down en notas
-- [ ] `GET /api/users/{uid}` — perfil público
-- [ ] Follows
-
-### Fase 8 — Mapa ⬜
-- [ ] MapLibre Android integrado
-- [ ] Marcadores coloreados por score (igual que la PWA)
-- [ ] Click en marcador → SchoolDetailScreen
-
-### Fase 9 — Push + notificaciones ⬜
-- [ ] FCM configurado
-- [ ] Bandeja de notificaciones
-- [ ] Preferencias de notificación
-
-### Fase 10 — Chat ⬜
-- [ ] Firestore SDK para Android (chat realtime)
-- [ ] `ConversationsScreen` + `ChatScreen`
-
-### Fase 11 — Polish + Play Store ⬜
-- [ ] Splash screen, iconos, nombre app
-- [ ] Deep links
-- [ ] Firma APK + subir a Play Store (internal testing)
+### FullScreenMapDialog.kt
+Dialog a pantalla completa con MapLibre (tiles topográficos OpenTopoMap).
+Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina superior.
 
 ## Bitácora reciente
 
-- **2026-06-03**: back terminado al 100% (11/11 fases). Endpoints de
-  schools, notes, photos, forecast, users, submissions, admin, push y
-  health funcionando localmente. Probado con Postman: `/actuator/health`
-  → UP, `/api/schools/albarracin/forecast` → 200 con scores.
-- **2026-06-03**: proyecto Android creado en Android Studio con plantilla
-  Empty Activity (Compose), package `com.meteomontana.android`,
-  minSdk 26, Kotlin DSL. Carpeta `MeteoMontanaAndroid/` con estructura
-  estándar (app/, gradle/, gradlew). `MainActivity.kt` y `ui/theme/`
-  generados por la plantilla.
+- **Paso 0 (tipografía)**: Google Fonts provider (Inter/SourceSerif4/JetBrainsMono)
+  cargado via `ui-text-google-fonts`. `Spacing.kt` con escala compartida.
+  `EyebrowTextStyle` separado de `labelMedium` (tracking ancho partía dígitos).
+  `DESIGN.md` creado como spec espejo Android↔iOS.
+
+- **Fix MapLibre crash**: `MapLibre.getInstance(this)` en `MeteoMontanaApp.onCreate()`
+  — sin esto el `MapView` crashea al inflarse.
+
+- **SchoolListItem**: score badge con fondo paper claro (no pintado con scoreColor),
+  nombre en Source Serif 4, "MOJADA" en lugar de "HÚMEDA", heatmap 12dp.
+
+- **SchoolListScreen**: header PWA (título + count + botón outlined "+ Enviar escuela"),
+  banner "¿Te ayuda la app? Apóyanos" (fondo TerraBg), toggle "VER MAPA",
+  iconos chat/notif/perfil en fila separada arriba.
+
+- **SchoolsMapPanel**: mapa desplegable en lista de escuelas. Markers diamante
+  coloreados por score. Popup con "Cómo llegar" + "Ver detalle". Sincronizado
+  con filtros del VM.
+
+- **WmoWeatherIcon + weatherCode**: iconos SVG por código WMO (no emojis).
+  Backend actualizado: `OpenMeteoClient` pide `weather_code`, `ForecastResponse`
+  y `HourForecastDto` exponen `weatherCode`.
+
+- **ProposeContributionFlow**: flujo completo PARKING. TypePickerDialog →
+  banner tap en mapa → ParkingFormDialog (coords auto) → SuccessDialog.
+  Backend: tabla `pending_contributions` (V11), endpoints
+  `POST /api/schools/{id}/contributions` y admin review.
+
+- **Materialización al aprobar**: `ReviewContributionUseCase` crea `school_block`
+  (PARKING/BLOCK/ZONE) o mueve coords al aprobar. V12 añade `target_block_id`.
+
+- **Markers con icono por tipo**: PARKING=cuadrado azul "P", BLOCK=pin terra "B",
+  ZONE=pin verde "Z". Popup al tocar con info + "CÓMO LLEGAR" para parkings.
+
+- **AdminScreen reescrito**: filtros de contribuciones, agrupación por escuela,
+  mini-mapa en cada card, "VER EN MAPA" abre `FullScreenMapDialog` interactivo.
+
+- **Fix scroll mapa**: `requestDisallowInterceptTouchEvent` en `setOnTouchListener`
+  de todos los `MapView` para que el padre (LazyColumn) no robe gestos de pan.
+
+- **Conexión móvil físico**: IP del PC `192.168.0.12`. Config en `build.gradle.kts`
+  + `network_security_config.xml` (cleartext para IP local).
 
 ## Estado actual
 
-**Fase 1 — Proyecto base (EN CURSO)**
+**La app está funcional con las siguientes características operativas:**
 
-- [x] Proyecto Android creado (Empty Activity + Compose)
-- [ ] Esperar a que Gradle sincronice sin errores
-- [ ] Añadir dependencias al `app/build.gradle.kts`:
-      Retrofit + OkHttp + Moshi/Gson, Hilt, Coil, Navigation Compose,
-      Firebase BOM (Auth, Messaging, Storage), Coroutines
-- [ ] `google-services.json` desde Firebase Console
-      (Project settings → Add app → Android, package
-      `com.meteomontana.android`)
-- [ ] Sustituir `ui/theme/Color.kt`, `Type.kt`, `Shape.kt`, `Theme.kt`
-      por los tokens **Cumbre** exactos (definidos arriba en este archivo)
-- [ ] Estructura de carpetas hexagonal (data/, domain/, ui/screens/,
-      ui/components/, di/, navigation/)
-- [ ] Pantalla de prueba: pegar contra `GET /api/schools` con Retrofit
-      y mostrar nombres en una lista. Configurar emulador con
-      `http://10.0.2.2:8080/api`.
+✅ Lista de escuelas con filtros + mapa desplegable sincronizado con filtros  
+✅ Score heatmap con iconos SVG meteo (no emojis)  
+✅ Detalle de escuela: forecast hero, ventana óptima, heatmap 16h, notas, mapa  
+✅ Mapa de escuela con markers por tipo (parking=azul, bloque=terra, zona=verde)  
+✅ Popup al tocar marker con info + "Cómo llegar" para parkings  
+✅ Flujo "+ PROPONER" para parkings (tap en mapa → form → backend)  
+✅ Admin: cola de contribuciones con filtros, agrupación, mini-mapa, VER EN MAPA interactivo  
+✅ Al aprobar contribución → aparece en mapa de escuela inmediatamente  
+✅ Tema Cumbre con fuentes reales Google Fonts  
+✅ Funciona en móvil físico (IP local) y emulador  
 
-**Siguientes fases**: cuando Fase 1 esté lista, todas las fases 2-9 se
-pueden hacer ya porque el back las soporta. La Fase 10 (chat) usa
-Firestore directo. Fase 11 (Play Store) cuando esté pulida.
+**Pendiente (próximas sesiones):**
+- Flujo BOULDER, SECTOR, CORREGIR POSICIÓN en `ProposeContributionFlow`
+  (TypePickerDialog ya los lista como "próximamente")
+- `GET /api/users/search` — búsqueda de usuarios
+- Follows (tabla + endpoints + UI)
+- Diario personal en Android (backend ya tiene endpoints)
+- TTL caché forecast (Caffeine `expireAfterWrite=30m` en back)
+- `POST /api/me/photo` — foto de perfil
 
-**Referencia del back**: `C:\Users\rouma\MeteoMontanaAPI`
-**Referencia de la PWA**: `C:\Users\rouma\Desktop\MeteoMontana`
-**CSS de diseño**: `C:\Users\rouma\Desktop\MeteoMontana\css\style.css`
-                   `C:\Users\rouma\Desktop\MeteoMontana\css\tokens.css`
-
-**Notas operativas para el siguiente Claude**:
-- Para probar contra el back local hay que arrancarlo antes:
-  `docker compose up -d` en `MeteoMontanaAPI/` + `./mvnw spring-boot:run`
-  en `MeteoMontanaAPI/api/`.
-- En el emulador Android, `localhost` ES el propio emulador. Usa
-  `http://10.0.2.2:8080/api` para hablar con tu PC host.
-- El back ya tiene CORS configurado para `localhost:5173, 3000,
-  127.0.0.1:5500, climbingteams.com`. Las apps móviles NO usan CORS
-  (no son navegadores), así que da igual.
-- El back valida tokens Firebase contra el proyecto `climbingteams`.
-  Si quieres usar otro proyecto Firebase, hay que cambiar
-  `serviceAccountKey.json` en el back también.
+**Notas operativas:**
+- Arranque back: `docker compose up -d` + `./mvnw spring-boot:run` en `MeteoMontanaAPI/api/`
+- Migraciones Flyway hasta V12 aplicadas
+- `serviceAccountKey.json` en `api/src/main/resources/` — excluido de git
+- 191 escuelas + notas + bloques en Postgres
+- Spring Security activo: GET `/api/schools/**`, `/api/users/**`, `/actuator/health` son públicos

@@ -25,8 +25,9 @@ android {
 
     buildTypes {
         debug {
-            // En debug apuntamos al emulador (10.0.2.2 = host del PC).
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/api/\"")
+            // 10.0.2.2  = emulador Android → localhost del PC
+            // 192.168.0.12 = móvil físico en la misma red que el PC (Ethernet)
+            buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
         }
         release {
             isMinifyEnabled = false
@@ -63,6 +64,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.compose.ui.text.google.fonts)
 
     // Coroutines
     implementation(libs.coroutines.android)

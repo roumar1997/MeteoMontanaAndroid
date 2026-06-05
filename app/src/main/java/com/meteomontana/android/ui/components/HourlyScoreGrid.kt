@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.meteomontana.android.data.api.dto.HourForecastDto
 import com.meteomontana.android.ui.theme.scoreColor
 import com.meteomontana.android.ui.theme.scoreTextColor
+import com.meteomontana.android.ui.components.WmoWeatherIcon
 
 /**
  * Grid horizontal "PRÓXIMAS N HORAS" — para cada hora:
@@ -57,9 +58,10 @@ private fun HourCell(h: HourForecastDto) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Text(
-            text = weatherIcon(h),
-            style = MaterialTheme.typography.bodyLarge
+        WmoWeatherIcon(
+            code = h.weatherCode,
+            size = 20.dp,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         // Score box
         Box(
@@ -93,9 +95,3 @@ private fun HourCell(h: HourForecastDto) {
     }
 }
 
-private fun weatherIcon(h: HourForecastDto): String = when {
-    h.precipitation > 0.5  -> "🌧"
-    h.cloudCover > 70      -> "☁"
-    h.cloudCover > 30      -> "⛅"
-    else                   -> "☀"
-}

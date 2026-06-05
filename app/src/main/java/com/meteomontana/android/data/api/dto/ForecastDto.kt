@@ -46,7 +46,8 @@ data class HourForecastDto(
     val cloudCover: Int,
     val dewPoint: Double?,
     val score: Int,
-    val scoreLabel: String
+    val scoreLabel: String,
+    val weatherCode: Int = 0    // código WMO de Open-Meteo para el icono
 )
 
 @JsonClass(generateAdapter = true)

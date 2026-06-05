@@ -7,6 +7,7 @@ import com.meteomontana.android.data.api.AdminApi
 import com.meteomontana.android.data.api.dto.AdminLogDto
 import com.meteomontana.android.data.api.dto.AdminPushRequest
 import com.meteomontana.android.data.api.dto.AdminStatsDto
+import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.RejectReason
 import com.meteomontana.android.data.api.dto.SubmissionDto
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,6 +23,7 @@ data class AdminUiState(
     val error: String? = null,
     val stats: AdminStatsDto? = null,
     val pending: List<SubmissionDto> = emptyList(),
+    val contributions: List<ContributionDto> = emptyList(),
     val logs: List<AdminLogDto> = emptyList(),
     val pushBusy: Boolean = false,
     val pushResult: String? = null
@@ -42,8 +44,10 @@ class AdminViewModel @Inject constructor(
             try {
                 val stats = api.stats()
                 val pending = runCatching { api.pendingSubmissions() }.getOrDefault(emptyList())
+                val contributions = runCatching { api.pendingContributions() }.getOrDefault(emptyList())
                 val logs = runCatching { api.logs() }.getOrDefault(emptyList())
-                _state.update { it.copy(loading = false, stats = stats, pending = pending, logs = logs) }
+                _state.update { it.copy(loading = false, stats = stats, pending = pending,
+                    contributions = contributions, logs = logs) }
             } catch (t: Throwable) {
                 _state.update { it.copy(loading = false, error = t.toUserMessage()) }
             }
@@ -60,6 +64,20 @@ class AdminViewModel @Inject constructor(
     fun reject(id: String, reason: String?) {
         viewModelScope.launch {
             runCatching { api.reject(id, RejectReason(reason)) }
+            load()
+        }
+    }
+
+    fun approveContribution(id: String) {
+        viewModelScope.launch {
+            runCatching { api.approveContribution(id) }
+            load()
+        }
+    }
+
+    fun rejectContribution(id: String, reason: String?) {
+        viewModelScope.launch {
+            runCatching { api.rejectContribution(id, RejectReason(reason)) }
             load()
         }
     }
