@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,15 +53,36 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import coil.compose.AsyncImage
+import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import com.meteomontana.android.data.api.dto.AdminLogDto
 import com.meteomontana.android.data.api.dto.AdminStatsDto
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.SubmissionDto
+import androidx.compose.runtime.key
 import com.meteomontana.android.ui.components.FullScreenMapDialog
+import com.meteomontana.android.ui.components.TopoPhotoCanvas
+import com.meteomontana.android.ui.components.parseBloquesJson
+import com.meteomontana.android.ui.components.toTopoLines
+import com.meteomontana.android.ui.components.pinBitmap
+import com.meteomontana.android.ui.components.pinBitmapBoulder
+import org.maplibre.android.annotations.IconFactory
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Moss
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import com.meteomontana.android.ui.theme.colorForGrade
+import com.meteomontana.android.ui.theme.gradeStyle
+import org.json.JSONArray
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
@@ -67,6 +91,7 @@ import org.maplibre.android.maps.Style
 
 private enum class AdminTab(val label: String) {
     Propuestas("PROPUESTAS"),
+    Gestionar("GESTIONAR"),
     Stats("STATS"),
     Activity("ACTIVIDAD"),
     Push("PUSH")
@@ -116,10 +141,23 @@ fun AdminScreen(
             AdminTab.Propuestas -> PropuestasTab(
                 submissions = state.pending,
                 contributions = state.contributions,
+                schoolBlocks = state.schoolBlocks,
+                onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
+                onDeleteBlock = viewModel::deleteBlock,
+                onUpdateBlock = viewModel::updateBlock,
                 onApproveSubmission = viewModel::approve,
                 onRejectSubmission = viewModel::reject,
                 onApproveContribution = viewModel::approveContribution,
                 onRejectContribution = viewModel::rejectContribution
+            )
+            AdminTab.Gestionar -> GestionarTab(
+                allSchools = state.allSchools,
+                loading = state.schoolsLoading,
+                schoolBlocks = state.schoolBlocks,
+                onLoadSchools = viewModel::loadAllSchools,
+                onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
+                onDeleteBlock = viewModel::deleteBlock,
+                onUpdateBlock = viewModel::updateBlock
             )
             AdminTab.Stats -> StatsTab(state.stats)
             AdminTab.Activity -> ActivityTab(state.logs)
@@ -168,6 +206,10 @@ private enum class ContribFilter(val label: String) {
 private fun PropuestasTab(
     submissions: List<SubmissionDto>,
     contributions: List<ContributionDto>,
+    schoolBlocks: Map<String, List<com.meteomontana.android.data.api.dto.BlockDto>>,
+    onFetchSchoolBlocks: (String) -> Unit,
+    onDeleteBlock: (String, String) -> Unit,
+    onUpdateBlock: (String, String, com.meteomontana.android.data.api.dto.CreateBlockRequest, (Boolean) -> Unit) -> Unit,
     onApproveSubmission: (String) -> Unit,
     onRejectSubmission: (String, String?) -> Unit,
     onApproveContribution: (String) -> Unit,
@@ -251,7 +293,15 @@ private fun PropuestasTab(
                 SchoolGroupHeader(schoolName, items.size)
             }
             items(items) { c ->
-                ContributionCard(c, onApproveContribution, onRejectContribution)
+                ContributionCard(
+                    c = c,
+                    existingBlocks = schoolBlocks[c.schoolId] ?: emptyList(),
+                    onFetchBlocks = { onFetchSchoolBlocks(c.schoolId) },
+                    onDeleteBlock = { blockId -> onDeleteBlock(blockId, c.schoolId) },
+                    onUpdateBlock = { b, req -> onUpdateBlock(b.id, c.schoolId, req) {} },
+                    onApprove = onApproveContribution,
+                    onReject = onRejectContribution
+                )
             }
             item { Spacer(Modifier.height(Spacing.xs)) }
         }
@@ -298,12 +348,20 @@ private fun SchoolGroupHeader(name: String, count: Int) {
 @Composable
 private fun ContributionCard(
     c: ContributionDto,
+    existingBlocks: List<com.meteomontana.android.data.api.dto.BlockDto>,
+    onFetchBlocks: () -> Unit,
+    onDeleteBlock: (String) -> Unit,
+    onUpdateBlock: (com.meteomontana.android.data.api.dto.BlockDto, com.meteomontana.android.data.api.dto.CreateBlockRequest) -> Unit,
     onApprove: (String) -> Unit,
     onReject: (String, String?) -> Unit
 ) {
+    val onUpdateBlockCard = onUpdateBlock
     val lifecycleOwner = LocalLifecycleOwner.current
     val mapViewRef = remember { mutableStateOf<MapView?>(null) }
     var showFullMap by remember { mutableStateOf(false) }
+
+    // Carga bloques existentes de la escuela al renderizar la card (una vez por schoolId).
+    LaunchedEffect(c.schoolId) { onFetchBlocks() }
 
     Column(
         modifier = Modifier
@@ -365,6 +423,48 @@ private fun ContributionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        // ── BOULDER: foto con líneas superpuestas + bloques ─────────────────────
+        if (c.type == "BOULDER") {
+            // Si es propuesta de AÑADIR VÍAS, usamos la foto del bloque existente
+            val isAddLines = !c.targetBlockId.isNullOrBlank()
+            val targetBlock = if (isAddLines)
+                existingBlocks.firstOrNull { it.id == c.targetBlockId } else null
+
+            val photoForCanvas = when {
+                isAddLines && targetBlock?.photoPath != null -> targetBlock.photoPath
+                else -> c.photoUrl
+            }
+
+            if (!photoForCanvas.isNullOrBlank()) {
+                Spacer(Modifier.height(Spacing.sm))
+                if (isAddLines) {
+                    Text("AÑADIR VÍAS A \"${targetBlock?.name ?: "?"}\"",
+                        style = EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.secondary)
+                    Spacer(Modifier.height(Spacing.xs))
+                }
+                // Para "añadir vías": dibujamos las líneas existentes en gris translúcido
+                // y encima las nuevas con sus colores normales — así el admin ve qué se añade.
+                val existingLines = if (isAddLines)
+                    (targetBlock?.lines ?: emptyList()).toTopoLines() else emptyList()
+                val newLines = parseBloquesJson(c.bloquesJson)
+                TopoPhotoCanvas(
+                    photoUrl = photoForCanvas,
+                    lines = existingLines + newLines
+                )
+            }
+            c.bloquesJson?.takeIf { it.isNotBlank() }?.let { json ->
+                Spacer(Modifier.height(Spacing.sm))
+                if (isAddLines) {
+                    Text("NUEVAS VÍAS PROPUESTAS:",
+                        style = EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(Spacing.xs))
+                }
+                BloquesSummary(json)
+            }
+        }
+
         // Mini-mapa
         Spacer(Modifier.height(Spacing.sm))
         DisposableEffect(lifecycleOwner) {
@@ -386,29 +486,68 @@ private fun ContributionCard(
                 mapViewRef.value = null
             }
         }
-        AndroidView(
-            modifier = Modifier.fillMaxWidth().height(160.dp),
-            factory = { context ->
-                MapView(context).apply {
-                    onCreate(null)
-                    mapViewRef.value = this
-                    getMapAsync { map ->
-                        map.setStyle(Style.Builder().fromJson(OSM_STYLE)) {
-                            map.cameraPosition = CameraPosition.Builder()
-                                .target(LatLng(c.lat, c.lon)).zoom(14.0).build()
-                            map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon))
-                                .title(c.name ?: c.type))
+        // key() re-crea el mini-mapa cuando llegan los bloques existentes
+        key(existingBlocks.size) {
+            AndroidView(
+                modifier = Modifier.fillMaxWidth().height(160.dp),
+                factory = { context ->
+                    MapView(context).apply {
+                        onCreate(null)
+                        mapViewRef.value = this
+                        getMapAsync { map ->
+                            map.setStyle(Style.Builder().fromJson(OSM_STYLE)) {
+                                map.cameraPosition = CameraPosition.Builder()
+                                    .target(LatLng(c.lat, c.lon)).zoom(14.0).build()
+
+                                val iconFactory = IconFactory.getInstance(context)
+                                // Bloques existentes: parking=círculo azul P, zone=círculo verde Z,
+                                // block=polígono terra con el nombre de la piedra
+                                existingBlocks.forEach { b ->
+                                    val icon = when (b.type) {
+                                        "PARKING" -> pinBitmap(android.graphics.Color.parseColor("#1D6DD6"), "P", 28)
+                                        "ZONE"    -> pinBitmap(android.graphics.Color.parseColor("#1FA84E"), "Z", 28)
+                                        else      -> pinBitmapBoulder(
+                                            label = b.name.takeIf { it.isNotBlank() } ?: "?",
+                                            fillColor = android.graphics.Color.parseColor("#C2410C"),
+                                            sizeDp = 36
+                                        )
+                                    }
+                                    map.addMarker(
+                                        MarkerOptions()
+                                            .position(LatLng(b.lat, b.lon))
+                                            .title("[${b.type}] ${b.name}")
+                                            .icon(iconFactory.fromBitmap(icon))
+                                    )
+                                }
+                                // Marker de la propuesta (amarillo destacado).
+                                // Si es BOULDER, usa forma de piedra; si no, círculo.
+                                val proposalIcon = if (c.type == "BOULDER") {
+                                    pinBitmapBoulder(
+                                        label = c.name?.takeIf { it.isNotBlank() } ?: "★",
+                                        fillColor = android.graphics.Color.parseColor("#F59E0B"),
+                                        sizeDp = 42
+                                    )
+                                } else {
+                                    pinBitmap(android.graphics.Color.parseColor("#F59E0B"), "★", 40)
+                                }
+                                map.addMarker(
+                                    MarkerOptions()
+                                        .position(LatLng(c.lat, c.lon))
+                                        .title("PROPUESTA · ${c.name ?: c.type}")
+                                        .icon(iconFactory.fromBitmap(proposalIcon))
+                                )
+                            }
+                            map.uiSettings.apply {
+                                isScrollGesturesEnabled  = false
+                                isZoomGesturesEnabled    = false
+                                isRotateGesturesEnabled  = false
+                            }
                         }
-                        map.uiSettings.apply {
-                            isScrollGesturesEnabled  = false
-                            isZoomGesturesEnabled    = false
-                            isRotateGesturesEnabled  = false
-                        }
+                        onStart(); onResume()
                     }
-                    onStart(); onResume()
                 }
-            }
-        )
+            )
+        }
 
         Spacer(Modifier.height(Spacing.sm))
 
@@ -421,7 +560,10 @@ private fun ContributionCard(
                     .weight(1f)
                     .clip(RoundedCornerShape(2.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { showFullMap = true }
+                    .clickable {
+                        onFetchBlocks()  // carga bloques existentes de la escuela
+                        showFullMap = true
+                    }
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
@@ -462,9 +604,54 @@ private fun ContributionCard(
             lat = c.lat,
             lon = c.lon,
             markerTitle = c.name ?: "${c.type} · ${c.schoolName}",
+            existingBlocks = existingBlocks,
+            proposalAsBlock = c.toFakeBlockDto(),
+            onDeleteBlock = onDeleteBlock,
+            onUpdateBlock = onUpdateBlockCard,
             onDismiss = { showFullMap = false }
         )
     }
+}
+
+/**
+ * Convierte la contribución en un `BlockDto` "fantasma" para reusar el dialog
+ * de detalles del mapa. Útil para que el admin vea exactamente lo mismo que
+ * verá el usuario tras aprobar.
+ */
+private fun ContributionDto.toFakeBlockDto(): com.meteomontana.android.data.api.dto.BlockDto {
+    val blockType = when (type) {
+        "PARKING" -> "PARKING"
+        "SECTOR"  -> "ZONE"
+        else      -> "BLOCK"  // BOULDER y POSITION_CORRECTION
+    }
+    val lines = if (type == "BOULDER" && !bloquesJson.isNullOrBlank()) {
+        try {
+            val arr = JSONArray(bloquesJson)
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                com.meteomontana.android.data.api.dto.BlockLineDto(
+                    id = "proposal-line-$i",
+                    name = o.optString("name", ""),
+                    grade = o.optString("grade").takeIf { it.isNotEmpty() && it != "null" },
+                    startType = o.optString("startType").takeIf { it.isNotEmpty() && it != "null" },
+                    linePath = o.optString("linePath"),
+                    sortOrder = i
+                )
+            }
+        } catch (_: Throwable) { emptyList() }
+    } else emptyList()
+    return com.meteomontana.android.data.api.dto.BlockDto(
+        id = id,
+        schoolId = schoolId,
+        type = blockType,
+        name = name?.takeIf { it.isNotBlank() } ?: "?",
+        lat = lat, lon = lon,
+        photoPath = photoUrl,
+        description = notes,
+        createdByUid = "",
+        createdAt = createdAt ?: "",
+        lines = lines
+    )
 }
 
 @Composable
@@ -520,7 +707,180 @@ private fun SubmissionCard(
     }
 }
 
+/** Lista compacta de bloques parseando el JSON de la contribución. */
+@Composable
+private fun BloquesSummary(bloquesJson: String) {
+    data class BloqueInfo(val name: String, val grade: String?, val startType: String?)
+
+    val bloques = remember(bloquesJson) {
+        try {
+            val arr = JSONArray(bloquesJson)
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                BloqueInfo(
+                    name = o.optString("name", ""),
+                    grade = o.optString("grade").ifEmpty { null }.takeIf { it != "null" },
+                    startType = o.optString("startType").ifEmpty { null }.takeIf { it != "null" }
+                )
+            }
+        } catch (_: Throwable) { emptyList() }
+    }
+
+    if (bloques.isEmpty()) return
+
+    Text("BLOQUES", style = EyebrowTextStyle,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(4.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        bloques.forEachIndexed { idx, b ->
+            val style = gradeStyle(b.grade)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(style.stroke)
+                )
+                Text("${idx + 1}", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (b.grade != null) {
+                    Text(b.grade, style = MaterialTheme.typography.labelMedium,
+                        color = style.stroke)
+                }
+                if (b.startType != null) {
+                    Text("· ${b.startType}", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (b.name.isNotBlank()) {
+                    Text("\"${b.name}\"", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        }
+    }
+}
+
 private const val OSM_STYLE = """{"version":8,"sources":{"osm":{"type":"raster","tiles":["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}"""
+
+// ─────────────────────────── GESTIONAR ────────────────────────────
+
+/**
+ * Tab "GESTIONAR" — el admin busca una escuela y abre su mapa interactivo
+ * con todos los bloques. Desde el mapa puede tocar cada bloque y borrarlo.
+ */
+@Composable
+private fun GestionarTab(
+    allSchools: List<com.meteomontana.android.data.api.dto.SchoolDto>,
+    loading: Boolean,
+    schoolBlocks: Map<String, List<com.meteomontana.android.data.api.dto.BlockDto>>,
+    onLoadSchools: () -> Unit,
+    onFetchSchoolBlocks: (String) -> Unit,
+    onDeleteBlock: (String, String) -> Unit,
+    onUpdateBlock: (String, String, com.meteomontana.android.data.api.dto.CreateBlockRequest, (Boolean) -> Unit) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    var selectedSchool by remember {
+        mutableStateOf<com.meteomontana.android.data.api.dto.SchoolDto?>(null)
+    }
+
+    LaunchedEffect(Unit) { onLoadSchools() }
+
+    val filtered = remember(query, allSchools) {
+        if (query.isBlank()) allSchools
+        else allSchools.filter {
+            it.name.contains(query, ignoreCase = true) ||
+            (it.location?.contains(query, ignoreCase = true) == true) ||
+            (it.region?.contains(query, ignoreCase = true) == true)
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize().padding(Spacing.md)) {
+        Text("Buscar escuela por nombre, lugar o región",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Ej: Albarracín, Madrid…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            singleLine = true,
+            shape = MaterialTheme.shapes.small
+        )
+        Spacer(Modifier.height(Spacing.sm))
+
+        if (loading && allSchools.isEmpty()) {
+            Box(Modifier.fillMaxWidth().padding(Spacing.lg), Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        } else {
+            Text(
+                "${filtered.size} escuela${if (filtered.size == 1) "" else "s"}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(Spacing.xs))
+
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(filtered) { school ->
+                    SchoolListRow(school) {
+                        onFetchSchoolBlocks(school.id)
+                        selectedSchool = school
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                }
+            }
+        }
+    }
+
+    // Mapa fullscreen de la escuela seleccionada, con BORRAR + EDITAR habilitados
+    selectedSchool?.let { school ->
+        FullScreenMapDialog(
+            lat = school.lat,
+            lon = school.lon,
+            markerTitle = school.name,
+            existingBlocks = schoolBlocks[school.id] ?: emptyList(),
+            onDeleteBlock = { blockId -> onDeleteBlock(blockId, school.id) },
+            onUpdateBlock = { block, req -> onUpdateBlock(block.id, school.id, req) {} },
+            onDismiss = { selectedSchool = null }
+        )
+    }
+}
+
+@Composable
+private fun SchoolListRow(
+    school: com.meteomontana.android.data.api.dto.SchoolDto,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(school.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+            val subtitle = listOfNotNull(school.location, school.region)
+                .joinToString(" · ")
+                .ifEmpty { school.style ?: "" }
+            if (subtitle.isNotBlank()) {
+                Text(subtitle,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Text("▸", style = MaterialTheme.typography.titleMedium,
+            color = Terra)
+    }
+}
 
 // ─────────────────────────── STATS ────────────────────────────
 @Composable

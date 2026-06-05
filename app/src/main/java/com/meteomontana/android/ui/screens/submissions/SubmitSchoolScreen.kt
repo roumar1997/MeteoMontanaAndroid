@@ -82,6 +82,26 @@ fun SubmitSchoolScreen(
             Field("REGIÓN", region, { region = it }, placeholder = "ej: Madrid")
             Field("ESTILO", style, { style = it }, placeholder = "Vía / Bloque")
             Field("TIPO DE ROCA", rockType, { rockType = it }, placeholder = "ej: Granito")
+
+            // ── Pegar coordenadas de Google Maps (lat, lon) ──────────────────
+            // Acepta "40.4168, -3.7038" o "40.4168,-3.7038" o solo dos números
+            // separados por espacio. Detecta y rellena los dos campos automáticamente.
+            var pasted by remember { mutableStateOf("") }
+            Field(
+                "PEGAR COORDENADAS (GOOGLE MAPS)",
+                pasted,
+                { value ->
+                    pasted = value
+                    val parsed = parseLatLonPaste(value)
+                    if (parsed != null) {
+                        lat = "%.6f".format(parsed.first).replace(",", ".")
+                        lon = "%.6f".format(parsed.second).replace(",", ".")
+                        pasted = "" // limpia para uso repetido
+                    }
+                },
+                placeholder = "Pega aquí ej: 40.4168, -3.7038"
+            )
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Box(Modifier.weight(1f)) {
                     Field("LATITUD", lat, { lat = it }, placeholder = "40.42")
@@ -135,6 +155,23 @@ fun SubmitSchoolScreen(
             Spacer(Modifier.height(40.dp))
         }
     }
+}
+
+/**
+ * Parsea texto pegado de Google Maps con formato "lat, lon".
+ * Acepta: "40.4168, -3.7038" / "40.4168,-3.7038" / "40,4168 -3,7038" / etc.
+ * Devuelve Pair<lat, lon> o null si no se reconoce.
+ */
+private fun parseLatLonPaste(raw: String): Pair<Double, Double>? {
+    // Encuentra todos los números (con signo y decimales) en el texto.
+    // Acepta tanto . como , como separador decimal.
+    val matches = Regex("-?\\d+[\\.,]?\\d*").findAll(raw).map { it.value }.toList()
+    if (matches.size < 2) return null
+    val lat = matches[0].replace(",", ".").toDoubleOrNull() ?: return null
+    val lon = matches[1].replace(",", ".").toDoubleOrNull() ?: return null
+    // Sanity check: lat ∈ [-90,90], lon ∈ [-180,180]
+    if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) return null
+    return lat to lon
 }
 
 @Composable

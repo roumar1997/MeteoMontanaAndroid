@@ -315,6 +315,102 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Gestión completa de bloques desde el admin (esta sesión)
+
+- **Mapa de bloque mejorado** — `pinBitmapBoulder` dibuja un polígono irregular
+  (forma de roca) con el **nombre del bloque** dentro. Parking sigue siendo
+  círculo azul "P", zona círculo verde "Z". Iconos compartidos entre el mapa
+  público del usuario y el admin.
+- **`BlockDetailDialog`** (nuevo, `ui/components/`): dialog único compartido
+  entre usuario y admin. Al tocar cualquier marker muestra:
+  - Badge tipo (PARKING/ZONA/PIEDRA o PROPUESTA)
+  - Foto + líneas dibujadas (vía `TopoPhotoCanvas` compartido)
+  - Lista de vías (número con color por grado, grado, tipo, nombre)
+  - Botón **"→ CÓMO LLEGAR"** → Intent a Google Maps con destino
+  - **"+ AÑADIR VÍAS"** (solo BLOCK, todos los usuarios): abre `AddLinesFlow`
+  - **"✎ EDITAR"** y **"🗑 BORRAR"** (solo admin desde el panel admin)
+- **`AddLinesFlow.kt`** (nuevo): el usuario añade vías a una piedra existente
+  sin tener que crear una nueva. Reusa la foto del bloque y abre
+  `ContributionTopoDialog` precargado. Genera una contribución BOULDER con
+  `targetBlockId = block.id`.
+- **Backend — añadir vías a un block existente**: al aprobar contribución
+  BOULDER con `targetBlockId != null`, `ReviewContributionUseCase` busca el
+  bloque y **añade** las nuevas líneas (sortOrder continuo) en lugar de crear
+  una piedra nueva.
+- **Materialización de líneas al aprobar**: `parseAndAttachLines` parsea
+  `bloquesJson` con Jackson y crea las filas en `block_lines` con la foto.
+  Maneja la conversión PIE↔STAND, LANCE↔JUMP.
+- **`EditBlockDialog.kt`** (nuevo): edición admin de cualquier bloque. Permite
+  cambiar nombre, descripción, coordenadas (manual o pegando texto Google
+  Maps tipo `40.4168, -3.7038`), y para BLOCK también editar las líneas
+  reusando `ContributionTopoDialog` precargado. Botón **"📍 MOVER PULSANDO EN
+  EL MAPA"** vuelve al mapa con banner Terra "PULSA LA NUEVA POSICIÓN" y al
+  tap actualiza coords con un PUT.
+- **Backend — admin puede editar/borrar bloques ajenos**: tanto
+  `SchoolBlockUseCase.update()` como `.delete()` aceptan ahora **creador OR
+  admin** (`userRepository.findByUid(uid).map(u -> u.isAdmin())`). Borrar cae
+  en cascada a `block_lines` por FK.
+- **Tab "GESTIONAR" en AdminScreen** (nuevo): SearchBar de escuelas por nombre,
+  lugar o región. Al elegir una abre el `FullScreenMapDialog` con todos sus
+  blocks; el admin puede tocar cualquiera y borrar/editar/mover.
+- **Pegar coordenadas Google Maps**: campo "PEGAR COORDENADAS (GOOGLE MAPS)"
+  después de TIPO DE ROCA en `SubmitSchoolScreen` y dentro de
+  `EditBlockDialog`. Parser tolerante (`-?\d+[\.,]?\d*`) que rellena lat/lon
+  automáticamente al detectar 2 números válidos.
+- **Markers click handler en `FullScreenMapDialog`**: `setOnMarkerClickListener`
+  abre `BlockDetailDialog` en vez del callout default de MapLibre. Cada
+  marker se asocia a su `BlockDto` via un `Map<Marker, BlockDto>` interno.
+- **Distinción visual de propuesta vs existentes**: el marker de la propuesta
+  (admin) es amarillo `#F59E0B` con ★ o nombre, los blocks existentes con su
+  color por tipo. La propuesta ALSO funciona como block-fantasma para que el
+  admin la abra con el mismo dialog.
+- **`TopoPhotoCanvas.kt`** (nuevo, `ui/components/`): canvas compartido para
+  dibujar foto + líneas con badge numérico + badge de tipo de inicio. Acepta
+  tanto `parseBloquesJson(json)` (formato propuesta) como `lines.toTopoLines()`
+  (lista de BlockLineDto del backend).
+- **`ContributionResponse` y `ContributionDto` extendidos**: exponen ahora
+  `targetBlockId` para que el admin distinga propuestas "añadir vías".
+- **Admin ve foto + líneas existentes + nuevas al revisar "añadir vías"**:
+  `ContributionCard` detecta `targetBlockId != null`, busca el bloque destino
+  en `existingBlocks` cargados via LaunchedEffect, y dibuja existentes +
+  nuevas líneas superpuestas en la misma foto.
+- **`AdminViewModel.loadAllSchools / updateBlock / deleteBlock`**: cache
+  `schoolBlocks: Map<String, List<BlockDto>>` para que el tab GESTIONAR no
+  recargue cada vez.
+- **Aspect ratio 4:3 + Crop fijos** en `TopoPhotoCanvas`/editor: las
+  coordenadas normalizadas mapean al mismo rectángulo en todos los sitios →
+  las líneas que dibuja el usuario coinciden exactamente con lo que ve el
+  admin y con lo que verán otros usuarios.
+- **Fix iconos LANCE no visibles tras edición**: `drawStartIcon` y los chips
+  de selección ahora aceptan tanto los valores de app (PIE/SIT/LANCE/TRAV)
+  como los del backend (STAND/SIT/JUMP/TRAV).
+
+### Sesión anterior
+
+- **Flujo BOULDER completo**: TypePickerDialog activa "AÑADIR PIEDRA" → tap en mapa →
+  `BoulderFormDialog` (nombre, coordenadas auto, lista de bloques con grado+tipo de inicio,
+  foto picker, botón "DIBUJAR LÍNEAS") → `ContributionTopoDialog` (canvas drag sobre foto,
+  colores por grado via `gradeStyle()`, iconos PIE/SIT/LANCE/TRAV, DESHACER, GUARDAR LÍNEAS)
+  → ENVIAR PROPUESTA (sube foto a Firebase Storage → POST backend).
+- **Backend V13**: migración añade `photo_url`, `bloques_json`, `topo_lines_json` a
+  `pending_contributions`. `PendingContribution`, `PendingContributionJpaEntity`,
+  `ContributionRequest`, `ContributionResponse`, `SubmitContributionUseCase`,
+  `ReviewContributionUseCase` actualizados.
+- **AdminScreen BOULDER**: muestra foto (180dp crop) + lista de bloques con dot de color
+  por grado, grado, tipo de inicio y nombre.
+- **Firebase Storage**: `StorageUploadHelper.kt` inyectado en `SchoolDetailViewModel`.
+  Provider añadido en `NetworkModule.kt`. Ya estaba en `build.gradle.kts`.
+- **Decisión arquitectura offline**: Room para caché offline (no Firestore para datos de
+  escuelas). Foto en Firebase Storage, cacheable por Coil sin código extra.
+
+**Estado actual tras esta sesión:**
+
+✅ Flujo "Nueva Piedra" (BOULDER) completo end-to-end
+✅ Editor de líneas con drag sobre foto, colores por grado, iconos de tipo de inicio  
+✅ Admin ve foto + lista de bloques en la card de contribución BOULDER
+✅ Al aprobar BOULDER → `school_block` tipo BLOCK con `photoUrl` materializado
+
+
 - **Paso 0 (tipografía)**: Google Fonts provider (Inter/SourceSerif4/JetBrainsMono)
   cargado via `ui-text-google-fonts`. `Spacing.kt` con escala compartida.
   `EyebrowTextStyle` separado de `labelMedium` (tracking ancho partía dígitos).
@@ -365,22 +461,32 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 ✅ Lista de escuelas con filtros + mapa desplegable sincronizado con filtros  
 ✅ Score heatmap con iconos SVG meteo (no emojis)  
 ✅ Detalle de escuela: forecast hero, ventana óptima, heatmap 16h, notas, mapa  
-✅ Mapa de escuela con markers por tipo (parking=azul, bloque=terra, zona=verde)  
-✅ Popup al tocar marker con info + "Cómo llegar" para parkings  
+✅ Mapa de escuela con markers diferenciados: parking=azul "P", piedra=polígono terra con nombre, zona=verde "Z"  
+✅ Tocar marker → BlockDetailDialog: foto + líneas dibujadas + lista de vías + CÓMO LLEGAR  
+✅ Botón "+ AÑADIR VÍAS" a piedras existentes (usuario y admin) via AddLinesFlow  
 ✅ Flujo "+ PROPONER" para parkings (tap en mapa → form → backend)  
-✅ Admin: cola de contribuciones con filtros, agrupación, mini-mapa, VER EN MAPA interactivo  
-✅ Al aprobar contribución → aparece en mapa de escuela inmediatamente  
+✅ Flujo "+ PROPONER PIEDRA" (BOULDER): nombre + bloques (grado+tipo) + foto + editor topo  
+✅ Editor topo: drag sobre foto, colores por grado, badges PIE/SIT/LAN/TRV en extremo  
+✅ Admin tab PROPUESTAS: cola con filtros, agrupación por escuela, mini-mapa, VER EN MAPA  
+✅ Admin tab GESTIONAR: search escuela → mapa con todos los blocks → BORRAR/EDITAR/MOVER  
+✅ EditBlockDialog: nombre, coords (manual o pegando Google Maps), líneas, mover en mapa  
+✅ Materialización al aprobar BOULDER: photo_url + bloques_json → school_block + block_lines  
 ✅ Tema Cumbre con fuentes reales Google Fonts  
 ✅ Funciona en móvil físico (IP local) y emulador  
 
 **Pendiente (próximas sesiones):**
-- Flujo BOULDER, SECTOR, CORREGIR POSICIÓN en `ProposeContributionFlow`
-  (TypePickerDialog ya los lista como "próximamente")
+- Flujo SECTOR, CORREGIR POSICIÓN en `ProposeContributionFlow`
 - `GET /api/users/search` — búsqueda de usuarios
 - Follows (tabla + endpoints + UI)
 - Diario personal en Android (backend ya tiene endpoints)
 - TTL caché forecast (Caffeine `expireAfterWrite=30m` en back)
 - `POST /api/me/photo` — foto de perfil
+
+**Offline futuro — decisión tomada (2026-06-05):**
+- Fotos → Firebase Storage (ya integrado, URLs se cachean con Coil automáticamente)
+- Datos de escuelas/bloques offline → **Room** (cola local que sincroniza al volver la conexión)
+- NO migrar contribuciones a Firestore: el admin usa Spring Boot, mantener consistencia
+- Room se añade en una sesión futura cuando se aborde el modo offline
 
 **Notas operativas:**
 - Arranque back: `docker compose up -d` + `./mvnw spring-boot:run` en `MeteoMontanaAPI/api/`

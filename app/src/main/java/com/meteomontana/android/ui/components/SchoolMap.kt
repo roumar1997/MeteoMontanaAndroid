@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
 import com.meteomontana.android.ui.screens.detail.ProposeContributionFlow
+import com.meteomontana.android.ui.screens.detail.AddLinesFlow
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Spacing
@@ -129,6 +130,8 @@ fun SchoolMap(
                 centerLat     = centerLat,
                 centerLon     = centerLon,
                 blocks        = blocks,
+                viewModel     = viewModel,
+                onMyProposals = onMyProposals,
                 waitingMapTap = waitingMapTap,
                 onProposeClick = { proposeOpen = true },
                 onCancelTap   = {
@@ -169,6 +172,8 @@ private fun InnerMap(
     centerLat: Double,
     centerLon: Double,
     blocks: List<BlockDto>,
+    viewModel: SchoolDetailViewModel,
+    onMyProposals: () -> Unit,
     waitingMapTap: Boolean,
     onProposeClick: () -> Unit,
     onCancelTap: () -> Unit,
@@ -180,8 +185,10 @@ private fun InnerMap(
     val mapRef       = remember { mutableStateOf<MapLibreMap?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Bloque seleccionado (para popup)
+    // Bloque seleccionado (para popup) y bloque al que añadir vías
     var selectedBlock by remember { mutableStateOf<BlockDto?>(null) }
+    var addingLinesTo by remember { mutableStateOf<BlockDto?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -323,15 +330,122 @@ private fun InnerMap(
                 Text("+ PROPONER", style = EyebrowTextStyle, color = Color.White)
             }
 
-            // Popup del bloque seleccionado (esquina inferior, encima del botón)
-            selectedBlock?.let { block ->
-                BlockPopupCard(
-                    block = block,
-                    onClose = { selectedBlock = null },
+        }
+    }
+
+    // Dialog de detalles (foto + líneas + vías + CÓMO LLEGAR).
+    // No incluye BORRAR — esa acción vive en el panel admin (FullScreenMapDialog).
+    selectedBlock?.let { block ->
+        BlockDetailDialog(
+            block = block,
+            onAddLines = if (block.type == "BLOCK") ({
+                addingLinesTo = block
+                selectedBlock = null
+            }) else null,
+            onDismiss = { selectedBlock = null }
+        )
+    }
+
+    // Flujo "+ AÑADIR VÍAS" a una piedra existente
+    addingLinesTo?.let { block ->
+        AddLinesFlow(
+            block = block,
+            viewModel = viewModel,
+            onDismiss = { addingLinesTo = null },
+            onSuccess = {
+                addingLinesTo = null
+                successMessage = "Propuesta enviada. Un admin la revisará en 24-48h."
+            }
+        )
+    }
+
+    // Aviso de éxito tras enviar la propuesta — mismo estilo que el flujo normal
+    if (successMessage != null) {
+        CumbreSuccessDialog(
+            onClose = { successMessage = null },
+            onMyProposals = {
+                successMessage = null
+                onMyProposals()
+            }
+        )
+    }
+}
+
+/**
+ * Diálogo de éxito estilo Cumbre (mismo look que ProposeContributionFlow.SuccessDialog).
+ * Se usa tras enviar la propuesta de "AÑADIR VÍAS".
+ */
+@Composable
+private fun CumbreSuccessDialog(
+    onClose: () -> Unit,
+    onMyProposals: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                .padding(Spacing.lg)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = Spacing.sm, end = 100.dp, bottom = Spacing.sm)
+                        .size(64.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(com.meteomontana.android.ui.theme.Moss),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("✓", style = MaterialTheme.typography.headlineLarge,
+                        color = Color.White)
+                }
+                Spacer(Modifier.height(Spacing.lg))
+                Text("PROPUESTA ENVIADA",
+                    style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(Spacing.sm))
+                Text("Un admin la revisará en ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("24-48h.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Terra)
+                Spacer(Modifier.height(Spacing.xs))
+                Text(
+                    "Te avisaremos por email y notificación\npush cuando haya respuesta.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.height(Spacing.xl))
+                Row(modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Box(modifier = Modifier.weight(1f)
+                        .clip(MaterialTheme.shapes.small)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                        .clickable(onClick = onClose)
+                        .padding(vertical = Spacing.md),
+                        contentAlignment = Alignment.Center) {
+                        Text("CERRAR", style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Box(modifier = Modifier.weight(1.5f)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.onBackground)
+                        .clickable(onClick = onMyProposals)
+                        .padding(vertical = Spacing.md),
+                        contentAlignment = Alignment.Center) {
+                        Text("VER MIS PROPUESTAS", style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.background)
+                    }
+                }
             }
         }
     }
@@ -355,7 +469,7 @@ private fun placeMarkers(
         val icon = when (b.type.uppercase()) {
             "PARKING" -> iconFactory.fromBitmap(parkingBitmap())
             "ZONE"    -> iconFactory.fromBitmap(zoneBitmap())
-            else      -> iconFactory.fromBitmap(blockBitmap())
+            else      -> iconFactory.fromBitmap(blockBitmap(b.name))
         }
         val marker = map.addMarker(
             MarkerOptions()
@@ -401,29 +515,15 @@ private fun parkingBitmap(): Bitmap {
     return bmp
 }
 
-/** Pin terra para bloques (tipo BLOCK). */
-private fun blockBitmap(): Bitmap {
-    val size = 52
-    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val c = Canvas(bmp)
-    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#C2410C") }
-    val cx = size / 2f; val cy = size / 2f - 4f; val r = 20f
-    // Círculo + punta abajo (drop pin)
-    c.drawCircle(cx, cy, r, fill)
-    val path = android.graphics.Path().apply {
-        moveTo(cx - 8f, cy + r - 4f)
-        lineTo(cx, cy + r + 10f)
-        lineTo(cx + 8f, cy + r - 4f)
-        close()
-    }
-    c.drawPath(path, fill)
-    val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE
-        textSize = 20f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
-    }
-    c.drawText("B", cx, cy + 7f, txt)
-    return bmp
-}
+/**
+ * Pin de piedra (BLOCK). Polígono irregular terra con el nombre dentro.
+ * Usa el mismo helper compartido que el mapa del admin para coherencia visual.
+ */
+private fun blockBitmap(label: String): Bitmap = pinBitmapBoulder(
+    label = label.takeIf { it.isNotBlank() } ?: "?",
+    fillColor = android.graphics.Color.parseColor("#C2410C"),
+    sizeDp = 40
+)
 
 /** Pin verde para zonas (tipo ZONE). */
 private fun zoneBitmap(): Bitmap {
@@ -446,89 +546,6 @@ private fun zoneBitmap(): Bitmap {
     }
     c.drawText("Z", cx, cy + 7f, txt)
     return bmp
-}
-
-/** Tarjeta que aparece al tocar un marker. Muestra nombre, tipo, coords y "Cómo llegar". */
-@Composable
-private fun BlockPopupCard(
-    block: BlockDto,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val ctx = LocalContext.current
-
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(2.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-            .padding(Spacing.md)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Badge tipo
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(
-                        when (block.type.uppercase()) {
-                            "PARKING" -> Color(0xFF1A56DB)
-                            "ZONE"    -> Color(0xFF3F6B4A)
-                            else      -> Terra
-                        }
-                    )
-                    .padding(horizontal = Spacing.sm, vertical = 2.dp)
-            ) {
-                Text(block.type, style = EyebrowTextStyle, color = Color.White)
-            }
-            Spacer(Modifier.width(Spacing.sm))
-            Text(
-                block.name,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                " ✕",
-                modifier = Modifier.clickable(onClick = onClose),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-
-        block.description?.takeIf { it.isNotBlank() }?.let {
-            Spacer(Modifier.height(Spacing.xs))
-            Text(it, style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            "${"%.5f".format(block.lat)}, ${"%.5f".format(block.lon)}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        // "Cómo llegar" solo para parkings (tiene sentido navegar a un parking)
-        if (block.type.uppercase() == "PARKING") {
-            Spacer(Modifier.height(Spacing.sm))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Terra)
-                    .clickable {
-                        val uri = Uri.parse(
-                            "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}"
-                        )
-                        runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                    }
-                    .padding(vertical = Spacing.sm),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("CÓMO LLEGAR", style = EyebrowTextStyle, color = Color.White)
-            }
-        }
-    }
 }
 
 @Composable

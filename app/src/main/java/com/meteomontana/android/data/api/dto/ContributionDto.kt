@@ -14,7 +14,10 @@ data class ContributionRequest(
     val proposedLat: Double?,    // POSITION_CORRECTION: nueva lat propuesta
     val proposedLon: Double?,    // POSITION_CORRECTION: nueva lon propuesta
     val correctionReason: String?,
-    val targetBlockId: String?   // POSITION_CORRECTION: id del bloque a mover (null = la escuela)
+    val targetBlockId: String?,  // POSITION_CORRECTION: id del bloque a mover (null = la escuela)
+    val photoUrl: String?,       // BOULDER: URL de Firebase Storage
+    val bloquesJson: String?,    // BOULDER: JSON array [{name,grade,startType,linePath}]
+    val topoLinesJson: String?   // BOULDER: líneas normalizadas
 )
 
 @JsonClass(generateAdapter = true)
@@ -32,5 +35,9 @@ data class ContributionDto(
     val submittedByName: String?,
     val reviewReason: String?,
     val createdAt: String?,
-    val reviewedAt: String?
+    val reviewedAt: String?,
+    val photoUrl: String?,      // BOULDER: URL de Firebase Storage
+    val bloquesJson: String?,   // BOULDER: JSON array de bloques
+    val topoLinesJson: String?, // BOULDER: líneas normalizadas
+    val targetBlockId: String?  // si es propuesta de AÑADIR VÍAS, id del bloque destino
 )
