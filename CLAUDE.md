@@ -1,7 +1,107 @@
 # MeteoMontana Android — contexto para Claude
 
 App Android nativa (Kotlin + Jetpack Compose) que replica la PWA MeteoMontana
-y se conecta al backend Spring Boot en `C:\Users\rouma\MeteoMontanaAPI`.
+y se conecta al backend Spring Boot.
+
+---
+
+## 🗺️ Mapa de repos — LEER PRIMERO
+
+| Repo | Ruta local | GitHub |
+|---|---|---|
+| **Android** (este repo) | `C:\Users\rouma\MeteoMontanaAndroid` | `roumar1997/MeteoMontanaAndroid` |
+| **Backend** Spring Boot | `C:\Users\rouma\MeteoMontanaAPI` | `roumar1997/MeteoMontanaAPI` |
+| **PWA** JS (referencia visual) | `C:\Users\rouma\Desktop\MeteoMontana` | (no es este repo) |
+
+**Regla de oro**: cuando algo falla en Android y parece un problema del backend
+(nuevo campo, endpoint inexistente, lógica de negocio), ve a editar
+`C:\Users\rouma\MeteoMontanaAPI`. Cuando algo falla visualmente o en la UI,
+edita este repo. Los dos repos se trabajan juntos en la misma sesión.
+
+---
+
+## ⚡ Arranque rápido (cada sesión)
+
+```powershell
+# 1. Levantar Postgres (desde la raíz del backend)
+cd C:\Users\rouma\MeteoMontanaAPI
+docker compose up -d
+
+# 2. Arrancar el backend
+cd api
+./mvnw spring-boot:run
+# → escucha en http://localhost:8080
+# → Flyway aplica migraciones automáticamente al arrancar
+
+# 3. Android Studio: abrir C:\Users\rouma\MeteoMontanaAndroid
+#    Sync Gradle si hay cambios en build.gradle.kts o libs.versions.toml
+#    Run → instala en emulador o móvil físico
+```
+
+**Verificar que el back funciona:**
+```
+GET http://localhost:8080/actuator/health  →  {"status":"UP"}
+GET http://localhost:8080/api/schools      →  array de 191 escuelas
+```
+
+---
+
+## 📁 Ficheros clave — dónde tocar qué
+
+### Android (este repo)
+```
+app/build.gradle.kts          → dependencias, API_BASE_URL (emulador vs móvil físico)
+gradle/libs.versions.toml     → versiones de todas las deps
+app/src/main/res/xml/
+  network_security_config.xml → IPs permitidas para HTTP cleartext
+
+ui/theme/
+  Color.kt     → paleta Cumbre (copia exacta de tokens.css de la PWA)
+  Type.kt      → fuentes Google Fonts + EyebrowTextStyle
+  Spacing.kt   → escala de espaciado compartida
+  Shape.kt     → radius 0/2/4dp
+  Theme.kt     → MeteoMontanaTheme
+
+data/api/
+  SchoolApi.kt  → todos los endpoints de escuelas, forecast, notas, contributions
+  AdminApi.kt   → endpoints admin (submissions, contributions, push, logs)
+  dto/          → DTOs Moshi para cada respuesta del backend
+```
+
+### Backend (`C:\Users\rouma\MeteoMontanaAPI`)
+```
+api/src/main/java/com/meteomontana/api/
+  domain/model/          → entidades de negocio puras (School, PendingContribution...)
+  domain/port/           → interfaces de repositorio
+  application/           → casos de uso (lógica de negocio)
+    forecast/            → GetForecastUseCase, ForecastResponse
+    contribution/        → SubmitContributionUseCase, ReviewContributionUseCase
+    admin/               → AdminGuard (usa ensureAdmin(uid), NO check(user))
+  infrastructure/
+    persistence/jpa/     → entidades JPA + repos Spring Data
+    web/                 → controllers REST (ContributionController, etc.)
+    weather/             → OpenMeteoClient (URL + parsing)
+    security/            → FirebaseTokenFilter, FirebaseUser(uid, email, name)
+
+api/src/main/resources/
+  db/migration/          → migraciones Flyway (V1..V12)
+  serviceAccountKey.json → credenciales Firebase (excluido de git, NUNCA subir)
+
+.env                     → contraseña Postgres (excluido de git)
+docker-compose.yml       → Postgres 16 en puerto 5432
+```
+
+### PWA (referencia visual, NO tocar)
+```
+C:\Users\rouma\Desktop\MeteoMontana/
+  css/style.css    → variables CSS: --bg, --terra, --ink, --font-sans/serif/mono...
+  css/tokens.css   → clases eyebrow, score-cell, spinner, etc.
+  js/utils/weather-icons.js  → wmoSvg() — origen de WmoWeatherIcon.kt
+  js/widgets/hourly-heatmap.js — origen de HourlyScoreGrid.kt
+  js/sectors/map-panel.js    — origen de SchoolsMapPanel.kt
+```
+
+---
 
 ## Workflow de cada sesión
 
@@ -10,6 +110,16 @@ dejamos"*. Lees este archivo, miras **Estado actual** al final, y arrancas
 desde ahí sin repetir el plan entero.
 
 **Antes de cerrar**: actualiza **Estado actual** y **Bitácora reciente**.
+
+**Protocolo de edición** (lo que funcionó bien):
+1. Antes de editar un archivo, léelo con Read para no asumir su contenido.
+2. Si el cambio toca backend Y Android, empieza siempre por el backend
+   (compilar back → reiniciar → luego tocar Android).
+3. Cuando el usuario pega un error de compilación, lee la línea exacta
+   antes de proponer el fix.
+4. Aplica los cambios directamente (Edit/Write) — el usuario aprecia no
+   tener que copiar snippets manualmente.
+5. Al terminar un bloque de cambios, haz commit + push de ambos repos.
 
 ## Cómo trabaja el usuario
 
