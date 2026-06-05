@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,6 +11,7 @@ import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.CreateNoteRequest
 import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.NoteDto
+import com.meteomontana.android.data.storage.StorageUploadHelper
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.repository.SchoolRepository
 import com.meteomontana.android.util.toUserMessage
@@ -37,7 +39,8 @@ sealed interface SchoolDetailUiState {
 class SchoolDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: SchoolRepository,
-    private val api: SchoolApi
+    private val api: SchoolApi,
+    private val storageHelper: StorageUploadHelper
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -91,9 +94,37 @@ class SchoolDetailViewModel @Inject constructor(
         }
     }
 
-    /** Envía una propuesta de mejora (parking, piedra, sector, corrección). */
+    /** Envía una propuesta de mejora (parking, sector, corrección). */
     suspend fun submitContribution(req: ContributionRequest): Result<Unit> =
         runCatching { api.submitContribution(schoolId, req); Unit }
+
+    /** Sube la foto a Firebase Storage (si hay) y envía la propuesta BOULDER al backend. */
+    suspend fun submitBoulderContribution(
+        lat: Double, lon: Double,
+        name: String?,
+        bloques: List<BoulderBloqueForm>,
+        photoUri: Uri?
+    ): Result<Unit> = runCatching {
+        val photoUrl = if (photoUri != null) {
+            storageHelper.uploadBoulderPhoto(photoUri, schoolId)
+        } else null
+
+        val req = ContributionRequest(
+            type = "BOULDER",
+            name = name?.takeIf { it.isNotBlank() },
+            lat = lat,
+            lon = lon,
+            notes = null,
+            description = null,
+            proposedLat = null, proposedLon = null,
+            correctionReason = null, targetBlockId = null,
+            photoUrl = photoUrl,
+            bloquesJson = bloques.toBloquesJson(),
+            topoLinesJson = null
+        )
+        api.submitContribution(schoolId, req)
+        Unit
+    }
 
     fun addBlock(req: CreateBlockRequest) {
         viewModelScope.launch {

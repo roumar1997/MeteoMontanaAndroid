@@ -50,6 +50,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.meteomontana.android.data.api.dto.AdminLogDto
 import com.meteomontana.android.data.api.dto.AdminStatsDto
 import com.meteomontana.android.data.api.dto.ContributionDto
@@ -59,6 +62,9 @@ import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Moss
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import com.meteomontana.android.ui.theme.colorForGrade
+import com.meteomontana.android.ui.theme.gradeStyle
+import org.json.JSONArray
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
@@ -365,6 +371,26 @@ private fun ContributionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        // ── BOULDER: foto + bloques ──────────────────────────────────────────────
+        if (c.type == "BOULDER") {
+            c.photoUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                Spacer(Modifier.height(Spacing.sm))
+                AsyncImage(
+                    model = url,
+                    contentDescription = "Foto de la piedra",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            c.bloquesJson?.takeIf { it.isNotBlank() }?.let { json ->
+                Spacer(Modifier.height(Spacing.sm))
+                BloquesSummary(json)
+            }
+        }
+
         // Mini-mapa
         Spacer(Modifier.height(Spacing.sm))
         DisposableEffect(lifecycleOwner) {
@@ -515,6 +541,62 @@ private fun SubmissionCard(
                 .background(Moss).clickable { onApprove(s.id) }.padding(Spacing.sm),
                 contentAlignment = Alignment.Center) {
                 Text("APROBAR", style = EyebrowTextStyle, color = Color.White)
+            }
+        }
+    }
+}
+
+/** Lista compacta de bloques parseando el JSON de la contribución. */
+@Composable
+private fun BloquesSummary(bloquesJson: String) {
+    data class BloqueInfo(val name: String, val grade: String?, val startType: String?)
+
+    val bloques = remember(bloquesJson) {
+        try {
+            val arr = JSONArray(bloquesJson)
+            (0 until arr.length()).map { i ->
+                val o = arr.getJSONObject(i)
+                BloqueInfo(
+                    name = o.optString("name", ""),
+                    grade = o.optString("grade").ifEmpty { null }.takeIf { it != "null" },
+                    startType = o.optString("startType").ifEmpty { null }.takeIf { it != "null" }
+                )
+            }
+        } catch (_: Throwable) { emptyList() }
+    }
+
+    if (bloques.isEmpty()) return
+
+    Text("BLOQUES", style = EyebrowTextStyle,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(4.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        bloques.forEachIndexed { idx, b ->
+            val style = gradeStyle(b.grade)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(style.stroke)
+                )
+                Text("${idx + 1}", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (b.grade != null) {
+                    Text(b.grade, style = MaterialTheme.typography.labelMedium,
+                        color = style.stroke)
+                }
+                if (b.startType != null) {
+                    Text("· ${b.startType}", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (b.name.isNotBlank()) {
+                    Text("\"${b.name}\"", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
             }
         }
     }

@@ -315,6 +315,30 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+- **Flujo BOULDER completo**: TypePickerDialog activa "AÑADIR PIEDRA" → tap en mapa →
+  `BoulderFormDialog` (nombre, coordenadas auto, lista de bloques con grado+tipo de inicio,
+  foto picker, botón "DIBUJAR LÍNEAS") → `ContributionTopoDialog` (canvas drag sobre foto,
+  colores por grado via `gradeStyle()`, iconos PIE/SIT/LANCE/TRAV, DESHACER, GUARDAR LÍNEAS)
+  → ENVIAR PROPUESTA (sube foto a Firebase Storage → POST backend).
+- **Backend V13**: migración añade `photo_url`, `bloques_json`, `topo_lines_json` a
+  `pending_contributions`. `PendingContribution`, `PendingContributionJpaEntity`,
+  `ContributionRequest`, `ContributionResponse`, `SubmitContributionUseCase`,
+  `ReviewContributionUseCase` actualizados.
+- **AdminScreen BOULDER**: muestra foto (180dp crop) + lista de bloques con dot de color
+  por grado, grado, tipo de inicio y nombre.
+- **Firebase Storage**: `StorageUploadHelper.kt` inyectado en `SchoolDetailViewModel`.
+  Provider añadido en `NetworkModule.kt`. Ya estaba en `build.gradle.kts`.
+- **Decisión arquitectura offline**: Room para caché offline (no Firestore para datos de
+  escuelas). Foto en Firebase Storage, cacheable por Coil sin código extra.
+
+**Estado actual tras esta sesión:**
+
+✅ Flujo "Nueva Piedra" (BOULDER) completo end-to-end
+✅ Editor de líneas con drag sobre foto, colores por grado, iconos de tipo de inicio  
+✅ Admin ve foto + lista de bloques en la card de contribución BOULDER
+✅ Al aprobar BOULDER → `school_block` tipo BLOCK con `photoUrl` materializado
+
+
 - **Paso 0 (tipografía)**: Google Fonts provider (Inter/SourceSerif4/JetBrainsMono)
   cargado via `ui-text-google-fonts`. `Spacing.kt` con escala compartida.
   `EyebrowTextStyle` separado de `labelMedium` (tracking ancho partía dígitos).
@@ -368,19 +392,27 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 ✅ Mapa de escuela con markers por tipo (parking=azul, bloque=terra, zona=verde)  
 ✅ Popup al tocar marker con info + "Cómo llegar" para parkings  
 ✅ Flujo "+ PROPONER" para parkings (tap en mapa → form → backend)  
+✅ Flujo "+ PROPONER PIEDRA" (BOULDER): nombre + bloques (grado+tipo) + foto + editor topo  
+✅ Editor topo: drag sobre foto, colores por grado, iconos PIE/SIT/LANCE/TRAV  
 ✅ Admin: cola de contribuciones con filtros, agrupación, mini-mapa, VER EN MAPA interactivo  
+✅ Admin BOULDER: foto + lista de bloques con dot de color por grado  
 ✅ Al aprobar contribución → aparece en mapa de escuela inmediatamente  
 ✅ Tema Cumbre con fuentes reales Google Fonts  
 ✅ Funciona en móvil físico (IP local) y emulador  
 
 **Pendiente (próximas sesiones):**
-- Flujo BOULDER, SECTOR, CORREGIR POSICIÓN en `ProposeContributionFlow`
-  (TypePickerDialog ya los lista como "próximamente")
+- Flujo SECTOR, CORREGIR POSICIÓN en `ProposeContributionFlow`
 - `GET /api/users/search` — búsqueda de usuarios
 - Follows (tabla + endpoints + UI)
 - Diario personal en Android (backend ya tiene endpoints)
 - TTL caché forecast (Caffeine `expireAfterWrite=30m` en back)
 - `POST /api/me/photo` — foto de perfil
+
+**Offline futuro — decisión tomada (2026-06-05):**
+- Fotos → Firebase Storage (ya integrado, URLs se cachean con Coil automáticamente)
+- Datos de escuelas/bloques offline → **Room** (cola local que sincroniza al volver la conexión)
+- NO migrar contribuciones a Firestore: el admin usa Spring Boot, mantener consistencia
+- Room se añade en una sesión futura cuando se aborde el modo offline
 
 **Notas operativas:**
 - Arranque back: `docker compose up -d` + `./mvnw spring-boot:run` en `MeteoMontanaAPI/api/`
