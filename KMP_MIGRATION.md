@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 2.4 cerrada — implementaciones Firebase en shared/androidMain)
+**Última actualización:** 2026-06-06 (Fase 2.5 cerrada — ViewModels solo dependen de use cases de shared)
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -84,7 +84,15 @@
     RepositoryModule convertido a `object` con @Provides para los 4 servicios.
     Firebase deps añadidas a `shared/build.gradle.kts` via `add("androidMainImplementation", ...)`.
     `.gitignore` actualizado para excluir `shared/build/`. 86 tests verdes. assembleDebug OK.
-  - [ ] 2.5 — Adaptar `androidApp` para consumir `shared`. ← **SIGUIENTE**
+  - [x] 2.5 — Adaptar `androidApp` para consumir `shared`. ✅
+    Todos los ViewModels de `app/` dependen SOLO de use cases de `shared/commonMain`.
+    Ningún VM importa KtorXxxApi directamente. SearchSchoolsUseCase añadido.
+    SchoolRepository + KtorSchoolRepository implementan searchSchools().
+    103 tests verdes. assembleDebug OK. Mergeado y pusheado a main.
+- [ ] **Fase 3** — App iOS en SwiftUI. ← **SIGUIENTE**
+  - [ ] 3.1 — Crear `iosApp/` (Xcode project stub + xcconfig para usar el framework KMP).
+  - [ ] 3.2 — Conectar shared framework en SwiftUI: injección de repositorios vía DI iOS (Swinject o manual).
+  - [ ] 3.3 — Pantallas MVP: lista de escuelas + detalle + forecast.
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
   - [ ] Estructura `iosApp/iosApp.xcodeproj` (con stubs sin compilar).
   - [ ] Cada sesión que refactorice algo Android → deja .swift equivalente.
@@ -542,38 +550,35 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 2.5: Verificar que `androidApp` consume `shared` correctamente + limpieza final.**
+**Fase 3.1: Crear el proyecto iOS (`iosApp/`) y conectar el framework KMP compilado.**
 
-Fase 2.4 completada. Estado actual del módulo `shared`:
+Fase 2.5 completada. El módulo `shared` está listo para ser consumido desde iOS:
 
-- `commonMain/`: domain (models, ports, repos, usecases, util) + data (Ktor APIs, DTOs, repos) ✅
-- `androidMain/`: FirebaseAuthService, FirebaseChatService, FirebaseStoragePhotoUploader, AndroidFileReader ✅
-- `iosMain/`: vacío — implementaciones iOS se escriben en Fase 3 con Mac ✅ (aceptado)
+- `commonMain/`: domain + data completos (use cases, repos, DTOs, Ktor APIs) ✅
+- `androidMain/`: Firebase implementations (Auth, Chat, Storage, FileReader) ✅
+- `iosMain/`: vacío — se rellena en Fase 3 con equivalentes Swift/iOS
 
-El módulo `app/` ahora solo contiene:
-- `ui/` — pantallas Compose + ViewModels
-- `di/` — módulos Hilt (NetworkModule, RepositoryModule, UseCasesModule)
-- `MeteoMontanaApp.kt`, `MainActivity.kt`
-- `util/ErrorMessage.kt`
-- `ui/screens/login/` (auth con CredentialManager — Android-only)
-- `ui/screens/topo/` (canvas Android-only)
+Lo que toca en Fase 3.1 (requiere que el usuario tenga Mac o CI Mac):
 
-Lo que toca en Fase 2.5:
+1. **Crear `iosApp/`** con un Xcode project que referencia el framework KMP compilado
+   (`shared.xcframework` generado por `./gradlew linkReleaseFrameworkIosSimulatorArm64`).
 
-1. **Auditar `app/`**: confirmar que no queda ninguna clase de dominio o lógica de negocio en `app/`
-   que debería estar en `shared`. Solo UI, DI, y Android-only helpers.
+2. **Implementaciones `iosMain/`** equivalentes a `androidMain/`:
+   - `FirebaseAuthService.kt` (iOS) — usando `FirebaseAuth` iOS SDK
+   - `FirebaseStoragePhotoUploader.kt` (iOS)
+   - `FirebaseChatService.kt` (iOS) — o conectar Firestore iOS SDK
+   - `IosFileReader.kt` — leyendo desde URLs de iOS
 
-2. **Verificar que no hay imports cruzados**: `app/` puede importar `shared`, pero `shared` no puede
-   importar nada de `app/`. Hacer un grep para confirmarlo.
+3. **Inyección de dependencias iOS** — sin Hilt. Manual factory o Swinject.
+   `KtorSchoolRepository(api: KtorSchoolApi)` se instancia en un `AppDependencies.swift`.
 
-3. **Revisar los VMs**: los ViewModels están en `app/ui/screens/`. Confirmar que solo dependen de
-   use cases del `shared` (no de APIs ni repositorios directamente).
+4. **Primera pantalla SwiftUI** — `SchoolListView` que consume `GetSchoolsUseCase`
+   publicado como `@Observable` o `ObservableObject`.
 
-4. **Sub-tarea pendiente**: `uploadPhoto` de perfil en EditProfileViewModel tiene un TODO marcado
-   (Fase 2.4 — necesita Ktor multipart). En Fase 2.5 implementarlo correctamente usando el
-   `PhotoUploader` port ya disponible.
-
-5. **Verificar `assembleDebug` y 86+ tests verdes** antes de cerrar la fase.
+**Pendiente Android (no bloqueante, puede hacerse en paralelo):**
+- `uploadPhoto` de perfil en `EditProfileViewModel` — TODO marcado (Fase 2.x).
+  Implementar con `PhotoUploader` port (ya disponible en `shared/androidMain/`).
+- Flujos SECTOR y CORREGIR POSICIÓN en `ProposeContributionFlow`.
 
 ### Sub-paso 2A — Forecast (+ tipos anidados)
 
