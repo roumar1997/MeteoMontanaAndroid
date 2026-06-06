@@ -33,14 +33,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meteomontana.android.data.api.dto.CurrentDto
-import com.meteomontana.android.data.api.dto.ForecastDto
+import com.meteomontana.android.domain.model.Current
+import com.meteomontana.android.domain.model.Forecast
 
 /**
  * Bloque de scoring/forecast reutilizable.
  * Lo usa la pantalla de detalle de escuela y la pantalla Tab Tiempo.
  */
-fun LazyListScope.forecastBody(forecast: ForecastDto) {
+fun LazyListScope.forecastBody(forecast: Forecast) {
     item { HeroSection(forecast) }
     item {
         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
@@ -67,7 +67,7 @@ fun LazyListScope.forecastBody(forecast: ForecastDto) {
 }
 
 @Composable
-fun HeroSection(forecast: ForecastDto) {
+fun HeroSection(forecast: Forecast) {
     val cur = forecast.current
     val verdict = if (cur.score >= 55) "SÍ" else "NO"
     val window = forecast.bestWindow
@@ -113,7 +113,7 @@ fun HeroSection(forecast: ForecastDto) {
 }
 
 @Composable
-fun FactorsAccordion(current: CurrentDto) {
+fun FactorsAccordion(current: Current) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Row(
@@ -136,7 +136,7 @@ fun FactorsAccordion(current: CurrentDto) {
 }
 
 @Composable
-fun CurrentWeather(cur: CurrentDto) {
+fun CurrentWeather(cur: Current) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -160,7 +160,7 @@ fun CurrentWeather(cur: CurrentDto) {
 }
 
 @Composable
-fun ConditionsGrid(cur: CurrentDto) {
+fun ConditionsGrid(cur: Current) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         SectionTitle("CONDICIONES AHORA")
         Spacer(Modifier.height(8.dp))
@@ -201,7 +201,7 @@ private fun ConditionCell(label: String, value: String, unit: String, modifier: 
 }
 
 @Composable
-fun BestDayBar(forecast: ForecastDto) {
+fun BestDayBar(forecast: Forecast) {
     val best = forecast.bestDay ?: return
     val cur = forecast.current
     Row(

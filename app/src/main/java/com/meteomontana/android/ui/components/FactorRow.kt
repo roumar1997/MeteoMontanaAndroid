@@ -17,10 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.meteomontana.android.data.api.dto.ScoreFactorDto
+import com.meteomontana.android.domain.model.ScoreFactor
 
 @Composable
-fun FactorList(factors: List<ScoreFactorDto>, modifier: Modifier = Modifier) {
+fun FactorList(factors: List<ScoreFactor>, modifier: Modifier = Modifier) {
     androidx.compose.foundation.layout.Column(modifier = modifier.fillMaxWidth()) {
         factors.forEachIndexed { idx, f ->
             FactorRow(f)
@@ -32,7 +32,7 @@ fun FactorList(factors: List<ScoreFactorDto>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FactorRow(factor: ScoreFactorDto) {
+private fun FactorRow(factor: ScoreFactor) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

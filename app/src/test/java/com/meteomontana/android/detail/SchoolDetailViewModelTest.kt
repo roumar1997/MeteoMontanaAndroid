@@ -5,10 +5,10 @@ import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
-import com.meteomontana.android.data.api.dto.CurrentDto
 import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
-import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
+import com.meteomontana.android.domain.model.Current
+import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.data.storage.StorageUploadHelper
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
@@ -76,9 +76,9 @@ class SchoolDetailViewModelTest {
 
     private fun savedState() = SavedStateHandle(mapOf("schoolId" to schoolId))
 
-    private val forecast = ForecastDto(
+    private val forecast = Forecast(
         schoolId = schoolId, schoolName = "Pedriza", lat = 40.768, lon = -3.852,
-        current = CurrentDto(
+        current = Current(
             time = "2026-06-06T10:00", temperature = 20.0, humidity = 50.0,
             windSpeed = 5.0, precipitation = 0.0, precipitationProbability = 0,
             cloudCover = 10, dewPoint = 8.0, precip24h = 0.0, precip72h = 0.0,

@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.meteomontana.android.data.api.dto.DayForecastDto
+import com.meteomontana.android.domain.model.DayForecast
 import com.meteomontana.android.ui.theme.scoreColor
 
 private val DAY_NAMES = mapOf(
@@ -28,7 +28,7 @@ private val DAY_FULL = mapOf(
 )
 
 @Composable
-fun DayRow(day: DayForecastDto, dayIndex: Int) {
+fun DayRow(day: DayForecast, dayIndex: Int) {
     val dt = java.time.LocalDate.parse(day.date)
     val dow = dt.dayOfWeek.name.take(3).uppercase() // MON, TUE, ...
     val label = DAY_NAMES[dow] ?: dow

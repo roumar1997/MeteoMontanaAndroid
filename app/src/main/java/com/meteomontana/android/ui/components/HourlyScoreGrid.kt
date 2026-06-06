@@ -19,7 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.meteomontana.android.data.api.dto.HourForecastDto
+import com.meteomontana.android.domain.model.HourForecast
 import com.meteomontana.android.ui.theme.scoreColor
 import com.meteomontana.android.ui.theme.scoreTextColor
 import com.meteomontana.android.ui.components.WmoWeatherIcon
@@ -31,7 +31,7 @@ import com.meteomontana.android.ui.components.WmoWeatherIcon
  */
 @Composable
 fun HourlyScoreGrid(
-    hours: List<HourForecastDto>,
+    hours: List<HourForecast>,
     modifier: Modifier = Modifier,
     hoursAhead: Int = 16
 ) {
@@ -48,7 +48,7 @@ fun HourlyScoreGrid(
 }
 
 @Composable
-private fun HourCell(h: HourForecastDto) {
+private fun HourCell(h: HourForecast) {
     Column(
         modifier = Modifier.width(60.dp),
         horizontalAlignment = Alignment.CenterHorizontally

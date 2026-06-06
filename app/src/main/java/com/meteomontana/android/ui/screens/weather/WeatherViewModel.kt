@@ -6,8 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
 import com.meteomontana.android.data.api.dto.FavoritesGridDto
-import com.meteomontana.android.data.api.dto.ForecastDto
+import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.location.LocationProvider
+import com.meteomontana.android.domain.model.Forecast
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,7 @@ sealed interface WeatherUiState {
     data object Loading : WeatherUiState
     data object NeedPermission : WeatherUiState
     data class Success(
-        val forecast: ForecastDto,
+        val forecast: Forecast,
         val favorites: List<FavoriteSchoolDto>,
         val selectedFavoriteId: String?,   // null = ubicación actual
         val grid: FavoritesGridDto?
@@ -66,7 +67,7 @@ class WeatherViewModel @Inject constructor(
                 else loadForecastByLatLon(40.4168, -3.7038)
             } else {
                 try {
-                    val fc = api.getForecast(schoolId)
+                    val fc = api.getForecast(schoolId).toDomain()
                     WeatherUiState.Success(fc, favorites, schoolId, grid)
                 } catch (t: Throwable) {
                     WeatherUiState.Error(t.toUserMessage())
@@ -78,7 +79,7 @@ class WeatherViewModel @Inject constructor(
     private suspend fun loadForecastByLatLon(lat: Double, lon: Double): WeatherUiState =
         try {
             WeatherUiState.Success(
-                api.getForecastByLocation(lat, lon, null),
+                api.getForecastByLocation(lat, lon, null).toDomain(),
                 favorites, null, grid
             )
         } catch (t: Throwable) {

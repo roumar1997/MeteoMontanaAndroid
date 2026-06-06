@@ -13,7 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.meteomontana.android.data.api.dto.HourForecastDto
+import com.meteomontana.android.domain.model.HourForecast
 import com.meteomontana.android.ui.theme.scoreColor
 
 /**
@@ -23,7 +23,7 @@ import com.meteomontana.android.ui.theme.scoreColor
  */
 @Composable
 fun HourlyHeatmap(
-    hours: List<HourForecastDto>,
+    hours: List<HourForecast>,
     modifier: Modifier = Modifier
 ) {
     // Tomamos las 24 primeras (día actual).

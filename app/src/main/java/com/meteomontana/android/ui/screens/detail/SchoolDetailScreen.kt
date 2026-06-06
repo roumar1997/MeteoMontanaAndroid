@@ -33,7 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meteomontana.android.data.api.dto.BlockDto
-import com.meteomontana.android.data.api.dto.ForecastDto
+import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.components.BlocksSection
@@ -126,7 +126,7 @@ private fun TopBar(
 @Composable
 private fun Content(
     school: School,
-    forecast: ForecastDto?,
+    forecast: Forecast?,
     forecastError: String?,
     notes: List<Note>,
     blocks: List<BlockDto>,
