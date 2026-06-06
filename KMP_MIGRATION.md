@@ -70,10 +70,36 @@ Estos no son bugs — son acoplamientos que hay que romper.
 
 ---
 
+### Fase 1.0 — Red de seguridad: tests automatizados (2 sesiones)
+
+**ANTES de refactorizar**, escribo tests que validen el comportamiento actual.
+Si tras refactorizar todos los tests siguen verdes, sabemos que no se rompió
+nada visible. Esto reemplaza el "probar a mano tras cada cambio".
+
+**Alcance de los tests** (realista — no test-everything):
+
+| Tipo | Qué se testea | Esfuerzo |
+|---|---|---|
+| **Unitarios puros** | Funciones puras: `haversineKm`, `parseLatLonPaste`, `parseBloquesJson` / `toBloquesJson`, `gradeStyle`, `parseLineStroke`, `mapStartType`, `applySortInternal` | Bajo, alta cobertura |
+| **ViewModel** | `SchoolListViewModel`: carga inicial, aplicar filtros, sort por score tras llegar scores, fallback Madrid, `onLocationGranted`. Con `kotlinx-coroutines-test` + `turbine` para StateFlow. | Medio |
+| **ViewModel** | `SchoolDetailViewModel`: load + forecast error + addBlock + submitBoulderContribution. | Medio |
+| **ViewModel** | `AdminViewModel`: load, fetchSchoolBlocks (cache), deleteBlock, updateBlock. | Medio |
+
+**Lo que NO testeo** (pragmático):
+- Composables — los tests de Compose son frágiles y lentos, no valen la
+  pena para detectar regresiones de refactor interno.
+- Retrofit / Ktor — son librerías testeadas. Mockear `SchoolApi` se hace
+  inyectándolo, no testeando la red.
+- Firebase — pruebas manuales en device.
+
+**Tras Fase 1.0 tendremos**: ~40 tests unitarios y ~15 tests de VM. Cualquier
+cambio del refactor que rompa el comportamiento → test rojo en CI.
+
 ### Fase 1 — Refactor del Android actual a Clean estricto (3-4 sesiones)
 
 **Aquí NO se introduce KMP todavía**. Solo se reorganiza el código Android
-para que sea trivial extraer a `shared/` después.
+para que sea trivial extraer a `shared/` después. **Cada refactor se valida
+con los tests de Fase 1.0**.
 
 #### 1.1 Use cases en `domain/usecase/`
 
@@ -246,6 +272,34 @@ MeteoMontanaClients/         (rename eventual del repo)
 
 ---
 
+### Estrategia iOS en paralelo (durante Fases 1 y 2)
+
+**Decisión:** en cada sesión que refactorice una parte de Android, dejo el
+`.swift` equivalente escrito en `iosApp/`. Cuando llegue el Mac, basta abrir
+Xcode y `Cmd+B`.
+
+Ejemplo: al refactorizar `SchoolListViewModel` (Fase 1.1 use cases) dejo en
+paralelo:
+
+```
+iosApp/iosApp/Screens/SchoolListView.swift
+iosApp/iosApp/ViewModels/SchoolListViewModel.swift
+```
+
+Estos `.swift`:
+- Consumen los use cases del `shared` (mismo nombre, mismo input/output).
+- Tienen previews SwiftUI con datos de prueba para que al abrir Xcode se
+  pueda diseñar sin backend.
+- Replican el look Cumbre (Terra, Mono, Serif) usando el design system
+  documentado en `DESIGN.md`.
+
+**Limitación honesta**: yo no puedo *ver* cómo queda el SwiftUI ni
+ejecutarlo en simulador. Estoy escribiendo "a ciegas" basándome en el
+design system y la documentación oficial de SwiftUI. Cuando abras Xcode
+habrá probablemente ajustes visuales menores (paddings, line-heights,
+posiciones de iconos). Es **normal y esperado** — lo arreglamos juntos en
+Fase 3 con el Mac delante.
+
 ### Fase 3 — App iOS en SwiftUI (5-8 sesiones)
 
 #### 3.1 Setup proyecto Xcode
@@ -379,24 +433,35 @@ de Fase 2.
 
 ## Estimación total
 
-- **Fase 0**: 1 sesión (este documento).
-- **Fase 1**: 3–4 sesiones (refactor Clean Android).
-- **Fase 2**: 2–3 sesiones (crear `shared`, migrar a Ktor, expect/actual).
-- **Fase 3**: 5–8 sesiones (app iOS completa, depende del scope MVP).
+- **Fase 0**: 1 sesión (este documento). ✅ HECHO
+- **Fase 1.0**: 2 sesiones (tests como red de seguridad).
+- **Fase 1**: 3–4 sesiones (refactor Clean Android + escribir .swift iOS en paralelo).
+- **Fase 2**: 2–3 sesiones (crear `shared`, migrar a Ktor, expect/actual + más .swift).
+- **Fase 3**: 5–8 sesiones (cuando llegue el Mac: abrir Xcode, ajustar visual, TestFlight).
 
-**Total**: 11–16 sesiones aproximadamente. Iremos sesión a sesión sin
-prisa, cada una con un commit cerrado a `main`.
+**Total**: 13–18 sesiones aproximadamente. Iremos sesión a sesión sin
+prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ---
 
 ## Próximo paso
 
-En la siguiente sesión empiezo **Fase 1.1: Use cases**. Voy a:
-1. Crear `domain/usecase/` con la estructura propuesta.
-2. Migrar `SchoolListViewModel` para que dependa de `GetSchoolsUseCase` y
-   `GetTodayScoresUseCase` en vez de `SchoolApi`.
-3. Hacer lo mismo con `SchoolDetailViewModel`.
-4. Commit y push a `main`.
+En la siguiente sesión empiezo **Fase 1.0 (sesión 1 de 2): tests de funciones
+puras + helpers**. Voy a:
 
-Tras esa sesión Android funciona idéntico, pero estamos un paso más cerca
-de KMP. Empezamos cuando me digas.
+1. Añadir dependencias de test:
+   - `kotlinx-coroutines-test` (ya posiblemente esté)
+   - `app.cash.turbine:turbine` para testear `StateFlow`
+   - `org.junit.jupiter` o `kotlin-test`
+   - `io.mockk:mockk` para mockear APIs/repos en tests de VM
+2. Crear `app/src/test/java/com/meteomontana/android/...` con tests para:
+   - `geo/HaversineTest.kt` — distancia entre puntos conocidos
+   - `submissions/ParseLatLonPasteTest.kt` — todos los formatos de Google Maps
+   - `detail/BoulderBloqueFormTest.kt` — `toBloquesJson` + round-trip
+   - `theme/GradeColorTest.kt` — color por grado (matching the PWA)
+   - `topo/LinePathTest.kt` — serialización de Offsets
+3. Ejecutar `./gradlew test`. Todos verdes.
+4. Commit y push.
+
+Tras esa sesión Android funciona idéntico, tenemos red de seguridad para
+empezar el refactor sin miedo. Empezamos cuando me digas.
