@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 1.3 cerrada — SchoolApi partida en 10 APIs por bounded context)
+**Última actualización:** 2026-06-06 (Fase 1.5 cerrada — PhotoUploader, AuthService, ChatService en domain/port/)
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -45,9 +45,16 @@
     FavoritesApi, JournalApi, SubmissionApi, SocialApi, NotificationApi).
     SchoolApi queda con 3 métodos (getSchools, searchSchools, getSchoolById).
     78 tests siguen verdes.
-  - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`). ← **SIGUIENTE**
-  - [ ] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`...).
-  - [ ] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`).
+  - [x] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`). ✅
+    DrawOp sealed class + TopoLineData + renderTopo() en domain/util/,
+    sin imports Android. TopoPhotoCanvas y ContributionTopoDialog usan
+    renderTopo() + traductor drawOp() Android-only. 7 tests nuevos → 86 total.
+  - [x] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`, `ChatService`). ✅
+    Interfaces en `domain/port/`. Implementaciones: `FirebaseStoragePhotoUploader`,
+    `FirebaseAuthService`, `FirebaseChatService` en `data/`. Bindings en
+    `RepositoryModule`. ChatViewModel, ChatListViewModel, AuthInterceptor y
+    SchoolDetailViewModel migrados a inyectar las interfaces. 86 tests verdes.
+  - [ ] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`). ← **SIGUIENTE**
 - [ ] **Fase 2** — Crear módulo `shared` KMP (2-3 sesiones).
   - [ ] 2.1 — Setup KMP + targets Android/iOS.
   - [ ] 2.2 — Migrar `domain/` a `commonMain`.
@@ -511,33 +518,29 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.4: sacar el dibujo del topo del Composable (instrucciones `DrawOp`).**
+**Fase 1.6: wrappers de tipos Android (`android.net.Uri` → `FileRef`).**
 
-`ContributionTopoDialog` y `TopoPhotoCanvas` dibujan directamente con
-`android.graphics.Canvas` y `android.graphics.Paint` dentro de Composables.
-Esto bloquea KMP porque en iOS no hay esos tipos.
+`SchoolDetailViewModel.submitBoulderContribution()` recibe `android.net.Uri` y lo
+convierte a `ByteArray` usando `ContentResolver`. Esto mantiene una dependencia
+Android en el ViewModel — en KMP los ViewModels deberían ser 100% Kotlin puro.
 
 Plan:
 
-1. Crear `domain/model/DrawOp.kt` — sealed class con:
-   - `Line(points: List<Offset>, color: Long, strokeWidth: Float)`
-   - `Circle(center: Offset, radius: Float, color: Long, filled: Boolean)`
-   - `Text(pos: Offset, label: String, color: Long, sizeSp: Float)`
-   - `Image(normalizedRect: Rect)` (para el área de la foto)
-2. Crear `domain/model/TopoLineData.kt` — los datos de una línea de vía
-   (puntos normalizados, color de grado, tipo de inicio) sin Android.
-3. Crear función pura `domain/util/TopoRenderer.kt`:
-   `fun renderTopo(lines: List<TopoLineData>, canvasW: Float, canvasH: Float): List<DrawOp>`
-   Recibe datos, devuelve instrucciones. Sin imports Android.
-4. Refactorizar `TopoPhotoCanvas.kt`: en lugar de dibujar directamente,
-   llama a `renderTopo()` y traduce cada `DrawOp` al `DrawScope` de Compose.
-5. Refactorizar `ContributionTopoDialog.kt` (editor): el drag del usuario
-   produce puntos normalizados → se pasan a `TopoLineData` → `renderTopo()`.
-6. Tests: añadir test unitario de `renderTopo()` verificando que para una
-   línea de 2 puntos genera exactamente 1 `DrawOp.Line`.
+1. Crear `domain/model/FileRef.kt` — `data class FileRef(val path: String)` o un
+   `sealed class` con `FileRef.Local(uri: String)` / `FileRef.Remote(url: String)`.
+2. Crear `domain/port/FileReader.kt` — `suspend fun readBytes(ref: FileRef): ByteArray`.
+3. Implementación Android `data/storage/AndroidFileReader.kt` — usa `ContentResolver`
+   con el `uri` recibido como `android.net.Uri.parse(ref.path)`.
+4. Actualizar `SchoolDetailViewModel.submitBoulderContribution()`:
+   - Parámetro pasa de `Uri?` a `FileRef?`
+   - Usa `fileReader.readBytes(ref)` en vez de `contentResolver.openInputStream(uri)`.
+5. Actualizar los Composables que llaman al VM (ProposeContributionFlow, etc.)
+   para envolver el `Uri` elegido por el picker en `FileRef(uri.toString())`.
+6. Binding en `RepositoryModule`: `@Binds FileReader → AndroidFileReader`.
+7. Verificar 86 tests siguen verdes.
 
-Resultado: `TopoRenderer.kt` y `TopoLineData.kt` son 100% Kotlin puro,
-listos para mover a `commonMain` en Fase 2.
+Resultado: `SchoolDetailViewModel` ya no importa `android.net.Uri` ni `Context` —
+listo para `commonMain` en Fase 2.
 
 Tests verdes antes de commit.
 

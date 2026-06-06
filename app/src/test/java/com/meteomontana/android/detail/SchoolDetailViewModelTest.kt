@@ -9,7 +9,8 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.Current
 import com.meteomontana.android.domain.model.Forecast
-import com.meteomontana.android.data.storage.StorageUploadHelper
+import android.content.Context
+import com.meteomontana.android.domain.port.PhotoUploader
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
@@ -66,7 +67,8 @@ class SchoolDetailViewModelTest {
     private lateinit var deleteBlockUC: DeleteBlockUseCase
     private lateinit var submitContribution: SubmitContributionUseCase
     private lateinit var getMyProfile: GetMyProfileUseCase
-    private lateinit var storage: StorageUploadHelper
+    private lateinit var photoUploader: PhotoUploader
+    private lateinit var context: Context
 
     private val schoolId = "s1"
     private val school = School(
@@ -106,7 +108,8 @@ class SchoolDetailViewModelTest {
         deleteBlockUC = mockk()
         submitContribution = mockk()
         getMyProfile = mockk()
-        storage = mockk()
+        photoUploader = mockk()
+        context = mockk()
 
         coEvery { getSchoolById(schoolId) } returns school
         coEvery { getForecast(schoolId) } returns forecast
@@ -121,7 +124,7 @@ class SchoolDetailViewModelTest {
     private fun newVm() = SchoolDetailViewModel(
         savedState(), getSchoolById, getForecast, getNotes, createNote,
         getMyFavorites, addFavorite, removeFavorite, getBlocks, createBlock,
-        deleteBlockUC, submitContribution, getMyProfile, storage
+        deleteBlockUC, submitContribution, getMyProfile, photoUploader, context
     )
 
     @Test fun `load con todo OK produce Success con forecast y sin error`() = runTest {
@@ -246,7 +249,7 @@ class SchoolDetailViewModelTest {
         )
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 0) { storage.uploadBoulderPhoto(any(), any()) }
+        coVerify(exactly = 0) { photoUploader.uploadBoulderPhoto(any(), any(), any()) }
         assertEquals("BOULDER", captured.captured.type)
         assertEquals("La Piedra", captured.captured.name)
         assertNull(captured.captured.photoUrl)
@@ -266,7 +269,7 @@ class SchoolDetailViewModelTest {
         )
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 0) { storage.uploadBoulderPhoto(any(), any()) }
+        coVerify(exactly = 0) { photoUploader.uploadBoulderPhoto(any(), any(), any()) }
         assertEquals("b1", captured.captured.targetBlockId)
         assertNull(captured.captured.photoUrl)
         assertEquals("BOULDER", captured.captured.type)

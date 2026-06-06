@@ -4,25 +4,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SocialApi
 import com.meteomontana.android.data.api.dto.toDomain
-import com.meteomontana.android.data.chat.ChatRepository
 import com.meteomontana.android.domain.model.PublicProfile
-import com.meteomontana.android.data.chat.Conversation
+import com.meteomontana.android.domain.port.AuthService
+import com.meteomontana.android.domain.port.ChatService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ChatListItem(
-    val conversation: Conversation,
+    val conversation: ChatService.Conversation,
     val otherProfile: PublicProfile?
 )
 
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
-    private val chatRepo: ChatRepository,
+    private val chatService: ChatService,
+    private val authService: AuthService,
     private val api: SocialApi
 ) : ViewModel() {
     private val _items = MutableStateFlow<List<ChatListItem>>(emptyList())
@@ -30,12 +30,11 @@ class ChatListViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            chatRepo.observeMyConversations().collect { convs ->
-                // Para cada conversación cargamos el perfil del otro.
+            chatService.observeMyConversations().collect { convs ->
+                val me = authService.currentUid()
                 val list = convs.map { conv ->
-                    val me = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                    val other = conv.participants.firstOrNull { it != me }
-                    val profile = other?.let {
+                    val otherUid = conv.participants.firstOrNull { it != me }
+                    val profile = otherUid?.let {
                         runCatching { api.getUserProfile(it).toDomain() }.getOrNull()
                     }
                     ChatListItem(conv, profile)

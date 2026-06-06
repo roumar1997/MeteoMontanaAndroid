@@ -3,6 +3,7 @@ package com.meteomontana.android.data.auth
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
+import com.meteomontana.android.domain.port.AuthService
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,11 +20,11 @@ import javax.inject.Singleton
  */
 @Singleton
 class AuthInterceptor @Inject constructor(
-    private val authManager: AuthManager
+    private val authService: AuthService
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
-        val token: String? = runBlocking { authManager.currentIdToken(forceRefresh = false) }
+        val token: String? = runBlocking { authService.currentIdToken(forceRefresh = false) }
 
         val req = if (token != null) {
             original.newBuilder().header("Authorization", "Bearer $token").build()

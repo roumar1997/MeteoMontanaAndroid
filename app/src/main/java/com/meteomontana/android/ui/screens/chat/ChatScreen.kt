@@ -42,8 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.google.firebase.auth.FirebaseAuth
-import com.meteomontana.android.data.chat.ChatMessage
+import com.meteomontana.android.domain.port.ChatService
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -78,7 +77,7 @@ fun ChatScreen(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             items(state.messages) { msg ->
-                MessageBubble(msg)
+                MessageBubble(msg, myUid = state.myProfile?.uid)
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -138,9 +137,8 @@ private fun ChatTopBar(name: String, avatarUrl: String?, onBack: () -> Unit) {
 }
 
 @Composable
-private fun MessageBubble(msg: ChatMessage) {
-    val me = FirebaseAuth.getInstance().currentUser?.uid
-    val isMine = msg.fromUid == me
+private fun MessageBubble(msg: ChatService.ChatMessage, myUid: String?) {
+    val isMine = msg.fromUid == myUid
     val bg = if (isMine) MaterialTheme.colorScheme.primary
              else MaterialTheme.colorScheme.surface
     val fg = if (isMine) Color.White
