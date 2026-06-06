@@ -20,7 +20,11 @@ y se conecta al backend Spring Boot.
 > 4. Lee el resto de este `CLAUDE.md` para entender el contexto general del
 >    proyecto (stack, endpoints, convenciones).
 > 5. **NO repreguntes** "¿por dónde íbamos?". Está todo escrito.
-> 6. Al final de tu sesión, **actualiza el checklist** y el "Próximo paso"
+> 6. **Modelo a usar**: Sonnet para refactors mecánicos (Fases 1.x y 2.x:
+>    partir interfaces, mover modelos, redirigir inyecciones, actualizar tests).
+>    Opus solo si hay decisiones de arquitectura ambiguas, bugs difíciles de
+>    diagnosticar, o diseño desde cero sin plan previo.
+> 7. Al final de tu sesión, **actualiza el checklist** y el "Próximo paso"
 >    de `KMP_MIGRATION.md` antes de commitear. Esto es lo que hace que la
 >    siguiente sesión sepa por dónde seguir.
 >

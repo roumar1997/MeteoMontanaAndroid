@@ -3,7 +3,8 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.FavoritesApi
+import com.meteomontana.android.data.api.ForecastApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.domain.model.FavoriteSchool
@@ -30,7 +31,8 @@ sealed interface WeatherUiState {
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
-    private val api: SchoolApi,
+    private val forecastApi: ForecastApi,
+    private val favoritesApi: FavoritesApi,
     private val locationProvider: LocationProvider
 ) : ViewModel() {
     private val _state = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
@@ -49,8 +51,8 @@ class WeatherViewModel @Inject constructor(
                 return@launch
             }
             // Cargamos favoritos y grid en paralelo a la ubicación.
-            favorites = runCatching { api.getMyFavorites().map { it.toDomain() } }.getOrDefault(emptyList())
-            grid = runCatching { api.getFavoritesGrid().toDomain() }.getOrNull()
+            favorites = runCatching { favoritesApi.getMyFavorites().map { it.toDomain() } }.getOrDefault(emptyList())
+            grid = runCatching { favoritesApi.getFavoritesGrid().toDomain() }.getOrNull()
 
             val loc = locationProvider.current() ?: return@launch run {
                 _state.value = loadForecastByLatLon(40.4168, -3.7038)
@@ -67,7 +69,7 @@ class WeatherViewModel @Inject constructor(
                 else loadForecastByLatLon(40.4168, -3.7038)
             } else {
                 try {
-                    val fc = api.getForecast(schoolId).toDomain()
+                    val fc = forecastApi.getForecast(schoolId).toDomain()
                     WeatherUiState.Success(fc, favorites, schoolId, grid)
                 } catch (t: Throwable) {
                     WeatherUiState.Error(t.toUserMessage())
@@ -79,7 +81,7 @@ class WeatherViewModel @Inject constructor(
     private suspend fun loadForecastByLatLon(lat: Double, lon: Double): WeatherUiState =
         try {
             WeatherUiState.Success(
-                api.getForecastByLocation(lat, lon, null).toDomain(),
+                forecastApi.getForecastByLocation(lat, lon, null).toDomain(),
                 favorites, null, grid
             )
         } catch (t: Throwable) {

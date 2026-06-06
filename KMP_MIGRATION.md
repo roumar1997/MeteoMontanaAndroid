@@ -12,7 +12,9 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 1.2 cerrada — todos los DTOs fuera de UiState)
+**Última actualización:** 2026-06-06 (Fase 1.3 cerrada — SchoolApi partida en 10 APIs por bounded context)
+
+**Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
 **Progreso global:**
 
@@ -38,8 +40,12 @@
     `UpdateProfileRequest`, `FcmTokenRequest`, `AdminPushRequest`,
     `RejectReason` se mantienen como input DTOs (anotaciones Moshi;
     se cambian a Kotlinx Serialization en Fase 2).
-  - [ ] 1.3 — Partir `SchoolApi` por bounded context. ← **SIGUIENTE**
-  - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
+  - [x] 1.3 — Partir `SchoolApi` por bounded context. ✅ 10 APIs nuevas
+    (ForecastApi, BlockApi, NoteApi, ContributionApi, ProfileApi,
+    FavoritesApi, JournalApi, SubmissionApi, SocialApi, NotificationApi).
+    SchoolApi queda con 3 métodos (getSchools, searchSchools, getSchoolById).
+    78 tests siguen verdes.
+  - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`). ← **SIGUIENTE**
   - [ ] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`...).
   - [ ] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`).
 - [ ] **Fase 2** — Crear módulo `shared` KMP (2-3 sesiones).
@@ -505,41 +511,33 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.3: partir `SchoolApi` por bounded context.**
+**Fase 1.4: sacar el dibujo del topo del Composable (instrucciones `DrawOp`).**
 
-`SchoolApi` tiene 39 métodos y es un god-interface. Hay que partirlo en
-APIs Retrofit más pequeñas por bounded context. Esto desbloquea Fase 2
-(en `commonMain` cada bounded context tendrá su `XApi` Ktor independiente).
+`ContributionTopoDialog` y `TopoPhotoCanvas` dibujan directamente con
+`android.graphics.Canvas` y `android.graphics.Paint` dentro de Composables.
+Esto bloquea KMP porque en iOS no hay esos tipos.
 
 Plan:
 
-1. Crear interfaces Retrofit por bounded context dentro de `data/api/`:
-   - `SchoolApi` (queda con: schools, search, by-id)
-   - `ForecastApi` (forecast, by-location)
-   - `BlockApi` (blocks CRUD)
-   - `NoteApi` (notes by school, create)
-   - `ContributionApi` (submit, get my contributions)
-   - `ProfileApi` (me, update, photo, fcm-token)
-   - `FavoritesApi` (favorites + grid)
-   - `JournalApi` (journal + stats)
-   - `SocialApi` (search-users, profile, follow status/list)
-   - `NotificationsApi` (notifications + mark read)
-   - `SubmissionApi` (submit school, my submissions)
-2. En `NetworkModule`, proveer cada uno con `retrofit.create()`.
-3. Actualizar use cases para inyectar el API específico en lugar de
-   `SchoolApi` (cada use case ya está aislado tras Fase 1.1).
-4. Migrar también las pocas pantallas que llaman a `SchoolApi`
-   directamente (ChatListViewModel, ChatViewModel,
-   NotificationsViewModel, JournalEntriesScreen VM, FollowListScreen VM,
-   PublicProfileScreen VM, SearchUsersScreen VM, ProfileViewModel,
-   EditProfileViewModel, WeatherViewModel, AddBlockSheet VM,
-   MySubmissionsViewModel) — crear use cases también para sus llamadas
-   o que inyecten el `XApi` específico.
-5. Mantener `AdminApi` aparte (ya lo está).
+1. Crear `domain/model/DrawOp.kt` — sealed class con:
+   - `Line(points: List<Offset>, color: Long, strokeWidth: Float)`
+   - `Circle(center: Offset, radius: Float, color: Long, filled: Boolean)`
+   - `Text(pos: Offset, label: String, color: Long, sizeSp: Float)`
+   - `Image(normalizedRect: Rect)` (para el área de la foto)
+2. Crear `domain/model/TopoLineData.kt` — los datos de una línea de vía
+   (puntos normalizados, color de grado, tipo de inicio) sin Android.
+3. Crear función pura `domain/util/TopoRenderer.kt`:
+   `fun renderTopo(lines: List<TopoLineData>, canvasW: Float, canvasH: Float): List<DrawOp>`
+   Recibe datos, devuelve instrucciones. Sin imports Android.
+4. Refactorizar `TopoPhotoCanvas.kt`: en lugar de dibujar directamente,
+   llama a `renderTopo()` y traduce cada `DrawOp` al `DrawScope` de Compose.
+5. Refactorizar `ContributionTopoDialog.kt` (editor): el drag del usuario
+   produce puntos normalizados → se pasan a `TopoLineData` → `renderTopo()`.
+6. Tests: añadir test unitario de `renderTopo()` verificando que para una
+   línea de 2 puntos genera exactamente 1 `DrawOp.Line`.
 
-Riesgo: tocar la inyección Hilt. Si el `NetworkModule` no provee un API
-correctamente, Hilt falla en runtime, no en compile. Probar la app
-manualmente después.
+Resultado: `TopoRenderer.kt` y `TopoLineData.kt` son 100% Kotlin puro,
+listos para mover a `commonMain` en Fase 2.
 
 Tests verdes antes de commit.
 

@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.NotificationApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.Inbox
 import com.meteomontana.android.domain.model.Notification
@@ -52,7 +52,7 @@ sealed interface NotificationsUiState {
 
 @HiltViewModel
 class NotificationsViewModel @Inject constructor(
-    private val api: SchoolApi
+    private val api: NotificationApi
 ) : ViewModel() {
     private val _state = MutableStateFlow<NotificationsUiState>(NotificationsUiState.Loading)
     val state: StateFlow<NotificationsUiState> = _state.asStateFlow()

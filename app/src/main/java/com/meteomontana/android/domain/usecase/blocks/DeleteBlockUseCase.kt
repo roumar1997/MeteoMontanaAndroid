@@ -1,8 +1,8 @@
 package com.meteomontana.android.domain.usecase.blocks
 
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.BlockApi
 import javax.inject.Inject
 
-class DeleteBlockUseCase @Inject constructor(private val api: SchoolApi) {
+class DeleteBlockUseCase @Inject constructor(private val api: BlockApi) {
     suspend operator fun invoke(blockId: String) = api.deleteBlock(blockId)
 }

@@ -3,7 +3,8 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.JournalApi
+import com.meteomontana.android.data.api.ProfileApi
 import com.meteomontana.android.data.api.dto.CreateJournalRequest
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.auth.AuthManager
@@ -24,7 +25,8 @@ sealed interface ProfileUiState {
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val api: SchoolApi,
+    private val profileApi: ProfileApi,
+    private val journalApi: JournalApi,
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -37,8 +39,8 @@ class ProfileViewModel @Inject constructor(
         _uiState.value = ProfileUiState.Loading
         viewModelScope.launch {
             _uiState.value = try {
-                val profile = api.getMyProfile().toDomain()
-                val stats = api.getMyJournalStats().toDomain()
+                val profile = profileApi.getMyProfile().toDomain()
+                val stats = journalApi.getMyJournalStats().toDomain()
                 ProfileUiState.Success(profile, stats)
             } catch (t: Throwable) {
                 ProfileUiState.Error(t.toUserMessage())
@@ -49,7 +51,7 @@ class ProfileViewModel @Inject constructor(
     fun addBlock(req: CreateJournalRequest, onDone: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                api.createJournalSession(req)
+                journalApi.createJournalSession(req)
                 load()
                 onDone()
             } catch (_: Throwable) {}

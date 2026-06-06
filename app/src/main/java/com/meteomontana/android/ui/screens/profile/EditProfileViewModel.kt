@@ -5,7 +5,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.ProfileApi
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.PrivateProfile
@@ -30,7 +30,7 @@ sealed interface EditState {
 
 @HiltViewModel
 class EditProfileViewModel @Inject constructor(
-    private val api: SchoolApi,
+    private val api: ProfileApi,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val _state = MutableStateFlow<EditState>(EditState.Loading)

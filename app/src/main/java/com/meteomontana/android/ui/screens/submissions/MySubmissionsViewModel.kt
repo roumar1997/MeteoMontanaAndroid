@@ -3,7 +3,7 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.SubmissionApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.Submission
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +21,7 @@ sealed interface MySubmissionsUiState {
 
 @HiltViewModel
 class MySubmissionsViewModel @Inject constructor(
-    private val api: SchoolApi
+    private val api: SubmissionApi
 ) : ViewModel() {
     private val _state = MutableStateFlow<MySubmissionsUiState>(MySubmissionsUiState.Loading)
     val state: StateFlow<MySubmissionsUiState> = _state.asStateFlow()

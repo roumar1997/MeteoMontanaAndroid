@@ -8,7 +8,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.messaging.FirebaseMessaging
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.ProfileApi
 import com.meteomontana.android.data.api.dto.FcmTokenRequest
 import com.meteomontana.android.data.auth.AuthManager
 import com.meteomontana.android.ui.screens.login.LoginScreen
@@ -41,7 +41,7 @@ fun AppRoot(viewModel: AppRootViewModel = hiltViewModel()) {
 @HiltViewModel
 class AppRootViewModel @Inject constructor(
     authManager: AuthManager,
-    private val api: SchoolApi
+    private val api: ProfileApi
 ) : ViewModel() {
 
     val authState: StateFlow<AuthManager.AuthState> = authManager.authState

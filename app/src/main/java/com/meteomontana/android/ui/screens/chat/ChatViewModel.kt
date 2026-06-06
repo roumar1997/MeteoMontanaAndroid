@@ -4,7 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.ProfileApi
+import com.meteomontana.android.data.api.SocialApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.chat.ChatMessage
 import com.meteomontana.android.domain.model.FollowStatus
@@ -31,7 +32,8 @@ data class ChatUiState(
 class ChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val chatRepo: ChatRepository,
-    private val api: SchoolApi
+    private val socialApi: SocialApi,
+    private val profileApi: ProfileApi
 ) : ViewModel() {
     private val otherUid: String = checkNotNull(savedStateHandle["uid"])
     private val me: String = FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -43,9 +45,9 @@ class ChatViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             // Cargar perfiles y permiso
-            val other = runCatching { api.getUserProfile(otherUid).toDomain() }.getOrNull()
-            val mine = runCatching { api.getMyProfile().toDomain() }.getOrNull()
-            val follow = runCatching { api.getFollowStatus(otherUid).toDomain() }.getOrDefault(
+            val other = runCatching { socialApi.getUserProfile(otherUid).toDomain() }.getOrNull()
+            val mine = runCatching { profileApi.getMyProfile().toDomain() }.getOrNull()
+            val follow = runCatching { socialApi.getFollowStatus(otherUid).toDomain() }.getOrDefault(
                 FollowStatus(0, 0, false, false)
             )
             // Regla: si "other" es público -> puedes escribir

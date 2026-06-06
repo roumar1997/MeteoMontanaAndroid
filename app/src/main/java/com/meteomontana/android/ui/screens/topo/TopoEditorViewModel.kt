@@ -4,7 +4,7 @@ import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.BlockApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateBlockLineRequest
@@ -38,7 +38,7 @@ data class TopoEditorUiState(
 @HiltViewModel
 class TopoEditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: SchoolApi
+    private val api: BlockApi
 ) : ViewModel() {
     private val blockId: String = checkNotNull(savedStateHandle["blockId"])
 
