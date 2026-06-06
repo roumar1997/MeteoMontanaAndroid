@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 2.3 cerrada — Ktor + Kotlinx Serialization, todo en commonMain)
+**Última actualización:** 2026-06-06 (Fase 2.4 cerrada — implementaciones Firebase en shared/androidMain)
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -78,8 +78,13 @@
     ErrorMessage.kt migrado de HttpException (Retrofit) a ClientRequestException (Ktor).
     AdminViewModel.loadAllSchools() ahora usa GetSchoolsUseCase → List<School>.
     86 tests verdes.
-  - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS). ← **SIGUIENTE**
-  - [ ] 2.5 — Adaptar `androidApp` para consumir `shared`.
+  - [x] 2.4 — Implementaciones Firebase movidas a `shared/androidMain/`. ✅
+    FirebaseAuthService, FirebaseChatService, FirebaseStoragePhotoUploader,
+    AndroidFileReader en `shared/src/androidMain/`. Sin @Inject (plain constructors).
+    RepositoryModule convertido a `object` con @Provides para los 4 servicios.
+    Firebase deps añadidas a `shared/build.gradle.kts` via `add("androidMainImplementation", ...)`.
+    `.gitignore` actualizado para excluir `shared/build/`. 86 tests verdes. assembleDebug OK.
+  - [ ] 2.5 — Adaptar `androidApp` para consumir `shared`. ← **SIGUIENTE**
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
   - [ ] Estructura `iosApp/iosApp.xcodeproj` (con stubs sin compilar).
   - [ ] Cada sesión que refactorice algo Android → deja .swift equivalente.
@@ -537,38 +542,38 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 2.4: `actual`/`expect` declarations + Firebase en `androidMain`.**
+**Fase 2.5: Verificar que `androidApp` consume `shared` correctamente + limpieza final.**
 
-Fase 2.3 completada. Estado actual de `shared/commonMain`:
-- `domain/model/` — todos los modelos ✅
-- `domain/port/` — AuthService, ChatService, FileReader, PhotoUploader ✅
-- `domain/repository/` — 9 repositorios (+ ContributionRepository) ✅
-- `domain/usecase/` — 25 use cases (Create/Update/DeleteBlock, GetBlock, SubmitContribution, todos) ✅
-- `domain/util/` — TopoRenderer ✅
-- `data/api/dto/` — DTOs @Serializable + Mappings.kt ✅
-- `data/api/` — 12 KtorXxxApi classes + buildApiHttpClient() ✅
-- `data/repository/` — 9 KtorXxxRepository classes ✅
+Fase 2.4 completada. Estado actual del módulo `shared`:
 
-Retrofit + Moshi + OkHttp eliminados. app/ solo contiene UI + DI + Firebase.
+- `commonMain/`: domain (models, ports, repos, usecases, util) + data (Ktor APIs, DTOs, repos) ✅
+- `androidMain/`: FirebaseAuthService, FirebaseChatService, FirebaseStoragePhotoUploader, AndroidFileReader ✅
+- `iosMain/`: vacío — implementaciones iOS se escriben en Fase 3 con Mac ✅ (aceptado)
 
-Lo que toca en Fase 2.4:
+El módulo `app/` ahora solo contiene:
+- `ui/` — pantallas Compose + ViewModels
+- `di/` — módulos Hilt (NetworkModule, RepositoryModule, UseCasesModule)
+- `MeteoMontanaApp.kt`, `MainActivity.kt`
+- `util/ErrorMessage.kt`
+- `ui/screens/login/` (auth con CredentialManager — Android-only)
+- `ui/screens/topo/` (canvas Android-only)
 
-1. **Mover `AuthService`, `ChatService`, `PhotoUploader`, `FileReader`** fuera de `domain/port/`
-   en `shared/commonMain` y añadir `expect`/`actual` para implementaciones Android-only
-   (Firebase, Coil, android.net.Uri).
+Lo que toca en Fase 2.5:
 
-2. **Crear `androidMain`** con las implementaciones Firebase reales:
-   - `actual class FirebaseAuthService` → `FirebaseAuth`
-   - `actual class FirebaseChatService` → Firestore realtime
-   - `actual class FirebaseStoragePhotoUploader` → Firebase Storage
-   - `actual class AndroidFileReader` → ContentResolver
+1. **Auditar `app/`**: confirmar que no queda ninguna clase de dominio o lógica de negocio en `app/`
+   que debería estar en `shared`. Solo UI, DI, y Android-only helpers.
 
-3. **Verificar `assembleDebug` y 86 tests verdes.**
+2. **Verificar que no hay imports cruzados**: `app/` puede importar `shared`, pero `shared` no puede
+   importar nada de `app/`. Hacer un grep para confirmarlo.
 
-4. **Sub-tarea pendiente Fase 2.x**: `uploadPhoto` de perfil (TODO marcado en
-   EditProfileViewModel — necesita Ktor multipart en commonMain o Firebase Storage).
+3. **Revisar los VMs**: los ViewModels están en `app/ui/screens/`. Confirmar que solo dependen de
+   use cases del `shared` (no de APIs ni repositorios directamente).
 
-Nota: iOS targets siguen compilando en Mac. En Windows solo `androidTarget`.
+4. **Sub-tarea pendiente**: `uploadPhoto` de perfil en EditProfileViewModel tiene un TODO marcado
+   (Fase 2.4 — necesita Ktor multipart). En Fase 2.5 implementarlo correctamente usando el
+   `PhotoUploader` port ya disponible.
+
+5. **Verificar `assembleDebug` y 86+ tests verdes** antes de cerrar la fase.
 
 ### Sub-paso 2A — Forecast (+ tipos anidados)
 
