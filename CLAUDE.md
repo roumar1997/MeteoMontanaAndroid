@@ -269,7 +269,17 @@ Reglas:
 app/src/main/java/com/meteomontana/android/
   data/api/          — interfaces Retrofit + DTOs (SchoolApi, AdminApi)
   data/repository/   — repositorios
-  domain/model/      — modelos puros (School, ...)
+  domain/model/      — modelos puros (Fase 1.2 KMP completa):
+    School, SchoolScore, Note, Forecast (+ Current, HourForecast,
+    DayForecast, BestDay, OptimalWindow, ScoreFactor), Block, BlockLine,
+    Contribution, Submission, AdminStats, AdminLog, AdminPushResult,
+    PrivateProfile, PublicProfile, FollowStatus, Notification, Inbox,
+    FavoriteSchool, FavoritesGrid, FavoriteRow, DayCell, JournalSession,
+    JournalStats, SchoolStats.
+    UiStates y pantallas usan estos modelos, NO los *Dto. Mapping via
+    extension functions en data/api/dto/*Mapping.kt (toDomain()).
+    Solo *Request siguen siendo DTOs (Moshi → Kotlinx Serialization en
+    Fase 2).
   domain/usecase/    — casos de uso (Fase 1.1 KMP completa):
     schools/         — GetSchools, GetSchoolById, GetTodayScores
     forecast/        — GetForecast
