@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "MeteoMontana"
 include(":app")
+include(":shared")
  

@@ -1,23 +1,17 @@
 package com.meteomontana.android.ui.screens.profile
 import com.meteomontana.android.util.toUserMessage
 
-import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.PrivateProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 
 sealed interface EditState {
@@ -30,8 +24,7 @@ sealed interface EditState {
 
 @HiltViewModel
 class EditProfileViewModel @Inject constructor(
-    private val api: SchoolApi,
-    @ApplicationContext private val context: Context
+    private val api: KtorProfileApi
 ) : ViewModel() {
     private val _state = MutableStateFlow<EditState>(EditState.Loading)
     val state: StateFlow<EditState> = _state.asStateFlow()
@@ -60,25 +53,5 @@ class EditProfileViewModel @Inject constructor(
         }
     }
 
-    fun uploadPhoto(uri: Uri) {
-        _state.value = EditState.Saving
-        viewModelScope.launch {
-            _state.value = try {
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: throw IllegalStateException("No se pudo leer la imagen")
-                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-                val ext = when {
-                    mime.contains("png")  -> "png"
-                    mime.contains("webp") -> "webp"
-                    else                  -> "jpg"
-                }
-                val rb = bytes.toRequestBody(mime.toMediaTypeOrNull())
-                val part = MultipartBody.Part.createFormData("file", "profile.$ext", rb)
-                val updated = api.uploadMyPhoto(part).toDomain()
-                EditState.Editing(updated)
-            } catch (t: Throwable) {
-                EditState.Error(t.message ?: "Error al subir foto")
-            }
-        }
-    }
+    // TODO(Fase 2.4): foto de perfil via Ktor multipart
 }

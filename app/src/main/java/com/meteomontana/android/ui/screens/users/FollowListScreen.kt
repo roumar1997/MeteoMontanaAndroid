@@ -35,7 +35,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.KtorSocialApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.PublicProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,7 +54,7 @@ sealed interface FollowListUiState {
 @HiltViewModel
 class FollowListViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: SchoolApi
+    private val api: KtorSocialApi
 ) : ViewModel() {
     private val uid: String = checkNotNull(savedStateHandle["uid"])
     private val mode: String = checkNotNull(savedStateHandle["mode"]) // "followers" | "following"
@@ -145,13 +145,15 @@ private fun UserRow(u: PublicProfile, onClick: () -> Unit) {
             Text("@${u.username ?: u.displayName ?: u.uid.take(6)}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
-            if (!u.bio.isNullOrBlank()) {
-                Text(u.bio, style = MaterialTheme.typography.labelMedium,
+            val uBio = u.bio
+            if (!uBio.isNullOrBlank()) {
+                Text(uBio, style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        if (!u.topGrade.isNullOrBlank()) {
-            Text(u.topGrade, style = MaterialTheme.typography.labelLarge,
+        val uTopGrade = u.topGrade
+        if (!uTopGrade.isNullOrBlank()) {
+            Text(uTopGrade, style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary)
         }
     }

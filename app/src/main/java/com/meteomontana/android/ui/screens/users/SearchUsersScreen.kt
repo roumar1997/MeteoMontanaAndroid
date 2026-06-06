@@ -38,7 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.KtorSocialApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.PublicProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,7 +51,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SearchUsersViewModel @Inject constructor(
-    private val api: SchoolApi
+    private val api: KtorSocialApi
 ) : ViewModel() {
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
@@ -139,14 +139,16 @@ private fun UserRow(user: PublicProfile, onClick: () -> Unit) {
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            if (!user.bio.isNullOrBlank()) {
-                Text(user.bio,
+            val userBio = user.bio
+            if (!userBio.isNullOrBlank()) {
+                Text(userBio,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        if (!user.topGrade.isNullOrBlank()) {
-            Text(user.topGrade,
+        val userTopGrade = user.topGrade
+        if (!userTopGrade.isNullOrBlank()) {
+            Text(userTopGrade,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary)
         }

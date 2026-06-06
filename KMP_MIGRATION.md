@@ -12,7 +12,9 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 1.2 cerrada — todos los DTOs fuera de UiState)
+**Última actualización:** 2026-06-06 (Fase 2.3 cerrada — Ktor + Kotlinx Serialization, todo en commonMain)
+
+**Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
 **Progreso global:**
 
@@ -22,7 +24,7 @@
     toBloquesJson, gradeStyle, LineStroke). Todos verdes. ✅
   - [x] Sesión 2/2: 33 tests de ViewModels (12 SchoolList + 12 SchoolDetail
     + 9 Admin). Todos verdes. ✅ Total Fase 1.0: 78 tests.
-- [ ] **Fase 1** — Refactor Clean Android (3-4 sesiones).
+- [x] **Fase 1** — Refactor Clean Android. ✅ COMPLETA (1.1→1.6 todas cerradas).
   - [x] 1.1 — Use cases en `domain/usecase/`. ✅ Hecho schools, forecast,
     blocks, contributions, notes, favorites, notifications, profile y
     admin (9 use cases). Los 3 ViewModels (`SchoolListViewModel`,
@@ -38,15 +40,45 @@
     `UpdateProfileRequest`, `FcmTokenRequest`, `AdminPushRequest`,
     `RejectReason` se mantienen como input DTOs (anotaciones Moshi;
     se cambian a Kotlinx Serialization en Fase 2).
-  - [ ] 1.3 — Partir `SchoolApi` por bounded context. ← **SIGUIENTE**
-  - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
-  - [ ] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`...).
-  - [ ] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`).
-- [ ] **Fase 2** — Crear módulo `shared` KMP (2-3 sesiones).
-  - [ ] 2.1 — Setup KMP + targets Android/iOS.
-  - [ ] 2.2 — Migrar `domain/` a `commonMain`.
-  - [ ] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization.
-  - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS).
+  - [x] 1.3 — Partir `SchoolApi` por bounded context. ✅ 10 APIs nuevas
+    (ForecastApi, BlockApi, NoteApi, ContributionApi, ProfileApi,
+    FavoritesApi, JournalApi, SubmissionApi, SocialApi, NotificationApi).
+    SchoolApi queda con 3 métodos (getSchools, searchSchools, getSchoolById).
+    78 tests siguen verdes.
+  - [x] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`). ✅
+    DrawOp sealed class + TopoLineData + renderTopo() en domain/util/,
+    sin imports Android. TopoPhotoCanvas y ContributionTopoDialog usan
+    renderTopo() + traductor drawOp() Android-only. 7 tests nuevos → 86 total.
+  - [x] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`, `ChatService`). ✅
+    Interfaces en `domain/port/`. Implementaciones: `FirebaseStoragePhotoUploader`,
+    `FirebaseAuthService`, `FirebaseChatService` en `data/`. Bindings en
+    `RepositoryModule`. ChatViewModel, ChatListViewModel, AuthInterceptor y
+    SchoolDetailViewModel migrados a inyectar las interfaces. 86 tests verdes.
+  - [x] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`). ✅
+    FileRef (value class, domain/model/), FileReader (port), AndroidFileReader (data/).
+    SchoolDetailViewModel ya no importa android.net.Uri ni Context. 86 tests verdes.
+- [x] **Fase 2** — Crear módulo `shared` KMP (2-3 sesiones).
+  - [x] 2.1 — Setup KMP + targets Android/iOS. ✅ Módulo `shared/` creado con
+    `kotlin-multiplatform` + `android-library`. Targets: `androidTarget`,
+    `iosX64`, `iosArm64`, `iosSimulatorArm64` (iOS deshabilitado en Windows,
+    compila en Mac). Domain models + ports + repository + util movidos a
+    `commonMain`. App consume `project(":shared")`. 86 tests verdes.
+  - [x] 2.2 — Migrar `domain/usecase/` a `commonMain`. ✅ 22 use cases movidos.
+    Interfaces de repositorio en commonMain: ForecastRepository, BlockRepository,
+    NoteRepository, FavoritesRepository, ProfileRepository, NotificationsRepository,
+    AdminRepository. Implementaciones Retrofit en app/data/repository/. Use cases
+    sin @Inject (plain constructors), provistos por UseCasesModule Hilt. 86 tests verdes.
+    Quedan en app/ (params DTO): CreateBlockUseCase, UpdateBlockUseCase, SubmitContributionUseCase.
+  - [x] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization. ✅
+    DTOs con @Serializable + toDomain() en Mappings.kt. 12 KtorXxxApi classes.
+    8 KtorXxxRepository classes + KtorContributionRepository. GetBlockUseCase añadido.
+    CreateBlockUseCase, UpdateBlockUseCase, SubmitContributionUseCase movidos a commonMain.
+    Retrofit + Moshi + OkHttp eliminados del proyecto. AuthInterceptor eliminado.
+    NetworkModule reescrito con buildApiHttpClient(). RepositoryModule usa @Provides.
+    ErrorMessage.kt migrado de HttpException (Retrofit) a ClientRequestException (Ktor).
+    AdminViewModel.loadAllSchools() ahora usa GetSchoolsUseCase → List<School>.
+    86 tests verdes.
+  - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS). ← **SIGUIENTE**
   - [ ] 2.5 — Adaptar `androidApp` para consumir `shared`.
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
   - [ ] Estructura `iosApp/iosApp.xcodeproj` (con stubs sin compilar).
@@ -505,52 +537,38 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.3: partir `SchoolApi` por bounded context.**
+**Fase 2.4: `actual`/`expect` declarations + Firebase en `androidMain`.**
 
-`SchoolApi` tiene 39 métodos y es un god-interface. Hay que partirlo en
-APIs Retrofit más pequeñas por bounded context. Esto desbloquea Fase 2
-(en `commonMain` cada bounded context tendrá su `XApi` Ktor independiente).
+Fase 2.3 completada. Estado actual de `shared/commonMain`:
+- `domain/model/` — todos los modelos ✅
+- `domain/port/` — AuthService, ChatService, FileReader, PhotoUploader ✅
+- `domain/repository/` — 9 repositorios (+ ContributionRepository) ✅
+- `domain/usecase/` — 25 use cases (Create/Update/DeleteBlock, GetBlock, SubmitContribution, todos) ✅
+- `domain/util/` — TopoRenderer ✅
+- `data/api/dto/` — DTOs @Serializable + Mappings.kt ✅
+- `data/api/` — 12 KtorXxxApi classes + buildApiHttpClient() ✅
+- `data/repository/` — 9 KtorXxxRepository classes ✅
 
-Plan:
+Retrofit + Moshi + OkHttp eliminados. app/ solo contiene UI + DI + Firebase.
 
-1. Crear interfaces Retrofit por bounded context dentro de `data/api/`:
-   - `SchoolApi` (queda con: schools, search, by-id)
-   - `ForecastApi` (forecast, by-location)
-   - `BlockApi` (blocks CRUD)
-   - `NoteApi` (notes by school, create)
-   - `ContributionApi` (submit, get my contributions)
-   - `ProfileApi` (me, update, photo, fcm-token)
-   - `FavoritesApi` (favorites + grid)
-   - `JournalApi` (journal + stats)
-   - `SocialApi` (search-users, profile, follow status/list)
-   - `NotificationsApi` (notifications + mark read)
-   - `SubmissionApi` (submit school, my submissions)
-2. En `NetworkModule`, proveer cada uno con `retrofit.create()`.
-3. Actualizar use cases para inyectar el API específico en lugar de
-   `SchoolApi` (cada use case ya está aislado tras Fase 1.1).
-4. Migrar también las pocas pantallas que llaman a `SchoolApi`
-   directamente (ChatListViewModel, ChatViewModel,
-   NotificationsViewModel, JournalEntriesScreen VM, FollowListScreen VM,
-   PublicProfileScreen VM, SearchUsersScreen VM, ProfileViewModel,
-   EditProfileViewModel, WeatherViewModel, AddBlockSheet VM,
-   MySubmissionsViewModel) — crear use cases también para sus llamadas
-   o que inyecten el `XApi` específico.
-5. Mantener `AdminApi` aparte (ya lo está).
+Lo que toca en Fase 2.4:
 
-Riesgo: tocar la inyección Hilt. Si el `NetworkModule` no provee un API
-correctamente, Hilt falla en runtime, no en compile. Probar la app
-manualmente después.
+1. **Mover `AuthService`, `ChatService`, `PhotoUploader`, `FileReader`** fuera de `domain/port/`
+   en `shared/commonMain` y añadir `expect`/`actual` para implementaciones Android-only
+   (Firebase, Coil, android.net.Uri).
 
-Tests verdes antes de commit.
+2. **Crear `androidMain`** con las implementaciones Firebase reales:
+   - `actual class FirebaseAuthService` → `FirebaseAuth`
+   - `actual class FirebaseChatService` → Firestore realtime
+   - `actual class FirebaseStoragePhotoUploader` → Firebase Storage
+   - `actual class AndroidFileReader` → ContentResolver
 
-### Fase 1.4 — Sacar el dibujo del topo del Composable (DrawOp instructions)
-### Fase 1.5 — Abstracciones Firebase (PhotoUploader, AuthService, ChatService)
-### Fase 1.6 — Wrappers de tipos Android (FileRef en lugar de Uri)
+3. **Verificar `assembleDebug` y 86 tests verdes.**
 
-Estas tres sub-fases vienen después de 1.3.
+4. **Sub-tarea pendiente Fase 2.x**: `uploadPhoto` de perfil (TODO marcado en
+   EditProfileViewModel — necesita Ktor multipart en commonMain o Firebase Storage).
 
-Estos tres modelos son los más invasivos porque tocan muchas pantallas
-y componentes. Conviene una sesión propia para cada uno.
+Nota: iOS targets siguen compilando en Mac. En Windows solo `androidTarget`.
 
 ### Sub-paso 2A — Forecast (+ tipos anidados)
 

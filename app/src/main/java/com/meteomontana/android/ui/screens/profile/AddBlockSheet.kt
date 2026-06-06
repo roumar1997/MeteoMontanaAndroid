@@ -37,7 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.KtorBlockApi
+import com.meteomontana.android.data.api.KtorJournalApi
+import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateJournalRequest
@@ -65,7 +67,9 @@ data class SchoolHistory(
 
 @HiltViewModel
 class SchoolSearchViewModel @Inject constructor(
-    private val api: SchoolApi
+    private val api: KtorSchoolApi,
+    private val journalApi: KtorJournalApi,
+    private val blockApi: KtorBlockApi
 ) : ViewModel() {
     private val _query = MutableStateFlow("")
     private val _results = MutableStateFlow<List<SchoolDto>>(emptyList())
@@ -83,7 +87,7 @@ class SchoolSearchViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            allJournal = runCatching { api.getMyJournal().map { it.toDomain() } }.getOrDefault(emptyList())
+            allJournal = runCatching { journalApi.getMyJournal().map { it.toDomain() } }.getOrDefault(emptyList())
         }
     }
 
@@ -115,7 +119,7 @@ class SchoolSearchViewModel @Inject constructor(
         )
         // De los bloques registrados en la escuela
         viewModelScope.launch {
-            _schoolBlocks.value = runCatching { api.getBlocks(school.id).map { it.toDomain() } }.getOrDefault(emptyList())
+            _schoolBlocks.value = runCatching { blockApi.getBlocks(school.id).map { it.toDomain() } }.getOrDefault(emptyList())
         }
     }
 }

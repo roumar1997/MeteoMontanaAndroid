@@ -36,11 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.nativeCanvas
+import com.meteomontana.android.domain.util.TopoLineData
+import com.meteomontana.android.domain.util.renderTopo
+import com.meteomontana.android.ui.components.drawOp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -209,57 +208,25 @@ fun ContributionTopoDialog(
                             )
                         }
                 ) {
-                    val w = size.width
-                    val h = size.height
-                    val nativeCanvas = drawContext.canvas.nativeCanvas
-                    lines.forEach { (idx, points) ->
-                        if (points.isEmpty()) return@forEach
-                        val bloque = bloques.getOrNull(idx) ?: return@forEach
-                        val style = gradeStyle(bloque.grade)
-                        val isSelected = idx == selectedIdx
-
-                        // Línea
-                        val path = Path()
-                        points.forEachIndexed { i, p ->
-                            val x = p.x * w
-                            val y = p.y * h
-                            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                        }
-                        val strokeW = if (isSelected) 8f else 5f
-                        val pathEffect = if (style.dashed)
-                            PathEffect.dashPathEffect(floatArrayOf(20f, 20f)) else null
-                        // Outline oscuro para que líneas blancas (≤5c+) sean visibles
-                        if (style.dark) {
-                            drawPath(path, color = Color(0xCC000000),
-                                style = Stroke(width = strokeW + 5f, pathEffect = pathEffect))
-                        }
-                        drawPath(path, color = style.stroke,
-                            style = Stroke(width = strokeW, pathEffect = pathEffect))
-
-                        // Badge numérico en el punto de inicio (con halo blanco)
-                        val first = points.first()
-                        val fx = first.x * w
-                        val fy = first.y * h
-                        drawCircle(Color.White, radius = 16f, center = Offset(fx, fy))
-                        drawCircle(style.stroke, radius = 13f, center = Offset(fx, fy))
-                        nativeCanvas.drawText(
-                            "${idx + 1}",
-                            fx, fy + 9f,
-                            android.graphics.Paint().apply {
-                                color = if (style.dark) android.graphics.Color.BLACK
-                                        else android.graphics.Color.WHITE
-                                textAlign = android.graphics.Paint.Align.CENTER
-                                textSize = 26f
-                                isFakeBoldText = true
-                            }
+                    val editorLines = lines.entries.sortedBy { it.key }.map { (idx, points) ->
+                        val bloque = bloques.getOrNull(idx)
+                        val strokeW = if (idx == selectedIdx) 8f else 5f
+                        TopoLineData(
+                            name = bloque?.name,
+                            grade = bloque?.grade,
+                            startType = bloque?.startType,
+                            points = points.map { it.x to it.y },
+                            strokeWidthPx = strokeW
                         )
-
-                        // Icono de tipo de inicio en el punto final
-                        val last = points.last()
-                        val lx = last.x * w
-                        val ly = last.y * h
-                        drawStartIcon(bloque.startType, Offset(lx, ly), style.stroke, style.dark, nativeCanvas)
                     }
+                    val nc = drawContext.canvas.nativeCanvas
+                    renderTopo(
+                        editorLines, size.width, size.height,
+                        badgeR = 16f to 13f,
+                        badgeTextPx = 26f to 9f,
+                        startR = 26f to 22f,
+                        startTextPx = 20f to 7f
+                    ).forEach { op -> drawOp(op, nc) }
                 }
             }
 
@@ -338,52 +305,4 @@ fun ContributionTopoDialog(
     }
 }
 
-/**
- * Badge circular del tipo de inicio: círculo blanco + relleno de color + letra.
- * Siempre visible sobre cualquier fondo de foto.
- * PIE=▲  SIT=⊥  LANCE=↑  TRAV=↔
- */
-private fun DrawScope.drawStartIcon(
-    type: String?,
-    center: Offset,
-    color: Color,
-    isDark: Boolean,
-    nativeCanvas: android.graphics.Canvas
-) {
-    if (type == null) return
-
-    // Acepta tanto los valores de app (PIE/SIT/LANCE/TRAV) como los del
-    // backend al re-cargar un bloque existente (STAND/SIT/JUMP/TRAV).
-    val label = when (type.uppercase()) {
-        "PIE", "STAND"   -> "PIE"
-        "SIT"            -> "SIT"
-        "LANCE", "JUMP"  -> "LAN"
-        "TRAV"           -> "TRV"
-        else             -> return
-    }
-
-    // Halo exterior: negro si el grado es blanco (para contraste), blanco en el resto
-    val haloColor = if (isDark) Color(0xFF000000) else Color.White
-    drawCircle(haloColor, radius = 26f, center = center)
-    drawCircle(color, radius = 22f, center = center)
-    // Si el círculo de color es blanco, añadimos borde negro fino para que se distinga
-    if (isDark) {
-        drawCircle(Color(0xFF000000), radius = 22f, center = center,
-            style = Stroke(width = 2f))
-    }
-
-    // Texto: negro si grado blanco, blanco en otros
-    nativeCanvas.drawText(
-        label,
-        center.x,
-        center.y + 7f,
-        android.graphics.Paint().apply {
-            this.color = if (isDark) android.graphics.Color.BLACK
-                         else android.graphics.Color.WHITE
-            textAlign = android.graphics.Paint.Align.CENTER
-            textSize = 20f
-            isFakeBoldText = true
-        }
-    )
-}
 

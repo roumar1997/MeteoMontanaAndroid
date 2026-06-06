@@ -1,10 +1,10 @@
 package com.meteomontana.android.admin
 
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
-import com.meteomontana.android.data.api.dto.SchoolDto
 import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
@@ -56,7 +56,7 @@ class AdminViewModelTest {
     private lateinit var getBlocks: GetBlocksUseCase
     private lateinit var updateBlockUC: UpdateBlockUseCase
     private lateinit var deleteBlockUC: DeleteBlockUseCase
-    private lateinit var schoolApi: SchoolApi
+    private lateinit var getSchoolsUseCase: GetSchoolsUseCase
 
     private val stats = AdminStats(
         totalUsers = 10, totalAdmins = 1, totalSchools = 191, totalNotes = 0,
@@ -77,7 +77,7 @@ class AdminViewModelTest {
         getBlocks = mockk()
         updateBlockUC = mockk()
         deleteBlockUC = mockk()
-        schoolApi = mockk()
+        getSchoolsUseCase = mockk()
 
         coEvery { getStats() } returns stats
         coEvery { getPendingSubmissions() } returns emptyList()
@@ -90,7 +90,7 @@ class AdminViewModelTest {
     private fun newVm() = AdminViewModel(
         getStats, getPendingSubmissions, getPendingContributions, getLogs,
         approveSubmission, rejectSubmission, approveContribution, rejectContribution,
-        sendPush, getBlocks, updateBlockUC, deleteBlockUC, schoolApi
+        sendPush, getBlocks, updateBlockUC, deleteBlockUC, getSchoolsUseCase
     )
 
     @Test fun `load llena stats y baja loading a false`() = runTest {
@@ -175,12 +175,12 @@ class AdminViewModelTest {
 
     @Test fun `loadAllSchools carga solo una vez`() = runTest {
         val list = listOf(
-            SchoolDto(
+            School(
                 id = "s1", name = "Pedriza", location = null, region = null,
                 style = null, rockType = null, lat = 0.0, lon = 0.0, source = null
             )
         )
-        coEvery { schoolApi.getSchools() } returns list
+        coEvery { getSchoolsUseCase() } returns list
 
         val vm = newVm()
         advanceUntilIdle()
@@ -190,7 +190,7 @@ class AdminViewModelTest {
         vm.loadAllSchools()
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { schoolApi.getSchools() }
+        coVerify(exactly = 1) { getSchoolsUseCase() }
         assertEquals(1, vm.state.value.allSchools.size)
         assertEquals(false, vm.state.value.schoolsLoading)
     }

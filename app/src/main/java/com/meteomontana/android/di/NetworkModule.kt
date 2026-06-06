@@ -8,20 +8,25 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.ktx.storage
 import com.meteomontana.android.BuildConfig
-import com.meteomontana.android.data.api.AdminApi
-import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.auth.AuthInterceptor
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import com.meteomontana.android.data.api.KtorAdminApi
+import com.meteomontana.android.data.api.KtorBlockApi
+import com.meteomontana.android.data.api.KtorContributionApi
+import com.meteomontana.android.data.api.KtorFavoritesApi
+import com.meteomontana.android.data.api.KtorForecastApi
+import com.meteomontana.android.data.api.KtorJournalApi
+import com.meteomontana.android.data.api.KtorNotificationApi
+import com.meteomontana.android.data.api.KtorNoteApi
+import com.meteomontana.android.data.api.KtorProfileApi
+import com.meteomontana.android.data.api.KtorSchoolApi
+import com.meteomontana.android.data.api.KtorSocialApi
+import com.meteomontana.android.data.api.KtorSubmissionApi
+import com.meteomontana.android.data.api.buildApiHttpClient
+import com.meteomontana.android.domain.port.AuthService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
-import java.util.concurrent.TimeUnit
+import io.ktor.client.HttpClient
 import javax.inject.Singleton
 
 @Module
@@ -42,46 +47,44 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideMoshi(): Moshi =
-        Moshi.Builder()
-            .add(KotlinJsonAdapterFactory())
-            .build()
-
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG)
-                HttpLoggingInterceptor.Level.BODY
-            else
-                HttpLoggingInterceptor.Level.NONE
+    fun provideHttpClient(authService: AuthService): HttpClient =
+        buildApiHttpClient(BuildConfig.API_BASE_URL) {
+            authService.currentIdToken(forceRefresh = false)
         }
-        return OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)
-            .addInterceptor(logging)
-            .connectTimeout(8, TimeUnit.SECONDS)   // antes 15
-            .readTimeout(12, TimeUnit.SECONDS)     // antes 30
-            .writeTimeout(10, TimeUnit.SECONDS)
-            .callTimeout(15, TimeUnit.SECONDS)     // límite máximo total
-            .build()
-    }
 
-    @Provides
-    @Singleton
-    fun provideRetrofit(client: OkHttpClient, moshi: Moshi): Retrofit =
-        Retrofit.Builder()
-            .baseUrl(BuildConfig.API_BASE_URL)
-            .client(client)
-            .addConverterFactory(MoshiConverterFactory.create(moshi))
-            .build()
+    @Provides @Singleton
+    fun provideKtorSchoolApi(client: HttpClient) = KtorSchoolApi(client)
 
-    @Provides
-    @Singleton
-    fun provideSchoolApi(retrofit: Retrofit): SchoolApi =
-        retrofit.create(SchoolApi::class.java)
+    @Provides @Singleton
+    fun provideKtorForecastApi(client: HttpClient) = KtorForecastApi(client)
 
-    @Provides
-    @Singleton
-    fun provideAdminApi(retrofit: Retrofit): AdminApi =
-        retrofit.create(AdminApi::class.java)
+    @Provides @Singleton
+    fun provideKtorBlockApi(client: HttpClient) = KtorBlockApi(client)
+
+    @Provides @Singleton
+    fun provideKtorNoteApi(client: HttpClient) = KtorNoteApi(client)
+
+    @Provides @Singleton
+    fun provideKtorContributionApi(client: HttpClient) = KtorContributionApi(client)
+
+    @Provides @Singleton
+    fun provideKtorFavoritesApi(client: HttpClient) = KtorFavoritesApi(client)
+
+    @Provides @Singleton
+    fun provideKtorProfileApi(client: HttpClient) = KtorProfileApi(client)
+
+    @Provides @Singleton
+    fun provideKtorNotificationApi(client: HttpClient) = KtorNotificationApi(client)
+
+    @Provides @Singleton
+    fun provideKtorAdminApi(client: HttpClient) = KtorAdminApi(client)
+
+    @Provides @Singleton
+    fun provideKtorSubmissionApi(client: HttpClient) = KtorSubmissionApi(client)
+
+    @Provides @Singleton
+    fun provideKtorSocialApi(client: HttpClient) = KtorSocialApi(client)
+
+    @Provides @Singleton
+    fun provideKtorJournalApi(client: HttpClient) = KtorJournalApi(client)
 }

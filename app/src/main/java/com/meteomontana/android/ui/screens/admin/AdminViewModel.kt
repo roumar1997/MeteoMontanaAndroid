@@ -4,12 +4,13 @@ import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
-import com.meteomontana.android.data.api.dto.SchoolDto
 import com.meteomontana.android.domain.model.AdminLog
+import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Contribution
-import com.meteomontana.android.domain.model.AdminStats
+import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.Submission
+import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
@@ -22,7 +23,6 @@ import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
-import com.meteomontana.android.data.api.SchoolApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,7 +41,7 @@ data class AdminUiState(
     val pushBusy: Boolean = false,
     val pushResult: String? = null,
     val schoolBlocks: Map<String, List<Block>> = emptyMap(),
-    val allSchools: List<SchoolDto> = emptyList(),
+    val allSchools: List<School> = emptyList(),
     val schoolsLoading: Boolean = false
 )
 
@@ -59,7 +59,7 @@ class AdminViewModel @Inject constructor(
     private val getBlocks: GetBlocksUseCase,
     private val updateBlockUseCase: UpdateBlockUseCase,
     private val deleteBlockUseCase: DeleteBlockUseCase,
-    private val schoolApi: SchoolApi   // solo para getSchools() del tab GESTIONAR; pendiente extraer en 1.3
+    private val getSchoolsUseCase: GetSchoolsUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow(AdminUiState())
     val state: StateFlow<AdminUiState> = _state.asStateFlow()
@@ -125,7 +125,7 @@ class AdminViewModel @Inject constructor(
         _state.update { it.copy(schoolsLoading = true) }
         viewModelScope.launch {
             try {
-                val schools = schoolApi.getSchools()
+                val schools = getSchoolsUseCase()
                 _state.update { it.copy(allSchools = schools, schoolsLoading = false) }
             } catch (_: Throwable) {
                 _state.update { it.copy(schoolsLoading = false) }

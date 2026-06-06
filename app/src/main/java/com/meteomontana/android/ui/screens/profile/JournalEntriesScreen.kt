@@ -31,7 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.KtorJournalApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.JournalSession
 import com.meteomontana.android.util.toUserMessage
@@ -51,7 +51,7 @@ sealed interface JournalEntriesUiState {
 @HiltViewModel
 class JournalEntriesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: SchoolApi
+    private val api: KtorJournalApi
 ) : ViewModel() {
     /** Filtro: null = todos · "school:Albarracín" · "grade-max" (solo el del grado máximo) */
     private val filter: String? = savedStateHandle["filter"]
@@ -155,12 +155,13 @@ private fun EntryRow(e: JournalSession, onDelete: () -> Unit) {
                 Text(e.date,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!e.grade.isNullOrBlank()) {
+                val eGrade = e.grade
+                if (!eGrade.isNullOrBlank()) {
                     Box(modifier = Modifier
                         .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Text(e.grade,
+                        Text(eGrade,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
                     }
@@ -180,8 +181,9 @@ private fun EntryRow(e: JournalSession, onDelete: () -> Unit) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (!e.notes.isNullOrBlank()) {
-                Text(e.notes,
+            val eNotes = e.notes
+            if (!eNotes.isNullOrBlank()) {
+                Text(eNotes,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
             }

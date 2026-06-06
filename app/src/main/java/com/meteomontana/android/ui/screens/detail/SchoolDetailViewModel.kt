@@ -1,12 +1,13 @@
 package com.meteomontana.android.ui.screens.detail
 
-import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
-import com.meteomontana.android.data.storage.StorageUploadHelper
+import com.meteomontana.android.domain.model.FileRef
+import com.meteomontana.android.domain.port.FileReader
+import com.meteomontana.android.domain.port.PhotoUploader
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
@@ -60,7 +61,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val deleteBlockUseCase: DeleteBlockUseCase,
     private val submitContributionUseCase: SubmitContributionUseCase,
     private val getMyProfile: GetMyProfileUseCase,
-    private val storageHelper: StorageUploadHelper
+    private val photoUploader: PhotoUploader,
+    private val fileReader: FileReader
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -122,10 +124,11 @@ class SchoolDetailViewModel @Inject constructor(
         lat: Double, lon: Double,
         name: String?,
         bloques: List<BoulderBloqueForm>,
-        photoUri: Uri?
+        photoRef: FileRef?
     ): Result<Unit> = runCatching {
-        val photoUrl = if (photoUri != null) {
-            storageHelper.uploadBoulderPhoto(photoUri, schoolId)
+        val photoUrl = if (photoRef != null) {
+            val bytes = fileReader.readBytes(photoRef)
+            photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
         } else null
 
         val req = ContributionRequest(

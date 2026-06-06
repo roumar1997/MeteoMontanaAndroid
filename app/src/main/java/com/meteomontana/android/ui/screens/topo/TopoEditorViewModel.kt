@@ -4,11 +4,11 @@ import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.toDomain
-import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateBlockLineRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
+import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.usecase.blocks.GetBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +38,8 @@ data class TopoEditorUiState(
 @HiltViewModel
 class TopoEditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: SchoolApi
+    private val getBlock: GetBlockUseCase,
+    private val updateBlock: UpdateBlockUseCase
 ) : ViewModel() {
     private val blockId: String = checkNotNull(savedStateHandle["blockId"])
 
@@ -51,7 +52,7 @@ class TopoEditorViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null)
             try {
-                val block = api.getBlock(blockId).toDomain()
+                val block = getBlock(blockId)
                 val lines = block.lines.map { l ->
                     EditableLine(
                         tempId = l.id, name = l.name, grade = l.grade,
@@ -134,7 +135,7 @@ class TopoEditorViewModel @Inject constructor(
                         )
                     }
                 )
-                val updated = api.updateBlock(block.id, req).toDomain()
+                val updated = updateBlock(block.id, req)
                 _state.value = _state.value.copy(saving = false, block = updated, savedOk = true)
             } catch (t: Throwable) {
                 _state.value = _state.value.copy(saving = false, error = t.toUserMessage())

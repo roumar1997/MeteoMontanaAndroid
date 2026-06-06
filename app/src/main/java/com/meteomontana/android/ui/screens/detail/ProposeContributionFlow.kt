@@ -52,6 +52,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.meteomontana.android.data.api.dto.ContributionRequest
+import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Moss
@@ -175,7 +176,7 @@ fun ProposeContributionFlow(
                             lat = s.lat, lon = s.lon,
                             name = boulderName,
                             bloques = boulderBloques,
-                            photoUri = boulderPhotoUri
+                            photoRef = boulderPhotoUri?.let { FileRef(it.toString()) }
                         )
                         if (result.isSuccess) step = ProposeStep.Success
                     }

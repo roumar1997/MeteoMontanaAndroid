@@ -1,6 +1,7 @@
 package com.meteomontana.android.util
 
-import retrofit2.HttpException
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.ServerResponseException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -12,12 +13,12 @@ fun Throwable.toUserMessage(): String = when (this) {
     is SocketTimeoutException -> "El servidor no responde. ¿Está el back arrancado?"
     is ConnectException       -> "No se puede conectar al servidor."
     is UnknownHostException   -> "Sin conexión a internet."
-    is HttpException           -> when (code()) {
+    is ClientRequestException -> when (response.status.value) {
         401 -> "Sesión expirada. Vuelve a iniciar sesión."
         403 -> "Sin permiso para esta acción."
         404 -> "Recurso no encontrado."
-        500 -> "Error interno del servidor."
-        else -> "Error HTTP ${code()}"
+        else -> "Error HTTP ${response.status.value}"
     }
+    is ServerResponseException -> "Error interno del servidor."
     else -> message ?: "Error desconocido"
 }
