@@ -4,6 +4,8 @@ import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.location.LocationProvider
+import com.meteomontana.android.data.location.UserLocation
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.repository.SchoolRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 enum class StyleFilter(val label: String, val apiValue: String?) {
     All("Todos", null),
@@ -30,10 +36,10 @@ val ROCK_TYPES       = listOf("Granito", "Caliza", "Arenisca", "Pizarra", "Basal
 
 data class SchoolFilters(
     val style: StyleFilter = StyleFilter.All,
-    val maxDistanceKm: Double? = null,
+    val maxDistanceKm: Double? = 50.0,       // 50 km por defecto (como la PWA)
     val rockTypes: List<String> = emptyList(),
     val onlyFavorites: Boolean = false,
-    val sortBy: SortBy = SortBy.Distance,
+    val sortBy: SortBy = SortBy.Score,       // ordenado por mejor score por defecto
     val query: String = ""
 )
 
@@ -46,12 +52,15 @@ sealed interface SchoolListUiState {
 @HiltViewModel
 class SchoolListViewModel @Inject constructor(
     private val schoolRepository: SchoolRepository,
-    private val api: SchoolApi
+    private val api: SchoolApi,
+    private val locationProvider: LocationProvider
 ) : ViewModel() {
 
-    // Madrid stub. Mañana: usar FusedLocation.
-    private val userLat = 40.4168
-    private val userLon = -3.7038
+    // Fallback Madrid si no hay permiso de ubicación; se sobreescribe al cargar.
+    private var userLat: Double = 40.4168
+    private var userLon: Double = -3.7038
+    private val _userLocation = MutableStateFlow<UserLocation?>(null)
+    val userLocation: StateFlow<UserLocation?> = _userLocation.asStateFlow()
 
     private val _filters = MutableStateFlow(SchoolFilters())
     val filters: StateFlow<SchoolFilters> = _filters.asStateFlow()
@@ -69,9 +78,27 @@ class SchoolListViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // 1) intentar obtener ubicación real (no bloquea: si no hay permiso, sigue con Madrid)
+            locationProvider.current()?.let { loc ->
+                userLat = loc.lat
+                userLon = loc.lon
+                _userLocation.value = loc
+            }
             favoriteIds = runCatching { api.getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
             load()
             refreshUnread()
+        }
+    }
+
+    /** Llamado tras conceder permiso de ubicación. Refresca con la nueva posición. */
+    fun onLocationGranted() {
+        viewModelScope.launch {
+            locationProvider.current()?.let { loc ->
+                userLat = loc.lat
+                userLon = loc.lon
+                _userLocation.value = loc
+                load()
+            }
         }
     }
 
@@ -97,22 +124,57 @@ class SchoolListViewModel @Inject constructor(
                 )
                 list = filterQuery(list, f.query)
                 if (f.onlyFavorites) list = list.filter { it.id in favoriteIds }
-                // Cargar scores en background para los primeros 30
-                loadScoresFor(list.take(30).map { it.id })
-                SchoolListUiState.Success(list)
+
+                // Cargar scores en background para hasta 50 escuelas (límite del backend)
+                loadScoresFor(list.take(50).map { it.id }) {
+                    // tras cargar, re-emitimos el estado para que aplique el sort por score
+                    applySort(f)
+                }
+
+                SchoolListUiState.Success(applySortInternal(list, f, _scores.value))
             } catch (t: Throwable) {
                 SchoolListUiState.Error(t.toUserMessage())
             }
         }
     }
 
-    private fun loadScoresFor(ids: List<String>) {
-        if (ids.isEmpty()) return
+    /** Reordena el estado actual sin volver a llamar al backend. */
+    private fun applySort(f: SchoolFilters) {
+        val cur = _uiState.value as? SchoolListUiState.Success ?: return
+        _uiState.value = SchoolListUiState.Success(applySortInternal(cur.schools, f, _scores.value))
+    }
+
+    private fun applySortInternal(
+        list: List<School>,
+        f: SchoolFilters,
+        scores: Map<String, com.meteomontana.android.data.api.dto.SchoolScoreDto>
+    ): List<School> = when (f.sortBy) {
+        SortBy.Distance -> list.sortedBy { haversineKm(userLat, userLon, it.lat, it.lon) }
+        SortBy.Score    -> list.sortedByDescending { scores[it.id]?.todayScore ?: -1 }
+    }
+
+    private fun loadScoresFor(ids: List<String>, onDone: () -> Unit = {}) {
+        if (ids.isEmpty()) { onDone(); return }
         viewModelScope.launch {
             runCatching { api.getTodayScores(ids) }.onSuccess { results ->
                 _scores.value = results.associateBy { it.id }
+                onDone()
             }
         }
+    }
+
+    /** Distancia entre el usuario y una escuela en km (Haversine). */
+    fun distanceTo(schoolLat: Double, schoolLon: Double): Double =
+        haversineKm(userLat, userLon, schoolLat, schoolLon)
+
+    private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(dLon / 2) * sin(dLon / 2)
+        return 2 * r * atan2(sqrt(a), sqrt(1 - a))
     }
 
     private fun filterQuery(list: List<School>, q: String): List<School> {

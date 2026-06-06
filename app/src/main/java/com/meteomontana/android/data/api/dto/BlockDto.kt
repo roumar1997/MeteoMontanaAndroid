@@ -51,5 +51,7 @@ data class SchoolScoreDto(
     val id: String,
     val todayScore: Int,
     val hourlyScores: List<Int>,
-    val dryRock: Boolean
+    val dryRock: Boolean,
+    val rainMm: Double = 0.0,
+    val rainProb: Int = 0
 )

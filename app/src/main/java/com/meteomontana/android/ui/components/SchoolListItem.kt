@@ -49,6 +49,8 @@ fun SchoolListItem(
     hourlyScores: List<Int>? = null,
     distanceKm: Double? = null,
     dry: Boolean? = null,
+    rainMm: Double? = null,
+    rainProb: Int? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -92,17 +94,39 @@ fun SchoolListItem(
             HourlyHeatmapBar(scores = hourlyScores)
         }
 
-        // ● SECA / ● MOJADA  (texto exacto de la PWA)
-        Text(
-            text = when (dry) {
-                true  -> "● SECA"
-                false -> "● MOJADA"
-                null  -> ""
-            },
-            style = MaterialTheme.typography.labelMedium,
-            color = if (dry == false) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.secondary
-        )
+        // Indicador de condiciones:
+        // - Si está seca → "● SECA" (verde secondary)
+        // - Si llueve    → "● MOJADA" + probabilidad % + mm
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = when (dry) {
+                    true  -> "● SECA"
+                    false -> "● MOJADA"
+                    null  -> ""
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = if (dry == false) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.secondary
+            )
+            // Detalle de lluvia: solo cuando llueve y tenemos datos.
+            if (dry == false && (rainProb ?: 0) > 0) {
+                Text(
+                    text = "${rainProb}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            if (dry == false && (rainMm ?: 0.0) > 0.0) {
+                Text(
+                    text = "%.1f mm".format(rainMm),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 

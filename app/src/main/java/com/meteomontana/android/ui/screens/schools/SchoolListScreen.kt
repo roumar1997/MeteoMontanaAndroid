@@ -30,7 +30,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,6 +67,15 @@ fun SchoolListScreen(
     val unread by viewModel.unreadCount.collectAsState()
     val scores by viewModel.scores.collectAsState()
     var mapExpanded by remember { mutableStateOf(false) }
+
+    // Pide permiso de ubicación al abrir la pantalla — al concederlo el VM
+    // recarga ordenado por mejor score + filtra 50 km desde la posición real.
+    val permLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) viewModel.onLocationGranted() }
+    LaunchedEffect(Unit) {
+        permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -149,7 +162,10 @@ fun SchoolListScreen(
                             school = school,
                             todayScore = score?.todayScore,
                             hourlyScores = score?.hourlyScores,
+                            distanceKm = viewModel.distanceTo(school.lat, school.lon),
                             dry = score?.dryRock,
+                            rainMm = score?.rainMm,
+                            rainProb = score?.rainProb,
                             onClick = { onSchoolClick(school.id) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
