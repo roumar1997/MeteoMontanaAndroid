@@ -41,8 +41,9 @@ import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.FollowStatusDto
-import com.meteomontana.android.data.api.dto.PublicProfileDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.FollowStatus
+import com.meteomontana.android.domain.model.PublicProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +53,7 @@ import javax.inject.Inject
 
 sealed interface PublicProfileUiState {
     data object Loading : PublicProfileUiState
-    data class Success(val profile: PublicProfileDto, val status: FollowStatusDto) : PublicProfileUiState
+    data class Success(val profile: PublicProfile, val status: FollowStatus) : PublicProfileUiState
     data class Error(val message: String) : PublicProfileUiState
 }
 
@@ -71,9 +72,9 @@ class PublicProfileViewModel @Inject constructor(
         _state.value = PublicProfileUiState.Loading
         viewModelScope.launch {
             _state.value = try {
-                val profile = api.getUserProfile(uid)
-                val status = runCatching { api.getFollowStatus(uid) }
-                    .getOrDefault(FollowStatusDto(0, 0, false, false))
+                val profile = api.getUserProfile(uid).toDomain()
+                val status = runCatching { api.getFollowStatus(uid).toDomain() }
+                    .getOrDefault(FollowStatus(0, 0, false, false))
                 PublicProfileUiState.Success(profile, status)
             } catch (t: Throwable) {
                 PublicProfileUiState.Error(t.toUserMessage())
@@ -87,7 +88,7 @@ class PublicProfileViewModel @Inject constructor(
             try {
                 if (cur.status.iFollowThem) api.unfollow(uid)
                 else api.follow(uid)
-                val newStatus = api.getFollowStatus(uid)
+                val newStatus = api.getFollowStatus(uid).toDomain()
                 _state.value = cur.copy(status = newStatus)
             } catch (_: Throwable) {}
         }

@@ -36,7 +36,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.PublicProfileDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.PublicProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,7 +47,7 @@ import javax.inject.Inject
 
 sealed interface FollowListUiState {
     data object Loading : FollowListUiState
-    data class Success(val items: List<PublicProfileDto>) : FollowListUiState
+    data class Success(val items: List<PublicProfile>) : FollowListUiState
     data class Error(val message: String) : FollowListUiState
 }
 
@@ -68,7 +69,7 @@ class FollowListViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                val list = if (mode == "followers") api.getFollowers(uid) else api.getFollowing(uid)
+                val list = (if (mode == "followers") api.getFollowers(uid) else api.getFollowing(uid)).map { it.toDomain() }
                 FollowListUiState.Success(list)
             } catch (t: Throwable) {
                 FollowListUiState.Error(t.toUserMessage())
@@ -125,7 +126,7 @@ fun FollowListScreen(
 }
 
 @Composable
-private fun UserRow(u: PublicProfileDto, onClick: () -> Unit) {
+private fun UserRow(u: PublicProfile, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),

@@ -17,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.meteomontana.android.data.api.dto.FavoritesGridDto
+import com.meteomontana.android.domain.model.FavoritesGrid
 import com.meteomontana.android.ui.theme.scoreColor
 import com.meteomontana.android.ui.theme.scoreTextColor
 import java.time.LocalDate
@@ -28,7 +28,7 @@ private val DAY_LABELS = mapOf(
 )
 
 @Composable
-fun FavoritesGridTable(grid: FavoritesGridDto, modifier: Modifier = Modifier) {
+fun FavoritesGridTable(grid: FavoritesGrid, modifier: Modifier = Modifier) {
     if (grid.rows.isEmpty()) return
 
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {

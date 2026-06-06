@@ -3,8 +3,8 @@ package com.meteomontana.android.detail
 import androidx.lifecycle.SavedStateHandle
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
-import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
-import com.meteomontana.android.data.api.dto.PrivateProfileDto
+import com.meteomontana.android.domain.model.FavoriteSchool
+import com.meteomontana.android.domain.model.PrivateProfile
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.Current
@@ -87,7 +87,7 @@ class SchoolDetailViewModelTest {
         hours = emptyList(), days = emptyList(), bestDay = null, bestWindow = null
     )
 
-    private val profile = PrivateProfileDto(
+    private val profile = PrivateProfile(
         uid = "u1", email = null, username = null, displayName = null, photoUrl = null,
         bio = null, topGrade = null, isPublic = true, isAdmin = false, isPremium = false
     )
@@ -169,7 +169,7 @@ class SchoolDetailViewModelTest {
 
     @Test fun `isFavorite true cuando la escuela está en favoritos`() = runTest {
         coEvery { getMyFavorites() } returns listOf(
-            FavoriteSchoolDto(id = schoolId, name = "Pedriza", region = null, rockType = null, isFavorite = true)
+            FavoriteSchool(id = schoolId, name = "Pedriza", region = null, rockType = null, isFavorite = true)
         )
         val vm = newVm()
         advanceUntilIdle()

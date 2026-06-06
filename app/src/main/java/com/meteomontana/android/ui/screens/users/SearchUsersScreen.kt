@@ -39,7 +39,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.PublicProfileDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.PublicProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,8 +56,8 @@ class SearchUsersViewModel @Inject constructor(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
-    private val _results = MutableStateFlow<List<PublicProfileDto>>(emptyList())
-    val results: StateFlow<List<PublicProfileDto>> = _results.asStateFlow()
+    private val _results = MutableStateFlow<List<PublicProfile>>(emptyList())
+    val results: StateFlow<List<PublicProfile>> = _results.asStateFlow()
 
     fun setQuery(q: String) {
         _query.value = q
@@ -64,7 +65,7 @@ class SearchUsersViewModel @Inject constructor(
             delay(250)
             if (_query.value != q) return@launch
             _results.value = runCatching {
-                if (q.isBlank()) emptyList() else api.searchUsers(q)
+                if (q.isBlank()) emptyList() else api.searchUsers(q).map { it.toDomain() }
             }.getOrDefault(emptyList())
         }
     }
@@ -117,7 +118,7 @@ fun SearchUsersScreen(
 }
 
 @Composable
-private fun UserRow(user: PublicProfileDto, onClick: () -> Unit) {
+private fun UserRow(user: PublicProfile, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),

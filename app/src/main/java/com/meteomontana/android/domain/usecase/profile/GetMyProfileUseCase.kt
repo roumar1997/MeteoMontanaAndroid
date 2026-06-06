@@ -1,9 +1,10 @@
 package com.meteomontana.android.domain.usecase.profile
 
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.PrivateProfileDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.PrivateProfile
 import javax.inject.Inject
 
 class GetMyProfileUseCase @Inject constructor(private val api: SchoolApi) {
-    suspend operator fun invoke(): PrivateProfileDto = api.getMyProfile()
+    suspend operator fun invoke(): PrivateProfile = api.getMyProfile().toDomain()
 }

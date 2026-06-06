@@ -32,7 +32,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.JournalSessionDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.JournalSession
 import com.meteomontana.android.util.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +44,7 @@ import javax.inject.Inject
 
 sealed interface JournalEntriesUiState {
     data object Loading : JournalEntriesUiState
-    data class Success(val entries: List<JournalSessionDto>, val filter: String?) : JournalEntriesUiState
+    data class Success(val entries: List<JournalSession>, val filter: String?) : JournalEntriesUiState
     data class Error(val message: String) : JournalEntriesUiState
 }
 
@@ -70,7 +71,7 @@ class JournalEntriesViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                val all = api.getMyJournal()
+                val all = api.getMyJournal().map { it.toDomain() }
                 val filtered = when {
                     filter == null               -> all
                     filter.startsWith("school:") -> {
@@ -143,7 +144,7 @@ fun JournalEntriesScreen(
 }
 
 @Composable
-private fun EntryRow(e: JournalSessionDto, onDelete: () -> Unit) {
+private fun EntryRow(e: JournalSession, onDelete: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically

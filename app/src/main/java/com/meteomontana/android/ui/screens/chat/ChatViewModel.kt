@@ -5,10 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.FollowStatusDto
-import com.meteomontana.android.data.api.dto.PrivateProfileDto
-import com.meteomontana.android.data.api.dto.PublicProfileDto
+import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.chat.ChatMessage
+import com.meteomontana.android.domain.model.FollowStatus
+import com.meteomontana.android.domain.model.PrivateProfile
+import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.data.chat.ChatRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,8 +20,8 @@ import javax.inject.Inject
 
 data class ChatUiState(
     val otherUid: String,
-    val otherProfile: PublicProfileDto? = null,
-    val myProfile: PrivateProfileDto? = null,
+    val otherProfile: PublicProfile? = null,
+    val myProfile: PrivateProfile? = null,
     val canWrite: Boolean = false,
     val messages: List<ChatMessage> = emptyList(),
     val loading: Boolean = true
@@ -42,10 +43,10 @@ class ChatViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             // Cargar perfiles y permiso
-            val other = runCatching { api.getUserProfile(otherUid) }.getOrNull()
-            val mine = runCatching { api.getMyProfile() }.getOrNull()
-            val follow = runCatching { api.getFollowStatus(otherUid) }.getOrDefault(
-                FollowStatusDto(0, 0, false, false)
+            val other = runCatching { api.getUserProfile(otherUid).toDomain() }.getOrNull()
+            val mine = runCatching { api.getMyProfile().toDomain() }.getOrNull()
+            val follow = runCatching { api.getFollowStatus(otherUid).toDomain() }.getOrDefault(
+                FollowStatus(0, 0, false, false)
             )
             // Regla: si "other" es público -> puedes escribir
             //        si "other" es privado y NO te sigue -> NO puedes (a menos que tú seas público y

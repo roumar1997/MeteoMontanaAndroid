@@ -32,7 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
+import com.meteomontana.android.domain.model.FavoriteSchool
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.components.FavoritesGridTable
 import com.meteomontana.android.ui.components.forecastBody
@@ -103,7 +103,7 @@ private fun TopBar(title: String, subtitle: String) {
 
 @Composable
 private fun FavoriteChips(
-    favorites: List<FavoriteSchoolDto>,
+    favorites: List<FavoriteSchool>,
     selectedId: String?,
     onSelect: (String?) -> Unit
 ) {

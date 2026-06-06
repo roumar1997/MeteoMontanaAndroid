@@ -45,9 +45,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
-import com.meteomontana.android.data.api.dto.PrivateProfileDto
-import com.meteomontana.android.data.api.dto.JournalStatsDto
-import com.meteomontana.android.data.api.dto.SchoolStatsDto
+import com.meteomontana.android.domain.model.JournalStats
+import com.meteomontana.android.domain.model.PrivateProfile
+import com.meteomontana.android.domain.model.SchoolStats
 
 @Composable
 fun ProfileScreen(
@@ -113,8 +113,8 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 
 @Composable
 private fun Content(
-    profile: PrivateProfileDto,
-    stats: JournalStatsDto,
+    profile: PrivateProfile,
+    stats: JournalStats,
     onAddBlock: () -> Unit,
     onEdit: () -> Unit,
     onSubmissions: () -> Unit,
@@ -180,7 +180,7 @@ private fun Content(
 }
 
 @Composable
-private fun Header(p: PrivateProfileDto) {
+private fun Header(p: PrivateProfile) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -217,7 +217,7 @@ private fun Header(p: PrivateProfileDto) {
 }
 
 @Composable
-private fun TogglesSection(p: PrivateProfileDto) {
+private fun TogglesSection(p: PrivateProfile) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
         ToggleRow("Perfil público", p.isPublic)
         Spacer(Modifier.height(8.dp))
@@ -243,7 +243,7 @@ private fun ToggleRow(label: String, value: Boolean, secondaryText: String? = nu
 
 @Composable
 private fun StatsRow(
-    stats: JournalStatsDto,
+    stats: JournalStats,
     onBlocks: () -> Unit,
     onSchools: () -> Unit,
     onMax: () -> Unit
@@ -291,7 +291,7 @@ private fun AddBlockButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun SchoolEntryRow(entry: SchoolStatsDto, onClick: () -> Unit) {
+private fun SchoolEntryRow(entry: SchoolStats, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),

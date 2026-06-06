@@ -34,8 +34,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.InboxDto
-import com.meteomontana.android.data.api.dto.NotificationDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.Inbox
+import com.meteomontana.android.domain.model.Notification
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,7 +46,7 @@ import javax.inject.Inject
 
 sealed interface NotificationsUiState {
     data object Loading : NotificationsUiState
-    data class Success(val inbox: InboxDto) : NotificationsUiState
+    data class Success(val inbox: Inbox) : NotificationsUiState
     data class Error(val message: String) : NotificationsUiState
 }
 
@@ -61,7 +62,7 @@ class NotificationsViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                NotificationsUiState.Success(api.getMyNotifications())
+                NotificationsUiState.Success(api.getMyNotifications().toDomain())
             } catch (t: Throwable) {
                 NotificationsUiState.Error(t.toUserMessage())
             }
@@ -164,7 +165,7 @@ fun NotificationsScreen(
 }
 
 @Composable
-private fun NotificationRow(n: NotificationDto, onClick: () -> Unit) {
+private fun NotificationRow(n: Notification, onClick: () -> Unit) {
     val unread = n.readAt == null
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)

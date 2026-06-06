@@ -41,7 +41,7 @@ import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateJournalRequest
-import com.meteomontana.android.data.api.dto.JournalSessionDto
+import com.meteomontana.android.domain.model.JournalSession
 import com.meteomontana.android.data.api.dto.SchoolDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -79,11 +79,11 @@ class SchoolSearchViewModel @Inject constructor(
     private val _schoolBlocks = MutableStateFlow<List<Block>>(emptyList())
     val schoolBlocks: StateFlow<List<Block>> = _schoolBlocks.asStateFlow()
 
-    private var allJournal: List<JournalSessionDto> = emptyList()
+    private var allJournal: List<JournalSession> = emptyList()
 
     init {
         viewModelScope.launch {
-            allJournal = runCatching { api.getMyJournal() }.getOrDefault(emptyList())
+            allJournal = runCatching { api.getMyJournal().map { it.toDomain() } }.getOrDefault(emptyList())
         }
     }
 

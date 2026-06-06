@@ -1,8 +1,8 @@
 package com.meteomontana.android.schools
 
 import app.cash.turbine.test
-import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
-import com.meteomontana.android.data.api.dto.InboxDto
+import com.meteomontana.android.domain.model.FavoriteSchool
+import com.meteomontana.android.domain.model.Inbox
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.data.location.UserLocation
 import com.meteomontana.android.domain.model.School
@@ -61,7 +61,7 @@ class SchoolListViewModelTest {
         location = mockk()
         coEvery { location.current() } returns null
         coEvery { getMyFavorites() } returns emptyList()
-        coEvery { getMyNotifications(any()) } returns InboxDto(unreadCount = 0, items = emptyList())
+        coEvery { getMyNotifications(any()) } returns Inbox(unreadCount = 0, items = emptyList())
         coEvery { getTodayScores(any()) } returns emptyList()
         coEvery {
             getSchools(any(), any(), any(), any(), any(), any())
@@ -203,7 +203,7 @@ class SchoolListViewModelTest {
 
     @Test fun `setOnlyFavorites true filtra por ids favoritos`() = runTest {
         coEvery { getMyFavorites() } returns listOf(
-            FavoriteSchoolDto(id = "A", name = "Albarracín", region = null, rockType = null, isFavorite = true)
+            FavoriteSchool(id = "A", name = "Albarracín", region = null, rockType = null, isFavorite = true)
         )
         val vm = newVm()
         advanceUntilIdle()
@@ -227,7 +227,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `unreadCount se actualiza desde getMyNotifications`() = runTest {
-        coEvery { getMyNotifications(any()) } returns InboxDto(unreadCount = 7, items = emptyList())
+        coEvery { getMyNotifications(any()) } returns Inbox(unreadCount = 7, items = emptyList())
         val vm = newVm()
         advanceUntilIdle()
 

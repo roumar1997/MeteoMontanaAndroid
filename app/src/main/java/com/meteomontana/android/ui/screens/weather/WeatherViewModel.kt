@@ -4,10 +4,10 @@ import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
-import com.meteomontana.android.data.api.dto.FavoritesGridDto
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.location.LocationProvider
+import com.meteomontana.android.domain.model.FavoriteSchool
+import com.meteomontana.android.domain.model.FavoritesGrid
 import com.meteomontana.android.domain.model.Forecast
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,9 +21,9 @@ sealed interface WeatherUiState {
     data object NeedPermission : WeatherUiState
     data class Success(
         val forecast: Forecast,
-        val favorites: List<FavoriteSchoolDto>,
+        val favorites: List<FavoriteSchool>,
         val selectedFavoriteId: String?,   // null = ubicación actual
-        val grid: FavoritesGridDto?
+        val grid: FavoritesGrid?
     ) : WeatherUiState
     data class Error(val message: String) : WeatherUiState
 }
@@ -36,8 +36,8 @@ class WeatherViewModel @Inject constructor(
     private val _state = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
     val state: StateFlow<WeatherUiState> = _state.asStateFlow()
 
-    private var favorites: List<FavoriteSchoolDto> = emptyList()
-    private var grid: FavoritesGridDto? = null
+    private var favorites: List<FavoriteSchool> = emptyList()
+    private var grid: FavoritesGrid? = null
 
     init { tryLoad() }
 
@@ -49,8 +49,8 @@ class WeatherViewModel @Inject constructor(
                 return@launch
             }
             // Cargamos favoritos y grid en paralelo a la ubicación.
-            favorites = runCatching { api.getMyFavorites() }.getOrDefault(emptyList())
-            grid = runCatching { api.getFavoritesGrid() }.getOrNull()
+            favorites = runCatching { api.getMyFavorites().map { it.toDomain() } }.getOrDefault(emptyList())
+            grid = runCatching { api.getFavoritesGrid().toDomain() }.getOrNull()
 
             val loc = locationProvider.current() ?: return@launch run {
                 _state.value = loadForecastByLatLon(40.4168, -3.7038)

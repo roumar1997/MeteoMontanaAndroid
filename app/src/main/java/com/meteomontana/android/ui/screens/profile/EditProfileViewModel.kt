@@ -6,8 +6,9 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.PrivateProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +22,7 @@ import javax.inject.Inject
 
 sealed interface EditState {
     data object Loading : EditState
-    data class Editing(val profile: PrivateProfileDto) : EditState
+    data class Editing(val profile: PrivateProfile) : EditState
     data object Saving : EditState
     data object Saved : EditState
     data class Error(val message: String) : EditState
@@ -40,7 +41,7 @@ class EditProfileViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                EditState.Editing(api.getMyProfile())
+                EditState.Editing(api.getMyProfile().toDomain())
             } catch (t: Throwable) {
                 EditState.Error(t.toUserMessage())
             }
@@ -73,7 +74,7 @@ class EditProfileViewModel @Inject constructor(
                 }
                 val rb = bytes.toRequestBody(mime.toMediaTypeOrNull())
                 val part = MultipartBody.Part.createFormData("file", "profile.$ext", rb)
-                val updated = api.uploadMyPhoto(part)
+                val updated = api.uploadMyPhoto(part).toDomain()
                 EditState.Editing(updated)
             } catch (t: Throwable) {
                 EditState.Error(t.message ?: "Error al subir foto")

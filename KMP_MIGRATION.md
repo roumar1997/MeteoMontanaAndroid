@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 1.2 — modelos críticos migrados: Forecast, Block, Contribution)
+**Última actualización:** 2026-06-06 (Fase 1.2 cerrada — todos los DTOs fuera de UiState)
 
 **Progreso global:**
 
@@ -30,15 +30,15 @@
     `SchoolApi`/`AdminApi` directos (solo `AdminViewModel` mantiene
     `SchoolApi` para `getSchools()` del tab GESTIONAR — pendiente
     extraer en 1.3).
-  - [~] 1.2 — Modelos de dominio puros (DTOs fuera de UiState). Hecho:
-    `SchoolScore`, `Note`, `Submission`, `AdminStats`, `AdminLog`,
-    `AdminPushResult`, `Forecast` (+ Current, HourForecast, DayForecast,
-    BestDay, OptimalWindow, ScoreFactor), `Block` + `BlockLine`,
-    `Contribution`. Pendiente (modelos ligeros, solo tocan pantallas
-    sociales/perfil): `PrivateProfile`, `PublicProfile`, `FollowStatus`,
-    `Inbox` + `Notification`, `FavoriteSchool`, `FavoritesGrid`,
-    `JournalSession`. ← **SIGUIENTE**
-  - [ ] 1.3 — Partir `SchoolApi` por bounded context.
+  - [x] 1.2 — Modelos de dominio puros (DTOs fuera de UiState). ✅
+    16 modelos en `domain/model/`. Todos los `UiState` y consumidores
+    de pantalla usan modelos de dominio. Solo `CreateBlockRequest`,
+    `CreateBlockLineRequest`, `ContributionRequest`,
+    `SubmitSchoolRequest`, `CreateJournalRequest`, `CreateNoteRequest`,
+    `UpdateProfileRequest`, `FcmTokenRequest`, `AdminPushRequest`,
+    `RejectReason` se mantienen como input DTOs (anotaciones Moshi;
+    se cambian a Kotlinx Serialization en Fase 2).
+  - [ ] 1.3 — Partir `SchoolApi` por bounded context. ← **SIGUIENTE**
   - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
   - [ ] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`...).
   - [ ] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`).
@@ -505,7 +505,49 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.2 continuación: migrar Forecast, Block y Contribution.**
+**Fase 1.3: partir `SchoolApi` por bounded context.**
+
+`SchoolApi` tiene 39 métodos y es un god-interface. Hay que partirlo en
+APIs Retrofit más pequeñas por bounded context. Esto desbloquea Fase 2
+(en `commonMain` cada bounded context tendrá su `XApi` Ktor independiente).
+
+Plan:
+
+1. Crear interfaces Retrofit por bounded context dentro de `data/api/`:
+   - `SchoolApi` (queda con: schools, search, by-id)
+   - `ForecastApi` (forecast, by-location)
+   - `BlockApi` (blocks CRUD)
+   - `NoteApi` (notes by school, create)
+   - `ContributionApi` (submit, get my contributions)
+   - `ProfileApi` (me, update, photo, fcm-token)
+   - `FavoritesApi` (favorites + grid)
+   - `JournalApi` (journal + stats)
+   - `SocialApi` (search-users, profile, follow status/list)
+   - `NotificationsApi` (notifications + mark read)
+   - `SubmissionApi` (submit school, my submissions)
+2. En `NetworkModule`, proveer cada uno con `retrofit.create()`.
+3. Actualizar use cases para inyectar el API específico en lugar de
+   `SchoolApi` (cada use case ya está aislado tras Fase 1.1).
+4. Migrar también las pocas pantallas que llaman a `SchoolApi`
+   directamente (ChatListViewModel, ChatViewModel,
+   NotificationsViewModel, JournalEntriesScreen VM, FollowListScreen VM,
+   PublicProfileScreen VM, SearchUsersScreen VM, ProfileViewModel,
+   EditProfileViewModel, WeatherViewModel, AddBlockSheet VM,
+   MySubmissionsViewModel) — crear use cases también para sus llamadas
+   o que inyecten el `XApi` específico.
+5. Mantener `AdminApi` aparte (ya lo está).
+
+Riesgo: tocar la inyección Hilt. Si el `NetworkModule` no provee un API
+correctamente, Hilt falla en runtime, no en compile. Probar la app
+manualmente después.
+
+Tests verdes antes de commit.
+
+### Fase 1.4 — Sacar el dibujo del topo del Composable (DrawOp instructions)
+### Fase 1.5 — Abstracciones Firebase (PhotoUploader, AuthService, ChatService)
+### Fase 1.6 — Wrappers de tipos Android (FileRef en lugar de Uri)
+
+Estas tres sub-fases vienen después de 1.3.
 
 Estos tres modelos son los más invasivos porque tocan muchas pantallas
 y componentes. Conviene una sesión propia para cada uno.
