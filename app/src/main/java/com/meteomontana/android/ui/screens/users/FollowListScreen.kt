@@ -35,9 +35,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
-import com.meteomontana.android.data.api.KtorSocialApi
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.PublicProfile
+import com.meteomontana.android.domain.usecase.social.GetFollowersUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,7 +54,8 @@ sealed interface FollowListUiState {
 @HiltViewModel
 class FollowListViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: KtorSocialApi
+    private val getFollowers: GetFollowersUseCase,
+    private val getFollowing: GetFollowingUseCase
 ) : ViewModel() {
     private val uid: String = checkNotNull(savedStateHandle["uid"])
     private val mode: String = checkNotNull(savedStateHandle["mode"]) // "followers" | "following"
@@ -69,7 +70,7 @@ class FollowListViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                val list = (if (mode == "followers") api.getFollowers(uid) else api.getFollowing(uid)).map { it.toDomain() }
+                val list = if (mode == "followers") getFollowers(uid) else getFollowing(uid)
                 FollowListUiState.Success(list)
             } catch (t: Throwable) {
                 FollowListUiState.Error(t.toUserMessage())

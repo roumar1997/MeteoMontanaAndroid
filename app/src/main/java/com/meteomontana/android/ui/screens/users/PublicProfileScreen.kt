@@ -40,10 +40,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
-import com.meteomontana.android.data.api.KtorSocialApi
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.PublicProfile
+import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
+import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
+import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,7 +62,10 @@ sealed interface PublicProfileUiState {
 @HiltViewModel
 class PublicProfileViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: KtorSocialApi
+    private val getPublicProfile: GetPublicProfileUseCase,
+    private val getFollowStatus: GetFollowStatusUseCase,
+    private val followUser: FollowUserUseCase,
+    private val unfollowUser: UnfollowUserUseCase
 ) : ViewModel() {
     private val uid: String = checkNotNull(savedStateHandle["uid"])
     private val _state = MutableStateFlow<PublicProfileUiState>(PublicProfileUiState.Loading)
@@ -72,8 +77,8 @@ class PublicProfileViewModel @Inject constructor(
         _state.value = PublicProfileUiState.Loading
         viewModelScope.launch {
             _state.value = try {
-                val profile = api.getUserProfile(uid).toDomain()
-                val status = runCatching { api.getFollowStatus(uid).toDomain() }
+                val profile = getPublicProfile(uid)
+                val status = runCatching { getFollowStatus(uid) }
                     .getOrDefault(FollowStatus(0, 0, false, false))
                 PublicProfileUiState.Success(profile, status)
             } catch (t: Throwable) {
@@ -86,9 +91,8 @@ class PublicProfileViewModel @Inject constructor(
         val cur = _state.value as? PublicProfileUiState.Success ?: return
         viewModelScope.launch {
             try {
-                if (cur.status.iFollowThem) api.unfollow(uid)
-                else api.follow(uid)
-                val newStatus = api.getFollowStatus(uid).toDomain()
+                if (cur.status.iFollowThem) unfollowUser(uid) else followUser(uid)
+                val newStatus = getFollowStatus(uid)
                 _state.value = cur.copy(status = newStatus)
             } catch (_: Throwable) {}
         }

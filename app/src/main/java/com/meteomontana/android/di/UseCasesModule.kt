@@ -5,10 +5,13 @@ import com.meteomontana.android.domain.repository.BlockRepository
 import com.meteomontana.android.domain.repository.ContributionRepository
 import com.meteomontana.android.domain.repository.FavoritesRepository
 import com.meteomontana.android.domain.repository.ForecastRepository
+import com.meteomontana.android.domain.repository.JournalRepository
 import com.meteomontana.android.domain.repository.NotificationsRepository
 import com.meteomontana.android.domain.repository.NoteRepository
 import com.meteomontana.android.domain.repository.ProfileRepository
 import com.meteomontana.android.domain.repository.SchoolRepository
+import com.meteomontana.android.domain.repository.SocialRepository
+import com.meteomontana.android.domain.repository.SubmissionRepository
 import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
@@ -27,13 +30,32 @@ import com.meteomontana.android.domain.usecase.contributions.SubmitContributionU
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
+import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
+import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
+import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowersUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowingUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
+import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
+import com.meteomontana.android.domain.usecase.social.SearchUsersUseCase
+import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
+import com.meteomontana.android.domain.usecase.submissions.GetMySubmissionsUseCase
+import com.meteomontana.android.domain.usecase.submissions.SubmitSchoolUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
 import com.meteomontana.android.domain.usecase.notes.GetNotesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
+import com.meteomontana.android.domain.usecase.notifications.MarkAllNotificationsReadUseCase
+import com.meteomontana.android.domain.usecase.notifications.MarkNotificationReadUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
+import com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase
+import com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
+import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import dagger.Module
 import dagger.Provides
@@ -55,9 +77,16 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideGetTodayScoresUseCase(repo: ForecastRepository) = GetTodayScoresUseCase(repo)
 
+    @Provides @Singleton
+    fun provideSearchSchoolsUseCase(repo: SchoolRepository) = SearchSchoolsUseCase(repo)
+
     // Forecast
     @Provides @Singleton
     fun provideGetForecastUseCase(repo: ForecastRepository) = GetForecastUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetForecastByLocationUseCase(repo: ForecastRepository) =
+        GetForecastByLocationUseCase(repo)
 
     // Blocks
     @Provides @Singleton
@@ -101,10 +130,24 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideGetMyProfileUseCase(repo: ProfileRepository) = GetMyProfileUseCase(repo)
 
+    @Provides @Singleton
+    fun provideUpdateMyProfileUseCase(repo: ProfileRepository) = UpdateMyProfileUseCase(repo)
+
+    @Provides @Singleton
+    fun provideUpdateFcmTokenUseCase(repo: ProfileRepository) = UpdateFcmTokenUseCase(repo)
+
     // Notifications
     @Provides @Singleton
     fun provideGetMyNotificationsUseCase(repo: NotificationsRepository) =
         GetMyNotificationsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideMarkNotificationReadUseCase(repo: NotificationsRepository) =
+        MarkNotificationReadUseCase(repo)
+
+    @Provides @Singleton
+    fun provideMarkAllNotificationsReadUseCase(repo: NotificationsRepository) =
+        MarkAllNotificationsReadUseCase(repo)
 
     // Admin
     @Provides @Singleton
@@ -137,4 +180,46 @@ object UseCasesModule {
 
     @Provides @Singleton
     fun provideSendPushUseCase(repo: AdminRepository) = SendPushUseCase(repo)
+
+    // Journal
+    @Provides @Singleton
+    fun provideGetMyJournalUseCase(repo: JournalRepository) = GetMyJournalUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetMyJournalStatsUseCase(repo: JournalRepository) = GetMyJournalStatsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideCreateJournalEntryUseCase(repo: JournalRepository) = CreateJournalEntryUseCase(repo)
+
+    @Provides @Singleton
+    fun provideDeleteJournalEntryUseCase(repo: JournalRepository) = DeleteJournalEntryUseCase(repo)
+
+    // Submissions
+    @Provides @Singleton
+    fun provideGetMySubmissionsUseCase(repo: SubmissionRepository) = GetMySubmissionsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideSubmitSchoolUseCase(repo: SubmissionRepository) = SubmitSchoolUseCase(repo)
+
+    // Social
+    @Provides @Singleton
+    fun provideGetPublicProfileUseCase(repo: SocialRepository) = GetPublicProfileUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetFollowStatusUseCase(repo: SocialRepository) = GetFollowStatusUseCase(repo)
+
+    @Provides @Singleton
+    fun provideSearchUsersUseCase(repo: SocialRepository) = SearchUsersUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetFollowersUseCase(repo: SocialRepository) = GetFollowersUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetFollowingUseCase(repo: SocialRepository) = GetFollowingUseCase(repo)
+
+    @Provides @Singleton
+    fun provideFollowUserUseCase(repo: SocialRepository) = FollowUserUseCase(repo)
+
+    @Provides @Singleton
+    fun provideUnfollowUserUseCase(repo: SocialRepository) = UnfollowUserUseCase(repo)
 }

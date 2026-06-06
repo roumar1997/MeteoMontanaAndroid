@@ -3,13 +3,13 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorJournalApi
-import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.dto.CreateJournalRequest
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.auth.AuthManager
 import com.meteomontana.android.domain.model.JournalStats
 import com.meteomontana.android.domain.model.PrivateProfile
+import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
+import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,8 +25,9 @@ sealed interface ProfileUiState {
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val profileApi: KtorProfileApi,
-    private val journalApi: KtorJournalApi,
+    private val getMyProfile: GetMyProfileUseCase,
+    private val getMyJournalStats: GetMyJournalStatsUseCase,
+    private val createJournalEntry: CreateJournalEntryUseCase,
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -39,8 +40,8 @@ class ProfileViewModel @Inject constructor(
         _uiState.value = ProfileUiState.Loading
         viewModelScope.launch {
             _uiState.value = try {
-                val profile = profileApi.getMyProfile().toDomain()
-                val stats = journalApi.getMyJournalStats().toDomain()
+                val profile = getMyProfile()
+                val stats = getMyJournalStats()
                 ProfileUiState.Success(profile, stats)
             } catch (t: Throwable) {
                 ProfileUiState.Error(t.toUserMessage())
@@ -51,7 +52,7 @@ class ProfileViewModel @Inject constructor(
     fun addBlock(req: CreateJournalRequest, onDone: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                journalApi.createJournalSession(req)
+                createJournalEntry(req)
                 load()
                 onDone()
             } catch (_: Throwable) {}

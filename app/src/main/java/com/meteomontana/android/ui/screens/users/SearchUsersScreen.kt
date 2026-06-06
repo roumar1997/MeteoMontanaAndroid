@@ -38,9 +38,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
-import com.meteomontana.android.data.api.KtorSocialApi
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.PublicProfile
+import com.meteomontana.android.domain.usecase.social.SearchUsersUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,7 +50,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SearchUsersViewModel @Inject constructor(
-    private val api: KtorSocialApi
+    private val searchUsers: SearchUsersUseCase
 ) : ViewModel() {
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
@@ -65,7 +64,7 @@ class SearchUsersViewModel @Inject constructor(
             delay(250)
             if (_query.value != q) return@launch
             _results.value = runCatching {
-                if (q.isBlank()) emptyList() else api.searchUsers(q).map { it.toDomain() }
+                if (q.isBlank()) emptyList() else searchUsers(q)
             }.getOrDefault(emptyList())
         }
     }

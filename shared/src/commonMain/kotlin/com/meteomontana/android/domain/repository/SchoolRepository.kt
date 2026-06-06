@@ -13,4 +13,6 @@ interface SchoolRepository {
     ): List<School>
 
     suspend fun getSchoolById(id: String): School
+
+    suspend fun searchSchools(query: String, limit: Int = 10): List<School>
 }

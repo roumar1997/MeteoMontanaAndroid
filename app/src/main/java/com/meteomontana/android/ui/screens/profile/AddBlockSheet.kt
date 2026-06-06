@@ -37,14 +37,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorBlockApi
-import com.meteomontana.android.data.api.KtorJournalApi
-import com.meteomontana.android.data.api.KtorSchoolApi
-import com.meteomontana.android.data.api.dto.toDomain
-import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateJournalRequest
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.JournalSession
-import com.meteomontana.android.data.api.dto.SchoolDto
+import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
+import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,13 +66,13 @@ data class SchoolHistory(
 
 @HiltViewModel
 class SchoolSearchViewModel @Inject constructor(
-    private val api: KtorSchoolApi,
-    private val journalApi: KtorJournalApi,
-    private val blockApi: KtorBlockApi
+    private val searchSchools: SearchSchoolsUseCase,
+    private val getMyJournal: GetMyJournalUseCase,
+    private val getBlocks: GetBlocksUseCase
 ) : ViewModel() {
     private val _query = MutableStateFlow("")
-    private val _results = MutableStateFlow<List<SchoolDto>>(emptyList())
-    val results: StateFlow<List<SchoolDto>> = _results.asStateFlow()
+    private val _results = MutableStateFlow<List<School>>(emptyList())
+    val results: StateFlow<List<School>> = _results.asStateFlow()
 
     /** Historial del usuario en la escuela actualmente seleccionada (sectores y bloques previos). */
     private val _history = MutableStateFlow(SchoolHistory(emptyList(), emptyList()))
@@ -87,7 +86,7 @@ class SchoolSearchViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            allJournal = runCatching { journalApi.getMyJournal().map { it.toDomain() } }.getOrDefault(emptyList())
+            allJournal = runCatching { getMyJournal() }.getOrDefault(emptyList())
         }
     }
 
@@ -97,12 +96,12 @@ class SchoolSearchViewModel @Inject constructor(
             delay(200)
             if (_query.value != q) return@launch
             _results.value = runCatching {
-                if (q.isBlank()) emptyList() else api.searchSchools(q)
+                if (q.isBlank()) emptyList() else searchSchools(q)
             }.getOrDefault(emptyList())
         }
     }
 
-    fun onSchoolSelected(school: SchoolDto?) {
+    fun onSchoolSelected(school: School?) {
         if (school == null) {
             _history.value = SchoolHistory(emptyList(), emptyList())
             _schoolBlocks.value = emptyList()
@@ -119,7 +118,7 @@ class SchoolSearchViewModel @Inject constructor(
         )
         // De los bloques registrados en la escuela
         viewModelScope.launch {
-            _schoolBlocks.value = runCatching { blockApi.getBlocks(school.id).map { it.toDomain() } }.getOrDefault(emptyList())
+            _schoolBlocks.value = runCatching { getBlocks(school.id) }.getOrDefault(emptyList())
         }
     }
 }
@@ -133,7 +132,7 @@ fun AddBlockSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var selectedSchool by remember { mutableStateOf<SchoolDto?>(null) }
+    var selectedSchool by remember { mutableStateOf<School?>(null) }
     var schoolQuery by remember { mutableStateOf("") }
     var sector by remember { mutableStateOf("") }
     var blockName by remember { mutableStateOf("") }
