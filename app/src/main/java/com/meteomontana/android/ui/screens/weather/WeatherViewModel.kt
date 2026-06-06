@@ -3,8 +3,8 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.FavoritesApi
-import com.meteomontana.android.data.api.ForecastApi
+import com.meteomontana.android.data.api.KtorFavoritesApi
+import com.meteomontana.android.data.api.KtorForecastApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.domain.model.FavoriteSchool
@@ -31,8 +31,8 @@ sealed interface WeatherUiState {
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
-    private val forecastApi: ForecastApi,
-    private val favoritesApi: FavoritesApi,
+    private val forecastApi: KtorForecastApi,
+    private val favoritesApi: KtorFavoritesApi,
     private val locationProvider: LocationProvider
 ) : ViewModel() {
     private val _state = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)

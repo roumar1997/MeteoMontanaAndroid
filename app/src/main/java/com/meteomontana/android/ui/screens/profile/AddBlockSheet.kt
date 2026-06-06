@@ -37,9 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.BlockApi
-import com.meteomontana.android.data.api.JournalApi
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.KtorBlockApi
+import com.meteomontana.android.data.api.KtorJournalApi
+import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateJournalRequest
@@ -67,9 +67,9 @@ data class SchoolHistory(
 
 @HiltViewModel
 class SchoolSearchViewModel @Inject constructor(
-    private val api: SchoolApi,
-    private val journalApi: JournalApi,
-    private val blockApi: BlockApi
+    private val api: KtorSchoolApi,
+    private val journalApi: KtorJournalApi,
+    private val blockApi: KtorBlockApi
 ) : ViewModel() {
     private val _query = MutableStateFlow("")
     private val _results = MutableStateFlow<List<SchoolDto>>(emptyList())

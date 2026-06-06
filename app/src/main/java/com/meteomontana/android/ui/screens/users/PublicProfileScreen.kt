@@ -40,7 +40,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
-import com.meteomontana.android.data.api.SocialApi
+import com.meteomontana.android.data.api.KtorSocialApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.PublicProfile
@@ -60,7 +60,7 @@ sealed interface PublicProfileUiState {
 @HiltViewModel
 class PublicProfileViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: SocialApi
+    private val api: KtorSocialApi
 ) : ViewModel() {
     private val uid: String = checkNotNull(savedStateHandle["uid"])
     private val _state = MutableStateFlow<PublicProfileUiState>(PublicProfileUiState.Loading)

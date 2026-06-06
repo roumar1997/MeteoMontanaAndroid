@@ -85,7 +85,7 @@ fun EditProfileScreen(
                 }
             is EditState.Editing -> EditForm(
                 s, viewModel::save,
-                onPickPhoto = viewModel::uploadPhoto
+                onPickPhoto = { /* TODO Fase 2.4: foto perfil via Ktor multipart */ }
             )
             EditState.Saved -> {}
         }

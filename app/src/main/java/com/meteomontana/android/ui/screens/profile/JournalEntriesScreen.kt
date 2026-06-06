@@ -31,7 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.JournalApi
+import com.meteomontana.android.data.api.KtorJournalApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.JournalSession
 import com.meteomontana.android.util.toUserMessage
@@ -51,7 +51,7 @@ sealed interface JournalEntriesUiState {
 @HiltViewModel
 class JournalEntriesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: JournalApi
+    private val api: KtorJournalApi
 ) : ViewModel() {
     /** Filtro: null = todos · "school:Albarracín" · "grade-max" (solo el del grado máximo) */
     private val filter: String? = savedStateHandle["filter"]

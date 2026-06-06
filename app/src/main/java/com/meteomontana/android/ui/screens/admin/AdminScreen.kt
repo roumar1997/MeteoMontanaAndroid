@@ -64,9 +64,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import coil.compose.AsyncImage
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
-import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminStats
+import com.meteomontana.android.domain.model.Contribution
+import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.Submission
 import androidx.compose.runtime.key
 import com.meteomontana.android.ui.components.FullScreenMapDialog
@@ -773,7 +774,7 @@ private const val OSM_STYLE = """{"version":8,"sources":{"osm":{"type":"raster",
  */
 @Composable
 private fun GestionarTab(
-    allSchools: List<com.meteomontana.android.data.api.dto.SchoolDto>,
+    allSchools: List<School>,
     loading: Boolean,
     schoolBlocks: Map<String, List<com.meteomontana.android.domain.model.Block>>,
     onLoadSchools: () -> Unit,
@@ -783,7 +784,7 @@ private fun GestionarTab(
 ) {
     var query by remember { mutableStateOf("") }
     var selectedSchool by remember {
-        mutableStateOf<com.meteomontana.android.data.api.dto.SchoolDto?>(null)
+        mutableStateOf<School?>(null)
     }
 
     LaunchedEffect(Unit) { onLoadSchools() }
@@ -854,7 +855,7 @@ private fun GestionarTab(
 
 @Composable
 private fun SchoolListRow(
-    school: com.meteomontana.android.data.api.dto.SchoolDto,
+    school: School,
     onClick: () -> Unit
 ) {
     Row(

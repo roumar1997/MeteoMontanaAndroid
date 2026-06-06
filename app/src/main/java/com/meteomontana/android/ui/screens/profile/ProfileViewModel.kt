@@ -3,8 +3,8 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.JournalApi
-import com.meteomontana.android.data.api.ProfileApi
+import com.meteomontana.android.data.api.KtorJournalApi
+import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.dto.CreateJournalRequest
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.auth.AuthManager
@@ -25,8 +25,8 @@ sealed interface ProfileUiState {
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val profileApi: ProfileApi,
-    private val journalApi: JournalApi,
+    private val profileApi: KtorProfileApi,
+    private val journalApi: KtorJournalApi,
     private val authManager: AuthManager
 ) : ViewModel() {
 

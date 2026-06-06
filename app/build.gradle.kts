@@ -81,14 +81,9 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    // Network
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.moshi)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
-    implementation(libs.moshi)
-    implementation(libs.moshi.kotlin)
-    ksp(libs.moshi.codegen)
+    // Network — Ktor (HTTP client compartido con shared/commonMain)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
 
     // Imágenes
     implementation(libs.coil.compose)

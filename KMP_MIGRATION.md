@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 2.2 cerrada — repositorios + use cases en commonMain)
+**Última actualización:** 2026-06-06 (Fase 2.3 cerrada — Ktor + Kotlinx Serialization, todo en commonMain)
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -69,8 +69,16 @@
     AdminRepository. Implementaciones Retrofit en app/data/repository/. Use cases
     sin @Inject (plain constructors), provistos por UseCasesModule Hilt. 86 tests verdes.
     Quedan en app/ (params DTO): CreateBlockUseCase, UpdateBlockUseCase, SubmitContributionUseCase.
-  - [ ] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization. ← **SIGUIENTE**
-  - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS).
+  - [x] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization. ✅
+    DTOs con @Serializable + toDomain() en Mappings.kt. 12 KtorXxxApi classes.
+    8 KtorXxxRepository classes + KtorContributionRepository. GetBlockUseCase añadido.
+    CreateBlockUseCase, UpdateBlockUseCase, SubmitContributionUseCase movidos a commonMain.
+    Retrofit + Moshi + OkHttp eliminados del proyecto. AuthInterceptor eliminado.
+    NetworkModule reescrito con buildApiHttpClient(). RepositoryModule usa @Provides.
+    ErrorMessage.kt migrado de HttpException (Retrofit) a ClientRequestException (Ktor).
+    AdminViewModel.loadAllSchools() ahora usa GetSchoolsUseCase → List<School>.
+    86 tests verdes.
+  - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS). ← **SIGUIENTE**
   - [ ] 2.5 — Adaptar `androidApp` para consumir `shared`.
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
   - [ ] Estructura `iosApp/iosApp.xcodeproj` (con stubs sin compilar).
@@ -529,58 +537,38 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 2.3: migrar `data/api/` a `commonMain` con Ktor + Kotlinx Serialization.**
+**Fase 2.4: `actual`/`expect` declarations + Firebase en `androidMain`.**
 
-Fases 2.1 y 2.2 completadas. Estado actual de `shared/commonMain`:
-- `domain/model/` — 12 modelos ✅
+Fase 2.3 completada. Estado actual de `shared/commonMain`:
+- `domain/model/` — todos los modelos ✅
 - `domain/port/` — AuthService, ChatService, FileReader, PhotoUploader ✅
-- `domain/repository/` — SchoolRepository + 7 repos nuevos ✅
-- `domain/usecase/` — 22 use cases (3 restan en app/: Create/UpdateBlock, SubmitContribution) ✅
+- `domain/repository/` — 9 repositorios (+ ContributionRepository) ✅
+- `domain/usecase/` — 25 use cases (Create/Update/DeleteBlock, GetBlock, SubmitContribution, todos) ✅
 - `domain/util/` — TopoRenderer ✅
+- `data/api/dto/` — DTOs @Serializable + Mappings.kt ✅
+- `data/api/` — 12 KtorXxxApi classes + buildApiHttpClient() ✅
+- `data/repository/` — 9 KtorXxxRepository classes ✅
 
-Lo que toca en Fase 2.3:
+Retrofit + Moshi + OkHttp eliminados. app/ solo contiene UI + DI + Firebase.
 
-1. **Añadir dependencias Ktor + Kotlinx Serialization** en `shared/build.gradle.kts`:
-   ```kotlin
-   commonMain.dependencies {
-       implementation(libs.coroutines.core)
-       implementation(libs.ktor.client.core)
-       implementation(libs.ktor.client.content.negotiation)
-       implementation(libs.ktor.serialization.kotlinx.json)
-       implementation(libs.kotlinx.serialization.json)
-   }
-   androidMain.dependencies {
-       implementation(libs.ktor.client.okhttp)
-   }
-   // iosMain.dependencies { ktor.client.darwin }  ← cuando llegue Mac
-   ```
-   Añadir versiones en `gradle/libs.versions.toml` (ktor = "3.1.x", kotlinx-serialization = "1.8.x").
+Lo que toca en Fase 2.4:
 
-2. **Reemplazar DTOs Moshi por `@Serializable`** en `shared/commonMain/data/api/dto/`:
-   - Copiar los *Dto.kt de `app/data/api/dto/` a `shared/commonMain/data/api/dto/`.
-   - Sustituir `@JsonClass(generateAdapter = true)` por `@Serializable`.
-   - Eliminar imports `com.squareup.moshi.*`.
-   - Los campos `java.time.LocalDateTime` → `String` (ya lo son en los DTOs actuales).
-   - `java.util.Date` → `String` (comprobar si algún DTO lo usa).
+1. **Mover `AuthService`, `ChatService`, `PhotoUploader`, `FileReader`** fuera de `domain/port/`
+   en `shared/commonMain` y añadir `expect`/`actual` para implementaciones Android-only
+   (Firebase, Coil, android.net.Uri).
 
-3. **Crear `HttpClientFactory` en `commonMain/data/api/`**:
-   ```kotlin
-   // shared/src/commonMain/kotlin/com/meteomontana/android/data/api/HttpClientFactory.kt
-   fun createHttpClient(baseUrl: String, tokenProvider: () -> String?): HttpClient
-   ```
-   Con `ContentNegotiation(Json { ignoreUnknownKeys = true })` + `BearerTokens`.
+2. **Crear `androidMain`** con las implementaciones Firebase reales:
+   - `actual class FirebaseAuthService` → `FirebaseAuth`
+   - `actual class FirebaseChatService` → Firestore realtime
+   - `actual class FirebaseStoragePhotoUploader` → Firebase Storage
+   - `actual class AndroidFileReader` → ContentResolver
 
-4. **Crear interfaces API en `commonMain/data/api/`** usando Ktor en lugar de Retrofit:
-   Cada API actual (ForecastApi, BlockApi...) se convierte en una clase con métodos suspend.
+3. **Verificar `assembleDebug` y 86 tests verdes.**
 
-5. **Actualizar `RetrofitXxxRepository`** para usar el nuevo cliente Ktor (renombrar a `KtorXxxRepository`).
-   O mantener la capa de repositorios inalterada y solo cambiar la fuente de datos interna.
+4. **Sub-tarea pendiente Fase 2.x**: `uploadPhoto` de perfil (TODO marcado en
+   EditProfileViewModel — necesita Ktor multipart en commonMain o Firebase Storage).
 
-6. **Eliminar Retrofit + Moshi** de `app/build.gradle.kts` una vez migradas todas las APIs.
-
-7. **Los 3 use cases restantes** (`CreateBlockUseCase`, `UpdateBlockUseCase`, `SubmitContributionUseCase`)
-   pueden migrarse ahora: sus parámetros DTO se convierten a modelos de dominio
-   (`BlockInput`, `ContributionInput`) en `commonMain/domain/model/`.
+Nota: iOS targets siguen compilando en Mac. En Windows solo `androidTarget`.
 
 ### Sub-paso 2A — Forecast (+ tipos anidados)
 

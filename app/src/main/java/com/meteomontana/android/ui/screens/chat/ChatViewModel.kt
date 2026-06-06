@@ -3,8 +3,8 @@ package com.meteomontana.android.ui.screens.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.ProfileApi
-import com.meteomontana.android.data.api.SocialApi
+import com.meteomontana.android.data.api.KtorProfileApi
+import com.meteomontana.android.data.api.KtorSocialApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.PrivateProfile
@@ -32,8 +32,8 @@ class ChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val chatService: ChatService,
     private val authService: AuthService,
-    private val socialApi: SocialApi,
-    private val profileApi: ProfileApi
+    private val socialApi: KtorSocialApi,
+    private val profileApi: KtorProfileApi
 ) : ViewModel() {
     private val otherUid: String = checkNotNull(savedStateHandle["uid"])
     private val me: String = authService.currentUid() ?: ""

@@ -2,6 +2,7 @@ package com.meteomontana.android.di
 
 import com.meteomontana.android.domain.repository.AdminRepository
 import com.meteomontana.android.domain.repository.BlockRepository
+import com.meteomontana.android.domain.repository.ContributionRepository
 import com.meteomontana.android.domain.repository.FavoritesRepository
 import com.meteomontana.android.domain.repository.ForecastRepository
 import com.meteomontana.android.domain.repository.NotificationsRepository
@@ -17,8 +18,12 @@ import com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCas
 import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
+import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.GetBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
+import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
+import com.meteomontana.android.domain.usecase.contributions.SubmitContributionUseCase
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
@@ -59,7 +64,21 @@ object UseCasesModule {
     fun provideGetBlocksUseCase(repo: BlockRepository) = GetBlocksUseCase(repo)
 
     @Provides @Singleton
+    fun provideGetBlockUseCase(repo: BlockRepository) = GetBlockUseCase(repo)
+
+    @Provides @Singleton
+    fun provideCreateBlockUseCase(repo: BlockRepository) = CreateBlockUseCase(repo)
+
+    @Provides @Singleton
+    fun provideUpdateBlockUseCase(repo: BlockRepository) = UpdateBlockUseCase(repo)
+
+    @Provides @Singleton
     fun provideDeleteBlockUseCase(repo: BlockRepository) = DeleteBlockUseCase(repo)
+
+    // Contributions
+    @Provides @Singleton
+    fun provideSubmitContributionUseCase(repo: ContributionRepository) =
+        SubmitContributionUseCase(repo)
 
     // Notes
     @Provides @Singleton

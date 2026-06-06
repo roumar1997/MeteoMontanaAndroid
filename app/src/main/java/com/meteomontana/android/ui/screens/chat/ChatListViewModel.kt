@@ -2,7 +2,7 @@ package com.meteomontana.android.ui.screens.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SocialApi
+import com.meteomontana.android.data.api.KtorSocialApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.port.AuthService
@@ -23,7 +23,7 @@ data class ChatListItem(
 class ChatListViewModel @Inject constructor(
     private val chatService: ChatService,
     private val authService: AuthService,
-    private val api: SocialApi
+    private val api: KtorSocialApi
 ) : ViewModel() {
     private val _items = MutableStateFlow<List<ChatListItem>>(emptyList())
     val items: StateFlow<List<ChatListItem>> = _items.asStateFlow()

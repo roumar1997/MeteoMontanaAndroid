@@ -3,7 +3,7 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SubmissionApi
+import com.meteomontana.android.data.api.KtorSubmissionApi
 import com.meteomontana.android.data.api.dto.SubmitSchoolRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +21,7 @@ sealed interface SubmitState {
 
 @HiltViewModel
 class SubmitSchoolViewModel @Inject constructor(
-    private val api: SubmissionApi
+    private val api: KtorSubmissionApi
 ) : ViewModel() {
     private val _state = MutableStateFlow<SubmitState>(SubmitState.Idle)
     val state: StateFlow<SubmitState> = _state.asStateFlow()
