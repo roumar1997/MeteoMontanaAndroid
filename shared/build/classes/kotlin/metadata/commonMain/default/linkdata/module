@@ -1,2 +1,0 @@
-
-<shared_commonMain>:%com.meteomontana.android.domain.model:$com.meteomontana.android.domain.port:*com.meteomontana.android.domain.repository:$com.meteomontana.android.domain.util
