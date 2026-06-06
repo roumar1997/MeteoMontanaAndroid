@@ -7,6 +7,51 @@
 
 ---
 
+## 📍 ESTADO ACTUAL DE LA MIGRACIÓN
+
+> **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
+> debe leer SOLO esta sección y ya sabe por dónde seguir.
+
+**Última actualización:** 2026-06-06 (fin de Fase 0)
+
+**Progreso global:**
+
+- [x] **Fase 0** — Planificación (documento creado, decisiones tomadas).
+- [ ] **Fase 1.0** — Tests como red de seguridad (2 sesiones).
+  - [ ] Sesión 1/2: tests de funciones puras (Haversine, parseLatLonPaste,
+    toBloquesJson, gradeStyle, LineStroke). ← **SIGUIENTE**
+  - [ ] Sesión 2/2: tests de ViewModels (SchoolList, SchoolDetail, Admin).
+- [ ] **Fase 1** — Refactor Clean Android (3-4 sesiones).
+  - [ ] 1.1 — Use cases en `domain/usecase/`.
+  - [ ] 1.2 — Modelos de dominio puros (DTOs fuera de UiState).
+  - [ ] 1.3 — Partir `SchoolApi` por bounded context.
+  - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
+  - [ ] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`...).
+  - [ ] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`).
+- [ ] **Fase 2** — Crear módulo `shared` KMP (2-3 sesiones).
+  - [ ] 2.1 — Setup KMP + targets Android/iOS.
+  - [ ] 2.2 — Migrar `domain/` a `commonMain`.
+  - [ ] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization.
+  - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS).
+  - [ ] 2.5 — Adaptar `androidApp` para consumir `shared`.
+- [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
+  - [ ] Estructura `iosApp/iosApp.xcodeproj` (con stubs sin compilar).
+  - [ ] Cada sesión que refactorice algo Android → deja .swift equivalente.
+- [ ] **Fase 3** — App iOS en SwiftUI (requiere Mac, 5-8 sesiones).
+  - [ ] Apertura proyecto Xcode, ajustes visuales.
+  - [ ] TestFlight.
+
+**👉 Siguiente paso concreto:** ver final del documento ("Próximo paso").
+
+**Lo que necesita el usuario aportar pronto:**
+- Antes de fin de Fase 2: registrar app iOS en consola Firebase y descargar
+  `GoogleService-Info.plist` (5 minutos desde Windows, navegador).
+- Antes de Fase 3: Mac mini M4 (~700 €) + cuenta Apple Developer ($99/año).
+
+---
+
+---
+
 ## Por qué KMP y no otra opción
 
 Auditoría real del front actual:
@@ -465,3 +510,61 @@ puras + helpers**. Voy a:
 
 Tras esa sesión Android funciona idéntico, tenemos red de seguridad para
 empezar el refactor sin miedo. Empezamos cuando me digas.
+
+---
+
+## 🤖 Protocolo para sesiones nuevas (LEER PRIMERO)
+
+Si estás abriendo una sesión nueva y NO tienes contexto, sigue exactamente
+estos pasos:
+
+1. **Lee `CLAUDE.md`** (raíz del repo Android). Te da el contexto general:
+   stack, endpoints, convenciones.
+
+2. **Lee este documento** (`KMP_MIGRATION.md`) y específicamente la sección
+   **📍 ESTADO ACTUAL DE LA MIGRACIÓN** del principio. Ahí ves:
+   - Qué fases están hechas (`[x]`) y cuáles pendientes (`[ ]`).
+   - Marcada con `← SIGUIENTE` la sub-tarea que toca.
+
+3. **NO repreguntes al usuario** "¿por dónde íbamos?". Ya lo sabes leyendo
+   los documentos.
+
+4. **NO replanifiques** la migración. Las fases y el orden están decididos.
+   Si crees que hay un cambio importante, propónselo al usuario, pero no
+   actúes sin confirmar.
+
+5. **Ejecuta la tarea siguiente** tal como está descrita en su sección
+   ("Próximo paso" al final del documento + descripción de su fase).
+
+6. **Al final de la sesión**, ANTES de hacer commit, **actualiza dos cosas
+   en este documento**:
+   - El checklist de la sección **📍 ESTADO ACTUAL**: marca `[x]` las
+     tareas hechas, mueve el `← SIGUIENTE` a la próxima.
+   - La sección **"Próximo paso"** al final del documento: describe en
+     concreto qué hará la próxima sesión (no genérico, concreto).
+   - Cambia "Última actualización: AAAA-MM-DD" al inicio del estado.
+
+7. **Commit + push a `main` de ambos repos** (Android y Backend si tocaste
+   los dos). Mensaje de commit descriptivo.
+
+8. **Sincroniza al worktree** si trabajaste en
+   `C:\Users\rouma\MeteoMontanaAndroid` directo:
+   ```powershell
+   Copy-Item -Force -Recurse <ficheros> .claude\worktrees\heuristic-dewdney-6ff0f1\
+   ```
+   (esto es por la convención de este repo, no es estándar KMP).
+
+### Reglas duras
+
+- **Idioma del usuario**: español. **Código**: inglés.
+- **Paso a paso, una cosa a la vez.** No mezclar tareas de fases distintas.
+- **Verifica antes de proponer.** Lee el código existente antes de tocar algo.
+- **Aplica los cambios directamente** (Edit/Write). No pegar snippets para
+  que el usuario copie a mano.
+- **Si tocas backend + Android**, empieza por el backend (compila →
+  reinicia → luego Android).
+- **Tests verdes**: tras cada refactor en Fases 1.x y 2.x, los tests de
+  Fase 1.0 deben seguir pasando. Si alguno se rompe, lo arreglas antes de
+  commitear.
+- **No instalar nada** que requiera Mac o licencias de pago. Si lo necesitas,
+  páralo y díselo al usuario.

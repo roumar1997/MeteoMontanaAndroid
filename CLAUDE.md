@@ -4,11 +4,29 @@ App Android nativa (Kotlin + Jetpack Compose) que replica la PWA MeteoMontana
 y se conecta al backend Spring Boot.
 
 > 🎯 **Decisión 2026-06-06**: la app evolucionará a **Kotlin Multiplatform
-> (KMP)** para soportar también iOS. Plan completo en
-> [`KMP_MIGRATION.md`](./KMP_MIGRATION.md). La sesión actual está terminando
-> Fase 0 (planificación). La siguiente arranca Fase 1.1 (use cases en
-> `domain/usecase/`). Durante Fases 1 y 2 la app Android sigue funcionando
-> igual — el usuario no nota cambios.
+> (KMP)** para soportar también iOS. Compartiremos `domain/` y `data/` en
+> Kotlin entre Android e iOS. UI Android sigue siendo Jetpack Compose;
+> UI iOS será SwiftUI consumiendo el módulo compartido.
+
+> ## ⚠️ SI ABRES UNA SESIÓN NUEVA, LEE ESTO PRIMERO
+>
+> 1. Abre [`KMP_MIGRATION.md`](./KMP_MIGRATION.md).
+> 2. Ve directamente a la sección **📍 ESTADO ACTUAL DE LA MIGRACIÓN** del
+>    principio del documento. Ahí verás:
+>    - Qué fases están hechas (`[x]`) y cuáles pendientes (`[ ]`).
+>    - La sub-tarea marcada con `← SIGUIENTE`.
+> 3. Lee el "Próximo paso" al final del mismo documento — es la descripción
+>    concreta de la tarea siguiente.
+> 4. Lee el resto de este `CLAUDE.md` para entender el contexto general del
+>    proyecto (stack, endpoints, convenciones).
+> 5. **NO repreguntes** "¿por dónde íbamos?". Está todo escrito.
+> 6. Al final de tu sesión, **actualiza el checklist** y el "Próximo paso"
+>    de `KMP_MIGRATION.md` antes de commitear. Esto es lo que hace que la
+>    siguiente sesión sepa por dónde seguir.
+>
+> Durante Fases 1 y 2 la app Android sigue funcionando igual; el usuario
+> no nota cambios visuales. Cualquier feature nueva Android se puede añadir
+> sobre la marcha — no congela el desarrollo.
 
 ---
 
@@ -112,11 +130,25 @@ C:\Users\rouma\Desktop\MeteoMontana/
 
 ## Workflow de cada sesión
 
-**Primer mensaje**: el usuario dirá *"léete CLAUDE.md y sigamos por donde lo
-dejamos"*. Lees este archivo, miras **Estado actual** al final, y arrancas
-desde ahí sin repetir el plan entero.
+**Primer mensaje (sesión nueva sin contexto)**:
+1. Lee `KMP_MIGRATION.md` → sección **📍 ESTADO ACTUAL** → busca el
+   `← SIGUIENTE`.
+2. Lee también el "Próximo paso" al final del documento.
+3. Lee este `CLAUDE.md` para contexto general.
+4. Ya sabes qué tarea toca. **Empieza sin preguntar** salvo que el usuario
+   pida algo distinto explícitamente.
 
-**Antes de cerrar**: actualiza **Estado actual** y **Bitácora reciente**.
+**Antes de cerrar la sesión**:
+1. **Actualiza `KMP_MIGRATION.md`**:
+   - Marca con `[x]` las sub-tareas completadas en el checklist.
+   - Mueve el `← SIGUIENTE` a la próxima sub-tarea.
+   - Cambia la "Última actualización" al inicio de la sección.
+   - Reescribe la sección "Próximo paso" al final con la próxima tarea
+     concreta (no genérico — específico).
+2. Actualiza **Estado actual** y **Bitácora reciente** de este CLAUDE.md si
+   hubo cambios visibles para el usuario.
+3. Commit + push a `main` (Android y backend si tocaste los dos).
+4. Sincroniza al worktree si trabajaste fuera de él.
 
 **Protocolo de edición** (lo que funcionó bien):
 1. Antes de editar un archivo, léelo con Read para no asumir su contenido.
