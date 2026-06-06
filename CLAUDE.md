@@ -3,6 +3,13 @@
 App Android nativa (Kotlin + Jetpack Compose) que replica la PWA MeteoMontana
 y se conecta al backend Spring Boot.
 
+> 🎯 **Decisión 2026-06-06**: la app evolucionará a **Kotlin Multiplatform
+> (KMP)** para soportar también iOS. Plan completo en
+> [`KMP_MIGRATION.md`](./KMP_MIGRATION.md). La sesión actual está terminando
+> Fase 0 (planificación). La siguiente arranca Fase 1.1 (use cases en
+> `domain/usecase/`). Durante Fases 1 y 2 la app Android sigue funcionando
+> igual — el usuario no nota cambios.
+
 ---
 
 ## 🗺️ Mapa de repos — LEER PRIMERO
