@@ -1,12 +1,12 @@
 package com.meteomontana.android.detail
 
 import androidx.lifecycle.SavedStateHandle
-import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.Current
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.data.storage.StorageUploadHelper
@@ -316,7 +316,7 @@ class SchoolDetailViewModelTest {
         assertTrue((vm.uiState.value as SchoolDetailUiState.Success).blocks.isEmpty())
     }
 
-    private fun dummyContribution() = ContributionDto(
+    private fun dummyContribution() = Contribution(
         id = "c1", type = "BOULDER", status = "PENDING", schoolId = schoolId,
         schoolName = "Pedriza", name = null, lat = 0.0, lon = 0.0, notes = null,
         description = null, submittedByName = null, reviewReason = null,

@@ -64,7 +64,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import coil.compose.AsyncImage
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
-import com.meteomontana.android.data.api.dto.ContributionDto
+import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Submission
@@ -205,7 +205,7 @@ private enum class ContribFilter(val label: String) {
 @Composable
 private fun PropuestasTab(
     submissions: List<Submission>,
-    contributions: List<ContributionDto>,
+    contributions: List<Contribution>,
     schoolBlocks: Map<String, List<com.meteomontana.android.domain.model.Block>>,
     onFetchSchoolBlocks: (String) -> Unit,
     onDeleteBlock: (String, String) -> Unit,
@@ -347,7 +347,7 @@ private fun SchoolGroupHeader(name: String, count: Int) {
 
 @Composable
 private fun ContributionCard(
-    c: ContributionDto,
+    c: Contribution,
     existingBlocks: List<com.meteomontana.android.domain.model.Block>,
     onFetchBlocks: () -> Unit,
     onDeleteBlock: (String) -> Unit,
@@ -618,7 +618,7 @@ private fun ContributionCard(
  * de detalles del mapa. Útil para que el admin vea exactamente lo mismo que
  * verá el usuario tras aprobar.
  */
-private fun ContributionDto.toFakeBlock(): com.meteomontana.android.domain.model.Block {
+private fun Contribution.toFakeBlock(): com.meteomontana.android.domain.model.Block {
     val blockType = when (type) {
         "PARKING" -> "PARKING"
         "SECTOR"  -> "ZONE"

@@ -2,7 +2,7 @@ package com.meteomontana.android.admin
 
 import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.domain.model.Block
-import com.meteomontana.android.data.api.dto.ContributionDto
+import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.SchoolDto
 import com.meteomontana.android.domain.model.AdminPushResult
@@ -208,7 +208,7 @@ class AdminViewModelTest {
     }
 
     @Test fun `approveContribution llama y recarga`() = runTest {
-        coEvery { approveContribution("c1") } returns mockk<ContributionDto>(relaxed = true)
+        coEvery { approveContribution("c1") } returns mockk<Contribution>(relaxed = true)
         val vm = newVm()
         advanceUntilIdle()
 

@@ -2,12 +2,12 @@ package com.meteomontana.android.domain.usecase.admin
 
 import com.meteomontana.android.data.api.AdminApi
 import com.meteomontana.android.data.api.dto.AdminPushRequest
-import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.RejectReason
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
+import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.Submission
 import javax.inject.Inject
 
@@ -20,7 +20,7 @@ class GetPendingSubmissionsUseCase @Inject constructor(private val api: AdminApi
 }
 
 class GetPendingContributionsUseCase @Inject constructor(private val api: AdminApi) {
-    suspend operator fun invoke(): List<ContributionDto> = api.pendingContributions()
+    suspend operator fun invoke(): List<Contribution> = api.pendingContributions().map { it.toDomain() }
 }
 
 class GetAdminLogsUseCase @Inject constructor(private val api: AdminApi) {
@@ -37,12 +37,12 @@ class RejectSubmissionUseCase @Inject constructor(private val api: AdminApi) {
 }
 
 class ApproveContributionUseCase @Inject constructor(private val api: AdminApi) {
-    suspend operator fun invoke(id: String): ContributionDto = api.approveContribution(id)
+    suspend operator fun invoke(id: String): Contribution = api.approveContribution(id).toDomain()
 }
 
 class RejectContributionUseCase @Inject constructor(private val api: AdminApi) {
-    suspend operator fun invoke(id: String, reason: String?): ContributionDto =
-        api.rejectContribution(id, RejectReason(reason))
+    suspend operator fun invoke(id: String, reason: String?): Contribution =
+        api.rejectContribution(id, RejectReason(reason)).toDomain()
 }
 
 class SendPushUseCase @Inject constructor(private val api: AdminApi) {

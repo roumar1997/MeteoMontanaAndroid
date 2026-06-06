@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 1.2 en curso — modelos ligeros migrados)
+**Última actualización:** 2026-06-06 (Fase 1.2 — modelos críticos migrados: Forecast, Block, Contribution)
 
 **Progreso global:**
 
@@ -32,10 +32,12 @@
     extraer en 1.3).
   - [~] 1.2 — Modelos de dominio puros (DTOs fuera de UiState). Hecho:
     `SchoolScore`, `Note`, `Submission`, `AdminStats`, `AdminLog`,
-    `AdminPushResult`. Pendiente: `Forecast` (+ CurrentDto, HourForecast,
-    DayForecast, BestDay, OptimalWindow, ScoreFactor), `Block` +
-    `BlockLine`, `Contribution`, `PrivateProfile`, `PublicProfile`,
-    `FollowStatus`, `Inbox` + `Notification`, `FavoriteSchool`. ← **SIGUIENTE**
+    `AdminPushResult`, `Forecast` (+ Current, HourForecast, DayForecast,
+    BestDay, OptimalWindow, ScoreFactor), `Block` + `BlockLine`,
+    `Contribution`. Pendiente (modelos ligeros, solo tocan pantallas
+    sociales/perfil): `PrivateProfile`, `PublicProfile`, `FollowStatus`,
+    `Inbox` + `Notification`, `FavoriteSchool`, `FavoritesGrid`,
+    `JournalSession`. ← **SIGUIENTE**
   - [ ] 1.3 — Partir `SchoolApi` por bounded context.
   - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
   - [ ] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`...).
