@@ -12,17 +12,18 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (fin de Fase 1.0 sesión 1/2)
+**Última actualización:** 2026-06-06 (fin de Fase 1.0 sesión 2/2)
 
 **Progreso global:**
 
 - [x] **Fase 0** — Planificación (documento creado, decisiones tomadas).
-- [ ] **Fase 1.0** — Tests como red de seguridad (2 sesiones).
+- [x] **Fase 1.0** — Tests como red de seguridad (2 sesiones). ✅
   - [x] Sesión 1/2: 45 tests de funciones puras (Haversine, parseLatLonPaste,
     toBloquesJson, gradeStyle, LineStroke). Todos verdes. ✅
-  - [ ] Sesión 2/2: tests de ViewModels (SchoolList, SchoolDetail, Admin). ← **SIGUIENTE**
+  - [x] Sesión 2/2: 33 tests de ViewModels (12 SchoolList + 12 SchoolDetail
+    + 9 Admin). Todos verdes. ✅ Total Fase 1.0: 78 tests.
 - [ ] **Fase 1** — Refactor Clean Android (3-4 sesiones).
-  - [ ] 1.1 — Use cases en `domain/usecase/`.
+  - [ ] 1.1 — Use cases en `domain/usecase/`. ← **SIGUIENTE**
   - [ ] 1.2 — Modelos de dominio puros (DTOs fuera de UiState).
   - [ ] 1.3 — Partir `SchoolApi` por bounded context.
   - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
@@ -491,31 +492,41 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.0 sesión 2/2: tests de ViewModels.**
+**Fase 1.1: Use cases en `domain/usecase/`.**
 
-Esta sesión añade red de seguridad sobre los ViewModels críticos para que
-los refactors de Fases 1.1+ no rompan el comportamiento visible.
+Con la red de seguridad de 78 tests ya en sitio (45 puros + 33 de VM),
+arrancamos el refactor Clean. Esta sesión introduce los use cases más
+críticos sin tocar la UI: los ViewModels existentes se reescriben para
+depender de use cases en lugar de `SchoolApi`/`SchoolRepository` directos.
 
-1. Tests de `SchoolListViewModel`:
-   - `init` carga escuelas con filtros por defecto (50 km, sort by Score).
-   - `onLocationGranted` actualiza userLocation y recarga.
-   - `setStyle`/`setDistance`/`toggleRock` aplican filtro y recargan.
-   - Tras `loadScoresFor`, el sort por Score reordena la lista.
-   - Fallback a Madrid si `LocationProvider.current()` devuelve null.
-2. Tests de `SchoolDetailViewModel`:
-   - `load` con forecast OK / forecast error / blocks vacíos.
-   - `submitContribution` (PARKING) → llama a API correcta.
-   - `submitBoulderContribution` con/sin foto.
-   - `submitAddLinesContribution` con `targetBlockId`.
-3. Tests de `AdminViewModel`:
-   - `load` recarga stats + pending + contributions.
-   - `fetchSchoolBlocks` cachea por schoolId.
-   - `deleteBlock`/`updateBlock` refrescan el cache.
+Plan concreto:
 
-Herramientas: `mockk` para mockear APIs, `turbine` para validar `StateFlow`,
-`kotlinx-coroutines-test` con `runTest` + `StandardTestDispatcher`.
+1. Crear estructura `domain/usecase/` (subcarpetas por bounded context:
+   `schools/`, `forecast/`, `blocks/`, `contributions/`, `admin/`,
+   `social/`, `geo/`).
+2. Empezar por `schools/`:
+   - `GetSchoolsUseCase` (filtros + delegación a `SchoolRepository`).
+   - `GetSchoolByIdUseCase`.
+   - `GetTodayScoresUseCase` (envuelve `api.getTodayScores`).
+3. Refactor `SchoolListViewModel` para consumir esos use cases.
+   - Los tests de Fase 1.0 deben seguir verdes sin cambios — si alguno se
+     rompe es señal de que cambió comportamiento visible y hay que
+     revisarlo antes de commit.
+4. Cuando esté verde, repetir el patrón con `forecast/` (`GetForecastUseCase`)
+   y refactor de `SchoolDetailViewModel`.
 
-Esperamos ~25-30 tests adicionales. Total al final de Fase 1.0: ~70 tests.
+NO en esta sesión: blocks, contributions, admin, social, geo. Eso queda
+para 1.1 sesión 2 o 1.2 según rinda.
+
+Herramientas y reglas:
+- Cada use case es una `class` con `operator fun invoke(...)` o `suspend`.
+- Inyección por Hilt (`@Inject constructor(...)`). Sin objects, sin
+  singletons manuales.
+- Los use cases viven en `commonMain` cuando llegue Fase 2, así que NO
+  importar nada de `android.*` ni `androidx.*` dentro de ellos.
+- Tras cada paso ejecutar `./gradlew testDebugUnitTest` (con
+  `JAVA_HOME=/c/Program Files/Android/Android Studio/jbr`). Tests verdes
+  antes de commit.
 
 ### Nota de entorno
 
