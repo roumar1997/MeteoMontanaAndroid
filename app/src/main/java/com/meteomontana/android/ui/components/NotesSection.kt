@@ -25,11 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.meteomontana.android.data.api.dto.NoteDto
+import com.meteomontana.android.domain.model.Note
 
 @Composable
 fun NotesSection(
-    notes: List<NoteDto>,
+    notes: List<Note>,
     onPublish: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -61,7 +61,7 @@ fun NotesSection(
 }
 
 @Composable
-private fun NoteRow(n: NoteDto) {
+private fun NoteRow(n: Note) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(n.text, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground)

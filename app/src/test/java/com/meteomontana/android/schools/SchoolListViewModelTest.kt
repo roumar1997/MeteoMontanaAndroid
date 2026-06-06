@@ -3,10 +3,10 @@ package com.meteomontana.android.schools
 import app.cash.turbine.test
 import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
 import com.meteomontana.android.data.api.dto.InboxDto
-import com.meteomontana.android.data.api.dto.SchoolScoreDto
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.data.location.UserLocation
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.model.SchoolScore
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
@@ -175,8 +175,8 @@ class SchoolListViewModelTest {
 
     @Test fun `tras llegar scores el sort por Score reordena`() = runTest {
         coEvery { getTodayScores(any()) } returns listOf(
-            SchoolScoreDto(id = "A", todayScore = 30, hourlyScores = emptyList(), dryRock = true),
-            SchoolScoreDto(id = "B", todayScore = 90, hourlyScores = emptyList(), dryRock = true)
+            SchoolScore(id = "A", todayScore = 30, hourlyScores = emptyList(), dryRock = true),
+            SchoolScore(id = "B", todayScore = 90, hourlyScores = emptyList(), dryRock = true)
         )
         val vm = newVm()
         advanceUntilIdle()

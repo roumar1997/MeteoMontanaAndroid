@@ -8,8 +8,8 @@ import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.ForecastDto
-import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.data.storage.StorageUploadHelper
+import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
@@ -38,7 +38,7 @@ sealed interface SchoolDetailUiState {
         val school: School,
         val forecast: ForecastDto?,
         val forecastError: String?,
-        val notes: List<NoteDto>,
+        val notes: List<Note>,
         val isFavorite: Boolean,
         val blocks: List<BlockDto>,
         val isCurrentUserAdmin: Boolean = false

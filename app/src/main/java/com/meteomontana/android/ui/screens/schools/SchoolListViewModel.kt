@@ -75,8 +75,8 @@ class SchoolListViewModel @Inject constructor(
     private val _unreadCount = MutableStateFlow(0L)
     val unreadCount: StateFlow<Long> = _unreadCount.asStateFlow()
 
-    private val _scores = MutableStateFlow<Map<String, com.meteomontana.android.data.api.dto.SchoolScoreDto>>(emptyMap())
-    val scores: StateFlow<Map<String, com.meteomontana.android.data.api.dto.SchoolScoreDto>> = _scores.asStateFlow()
+    private val _scores = MutableStateFlow<Map<String, com.meteomontana.android.domain.model.SchoolScore>>(emptyMap())
+    val scores: StateFlow<Map<String, com.meteomontana.android.domain.model.SchoolScore>> = _scores.asStateFlow()
 
     private var favoriteIds: Set<String> = emptySet()
 
@@ -151,7 +151,7 @@ class SchoolListViewModel @Inject constructor(
     private fun applySortInternal(
         list: List<School>,
         f: SchoolFilters,
-        scores: Map<String, com.meteomontana.android.data.api.dto.SchoolScoreDto>
+        scores: Map<String, com.meteomontana.android.domain.model.SchoolScore>
     ): List<School> = when (f.sortBy) {
         SortBy.Distance -> list.sortedBy { haversineKm(userLat, userLon, it.lat, it.lon) }
         SortBy.Score    -> list.sortedByDescending { scores[it.id]?.todayScore ?: -1 }

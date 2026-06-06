@@ -8,9 +8,9 @@ import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.CurrentDto
 import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
 import com.meteomontana.android.data.api.dto.ForecastDto
-import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.data.storage.StorageUploadHelper
+import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
@@ -197,7 +197,7 @@ class SchoolDetailViewModelTest {
     }
 
     @Test fun `publishNote llama a createNote y refresca la lista de notas`() = runTest {
-        val newNote = NoteDto(
+        val newNote = Note(
             id = "n1", schoolId = schoolId, text = "hola", author = "Rodrigo",
             uid = "u1", createdAt = "2026-06-06", upvotesCount = 0, downvotesCount = 0
         )
