@@ -9,10 +9,13 @@ import com.meteomontana.android.data.api.KtorBlockApi
 import com.meteomontana.android.data.api.KtorContributionApi
 import com.meteomontana.android.data.api.KtorFavoritesApi
 import com.meteomontana.android.data.api.KtorForecastApi
+import com.meteomontana.android.data.api.KtorJournalApi
 import com.meteomontana.android.data.api.KtorNotificationApi
 import com.meteomontana.android.data.api.KtorNoteApi
 import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.KtorSchoolApi
+import com.meteomontana.android.data.api.KtorSocialApi
+import com.meteomontana.android.data.api.KtorSubmissionApi
 import com.meteomontana.android.data.auth.FirebaseAuthService
 import com.meteomontana.android.data.chat.FirebaseChatService
 import com.meteomontana.android.data.repository.KtorAdminRepository
@@ -20,10 +23,13 @@ import com.meteomontana.android.data.repository.KtorBlockRepository
 import com.meteomontana.android.data.repository.KtorContributionRepository
 import com.meteomontana.android.data.repository.KtorFavoritesRepository
 import com.meteomontana.android.data.repository.KtorForecastRepository
+import com.meteomontana.android.data.repository.KtorJournalRepository
 import com.meteomontana.android.data.repository.KtorNotificationsRepository
 import com.meteomontana.android.data.repository.KtorNoteRepository
 import com.meteomontana.android.data.repository.KtorProfileRepository
 import com.meteomontana.android.data.repository.KtorSchoolRepository
+import com.meteomontana.android.data.repository.KtorSocialRepository
+import com.meteomontana.android.data.repository.KtorSubmissionRepository
 import com.meteomontana.android.data.storage.AndroidFileReader
 import com.meteomontana.android.data.storage.FirebaseStoragePhotoUploader
 import com.meteomontana.android.domain.port.AuthService
@@ -35,10 +41,13 @@ import com.meteomontana.android.domain.repository.BlockRepository
 import com.meteomontana.android.domain.repository.ContributionRepository
 import com.meteomontana.android.domain.repository.FavoritesRepository
 import com.meteomontana.android.domain.repository.ForecastRepository
+import com.meteomontana.android.domain.repository.JournalRepository
 import com.meteomontana.android.domain.repository.NotificationsRepository
 import com.meteomontana.android.domain.repository.NoteRepository
 import com.meteomontana.android.domain.repository.ProfileRepository
 import com.meteomontana.android.domain.repository.SchoolRepository
+import com.meteomontana.android.domain.repository.SocialRepository
+import com.meteomontana.android.domain.repository.SubmissionRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -103,4 +112,16 @@ object RepositoryModule {
     @Provides @Singleton
     fun provideAdminRepository(api: KtorAdminApi): AdminRepository =
         KtorAdminRepository(api)
+
+    @Provides @Singleton
+    fun provideJournalRepository(api: KtorJournalApi): JournalRepository =
+        KtorJournalRepository(api)
+
+    @Provides @Singleton
+    fun provideSubmissionRepository(api: KtorSubmissionApi): SubmissionRepository =
+        KtorSubmissionRepository(api)
+
+    @Provides @Singleton
+    fun provideSocialRepository(api: KtorSocialApi): SocialRepository =
+        KtorSocialRepository(api)
 }

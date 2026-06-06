@@ -6,3 +6,11 @@ import com.meteomontana.android.domain.repository.NotificationsRepository
 class GetMyNotificationsUseCase(private val repository: NotificationsRepository) {
     suspend operator fun invoke(limit: Int = 50): Inbox = repository.getMyNotifications(limit)
 }
+
+class MarkNotificationReadUseCase(private val repository: NotificationsRepository) {
+    suspend operator fun invoke(id: String) = repository.markNotificationRead(id)
+}
+
+class MarkAllNotificationsReadUseCase(private val repository: NotificationsRepository) {
+    suspend operator fun invoke() = repository.markAllNotificationsRead()
+}

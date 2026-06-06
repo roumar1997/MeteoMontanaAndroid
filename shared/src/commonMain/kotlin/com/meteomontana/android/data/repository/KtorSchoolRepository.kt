@@ -13,4 +13,7 @@ class KtorSchoolRepository(private val api: KtorSchoolApi) : SchoolRepository {
     ): List<School> = api.getSchools(region, style, rockType, lat, lon, radioKm).map { it.toDomain() }
 
     override suspend fun getSchoolById(id: String): School = api.getSchoolById(id).toDomain()
+
+    override suspend fun searchSchools(query: String, limit: Int): List<School> =
+        api.searchSchools(query, limit).map { it.toDomain() }
 }

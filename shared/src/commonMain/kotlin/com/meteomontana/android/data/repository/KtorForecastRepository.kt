@@ -11,6 +11,9 @@ class KtorForecastRepository(private val api: KtorForecastApi) : ForecastReposit
     override suspend fun getForecast(schoolId: String): Forecast =
         api.getForecast(schoolId).toDomain()
 
+    override suspend fun getForecastByLocation(lat: Double, lon: Double, schoolId: String?): Forecast =
+        api.getForecastByLocation(lat, lon, schoolId).toDomain()
+
     override suspend fun getTodayScores(ids: List<String>): List<SchoolScore> =
         api.getTodayScores(ids).map { it.toDomain() }
 }

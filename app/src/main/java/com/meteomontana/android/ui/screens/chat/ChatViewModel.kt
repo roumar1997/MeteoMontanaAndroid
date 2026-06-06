@@ -3,14 +3,14 @@ package com.meteomontana.android.ui.screens.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorProfileApi
-import com.meteomontana.android.data.api.KtorSocialApi
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.PrivateProfile
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
+import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
+import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,8 +32,9 @@ class ChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val chatService: ChatService,
     private val authService: AuthService,
-    private val socialApi: KtorSocialApi,
-    private val profileApi: KtorProfileApi
+    private val getPublicProfile: GetPublicProfileUseCase,
+    private val getFollowStatus: GetFollowStatusUseCase,
+    private val getMyProfile: GetMyProfileUseCase
 ) : ViewModel() {
     private val otherUid: String = checkNotNull(savedStateHandle["uid"])
     private val me: String = authService.currentUid() ?: ""
@@ -44,16 +45,12 @@ class ChatViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val other = runCatching { socialApi.getUserProfile(otherUid).toDomain() }.getOrNull()
-            val mine = runCatching { profileApi.getMyProfile().toDomain() }.getOrNull()
-            val follow = runCatching { socialApi.getFollowStatus(otherUid).toDomain() }.getOrDefault(
-                FollowStatus(0, 0, false, false)
-            )
-            val otherIsPublic = other != null
-            val canWrite = otherIsPublic || follow.iFollowThem || follow.theyFollowMe
-            _state.value = _state.value.copy(
-                otherProfile = other, myProfile = mine, canWrite = canWrite
-            )
+            val other = runCatching { getPublicProfile(otherUid) }.getOrNull()
+            val mine = runCatching { getMyProfile() }.getOrNull()
+            val follow = runCatching { getFollowStatus(otherUid) }
+                .getOrDefault(FollowStatus(0, 0, false, false))
+            val canWrite = other != null || follow.iFollowThem || follow.theyFollowMe
+            _state.value = _state.value.copy(otherProfile = other, myProfile = mine, canWrite = canWrite)
 
             chatService.observeMessages(convId).collect { msgs ->
                 _state.value = _state.value.copy(messages = msgs, loading = false)

@@ -33,10 +33,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorNotificationApi
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.Inbox
 import com.meteomontana.android.domain.model.Notification
+import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
+import com.meteomontana.android.domain.usecase.notifications.MarkAllNotificationsReadUseCase
+import com.meteomontana.android.domain.usecase.notifications.MarkNotificationReadUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +53,9 @@ sealed interface NotificationsUiState {
 
 @HiltViewModel
 class NotificationsViewModel @Inject constructor(
-    private val api: KtorNotificationApi
+    private val getMyNotifications: GetMyNotificationsUseCase,
+    private val markNotificationRead: MarkNotificationReadUseCase,
+    private val markAllNotificationsRead: MarkAllNotificationsReadUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow<NotificationsUiState>(NotificationsUiState.Loading)
     val state: StateFlow<NotificationsUiState> = _state.asStateFlow()
@@ -62,7 +65,7 @@ class NotificationsViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                NotificationsUiState.Success(api.getMyNotifications().toDomain())
+                NotificationsUiState.Success(getMyNotifications())
             } catch (t: Throwable) {
                 NotificationsUiState.Error(t.toUserMessage())
             }
@@ -70,7 +73,6 @@ class NotificationsViewModel @Inject constructor(
     }
 
     fun markAllRead() {
-        // Optimistic: actualizar UI inmediatamente
         val cur = _state.value
         if (cur is NotificationsUiState.Success) {
             val now = java.time.LocalDateTime.now().toString()
@@ -80,13 +82,10 @@ class NotificationsViewModel @Inject constructor(
             )
             _state.value = NotificationsUiState.Success(updated)
         }
-        viewModelScope.launch {
-            runCatching { api.markAllNotificationsRead() }
-        }
+        viewModelScope.launch { runCatching { markAllNotificationsRead() } }
     }
 
     fun onItemClick(id: String) {
-        // Optimistic: marcar leída en UI antes de la network call
         val cur = _state.value
         if (cur is NotificationsUiState.Success) {
             val now = java.time.LocalDateTime.now().toString()
@@ -98,9 +97,7 @@ class NotificationsViewModel @Inject constructor(
             )
             _state.value = NotificationsUiState.Success(updated)
         }
-        viewModelScope.launch {
-            runCatching { api.markNotificationRead(id) }
-        }
+        viewModelScope.launch { runCatching { markNotificationRead(id) } }
     }
 }
 

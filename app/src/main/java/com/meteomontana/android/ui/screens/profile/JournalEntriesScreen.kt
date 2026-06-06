@@ -31,9 +31,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorJournalApi
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.JournalSession
+import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.util.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,18 +52,19 @@ sealed interface JournalEntriesUiState {
 @HiltViewModel
 class JournalEntriesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val api: KtorJournalApi
+    private val getMyJournal: GetMyJournalUseCase,
+    private val getMyJournalStats: GetMyJournalStatsUseCase,
+    private val deleteJournalEntry: DeleteJournalEntryUseCase
 ) : ViewModel() {
-    /** Filtro: null = todos · "school:Albarracín" · "grade-max" (solo el del grado máximo) */
     private val filter: String? = savedStateHandle["filter"]
 
     private val _state = MutableStateFlow<JournalEntriesUiState>(JournalEntriesUiState.Loading)
     val state: StateFlow<JournalEntriesUiState> = _state.asStateFlow()
 
     val title: String = when {
-        filter == null              -> "Todos mis bloques"
+        filter == null               -> "Todos mis bloques"
         filter.startsWith("school:") -> filter.removePrefix("school:")
-        filter == "grade-max"       -> "Grado máximo"
+        filter == "grade-max"        -> "Grado máximo"
         else                         -> "Diario"
     }
 
@@ -71,7 +73,7 @@ class JournalEntriesViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                val all = api.getMyJournal().map { it.toDomain() }
+                val all = getMyJournal()
                 val filtered = when {
                     filter == null               -> all
                     filter.startsWith("school:") -> {
@@ -79,7 +81,7 @@ class JournalEntriesViewModel @Inject constructor(
                         all.filter { it.schoolName?.equals(name, ignoreCase = true) == true }
                     }
                     filter == "grade-max" -> {
-                        val max = api.getMyJournalStats().maxGrade
+                        val max = getMyJournalStats().maxGrade
                         if (max != null) all.filter { it.grade == max } else emptyList()
                     }
                     else -> all
@@ -93,7 +95,7 @@ class JournalEntriesViewModel @Inject constructor(
 
     fun delete(id: String) {
         viewModelScope.launch {
-            runCatching { api.deleteJournalSession(id) }
+            runCatching { deleteJournalEntry(id) }
             load()
         }
     }

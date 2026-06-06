@@ -9,4 +9,8 @@ class KtorNotificationsRepository(private val api: KtorNotificationApi) : Notifi
 
     override suspend fun getMyNotifications(limit: Int): Inbox =
         api.getMyNotifications(limit).toDomain()
+
+    override suspend fun markNotificationRead(id: String) = api.markNotificationRead(id)
+
+    override suspend fun markAllNotificationsRead() = api.markAllNotificationsRead()
 }

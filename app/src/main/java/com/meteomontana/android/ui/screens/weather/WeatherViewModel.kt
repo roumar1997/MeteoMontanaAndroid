@@ -3,13 +3,13 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorFavoritesApi
-import com.meteomontana.android.data.api.KtorForecastApi
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.domain.model.FavoriteSchool
 import com.meteomontana.android.domain.model.FavoritesGrid
 import com.meteomontana.android.domain.model.Forecast
+import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
+import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
+import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +23,7 @@ sealed interface WeatherUiState {
     data class Success(
         val forecast: Forecast,
         val favorites: List<FavoriteSchool>,
-        val selectedFavoriteId: String?,   // null = ubicación actual
+        val selectedFavoriteId: String?,
         val grid: FavoritesGrid?
     ) : WeatherUiState
     data class Error(val message: String) : WeatherUiState
@@ -31,8 +31,9 @@ sealed interface WeatherUiState {
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
-    private val forecastApi: KtorForecastApi,
-    private val favoritesApi: KtorFavoritesApi,
+    private val getForecast: GetForecastUseCase,
+    private val getForecastByLocation: GetForecastByLocationUseCase,
+    private val getMyFavorites: GetMyFavoritesUseCase,
     private val locationProvider: LocationProvider
 ) : ViewModel() {
     private val _state = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
@@ -50,9 +51,7 @@ class WeatherViewModel @Inject constructor(
                 _state.value = WeatherUiState.NeedPermission
                 return@launch
             }
-            // Cargamos favoritos y grid en paralelo a la ubicación.
-            favorites = runCatching { favoritesApi.getMyFavorites().map { it.toDomain() } }.getOrDefault(emptyList())
-            grid = runCatching { favoritesApi.getFavoritesGrid().toDomain() }.getOrNull()
+            favorites = runCatching { getMyFavorites() }.getOrDefault(emptyList())
 
             val loc = locationProvider.current() ?: return@launch run {
                 _state.value = loadForecastByLatLon(40.4168, -3.7038)
@@ -69,8 +68,7 @@ class WeatherViewModel @Inject constructor(
                 else loadForecastByLatLon(40.4168, -3.7038)
             } else {
                 try {
-                    val fc = forecastApi.getForecast(schoolId).toDomain()
-                    WeatherUiState.Success(fc, favorites, schoolId, grid)
+                    WeatherUiState.Success(getForecast(schoolId), favorites, schoolId, grid)
                 } catch (t: Throwable) {
                     WeatherUiState.Error(t.toUserMessage())
                 }
@@ -80,10 +78,7 @@ class WeatherViewModel @Inject constructor(
 
     private suspend fun loadForecastByLatLon(lat: Double, lon: Double): WeatherUiState =
         try {
-            WeatherUiState.Success(
-                forecastApi.getForecastByLocation(lat, lon, null).toDomain(),
-                favorites, null, grid
-            )
+            WeatherUiState.Success(getForecastByLocation(lat, lon, null), favorites, null, grid)
         } catch (t: Throwable) {
             WeatherUiState.Error(t.toUserMessage())
         }
