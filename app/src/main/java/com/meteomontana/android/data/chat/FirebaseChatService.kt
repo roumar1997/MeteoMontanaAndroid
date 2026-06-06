@@ -14,6 +14,8 @@ import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private fun Date?.toMillis(): Long? = this?.time
+
 @Singleton
 class FirebaseChatService @Inject constructor(
     private val firestore: FirebaseFirestore,
@@ -41,7 +43,7 @@ class FirebaseChatService @Inject constructor(
                         participants = participants,
                         lastMessage = doc.getString("lastMessage"),
                         lastFromUid = doc.getString("lastFromUid"),
-                        lastAt = doc.getDate("lastAt"),
+                        lastAtMillis = doc.getDate("lastAt").toMillis(),
                         unreadCount = doc.getLong("unread_$me") ?: 0L
                     )
                 } ?: emptyList()
@@ -61,7 +63,7 @@ class FirebaseChatService @Inject constructor(
                         id = d.id,
                         fromUid = d.getString("fromUid") ?: "",
                         text = d.getString("text") ?: "",
-                        createdAt = d.getDate("createdAt")
+                        createdAtMillis = d.getDate("createdAt").toMillis()
                     )
                 } ?: emptyList()
                 trySend(msgs)

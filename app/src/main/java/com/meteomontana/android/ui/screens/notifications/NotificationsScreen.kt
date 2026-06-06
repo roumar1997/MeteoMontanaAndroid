@@ -153,7 +153,8 @@ fun NotificationsScreen(
                         items(s.inbox.items) { n ->
                             NotificationRow(n) {
                                 viewModel.onItemClick(n.id)
-                                if (n.targetType == "user" && n.targetId != null) onOpenUser(n.targetId)
+                                val tid = n.targetId
+                                if (n.targetType == "user" && tid != null) onOpenUser(tid)
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         }

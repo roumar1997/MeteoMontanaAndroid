@@ -113,10 +113,11 @@ fun BlockDetailDialog(
             }
 
             // Foto con líneas (solo BLOCK con photoPath)
-            if (block.type == "BLOCK" && !block.photoPath.isNullOrBlank()) {
+            val photoPath = block.photoPath
+            if (block.type == "BLOCK" && !photoPath.isNullOrBlank()) {
                 Spacer(Modifier.height(Spacing.sm))
                 TopoPhotoCanvas(
-                    photoUrl = block.photoPath,
+                    photoUrl = photoPath,
                     lines = block.lines.toTopoLines()
                 )
             }
@@ -131,7 +132,8 @@ fun BlockDetailDialog(
                 )
                 Spacer(Modifier.height(Spacing.xs))
                 block.lines.forEachIndexed { idx, line ->
-                    val style = gradeStyle(line.grade)
+                    val lineGrade = line.grade
+                    val style = gradeStyle(lineGrade)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -151,9 +153,9 @@ fun BlockDetailDialog(
                                 modifier = Modifier.padding(horizontal = 6.dp)
                             )
                         }
-                        if (line.grade != null) {
+                        if (lineGrade != null) {
                             Text(
-                                line.grade,
+                                lineGrade,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = style.stroke
                             )

@@ -53,6 +53,9 @@ android {
 }
 
 dependencies {
+    // Módulo shared KMP (domain/model, domain/port, domain/util)
+    implementation(project(":shared"))
+
     // Core Android + Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

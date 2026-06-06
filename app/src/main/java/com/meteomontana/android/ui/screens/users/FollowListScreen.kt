@@ -145,13 +145,15 @@ private fun UserRow(u: PublicProfile, onClick: () -> Unit) {
             Text("@${u.username ?: u.displayName ?: u.uid.take(6)}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
-            if (!u.bio.isNullOrBlank()) {
-                Text(u.bio, style = MaterialTheme.typography.labelMedium,
+            val uBio = u.bio
+            if (!uBio.isNullOrBlank()) {
+                Text(uBio, style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        if (!u.topGrade.isNullOrBlank()) {
-            Text(u.topGrade, style = MaterialTheme.typography.labelLarge,
+        val uTopGrade = u.topGrade
+        if (!uTopGrade.isNullOrBlank()) {
+            Text(uTopGrade, style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary)
         }
     }

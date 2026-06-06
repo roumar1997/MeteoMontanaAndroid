@@ -155,12 +155,13 @@ private fun EntryRow(e: JournalSession, onDelete: () -> Unit) {
                 Text(e.date,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!e.grade.isNullOrBlank()) {
+                val eGrade = e.grade
+                if (!eGrade.isNullOrBlank()) {
                     Box(modifier = Modifier
                         .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Text(e.grade,
+                        Text(eGrade,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
                     }
@@ -180,8 +181,9 @@ private fun EntryRow(e: JournalSession, onDelete: () -> Unit) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (!e.notes.isNullOrBlank()) {
-                Text(e.notes,
+            val eNotes = e.notes
+            if (!eNotes.isNullOrBlank()) {
+                Text(eNotes,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
             }

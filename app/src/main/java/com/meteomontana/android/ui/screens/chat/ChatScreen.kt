@@ -154,8 +154,8 @@ private fun MessageBubble(msg: ChatService.ChatMessage, myUid: String?) {
             .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
             Text(msg.text, color = fg, style = MaterialTheme.typography.bodyMedium)
-            msg.createdAt?.let {
-                val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(it)
+            msg.createdAtMillis?.let {
+                val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date(it))
                 Text(time, color = fg.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.labelMedium)
             }

@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 1.6 cerrada — FileRef + FileReader eliminan Uri/Context del VM)
+**Última actualización:** 2026-06-06 (Fase 2.1 cerrada — módulo `shared` KMP creado, domain/ movido a commonMain)
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -57,9 +57,13 @@
   - [x] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`). ✅
     FileRef (value class, domain/model/), FileReader (port), AndroidFileReader (data/).
     SchoolDetailViewModel ya no importa android.net.Uri ni Context. 86 tests verdes.
-- [ ] **Fase 2** — Crear módulo `shared` KMP (2-3 sesiones).
-  - [ ] 2.1 — Setup KMP + targets Android/iOS. ← **SIGUIENTE**
-  - [ ] 2.2 — Migrar `domain/` a `commonMain`.
+- [x] **Fase 2** — Crear módulo `shared` KMP (2-3 sesiones).
+  - [x] 2.1 — Setup KMP + targets Android/iOS. ✅ Módulo `shared/` creado con
+    `kotlin-multiplatform` + `android-library`. Targets: `androidTarget`,
+    `iosX64`, `iosArm64`, `iosSimulatorArm64` (iOS deshabilitado en Windows,
+    compila en Mac). Domain models + ports + repository + util movidos a
+    `commonMain`. App consume `project(":shared")`. 86 tests verdes.
+  - [ ] 2.2 — Migrar `domain/usecase/` a `commonMain`. ← **SIGUIENTE**
   - [ ] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization.
   - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS).
   - [ ] 2.5 — Adaptar `androidApp` para consumir `shared`.
@@ -520,33 +524,34 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 2.1: configurar el módulo `shared` KMP con targets Android e iOS.**
+**Fase 2.2: mover `domain/usecase/` a `commonMain` del módulo `shared`.**
 
-Toda la Fase 1 está completa. El dominio (`domain/model/`, `domain/usecase/`,
-`domain/port/`, `domain/util/`) y los puertos son Kotlin puro sin imports Android.
-Ahora creamos el módulo KMP que los contendrá.
+Fase 2.1 está completa: el módulo `shared/` existe, compila para `androidTarget`
+e `iosArm64/iosX64/iosSimulatorArm64` (iOS deshabilitado en Windows, compila en Mac).
+`domain/model/`, `domain/port/`, `domain/repository/`, `domain/util/` ya están
+en `shared/src/commonMain/kotlin/com/meteomontana/android/domain/`.
 
-Plan:
+El siguiente bloque son los use cases (`domain/usecase/`). Están en `app/src/main/java/.../domain/usecase/`
+y dependen de interfaces Retrofit (`ForecastApi`, `BlockApi`, etc.) que son Android-only.
 
-1. En `settings.gradle.kts` del repo: añadir `include(":shared")`.
-2. Crear `shared/build.gradle.kts` con plugin `kotlin("multiplatform")`:
-   - `androidTarget()` — para la app Android.
-   - `iosX64()`, `iosArm64()`, `iosSimulatorArm64()` — para iOS (compilados en Mac).
-   - Dependencias: solo `kotlinx-coroutines-core` (multiplatform).
-3. Crear estructura de carpetas:
-   ```
-   shared/src/commonMain/kotlin/com/meteomontana/shared/
-   shared/src/androidMain/kotlin/com/meteomontana/shared/
-   shared/src/iosMain/kotlin/com/meteomontana/shared/
-   ```
-4. Mover (copiar + borrar origen) a `shared/src/commonMain/`:
-   - `domain/model/` — todos los modelos
-   - `domain/port/` — todas las interfaces
-   - `domain/usecase/` — todos los use cases
-   - `domain/util/TopoRenderer.kt`
-   Ajustar el package de `com.meteomontana.android.*` a `com.meteomontana.shared.*`.
-5. En `app/build.gradle.kts`: añadir `implementation(project(":shared"))` y
-   actualizar imports en el código `app/` al nuevo package.
+**Problema**: los use cases no se pueden mover tal cual a `commonMain` porque inyectan
+interfaces Retrofit que usan `@GET`, `@POST`... anotaciones de `retrofit2` (JVM-only).
+
+**Decisión**: los use cases quedan en `app/` durante la Fase 2.2. Se mueven a `commonMain`
+en la Fase 2.3, cuando las APIs Retrofit se sustituyan por Ktor (multiplatform).
+
+Por tanto, en Fase 2.2 el trabajo es:
+
+1. **Verificar** que todos los use cases compilan correctamente consumiendo los modelos
+   del módulo `shared` (package `com.meteomontana.android.domain.*` desde `shared`).
+   Si hay errores de resolución de imports, corregirlos.
+2. **Ejecutar `assembleDebug` y `test`** para confirmar verde total (baseline para 2.3).
+3. **Decidir qué interface repositories** tienen sentido mover ya a `commonMain`
+   (las que no importan nada Android): `SchoolRepository` ya está en `shared`.
+   Verificar si todas las use case interfaces corresponden al `shared` o a `app`.
+
+Si todo compila limpio tras el paso 1 (muy probable ya que la Fase 2.1 ya resolvió
+los smart cast errors), la Fase 2.2 es trivial y se puede pasar directamente a 2.3.
 6. Verificar `./gradlew :app:assembleDebug` y los 86 tests siguen verdes.
 
 Nota: los targets iOS estarán configurados pero no se pueden compilar desde

@@ -139,14 +139,16 @@ private fun UserRow(user: PublicProfile, onClick: () -> Unit) {
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            if (!user.bio.isNullOrBlank()) {
-                Text(user.bio,
+            val userBio = user.bio
+            if (!userBio.isNullOrBlank()) {
+                Text(userBio,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        if (!user.topGrade.isNullOrBlank()) {
-            Text(user.topGrade,
+        val userTopGrade = user.topGrade
+        if (!userTopGrade.isNullOrBlank()) {
+            Text(userTopGrade,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary)
         }
