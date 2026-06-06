@@ -13,7 +13,8 @@ import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.data.storage.StorageUploadHelper
 import com.meteomontana.android.domain.model.School
-import com.meteomontana.android.domain.repository.SchoolRepository
+import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
+import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.util.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,8 +40,9 @@ sealed interface SchoolDetailUiState {
 @HiltViewModel
 class SchoolDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val repository: SchoolRepository,
-    private val api: SchoolApi,
+    private val getSchoolById: GetSchoolByIdUseCase,
+    private val getForecast: GetForecastUseCase,
+    private val api: SchoolApi,                       // notas, favoritos, blocks, contributions (se separará en Fase 1.3)
     private val storageHelper: StorageUploadHelper
 ) : ViewModel() {
 
@@ -55,9 +57,9 @@ class SchoolDetailViewModel @Inject constructor(
         _uiState.value = SchoolDetailUiState.Loading
         viewModelScope.launch {
             _uiState.value = try {
-                val school = repository.getSchoolById(schoolId)
+                val school = getSchoolById(schoolId)
                 // El forecast puede fallar (Open-Meteo caído). El resto del detalle igual carga.
-                val forecastResult = runCatching { api.getForecast(schoolId) }
+                val forecastResult = runCatching { getForecast(schoolId) }
                 val notes  = runCatching { api.getNotesBySchool(schoolId) }.getOrDefault(emptyList())
                 val isFav  = runCatching { api.getMyFavorites().any { it.id == schoolId } }.getOrDefault(false)
                 val blocks = runCatching { api.getBlocks(schoolId) }.getOrDefault(emptyList())

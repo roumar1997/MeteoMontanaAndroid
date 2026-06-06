@@ -7,7 +7,8 @@ import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.data.location.UserLocation
 import com.meteomontana.android.domain.model.School
-import com.meteomontana.android.domain.repository.SchoolRepository
+import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
+import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,8 +52,9 @@ sealed interface SchoolListUiState {
 
 @HiltViewModel
 class SchoolListViewModel @Inject constructor(
-    private val schoolRepository: SchoolRepository,
-    private val api: SchoolApi,
+    private val getSchools: GetSchoolsUseCase,
+    private val getTodayScores: GetTodayScoresUseCase,
+    private val api: SchoolApi,                       // favoritos + notificaciones (se separará en Fase 1.3)
     private val locationProvider: LocationProvider
 ) : ViewModel() {
 
@@ -115,7 +117,7 @@ class SchoolListViewModel @Inject constructor(
         val f = _filters.value
         viewModelScope.launch {
             _uiState.value = try {
-                var list = schoolRepository.getSchools(
+                var list = getSchools(
                     style = f.style.apiValue,
                     rockType = f.rockTypes.takeIf { it.isNotEmpty() },
                     lat = if (f.maxDistanceKm != null) userLat else null,
@@ -156,7 +158,7 @@ class SchoolListViewModel @Inject constructor(
     private fun loadScoresFor(ids: List<String>, onDone: () -> Unit = {}) {
         if (ids.isEmpty()) { onDone(); return }
         viewModelScope.launch {
-            runCatching { api.getTodayScores(ids) }.onSuccess { results ->
+            runCatching { getTodayScores(ids) }.onSuccess { results ->
                 _scores.value = results.associateBy { it.id }
                 onDone()
             }

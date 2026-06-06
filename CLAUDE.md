@@ -270,6 +270,10 @@ app/src/main/java/com/meteomontana/android/
   data/api/          — interfaces Retrofit + DTOs (SchoolApi, AdminApi)
   data/repository/   — repositorios
   domain/model/      — modelos puros (School, ...)
+  domain/usecase/    — casos de uso (Fase 1.1 KMP):
+    schools/         — GetSchools, GetSchoolById, GetTodayScores
+    forecast/        — GetForecast
+    (los VMs dependen de estos, no de SchoolApi directo)
   ui/
     screens/
       schools/       — SchoolListScreen + SchoolListViewModel + SchoolFiltersBar

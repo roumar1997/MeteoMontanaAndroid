@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (fin de Fase 1.0 sesión 2/2)
+**Última actualización:** 2026-06-06 (fin de Fase 1.1 — use cases schools + forecast)
 
 **Progreso global:**
 
@@ -23,7 +23,11 @@
   - [x] Sesión 2/2: 33 tests de ViewModels (12 SchoolList + 12 SchoolDetail
     + 9 Admin). Todos verdes. ✅ Total Fase 1.0: 78 tests.
 - [ ] **Fase 1** — Refactor Clean Android (3-4 sesiones).
-  - [ ] 1.1 — Use cases en `domain/usecase/`. ← **SIGUIENTE**
+  - [~] 1.1 — Use cases en `domain/usecase/`. Hecho schools (`GetSchools`,
+    `GetSchoolById`, `GetTodayScores`) y forecast (`GetForecast`).
+    `SchoolListViewModel` y `SchoolDetailViewModel` ya dependen de use
+    cases para esos casos. Pendiente: blocks, contributions, admin,
+    social, notifications, favorites. ← **SIGUIENTE (continuación)**
   - [ ] 1.2 — Modelos de dominio puros (DTOs fuera de UiState).
   - [ ] 1.3 — Partir `SchoolApi` por bounded context.
   - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
@@ -492,41 +496,49 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.1: Use cases en `domain/usecase/`.**
+**Fase 1.1 continuación: use cases para blocks, contributions, admin,
+social, notifications y favorites.**
 
-Con la red de seguridad de 78 tests ya en sitio (45 puros + 33 de VM),
-arrancamos el refactor Clean. Esta sesión introduce los use cases más
-críticos sin tocar la UI: los ViewModels existentes se reescriben para
-depender de use cases en lugar de `SchoolApi`/`SchoolRepository` directos.
+Ya están hechos los use cases de `schools/` (GetSchools, GetSchoolById,
+GetTodayScores) y `forecast/` (GetForecast). `SchoolListViewModel` y
+`SchoolDetailViewModel` los consumen — pero ambos VMs todavía inyectan
+`SchoolApi` para el resto de llamadas (favoritos, notificaciones, notas,
+blocks, contributions). El objetivo de la siguiente sesión es eliminar
+esa dependencia residual.
 
 Plan concreto:
 
-1. Crear estructura `domain/usecase/` (subcarpetas por bounded context:
-   `schools/`, `forecast/`, `blocks/`, `contributions/`, `admin/`,
-   `social/`, `geo/`).
-2. Empezar por `schools/`:
-   - `GetSchoolsUseCase` (filtros + delegación a `SchoolRepository`).
-   - `GetSchoolByIdUseCase`.
-   - `GetTodayScoresUseCase` (envuelve `api.getTodayScores`).
-3. Refactor `SchoolListViewModel` para consumir esos use cases.
-   - Los tests de Fase 1.0 deben seguir verdes sin cambios — si alguno se
-     rompe es señal de que cambió comportamiento visible y hay que
-     revisarlo antes de commit.
-4. Cuando esté verde, repetir el patrón con `forecast/` (`GetForecastUseCase`)
-   y refactor de `SchoolDetailViewModel`.
+1. Crear use cases en `domain/usecase/`:
+   - `blocks/`: `GetBlocksUseCase`, `CreateBlockUseCase`,
+     `UpdateBlockUseCase`, `DeleteBlockUseCase`.
+   - `contributions/`: `SubmitContributionUseCase`,
+     `GetMyContributionsUseCase`.
+   - `notes/`: `GetNotesUseCase`, `CreateNoteUseCase`.
+   - `favorites/`: `GetMyFavoritesUseCase`, `AddFavoriteUseCase`,
+     `RemoveFavoriteUseCase`.
+   - `notifications/`: `GetMyNotificationsUseCase`.
+   - `profile/`: `GetMyProfileUseCase` (solo para detectar admin desde VM).
+   - `admin/`: `GetStatsUseCase`, `GetPendingSubmissionsUseCase`,
+     `GetPendingContributionsUseCase`, `ApproveSubmissionUseCase`,
+     `RejectSubmissionUseCase`, `ApproveContributionUseCase`,
+     `RejectContributionUseCase`, `SendPushUseCase`, `GetLogsUseCase`.
+2. Refactor `SchoolListViewModel`: quitar `SchoolApi` del constructor.
+3. Refactor `SchoolDetailViewModel`: quitar `SchoolApi`.
+4. Refactor `AdminViewModel`: quitar `AdminApi` y `SchoolApi`.
+5. Adaptar los 3 tests de ViewModel para mockear use cases en vez de
+   APIs. Las aserciones de comportamiento deben quedar idénticas.
 
-NO en esta sesión: blocks, contributions, admin, social, geo. Eso queda
-para 1.1 sesión 2 o 1.2 según rinda.
-
-Herramientas y reglas:
+Reglas:
 - Cada use case es una `class` con `operator fun invoke(...)` o `suspend`.
-- Inyección por Hilt (`@Inject constructor(...)`). Sin objects, sin
-  singletons manuales.
-- Los use cases viven en `commonMain` cuando llegue Fase 2, así que NO
-  importar nada de `android.*` ni `androidx.*` dentro de ellos.
-- Tras cada paso ejecutar `./gradlew testDebugUnitTest` (con
-  `JAVA_HOME=/c/Program Files/Android/Android Studio/jbr`). Tests verdes
-  antes de commit.
+- Inyección por Hilt. Sin objects, sin singletons manuales.
+- Use cases en `commonMain` cuando llegue Fase 2 → NO importar nada de
+  `android.*` ni `androidx.*` dentro de ellos. (`Uri` en
+  `SubmitBoulderContributionUseCase` se queda en Android-only y lo
+  envolveremos en `FileRef` en Fase 1.6 — por ahora lo aceptamos como
+  excepción documentada).
+- Tras cada paso: `./gradlew :app:testDebugUnitTest` verde antes de
+  commit (`JAVA_HOME=/c/Program Files/Android/Android Studio/jbr` si
+  desde PowerShell externo).
 
 ### Nota de entorno
 

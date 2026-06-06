@@ -14,7 +14,8 @@ import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.data.storage.StorageUploadHelper
 import com.meteomontana.android.domain.model.School
-import com.meteomontana.android.domain.repository.SchoolRepository
+import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
+import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.ui.screens.detail.BoulderBloqueForm
 import com.meteomontana.android.ui.screens.detail.SchoolDetailUiState
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
@@ -45,7 +46,8 @@ class SchoolDetailViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var repo: SchoolRepository
+    private lateinit var getSchoolById: GetSchoolByIdUseCase
+    private lateinit var getForecast: GetForecastUseCase
     private lateinit var api: SchoolApi
     private lateinit var storage: StorageUploadHelper
 
@@ -75,12 +77,13 @@ class SchoolDetailViewModelTest {
 
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        repo = mockk()
+        getSchoolById = mockk()
+        getForecast = mockk()
         api = mockk()
         storage = mockk()
 
-        coEvery { repo.getSchoolById(schoolId) } returns school
-        coEvery { api.getForecast(schoolId) } returns forecast
+        coEvery { getSchoolById(schoolId) } returns school
+        coEvery { getForecast(schoolId) } returns forecast
         coEvery { api.getNotesBySchool(schoolId) } returns emptyList()
         coEvery { api.getMyFavorites() } returns emptyList()
         coEvery { api.getBlocks(schoolId) } returns emptyList()
@@ -90,7 +93,7 @@ class SchoolDetailViewModelTest {
     @After fun tearDown() { Dispatchers.resetMain() }
 
     @Test fun `load con todo OK produce Success con forecast y sin error`() = runTest {
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -104,8 +107,8 @@ class SchoolDetailViewModelTest {
     }
 
     @Test fun `load con forecast error mantiene Success y rellena forecastError`() = runTest {
-        coEvery { api.getForecast(schoolId) } throws RuntimeException("forecast caído")
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        coEvery { getForecast(schoolId) } throws RuntimeException("forecast caído")
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         val s = vm.uiState.value as SchoolDetailUiState.Success
@@ -114,8 +117,8 @@ class SchoolDetailViewModelTest {
     }
 
     @Test fun `load con escuela inexistente produce Error`() = runTest {
-        coEvery { repo.getSchoolById(schoolId) } throws RuntimeException("not found")
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        coEvery { getSchoolById(schoolId) } throws RuntimeException("not found")
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -125,7 +128,7 @@ class SchoolDetailViewModelTest {
 
     @Test fun `load detecta admin desde getMyProfile`() = runTest {
         coEvery { api.getMyProfile() } returns profile.copy(isAdmin = true)
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         val s = vm.uiState.value as SchoolDetailUiState.Success
@@ -136,7 +139,7 @@ class SchoolDetailViewModelTest {
         coEvery { api.getMyFavorites() } returns listOf(
             FavoriteSchoolDto(id = schoolId, name = "Pedriza", region = null, rockType = null, isFavorite = true)
         )
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         assertTrue((vm.uiState.value as SchoolDetailUiState.Success).isFavorite)
@@ -146,7 +149,7 @@ class SchoolDetailViewModelTest {
         coEvery { api.addFavorite(schoolId) } just Runs
         coEvery { api.removeFavorite(schoolId) } just Runs
 
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         vm.toggleFavorite()
@@ -169,7 +172,7 @@ class SchoolDetailViewModelTest {
         coEvery { api.createNote(schoolId, CreateNoteRequest("hola")) } returns newNote
         coEvery { api.getNotesBySchool(schoolId) } returnsMany listOf(emptyList(), listOf(newNote))
 
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         vm.publishNote("hola")
@@ -190,7 +193,7 @@ class SchoolDetailViewModelTest {
         )
         coEvery { api.submitContribution(schoolId, req) } returns dummyContribution()
 
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         val result = vm.submitContribution(req)
@@ -202,7 +205,7 @@ class SchoolDetailViewModelTest {
         val captured = slot<ContributionRequest>()
         coEvery { api.submitContribution(eq(schoolId), capture(captured)) } returns dummyContribution()
 
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         val bloques = listOf(BoulderBloqueForm(name = "Directa", grade = "6c", startType = "PIE"))
@@ -222,7 +225,7 @@ class SchoolDetailViewModelTest {
         val captured = slot<ContributionRequest>()
         coEvery { api.submitContribution(eq(schoolId), capture(captured)) } returns dummyContribution()
 
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         val bloques = listOf(BoulderBloqueForm(name = "Variante", grade = "7a", startType = "SIT"))
@@ -250,7 +253,7 @@ class SchoolDetailViewModelTest {
         coEvery { api.createBlock(schoolId, req) } returns createdBlock
         coEvery { api.getBlocks(schoolId) } returnsMany listOf(emptyList(), listOf(createdBlock))
 
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
 
         vm.addBlock(req)
@@ -269,7 +272,7 @@ class SchoolDetailViewModelTest {
             emptyList()
         )
 
-        val vm = SchoolDetailViewModel(savedState(), repo, api, storage)
+        val vm = SchoolDetailViewModel(savedState(), getSchoolById, getForecast, api, storage)
         advanceUntilIdle()
         assertEquals(1, (vm.uiState.value as SchoolDetailUiState.Success).blocks.size)
 

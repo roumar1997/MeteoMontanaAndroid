@@ -7,7 +7,8 @@ import com.meteomontana.android.data.api.dto.SchoolScoreDto
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.data.location.UserLocation
 import com.meteomontana.android.domain.model.School
-import com.meteomontana.android.domain.repository.SchoolRepository
+import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
+import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import com.meteomontana.android.ui.screens.schools.SchoolListUiState
 import com.meteomontana.android.ui.screens.schools.SchoolListViewModel
 import com.meteomontana.android.ui.screens.schools.SortBy
@@ -45,7 +46,8 @@ class SchoolListViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var repo: SchoolRepository
+    private lateinit var getSchools: GetSchoolsUseCase
+    private lateinit var getTodayScores: GetTodayScoresUseCase
     private lateinit var api: SchoolApi
     private lateinit var location: LocationProvider
 
@@ -60,22 +62,23 @@ class SchoolListViewModelTest {
 
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        repo = mockk()
+        getSchools = mockk()
+        getTodayScores = mockk()
         api = mockk()
         location = mockk()
         coEvery { location.current() } returns null
         coEvery { api.getMyFavorites() } returns emptyList()
         coEvery { api.getMyNotifications(any()) } returns InboxDto(unreadCount = 0, items = emptyList())
-        coEvery { api.getTodayScores(any()) } returns emptyList()
+        coEvery { getTodayScores(any()) } returns emptyList()
         coEvery {
-            repo.getSchools(any(), any(), any(), any(), any(), any())
+            getSchools(any(), any(), any(), any(), any(), any())
         } returns listOf(schoolA, schoolB)
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
 
     @Test fun `init carga con filtros por defecto y produce Success`() = runTest {
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -84,7 +87,7 @@ class SchoolListViewModelTest {
 
         // Filtros por defecto: 50 km, Madrid como fallback (sin permiso de location).
         coVerify {
-            repo.getSchools(
+            getSchools(
                 region = null,
                 style = null,
                 rockType = null,
@@ -96,7 +99,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `fallback a Madrid si LocationProvider devuelve null`() = runTest {
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         assertNull(vm.userLocation.value)
@@ -106,7 +109,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `onLocationGranted actualiza userLocation y recarga`() = runTest {
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         coEvery { location.current() } returns UserLocation(41.0, 2.0)
@@ -115,10 +118,10 @@ class SchoolListViewModelTest {
 
         assertEquals(UserLocation(41.0, 2.0), vm.userLocation.value)
         // El repo debió ser llamado al menos dos veces (init + onLocationGranted).
-        coVerify(atLeast = 2) { repo.getSchools(any(), any(), any(), any(), any(), any()) }
+        coVerify(atLeast = 2) { getSchools(any(), any(), any(), any(), any(), any()) }
         // La segunda carga usa la nueva ubicación.
         coVerify {
-            repo.getSchools(
+            getSchools(
                 region = null, style = null, rockType = null,
                 lat = 41.0, lon = 2.0, radioKm = 50.0
             )
@@ -126,14 +129,14 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `setStyle Via recarga con style=Via`() = runTest {
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         vm.setStyle(StyleFilter.Via)
         advanceUntilIdle()
 
         coVerify {
-            repo.getSchools(
+            getSchools(
                 region = null, style = "Vía", rockType = null,
                 lat = 40.4168, lon = -3.7038, radioKm = 50.0
             )
@@ -142,14 +145,14 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `setDistance null pide sin radio y sin lat lon`() = runTest {
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         vm.setDistance(null)
         advanceUntilIdle()
 
         coVerify {
-            repo.getSchools(
+            getSchools(
                 region = null, style = null, rockType = null,
                 lat = null, lon = null, radioKm = null
             )
@@ -158,7 +161,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `toggleRock anyade y vuelve a togglear lo quita`() = runTest {
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         vm.toggleRock("Granito")
@@ -171,7 +174,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `setQuery filtra la lista por nombre o ubicacion`() = runTest {
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         vm.setQuery("pedriza")
@@ -183,11 +186,11 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `tras llegar scores el sort por Score reordena`() = runTest {
-        coEvery { api.getTodayScores(any()) } returns listOf(
+        coEvery { getTodayScores(any()) } returns listOf(
             SchoolScoreDto(id = "A", todayScore = 30, hourlyScores = emptyList(), dryRock = true),
             SchoolScoreDto(id = "B", todayScore = 90, hourlyScores = emptyList(), dryRock = true)
         )
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -200,7 +203,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `setSort Distance ordena por distancia desde el usuario`() = runTest {
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         vm.setSort(SortBy.Distance)
@@ -218,7 +221,7 @@ class SchoolListViewModelTest {
                 id = "A", name = "Albarracín", region = null, rockType = null, isFavorite = true
             )
         )
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         vm.setOnlyFavorites(true)
@@ -230,8 +233,8 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `error del repo produce estado Error con mensaje`() = runTest {
-        coEvery { repo.getSchools(any(), any(), any(), any(), any(), any()) } throws RuntimeException("boom")
-        val vm = SchoolListViewModel(repo, api, location)
+        coEvery { getSchools(any(), any(), any(), any(), any(), any()) } throws RuntimeException("boom")
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -241,7 +244,7 @@ class SchoolListViewModelTest {
 
     @Test fun `unreadCount se actualiza desde getMyNotifications`() = runTest {
         coEvery { api.getMyNotifications(any()) } returns InboxDto(unreadCount = 7, items = emptyList())
-        val vm = SchoolListViewModel(repo, api, location)
+        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
         advanceUntilIdle()
 
         vm.unreadCount.test {
