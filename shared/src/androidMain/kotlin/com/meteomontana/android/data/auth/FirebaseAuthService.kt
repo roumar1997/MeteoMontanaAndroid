@@ -6,16 +6,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
-import javax.inject.Inject
-import javax.inject.Singleton
 
-/**
- * Implementación Android de AuthService usando Firebase Auth.
- * El sign-in con Google sigue en AuthManager (necesita CredentialManager + Activity context).
- * FirebaseAuthService cubre el estado de sesión y las operaciones que usan los ViewModels.
- */
-@Singleton
-class FirebaseAuthService @Inject constructor(
+class FirebaseAuthService(
     private val firebaseAuth: FirebaseAuth
 ) : AuthService {
 

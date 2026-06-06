@@ -11,13 +11,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.util.Date
-import javax.inject.Inject
-import javax.inject.Singleton
 
 private fun Date?.toMillis(): Long? = this?.time
 
-@Singleton
-class FirebaseChatService @Inject constructor(
+class FirebaseChatService(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth
 ) : ChatService {

@@ -1,5 +1,9 @@
 package com.meteomontana.android.di
 
+import android.content.Context
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import com.meteomontana.android.data.api.KtorAdminApi
 import com.meteomontana.android.data.api.KtorBlockApi
 import com.meteomontana.android.data.api.KtorContributionApi
@@ -35,66 +39,68 @@ import com.meteomontana.android.domain.repository.NotificationsRepository
 import com.meteomontana.android.domain.repository.NoteRepository
 import com.meteomontana.android.domain.repository.ProfileRepository
 import com.meteomontana.android.domain.repository.SchoolRepository
-import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class RepositoryModule {
+object RepositoryModule {
 
-    // Firebase/Android platform services keep @Binds (they have @Inject constructors)
-    @Binds @Singleton
-    abstract fun bindPhotoUploader(impl: FirebaseStoragePhotoUploader): PhotoUploader
+    // Firebase/Android platform services — live in shared/androidMain, no @Inject
+    @Provides @Singleton
+    fun provideAuthService(auth: FirebaseAuth): AuthService =
+        FirebaseAuthService(auth)
 
-    @Binds @Singleton
-    abstract fun bindAuthService(impl: FirebaseAuthService): AuthService
+    @Provides @Singleton
+    fun provideChatService(firestore: FirebaseFirestore, auth: FirebaseAuth): ChatService =
+        FirebaseChatService(firestore, auth)
 
-    @Binds @Singleton
-    abstract fun bindChatService(impl: FirebaseChatService): ChatService
+    @Provides @Singleton
+    fun providePhotoUploader(storage: FirebaseStorage, auth: FirebaseAuth): PhotoUploader =
+        FirebaseStoragePhotoUploader(storage, auth)
 
-    @Binds @Singleton
-    abstract fun bindFileReader(impl: AndroidFileReader): FileReader
+    @Provides @Singleton
+    fun provideFileReader(@ApplicationContext context: Context): FileReader =
+        AndroidFileReader(context)
 
-    companion object {
-        // Ktor repositories live in commonMain without @Inject → use @Provides
-        @Provides @Singleton
-        fun provideSchoolRepository(api: KtorSchoolApi): SchoolRepository =
-            KtorSchoolRepository(api)
+    // Ktor repositories live in commonMain without @Inject
+    @Provides @Singleton
+    fun provideSchoolRepository(api: KtorSchoolApi): SchoolRepository =
+        KtorSchoolRepository(api)
 
-        @Provides @Singleton
-        fun provideForecastRepository(api: KtorForecastApi): ForecastRepository =
-            KtorForecastRepository(api)
+    @Provides @Singleton
+    fun provideForecastRepository(api: KtorForecastApi): ForecastRepository =
+        KtorForecastRepository(api)
 
-        @Provides @Singleton
-        fun provideBlockRepository(api: KtorBlockApi): BlockRepository =
-            KtorBlockRepository(api)
+    @Provides @Singleton
+    fun provideBlockRepository(api: KtorBlockApi): BlockRepository =
+        KtorBlockRepository(api)
 
-        @Provides @Singleton
-        fun provideNoteRepository(api: KtorNoteApi): NoteRepository =
-            KtorNoteRepository(api)
+    @Provides @Singleton
+    fun provideNoteRepository(api: KtorNoteApi): NoteRepository =
+        KtorNoteRepository(api)
 
-        @Provides @Singleton
-        fun provideContributionRepository(api: KtorContributionApi): ContributionRepository =
-            KtorContributionRepository(api)
+    @Provides @Singleton
+    fun provideContributionRepository(api: KtorContributionApi): ContributionRepository =
+        KtorContributionRepository(api)
 
-        @Provides @Singleton
-        fun provideFavoritesRepository(api: KtorFavoritesApi): FavoritesRepository =
-            KtorFavoritesRepository(api)
+    @Provides @Singleton
+    fun provideFavoritesRepository(api: KtorFavoritesApi): FavoritesRepository =
+        KtorFavoritesRepository(api)
 
-        @Provides @Singleton
-        fun provideProfileRepository(api: KtorProfileApi): ProfileRepository =
-            KtorProfileRepository(api)
+    @Provides @Singleton
+    fun provideProfileRepository(api: KtorProfileApi): ProfileRepository =
+        KtorProfileRepository(api)
 
-        @Provides @Singleton
-        fun provideNotificationsRepository(api: KtorNotificationApi): NotificationsRepository =
-            KtorNotificationsRepository(api)
+    @Provides @Singleton
+    fun provideNotificationsRepository(api: KtorNotificationApi): NotificationsRepository =
+        KtorNotificationsRepository(api)
 
-        @Provides @Singleton
-        fun provideAdminRepository(api: KtorAdminApi): AdminRepository =
-            KtorAdminRepository(api)
-    }
+    @Provides @Singleton
+    fun provideAdminRepository(api: KtorAdminApi): AdminRepository =
+        KtorAdminRepository(api)
 }

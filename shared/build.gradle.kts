@@ -29,9 +29,18 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.coroutines.play.services)
         }
         // iosMain.dependencies { ktor-client-darwin } — cuando llegue Mac
     }
+}
+
+// Firebase deps solo en el target Android — platform() no funciona dentro de sourceSets KMP
+dependencies {
+    add("androidMainImplementation", platform(libs.firebase.bom))
+    add("androidMainImplementation", libs.firebase.auth)
+    add("androidMainImplementation", libs.firebase.firestore)
+    add("androidMainImplementation", libs.firebase.storage)
 }
 
 android {
