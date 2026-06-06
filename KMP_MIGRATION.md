@@ -12,15 +12,15 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (fin de Fase 0)
+**Última actualización:** 2026-06-06 (fin de Fase 1.0 sesión 1/2)
 
 **Progreso global:**
 
 - [x] **Fase 0** — Planificación (documento creado, decisiones tomadas).
 - [ ] **Fase 1.0** — Tests como red de seguridad (2 sesiones).
-  - [ ] Sesión 1/2: tests de funciones puras (Haversine, parseLatLonPaste,
-    toBloquesJson, gradeStyle, LineStroke). ← **SIGUIENTE**
-  - [ ] Sesión 2/2: tests de ViewModels (SchoolList, SchoolDetail, Admin).
+  - [x] Sesión 1/2: 45 tests de funciones puras (Haversine, parseLatLonPaste,
+    toBloquesJson, gradeStyle, LineStroke). Todos verdes. ✅
+  - [ ] Sesión 2/2: tests de ViewModels (SchoolList, SchoolDetail, Admin). ← **SIGUIENTE**
 - [ ] **Fase 1** — Refactor Clean Android (3-4 sesiones).
   - [ ] 1.1 — Use cases en `domain/usecase/`.
   - [ ] 1.2 — Modelos de dominio puros (DTOs fuera de UiState).
@@ -491,25 +491,45 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-En la siguiente sesión empiezo **Fase 1.0 (sesión 1 de 2): tests de funciones
-puras + helpers**. Voy a:
+**Fase 1.0 sesión 2/2: tests de ViewModels.**
 
-1. Añadir dependencias de test:
-   - `kotlinx-coroutines-test` (ya posiblemente esté)
-   - `app.cash.turbine:turbine` para testear `StateFlow`
-   - `org.junit.jupiter` o `kotlin-test`
-   - `io.mockk:mockk` para mockear APIs/repos en tests de VM
-2. Crear `app/src/test/java/com/meteomontana/android/...` con tests para:
-   - `geo/HaversineTest.kt` — distancia entre puntos conocidos
-   - `submissions/ParseLatLonPasteTest.kt` — todos los formatos de Google Maps
-   - `detail/BoulderBloqueFormTest.kt` — `toBloquesJson` + round-trip
-   - `theme/GradeColorTest.kt` — color por grado (matching the PWA)
-   - `topo/LinePathTest.kt` — serialización de Offsets
-3. Ejecutar `./gradlew test`. Todos verdes.
-4. Commit y push.
+Esta sesión añade red de seguridad sobre los ViewModels críticos para que
+los refactors de Fases 1.1+ no rompan el comportamiento visible.
 
-Tras esa sesión Android funciona idéntico, tenemos red de seguridad para
-empezar el refactor sin miedo. Empezamos cuando me digas.
+1. Tests de `SchoolListViewModel`:
+   - `init` carga escuelas con filtros por defecto (50 km, sort by Score).
+   - `onLocationGranted` actualiza userLocation y recarga.
+   - `setStyle`/`setDistance`/`toggleRock` aplican filtro y recargan.
+   - Tras `loadScoresFor`, el sort por Score reordena la lista.
+   - Fallback a Madrid si `LocationProvider.current()` devuelve null.
+2. Tests de `SchoolDetailViewModel`:
+   - `load` con forecast OK / forecast error / blocks vacíos.
+   - `submitContribution` (PARKING) → llama a API correcta.
+   - `submitBoulderContribution` con/sin foto.
+   - `submitAddLinesContribution` con `targetBlockId`.
+3. Tests de `AdminViewModel`:
+   - `load` recarga stats + pending + contributions.
+   - `fetchSchoolBlocks` cachea por schoolId.
+   - `deleteBlock`/`updateBlock` refrescan el cache.
+
+Herramientas: `mockk` para mockear APIs, `turbine` para validar `StateFlow`,
+`kotlinx-coroutines-test` con `runTest` + `StandardTestDispatcher`.
+
+Esperamos ~25-30 tests adicionales. Total al final de Fase 1.0: ~70 tests.
+
+### Nota de entorno
+
+El proyecto requiere **Java 21** para compilar (Kotlin 2.0.21 no soporta
+Java 25 que es la del sistema). Hay que ejecutar Gradle con
+`JAVA_HOME` apuntando al JBR de Android Studio:
+
+```bash
+export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
+./gradlew testDebugUnitTest
+```
+
+Desde Android Studio funciona automáticamente porque usa su JBR.
+Cuando actualicemos Kotlin a 2.2.x en Fase 2 ya soportará Java 25.
 
 ---
 
