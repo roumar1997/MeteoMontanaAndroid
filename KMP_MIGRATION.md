@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 2.1 cerrada — módulo `shared` KMP creado, domain/ movido a commonMain)
+**Última actualización:** 2026-06-06 (Fase 2.2 cerrada — repositorios + use cases en commonMain)
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -63,8 +63,13 @@
     `iosX64`, `iosArm64`, `iosSimulatorArm64` (iOS deshabilitado en Windows,
     compila en Mac). Domain models + ports + repository + util movidos a
     `commonMain`. App consume `project(":shared")`. 86 tests verdes.
-  - [ ] 2.2 — Migrar `domain/usecase/` a `commonMain`. ← **SIGUIENTE**
-  - [ ] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization.
+  - [x] 2.2 — Migrar `domain/usecase/` a `commonMain`. ✅ 22 use cases movidos.
+    Interfaces de repositorio en commonMain: ForecastRepository, BlockRepository,
+    NoteRepository, FavoritesRepository, ProfileRepository, NotificationsRepository,
+    AdminRepository. Implementaciones Retrofit en app/data/repository/. Use cases
+    sin @Inject (plain constructors), provistos por UseCasesModule Hilt. 86 tests verdes.
+    Quedan en app/ (params DTO): CreateBlockUseCase, UpdateBlockUseCase, SubmitContributionUseCase.
+  - [ ] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization. ← **SIGUIENTE**
   - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS).
   - [ ] 2.5 — Adaptar `androidApp` para consumir `shared`.
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
@@ -524,49 +529,58 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 2.2: mover `domain/usecase/` a `commonMain` del módulo `shared`.**
+**Fase 2.3: migrar `data/api/` a `commonMain` con Ktor + Kotlinx Serialization.**
 
-Fase 2.1 está completa: el módulo `shared/` existe, compila para `androidTarget`
-e `iosArm64/iosX64/iosSimulatorArm64` (iOS deshabilitado en Windows, compila en Mac).
-`domain/model/`, `domain/port/`, `domain/repository/`, `domain/util/` ya están
-en `shared/src/commonMain/kotlin/com/meteomontana/android/domain/`.
+Fases 2.1 y 2.2 completadas. Estado actual de `shared/commonMain`:
+- `domain/model/` — 12 modelos ✅
+- `domain/port/` — AuthService, ChatService, FileReader, PhotoUploader ✅
+- `domain/repository/` — SchoolRepository + 7 repos nuevos ✅
+- `domain/usecase/` — 22 use cases (3 restan en app/: Create/UpdateBlock, SubmitContribution) ✅
+- `domain/util/` — TopoRenderer ✅
 
-El siguiente bloque son los use cases (`domain/usecase/`). Están en `app/src/main/java/.../domain/usecase/`
-y dependen de interfaces Retrofit (`ForecastApi`, `BlockApi`, etc.) que son Android-only.
+Lo que toca en Fase 2.3:
 
-**Problema**: los use cases no se pueden mover tal cual a `commonMain` porque inyectan
-interfaces Retrofit que usan `@GET`, `@POST`... anotaciones de `retrofit2` (JVM-only).
+1. **Añadir dependencias Ktor + Kotlinx Serialization** en `shared/build.gradle.kts`:
+   ```kotlin
+   commonMain.dependencies {
+       implementation(libs.coroutines.core)
+       implementation(libs.ktor.client.core)
+       implementation(libs.ktor.client.content.negotiation)
+       implementation(libs.ktor.serialization.kotlinx.json)
+       implementation(libs.kotlinx.serialization.json)
+   }
+   androidMain.dependencies {
+       implementation(libs.ktor.client.okhttp)
+   }
+   // iosMain.dependencies { ktor.client.darwin }  ← cuando llegue Mac
+   ```
+   Añadir versiones en `gradle/libs.versions.toml` (ktor = "3.1.x", kotlinx-serialization = "1.8.x").
 
-**Decisión**: los use cases quedan en `app/` durante la Fase 2.2. Se mueven a `commonMain`
-en la Fase 2.3, cuando las APIs Retrofit se sustituyan por Ktor (multiplatform).
+2. **Reemplazar DTOs Moshi por `@Serializable`** en `shared/commonMain/data/api/dto/`:
+   - Copiar los *Dto.kt de `app/data/api/dto/` a `shared/commonMain/data/api/dto/`.
+   - Sustituir `@JsonClass(generateAdapter = true)` por `@Serializable`.
+   - Eliminar imports `com.squareup.moshi.*`.
+   - Los campos `java.time.LocalDateTime` → `String` (ya lo son en los DTOs actuales).
+   - `java.util.Date` → `String` (comprobar si algún DTO lo usa).
 
-Por tanto, en Fase 2.2 el trabajo es:
+3. **Crear `HttpClientFactory` en `commonMain/data/api/`**:
+   ```kotlin
+   // shared/src/commonMain/kotlin/com/meteomontana/android/data/api/HttpClientFactory.kt
+   fun createHttpClient(baseUrl: String, tokenProvider: () -> String?): HttpClient
+   ```
+   Con `ContentNegotiation(Json { ignoreUnknownKeys = true })` + `BearerTokens`.
 
-1. **Verificar** que todos los use cases compilan correctamente consumiendo los modelos
-   del módulo `shared` (package `com.meteomontana.android.domain.*` desde `shared`).
-   Si hay errores de resolución de imports, corregirlos.
-2. **Ejecutar `assembleDebug` y `test`** para confirmar verde total (baseline para 2.3).
-3. **Decidir qué interface repositories** tienen sentido mover ya a `commonMain`
-   (las que no importan nada Android): `SchoolRepository` ya está en `shared`.
-   Verificar si todas las use case interfaces corresponden al `shared` o a `app`.
+4. **Crear interfaces API en `commonMain/data/api/`** usando Ktor en lugar de Retrofit:
+   Cada API actual (ForecastApi, BlockApi...) se convierte en una clase con métodos suspend.
 
-Si todo compila limpio tras el paso 1 (muy probable ya que la Fase 2.1 ya resolvió
-los smart cast errors), la Fase 2.2 es trivial y se puede pasar directamente a 2.3.
-6. Verificar `./gradlew :app:assembleDebug` y los 86 tests siguen verdes.
+5. **Actualizar `RetrofitXxxRepository`** para usar el nuevo cliente Ktor (renombrar a `KtorXxxRepository`).
+   O mantener la capa de repositorios inalterada y solo cambiar la fuente de datos interna.
 
-Nota: los targets iOS estarán configurados pero no se pueden compilar desde
-Windows (requieren Xcode). El módulo `shared` en `commonMain` sí compila.
+6. **Eliminar Retrofit + Moshi** de `app/build.gradle.kts` una vez migradas todas las APIs.
 
-Tests verdes antes de commit.
-
-### Fase 1.4 — Sacar el dibujo del topo del Composable (DrawOp instructions)
-### Fase 1.5 — Abstracciones Firebase (PhotoUploader, AuthService, ChatService)
-### Fase 1.6 — Wrappers de tipos Android (FileRef en lugar de Uri)
-
-Estas tres sub-fases vienen después de 1.3.
-
-Estos tres modelos son los más invasivos porque tocan muchas pantallas
-y componentes. Conviene una sesión propia para cada uno.
+7. **Los 3 use cases restantes** (`CreateBlockUseCase`, `UpdateBlockUseCase`, `SubmitContributionUseCase`)
+   pueden migrarse ahora: sus parámetros DTO se convierten a modelos de dominio
+   (`BlockInput`, `ContributionInput`) en `commonMain/domain/model/`.
 
 ### Sub-paso 2A — Forecast (+ tipos anidados)
 
