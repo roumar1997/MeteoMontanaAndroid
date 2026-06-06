@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
@@ -52,7 +52,7 @@ import com.meteomontana.android.ui.theme.gradeStyle
  */
 @Composable
 fun BlockDetailDialog(
-    block: BlockDto,
+    block: Block,
     isProposal: Boolean = false,
     onAddLines: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,

@@ -35,7 +35,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateBlockLineRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.ui.screens.detail.BoulderBloqueForm
@@ -64,7 +64,7 @@ import com.meteomontana.android.ui.theme.Terra
  */
 @Composable
 fun EditBlockDialog(
-    block: BlockDto,
+    block: Block,
     onSave: (CreateBlockRequest) -> Unit,
     onMoveByMap: (() -> Unit)? = null,
     onDismiss: () -> Unit
@@ -318,7 +318,7 @@ private fun typeLabel(type: String): String = when (type) {
 
 /** Convierte BoulderBloqueForm + datos del bloque a CreateBlockRequest. */
 private fun buildUpdateRequest(
-    block: BlockDto,
+    block: Block,
     name: String,
     lat: Double, lon: Double,
     description: String?,

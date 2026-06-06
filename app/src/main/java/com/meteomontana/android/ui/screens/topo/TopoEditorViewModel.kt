@@ -5,7 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateBlockLineRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +27,7 @@ data class EditableLine(
 data class TopoEditorUiState(
     val loading: Boolean = true,
     val error: String? = null,
-    val block: BlockDto? = null,
+    val block: Block? = null,
     val lines: List<EditableLine> = emptyList(),
     val selectedLineId: String? = null,
     val drawing: Boolean = false,
@@ -50,7 +51,7 @@ class TopoEditorViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true, error = null)
             try {
-                val block = api.getBlock(blockId)
+                val block = api.getBlock(blockId).toDomain()
                 val lines = block.lines.map { l ->
                     EditableLine(
                         tempId = l.id, name = l.name, grade = l.grade,
@@ -133,7 +134,7 @@ class TopoEditorViewModel @Inject constructor(
                         )
                     }
                 )
-                val updated = api.updateBlock(block.id, req)
+                val updated = api.updateBlock(block.id, req).toDomain()
                 _state.value = _state.value.copy(saving = false, block = updated, savedOk = true)
             } catch (t: Throwable) {
                 _state.value = _state.value.copy(saving = false, error = t.toUserMessage())

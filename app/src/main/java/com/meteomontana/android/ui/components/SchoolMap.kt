@@ -40,7 +40,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
 import com.meteomontana.android.ui.screens.detail.ProposeContributionFlow
 import com.meteomontana.android.ui.screens.detail.AddLinesFlow
@@ -77,7 +77,7 @@ private fun styleJsonFor(style: MapStyleOption): String = when (style) {
 fun SchoolMap(
     centerLat: Double,
     centerLon: Double,
-    blocks: List<BlockDto>,
+    blocks: List<Block>,
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -171,7 +171,7 @@ fun SchoolMap(
 private fun InnerMap(
     centerLat: Double,
     centerLon: Double,
-    blocks: List<BlockDto>,
+    blocks: List<Block>,
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit,
     waitingMapTap: Boolean,
@@ -186,8 +186,8 @@ private fun InnerMap(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Bloque seleccionado (para popup) y bloque al que añadir vías
-    var selectedBlock by remember { mutableStateOf<BlockDto?>(null) }
-    var addingLinesTo by remember { mutableStateOf<BlockDto?>(null) }
+    var selectedBlock by remember { mutableStateOf<Block?>(null) }
+    var addingLinesTo by remember { mutableStateOf<Block?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(lifecycleOwner) {
@@ -451,14 +451,14 @@ private fun CumbreSuccessDialog(
     }
 }
 
-// Mapa de markers activos para poder mapear marker → BlockDto al tocar
-private val markerBlockMap = mutableMapOf<Long, BlockDto>()
+// Mapa de markers activos para poder mapear marker → Block al tocar
+private val markerBlockMap = mutableMapOf<Long, Block>()
 
 private fun placeMarkers(
     ctx: android.content.Context,
     map: MapLibreMap,
-    blocks: List<BlockDto>,
-    onBlockTap: (BlockDto) -> Unit
+    blocks: List<Block>,
+    onBlockTap: (Block) -> Unit
 ) {
     map.clear()
     markerBlockMap.clear()

@@ -1,12 +1,12 @@
 package com.meteomontana.android.detail
 
 import androidx.lifecycle.SavedStateHandle
-import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Current
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.data.storage.StorageUploadHelper
@@ -277,7 +277,7 @@ class SchoolDetailViewModelTest {
             type = "PARKING", name = "Parking", lat = 40.0, lon = -3.0,
             photoPath = null, description = null, lines = emptyList()
         )
-        val createdBlock = BlockDto(
+        val createdBlock = Block(
             id = "b1", schoolId = schoolId, type = "PARKING", name = "Parking",
             lat = 40.0, lon = -3.0, photoPath = null, description = null,
             createdByUid = "u1", createdAt = "2026-06-06", lines = emptyList()
@@ -300,7 +300,7 @@ class SchoolDetailViewModelTest {
     @Test fun `deleteBlock borra y refresca lista llamando onDone(true)`() = runTest {
         coEvery { deleteBlockUC("b1") } just Runs
         coEvery { getBlocks(schoolId) } returnsMany listOf(
-            listOf(BlockDto("b1", schoolId, "PARKING", "P", 0.0, 0.0, null, null, "u", "t", emptyList())),
+            listOf(Block("b1", schoolId, "PARKING", "P", 0.0, 0.0, null, null, "u", "t", emptyList())),
             emptyList()
         )
 

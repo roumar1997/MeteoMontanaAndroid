@@ -3,11 +3,11 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.SchoolDto
 import com.meteomontana.android.domain.model.AdminLog
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Submission
 import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
@@ -40,7 +40,7 @@ data class AdminUiState(
     val logs: List<AdminLog> = emptyList(),
     val pushBusy: Boolean = false,
     val pushResult: String? = null,
-    val schoolBlocks: Map<String, List<BlockDto>> = emptyMap(),
+    val schoolBlocks: Map<String, List<Block>> = emptyMap(),
     val allSchools: List<SchoolDto> = emptyList(),
     val schoolsLoading: Boolean = false
 )

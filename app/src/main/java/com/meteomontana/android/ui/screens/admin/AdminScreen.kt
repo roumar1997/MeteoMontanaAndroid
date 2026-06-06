@@ -206,7 +206,7 @@ private enum class ContribFilter(val label: String) {
 private fun PropuestasTab(
     submissions: List<Submission>,
     contributions: List<ContributionDto>,
-    schoolBlocks: Map<String, List<com.meteomontana.android.data.api.dto.BlockDto>>,
+    schoolBlocks: Map<String, List<com.meteomontana.android.domain.model.Block>>,
     onFetchSchoolBlocks: (String) -> Unit,
     onDeleteBlock: (String, String) -> Unit,
     onUpdateBlock: (String, String, com.meteomontana.android.data.api.dto.CreateBlockRequest, (Boolean) -> Unit) -> Unit,
@@ -348,10 +348,10 @@ private fun SchoolGroupHeader(name: String, count: Int) {
 @Composable
 private fun ContributionCard(
     c: ContributionDto,
-    existingBlocks: List<com.meteomontana.android.data.api.dto.BlockDto>,
+    existingBlocks: List<com.meteomontana.android.domain.model.Block>,
     onFetchBlocks: () -> Unit,
     onDeleteBlock: (String) -> Unit,
-    onUpdateBlock: (com.meteomontana.android.data.api.dto.BlockDto, com.meteomontana.android.data.api.dto.CreateBlockRequest) -> Unit,
+    onUpdateBlock: (com.meteomontana.android.domain.model.Block, com.meteomontana.android.data.api.dto.CreateBlockRequest) -> Unit,
     onApprove: (String) -> Unit,
     onReject: (String, String?) -> Unit
 ) {
@@ -605,7 +605,7 @@ private fun ContributionCard(
             lon = c.lon,
             markerTitle = c.name ?: "${c.type} · ${c.schoolName}",
             existingBlocks = existingBlocks,
-            proposalAsBlock = c.toFakeBlockDto(),
+            proposalAsBlock = c.toFakeBlock(),
             onDeleteBlock = onDeleteBlock,
             onUpdateBlock = onUpdateBlockCard,
             onDismiss = { showFullMap = false }
@@ -618,7 +618,7 @@ private fun ContributionCard(
  * de detalles del mapa. Útil para que el admin vea exactamente lo mismo que
  * verá el usuario tras aprobar.
  */
-private fun ContributionDto.toFakeBlockDto(): com.meteomontana.android.data.api.dto.BlockDto {
+private fun ContributionDto.toFakeBlock(): com.meteomontana.android.domain.model.Block {
     val blockType = when (type) {
         "PARKING" -> "PARKING"
         "SECTOR"  -> "ZONE"
@@ -629,7 +629,7 @@ private fun ContributionDto.toFakeBlockDto(): com.meteomontana.android.data.api.
             val arr = JSONArray(bloquesJson)
             (0 until arr.length()).map { i ->
                 val o = arr.getJSONObject(i)
-                com.meteomontana.android.data.api.dto.BlockLineDto(
+                com.meteomontana.android.domain.model.BlockLine(
                     id = "proposal-line-$i",
                     name = o.optString("name", ""),
                     grade = o.optString("grade").takeIf { it.isNotEmpty() && it != "null" },
@@ -640,7 +640,7 @@ private fun ContributionDto.toFakeBlockDto(): com.meteomontana.android.data.api.
             }
         } catch (_: Throwable) { emptyList() }
     } else emptyList()
-    return com.meteomontana.android.data.api.dto.BlockDto(
+    return com.meteomontana.android.domain.model.Block(
         id = id,
         schoolId = schoolId,
         type = blockType,
@@ -775,7 +775,7 @@ private const val OSM_STYLE = """{"version":8,"sources":{"osm":{"type":"raster",
 private fun GestionarTab(
     allSchools: List<com.meteomontana.android.data.api.dto.SchoolDto>,
     loading: Boolean,
-    schoolBlocks: Map<String, List<com.meteomontana.android.data.api.dto.BlockDto>>,
+    schoolBlocks: Map<String, List<com.meteomontana.android.domain.model.Block>>,
     onLoadSchools: () -> Unit,
     onFetchSchoolBlocks: (String) -> Unit,
     onDeleteBlock: (String, String) -> Unit,

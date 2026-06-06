@@ -32,7 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
@@ -129,7 +129,7 @@ private fun Content(
     forecast: Forecast?,
     forecastError: String?,
     notes: List<Note>,
-    blocks: List<BlockDto>,
+    blocks: List<Block>,
     onPublishNote: (String) -> Unit,
     onAddBlock: () -> Unit,
     onBlockClick: (String) -> Unit,

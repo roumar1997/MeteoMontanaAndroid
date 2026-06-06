@@ -4,10 +4,10 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.storage.StorageUploadHelper
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
@@ -40,7 +40,7 @@ sealed interface SchoolDetailUiState {
         val forecastError: String?,
         val notes: List<Note>,
         val isFavorite: Boolean,
-        val blocks: List<BlockDto>,
+        val blocks: List<Block>,
         val isCurrentUserAdmin: Boolean = false
     ) : SchoolDetailUiState
 }

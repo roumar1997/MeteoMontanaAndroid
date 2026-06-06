@@ -25,7 +25,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
@@ -57,17 +57,17 @@ fun FullScreenMapDialog(
     lat: Double,
     lon: Double,
     markerTitle: String = "",
-    existingBlocks: List<BlockDto> = emptyList(),
-    proposalAsBlock: BlockDto? = null,
+    existingBlocks: List<Block> = emptyList(),
+    proposalAsBlock: Block? = null,
     onDeleteBlock: ((String) -> Unit)? = null,
-    onUpdateBlock: ((BlockDto, com.meteomontana.android.data.api.dto.CreateBlockRequest) -> Unit)? = null,
+    onUpdateBlock: ((Block, com.meteomontana.android.data.api.dto.CreateBlockRequest) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val mapViewRef = remember { mutableStateOf<MapView?>(null) }
-    var selectedBlock by remember { mutableStateOf<BlockDto?>(null) }
-    var editingBlock by remember { mutableStateOf<BlockDto?>(null) }
-    var movingBlock by remember { mutableStateOf<BlockDto?>(null) }
+    var selectedBlock by remember { mutableStateOf<Block?>(null) }
+    var editingBlock by remember { mutableStateOf<Block?>(null) }
+    var movingBlock by remember { mutableStateOf<Block?>(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -123,7 +123,7 @@ fun FullScreenMapDialog(
                                     .build()
 
                                 val iconFactory = IconFactory.getInstance(context)
-                                val markerToBlock = mutableMapOf<Marker, BlockDto>()
+                                val markerToBlock = mutableMapOf<Marker, Block>()
 
                                 // Bloques existentes
                                 existingBlocks.forEach { block ->
@@ -291,7 +291,7 @@ fun FullScreenMapDialog(
 // ─── Helpers de iconos ──────────────────────────────────────────────────────
 
 /** Selecciona el bitmap correcto para un block según su tipo / si es propuesta. */
-internal fun bitmapForBlock(block: BlockDto, isProposal: Boolean): Bitmap {
+internal fun bitmapForBlock(block: Block, isProposal: Boolean): Bitmap {
     if (isProposal) {
         // Forma de piedra amarilla destacada con ★
         return pinBitmapBoulder(

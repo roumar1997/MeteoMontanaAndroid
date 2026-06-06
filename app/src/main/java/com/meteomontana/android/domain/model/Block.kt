@@ -1,0 +1,24 @@
+package com.meteomontana.android.domain.model
+
+data class Block(
+    val id: String,
+    val schoolId: String,
+    val type: String,                // BLOCK / PARKING / ZONE
+    val name: String,
+    val lat: Double,
+    val lon: Double,
+    val photoPath: String?,
+    val description: String?,
+    val createdByUid: String,
+    val createdAt: String,
+    val lines: List<BlockLine>
+)
+
+data class BlockLine(
+    val id: String,
+    val name: String,
+    val grade: String?,
+    val startType: String?,
+    val linePath: String?,
+    val sortOrder: Int
+)

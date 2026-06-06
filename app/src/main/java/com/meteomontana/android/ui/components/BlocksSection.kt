@@ -24,12 +24,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
 
 @Composable
 fun BlocksSection(
-    blocks: List<BlockDto>,
+    blocks: List<Block>,
     onAddBlock: () -> Unit,
     onBlockClick: (String) -> Unit = {},
     schoolLat: Double? = null,
@@ -82,7 +82,7 @@ fun BlocksSection(
 }
 
 @Composable
-private fun BlockCard(b: BlockDto, onClick: () -> Unit) {
+private fun BlockCard(b: Block, onClick: () -> Unit) {
     Column(modifier = Modifier
         .width(160.dp)
         .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))

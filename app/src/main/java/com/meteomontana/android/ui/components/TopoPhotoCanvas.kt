@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.meteomontana.android.data.api.dto.BlockLineDto
+import com.meteomontana.android.domain.model.BlockLine
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import com.meteomontana.android.ui.theme.gradeStyle
 import org.json.JSONArray
@@ -50,8 +50,8 @@ fun parseBloquesJson(bloquesJson: String?): List<TopoLine> {
     } catch (_: Throwable) { emptyList() }
 }
 
-/** Convierte la lista de `BlockLineDto` del backend a lista de TopoLine. */
-fun List<BlockLineDto>.toTopoLines(): List<TopoLine> = map { line ->
+/** Convierte la lista de `BlockLine` del backend a lista de TopoLine. */
+fun List<BlockLine>.toTopoLines(): List<TopoLine> = map { line ->
     TopoLine(
         name = line.name,
         grade = line.grade,

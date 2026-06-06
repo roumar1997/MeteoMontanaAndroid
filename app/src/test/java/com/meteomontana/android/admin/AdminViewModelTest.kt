@@ -1,7 +1,7 @@
 package com.meteomontana.android.admin
 
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.SchoolDto
@@ -115,7 +115,7 @@ class AdminViewModelTest {
 
     @Test fun `fetchSchoolBlocks cachea por schoolId`() = runTest {
         val blocks = listOf(
-            BlockDto("b1", "s1", "PARKING", "P", 0.0, 0.0, null, null, "u", "t", emptyList())
+            Block("b1", "s1", "PARKING", "P", 0.0, 0.0, null, null, "u", "t", emptyList())
         )
         coEvery { getBlocks("s1") } returns blocks
 
@@ -133,7 +133,7 @@ class AdminViewModelTest {
 
     @Test fun `deleteBlock refresca el cache de bloques de esa escuela`() = runTest {
         val initial = listOf(
-            BlockDto("b1", "s1", "PARKING", "P", 0.0, 0.0, null, null, "u", "t", emptyList())
+            Block("b1", "s1", "PARKING", "P", 0.0, 0.0, null, null, "u", "t", emptyList())
         )
         coEvery { deleteBlockUC("b1") } just Runs
         coEvery { getBlocks("s1") } returnsMany listOf(initial, emptyList())
@@ -157,7 +157,7 @@ class AdminViewModelTest {
             type = "PARKING", name = "P2", lat = 1.0, lon = 2.0,
             photoPath = null, description = null, lines = emptyList()
         )
-        val updated = BlockDto("b1", "s1", "PARKING", "P2", 1.0, 2.0, null, null, "u", "t", emptyList())
+        val updated = Block("b1", "s1", "PARKING", "P2", 1.0, 2.0, null, null, "u", "t", emptyList())
         coEvery { updateBlockUC("b1", req) } returns updated
         coEvery { getBlocks("s1") } returns listOf(updated)
 

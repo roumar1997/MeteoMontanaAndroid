@@ -45,7 +45,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
@@ -64,7 +64,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun AddLinesFlow(
-    block: BlockDto,
+    block: Block,
     viewModel: SchoolDetailViewModel,
     onDismiss: () -> Unit,
     onSuccess: () -> Unit

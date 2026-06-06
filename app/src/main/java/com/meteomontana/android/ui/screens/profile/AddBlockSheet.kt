@@ -38,7 +38,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateJournalRequest
 import com.meteomontana.android.data.api.dto.JournalSessionDto
 import com.meteomontana.android.data.api.dto.SchoolDto
@@ -75,8 +76,8 @@ class SchoolSearchViewModel @Inject constructor(
     val history: StateFlow<SchoolHistory> = _history.asStateFlow()
 
     /** Bloques reales registrados en la escuela seleccionada (BLOCK type). */
-    private val _schoolBlocks = MutableStateFlow<List<BlockDto>>(emptyList())
-    val schoolBlocks: StateFlow<List<BlockDto>> = _schoolBlocks.asStateFlow()
+    private val _schoolBlocks = MutableStateFlow<List<Block>>(emptyList())
+    val schoolBlocks: StateFlow<List<Block>> = _schoolBlocks.asStateFlow()
 
     private var allJournal: List<JournalSessionDto> = emptyList()
 
@@ -114,7 +115,7 @@ class SchoolSearchViewModel @Inject constructor(
         )
         // De los bloques registrados en la escuela
         viewModelScope.launch {
-            _schoolBlocks.value = runCatching { api.getBlocks(school.id) }.getOrDefault(emptyList())
+            _schoolBlocks.value = runCatching { api.getBlocks(school.id).map { it.toDomain() } }.getOrDefault(emptyList())
         }
     }
 }
