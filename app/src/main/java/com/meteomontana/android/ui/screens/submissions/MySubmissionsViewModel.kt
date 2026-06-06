@@ -4,7 +4,8 @@ import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.SubmissionDto
+import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.Submission
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,7 @@ import javax.inject.Inject
 
 sealed interface MySubmissionsUiState {
     data object Loading : MySubmissionsUiState
-    data class Success(val items: List<SubmissionDto>) : MySubmissionsUiState
+    data class Success(val items: List<Submission>) : MySubmissionsUiState
     data class Error(val message: String) : MySubmissionsUiState
 }
 
@@ -31,7 +32,7 @@ class MySubmissionsViewModel @Inject constructor(
         _state.value = MySubmissionsUiState.Loading
         viewModelScope.launch {
             _state.value = try {
-                MySubmissionsUiState.Success(api.getMySubmissions())
+                MySubmissionsUiState.Success(api.getMySubmissions().map { it.toDomain() })
             } catch (t: Throwable) {
                 MySubmissionsUiState.Error(t.toUserMessage())
             }

@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (fin de Fase 1.1 — todos los use cases)
+**Última actualización:** 2026-06-06 (Fase 1.2 en curso — modelos ligeros migrados)
 
 **Progreso global:**
 
@@ -30,7 +30,12 @@
     `SchoolApi`/`AdminApi` directos (solo `AdminViewModel` mantiene
     `SchoolApi` para `getSchools()` del tab GESTIONAR — pendiente
     extraer en 1.3).
-  - [ ] 1.2 — Modelos de dominio puros (DTOs fuera de UiState). ← **SIGUIENTE**
+  - [~] 1.2 — Modelos de dominio puros (DTOs fuera de UiState). Hecho:
+    `SchoolScore`, `Note`, `Submission`, `AdminStats`, `AdminLog`,
+    `AdminPushResult`. Pendiente: `Forecast` (+ CurrentDto, HourForecast,
+    DayForecast, BestDay, OptimalWindow, ScoreFactor), `Block` +
+    `BlockLine`, `Contribution`, `PrivateProfile`, `PublicProfile`,
+    `FollowStatus`, `Inbox` + `Notification`, `FavoriteSchool`. ← **SIGUIENTE**
   - [ ] 1.3 — Partir `SchoolApi` por bounded context.
   - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
   - [ ] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`...).
@@ -498,7 +503,64 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.2: modelos de dominio puros (DTOs fuera de UiState).**
+**Fase 1.2 continuación: migrar Forecast, Block y Contribution.**
+
+Estos tres modelos son los más invasivos porque tocan muchas pantallas
+y componentes. Conviene una sesión propia para cada uno.
+
+### Sub-paso 2A — Forecast (+ tipos anidados)
+
+DTOs a migrar: `ForecastDto`, `CurrentDto`, `HourForecastDto`,
+`DayForecastDto`, `BestDayDto`, `OptimalWindowDto`, `ScoreFactorDto`.
+
+Tocará:
+- `domain/model/Forecast.kt` (data classes anidadas).
+- `data/api/dto/ForecastMapping.kt` con `toDomain()` para cada uno.
+- `GetForecastUseCase` devuelve `Forecast`.
+- `SchoolDetailUiState.Success.forecast: Forecast?`.
+- Componentes: `ForecastBody.kt`, `HourlyScoreGrid.kt`, posiblemente
+  `WmoWeatherIcon.kt` consumidor.
+
+### Sub-paso 2B — Block + BlockLine
+
+DTOs: `BlockDto`, `BlockLineDto`, `CreateBlockRequest`,
+`CreateBlockLineRequest`.
+
+Decisión a tomar al empezar: ¿`CreateBlockRequest` se queda como input
+DTO o también se hace un `BlockInput` de dominio? Recomendación: por
+ahora dejar los `*Request` como input DTOs (su única responsabilidad
+es la serialización al backend), pero los outputs (`Block`, `BlockLine`)
+sí pasan a dominio.
+
+Tocará MUCHOS ficheros:
+- `domain/model/Block.kt`, `BlockLine.kt`.
+- `data/api/dto/BlockMapping.kt`.
+- Use cases `GetBlocks`, `CreateBlock`, `UpdateBlock` (Delete no
+  devuelve nada).
+- `SchoolDetailUiState.Success.blocks: List<Block>`.
+- `AdminUiState.schoolBlocks: Map<String, List<Block>>`.
+- Componentes: `SchoolMap.kt`, `BlocksSection.kt`, `BlockDetailDialog.kt`,
+  `TopoPhotoCanvas.kt`, `EditBlockDialog.kt`, `AddLinesFlow.kt`,
+  `FullScreenMapDialog.kt`, `ContributionTopoDialog.kt`,
+  `ProposeContributionFlow.kt`, `AdminScreen.kt`.
+
+### Sub-paso 2C — Contribution
+
+DTOs: `ContributionDto`. (`ContributionRequest` se queda como input).
+
+Tocará:
+- `domain/model/Contribution.kt`.
+- `data/api/dto/ContributionMapping.kt`.
+- Use cases admin de contributions + `SubmitContributionUseCase` (output).
+- `AdminUiState.contributions: List<Contribution>`.
+- `AdminScreen.kt` (ContributionCard).
+
+### Sub-paso 2D — Profile, Inbox, Favorite, Submission ya hecha
+
+Migración de los modelos restantes ligeros tras los tres pesados.
+
+Regla común: nombres de campos idénticos a los DTOs para minimizar
+cambios en las pantallas (solo import + tipo).
 
 Los ViewModels y `UiState` siguen exponiendo DTOs Moshi (`SchoolScoreDto`,
 `ForecastDto`, `NoteDto`, `BlockDto`, `ContributionDto`...). En KMP el

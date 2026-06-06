@@ -3,13 +3,13 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.dto.AdminLogDto
-import com.meteomontana.android.data.api.dto.AdminStatsDto
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.SchoolDto
-import com.meteomontana.android.data.api.dto.SubmissionDto
+import com.meteomontana.android.domain.model.AdminLog
+import com.meteomontana.android.domain.model.AdminStats
+import com.meteomontana.android.domain.model.Submission
 import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
@@ -34,10 +34,10 @@ import javax.inject.Inject
 data class AdminUiState(
     val loading: Boolean = true,
     val error: String? = null,
-    val stats: AdminStatsDto? = null,
-    val pending: List<SubmissionDto> = emptyList(),
+    val stats: AdminStats? = null,
+    val pending: List<Submission> = emptyList(),
     val contributions: List<ContributionDto> = emptyList(),
-    val logs: List<AdminLogDto> = emptyList(),
+    val logs: List<AdminLog> = emptyList(),
     val pushBusy: Boolean = false,
     val pushResult: String? = null,
     val schoolBlocks: Map<String, List<BlockDto>> = emptyMap(),

@@ -28,7 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.meteomontana.android.data.api.dto.SubmissionDto
+import com.meteomontana.android.domain.model.Submission
 
 @Composable
 fun MySubmissionsScreen(
@@ -77,7 +77,7 @@ fun MySubmissionsScreen(
 }
 
 @Composable
-private fun SubmissionRow(s: SubmissionDto) {
+private fun SubmissionRow(s: Submission) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

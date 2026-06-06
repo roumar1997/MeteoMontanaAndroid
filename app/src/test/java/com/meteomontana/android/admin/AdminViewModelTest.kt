@@ -1,12 +1,12 @@
 package com.meteomontana.android.admin
 
 import com.meteomontana.android.data.api.SchoolApi
-import com.meteomontana.android.data.api.dto.AdminPushResponse
-import com.meteomontana.android.data.api.dto.AdminStatsDto
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.api.dto.SchoolDto
+import com.meteomontana.android.domain.model.AdminPushResult
+import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
@@ -58,7 +58,7 @@ class AdminViewModelTest {
     private lateinit var deleteBlockUC: DeleteBlockUseCase
     private lateinit var schoolApi: SchoolApi
 
-    private val stats = AdminStatsDto(
+    private val stats = AdminStats(
         totalUsers = 10, totalAdmins = 1, totalSchools = 191, totalNotes = 0,
         submissionsPending = 0, submissionsApproved = 0, submissionsRejected = 0
     )
@@ -220,7 +220,7 @@ class AdminViewModelTest {
     }
 
     @Test fun `sendPush actualiza pushResult con sent y recipients`() = runTest {
-        coEvery { sendPush(any(), any(), any()) } returns AdminPushResponse(sent = 3, recipients = 5)
+        coEvery { sendPush(any(), any(), any()) } returns AdminPushResult(sent = 3, recipients = 5)
         val vm = newVm()
         advanceUntilIdle()
 

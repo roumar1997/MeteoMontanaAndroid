@@ -64,10 +64,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import coil.compose.AsyncImage
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
-import com.meteomontana.android.data.api.dto.AdminLogDto
-import com.meteomontana.android.data.api.dto.AdminStatsDto
 import com.meteomontana.android.data.api.dto.ContributionDto
-import com.meteomontana.android.data.api.dto.SubmissionDto
+import com.meteomontana.android.domain.model.AdminLog
+import com.meteomontana.android.domain.model.AdminStats
+import com.meteomontana.android.domain.model.Submission
 import androidx.compose.runtime.key
 import com.meteomontana.android.ui.components.FullScreenMapDialog
 import com.meteomontana.android.ui.components.TopoPhotoCanvas
@@ -204,7 +204,7 @@ private enum class ContribFilter(val label: String) {
 
 @Composable
 private fun PropuestasTab(
-    submissions: List<SubmissionDto>,
+    submissions: List<Submission>,
     contributions: List<ContributionDto>,
     schoolBlocks: Map<String, List<com.meteomontana.android.data.api.dto.BlockDto>>,
     onFetchSchoolBlocks: (String) -> Unit,
@@ -656,7 +656,7 @@ private fun ContributionDto.toFakeBlockDto(): com.meteomontana.android.data.api.
 
 @Composable
 private fun SubmissionCard(
-    s: SubmissionDto,
+    s: Submission,
     onApprove: (String) -> Unit,
     onReject: (String, String?) -> Unit
 ) {
@@ -884,7 +884,7 @@ private fun SchoolListRow(
 
 // ─────────────────────────── STATS ────────────────────────────
 @Composable
-private fun StatsTab(stats: AdminStatsDto?) {
+private fun StatsTab(stats: AdminStats?) {
     if (stats == null) return
     Column(modifier = Modifier.fillMaxSize().padding(16.dp),
            verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -923,7 +923,7 @@ private fun StatCard(label: String, value: Long, modifier: Modifier = Modifier) 
 
 // ─────────────────────────── ACTIVITY ────────────────────────────
 @Composable
-private fun ActivityTab(logs: List<AdminLogDto>) {
+private fun ActivityTab(logs: List<AdminLog>) {
     if (logs.isEmpty()) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
             Text("Sin actividad",
