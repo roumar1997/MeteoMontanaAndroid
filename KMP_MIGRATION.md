@@ -281,42 +281,82 @@ Orden propuesto (incremental, app navegable desde la 3ª):
 
 ---
 
-## Lo que necesitas físicamente (importante)
+## Lo que necesitas físicamente — estrategia "todo lo posible sin Mac"
 
-**KMP + iOS requiere Mac obligatoriamente** — Xcode solo corre en macOS.
-Opciones por orden de coste:
+**Estrategia confirmada (2026-06-06):** dejamos lo de Apple/Mac para el final.
+Avanzamos en Windows hasta que sea **literalmente imposible** continuar sin
+Mac. Eso significa hacer en Windows:
 
-1. **Mac mini M2** (~600 € nuevo). El más barato y rinde de sobra para Xcode.
+### En Windows (sin Mac, sin Apple Developer, sin coste)
+
+- ✅ **Fase 0** entera — planificación.
+- ✅ **Fase 1** entera — refactor Clean Android.
+- ✅ **Fase 2** entera — crear `shared` KMP, migrar a Ktor, mover modelos a
+  `commonMain`. La app Android sigue funcionando y consume el `shared`.
+- ✅ **Fase 2.4 extendida** — **yo escribo los `actual` de iOS en Kotlin
+  ahí mismo** (`shared/src/iosMain/`). Quedan listos esperando a un Mac
+  que los compile.
+- ✅ **Pseudocódigo y stubs de SwiftUI** — puedo dejar los `.swift` escritos
+  en `iosApp/` en el repo. No los podemos compilar desde Windows, pero
+  estarán versionados en git esperando.
+
+Cuando termina la Fase 2 estás en un punto donde:
+- El módulo `shared` compila para Android y **el código fuente de iOS está
+  100% escrito** (Kotlin `iosMain` + Swift `iosApp/`).
+- Falta solo: abrir el proyecto en Xcode, dar a Build, arreglar lo que salte,
+  configurar provisioning profile, subir a TestFlight.
+
+### Cuando NO se puede seguir sin Mac
+
+Estos pasos requieren Mac obligatoriamente:
+
+1. **Compilar el framework iOS** (`./gradlew :shared:linkDebugFrameworkIosArm64`
+   requiere las herramientas de línea de comandos de Xcode, solo macOS).
+2. **Abrir el proyecto Xcode** y resolver errores de SwiftUI / linker /
+   provisioning.
+3. **Probar en simulador** o dispositivo iOS real.
+4. **Firmar y subir a TestFlight** / App Store.
+
+### Opciones de Mac (cuando llegue el momento)
+
+1. **Mac mini M4** (~700 € nuevo). El más barato y rinde de sobra para Xcode.
 2. **MacBook Air M3** (~1200 € nuevo). Si quieres movilidad.
 3. **Alquilar Mac en la nube** — MacStadium / MacinCloud / Scaleway M1.
-   Caro a largo plazo (50–100 €/mes), bueno para validar primero.
-4. **GitHub Actions con runner macOS** — Solo sirve para build/release CI,
-   no para desarrollo diario.
+   Caro a largo plazo (50–100 €/mes), útil solo para validar el primer build.
+4. **GitHub Actions con runner macOS** — Sirve para build/release CI, no
+   para desarrollo iterativo.
 
-**Mientras tanto, sin Mac, lo que SÍ puedes hacer (Fases 0 a 2 enteras):**
-- Refactor Android a Clean.
-- Crear módulo `shared` KMP.
-- Compilar `shared` para Android (sigue funcionando solo).
-- Yo puedo *escribir* el código Swift de iOS, pero **alguien con Mac tiene que
-  compilarlo y subirlo a TestFlight**. No es bloqueante para empezar.
+**Recomendación honesta:** comprar Mac cuando termine Fase 2 y veas que el
+`shared` funciona y el código iOS está listo. Así el Mac llega "para acabar"
+en lugar de "para arrancar".
 
-**Recomendación:** empezamos las Fases 0–2 ya (3–6 semanas estimadas).
-Para cuando lleguemos a Fase 3 ya te has decidido sobre el Mac.
+### Lo que NO se puede dejar "para el final" — Firebase iOS
+
+Una excepción importante: para que `FirebaseAuthService` y
+`FirebaseStoragePhotoUploader` funcionen en iOS necesitamos el archivo
+`GoogleService-Info.plist` del proyecto Firebase. **Esto lo puedes generar
+desde Windows** entrando en https://console.firebase.google.com → proyecto
+`climbingteams` → "Add app" → iOS → bundle ID `com.meteomontana.ios` (o el
+que decidas). Descargas el `.plist` y lo metes en el repo. Sin Mac, sin
+Apple Developer todavía.
+
+**Esto lo haces tú una vez. Yo te aviso cuándo.** Probablemente al final
+de Fase 2.
 
 ---
 
 ## Lo que necesito de ti puntualmente
 
-| Cuándo | Qué |
-|---|---|
-| Fase 0 (ya) | Decidir scope MVP iOS (¿qué pantallas son críticas?). |
-| Fase 0 (ya) | Decidir si compras Mac ya o esperas a Fase 3. |
-| Fase 1 | Nada técnico. Probar la app Android tras cada PR para confirmar que no se ha roto nada visible. |
-| Fase 2 | Lo mismo. |
-| Fase 3 (Mac requerido) | Compilar `iosApp` y reportarme errores de Xcode. |
-| Fase 3 | Crear cuenta Apple Developer ($99/año). |
-| Fase 3 | Descargar `GoogleService-Info.plist` desde la consola Firebase del proyecto `climbingteams` y subirlo al repo (Firebase ya configurado para Android — solo falta añadir el app iOS en la consola). |
-| Fase 3 | Configurar Sign in with Apple en la cuenta Apple Developer. |
+| Cuándo | Qué | ¿Necesita Mac? |
+|---|---|---|
+| Fase 0 (ya) | Decidir scope MVP iOS (¿qué pantallas son críticas?). | ❌ |
+| Fase 1 | Probar la app Android tras cada sesión para confirmar que no se ha roto nada. | ❌ |
+| Fase 2 | Lo mismo. | ❌ |
+| **Final de Fase 2** | **Añadir app iOS al proyecto Firebase `climbingteams`** desde la web (Add app → iOS → bundle ID) y descargar `GoogleService-Info.plist`. Yo te aviso. | ❌ (solo navegador) |
+| **Fase 3** (Mac requerido) | Compilar el proyecto Xcode y reportarme errores. | ✅ |
+| Fase 3 | Crear cuenta Apple Developer ($99/año). | ✅ |
+| Fase 3 | Configurar Sign in with Apple en la cuenta Developer. | ✅ |
+| Fase 3 | Subir a TestFlight para beta-testers. | ✅ |
 
 **Lo que NO necesito de ti:**
 - Tocar código. Yo lo escribo todo.
