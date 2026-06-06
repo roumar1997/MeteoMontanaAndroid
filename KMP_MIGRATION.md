@@ -102,6 +102,10 @@
 
 **👉 Siguiente paso concreto:** ver final del documento ("Próximo paso").
 
+> ⏸️ **FASE 3 EN PAUSA** — requiere Mac. Mientras tanto el usuario realiza
+> mejoras visuales y técnicas en la app Android. Al abrir sesión nueva,
+> preguntar al usuario qué quiere mejorar hoy, NO continuar la migración KMP.
+
 **Lo que necesita el usuario aportar pronto:**
 - Antes de fin de Fase 2: registrar app iOS en consola Firebase y descargar
   `GoogleService-Info.plist` (5 minutos desde Windows, navegador).
