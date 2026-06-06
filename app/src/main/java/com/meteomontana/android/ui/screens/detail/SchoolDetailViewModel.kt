@@ -4,16 +4,24 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
-import com.meteomontana.android.data.api.dto.CreateNoteRequest
 import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.NoteDto
 import com.meteomontana.android.data.storage.StorageUploadHelper
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
+import com.meteomontana.android.domain.usecase.contributions.SubmitContributionUseCase
+import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
+import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
+import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
+import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
+import com.meteomontana.android.domain.usecase.notes.GetNotesUseCase
+import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.util.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,7 +50,16 @@ class SchoolDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getSchoolById: GetSchoolByIdUseCase,
     private val getForecast: GetForecastUseCase,
-    private val api: SchoolApi,                       // notas, favoritos, blocks, contributions (se separará en Fase 1.3)
+    private val getNotes: GetNotesUseCase,
+    private val createNote: CreateNoteUseCase,
+    private val getMyFavorites: GetMyFavoritesUseCase,
+    private val addFavorite: AddFavoriteUseCase,
+    private val removeFavorite: RemoveFavoriteUseCase,
+    private val getBlocks: GetBlocksUseCase,
+    private val createBlock: CreateBlockUseCase,
+    private val deleteBlockUseCase: DeleteBlockUseCase,
+    private val submitContributionUseCase: SubmitContributionUseCase,
+    private val getMyProfile: GetMyProfileUseCase,
     private val storageHelper: StorageUploadHelper
 ) : ViewModel() {
 
@@ -58,12 +75,11 @@ class SchoolDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = try {
                 val school = getSchoolById(schoolId)
-                // El forecast puede fallar (Open-Meteo caído). El resto del detalle igual carga.
                 val forecastResult = runCatching { getForecast(schoolId) }
-                val notes  = runCatching { api.getNotesBySchool(schoolId) }.getOrDefault(emptyList())
-                val isFav  = runCatching { api.getMyFavorites().any { it.id == schoolId } }.getOrDefault(false)
-                val blocks = runCatching { api.getBlocks(schoolId) }.getOrDefault(emptyList())
-                val isAdmin = runCatching { api.getMyProfile().isAdmin }.getOrDefault(false)
+                val notes  = runCatching { getNotes(schoolId) }.getOrDefault(emptyList())
+                val isFav  = runCatching { getMyFavorites().any { it.id == schoolId } }.getOrDefault(false)
+                val blocks = runCatching { getBlocks(schoolId) }.getOrDefault(emptyList())
+                val isAdmin = runCatching { getMyProfile().isAdmin }.getOrDefault(false)
                 SchoolDetailUiState.Success(
                     school = school,
                     forecast = forecastResult.getOrNull(),
@@ -81,8 +97,8 @@ class SchoolDetailViewModel @Inject constructor(
         val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
         viewModelScope.launch {
             try {
-                if (cur.isFavorite) api.removeFavorite(schoolId)
-                else api.addFavorite(schoolId)
+                if (cur.isFavorite) removeFavorite(schoolId)
+                else addFavorite(schoolId)
                 _uiState.value = cur.copy(isFavorite = !cur.isFavorite)
             } catch (_: Throwable) {}
         }
@@ -91,19 +107,17 @@ class SchoolDetailViewModel @Inject constructor(
     fun publishNote(text: String) {
         viewModelScope.launch {
             try {
-                api.createNote(schoolId, CreateNoteRequest(text))
-                val notes = api.getNotesBySchool(schoolId)
+                createNote(schoolId, text)
+                val notes = getNotes(schoolId)
                 val cur = _uiState.value
                 if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(notes = notes)
             } catch (_: Throwable) {}
         }
     }
 
-    /** Envía una propuesta de mejora (parking, sector, corrección). */
     suspend fun submitContribution(req: ContributionRequest): Result<Unit> =
-        runCatching { api.submitContribution(schoolId, req); Unit }
+        runCatching { submitContributionUseCase(schoolId, req); Unit }
 
-    /** Sube la foto a Firebase Storage (si hay) y envía la propuesta BOULDER al backend. */
     suspend fun submitBoulderContribution(
         lat: Double, lon: Double,
         name: String?,
@@ -127,15 +141,10 @@ class SchoolDetailViewModel @Inject constructor(
             bloquesJson = bloques.toBloquesJson(),
             topoLinesJson = null
         )
-        api.submitContribution(schoolId, req)
+        submitContributionUseCase(schoolId, req)
         Unit
     }
 
-    /**
-     * Envía una propuesta para AÑADIR VÍAS a una piedra existente.
-     * No sube foto (se usa la del bloque) ni coordenadas (idem).
-     * El backend al aprobar añade las líneas al bloque identificado por `targetBlockId`.
-     */
     suspend fun submitAddLinesContribution(
         targetBlockId: String,
         targetLat: Double,
@@ -152,31 +161,30 @@ class SchoolDetailViewModel @Inject constructor(
             proposedLat = null, proposedLon = null,
             correctionReason = null,
             targetBlockId = targetBlockId,
-            photoUrl = null,           // usa la foto del bloque existente
+            photoUrl = null,
             bloquesJson = bloques.toBloquesJson(),
             topoLinesJson = null
         )
-        api.submitContribution(schoolId, req)
+        submitContributionUseCase(schoolId, req)
         Unit
     }
 
     fun addBlock(req: CreateBlockRequest) {
         viewModelScope.launch {
             try {
-                api.createBlock(schoolId, req)
-                val blocks = api.getBlocks(schoolId)
+                createBlock(schoolId, req)
+                val blocks = getBlocks(schoolId)
                 val cur = _uiState.value
                 if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(blocks = blocks)
             } catch (_: Throwable) {}
         }
     }
 
-    /** Borra un bloque (parking / piedra / zona). El backend valida que sea admin o creador. */
     fun deleteBlock(blockId: String, onDone: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
-            val ok = runCatching { api.deleteBlock(blockId) }.isSuccess
+            val ok = runCatching { deleteBlockUseCase(blockId) }.isSuccess
             if (ok) {
-                val blocks = runCatching { api.getBlocks(schoolId) }.getOrDefault(emptyList())
+                val blocks = runCatching { getBlocks(schoolId) }.getOrDefault(emptyList())
                 val cur = _uiState.value
                 if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(blocks = blocks)
             }

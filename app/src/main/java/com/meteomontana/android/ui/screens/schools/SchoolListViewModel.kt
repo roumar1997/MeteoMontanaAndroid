@@ -3,10 +3,11 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.data.location.UserLocation
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
+import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,7 +55,8 @@ sealed interface SchoolListUiState {
 class SchoolListViewModel @Inject constructor(
     private val getSchools: GetSchoolsUseCase,
     private val getTodayScores: GetTodayScoresUseCase,
-    private val api: SchoolApi,                       // favoritos + notificaciones (se separará en Fase 1.3)
+    private val getMyFavorites: GetMyFavoritesUseCase,
+    private val getMyNotifications: GetMyNotificationsUseCase,
     private val locationProvider: LocationProvider
 ) : ViewModel() {
 
@@ -86,7 +88,7 @@ class SchoolListViewModel @Inject constructor(
                 userLon = loc.lon
                 _userLocation.value = loc
             }
-            favoriteIds = runCatching { api.getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
+            favoriteIds = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
             load()
             refreshUnread()
         }
@@ -106,7 +108,7 @@ class SchoolListViewModel @Inject constructor(
 
     fun refreshUnread() {
         viewModelScope.launch {
-            runCatching { api.getMyNotifications(limit = 1) }.onSuccess {
+            runCatching { getMyNotifications(limit = 1) }.onSuccess {
                 _unreadCount.value = it.unreadCount
             }
         }
@@ -199,7 +201,7 @@ class SchoolListViewModel @Inject constructor(
     }
     fun setOnlyFavorites(v: Boolean) {
         viewModelScope.launch {
-            if (v) favoriteIds = runCatching { api.getMyFavorites().map { it.id }.toSet() }.getOrDefault(favoriteIds)
+            if (v) favoriteIds = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(favoriteIds)
             _filters.update { it.copy(onlyFavorites = v) }
             load()
         }

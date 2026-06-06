@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (fin de Fase 1.1 — use cases schools + forecast)
+**Última actualización:** 2026-06-06 (fin de Fase 1.1 — todos los use cases)
 
 **Progreso global:**
 
@@ -23,12 +23,14 @@
   - [x] Sesión 2/2: 33 tests de ViewModels (12 SchoolList + 12 SchoolDetail
     + 9 Admin). Todos verdes. ✅ Total Fase 1.0: 78 tests.
 - [ ] **Fase 1** — Refactor Clean Android (3-4 sesiones).
-  - [~] 1.1 — Use cases en `domain/usecase/`. Hecho schools (`GetSchools`,
-    `GetSchoolById`, `GetTodayScores`) y forecast (`GetForecast`).
-    `SchoolListViewModel` y `SchoolDetailViewModel` ya dependen de use
-    cases para esos casos. Pendiente: blocks, contributions, admin,
-    social, notifications, favorites. ← **SIGUIENTE (continuación)**
-  - [ ] 1.2 — Modelos de dominio puros (DTOs fuera de UiState).
+  - [x] 1.1 — Use cases en `domain/usecase/`. ✅ Hecho schools, forecast,
+    blocks, contributions, notes, favorites, notifications, profile y
+    admin (9 use cases). Los 3 ViewModels (`SchoolListViewModel`,
+    `SchoolDetailViewModel`, `AdminViewModel`) ya no dependen de
+    `SchoolApi`/`AdminApi` directos (solo `AdminViewModel` mantiene
+    `SchoolApi` para `getSchools()` del tab GESTIONAR — pendiente
+    extraer en 1.3).
+  - [ ] 1.2 — Modelos de dominio puros (DTOs fuera de UiState). ← **SIGUIENTE**
   - [ ] 1.3 — Partir `SchoolApi` por bounded context.
   - [ ] 1.4 — Sacar dibujo del topo del Composable (instrucciones `DrawOp`).
   - [ ] 1.5 — Abstracciones de Firebase (`PhotoUploader`, `AuthService`...).
@@ -496,8 +498,45 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.1 continuación: use cases para blocks, contributions, admin,
-social, notifications y favorites.**
+**Fase 1.2: modelos de dominio puros (DTOs fuera de UiState).**
+
+Los ViewModels y `UiState` siguen exponiendo DTOs Moshi (`SchoolScoreDto`,
+`ForecastDto`, `NoteDto`, `BlockDto`, `ContributionDto`...). En KMP el
+`shared/commonMain` no puede leer anotaciones Moshi, así que necesitamos
+modelos de dominio puros y conversiones `DTO.toDomain()`.
+
+Plan concreto:
+
+1. Crear modelos en `domain/model/`:
+   - `SchoolScore` (de `SchoolScoreDto`)
+   - `Forecast`, `Current`, `HourForecast`, `DayForecast`, `BestDay`,
+     `OptimalWindow`, `ScoreFactor` (de `ForecastDto` y sub-DTOs)
+   - `Note` (de `NoteDto`)
+   - `Block`, `BlockLine` (de `BlockDto`, `BlockLineDto`)
+   - `Contribution` (de `ContributionDto`)
+   - `Submission` (de `SubmissionDto`)
+   - `AdminStats`, `AdminLog`, `AdminPushResult` (de los DTOs admin)
+   - `PrivateProfile`, `PublicProfile`, `FollowStatus`, `Notification`,
+     `Inbox` (de sus DTOs)
+   - `FavoriteSchool`, `FavoritesGrid`...
+2. Para cada DTO, función `toDomain()` en `data/api/dto/` (extensión).
+3. Use cases: cambiar firma para devolver el modelo de dominio
+   (`List<School>`, `List<Block>`, `Forecast`...) en lugar del DTO.
+4. UiState (Loading/Success/Error de cada VM): reemplazar DTOs por
+   modelos de dominio.
+5. Pantallas (`SchoolListScreen`, `SchoolDetailScreen`, `AdminScreen`,
+   componentes como `ForecastBody`, `BlocksSection`, `NotesSection`,
+   `HourlyScoreGrid`, `ContributionCard`, etc.): usar los modelos de
+   dominio en vez de DTOs.
+6. Tests: las aserciones cambian (`s.notes.first().text` sigue válido,
+   `BlockDto` → `Block`, etc.). El comportamiento es idéntico.
+
+Reglas:
+- Modelos en `domain/model/` sin imports Moshi/Retrofit/android.
+- Solo data classes con tipos primitivos / otros modelos de dominio.
+- Conversión solo en la frontera (`data/api/dto/` extensión).
+- Tests verdes antes de commit (`./gradlew :app:testDebugUnitTest`,
+  `JAVA_HOME=/c/Program Files/Android/Android Studio/jbr`).
 
 Ya están hechos los use cases de `schools/` (GetSchools, GetSchoolById,
 GetTodayScores) y `forecast/` (GetForecast). `SchoolListViewModel` y

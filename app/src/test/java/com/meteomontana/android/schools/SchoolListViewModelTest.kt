@@ -1,22 +1,22 @@
 package com.meteomontana.android.schools
 
 import app.cash.turbine.test
-import com.meteomontana.android.data.api.SchoolApi
+import com.meteomontana.android.data.api.dto.FavoriteSchoolDto
 import com.meteomontana.android.data.api.dto.InboxDto
 import com.meteomontana.android.data.api.dto.SchoolScoreDto
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.data.location.UserLocation
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
+import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import com.meteomontana.android.ui.screens.schools.SchoolListUiState
 import com.meteomontana.android.ui.screens.schools.SchoolListViewModel
 import com.meteomontana.android.ui.screens.schools.SortBy
 import com.meteomontana.android.ui.screens.schools.StyleFilter
-import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,20 +27,11 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/**
- * Red de seguridad para `SchoolListViewModel`.
- *
- * Estos tests fijan el comportamiento OBSERVABLE actual (carga inicial con
- * filtros por defecto, fallback Madrid, ordenación tras llegar scores,
- * filtros aplicados). Tras el refactor de Fase 1 (uso de cases, etc.)
- * deben seguir verdes sin tocarlos.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SchoolListViewModelTest {
 
@@ -48,7 +39,8 @@ class SchoolListViewModelTest {
 
     private lateinit var getSchools: GetSchoolsUseCase
     private lateinit var getTodayScores: GetTodayScoresUseCase
-    private lateinit var api: SchoolApi
+    private lateinit var getMyFavorites: GetMyFavoritesUseCase
+    private lateinit var getMyNotifications: GetMyNotificationsUseCase
     private lateinit var location: LocationProvider
 
     private val schoolA = School(
@@ -64,11 +56,12 @@ class SchoolListViewModelTest {
         Dispatchers.setMain(testDispatcher)
         getSchools = mockk()
         getTodayScores = mockk()
-        api = mockk()
+        getMyFavorites = mockk()
+        getMyNotifications = mockk()
         location = mockk()
         coEvery { location.current() } returns null
-        coEvery { api.getMyFavorites() } returns emptyList()
-        coEvery { api.getMyNotifications(any()) } returns InboxDto(unreadCount = 0, items = emptyList())
+        coEvery { getMyFavorites() } returns emptyList()
+        coEvery { getMyNotifications(any()) } returns InboxDto(unreadCount = 0, items = emptyList())
         coEvery { getTodayScores(any()) } returns emptyList()
         coEvery {
             getSchools(any(), any(), any(), any(), any(), any())
@@ -77,39 +70,36 @@ class SchoolListViewModelTest {
 
     @After fun tearDown() { Dispatchers.resetMain() }
 
+    private fun newVm() = SchoolListViewModel(
+        getSchools, getTodayScores, getMyFavorites, getMyNotifications, location
+    )
+
     @Test fun `init carga con filtros por defecto y produce Success`() = runTest {
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         val state = vm.uiState.value
         assertTrue("estado debe ser Success, era $state", state is SchoolListUiState.Success)
         assertEquals(2, (state as SchoolListUiState.Success).schools.size)
-
-        // Filtros por defecto: 50 km, Madrid como fallback (sin permiso de location).
         coVerify {
             getSchools(
-                region = null,
-                style = null,
-                rockType = null,
-                lat = 40.4168,
-                lon = -3.7038,
-                radioKm = 50.0
+                region = null, style = null, rockType = null,
+                lat = 40.4168, lon = -3.7038, radioKm = 50.0
             )
         }
     }
 
     @Test fun `fallback a Madrid si LocationProvider devuelve null`() = runTest {
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         assertNull(vm.userLocation.value)
-        // El distanceTo desde Madrid a la Pedriza debe ser ~41 km (no 0).
         val dPedriza = vm.distanceTo(40.768, -3.852)
         assertTrue("distance to Pedriza esperada >30 km, fue $dPedriza", dPedriza in 30.0..50.0)
     }
 
     @Test fun `onLocationGranted actualiza userLocation y recarga`() = runTest {
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         coEvery { location.current() } returns UserLocation(41.0, 2.0)
@@ -117,9 +107,7 @@ class SchoolListViewModelTest {
         advanceUntilIdle()
 
         assertEquals(UserLocation(41.0, 2.0), vm.userLocation.value)
-        // El repo debió ser llamado al menos dos veces (init + onLocationGranted).
         coVerify(atLeast = 2) { getSchools(any(), any(), any(), any(), any(), any()) }
-        // La segunda carga usa la nueva ubicación.
         coVerify {
             getSchools(
                 region = null, style = null, rockType = null,
@@ -129,7 +117,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `setStyle Via recarga con style=Via`() = runTest {
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         vm.setStyle(StyleFilter.Via)
@@ -145,7 +133,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `setDistance null pide sin radio y sin lat lon`() = runTest {
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         vm.setDistance(null)
@@ -161,7 +149,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `toggleRock anyade y vuelve a togglear lo quita`() = runTest {
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         vm.toggleRock("Granito")
@@ -174,7 +162,7 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `setQuery filtra la lista por nombre o ubicacion`() = runTest {
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         vm.setQuery("pedriza")
@@ -190,12 +178,11 @@ class SchoolListViewModelTest {
             SchoolScoreDto(id = "A", todayScore = 30, hourlyScores = emptyList(), dryRock = true),
             SchoolScoreDto(id = "B", todayScore = 90, hourlyScores = emptyList(), dryRock = true)
         )
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         val state = vm.uiState.value
         assertTrue(state is SchoolListUiState.Success)
-        // Score 90 (B) debe ir antes que score 30 (A).
         val schools = (state as SchoolListUiState.Success).schools
         assertEquals("B", schools[0].id)
         assertEquals("A", schools[1].id)
@@ -203,25 +190,22 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `setSort Distance ordena por distancia desde el usuario`() = runTest {
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         vm.setSort(SortBy.Distance)
         advanceUntilIdle()
 
         val schools = (vm.uiState.value as SchoolListUiState.Success).schools
-        // Desde Madrid: Pedriza (40 km) está más cerca que Albarracín (~190 km).
         assertEquals("B", schools[0].id)
         assertEquals("A", schools[1].id)
     }
 
     @Test fun `setOnlyFavorites true filtra por ids favoritos`() = runTest {
-        coEvery { api.getMyFavorites() } returns listOf(
-            com.meteomontana.android.data.api.dto.FavoriteSchoolDto(
-                id = "A", name = "Albarracín", region = null, rockType = null, isFavorite = true
-            )
+        coEvery { getMyFavorites() } returns listOf(
+            FavoriteSchoolDto(id = "A", name = "Albarracín", region = null, rockType = null, isFavorite = true)
         )
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         vm.setOnlyFavorites(true)
@@ -234,7 +218,7 @@ class SchoolListViewModelTest {
 
     @Test fun `error del repo produce estado Error con mensaje`() = runTest {
         coEvery { getSchools(any(), any(), any(), any(), any(), any()) } throws RuntimeException("boom")
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        val vm = newVm()
         advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -243,12 +227,11 @@ class SchoolListViewModelTest {
     }
 
     @Test fun `unreadCount se actualiza desde getMyNotifications`() = runTest {
-        coEvery { api.getMyNotifications(any()) } returns InboxDto(unreadCount = 7, items = emptyList())
-        val vm = SchoolListViewModel(getSchools, getTodayScores, api, location)
+        coEvery { getMyNotifications(any()) } returns InboxDto(unreadCount = 7, items = emptyList())
+        val vm = newVm()
         advanceUntilIdle()
 
         vm.unreadCount.test {
-            // El último valor emitido debe ser 7.
             assertEquals(7L, expectMostRecentItem())
             cancelAndIgnoreRemainingEvents()
         }

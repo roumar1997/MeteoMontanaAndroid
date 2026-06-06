@@ -3,17 +3,26 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.AdminApi
-import com.meteomontana.android.data.api.SchoolApi
 import com.meteomontana.android.data.api.dto.AdminLogDto
-import com.meteomontana.android.data.api.dto.AdminPushRequest
 import com.meteomontana.android.data.api.dto.AdminStatsDto
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
-import com.meteomontana.android.data.api.dto.RejectReason
 import com.meteomontana.android.data.api.dto.SchoolDto
 import com.meteomontana.android.data.api.dto.SubmissionDto
+import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
+import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
+import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
+import com.meteomontana.android.domain.usecase.admin.GetAdminStatsUseCase
+import com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase
+import com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase
+import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
+import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
+import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
+import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
+import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
+import com.meteomontana.android.data.api.SchoolApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,8 +47,19 @@ data class AdminUiState(
 
 @HiltViewModel
 class AdminViewModel @Inject constructor(
-    private val api: AdminApi,
-    private val schoolApi: SchoolApi
+    private val getStats: GetAdminStatsUseCase,
+    private val getPendingSubmissions: GetPendingSubmissionsUseCase,
+    private val getPendingContributions: GetPendingContributionsUseCase,
+    private val getLogs: GetAdminLogsUseCase,
+    private val approveSubmission: ApproveSubmissionUseCase,
+    private val rejectSubmission: RejectSubmissionUseCase,
+    private val approveContributionUseCase: ApproveContributionUseCase,
+    private val rejectContributionUseCase: RejectContributionUseCase,
+    private val sendPushUseCase: SendPushUseCase,
+    private val getBlocks: GetBlocksUseCase,
+    private val updateBlockUseCase: UpdateBlockUseCase,
+    private val deleteBlockUseCase: DeleteBlockUseCase,
+    private val schoolApi: SchoolApi   // solo para getSchools() del tab GESTIONAR; pendiente extraer en 1.3
 ) : ViewModel() {
     private val _state = MutableStateFlow(AdminUiState())
     val state: StateFlow<AdminUiState> = _state.asStateFlow()
@@ -50,10 +70,10 @@ class AdminViewModel @Inject constructor(
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
-                val stats = api.stats()
-                val pending = runCatching { api.pendingSubmissions() }.getOrDefault(emptyList())
-                val contributions = runCatching { api.pendingContributions() }.getOrDefault(emptyList())
-                val logs = runCatching { api.logs() }.getOrDefault(emptyList())
+                val stats = getStats()
+                val pending = runCatching { getPendingSubmissions() }.getOrDefault(emptyList())
+                val contributions = runCatching { getPendingContributions() }.getOrDefault(emptyList())
+                val logs = runCatching { getLogs() }.getOrDefault(emptyList())
                 _state.update { it.copy(loading = false, stats = stats, pending = pending,
                     contributions = contributions, logs = logs) }
             } catch (t: Throwable) {
@@ -64,44 +84,42 @@ class AdminViewModel @Inject constructor(
 
     fun approve(id: String) {
         viewModelScope.launch {
-            runCatching { api.approve(id) }
+            runCatching { approveSubmission(id) }
             load()
         }
     }
 
     fun reject(id: String, reason: String?) {
         viewModelScope.launch {
-            runCatching { api.reject(id, RejectReason(reason)) }
+            runCatching { rejectSubmission(id, reason) }
             load()
         }
     }
 
     fun approveContribution(id: String) {
         viewModelScope.launch {
-            runCatching { api.approveContribution(id) }
+            runCatching { approveContributionUseCase(id) }
             load()
         }
     }
 
     fun rejectContribution(id: String, reason: String?) {
         viewModelScope.launch {
-            runCatching { api.rejectContribution(id, RejectReason(reason)) }
+            runCatching { rejectContributionUseCase(id, reason) }
             load()
         }
     }
 
-    /** Carga los bloques de una escuela (una sola vez; se cachea en el estado). */
     fun fetchSchoolBlocks(schoolId: String) {
         if (_state.value.schoolBlocks.containsKey(schoolId)) return
         viewModelScope.launch {
             try {
-                val blocks = schoolApi.getBlocks(schoolId)
+                val blocks = getBlocks(schoolId)
                 _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }
             } catch (_: Throwable) {}
         }
     }
 
-    /** Carga la lista completa de escuelas para el tab "GESTIONAR". */
     fun loadAllSchools() {
         if (_state.value.allSchools.isNotEmpty() || _state.value.schoolsLoading) return
         _state.update { it.copy(schoolsLoading = true) }
@@ -115,18 +133,16 @@ class AdminViewModel @Inject constructor(
         }
     }
 
-    /** Borra un bloque (admin). Refresca el cache local de bloques de esa escuela. */
     fun deleteBlock(blockId: String, schoolId: String) {
         viewModelScope.launch {
-            runCatching { schoolApi.deleteBlock(blockId) }
+            runCatching { deleteBlockUseCase(blockId) }
             try {
-                val blocks = schoolApi.getBlocks(schoolId)
+                val blocks = getBlocks(schoolId)
                 _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }
             } catch (_: Throwable) {}
         }
     }
 
-    /** Actualiza un bloque (admin): nombre, posición, descripción, líneas, etc. */
     fun updateBlock(
         blockId: String,
         schoolId: String,
@@ -134,9 +150,9 @@ class AdminViewModel @Inject constructor(
         onDone: (Boolean) -> Unit = {}
     ) {
         viewModelScope.launch {
-            val ok = runCatching { schoolApi.updateBlock(blockId, req) }.isSuccess
+            val ok = runCatching { updateBlockUseCase(blockId, req) }.isSuccess
             try {
-                val blocks = schoolApi.getBlocks(schoolId)
+                val blocks = getBlocks(schoolId)
                 _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }
             } catch (_: Throwable) {}
             onDone(ok)
@@ -147,7 +163,7 @@ class AdminViewModel @Inject constructor(
         _state.update { it.copy(pushBusy = true, pushResult = null) }
         viewModelScope.launch {
             try {
-                val r = api.sendPush(AdminPushRequest(targetUid, title, body))
+                val r = sendPushUseCase(targetUid, title, body)
                 _state.update { it.copy(pushBusy = false, pushResult = "Enviado a ${r.sent}/${r.recipients}") }
             } catch (t: Throwable) {
                 _state.update { it.copy(pushBusy = false, pushResult = "Error: ${t.message}") }
