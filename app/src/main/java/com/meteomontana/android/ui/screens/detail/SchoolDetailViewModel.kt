@@ -1,14 +1,13 @@
 package com.meteomontana.android.ui.screens.detail
 
-import android.content.Context
-import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
+import com.meteomontana.android.domain.model.FileRef
+import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.port.PhotoUploader
-import dagger.hilt.android.qualifiers.ApplicationContext
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
@@ -63,7 +62,7 @@ class SchoolDetailViewModel @Inject constructor(
     private val submitContributionUseCase: SubmitContributionUseCase,
     private val getMyProfile: GetMyProfileUseCase,
     private val photoUploader: PhotoUploader,
-    @ApplicationContext private val context: Context
+    private val fileReader: FileReader
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -125,11 +124,10 @@ class SchoolDetailViewModel @Inject constructor(
         lat: Double, lon: Double,
         name: String?,
         bloques: List<BoulderBloqueForm>,
-        photoUri: Uri?
+        photoRef: FileRef?
     ): Result<Unit> = runCatching {
-        val photoUrl = if (photoUri != null) {
-            val bytes = context.contentResolver.openInputStream(photoUri)?.use { it.readBytes() }
-                ?: error("No se pudo leer la foto")
+        val photoUrl = if (photoRef != null) {
+            val bytes = fileReader.readBytes(photoRef)
             photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
         } else null
 

@@ -9,7 +9,7 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.Current
 import com.meteomontana.android.domain.model.Forecast
-import android.content.Context
+import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.port.PhotoUploader
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
@@ -68,7 +68,7 @@ class SchoolDetailViewModelTest {
     private lateinit var submitContribution: SubmitContributionUseCase
     private lateinit var getMyProfile: GetMyProfileUseCase
     private lateinit var photoUploader: PhotoUploader
-    private lateinit var context: Context
+    private lateinit var fileReader: FileReader
 
     private val schoolId = "s1"
     private val school = School(
@@ -109,7 +109,7 @@ class SchoolDetailViewModelTest {
         submitContribution = mockk()
         getMyProfile = mockk()
         photoUploader = mockk()
-        context = mockk()
+        fileReader = mockk()
 
         coEvery { getSchoolById(schoolId) } returns school
         coEvery { getForecast(schoolId) } returns forecast
@@ -124,7 +124,7 @@ class SchoolDetailViewModelTest {
     private fun newVm() = SchoolDetailViewModel(
         savedState(), getSchoolById, getForecast, getNotes, createNote,
         getMyFavorites, addFavorite, removeFavorite, getBlocks, createBlock,
-        deleteBlockUC, submitContribution, getMyProfile, photoUploader, context
+        deleteBlockUC, submitContribution, getMyProfile, photoUploader, fileReader
     )
 
     @Test fun `load con todo OK produce Success con forecast y sin error`() = runTest {
@@ -245,7 +245,7 @@ class SchoolDetailViewModelTest {
 
         val bloques = listOf(BoulderBloqueForm(name = "Directa", grade = "6c", startType = "PIE"))
         val result = vm.submitBoulderContribution(
-            lat = 40.0, lon = -3.0, name = "La Piedra", bloques = bloques, photoUri = null
+            lat = 40.0, lon = -3.0, name = "La Piedra", bloques = bloques, photoRef = null
         )
 
         assertTrue(result.isSuccess)

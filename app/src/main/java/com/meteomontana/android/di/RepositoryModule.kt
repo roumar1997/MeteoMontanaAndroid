@@ -3,9 +3,11 @@ package com.meteomontana.android.di
 import com.meteomontana.android.data.auth.FirebaseAuthService
 import com.meteomontana.android.data.chat.FirebaseChatService
 import com.meteomontana.android.data.repository.SchoolRepositoryImpl
+import com.meteomontana.android.data.storage.AndroidFileReader
 import com.meteomontana.android.data.storage.FirebaseStoragePhotoUploader
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
+import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.port.PhotoUploader
 import com.meteomontana.android.domain.repository.SchoolRepository
 import dagger.Binds
@@ -29,4 +31,7 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindChatService(impl: FirebaseChatService): ChatService
+
+    @Binds @Singleton
+    abstract fun bindFileReader(impl: AndroidFileReader): FileReader
 }

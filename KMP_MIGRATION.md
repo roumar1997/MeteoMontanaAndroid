@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 1.5 cerrada — PhotoUploader, AuthService, ChatService en domain/port/)
+**Última actualización:** 2026-06-06 (Fase 1.6 cerrada — FileRef + FileReader eliminan Uri/Context del VM)
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -24,7 +24,7 @@
     toBloquesJson, gradeStyle, LineStroke). Todos verdes. ✅
   - [x] Sesión 2/2: 33 tests de ViewModels (12 SchoolList + 12 SchoolDetail
     + 9 Admin). Todos verdes. ✅ Total Fase 1.0: 78 tests.
-- [ ] **Fase 1** — Refactor Clean Android (3-4 sesiones).
+- [x] **Fase 1** — Refactor Clean Android. ✅ COMPLETA (1.1→1.6 todas cerradas).
   - [x] 1.1 — Use cases en `domain/usecase/`. ✅ Hecho schools, forecast,
     blocks, contributions, notes, favorites, notifications, profile y
     admin (9 use cases). Los 3 ViewModels (`SchoolListViewModel`,
@@ -54,9 +54,11 @@
     `FirebaseAuthService`, `FirebaseChatService` en `data/`. Bindings en
     `RepositoryModule`. ChatViewModel, ChatListViewModel, AuthInterceptor y
     SchoolDetailViewModel migrados a inyectar las interfaces. 86 tests verdes.
-  - [ ] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`). ← **SIGUIENTE**
+  - [x] 1.6 — Wrappers de tipos Android (`FileRef` en vez de `Uri`). ✅
+    FileRef (value class, domain/model/), FileReader (port), AndroidFileReader (data/).
+    SchoolDetailViewModel ya no importa android.net.Uri ni Context. 86 tests verdes.
 - [ ] **Fase 2** — Crear módulo `shared` KMP (2-3 sesiones).
-  - [ ] 2.1 — Setup KMP + targets Android/iOS.
+  - [ ] 2.1 — Setup KMP + targets Android/iOS. ← **SIGUIENTE**
   - [ ] 2.2 — Migrar `domain/` a `commonMain`.
   - [ ] 2.3 — Migrar `data/` a `commonMain` con Ktor + Kotlinx Serialization.
   - [ ] 2.4 — `actual` Android (Firebase Android SDK) + `actual` iOS (Firebase iOS).
@@ -518,29 +520,37 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 1.6: wrappers de tipos Android (`android.net.Uri` → `FileRef`).**
+**Fase 2.1: configurar el módulo `shared` KMP con targets Android e iOS.**
 
-`SchoolDetailViewModel.submitBoulderContribution()` recibe `android.net.Uri` y lo
-convierte a `ByteArray` usando `ContentResolver`. Esto mantiene una dependencia
-Android en el ViewModel — en KMP los ViewModels deberían ser 100% Kotlin puro.
+Toda la Fase 1 está completa. El dominio (`domain/model/`, `domain/usecase/`,
+`domain/port/`, `domain/util/`) y los puertos son Kotlin puro sin imports Android.
+Ahora creamos el módulo KMP que los contendrá.
 
 Plan:
 
-1. Crear `domain/model/FileRef.kt` — `data class FileRef(val path: String)` o un
-   `sealed class` con `FileRef.Local(uri: String)` / `FileRef.Remote(url: String)`.
-2. Crear `domain/port/FileReader.kt` — `suspend fun readBytes(ref: FileRef): ByteArray`.
-3. Implementación Android `data/storage/AndroidFileReader.kt` — usa `ContentResolver`
-   con el `uri` recibido como `android.net.Uri.parse(ref.path)`.
-4. Actualizar `SchoolDetailViewModel.submitBoulderContribution()`:
-   - Parámetro pasa de `Uri?` a `FileRef?`
-   - Usa `fileReader.readBytes(ref)` en vez de `contentResolver.openInputStream(uri)`.
-5. Actualizar los Composables que llaman al VM (ProposeContributionFlow, etc.)
-   para envolver el `Uri` elegido por el picker en `FileRef(uri.toString())`.
-6. Binding en `RepositoryModule`: `@Binds FileReader → AndroidFileReader`.
-7. Verificar 86 tests siguen verdes.
+1. En `settings.gradle.kts` del repo: añadir `include(":shared")`.
+2. Crear `shared/build.gradle.kts` con plugin `kotlin("multiplatform")`:
+   - `androidTarget()` — para la app Android.
+   - `iosX64()`, `iosArm64()`, `iosSimulatorArm64()` — para iOS (compilados en Mac).
+   - Dependencias: solo `kotlinx-coroutines-core` (multiplatform).
+3. Crear estructura de carpetas:
+   ```
+   shared/src/commonMain/kotlin/com/meteomontana/shared/
+   shared/src/androidMain/kotlin/com/meteomontana/shared/
+   shared/src/iosMain/kotlin/com/meteomontana/shared/
+   ```
+4. Mover (copiar + borrar origen) a `shared/src/commonMain/`:
+   - `domain/model/` — todos los modelos
+   - `domain/port/` — todas las interfaces
+   - `domain/usecase/` — todos los use cases
+   - `domain/util/TopoRenderer.kt`
+   Ajustar el package de `com.meteomontana.android.*` a `com.meteomontana.shared.*`.
+5. En `app/build.gradle.kts`: añadir `implementation(project(":shared"))` y
+   actualizar imports en el código `app/` al nuevo package.
+6. Verificar `./gradlew :app:assembleDebug` y los 86 tests siguen verdes.
 
-Resultado: `SchoolDetailViewModel` ya no importa `android.net.Uri` ni `Context` —
-listo para `commonMain` en Fase 2.
+Nota: los targets iOS estarán configurados pero no se pueden compilar desde
+Windows (requieren Xcode). El módulo `shared` en `commonMain` sí compila.
 
 Tests verdes antes de commit.
 
