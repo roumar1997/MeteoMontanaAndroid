@@ -393,7 +393,35 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
-### Gestión completa de bloques desde el admin (esta sesión)
+### Sesión 2026-06-10 (tarde) — sectores, stats al back, push avatar, R8
+
+- **Relación piedra→sector**: `school_blocks.sector_block_id` (V16, FK self-ref
+  a la ZONE de la escuela, nullable). Al proponer piedra nueva hay dropdown
+  "SECTOR (opcional)"; piedras existentes sin sector tienen "+ ASIGNAR SECTOR"
+  en `BlockDetailDialog` → contribución tipo **ASSIGN_SECTOR** (V17 amplió el
+  check de tipos) que el admin aprueba. Badge verde SECTOR en el detalle si la
+  piedra lo tiene. En el journal (`AddBlockSheet`) los sectores catalogados
+  salen como sugerencia y filtran las vías propuestas.
+- **#6 journal**: el campo BLOQUE/VÍA sugiere vías reales (grado + tipo) y al
+  elegir una autocompleta el grado.
+- **#8 stats mensuales**: `GET /api/schools/{id}/monthly-stats` en el back
+  (port de ClimbScore.kt, Caffeine propia TTL 30 días). La app ya no llama a
+  archive-api.open-meteo.com; `OpenMeteoArchive.kt` y `ClimbScore.kt` borrados.
+- **#9 topo aspect real**: `topoAspectRatio(w,h)` (clamp 0.55–2.2) sustituye
+  al 4:3 fijo en `TopoPhotoCanvas` y `ContributionTopoDialog` — misma fórmula
+  en editor y visores para que las líneas coincidan.
+- **#2 push avatar**: pushes sociales data-only (con bloque `notification`,
+  Android en background no ejecuta `onMessageReceived`) + `avatarUrl` en el
+  payload; `PushService` lo pinta como largeIcon circular.
+- **#1 fluidez**: `isMinifyEnabled` + `isShrinkResources` en release con keep
+  rules (kotlinx-serialization, MapLibre JNI, SQLDelight). **Pendiente probar
+  el APK release minificado en todas las pantallas** (primer build con R8).
+- **Fix auth 403**: el plugin Auth de Ktor cacheaba el token Firebase y solo
+  refrescaba ante 401 (Spring devuelve 403) → tras ~1h todo daba 403. Plugin
+  propio en `ApiHttpClient` que pide token fresco al provider en cada request.
+- Migraciones Flyway aplicadas hasta **V17**.
+
+### Gestión completa de bloques desde el admin (sesión anterior)
 
 - **Mapa de bloque mejorado** — `pinBitmapBoulder` dibuja un polígono irregular
   (forma de roca) con el **nombre del bloque** dentro. Parking sigue siendo
