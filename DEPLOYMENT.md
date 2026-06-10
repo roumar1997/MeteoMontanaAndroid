@@ -350,3 +350,111 @@ A medio plazo, automatizar con GitHub Actions:
 3. Tras testing manual, promocionar a producción desde Play Console.
 
 Equivalente para iOS con Fastlane + TestFlight cuando se llegue.
+
+---
+
+## ✅ Estado actual (2026-06-10)
+
+### Producción operativa
+
+| Pieza | Estado | URL / Detalle |
+|---|---|---|
+| Backend Spring Boot | ✅ desplegado en Railway | `https://api.climbingteams.com` |
+| Postgres | ✅ gestionada Railway | Con 191 escuelas + datos dev migrados |
+| HTTPS | ✅ certificado válido Railway | Cloudflare proxy DESACTIVADO (DNS only) |
+| Healthcheck | ✅ UP | `/actuator/health` |
+| GET schools | ✅ funciona | `/api/schools` devuelve las 191 |
+| Firebase Admin SDK | ✅ inicializado | Via env var `FIREBASE_SA_JSON` |
+| Dominio | ✅ propietario `climbingteams.com` | Subdominio `api.climbingteams.com` apuntando con CNAME |
+
+### Configuración Railway aplicada
+
+**Servicio backend (MeteoMontanaAPI)**:
+- Root Directory: `api`
+- Build: Dockerfile multi-stage en `api/Dockerfile`
+- Variables:
+  - `FIREBASE_SA_JSON` (JSON entero del service account)
+  - `DATABASE_URL` = `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}`
+  - `DATABASE_USERNAME` = `${{Postgres.PGUSER}}`
+  - `POSTGRES_PASSWORD` = `${{Postgres.PGPASSWORD}}`
+- Custom Domain: `api.climbingteams.com` con CNAME a `xxx.up.railway.app`.
+
+**Servicio Postgres**:
+- Plan: por defecto trial Railway.
+- Contraseña **rotada** después del setup (la inicial se filtró en chat → ya no vale).
+- Tablas creadas automáticamente por Flyway al primer boot del backend.
+- Datos migrados con:
+  ```powershell
+  docker exec -t meteomontana-postgres pg_dump -U meteomontana -d meteomontana --data-only --exclude-table=flyway_schema_history --inserts > backup.sql
+  Get-Content api\backup.sql | & "C:\Program Files\PostgreSQL\16\bin\psql.exe" "<URL-Railway>"
+  ```
+
+### Pendiente para terminar la publicación
+
+1. **Apuntar Android a producción** (lo más inmediato):
+   ```kotlin
+   // app/build.gradle.kts
+   release {
+       buildConfigField("String", "API_BASE_URL",
+                        "\"https://api.climbingteams.com/api/\"")
+       isMinifyEnabled = true
+       isShrinkResources = true
+       // signingConfig = signingConfigs.getByName("release")
+   }
+   ```
+2. **Generar keystore release**:
+   ```powershell
+   keytool -genkey -v -keystore meteomontana-release.jks `
+     -keyalg RSA -keysize 2048 -validity 10000 `
+     -alias meteomontana
+   ```
+   Guardar en sitio seguro (Drive privado cifrado). Si lo pierdes, no puedes actualizar en Play.
+3. **SHA-1 release a Firebase** Console → Settings → tu app Android → Add fingerprint.
+4. **Quitar cleartext HTTP** del `network_security_config.xml`.
+5. **Build firmado**:
+   ```powershell
+   ./gradlew :app:bundleRelease
+   ```
+6. **Probar APK release** en móvil físico: login + ver escuelas + propuesta + chat.
+7. **Plan Blaze de Firebase** (necesario para FCM y Storage en producción).
+8. **Play Console** (25 $ una vez): cuenta + listing + capturas + privacy policy en `climbingteams.com/privacy` + Data Safety form.
+
+### Pendiente Android (mejoras pre-publicación)
+
+Sin urgencia, pero conviene antes de Play Store:
+- **#1 Fluidez**: medir en build release y perfilar si sigue lenta.
+- **#6 Vías en vez de bloques** en `AddBlockSheet` (al añadir entrada de diario, mostrar vías existentes con su grado + tipo, autocompletar el grado).
+- **#8 Stats mensuales**: mover el cálculo a endpoint backend cacheado en vez de llamar a `archive-api.open-meteo.com` desde Android.
+- **#9 Foto crop**: el `TopoPhotoCanvas` usa aspect 4:3 fijo → ajustar para respetar aspect real.
+- **#2 Push de seguidor**: ya se manda con deep link pero podría incluir avatar en la notificación nativa.
+
+### Pendiente backend (mejoras pre-publicación)
+
+- **Plan Blaze de Firebase** antes de salir a Play Store (FCM ilimitado solo en Blaze).
+- **Variables opcionales en Railway** que NO he activado:
+  - `RESEND_API_KEY` + `RESEND_FROM` (los emails de aprobado/rechazado solo se mandan si están definidas).
+  - `FIREBASE_STORAGE_BUCKET` (usa el default `climbingteams.firebasestorage.app` si no se pone).
+
+### Notas para futuras sesiones
+
+- La contraseña de Postgres en producción **NO es la del chat anterior**, fue rotada.
+- El `serviceAccountKey.json` está EXCLUIDO del git (`.gitignore`). Hay una copia local en
+  `MeteoMontanaAPI/api/src/main/resources/serviceAccountKey.json` y otra en la raíz del repo.
+- Para acceder a Postgres producción desde tu PC: panel Postgres en Railway → tab Connect →
+  "Public Networking" URL. NUNCA pegues esa URL en logs o chat.
+- El backend Railway tarda ~30s en arrancar tras un redeploy.
+
+### Plantilla mensaje para retomar en otra sesión
+
+```
+Sigo desde donde lo dejé en DEPLOYMENT.md → "Estado actual (2026-06-10)".
+
+Producción funcionando: api.climbingteams.com con 191 escuelas, HTTPS,
+Firebase OK. Quiero ahora:
+- [ ] Apuntar Android al dominio nuevo y generar keystore release
+- [ ] Probar APK release end-to-end con login + propuesta
+- [ ] Sacar a Play Console internal testing
+
+Lee CLAUDE.md, KMP_MIGRATION.md y DEPLOYMENT.md antes de empezar.
+Modelo recomendado: Sonnet (mecánico) salvo bugs raros.
+```
