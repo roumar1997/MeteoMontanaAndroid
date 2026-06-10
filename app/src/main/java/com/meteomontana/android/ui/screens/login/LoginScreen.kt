@@ -110,7 +110,18 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 }
             }
 
-            // Bottom: legal
+            // Bottom: legal — los enlaces abren el navegador
+            val legalContext = androidx.compose.ui.platform.LocalContext.current
+            fun openUrl(url: String) {
+                runCatching {
+                    legalContext.startActivity(
+                        android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse(url)
+                        )
+                    )
+                }
+            }
             Text(
                 "Al continuar aceptas los términos y la política de privacidad.",
                 style = MaterialTheme.typography.labelMedium,
@@ -118,6 +129,28 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
+            Spacer(Modifier.height(4.dp))
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "TÉRMINOS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clickable { openUrl("https://climbingteams.com/terms.html") }
+                        .padding(8.dp)
+                )
+                Text(
+                    "PRIVACIDAD",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clickable { openUrl("https://climbingteams.com/privacy.html") }
+                        .padding(8.dp)
+                )
+            }
         }
     }
 }
