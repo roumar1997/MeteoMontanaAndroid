@@ -389,35 +389,40 @@ Equivalente para iOS con Fastlane + TestFlight cuando se llegue.
   Get-Content api\backup.sql | & "C:\Program Files\PostgreSQL\16\bin\psql.exe" "<URL-Railway>"
   ```
 
-### Pendiente para terminar la publicación
+### ✅ Completado (2026-06-10)
 
-1. **Apuntar Android a producción** (lo más inmediato):
-   ```kotlin
-   // app/build.gradle.kts
-   release {
-       buildConfigField("String", "API_BASE_URL",
-                        "\"https://api.climbingteams.com/api/\"")
-       isMinifyEnabled = true
-       isShrinkResources = true
-       // signingConfig = signingConfigs.getByName("release")
-   }
-   ```
-2. **Generar keystore release**:
-   ```powershell
-   keytool -genkey -v -keystore meteomontana-release.jks `
-     -keyalg RSA -keysize 2048 -validity 10000 `
-     -alias meteomontana
-   ```
-   Guardar en sitio seguro (Drive privado cifrado). Si lo pierdes, no puedes actualizar en Play.
-3. **SHA-1 release a Firebase** Console → Settings → tu app Android → Add fingerprint.
-4. **Quitar cleartext HTTP** del `network_security_config.xml`.
-5. **Build firmado**:
-   ```powershell
-   ./gradlew :app:bundleRelease
-   ```
-6. **Probar APK release** en móvil físico: login + ver escuelas + propuesta + chat.
-7. **Plan Blaze de Firebase** (necesario para FCM y Storage en producción).
-8. **Play Console** (25 $ una vez): cuenta + listing + capturas + privacy policy en `climbingteams.com/privacy` + Data Safety form.
+1. ~~**Apuntar Android a producción**~~ ✅ — `API_BASE_URL` release = `https://api.climbingteams.com/api/`
+2. ~~**Generar keystore release**~~ ✅ — `meteomontana-release.jks` en raíz del repo (en `.gitignore`). Alias `meteomontana`. Guardar la contraseña en sitio seguro.
+3. ~~**SHA-1 release a Firebase**~~ ✅ — `14:99:3A:66:0C:2C:EC:54:2F:91:73:1C:8E:7C:FB:BD:4E:37:75:D4` añadido a Firebase Console.
+4. ~~**Build firmado**~~ ✅ — `assembleRelease` funciona. APK probado en móvil físico: login, escuelas, detalle, propuesta. Todo operativo contra producción.
+
+### Pendiente para Play Store
+
+5. **Quitar cleartext HTTP** del `network_security_config.xml` (Play Store lo requiere).
+6. **Plan Blaze de Firebase** (necesario para FCM y Storage en producción).
+7. **Play Console** (25 $ una vez): cuenta + listing + capturas + privacy policy en `climbingteams.com/privacy` + Data Safety form.
+
+### Flujo de trabajo habitual
+
+**Desarrollo día a día**: botón Run de Android Studio → build debug → instala automático en el móvil/emulador. El debug apunta a `http://192.168.0.12:8080/api/` (backend local).
+
+**Cuando quieras probar contra producción** (sin publicar):
+```powershell
+$env:KEYSTORE_PASSWORD='tu-password'
+$env:KEY_PASSWORD='tu-password'
+./gradlew :app:assembleRelease
+& "C:\Users\rouma\AppData\Local\Android\Sdk\platform-tools\adb.exe" -s 12bf0837 uninstall com.meteomontana.android
+& "C:\Users\rouma\AppData\Local\Android\Sdk\platform-tools\adb.exe" -s 12bf0837 install app\build\outputs\apk\release\app-release.apk
+```
+Nota: hay que desinstalar primero si tenías el debug instalado (firmas distintas).
+
+**Cuando quieras subir a Play Store** (cuando llegue el momento):
+```powershell
+$env:KEYSTORE_PASSWORD='tu-password'
+$env:KEY_PASSWORD='tu-password'
+./gradlew :app:bundleRelease
+```
+Sale `app/build/outputs/bundle/release/app-release.aab` → ese fichero es el que sube a Play Console.
 
 ### Pendiente Android (mejoras pre-publicación)
 
