@@ -579,10 +579,9 @@ Lo que toca en Fase 3.1 (requiere que el usuario tenga Mac o CI Mac):
 4. **Primera pantalla SwiftUI** — `SchoolListView` que consume `GetSchoolsUseCase`
    publicado como `@Observable` o `ObservableObject`.
 
-**Pendiente Android (no bloqueante, puede hacerse en paralelo):**
-- `uploadPhoto` de perfil en `EditProfileViewModel` — TODO marcado (Fase 2.x).
-  Implementar con `PhotoUploader` port (ya disponible en `shared/androidMain/`).
-- Flujos SECTOR y CORREGIR POSICIÓN en `ProposeContributionFlow`.
+**Pendiente Android:** nada — `uploadPhoto` de perfil, flujos SECTOR y
+CORREGIR POSICIÓN, build R8 verificado, etc. están completos (2026-06-10).
+Solo queda la Fase 3 (requiere Mac).
 
 ### Sub-paso 2A — Forecast (+ tipos anidados)
 

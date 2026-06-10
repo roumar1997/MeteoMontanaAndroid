@@ -581,12 +581,10 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 ✅ Funciona en móvil físico (IP local) y emulador  
 
 **Pendiente (próximas sesiones):**
-- Flujo SECTOR, CORREGIR POSICIÓN en `ProposeContributionFlow`
-- `GET /api/users/search` — búsqueda de usuarios
-- Follows (tabla + endpoints + UI)
-- Diario personal en Android (backend ya tiene endpoints)
-- TTL caché forecast (Caffeine `expireAfterWrite=30m` en back)
-- `POST /api/me/photo` — foto de perfil
+- Nada bloqueado en Android: SECTOR/CORREGIR POSICIÓN, búsqueda de usuarios,
+  follows, diario, foto de perfil y build R8 están completos (2026-06-10).
+- Fase 3 KMP (app iOS) — EN PAUSA, requiere Mac. Ver `KMP_MIGRATION.md`.
+- Modo offline con Room (decisión tomada, sin fecha).
 
 **Offline futuro — decisión tomada (2026-06-05):**
 - Fotos → Firebase Storage (ya integrado, URLs se cachean con Coil automáticamente)
