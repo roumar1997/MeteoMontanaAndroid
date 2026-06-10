@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Config base (release): solo HTTPS, sin cleartext.
+  La variante debug en src/debug/res/xml/ sobreescribe este fichero
+  para permitir HTTP local contra el backend de desarrollo.
+-->
 <network-security-config>
-    <!--
-      Por defecto Android bloquea HTTP en cleartext desde API 28+.
-      En dev necesitamos hablar con http://10.0.2.2:8080 (back local).
-    -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.2.2</domain>
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">192.168.0.12</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>
