@@ -36,8 +36,8 @@ android {
         debug {
             // 10.0.2.2  = emulador Android → localhost del PC
             // 192.168.0.12 = móvil físico en la misma red que el PC (Ethernet)
-            buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
-            // buildConfigField("String", "API_BASE_URL", "\"https://api.climbingteams.com/api/\"")
+            // buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.climbingteams.com/api/\"")
         }
         release {
             // R8 activado: Compose sin minificar es notablemente más lento (jank).
