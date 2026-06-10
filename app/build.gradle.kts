@@ -15,7 +15,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("../../meteomontana-release.jks")
+            storeFile = file("../meteomontana-release.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD")
             keyAlias = "meteomontana"
             keyPassword = System.getenv("KEY_PASSWORD")
