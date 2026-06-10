@@ -257,7 +257,7 @@ private fun syncMarkers(
     val boundsBuilder = LatLngBounds.Builder()
     schools.forEach { s ->
         val score = scoresById[s.id]
-        val icon  = IconFactory.getInstance(ctx).fromBitmap(diamondBitmap(score))
+        val icon  = IconFactory.getInstance(ctx).fromBitmap(diamondBitmap(score, s.name))
         val marker = map.addMarker(
             MarkerOptions()
                 .position(LatLng(s.lat, s.lon))
@@ -291,26 +291,47 @@ private fun pinColorHex(score: Int?): String = when {
 }
 
 /**
- * Genera el pin diamante con el score blanco encima. Se construye en código
- * porque MapLibre no acepta vistas Compose como icon, sólo Bitmaps.
+ * Genera el pin diamante con el score blanco encima y el nombre de la escuela
+ * debajo (con halo blanco para que se lea sobre el mapa). Se construye en
+ * código porque MapLibre no acepta vistas Compose como icon, sólo Bitmaps.
  */
-private fun diamondBitmap(score: Int?): Bitmap {
-    val sizePx = 64
-    val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+private fun diamondBitmap(score: Int?, name: String): Bitmap {
+    val pinPx = 64
+    val label = if (name.length > 16) name.take(15).trimEnd() + "…" else name
+
+    // Paints del nombre: halo blanco grueso debajo + texto tinta encima.
+    val nameHalo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 6f
+        color = AndroidColor.WHITE
+        textSize = 22f
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+    val nameInk = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = "#1A1A1A".toColorInt()
+        textSize = 22f
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+    val nameWidth = nameHalo.measureText(label) + 12f
+    val widthPx = maxOf(pinPx, nameWidth.toInt())
+    val nameHeightPx = 28
+    val bmp = Bitmap.createBitmap(widthPx, pinPx + nameHeightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
 
     val color = pinColorHex(score).toColorInt()
 
     // Sombra suave bajo el diamante
+    val cx = widthPx / 2f
     val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = AndroidColor.argb(60, 0, 0, 0)
     }
-    canvas.drawOval(RectF(10f, sizePx - 16f, sizePx - 10f, sizePx - 6f), shadow)
+    canvas.drawOval(RectF(cx - 22f, pinPx - 16f, cx + 22f, pinPx - 6f), shadow)
 
     // Diamante: cuadrado rotado 45º, esquina inferior es la "punta"
-    val side = sizePx * 0.55f
-    val cx = sizePx / 2f
-    val cy = sizePx / 2f - 4f
+    val side = pinPx * 0.55f
+    val cy = pinPx / 2f - 4f
     canvas.save()
     canvas.rotate(45f, cx, cy)
     val rect = RectF(cx - side / 2f, cy - side / 2f, cx + side / 2f, cy + side / 2f)
@@ -331,8 +352,12 @@ private fun diamondBitmap(score: Int?): Bitmap {
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
-    val label = score?.toString() ?: "·"
-    canvas.drawText(label, cx, cy + 6f, txt)
+    canvas.drawText(score?.toString() ?: "·", cx, cy + 6f, txt)
+
+    // Nombre debajo del pin (halo primero, tinta encima)
+    val nameY = pinPx + nameHeightPx - 8f
+    canvas.drawText(label, cx, nameY, nameHalo)
+    canvas.drawText(label, cx, nameY, nameInk)
 
     return bmp
 }
