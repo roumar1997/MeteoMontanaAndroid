@@ -2,6 +2,7 @@ package com.meteomontana.android.di
 
 import android.content.Context
 import com.meteomontana.android.data.local.DatabaseFactory
+import com.meteomontana.android.data.saved.CachedSchoolsRepository
 import com.meteomontana.android.data.saved.SavedSchoolRepository
 import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.android.data.stats.MonthlyStatsRepository
@@ -30,6 +31,10 @@ object LocalModule {
     @Provides @Singleton
     fun provideSavedSchoolRepository(db: MeteoMontanaDb): SavedSchoolRepository =
         SavedSchoolRepository(db)
+
+    @Provides @Singleton
+    fun provideCachedSchoolsRepository(db: MeteoMontanaDb): CachedSchoolsRepository =
+        CachedSchoolsRepository(db)
 
     @Provides @Singleton
     fun provideOfflineTileManager(@ApplicationContext ctx: Context):

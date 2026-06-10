@@ -104,6 +104,31 @@ upsertForecast:
 INSERT OR REPLACE INTO SavedForecast(schoolId, forecastJson, fetchedAt)
 VALUES (?, ?, ?);
 
+-- ─── CachedSchool: catálogo completo para arranque instantáneo ───────────────
+-- Copia local de GET /api/schools sin filtros. La lista se pinta desde aquí
+-- al abrir la app y se refresca desde red en segundo plano (stale-while-revalidate).
+CREATE TABLE CachedSchool (
+    id        TEXT NOT NULL PRIMARY KEY,
+    name      TEXT NOT NULL,
+    location  TEXT,
+    region    TEXT,
+    style     TEXT,
+    rockType  TEXT,
+    lat       REAL NOT NULL,
+    lon       REAL NOT NULL,
+    source    TEXT
+);
+
+cachedSchoolsAll:
+SELECT * FROM CachedSchool;
+
+cachedSchoolsDeleteAll:
+DELETE FROM CachedSchool;
+
+cachedSchoolInsert:
+INSERT OR REPLACE INTO CachedSchool(id, name, location, region, style, rockType, lat, lon, source)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
 -- ─── Outbox: peticiones encoladas para enviar cuando vuelva la conexión ──────
 CREATE TABLE Outbox (
     id          INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

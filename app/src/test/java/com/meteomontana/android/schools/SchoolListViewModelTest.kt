@@ -1,10 +1,12 @@
 package com.meteomontana.android.schools
 
 import app.cash.turbine.test
-import com.meteomontana.android.domain.model.FavoriteSchool
-import com.meteomontana.android.domain.model.Inbox
 import com.meteomontana.android.data.location.LocationProvider
 import com.meteomontana.android.data.location.UserLocation
+import com.meteomontana.android.data.saved.CachedSchoolsRepository
+import com.meteomontana.android.data.saved.SavedSchoolRepository
+import com.meteomontana.android.domain.model.FavoriteSchool
+import com.meteomontana.android.domain.model.Inbox
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.SchoolScore
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
@@ -16,6 +18,7 @@ import com.meteomontana.android.ui.screens.schools.SchoolListViewModel
 import com.meteomontana.android.ui.screens.schools.SortBy
 import com.meteomontana.android.ui.screens.schools.StyleFilter
 import io.mockk.coEvery
+import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -42,11 +45,15 @@ class SchoolListViewModelTest {
     private lateinit var getMyFavorites: GetMyFavoritesUseCase
     private lateinit var getMyNotifications: GetMyNotificationsUseCase
     private lateinit var location: LocationProvider
+    private lateinit var savedRepo: SavedSchoolRepository
+    private lateinit var cachedRepo: CachedSchoolsRepository
 
+    // A está a ~190 km de Madrid (queda fuera del radio por defecto de 50 km).
     private val schoolA = School(
         id = "A", name = "Albarracín", location = "Teruel", region = "Aragón",
         style = "Bloque", rockType = "Arenisca", lat = 40.408, lon = -1.444, source = null
     )
+    // B está a ~40 km de Madrid (dentro del radio por defecto).
     private val schoolB = School(
         id = "B", name = "Pedriza", location = "Madrid", region = "Madrid",
         style = "Vía", rockType = "Granito", lat = 40.768, lon = -3.852, source = null
@@ -59,10 +66,14 @@ class SchoolListViewModelTest {
         getMyFavorites = mockk()
         getMyNotifications = mockk()
         location = mockk()
+        savedRepo = mockk(relaxed = true)
+        cachedRepo = mockk()
         coEvery { location.current() } returns null
         coEvery { getMyFavorites() } returns emptyList()
         coEvery { getMyNotifications(any()) } returns Inbox(unreadCount = 0, items = emptyList())
         coEvery { getTodayScores(any()) } returns emptyList()
+        coEvery { cachedRepo.load() } returns emptyList()
+        coJustRun { cachedRepo.replaceAll(any()) }
         coEvery {
             getSchools(any(), any(), any(), any(), any(), any())
         } returns listOf(schoolA, schoolB)
@@ -71,22 +82,38 @@ class SchoolListViewModelTest {
     @After fun tearDown() { Dispatchers.resetMain() }
 
     private fun newVm() = SchoolListViewModel(
-        getSchools, getTodayScores, getMyFavorites, getMyNotifications, location
+        getSchools, getTodayScores, getMyFavorites, getMyNotifications,
+        location, savedRepo, cachedRepo
     )
 
-    @Test fun `init carga con filtros por defecto y produce Success`() = runTest {
+    @Test fun `init baja el catalogo completo sin filtros y filtra en local`() = runTest {
         val vm = newVm()
         advanceUntilIdle()
 
         val state = vm.uiState.value
         assertTrue("estado debe ser Success, era $state", state is SchoolListUiState.Success)
-        assertEquals(2, (state as SchoolListUiState.Success).schools.size)
-        coVerify {
+        // Con el radio por defecto de 50 km desde Madrid solo entra Pedriza.
+        assertEquals(listOf("B"), (state as SchoolListUiState.Success).schools.map { it.id })
+        // La red se pide UNA vez y sin filtros (el filtrado es local).
+        coVerify(exactly = 1) {
             getSchools(
                 region = null, style = null, rockType = null,
-                lat = 40.4168, lon = -3.7038, radioKm = 50.0
+                lat = null, lon = null, radioKm = null
             )
         }
+        // Y el catálogo fresco se persiste en la caché local.
+        coVerify { cachedRepo.replaceAll(listOf(schoolA, schoolB)) }
+    }
+
+    @Test fun `con cache previa pinta datos aunque la red falle`() = runTest {
+        coEvery { cachedRepo.load() } returns listOf(schoolB)
+        coEvery { getSchools(any(), any(), any(), any(), any(), any()) } throws RuntimeException("sin red")
+        val vm = newVm()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue("debe ser Success con datos de cache, era $state", state is SchoolListUiState.Success)
+        assertEquals(listOf("B"), (state as SchoolListUiState.Success).schools.map { it.id })
     }
 
     @Test fun `fallback a Madrid si LocationProvider devuelve null`() = runTest {
@@ -98,54 +125,46 @@ class SchoolListViewModelTest {
         assertTrue("distance to Pedriza esperada >30 km, fue $dPedriza", dPedriza in 30.0..50.0)
     }
 
-    @Test fun `onLocationGranted actualiza userLocation y recarga`() = runTest {
+    @Test fun `onLocationGranted actualiza userLocation y refiltra sin red`() = runTest {
         val vm = newVm()
         advanceUntilIdle()
 
-        coEvery { location.current() } returns UserLocation(41.0, 2.0)
+        // Usuario en Teruel: ahora la cercana es Albarracín, no Pedriza.
+        coEvery { location.current() } returns UserLocation(40.40, -1.40)
         vm.onLocationGranted()
         advanceUntilIdle()
 
-        assertEquals(UserLocation(41.0, 2.0), vm.userLocation.value)
-        coVerify(atLeast = 2) { getSchools(any(), any(), any(), any(), any(), any()) }
-        coVerify {
-            getSchools(
-                region = null, style = null, rockType = null,
-                lat = 41.0, lon = 2.0, radioKm = 50.0
-            )
-        }
+        assertEquals(UserLocation(40.40, -1.40), vm.userLocation.value)
+        val schools = (vm.uiState.value as SchoolListUiState.Success).schools
+        assertEquals(listOf("A"), schools.map { it.id })
+        // El refiltrado es local: la red sigue habiéndose llamado solo una vez.
+        coVerify(exactly = 1) { getSchools(any(), any(), any(), any(), any(), any()) }
     }
 
-    @Test fun `setStyle Via recarga con style=Via`() = runTest {
+    @Test fun `setStyle Via filtra en local por estilo`() = runTest {
         val vm = newVm()
         advanceUntilIdle()
 
+        vm.setDistance(null)   // sin límite para ver ambas
         vm.setStyle(StyleFilter.Via)
         advanceUntilIdle()
 
-        coVerify {
-            getSchools(
-                region = null, style = "Vía", rockType = null,
-                lat = 40.4168, lon = -3.7038, radioKm = 50.0
-            )
-        }
         assertEquals(StyleFilter.Via, vm.filters.value.style)
+        val schools = (vm.uiState.value as SchoolListUiState.Success).schools
+        assertEquals(listOf("B"), schools.map { it.id })
     }
 
-    @Test fun `setDistance null pide sin radio y sin lat lon`() = runTest {
+    @Test fun `setDistance null muestra todas sin llamar a red`() = runTest {
         val vm = newVm()
         advanceUntilIdle()
 
         vm.setDistance(null)
         advanceUntilIdle()
 
-        coVerify {
-            getSchools(
-                region = null, style = null, rockType = null,
-                lat = null, lon = null, radioKm = null
-            )
-        }
         assertNull(vm.filters.value.maxDistanceKm)
+        val schools = (vm.uiState.value as SchoolListUiState.Success).schools
+        assertEquals(2, schools.size)
+        coVerify(exactly = 1) { getSchools(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test fun `toggleRock anyade y vuelve a togglear lo quita`() = runTest {
@@ -181,6 +200,9 @@ class SchoolListViewModelTest {
         val vm = newVm()
         advanceUntilIdle()
 
+        vm.setDistance(null)   // sin límite para ver ambas
+        advanceUntilIdle()
+
         val state = vm.uiState.value
         assertTrue(state is SchoolListUiState.Success)
         val schools = (state as SchoolListUiState.Success).schools
@@ -193,6 +215,7 @@ class SchoolListViewModelTest {
         val vm = newVm()
         advanceUntilIdle()
 
+        vm.setDistance(null)
         vm.setSort(SortBy.Distance)
         advanceUntilIdle()
 
@@ -208,6 +231,7 @@ class SchoolListViewModelTest {
         val vm = newVm()
         advanceUntilIdle()
 
+        vm.setDistance(null)   // A está a >50 km del fallback Madrid
         vm.setOnlyFavorites(true)
         advanceUntilIdle()
 
@@ -216,7 +240,7 @@ class SchoolListViewModelTest {
         assertEquals("A", schools.first().id)
     }
 
-    @Test fun `error del repo produce estado Error con mensaje`() = runTest {
+    @Test fun `error de red sin cache produce estado Error con mensaje`() = runTest {
         coEvery { getSchools(any(), any(), any(), any(), any(), any()) } throws RuntimeException("boom")
         val vm = newVm()
         advanceUntilIdle()

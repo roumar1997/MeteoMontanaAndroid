@@ -393,6 +393,21 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-11 — rendimiento percibido (paridad con la PWA)
+
+- **Cargas en paralelo**: Profile, SchoolDetail, Admin y PublicProfile lanzaban
+  sus llamadas al backend en serie (~350 ms de RTT contra Railway cada una).
+  Ahora las independientes van con `async` dentro de `coroutineScope`.
+- **Catálogo de escuelas con stale-while-revalidate**: tabla `CachedSchool`
+  (SQLDelight, BD renombrada a v3) + `CachedSchoolsRepository`. La lista se
+  pinta al instante desde caché al abrir y se refresca desde red en segundo
+  plano. Los filtros (estilo/roca/distancia/texto) se aplican **en local**
+  (misma semántica que el backend: equalsIgnoreCase + haversine) → tocar un
+  chip de filtro ya no hace ninguna llamada de red.
+- Tests de `SchoolListViewModel` reescritos al nuevo flujo; fix de un test
+  de `SchoolDetailViewModel` que venía roto (mock relaxed devolvía snapshot
+  offline fantasma).
+
 ### Sesión 2026-06-10 (tarde) — sectores, stats al back, push avatar, R8
 
 - **Relación piedra→sector**: `school_blocks.sector_block_id` (V16, FK self-ref

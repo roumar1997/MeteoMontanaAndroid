@@ -60,8 +60,15 @@ class SchoolListViewModel @Inject constructor(
     private val getMyFavorites: GetMyFavoritesUseCase,
     private val getMyNotifications: GetMyNotificationsUseCase,
     private val locationProvider: LocationProvider,
-    private val savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository
+    private val savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository,
+    private val cachedSchoolsRepo: com.meteomontana.android.data.saved.CachedSchoolsRepository
 ) : ViewModel() {
+
+    // Catálogo completo en memoria (stale-while-revalidate): se pinta desde la
+    // caché SQLDelight al instante y se refresca desde red en segundo plano.
+    // Los filtros (estilo, roca, distancia, texto) se aplican en local — misma
+    // semántica que el backend (equalsIgnoreCase + haversine), pero sin red.
+    private var allSchools: List<School> = emptyList()
 
     // Fallback Madrid si no hay permiso de ubicación; se sobreescribe al cargar.
     private var userLat: Double = 40.4168
@@ -86,15 +93,36 @@ class SchoolListViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // 1) intentar obtener ubicación real (no bloquea: si no hay permiso, sigue con Madrid)
+            // 1) Pintar YA desde la caché local (si hay datos de una sesión anterior).
+            allSchools = runCatching { cachedSchoolsRepo.load() }.getOrDefault(emptyList())
+            if (allSchools.isNotEmpty()) load()
+
+            // 2) Ubicación real (no bloquea: si no hay permiso, sigue con Madrid).
             locationProvider.current()?.let { loc ->
                 userLat = loc.lat
                 userLon = loc.lon
                 _userLocation.value = loc
+                if (allSchools.isNotEmpty()) load()  // re-filtra distancias con la posición real
             }
             _favoriteIds.value = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
-            load()
+
+            // 3) Refrescar el catálogo desde red y actualizar caché + pantalla.
+            refreshFromNetwork()
             refreshUnread()
+        }
+    }
+
+    /** Baja el catálogo completo (sin filtros), lo cachea y re-emite la lista. */
+    private suspend fun refreshFromNetwork() {
+        runCatching {
+            getSchools(style = null, rockType = null, lat = null, lon = null, radioKm = null)
+        }.onSuccess { fresh ->
+            allSchools = fresh
+            runCatching { cachedSchoolsRepo.replaceAll(fresh) }
+            load()
+        }.onFailure { t ->
+            // Solo mostramos error si no teníamos nada que enseñar.
+            if (allSchools.isEmpty()) _uiState.value = SchoolListUiState.Error(t.toUserMessage())
         }
     }
 
@@ -119,7 +147,6 @@ class SchoolListViewModel @Inject constructor(
     }
 
     fun load() {
-        _uiState.value = SchoolListUiState.Loading
         val f = _filters.value
         viewModelScope.launch {
             // Modo offline: lee las escuelas guardadas en Room. Sin internet.
@@ -139,27 +166,28 @@ class SchoolListViewModel @Inject constructor(
                 }
                 return@launch
             }
-            _uiState.value = try {
-                var list = getSchools(
-                    style = f.style.apiValue,
-                    rockType = f.rockTypes.takeIf { it.isNotEmpty() },
-                    lat = if (f.maxDistanceKm != null) userLat else null,
-                    lon = if (f.maxDistanceKm != null) userLon else null,
-                    radioKm = f.maxDistanceKm
-                )
-                list = filterQuery(list, f.query)
-                if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
-
-                // Cargar scores en background para hasta 50 escuelas (límite del backend)
-                loadScoresFor(list.take(50).map { it.id }) {
-                    // tras cargar, re-emitimos el estado para que aplique el sort por score
-                    applySort(f)
-                }
-
-                SchoolListUiState.Success(applySortInternal(list, f, _scores.value))
-            } catch (t: Throwable) {
-                SchoolListUiState.Error(t.toUserMessage())
+            // Catálogo aún sin datos (primer arranque sin caché): spinner mientras
+            // refreshFromNetwork() termina.
+            if (allSchools.isEmpty()) {
+                _uiState.value = SchoolListUiState.Loading
+                return@launch
             }
+            // Filtrado 100% local sobre el catálogo en memoria — cero red.
+            var list = allSchools.asSequence()
+                .filter { f.style.apiValue == null || f.style.apiValue.equals(it.style, ignoreCase = true) }
+                .filter { f.rockTypes.isEmpty() || f.rockTypes.any { r -> r.equals(it.rockType, ignoreCase = true) } }
+                .filter { f.maxDistanceKm == null || haversineKm(userLat, userLon, it.lat, it.lon) <= f.maxDistanceKm }
+                .toList()
+            list = filterQuery(list, f.query)
+            if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
+
+            // Cargar scores en background para hasta 50 escuelas (límite del backend)
+            loadScoresFor(list.take(50).map { it.id }) {
+                // tras cargar, re-emitimos el estado para que aplique el sort por score
+                applySort(f)
+            }
+
+            _uiState.value = SchoolListUiState.Success(applySortInternal(list, f, _scores.value))
         }
     }
 
