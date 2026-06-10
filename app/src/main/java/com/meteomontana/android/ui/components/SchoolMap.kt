@@ -80,6 +80,8 @@ fun SchoolMap(
     blocks: List<Block>,
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit = {},
+    schoolName: String = "",
+    schoolId: String = "",
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -87,9 +89,16 @@ fun SchoolMap(
     // Estado del flujo de propuesta
     var proposeOpen    by remember { mutableStateOf(false) }
     var waitingMapTap  by remember { mutableStateOf(false) }
+    var correctionMode by remember { mutableStateOf(false) }
+    var correctionGhost by remember { mutableStateOf<com.meteomontana.android.ui.screens.detail.CorrectionGhost?>(null) }
+    var correctionTargetName by remember { mutableStateOf<String?>(null) }
 
     // Callback que el flujo registra para recibir el tap en el mapa
     var mapTapCallback by remember { mutableStateOf<((Double, Double) -> Unit)?>(null) }
+    // Callback que el flujo registra para recibir un tap en un marker existente.
+    var markerTapForCorrection by remember { mutableStateOf<((Block) -> Unit)?>(null) }
+    // Callback que el flujo registra para que se dispare al pulsar ACEPTAR.
+    var acceptCorrectionCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     Column(modifier = modifier.fillMaxWidth()) {
 
@@ -130,19 +139,34 @@ fun SchoolMap(
                 centerLat     = centerLat,
                 centerLon     = centerLon,
                 blocks        = blocks,
+                schoolName    = schoolName,
+                schoolId      = schoolId,
                 viewModel     = viewModel,
                 onMyProposals = onMyProposals,
                 waitingMapTap = waitingMapTap,
+                correctionMode = correctionMode,
+                correctionGhost = correctionGhost,
+                correctionTargetName = correctionTargetName,
                 onProposeClick = { proposeOpen = true },
                 onCancelTap   = {
                     waitingMapTap = false
+                    correctionMode = false
+                    correctionGhost = null
+                    correctionTargetName = null
                     proposeOpen = false
                     mapTapCallback = null
+                    markerTapForCorrection = null
+                    acceptCorrectionCallback = null
                 },
                 onMapTapped   = { lat, lon ->
                     mapTapCallback?.invoke(lat, lon)
-                    waitingMapTap = false
-                }
+                    // No reseteamos waitingMapTap en modo corrección (sigue activo hasta ACEPTAR).
+                    if (!correctionMode) waitingMapTap = false
+                },
+                onMarkerTappedForCorrection = { block ->
+                    markerTapForCorrection?.invoke(block)
+                },
+                onAcceptCorrection = { acceptCorrectionCallback?.invoke() }
             )
         }
     }
@@ -150,14 +174,26 @@ fun SchoolMap(
     // ── Flujo de propuesta (dialogs) ──────────────────────────────────────
     if (proposeOpen) {
         ProposeContributionFlow(
-            schoolName      = "",
+            schoolName      = schoolName,
+            schoolLat       = centerLat,
+            schoolLon       = centerLon,
             waitingForTap   = waitingMapTap,
             onStartWaitingTap = { waitingMapTap = true },
             onMapTap        = { cb -> mapTapCallback = cb },
+            onMarkerTapForCorrection = { cb -> markerTapForCorrection = cb },
+            onCorrectionModeChange = { correctionMode = it },
+            onGhostMarkerChange = { correctionGhost = it },
+            onCorrectionTargetChange = { correctionTargetName = it },
+            onAcceptCorrection = { cb -> acceptCorrectionCallback = cb },
             onDismiss       = {
                 proposeOpen = false
                 waitingMapTap = false
+                correctionMode = false
+                correctionGhost = null
+                correctionTargetName = null
                 mapTapCallback = null
+                markerTapForCorrection = null
+                acceptCorrectionCallback = null
             },
             onMyProposals   = onMyProposals,
             viewModel       = viewModel
@@ -172,12 +208,19 @@ private fun InnerMap(
     centerLat: Double,
     centerLon: Double,
     blocks: List<Block>,
+    schoolName: String,
+    schoolId: String,
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit,
     waitingMapTap: Boolean,
+    correctionMode: Boolean,
+    correctionGhost: com.meteomontana.android.ui.screens.detail.CorrectionGhost?,
+    correctionTargetName: String?,
     onProposeClick: () -> Unit,
     onCancelTap: () -> Unit,
-    onMapTapped: (Double, Double) -> Unit
+    onMapTapped: (Double, Double) -> Unit,
+    onMarkerTappedForCorrection: (Block) -> Unit,
+    onAcceptCorrection: () -> Unit
 ) {
     val ctx = LocalContext.current
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
@@ -185,10 +228,37 @@ private fun InnerMap(
     val mapRef       = remember { mutableStateOf<MapLibreMap?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // Snapshots actualizados de flags y callbacks para que los listeners del factory los lean fresh.
+    val waitingMapTapState by androidx.compose.runtime.rememberUpdatedState(waitingMapTap)
+    val correctionModeState by androidx.compose.runtime.rememberUpdatedState(correctionMode)
+    val onMarkerTappedForCorrectionState by androidx.compose.runtime.rememberUpdatedState(onMarkerTappedForCorrection)
+    val onMapTappedState by androidx.compose.runtime.rememberUpdatedState(onMapTapped)
+
     // Bloque seleccionado (para popup) y bloque al que añadir vías
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
+
+    // Marker virtual de la escuela (para tap → proponer mover escuela entera).
+    val schoolMarker = remember(schoolName, centerLat, centerLon) {
+        Block(
+            id = "__SCHOOL__", schoolId = schoolId, type = "SCHOOL",
+            name = schoolName.ifBlank { "ESCUELA" },
+            lat = centerLat, lon = centerLon,
+            photoPath = null, description = null,
+            createdByUid = "", createdAt = "", lines = emptyList()
+        )
+    }
+    val allMarkers = remember(blocks, schoolMarker) { listOf(schoolMarker) + blocks }
+
+    // Re-pinta markers cuando aparece/cambia el ghost para reflejar la posición candidata.
+    androidx.compose.runtime.LaunchedEffect(correctionGhost) {
+        val map = mapRef.value ?: return@LaunchedEffect
+        placeMarkers(ctx, map, allMarkers, correctionGhost) { tapped ->
+            if (correctionMode) onMarkerTappedForCorrection(tapped)
+            else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -224,8 +294,9 @@ private fun InnerMap(
                         currentStyle = option
                         mapViewRef.value?.getMapAsync { map ->
                             map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
-                                placeMarkers(ctx, map, blocks) { tapped ->
-                                    selectedBlock = tapped
+                                placeMarkers(ctx, map, allMarkers, correctionGhost) { tapped ->
+                                    if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+                                    else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
                                 }
                             }
                         }
@@ -234,27 +305,39 @@ private fun InnerMap(
             }
         }
 
-        // Banner "PULSA EN EL MAPA" cuando estamos esperando tap
-        if (waitingMapTap) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Terra)
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically
+        // Banner contextual con estado preciso del flujo.
+        if (waitingMapTap || correctionMode) {
+            val bannerText = when {
+                !correctionMode -> "ℹ PULSA EN EL MAPA EN LA POSICIÓN ELEGIDA"
+                correctionTargetName == null ->
+                    "ℹ PULSA EL MARKER (PIEDRA / PARKING / ZONA / ESCUELA) QUE QUIERES MOVER"
+                correctionGhost?.newLat == null ->
+                    "✓ HAS PULSADO \"${correctionTargetName}\" · AHORA PULSA LA NUEVA POSICIÓN EN EL MAPA"
+                else ->
+                    "✓ POSICIÓN FIJADA PARA \"${correctionTargetName}\" · PULSA OTRA VEZ PARA RECORREGIR O ACEPTAR"
+            }
+            Column(
+                modifier = Modifier.fillMaxWidth().background(Terra)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
-                Text(
-                    "ℹ PULSA EN EL MAPA DONDE QUIERES AÑADIR EL PARKING",
-                    style = EyebrowTextStyle,
-                    color = Color.White,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    " ✕",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.clickable(onClick = onCancelTap)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(bannerText, style = EyebrowTextStyle, color = Color.White,
+                        modifier = Modifier.weight(1f))
+                    Text(" ✕", color = Color.White, style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.clickable(onClick = onCancelTap))
+                }
+                // Botón ACEPTAR cuando hay posición candidata fijada.
+                if (correctionGhost?.newLat != null && correctionGhost.newLon != null) {
+                    Spacer(Modifier.size(Spacing.sm))
+                    Box(modifier = Modifier.fillMaxWidth()
+                        .background(Color.White)
+                        .clickable(onClick = onAcceptCorrection)
+                        .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("✓ ACEPTAR", style = EyebrowTextStyle, color = Terra)
+                    }
+                }
             }
         }
 
@@ -282,8 +365,9 @@ private fun InnerMap(
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(centerLat, centerLon))
                                     .zoom(15.0).build()
-                                placeMarkers(ctx, map, blocks) { tapped ->
-                                    selectedBlock = tapped
+                                placeMarkers(ctx, map, allMarkers, correctionGhost) { tapped ->
+                                    if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+                                    else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
                                 }
                             }
                             map.uiSettings.apply {
@@ -291,8 +375,8 @@ private fun InnerMap(
                                 isTiltGesturesEnabled   = false
                             }
                             map.addOnMapClickListener { point ->
-                                if (waitingMapTap) {
-                                    onMapTapped(point.latitude, point.longitude)
+                                if (waitingMapTapState || correctionModeState) {
+                                    onMapTappedState(point.latitude, point.longitude)
                                     true
                                 } else {
                                     // Tap fuera de marker → cierra popup
@@ -305,15 +389,8 @@ private fun InnerMap(
                     }
                 },
                 update = { _ ->
-                    mapRef.value?.addOnMapClickListener { point ->
-                        if (waitingMapTap) {
-                            onMapTapped(point.latitude, point.longitude)
-                            true
-                        } else {
-                            selectedBlock = null
-                            false
-                        }
-                    }
+                    // Sin re-registrar listener — el del factory lee siempre
+                    // los flags actuales waitingMapTap/correctionMode vía closure.
                 }
             )
 
@@ -458,6 +535,7 @@ private fun placeMarkers(
     ctx: android.content.Context,
     map: MapLibreMap,
     blocks: List<Block>,
+    ghost: com.meteomontana.android.ui.screens.detail.CorrectionGhost? = null,
     onBlockTap: (Block) -> Unit
 ) {
     map.clear()
@@ -466,10 +544,16 @@ private fun placeMarkers(
     val iconFactory = IconFactory.getInstance(ctx)
 
     blocks.forEach { b ->
+        // Si este marker está siendo movido (es el original), lo pintamos semitransparente.
+        val isOriginalBeingMoved = ghost != null && (
+            (ghost.originalId == null && b.id == "__SCHOOL__") ||
+            (ghost.originalId != null && b.id == ghost.originalId)
+        )
         val icon = when (b.type.uppercase()) {
-            "PARKING" -> iconFactory.fromBitmap(parkingBitmap())
-            "ZONE"    -> iconFactory.fromBitmap(zoneBitmap())
-            else      -> iconFactory.fromBitmap(blockBitmap(b.name))
+            "PARKING" -> iconFactory.fromBitmap(parkingBitmap().fadedIf(isOriginalBeingMoved))
+            "ZONE"    -> iconFactory.fromBitmap(zoneBitmap().fadedIf(isOriginalBeingMoved))
+            "SCHOOL"  -> iconFactory.fromBitmap(schoolBitmap(b.name).fadedIf(isOriginalBeingMoved))
+            else      -> iconFactory.fromBitmap(blockBitmap(b.name).fadedIf(isOriginalBeingMoved))
         }
         val marker = map.addMarker(
             MarkerOptions()
@@ -480,10 +564,79 @@ private fun placeMarkers(
         markerBlockMap[marker.id] = b
     }
 
+    // Ghost marker en la nueva posición candidata.
+    if (ghost?.newLat != null && ghost.newLon != null) {
+        map.addMarker(
+            MarkerOptions()
+                .position(LatLng(ghost.newLat, ghost.newLon))
+                .icon(iconFactory.fromBitmap(ghostBitmap()))
+                .title("Nueva posición")
+        )
+    }
+
     map.setOnMarkerClickListener { marker ->
         markerBlockMap[marker.id]?.let { onBlockTap(it) }
-        true   // consumimos el evento: no se abre el InfoWindow por defecto
+        true
     }
+}
+
+/** Aplica alpha 0.35f a un bitmap si [faded] es true. */
+private fun Bitmap.fadedIf(faded: Boolean): Bitmap {
+    if (!faded) return this
+    val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val c = Canvas(out)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { alpha = 90 }
+    c.drawBitmap(this, 0f, 0f, paint)
+    return out
+}
+
+/** Marker fantasma terra con ★ para la posición candidata. */
+private fun ghostBitmap(): Bitmap {
+    val size = 64
+    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val c = Canvas(bmp)
+    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor("#C2410C")
+    }
+    val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 4f; color = android.graphics.Color.WHITE
+    }
+    c.drawCircle(size / 2f, size / 2f, 24f, fill)
+    c.drawCircle(size / 2f, size / 2f, 24f, border)
+    val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE; textSize = 28f
+        textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
+    }
+    c.drawText("★", size / 2f, size / 2f + 10f, txt)
+    return bmp
+}
+
+/** Símbolo de escuela: triángulo terra estilo "montaña" para marcar el centro. */
+private fun schoolBitmap(label: String): Bitmap {
+    val size = 72
+    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val c = Canvas(bmp)
+    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor("#1C1C1A")
+    }
+    val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        color = android.graphics.Color.WHITE
+    }
+    val path = android.graphics.Path().apply {
+        // Triángulo apuntando arriba (montaña)
+        moveTo(size / 2f, 8f)
+        lineTo(size - 8f, size - 10f)
+        lineTo(8f, size - 10f)
+        close()
+    }
+    c.drawPath(path, fill)
+    c.drawPath(path, border)
+    // Punto blanco dentro para que destaque
+    val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE }
+    c.drawCircle(size / 2f, size / 2f + 4f, 5f, dot)
+    return bmp
 }
 
 /** Cuadrado azul con "P" blanca — símbolo internacional de parking. */
@@ -522,7 +675,7 @@ private fun parkingBitmap(): Bitmap {
 private fun blockBitmap(label: String): Bitmap = pinBitmapBoulder(
     label = label.takeIf { it.isNotBlank() } ?: "?",
     fillColor = android.graphics.Color.parseColor("#C2410C"),
-    sizeDp = 40
+    sizeDp = 22   // ↓ Más pequeñas: en zonas con muchas piedras juntas, no se solapan tanto.
 )
 
 /** Pin verde para zonas (tipo ZONE). */

@@ -22,7 +22,8 @@ data class UpdateProfileRequest(
     val displayName: String? = null,
     val bio: String? = null,
     val topGrade: String? = null,
-    val isPublic: Boolean? = null
+    val isPublic: Boolean? = null,
+    val photoUrl: String? = null
 )
 
 @Serializable

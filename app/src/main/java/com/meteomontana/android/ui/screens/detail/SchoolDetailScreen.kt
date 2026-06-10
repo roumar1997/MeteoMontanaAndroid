@@ -37,6 +37,7 @@ import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.components.BlocksSection
+import com.meteomontana.android.ui.components.MonthlyStatsSection
 import com.meteomontana.android.ui.components.NotesSection
 import com.meteomontana.android.ui.components.forecastBody
 
@@ -45,6 +46,7 @@ fun SchoolDetailScreen(
     onBack: () -> Unit,
     onOpenBlock: (String) -> Unit = {},
     onMyProposals: () -> Unit = {},
+    onDayClick: (Int) -> Unit = {},
     viewModel: SchoolDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -62,18 +64,24 @@ fun SchoolDetailScreen(
         when (val s = state) {
             is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
             is SchoolDetailUiState.Error -> Center { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
-            is SchoolDetailUiState.Success -> Content(
-                school = s.school,
-                forecast = s.forecast,
-                forecastError = s.forecastError,
-                notes = s.notes,
-                blocks = s.blocks,
-                onPublishNote = viewModel::publishNote,
-                onAddBlock = { addBlockOpen = true },
-                onBlockClick = onOpenBlock,
-                viewModel = viewModel,
-                onMyProposals = onMyProposals
-            )
+            is SchoolDetailUiState.Success -> {
+                if (s.offlineSnapshotAt != null) {
+                    OfflineBanner(timestamp = s.offlineSnapshotAt)
+                }
+                Content(
+                    school = s.school,
+                    forecast = s.forecast,
+                    forecastError = s.forecastError,
+                    notes = s.notes,
+                    blocks = s.blocks,
+                    onPublishNote = viewModel::publishNote,
+                    onAddBlock = { addBlockOpen = true },
+                    onBlockClick = onOpenBlock,
+                    viewModel = viewModel,
+                    onMyProposals = onMyProposals,
+                    onDayClick = onDayClick
+                )
+            }
         }
     }
 
@@ -134,11 +142,24 @@ private fun Content(
     onAddBlock: () -> Unit,
     onBlockClick: (String) -> Unit,
     viewModel: SchoolDetailViewModel,
-    onMyProposals: () -> Unit
+    onMyProposals: () -> Unit,
+    onDayClick: (Int) -> Unit = {}
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         if (forecast != null) {
-            forecastBody(forecast)
+            forecastBody(
+                forecast = forecast,
+                afterCurrentWeather = {
+                    item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
+                    item { BlocksSection(
+                        blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
+                        schoolLat = school.lat, schoolLon = school.lon,
+                        schoolName = school.name, schoolId = school.id,
+                        viewModel = viewModel, onMyProposals = onMyProposals
+                    ) }
+                },
+                onDayClick = onDayClick
+            )
         } else if (forecastError != null) {
             item {
                 Box(modifier = Modifier
@@ -160,14 +181,70 @@ private fun Content(
             }
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
-        item { BlocksSection(
-            blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
-            schoolLat = school.lat, schoolLon = school.lon,
-            viewModel = viewModel, onMyProposals = onMyProposals
-        ) }
-        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
         item { NotesSection(notes = notes, onPublish = onPublishNote) }
+        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
+        item { OfflineSaveButton(viewModel) }
+        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
+        item {
+            val s = viewModel.uiState.collectAsState().value as? SchoolDetailUiState.Success
+            MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
+        }
         item { Spacer(Modifier.height(40.dp)) }
+    }
+}
+
+@Composable
+private fun OfflineBanner(timestamp: Long) {
+    val label = remember(timestamp) { formatOfflineTimestamp(timestamp) }
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.10f))
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("● SIN CONEXIÓN",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.error)
+        Spacer(Modifier.padding(start = 8.dp))
+        Text("Datos del $label",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private fun formatOfflineTimestamp(ms: Long): String {
+    val date = java.util.Date(ms)
+    val fmt = java.text.SimpleDateFormat("d MMM HH:mm", java.util.Locale("es"))
+    return fmt.format(date)
+}
+
+@Composable
+private fun OfflineSaveButton(viewModel: SchoolDetailViewModel) {
+    val s = viewModel.uiState.collectAsState().value as? SchoolDetailUiState.Success ?: return
+    val saved = s.isSavedOffline
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                if (saved) "✓ Guardado para uso offline" else "Guardar para uso offline",
+                style = MaterialTheme.typography.titleMedium,
+                color = if (saved) MaterialTheme.colorScheme.secondary
+                        else MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                "Mapa, bloques y vías disponibles sin internet",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        androidx.compose.material3.OutlinedButton(
+            onClick = { viewModel.toggleSaveOffline() }
+        ) {
+            Text(if (saved) "QUITAR" else "GUARDAR")
+        }
     }
 }
 

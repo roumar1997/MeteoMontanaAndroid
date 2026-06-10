@@ -76,6 +76,11 @@ object RepositoryModule {
     fun provideFileReader(@ApplicationContext context: Context): FileReader =
         AndroidFileReader(context)
 
+    @Provides @Singleton
+    fun provideNetworkMonitor(@ApplicationContext context: Context):
+        com.meteomontana.android.domain.port.NetworkMonitor =
+        com.meteomontana.android.data.network.AndroidNetworkMonitor(context)
+
     // Ktor repositories live in commonMain without @Inject
     @Provides @Singleton
     fun provideSchoolRepository(api: KtorSchoolApi): SchoolRepository =

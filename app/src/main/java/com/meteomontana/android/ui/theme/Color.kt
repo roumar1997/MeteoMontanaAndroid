@@ -48,14 +48,14 @@ val BadDark     = Color(0xFFC9543B)
 // Score heatmap — colores exactos de tokens.css
 // =============================================================================
 fun scoreColor(score: Int): Color = when {
-    score >= 90 -> Color(0xFF5E8B50)
-    score >= 80 -> Color(0xFF82A76E)
-    score >= 70 -> Color(0xFFB7C089)
-    score >= 60 -> Color(0xFFE3D599)
-    score >= 50 -> Color(0xFFE8B878)
-    score >= 40 -> Color(0xFFD99A5A)
-    score >= 30 -> Color(0xFFC2410C)
-    score >= 20 -> Color(0xFF9A3412)
+    score >= 90 -> Color(0xFF3F6B4A) // --ok fuerte
+    score >= 80 -> Color(0xFF5B7E3F)
+    score >= 70 -> Color(0xFF7D9A4E)
+    score >= 60 -> Color(0xFFB48A2E)
+    score >= 50 -> Color(0xFFB45309) // --warn
+    score >= 40 -> Color(0xFFA0420B)
+    score >= 30 -> Color(0xFF9A3412) // --bad
+    score >= 20 -> Color(0xFF7C2410)
     else        -> Color(0xFF5A1E08)
 }
 

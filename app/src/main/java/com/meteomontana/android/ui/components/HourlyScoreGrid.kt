@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.domain.model.HourForecast
+import com.meteomontana.android.domain.util.fromNow
 import com.meteomontana.android.ui.theme.scoreColor
 import com.meteomontana.android.ui.theme.scoreTextColor
 import com.meteomontana.android.ui.components.WmoWeatherIcon
@@ -35,7 +36,8 @@ fun HourlyScoreGrid(
     modifier: Modifier = Modifier,
     hoursAhead: Int = 16
 ) {
-    val take = hours.take(hoursAhead)
+    // Helper KMP-friendly: filtra desde la hora local actual.
+    val take = hours.fromNow(hoursAhead)
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 12.dp),

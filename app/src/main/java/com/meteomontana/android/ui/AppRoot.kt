@@ -20,7 +20,11 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @Composable
-fun AppRoot(viewModel: AppRootViewModel = hiltViewModel()) {
+fun AppRoot(
+    deepLink: com.meteomontana.android.DeepLinkTarget? = null,
+    onDeepLinkConsumed: () -> Unit = {},
+    viewModel: AppRootViewModel = hiltViewModel()
+) {
     val authState by viewModel.authState.collectAsState()
 
     LaunchedEffect(authState) {
@@ -28,7 +32,7 @@ fun AppRoot(viewModel: AppRootViewModel = hiltViewModel()) {
     }
 
     when (authState) {
-        is AuthManager.AuthState.SignedIn -> MainScreen()
+        is AuthManager.AuthState.SignedIn -> MainScreen(deepLink = deepLink, onDeepLinkConsumed = onDeepLinkConsumed)
         else -> LoginScreen()
     }
 }

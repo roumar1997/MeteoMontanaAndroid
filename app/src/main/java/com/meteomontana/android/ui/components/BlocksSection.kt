@@ -34,50 +34,22 @@ fun BlocksSection(
     onBlockClick: (String) -> Unit = {},
     schoolLat: Double? = null,
     schoolLon: Double? = null,
+    schoolName: String = "",
+    schoolId: String = "",
     viewModel: SchoolDetailViewModel? = null,
     onMyProposals: () -> Unit = {}
 ) {
+    if (schoolLat == null || schoolLon == null || viewModel == null) return
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("MAPA DE LA ESCUELA",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("+ Proponer",
-                modifier = Modifier.clickable(onClick = onAddBlock),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary)
-        }
-
-        if (schoolLat != null && schoolLon != null) {
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
-            viewModel?.let { vm ->
-                SchoolMap(
-                    centerLat     = schoolLat,
-                    centerLon     = schoolLon,
-                    blocks        = blocks,
-                    viewModel     = vm,
-                    onMyProposals = onMyProposals
-                )
-            }
-        }
-
-        if (blocks.isEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp),
-                contentAlignment = Alignment.Center) {
-                Text("Aún no hay bloques mapeados",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            return
-        }
-
-        LazyRow(
-            modifier = Modifier.padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(blocks) { b -> BlockCard(b, onClick = { onBlockClick(b.id) }) }
-        }
+        SchoolMap(
+            centerLat     = schoolLat,
+            centerLon     = schoolLon,
+            blocks        = blocks,
+            schoolName    = schoolName,
+            schoolId      = schoolId,
+            viewModel     = viewModel,
+            onMyProposals = onMyProposals
+        )
     }
 }
 

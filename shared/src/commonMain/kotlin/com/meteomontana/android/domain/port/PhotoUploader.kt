@@ -13,4 +13,7 @@ interface PhotoUploader {
      * @param schoolId ID de la escuela (se usa en el path de Storage).
      */
     suspend fun uploadBoulderPhoto(bytes: ByteArray, mimeType: String, schoolId: String): String
+
+    /** Sube la foto de perfil del usuario actual y devuelve la URL pública. */
+    suspend fun uploadProfilePhoto(bytes: ByteArray, mimeType: String): String
 }

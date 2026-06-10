@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.yalantis.ucrop.UCrop
+import java.io.File
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
@@ -85,7 +89,7 @@ fun EditProfileScreen(
                 }
             is EditState.Editing -> EditForm(
                 s, viewModel::save,
-                onPickPhoto = { /* TODO Fase 2.4: foto perfil via Ktor multipart */ }
+                onPickPhoto = viewModel::uploadPhoto
             )
             EditState.Saved -> {}
         }
@@ -104,9 +108,41 @@ private fun EditForm(
     var topGrade by remember { mutableStateOf(s.profile.topGrade ?: "") }
     var isPublic by remember { mutableStateOf(s.profile.isPublic) }
 
+    val context = LocalContext.current
+
+    // uCrop devuelve un Uri al fichero ya recortado.
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val resultUri = result.data?.let { UCrop.getOutput(it) }
+            resultUri?.let(onPickPhoto)
+        }
+    }
+
+    // Picker normal — al elegir, lanzamos uCrop con la foto seleccionada.
     val picker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> uri?.let(onPickPhoto) }
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val destFile = File(context.cacheDir, "profile_crop_${System.currentTimeMillis()}.jpg")
+            val destUri = Uri.fromFile(destFile)
+            val intent = UCrop.of(uri, destUri)
+                .withAspectRatio(1f, 1f)
+                .withMaxResultSize(1024, 1024)
+                .withOptions(UCrop.Options().apply {
+                    setCircleDimmedLayer(true)        // máscara circular
+                    setShowCropFrame(false)
+                    setShowCropGrid(false)
+                    setHideBottomControls(false)
+                    setFreeStyleCropEnabled(false)
+                    setCompressionQuality(85)
+                    setToolbarTitle("Recortar foto")
+                })
+                .getIntent(context)
+            cropLauncher.launch(intent)
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -114,21 +150,38 @@ private fun EditForm(
     ) {
         // Foto perfil clickable
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (s.profile.photoUrl != null) {
-                AsyncImage(
-                    model = s.profile.photoUrl,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
-                )
-            } else {
-                Image(
-                    painter = painterResource(R.drawable.logo_cumbre),
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
-                )
+            Box(modifier = Modifier.size(80.dp), contentAlignment = Alignment.Center) {
+                if (s.profile.photoUrl != null) {
+                    // key() fuerza re-creación del AsyncImage cuando cambia la URL,
+                    // así Coil no se queda con la imagen vieja en memoria mientras carga la nueva.
+                    androidx.compose.runtime.key(s.profile.photoUrl) {
+                        AsyncImage(
+                            model = coil.request.ImageRequest.Builder(LocalContext.current)
+                                .data(s.profile.photoUrl)
+                                .memoryCachePolicy(coil.request.CachePolicy.WRITE_ONLY)
+                                .crossfade(200)
+                                .build(),
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
+                        )
+                    }
+                } else {
+                    Image(
+                        painter = painterResource(R.drawable.logo_cumbre),
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
+                    )
+                }
+                if (s.uploadingPhoto) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
             Spacer(Modifier.padding(start = 16.dp))
-            Text("Tocar la foto para cambiarla",
+            Text(
+                if (s.uploadingPhoto) "Subiendo foto…" else "Tocar la foto para cambiarla",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -139,8 +192,15 @@ private fun EditForm(
             placeholder = "Alvaro Jara")
         Field("BIO (max 150)", bio, { if (it.length <= 150) bio = it },
             placeholder = "Cuéntate en una línea", height = 80.dp)
-        Field("GRADO MÁXIMO", topGrade, { topGrade = it },
-            placeholder = "ej: 7c")
+        // GRADO MÁXIMO: ahora se calcula automáticamente desde tu diario.
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text("GRADO MÁXIMO",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if (topGrade.isBlank()) "Se calcula desde tu diario" else "$topGrade · automático",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary)
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),

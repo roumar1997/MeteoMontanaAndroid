@@ -27,3 +27,13 @@ keystore.properties
 # Reportes
 /reports/
 /lint-results.html
+
+# Cache KMP/Kotlin metadata (se regenera al build)
+.kotlin/
+
+# Worktrees temporales de Claude (no van a main)
+.claude/worktrees/
+.clone/
+
+# Firebase service account (NO subir a git)
+**/serviceAccountKey.json

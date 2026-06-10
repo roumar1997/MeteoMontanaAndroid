@@ -34,7 +34,8 @@ class ChatViewModel @Inject constructor(
     private val authService: AuthService,
     private val getPublicProfile: GetPublicProfileUseCase,
     private val getFollowStatus: GetFollowStatusUseCase,
-    private val getMyProfile: GetMyProfileUseCase
+    private val getMyProfile: GetMyProfileUseCase,
+    private val chatPushApi: com.meteomontana.android.data.api.KtorChatPushApi
 ) : ViewModel() {
     private val otherUid: String = checkNotNull(savedStateHandle["uid"])
     private val me: String = authService.currentUid() ?: ""
@@ -62,7 +63,10 @@ class ChatViewModel @Inject constructor(
     fun send(text: String) {
         if (!_state.value.canWrite) return
         viewModelScope.launch {
-            runCatching { chatService.sendMessage(otherUid, text) }
+            val ok = runCatching { chatService.sendMessage(otherUid, text) }.isSuccess
+            // Si el mensaje se escribió en Firestore con éxito, pedimos al backend
+            // que dispare la push notification al receptor.
+            if (ok) runCatching { chatPushApi.notifyMessage(otherUid, text) }
         }
     }
 }

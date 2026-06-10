@@ -1,0 +1,132 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- MeteoMontana — schema offline (cache + escuelas guardadas)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Stats mensuales: 1 fila por escuela. monthsJson = lista de 12 enteros CSV "43,50,40,..."
+CREATE TABLE MonthlyStats (
+    schoolId   TEXT NOT NULL PRIMARY KEY,
+    monthsJson TEXT NOT NULL,
+    bestRange  TEXT,
+    fetchedAt  INTEGER NOT NULL
+);
+
+CREATE TABLE SavedSchool (
+    id        TEXT NOT NULL PRIMARY KEY,
+    name      TEXT NOT NULL,
+    region    TEXT,
+    rockType  TEXT,
+    lat       REAL NOT NULL,
+    lon       REAL NOT NULL,
+    savedAt   INTEGER NOT NULL
+);
+
+CREATE TABLE SavedBlock (
+    id          TEXT NOT NULL PRIMARY KEY,
+    schoolId    TEXT NOT NULL,
+    type        TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    lat         REAL NOT NULL,
+    lon         REAL NOT NULL,
+    photoPath   TEXT,
+    description TEXT,
+    FOREIGN KEY (schoolId) REFERENCES SavedSchool(id) ON DELETE CASCADE
+);
+CREATE INDEX SavedBlock_schoolId ON SavedBlock(schoolId);
+
+CREATE TABLE SavedBlockLine (
+    id        TEXT NOT NULL PRIMARY KEY,
+    blockId   TEXT NOT NULL,
+    number    INTEGER NOT NULL,
+    grade     TEXT,
+    startType TEXT,
+    name      TEXT,
+    linePath  TEXT,
+    sortOrder INTEGER NOT NULL,
+    FOREIGN KEY (blockId) REFERENCES SavedBlock(id) ON DELETE CASCADE
+);
+CREATE INDEX SavedBlockLine_blockId ON SavedBlockLine(blockId);
+
+CREATE TABLE SavedForecast (
+    schoolId     TEXT NOT NULL PRIMARY KEY,
+    forecastJson TEXT NOT NULL,
+    fetchedAt    INTEGER NOT NULL
+);
+
+-- ─── MonthlyStats queries ────────────────────────────────────────────────────
+findMonthly:
+SELECT * FROM MonthlyStats WHERE schoolId = ?;
+
+upsertMonthly:
+INSERT OR REPLACE INTO MonthlyStats(schoolId, monthsJson, bestRange, fetchedAt)
+VALUES (?, ?, ?, ?);
+
+-- ─── SavedSchool queries ─────────────────────────────────────────────────────
+findSchool:
+SELECT * FROM SavedSchool WHERE id = ?;
+
+observeAllSchools:
+SELECT * FROM SavedSchool ORDER BY savedAt DESC;
+
+isSchoolSaved:
+SELECT EXISTS(SELECT 1 FROM SavedSchool WHERE id = ?);
+
+upsertSchool:
+INSERT OR REPLACE INTO SavedSchool(id, name, region, rockType, lat, lon, savedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+deleteSchool:
+DELETE FROM SavedSchool WHERE id = ?;
+
+-- ─── SavedBlock queries ──────────────────────────────────────────────────────
+blocksOfSchool:
+SELECT * FROM SavedBlock WHERE schoolId = ?;
+
+deleteBlocksOfSchool:
+DELETE FROM SavedBlock WHERE schoolId = ?;
+
+insertBlock:
+INSERT OR REPLACE INTO SavedBlock(id, schoolId, type, name, lat, lon, photoPath, description)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- ─── SavedBlockLine queries ──────────────────────────────────────────────────
+linesOfBlocks:
+SELECT * FROM SavedBlockLine WHERE blockId IN ?;
+
+insertLine:
+INSERT OR REPLACE INTO SavedBlockLine(id, blockId, number, grade, startType, name, linePath, sortOrder)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- ─── SavedForecast queries ───────────────────────────────────────────────────
+findForecast:
+SELECT * FROM SavedForecast WHERE schoolId = ?;
+
+upsertForecast:
+INSERT OR REPLACE INTO SavedForecast(schoolId, forecastJson, fetchedAt)
+VALUES (?, ?, ?);
+
+-- ─── Outbox: peticiones encoladas para enviar cuando vuelva la conexión ──────
+CREATE TABLE Outbox (
+    id          INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    type        TEXT NOT NULL,      -- CONTRIBUTION / NOTE / SUBMISSION
+    schoolId    TEXT NOT NULL,
+    payloadJson TEXT NOT NULL,      -- JSON del cuerpo de la petición
+    createdAt   INTEGER NOT NULL,
+    retries     INTEGER NOT NULL DEFAULT 0,
+    lastError   TEXT
+);
+
+outboxAll:
+SELECT * FROM Outbox ORDER BY createdAt ASC;
+
+outboxAllFlow:
+SELECT * FROM Outbox ORDER BY createdAt ASC;
+
+outboxInsert:
+INSERT INTO Outbox(type, schoolId, payloadJson, createdAt, retries, lastError)
+VALUES (?, ?, ?, ?, 0, NULL);
+
+outboxDelete:
+DELETE FROM Outbox WHERE id = ?;
+
+outboxIncrementRetry:
+UPDATE Outbox SET retries = retries + 1, lastError = ? WHERE id = ?;

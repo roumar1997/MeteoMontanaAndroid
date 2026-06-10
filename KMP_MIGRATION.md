@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-06 (Fase 2.5 cerrada — ViewModels solo dependen de use cases de shared)
+**Última actualización:** 2026-06-09 (UX polish, contadores follow, email Resend, push deep link, theme toggle, outbox, tiles offline, SQLDelight). Próximas: iOS port (cuando llegue Mac) + bloque #6 (vías en vez de bloques) + #8 (stats cacheadas backend) + #9 (foto crop).
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -788,3 +788,349 @@ estos pasos:
   commitear.
 - **No instalar nada** que requiera Mac o licencias de pago. Si lo necesitas,
   páralo y díselo al usuario.
+
+---
+
+## 🍎 PORT A iOS — backlog acumulado en sesiones Android
+
+> Cada vez que en Android añadamos una feature que use APIs nativas, código
+> Android-only, librerías sin port a iOS, o UI Compose, **se anota aquí**.
+> Cuando arranque la fase iOS (cuando el usuario tenga Mac), esta es la lista
+> de cosas que hay que portar en SwiftUI / Swift / KMP nativo.
+
+### Features añadidas pendientes de port a iOS
+
+#### A) Foto de perfil (subida)
+- **Estado Android**: ✅ funciona. Picker `ActivityResultContracts.GetContent` →
+  decode + compress con `BitmapFactory` a 1024px JPEG 80% → `PhotoUploader.
+  uploadProfilePhoto(bytes)` → Firebase Storage `profile-photos/{uid}.{ext}` →
+  PUT `/api/me` con `photoUrl`.
+- **Lado iOS**:
+  - Picker: `PHPickerViewController` o `PhotosPicker` (SwiftUI nativo iOS 16+).
+  - Compresión: `UIImage.jpegData(compressionQuality:)`.
+  - Inyectar `PhotoUploader` (impl iOS usando FirebaseStorage SDK).
+  - Reutilizar `UpdateMyProfileUseCase` desde `shared/`.
+- **Backend cambios ya aplicados** (sirven para los dos):
+  - `UpdateProfileRequest` añade campo `photoUrl`.
+  - `UserDtoMapper.resolvePhotoUrl()` detecta URLs https:// y las devuelve
+    sin firmar.
+- **Reglas Storage publicadas** (ya están vivas para los dos):
+  ```
+  match /profile-photos/{file} { allow read: if true; allow write: if request.auth != null && size<5MB; }
+  match /piedra-photos-pending/{file} { ... }
+  match /piedra-photos/{file} { ... }
+  ```
+
+#### B) Cropper de foto de perfil (rotar + zoom + circular)
+- **Estado Android**: pendiente — librería `uCrop` (o cropper custom Compose).
+- **Lado iOS**: `TOCropViewController` (Pod Swift madura) o cropper custom SwiftUI
+  con `MagnificationGesture` + `RotationGesture`. Ambos producen `Data` de
+  bytes que pasan al `PhotoUploader` compartido.
+
+#### C) Pantalla `DayDetailScreen` (detalle de día clickable)
+- **Estado Android**: ✅ Compose. ÍNDICE DEL DÍA + condiciones (MÁX/MÍN/VIENTO/
+  LLUVIA/PROB) + tabla "PRÓXIMAS 24H" con icono WMO + temp + % + mm + viento +
+  minibarra de lluvia.
+- **Lado iOS**: SwiftUI equivalente. Datos vienen ya del `Forecast` del
+  `shared/`. Tab y nav del schoolId/lat/lon/dayIndex igual.
+- Helper `Modifier.clickable { onDayClick(i) }` en `DayRow` → en iOS, gesto
+  `.onTapGesture { ... }` en cada fila.
+
+#### D) Stats mensuales últimos 3 años + cache local
+- **Estado Android**: ✅ `MonthlyStatsRepository` + Room (`MonthlyStatsEntity`,
+  TTL 180d) + `OpenMeteoArchiveClient` (Ktor → archive-api.open-meteo.com) +
+  `ClimbScore.kt` (port simplificado del scoring de la PWA).
+- **Decisión clave para iOS**: **migrar persistencia a SQLDelight** desde
+  `shared/commonMain` ANTES de portar. Razón:
+  - Room es Android-only (no compila en Mac/iOS).
+  - SQLDelight es KMP-friendly, mismo SQL en ambos.
+- **Tareas concretas**:
+  1. Migrar `MonthlyStatsEntity` + `MonthlyStatsDao` → SQLDelight schema en
+     `shared/commonMain/sqldelight/`.
+  2. Mover `MonthlyStatsRepository` a `shared/commonMain` (no usa nada
+     Android-only).
+  3. Mover `OpenMeteoArchiveClient` a `shared/commonMain` — reemplazar
+     `org.json.JSONObject` por kotlinx-serialization con `@Serializable`
+     (shared ya tiene el plugin).
+  4. Mover `ClimbScore.kt` a `shared/commonMain` (puro Kotlin).
+  5. UI iOS: `MonthlyStatsSection` SwiftUI equivalente.
+- **Beneficio**: la lógica histórica + cache se comparte 100% entre Android
+  y iOS. Solo la UI cambia.
+
+#### E) Escuelas guardadas offline (snapshot + mapa + vías)
+- **Estado Android**: ✅ Room (`SavedSchoolEntity`, `SavedBlockEntity`,
+  `SavedBlockLineEntity`, `SavedForecastEntity`) + `SavedSchoolRepository` +
+  serialización forecast vía `ForecastJson.kt` (org.json) +
+  `SavedSchoolsScreen` + botón "GUARDAR OFFLINE" + banner "● SIN CONEXIÓN ·
+  Datos del 7 jun 14:23".
+- **Decisión clave para iOS**: misma de D — migrar a SQLDelight.
+- **Tareas concretas**:
+  1. Migrar las 5 entities + 2 DAOs a SQLDelight `.sq` files.
+  2. Mover `SavedSchoolRepository` y `ForecastJson` a `shared/commonMain` —
+     reemplazar `org.json.JSONObject` por kotlinx-serialization (`@Serializable`
+     en los data classes de Forecast — ya están serializables porque están
+     en commonMain).
+  3. UI iOS: `SavedSchoolsScreen` SwiftUI.
+  4. UI iOS: banner offline equivalente en SchoolDetailView.
+- **Fotos de bloques offline**:
+  - Android usa Coil — cachea en disco automáticamente al cargar online,
+    sirve la misma URL offline desde cache.
+  - iOS equivalente: `Kingfisher` o `NukeUI` (configurar disk cache).
+  - **No** necesita descarga manual a filesystem.
+- **Tiles de mapa offline**: pendiente en Android también (MapLibre
+  `OfflineManager`). En iOS, MapLibre iOS SDK tiene su propio
+  `MGLOfflineStorage`. Ambos requieren código separado por plataforma.
+
+#### F) "PRÓXIMAS 16 HORAS" desde la hora actual
+- **Estado Android**: ✅ `HourlyScoreGrid` usa `java.time.LocalDateTime.now()`
+  para filtrar.
+- **Lado iOS**: reemplazar por `Date()` + `Calendar.current.component(.hour, ...)`
+  o `kotlinx.datetime.Clock.System.now()` desde shared.
+- **Mejor**: mover el filtro a `shared/commonMain` con `kotlinx.datetime` y
+  exponer una propiedad `Forecast.hoursFromNow(maxN: Int)` en domain. Así
+  ambos UIs llaman al mismo helper.
+
+#### G) Detección online/offline
+- **Estado Android**: implícita — si una llamada Ktor falla, se considera
+  offline y `SchoolDetailViewModel` cae al snapshot Room.
+- **Pendiente para los dos**: abstracción `NetworkMonitor` en
+  `shared/commonMain` (interfaz). Implementaciones:
+  - Android: `ConnectivityManager.NetworkCallback`.
+  - iOS: `NWPathMonitor` de Network framework.
+- Útil para mostrar banner global "SIN CONEXIÓN" + decidir flujos antes de
+  intentar llamadas.
+
+#### H) Logging
+- **Estado Android**: `android.util.Log.i(tag, msg)` en
+  `EditProfileViewModel`, `FirebaseStoragePhotoUploader`.
+- **Para shared**: usar `co.touchlab:kermit` (KMP-friendly, syntax igual a
+  Logcat). En iOS escribe a `os_log`. Permite poner los logs en
+  `shared/commonMain` sin perder visibilidad en cada plataforma.
+
+#### I) Acceso a ficheros (URI → bytes)
+- **Estado Android**: `context.contentResolver.openInputStream(uri)` +
+  `BitmapFactory`.
+- **Lado iOS**: `PHPickerResult.itemProvider.loadDataRepresentation(...)`.
+- **Abstracción ya existente**: `FileReader` port (`shared/commonMain/port/`).
+  Falta:
+  - Extender `FileReader` con método `readImageCompressed(ref, maxDim, quality)`
+    para que el cropper/compresor también esté abstraído.
+  - Impl Android: la lógica que ya está en `EditProfileViewModel.compressImage`.
+  - Impl iOS: equivalente con `UIImage`.
+- Así `EditProfileViewModel.uploadPhoto(ref: FileRef)` puede vivir en `shared/`.
+
+### Cambios de arquitectura recomendados ANTES de portar a iOS
+
+Para que la fase iOS sea rápida y compartamos código de verdad:
+
+1. **Migrar Room → SQLDelight** (Fase 4.x propuesta).
+   - Crear `shared/commonMain/sqldelight/com/meteomontana/db/` con `.sq` files.
+   - Mover `MonthlyStatsRepository`, `SavedSchoolRepository`,
+     `MonthlyStatsEntity`, `SavedSchool*` a commonMain.
+   - Driver en androidMain: `AndroidSqliteDriver`. En iosMain: `NativeSqliteDriver`.
+2. **Migrar org.json → kotlinx-serialization** (en `ForecastJson` y
+   `OpenMeteoArchiveClient`). Ya tenemos el plugin en shared.
+3. **Crear `NetworkMonitor` port + impls** por plataforma.
+4. **Crear `Clock`/`Now` helper** con `kotlinx.datetime` en commonMain para
+   reemplazar usos de `java.time.LocalDateTime`.
+5. **Extender `FileReader`** con `readImageCompressed()` para mover lógica
+   de subida de foto a shared.
+6. **Adoptar Kermit** para logs.
+
+Una vez hecho esto, el port a iOS es básicamente: setup proyecto Xcode +
+SwiftUI screens espejo de las Composables + 2 impls (FileReader, NetworkMonitor)
++ inyección Koin (o init manual desde Swift).
+
+---
+
+## ⚡ Sesiones recientes (sigue rellenándose)
+
+### Refactors KMP-prep ya HECHOS en sesiones Android
+
+Estado de los 6 refactors propuestos para poder portar a iOS sin reescribir:
+
+- [x] **Kermit** logging (`co.touchlab:kermit`) — exposed via `api()` desde shared.
+- [x] **kotlinx-serialization** sustituyendo `org.json` en `ForecastJson.kt` y
+  `OpenMeteoArchiveClient.kt` (ambos ya en `shared/commonMain`).
+- [x] **kotlinx.datetime** — extension `List<HourForecast>.fromNow(count)` en
+  `shared/commonMain/util/ForecastExtensions.kt`.
+- [x] **FileReader** extendido con `readImageCompressed(ref, maxDim, quality)`.
+  Impl Android en `AndroidFileReader.kt` (Bitmap/JPEG). iOS: pendiente
+  (`UIImage.jpegData(compressionQuality:)`).
+- [x] **NetworkMonitor** port (`domain/port/NetworkMonitor.kt`) +
+  `AndroidNetworkMonitor` (ConnectivityManager). iOS pendiente
+  (`NWPathMonitor`). UI Android consume vía `NetworkBanner` global.
+- [x] **Room → SQLDelight** ✅ TODO migrado:
+  - Schema `shared/commonMain/sqldelight/com/meteomontana/db/Schema.sq` con
+    tablas `MonthlyStats`, `SavedSchool`, `SavedBlock`, `SavedBlockLine`,
+    `SavedForecast`, `Outbox`.
+  - `expect class DatabaseFactory` + actuals Android (AndroidSqliteDriver)
+    e iOS (NativeSqliteDriver, archivo ya escrito en `iosMain/`).
+  - `MonthlyStatsRepository` y `SavedSchoolRepository` movidos a
+    `shared/commonMain`. Room totalmente eliminado de `app/`.
+
+### Features nuevas Android que faltan portar a iOS
+
+#### J) Cropper de foto de perfil — uCrop (Android)
+- **Estado**: ✅ funciona con `com.github.yalantis:ucrop:2.2.10` lanzado vía
+  `ActivityResultContracts`. Crop circular + zoom + rotación + 1:1 aspect.
+- **iOS**: usar `TOCropViewController` (Pod) o cropper custom SwiftUI con
+  `MagnificationGesture` + `RotationGesture`. Output `Data` → mismo
+  `PhotoUploader.uploadProfilePhoto(bytes, mime)` de shared.
+
+#### K) Outbox offline (sumisiones que se mandan al volver red)
+- **Estado**: ✅ tabla `Outbox` en SQLDelight + `OutboxRepository` en shared
+  + `OutboxFlusher` Android que escucha `NetworkMonitor.isOnline` y drena.
+- Soportado offline: contribuciones (PARKING/SECTOR/POSITION_CORRECTION) +
+  notas. Pendiente extender a BOULDER con foto (requiere copiar bytes a
+  filesystem app y diferir el upload a Firebase Storage).
+- **iOS**: `OutboxFlusher` se puede reusar tal cual (puro Kotlin) o
+  reescribir con `CoroutineScope` desde Swift via interop. Lo más simple:
+  exponer `start()` desde shared. Crear impl iOS del flusher si se decide
+  no compartir la lógica con SubmitContributionUseCase/CreateNoteUseCase
+  desde Swift.
+
+#### L) Notificaciones push + deep link tappable
+- **Estado**: ✅ `PushService` (extiende `FirebaseMessagingService`) construye
+  notificación nativa con `PendingIntent` que abre `MainActivity` con
+  extras `targetType`/`targetId`. `MainActivity` los lee, los pasa como
+  `DeepLinkTarget` a `AppRoot → MainScreen` que navega.
+- Backend: `ChatPushController.notify(toUid, preview)` dispara FCM tras
+  enviar mensaje en Firestore. Permiso `POST_NOTIFICATIONS` runtime en
+  Android 13+.
+- **iOS**:
+  - Capability "Push Notifications" + APNs en Apple Developer Console.
+  - `AppDelegate` registra el device token y lo manda al backend con el
+    mismo endpoint `PUT /api/me/fcm-token` (Firebase Admin SDK funciona
+    igual para APNs si configuras el APNs Auth Key en Firebase Console).
+  - `UNUserNotificationCenter` para mostrar/abrir + decodificar el payload
+    `targetType`/`targetId` y navegar SwiftUI.
+  - El push del chat funciona igual sin cambiar backend.
+
+#### M) Modo oscuro persistente (ThemeManager)
+- **Estado**: ✅ `ThemeManager` Android usa `SharedPreferences("cumbre.theme")`
+  con clave `mode: LIGHT|DARK|SYSTEM`. `StateFlow<ThemeMode>` consumido por
+  `MainActivity` para elegir `MeteoMontanaTheme(darkTheme = …)`. Botón
+  sol/luna en `SchoolListScreen.TopIconsRow`.
+- **iOS**: equivalente con `@AppStorage("cumbre.theme") var mode: String`
+  + `.preferredColorScheme(isDark ? .dark : .light)` en la root view. El
+  ThemeManager se puede mover a `shared/commonMain` con `expect` para
+  persistencia y `actual` Android (SharedPreferences) / iOS (UserDefaults).
+
+#### N) Tiles offline MapLibre (OfflineTileManager)
+- **Estado**: ✅ `OfflineTileManager.kt` usa `OfflineManager.createOfflineRegion`
+  con bounds ~2 km² + zoom 10..16, tile source OpenTopoMap.
+- **iOS**: MapLibre iOS SDK tiene `MLNOfflineStorage` con API casi idéntica
+  (`MLNTilePyramidOfflineRegion`). Reescribir en Swift, mismas coords +
+  bounds + zoom.
+
+#### O) Cropper / Move flow con marker fantasma
+- **Estado**: ✅ Implementado en `SchoolMap.kt` (usuario) y `FullScreenMapDialog.kt`
+  (admin GESTIONAR). Flujo: tap marker → fantasma alpha 0.35 + banner →
+  tap mapa → ghost ★ terra → ACEPTAR (move directo admin o propuesta usuario).
+- Admin viz de POSITION_CORRECTION: marker gris ✕ + marker ★ + polyline
+  terra + auto-fit bounds.
+- **iOS**: replicar UI con MapLibre iOS Annotations. Lógica de estado
+  (CorrectionGhost, CorrectionMoving) ya está en `ProposeContributionFlow`
+  Compose-only — habría que extraer parte de la lógica a `shared/commonMain`
+  como `CorrectionStateMachine` para no duplicar.
+
+#### P) Detalle de día clicable
+- **Estado**: ✅ `DayDetailScreen.kt` + `DayDetailViewModel` (filter
+  `forecast.hours` por día + fallback a snapshot offline). Banner "● SIN
+  CONEXIÓN" en modo offline.
+- **iOS**: SwiftUI screen espejo. `DayDetailViewModel` puede vivir en
+  `shared/commonMain` si se le quita el `SavedStateHandle` (sustituir por
+  init params).
+
+#### Q) Chat con FCM real
+- **Estado**: ✅ `ChatViewModel.send()` escribe en Firestore + llama a
+  `KtorChatPushApi.notifyMessage(toUid, preview)`. Backend envía FCM al
+  token del receptor.
+- **iOS**: Firestore SDK iOS para el chat + APNs para push. Endpoint
+  backend se reutiliza intacto.
+
+#### R) Sectores + corrección de posición + smaller markers
+- **Estado**: ✅ Flujos `SectorForm`, `CorrectionMoving` en
+  `ProposeContributionFlow`. Bitmaps de piedras reducidos (40dp → 22dp).
+  Marker escuela (triángulo negro tipo montaña) tappable para mover la
+  escuela como propuesta.
+- **iOS**: replicar bitmaps con `UIBezierPath`/Core Graphics. Misma
+  lógica de estado.
+
+### Lo que aún NO está hecho (próximas sesiones Android antes de portar)
+
+- BOULDER con foto en el outbox offline (requiere persistir bytes locales).
+- Submission de nueva escuela en outbox.
+- TTL cache forecast en backend: ✅ ya hecho con Caffeine 30m.
+- Fotos de bloques offline: Coil cachea automáticamente al cargar online.
+  En iOS usar `Kingfisher` o `NukeUI` con disk cache habilitado.
+
+### Backend — qué hacer cuando se llegue a Mac/producción
+
+El backend Spring Boot es **plataforma-independiente**. NO hay que portarlo.
+Tres opciones para usarlo desde Mac:
+
+1. **Clonarlo también en Mac** y seguir levantando local (`docker compose up
+   -d && ./mvnw spring-boot:run`). Funciona igual que en Windows.
+   IP del Mac → cambiar `API_BASE_URL` en `app/build.gradle.kts`.
+2. **Dejarlo en el Windows** apagado salvo cuando programes. Mismo flujo de
+   antes pero con la IP del PC Windows.
+3. **Recomendado para iOS y producción**: desplegar en Railway/Render/Fly.
+   Una URL HTTPS estable como `https://api.meteomontana.app` que valga para
+   Mac, iOS, Android producción y cualquier compañero. Postgres gestionada
+   en la misma plataforma. Coste ~5 €/mes en uso real. Ver sección
+   "Publicación" en CLAUDE.md (si está) o el documento aparte de deploy.
+
+### Comprobaciones antes de cambiar a Mac
+
+1. `git status` en `MeteoMontanaAndroid` y `MeteoMontanaAPI` → todo commiteado.
+2. `git push origin main` en ambos.
+3. Recuerda llevarte el `serviceAccountKey.json` de Firebase (NO está en
+   git por seguridad). En Mac va a `MeteoMontanaAPI/api/src/main/resources/`.
+4. Si tienes datos de dev importantes en Postgres local, `pg_dump > backup.sql`
+   para restaurarlo en Mac o en producción.
+
+### Mensaje plantilla para arrancar la sesión iOS
+
+```
+Estoy en Mac. Xcode, Android Studio, Homebrew, JDK 21, Cocoapods instalados.
+Repos clonados. Backend corriendo en <URL/IP>.
+
+Lee KMP_MIGRATION.md → sección "🍎 PORT A iOS" y "Sesiones recientes".
+Quiero empezar por <Fase 3.x | iOS setup | feature X>.
+```
+
+---
+
+## 🆕 Sesión 2026-06-09 — UX polish y features sociales
+
+Cambios entregados:
+
+#### Social y perfil
+- **Contadores follow visibles** en `ProfileScreen.Header` ("X seguidores · Y siguiendo") — clicables → `FollowListScreen`.
+- `ProfileViewModel` ahora pide `GetFollowStatus` además de profile + stats.
+- **Auto top grade**: `ProfileViewModel.addBlock()` compara el grado de la nueva entrada de diario con `topGrade` del perfil y, si es mayor, actualiza vía `UpdateMyProfileUseCase`. Helper `gradeRank("7a+")` → `705`.
+- Campo "GRADO MÁXIMO" en `EditProfileScreen` pasa a **read-only** con label "automático".
+
+#### Chat y push
+- `ChatScreen` envuelto en `imePadding()` + auto-scroll al último mensaje en `LaunchedEffect(messages.size)`. Soluciona el bug "los mensajes se van arriba al abrir el teclado".
+- Push "nuevo seguidor": backend `FollowUseCase` envía data payload con `targetType=user` + `targetId=<uid>` + título personalizado ("@username te sigue ahora"). El cliente Android hace deep link al perfil público al pulsar.
+
+#### UX
+- **Search debounce 200ms** en `SchoolListViewModel.setQuery()` con `Job` cancelable. Elimina el "terremoto" al teclear.
+- **CoffeeBanner** rediseñado:
+  - Usa `MaterialTheme.colorScheme.primaryContainer` en vez de `TerraBg` hardcoded → se ve bien en dark mode.
+  - Botón "Apóyanos" abre `DonateDialog` (modal con descripción + botón "☕ INVÍTAME A UN CAFÉ" que lanza Intent a `https://ko-fi.com/climbingteams`).
+
+#### Email transaccional
+- Backend nuevo: `ResendEmailService` (HTTP POST a `api.resend.com/emails`).
+- Configurable vía env vars `RESEND_API_KEY` y `RESEND_FROM`. Si no hay key, no rompe — solo loguea skip.
+- `ReviewContributionUseCase.approve()` y `.reject()` mandan email al usuario que propuso (asunto + HTML con motivo).
+
+### Pendiente para próximas sesiones
+
+- **#1 Fluidez de la app**: medir en build release. Si sigue lenta → perfilar recomposiciones con Layout Inspector.
+- **#6 Vías (líneas) en vez de bloques** en `AddBlockSheet`: al elegir bloque mostrar las vías existentes con su grado/tipo, autocompletar el grado de la vía elegida. Si la vía no está en BD, permitir nombre+grado manual.
+- **#8 Stats mensuales lentos**: mover el cálculo a un endpoint backend cacheado (`GET /api/schools/{id}/monthly-stats`) en vez de llamar a `archive-api.open-meteo.com` desde Android. El backend ya tiene `@Cacheable` con Caffeine — añadir un use case más.
+- **#9 Foto crop solo mitad visible**: el `TopoPhotoCanvas` usa aspect 4:3 fijo. Ajustar para respetar el aspect real de la foto subida.

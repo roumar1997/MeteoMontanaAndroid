@@ -78,6 +78,7 @@ import com.meteomontana.android.ui.components.pinBitmap
 import com.meteomontana.android.ui.components.pinBitmapBoulder
 import org.maplibre.android.annotations.IconFactory
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Moss
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
@@ -466,8 +467,58 @@ private fun ContributionCard(
             }
         }
 
-        // Mini-mapa
+        // ── Detalles textuales para POSITION_CORRECTION ─────────────────────
+        if (c.type == "POSITION_CORRECTION") {
+            Spacer(Modifier.height(Spacing.sm))
+            Column(modifier = Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.06f))
+                .padding(Spacing.sm)) {
+                Text("POSICIÓN ACTUAL", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("%.6f, %.6f".format(c.lat, c.lon),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (c.proposedLat != null && c.proposedLon != null) {
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text("PROPONE MOVER A", style = EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("%.6f, %.6f".format(c.proposedLat, c.proposedLon),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),
+                        color = Terra)
+                }
+            }
+        }
+
+        // Mini-mapa con selector de estilo (topo/satélite)
         Spacer(Modifier.height(Spacing.sm))
+        var mapStyle by remember { mutableStateOf("topo") }
+        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            listOf("topo" to "Topográfico", "sat" to "Satélite").forEach { (id, label) ->
+                val selected = mapStyle == id
+                Box(modifier = Modifier
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                    .clickable {
+                        mapStyle = id
+                        mapViewRef.value?.let { mv ->
+                            mv.getMapAsync { map ->
+                                map.setStyle(Style.Builder().fromJson(adminStyleJson(id))) {
+                                    map.clear()
+                                    redrawContributionMarkers(mv.context, map, c, existingBlocks)
+                                }
+                            }
+                        }
+                    }
+                    .padding(horizontal = Spacing.md, vertical = 4.dp)
+                ) {
+                    Text(label, style = EyebrowTextStyle,
+                        color = if (selected) MaterialTheme.colorScheme.background
+                                else MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        }
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 val mv = mapViewRef.value ?: return@LifecycleEventObserver
@@ -490,15 +541,25 @@ private fun ContributionCard(
         // key() re-crea el mini-mapa cuando llegan los bloques existentes
         key(existingBlocks.size) {
             AndroidView(
-                modifier = Modifier.fillMaxWidth().height(160.dp),
+                modifier = Modifier.fillMaxWidth().height(220.dp),
                 factory = { context ->
                     MapView(context).apply {
                         onCreate(null)
                         mapViewRef.value = this
+                        setOnTouchListener { v, event ->
+                            when (event.action) {
+                                android.view.MotionEvent.ACTION_DOWN ->
+                                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                                android.view.MotionEvent.ACTION_UP,
+                                android.view.MotionEvent.ACTION_CANCEL ->
+                                    v.parent?.requestDisallowInterceptTouchEvent(false)
+                            }
+                            false
+                        }
                         getMapAsync { map ->
-                            map.setStyle(Style.Builder().fromJson(OSM_STYLE)) {
+                            map.setStyle(Style.Builder().fromJson(adminStyleJson(mapStyle))) {
                                 map.cameraPosition = CameraPosition.Builder()
-                                    .target(LatLng(c.lat, c.lon)).zoom(14.0).build()
+                                    .target(LatLng(c.lat, c.lon)).zoom(15.0).build()
 
                                 val iconFactory = IconFactory.getInstance(context)
                                 // Bloques existentes: parking=círculo azul P, zone=círculo verde Z,
@@ -531,17 +592,54 @@ private fun ContributionCard(
                                 } else {
                                     pinBitmap(android.graphics.Color.parseColor("#F59E0B"), "★", 40)
                                 }
-                                map.addMarker(
-                                    MarkerOptions()
-                                        .position(LatLng(c.lat, c.lon))
-                                        .title("PROPUESTA · ${c.name ?: c.type}")
-                                        .icon(iconFactory.fromBitmap(proposalIcon))
-                                )
+                                // Para POSITION_CORRECTION: marker GRIS en posición vieja,
+                                // marker AMARILLO en posición nueva propuesta, + línea entre ambos.
+                                val pLat = c.proposedLat
+                                val pLon = c.proposedLon
+                                if (c.type == "POSITION_CORRECTION" && pLat != null && pLon != null) {
+                                    val oldIcon = pinBitmap(android.graphics.Color.parseColor("#8A8478"), "✕", 36)
+                                    map.addMarker(
+                                        MarkerOptions()
+                                            .position(LatLng(c.lat, c.lon))
+                                            .title("POSICIÓN ACTUAL")
+                                            .icon(iconFactory.fromBitmap(oldIcon))
+                                    )
+                                    map.addMarker(
+                                        MarkerOptions()
+                                            .position(LatLng(pLat, pLon))
+                                            .title("PROPUESTA · ${c.name ?: "Nueva posición"}")
+                                            .icon(iconFactory.fromBitmap(proposalIcon))
+                                    )
+                                    map.addPolyline(
+                                        org.maplibre.android.annotations.PolylineOptions()
+                                            .add(LatLng(c.lat, c.lon))
+                                            .add(LatLng(pLat, pLon))
+                                            .color(android.graphics.Color.parseColor("#C2410C"))
+                                            .width(3f)
+                                    )
+                                    // Auto-fit: bounds entre los dos puntos con padding.
+                                    val bounds = org.maplibre.android.geometry.LatLngBounds.Builder()
+                                        .include(LatLng(c.lat, c.lon))
+                                        .include(LatLng(pLat, pLon))
+                                        .build()
+                                    map.animateCamera(
+                                        org.maplibre.android.camera.CameraUpdateFactory
+                                            .newLatLngBounds(bounds, 120)
+                                    )
+                                } else {
+                                    map.addMarker(
+                                        MarkerOptions()
+                                            .position(LatLng(c.lat, c.lon))
+                                            .title("PROPUESTA · ${c.name ?: c.type}")
+                                            .icon(iconFactory.fromBitmap(proposalIcon))
+                                    )
+                                }
                             }
                             map.uiSettings.apply {
-                                isScrollGesturesEnabled  = false
-                                isZoomGesturesEnabled    = false
+                                isScrollGesturesEnabled  = true
+                                isZoomGesturesEnabled    = true
                                 isRotateGesturesEnabled  = false
+                                isTiltGesturesEnabled    = false
                             }
                         }
                         onStart(); onResume()
@@ -601,12 +699,21 @@ private fun ContributionCard(
 
     // Mapa a pantalla completa al pulsar "VER EN MAPA"
     if (showFullMap) {
+        val pLat = c.proposedLat
+        val pLon = c.proposedLon
+        val positionCorr = if (c.type == "POSITION_CORRECTION" && pLat != null && pLon != null)
+                pLat to pLon else null
         FullScreenMapDialog(
             lat = c.lat,
             lon = c.lon,
             markerTitle = c.name ?: "${c.type} · ${c.schoolName}",
             existingBlocks = existingBlocks,
-            proposalAsBlock = c.toFakeBlock(),
+            // En POSITION_CORRECTION no queremos el "proposal-as-block" porque dibujaría
+            // el marker estrella en (lat,lon) que es la posición VIEJA. Lo manejamos con
+            // positionCorrectionNew para dibujar vieja + nueva + línea.
+            proposalAsBlock = if (positionCorr == null) c.toFakeBlock() else null,
+            positionCorrectionNew = positionCorr,
+            positionCorrectionTargetName = c.name,
             onDeleteBlock = onDeleteBlock,
             onUpdateBlock = onUpdateBlockCard,
             onDismiss = { showFullMap = false }
@@ -765,6 +872,53 @@ private fun BloquesSummary(bloquesJson: String) {
 }
 
 private const val OSM_STYLE = """{"version":8,"sources":{"osm":{"type":"raster","tiles":["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}"""
+private const val TOPO_STYLE = """{"version":8,"sources":{"topo":{"type":"raster","tiles":["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"topo","type":"raster","source":"topo"}]}"""
+private const val SAT_STYLE  = """{"version":8,"sources":{"sat":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"sat","type":"raster","source":"sat"}]}"""
+internal fun adminStyleJson(id: String): String = when (id) {
+    "sat"  -> SAT_STYLE
+    else   -> TOPO_STYLE
+}
+
+/** Re-dibuja todos los markers de una contribución sobre un mapa (tras cambio de estilo). */
+internal fun redrawContributionMarkers(
+    ctx: android.content.Context,
+    map: org.maplibre.android.maps.MapLibreMap,
+    c: Contribution,
+    existingBlocks: List<com.meteomontana.android.domain.model.Block>
+) {
+    val iconFactory = IconFactory.getInstance(ctx)
+    // Bloques existentes
+    existingBlocks.forEach { b ->
+        val icon = when (b.type) {
+            "PARKING" -> pinBitmap(android.graphics.Color.parseColor("#1D6DD6"), "P", 28)
+            "ZONE"    -> pinBitmap(android.graphics.Color.parseColor("#1FA84E"), "Z", 28)
+            else      -> pinBitmapBoulder(
+                label = b.name.takeIf { it.isNotBlank() } ?: "?",
+                fillColor = android.graphics.Color.parseColor("#C2410C"),
+                sizeDp = 28
+            )
+        }
+        map.addMarker(MarkerOptions().position(LatLng(b.lat, b.lon)).title(b.name).icon(iconFactory.fromBitmap(icon)))
+    }
+    val pLat = c.proposedLat
+    val pLon = c.proposedLon
+    if (c.type == "POSITION_CORRECTION" && pLat != null && pLon != null) {
+        val oldIcon = pinBitmap(android.graphics.Color.parseColor("#8A8478"), "✕", 36)
+        val newIcon = pinBitmap(android.graphics.Color.parseColor("#F59E0B"), "★", 40)
+        map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon)).title("ACTUAL").icon(iconFactory.fromBitmap(oldIcon)))
+        map.addMarker(MarkerOptions().position(LatLng(pLat, pLon)).title("NUEVA").icon(iconFactory.fromBitmap(newIcon)))
+        map.addPolyline(
+            org.maplibre.android.annotations.PolylineOptions()
+                .add(LatLng(c.lat, c.lon)).add(LatLng(pLat, pLon))
+                .color(android.graphics.Color.parseColor("#C2410C")).width(3f)
+        )
+    } else {
+        val icon = pinBitmap(android.graphics.Color.parseColor("#F59E0B"), "★", 40)
+        map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon))
+            .title("PROPUESTA · ${c.name ?: c.type}")
+            .icon(iconFactory.fromBitmap(icon)))
+    }
+}
 
 // ─────────────────────────── GESTIONAR ────────────────────────────
 

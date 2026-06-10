@@ -11,13 +11,6 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
-/**
- * Crea el HttpClient Ktor compartido para todas las APIs.
- * El engine (OkHttp en Android, Darwin en iOS) se inyecta vía classpath.
- *
- * @param baseUrl URL base incluido el trailing slash, e.g. "http://10.0.2.2:8080/api/"
- * @param tokenProvider suspending function que devuelve el Bearer token actual (Firebase ID token)
- */
 fun buildApiHttpClient(
     baseUrl: String,
     tokenProvider: suspend () -> String?
@@ -35,7 +28,11 @@ fun buildApiHttpClient(
                 val token = tokenProvider() ?: return@loadTokens null
                 BearerTokens(token, "")
             }
-            refreshTokens { null } // no refresh — Firebase tokens se obtienen frescos cada vez
+            refreshTokens {
+                val token = tokenProvider() ?: return@refreshTokens null
+                BearerTokens(token, "")
+            }
+            sendWithoutRequest { true }
         }
     }
     defaultRequest {

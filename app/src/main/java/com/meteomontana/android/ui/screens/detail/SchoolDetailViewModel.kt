@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
+import com.meteomontana.android.data.stats.MonthlyStats
+import com.meteomontana.android.data.stats.MonthlyStatsRepository
+import com.meteomontana.android.data.saved.SavedSchoolRepository
 import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.port.PhotoUploader
@@ -42,7 +45,12 @@ sealed interface SchoolDetailUiState {
         val notes: List<Note>,
         val isFavorite: Boolean,
         val blocks: List<Block>,
-        val isCurrentUserAdmin: Boolean = false
+        val isCurrentUserAdmin: Boolean = false,
+        val monthlyStats: MonthlyStats? = null,
+        val monthlyLoading: Boolean = false,
+        val isSavedOffline: Boolean = false,
+        /** Si !=null, los datos provienen del snapshot offline guardado en esa fecha (epoch ms). */
+        val offlineSnapshotAt: Long? = null
     ) : SchoolDetailUiState
 }
 
@@ -62,7 +70,14 @@ class SchoolDetailViewModel @Inject constructor(
     private val submitContributionUseCase: SubmitContributionUseCase,
     private val getMyProfile: GetMyProfileUseCase,
     private val photoUploader: PhotoUploader,
-    private val fileReader: FileReader
+    private val fileReader: FileReader,
+    private val monthlyStatsRepo: MonthlyStatsRepository,
+    private val savedSchoolRepo: SavedSchoolRepository,
+    private val offlineTiles: com.meteomontana.android.data.map.OfflineTileManager,
+    private val ktorAdminApi: com.meteomontana.android.data.api.KtorAdminApi,
+    private val updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase,
+    private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
+    private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -75,22 +90,77 @@ class SchoolDetailViewModel @Inject constructor(
     fun load() {
         _uiState.value = SchoolDetailUiState.Loading
         viewModelScope.launch {
+            // Si el backend falla pero la escuela está guardada offline → modo offline.
+            val schoolFromNet = runCatching { getSchoolById(schoolId) }
+            if (schoolFromNet.isFailure) {
+                val snapshot = runCatching { savedSchoolRepo.loadOffline(schoolId) }.getOrNull()
+                if (snapshot != null) {
+                    _uiState.value = SchoolDetailUiState.Success(
+                        school = School(
+                            id = snapshot.school.id, name = snapshot.school.name,
+                            location = null, region = snapshot.school.region,
+                            style = null, rockType = snapshot.school.rockType,
+                            lat = snapshot.school.lat, lon = snapshot.school.lon,
+                            source = null
+                        ),
+                        forecast = snapshot.forecast,
+                        forecastError = if (snapshot.forecast == null)
+                            "Sin conexión y sin snapshot — solo mapa offline" else null,
+                        notes = emptyList(),
+                        isFavorite = false,
+                        blocks = snapshot.blocks.map { savedSchoolRepo.toBlock(it, snapshot.lines) },
+                        isCurrentUserAdmin = false,
+                        isSavedOffline = true,
+                        monthlyLoading = false,
+                        offlineSnapshotAt = snapshot.forecastFetchedAt
+                    )
+                    return@launch
+                }
+            }
             _uiState.value = try {
-                val school = getSchoolById(schoolId)
+                val school = schoolFromNet.getOrThrow()
                 val forecastResult = runCatching { getForecast(schoolId) }
                 val notes  = runCatching { getNotes(schoolId) }.getOrDefault(emptyList())
                 val isFav  = runCatching { getMyFavorites().any { it.id == schoolId } }.getOrDefault(false)
                 val blocks = runCatching { getBlocks(schoolId) }.getOrDefault(emptyList())
                 val isAdmin = runCatching { getMyProfile().isAdmin }.getOrDefault(false)
-                SchoolDetailUiState.Success(
+                val isSaved = runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false)
+                val success = SchoolDetailUiState.Success(
                     school = school,
                     forecast = forecastResult.getOrNull(),
                     forecastError = forecastResult.exceptionOrNull()?.toUserMessage(),
                     notes = notes, isFavorite = isFav, blocks = blocks,
-                    isCurrentUserAdmin = isAdmin
+                    isCurrentUserAdmin = isAdmin,
+                    isSavedOffline = isSaved,
+                    monthlyLoading = true
                 )
+                viewModelScope.launch { loadMonthlyStats(school) }
+                success
             } catch (t: Throwable) {
                 SchoolDetailUiState.Error(t.toUserMessage())
+            }
+        }
+    }
+
+    private suspend fun loadMonthlyStats(school: School) {
+        val stats = runCatching {
+            monthlyStatsRepo.get(school.id, school.lat, school.lon, school.rockType)
+        }.getOrNull()
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        _uiState.value = cur.copy(monthlyStats = stats, monthlyLoading = false)
+    }
+
+    fun toggleSaveOffline() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        viewModelScope.launch {
+            if (cur.isSavedOffline) {
+                savedSchoolRepo.remove(cur.school.id)
+                runCatching { offlineTiles.removeFor(cur.school.id) }
+                _uiState.value = cur.copy(isSavedOffline = false)
+            } else {
+                savedSchoolRepo.saveOffline(cur.school, cur.blocks, cur.forecast)
+                runCatching { offlineTiles.downloadFor(cur.school.id, cur.school.lat, cur.school.lon) }
+                _uiState.value = cur.copy(isSavedOffline = true)
             }
         }
     }
@@ -109,6 +179,18 @@ class SchoolDetailViewModel @Inject constructor(
     fun publishNote(text: String) {
         viewModelScope.launch {
             try {
+                if (!networkMonitor.isOnline.value) {
+                    // Sin red → encolar; la UI muestra estado actual sin la nota nueva todavía.
+                    outboxRepo.enqueue(
+                        type = com.meteomontana.android.data.outbox.OutboxType.NOTE,
+                        schoolId = schoolId,
+                        payloadJson = kotlinx.serialization.json.Json.encodeToString(
+                            com.meteomontana.android.data.api.dto.CreateNoteRequest.serializer(),
+                            com.meteomontana.android.data.api.dto.CreateNoteRequest(text = text)
+                        )
+                    )
+                    return@launch
+                }
                 createNote(schoolId, text)
                 val notes = getNotes(schoolId)
                 val cur = _uiState.value
@@ -117,8 +199,41 @@ class SchoolDetailViewModel @Inject constructor(
         }
     }
 
-    suspend fun submitContribution(req: ContributionRequest): Result<Unit> =
-        runCatching { submitContributionUseCase(schoolId, req); Unit }
+    suspend fun submitContribution(req: ContributionRequest): Result<Unit> {
+        // Si NO hay red → encolar en outbox y devolver "éxito" para que la UI cierre.
+        // Se enviará automáticamente cuando vuelva la conexión (OutboxFlusher).
+        if (!networkMonitor.isOnline.value) {
+            return runCatching {
+                outboxRepo.enqueue(
+                    type = com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION,
+                    schoolId = schoolId,
+                    payloadJson = kotlinx.serialization.json.Json.encodeToString(
+                        ContributionRequest.serializer(), req
+                    )
+                )
+            }
+        }
+        return runCatching { submitContributionUseCase(schoolId, req); Unit }
+    }
+
+    /** Admin: mueve la escuela directamente. */
+    suspend fun adminMoveSchool(lat: Double, lon: Double): Result<Unit> = runCatching {
+        ktorAdminApi.moveSchool(schoolId, lat, lon)
+        load()  // refresca centerLat/Lon
+    }
+
+    /** Admin: mueve un bloque (piedra/parking/zona) directamente conservando el resto. */
+    suspend fun adminMoveBlock(blockId: String, lat: Double, lon: Double): Result<Unit> = runCatching {
+        val cur = (uiState.value as? SchoolDetailUiState.Success)
+            ?.blocks?.firstOrNull { it.id == blockId }
+            ?: error("Block no encontrado: $blockId")
+        updateBlockUseCase(blockId, com.meteomontana.android.data.api.dto.CreateBlockRequest(
+            type = cur.type, name = cur.name, lat = lat, lon = lon,
+            photoPath = cur.photoPath, description = cur.description,
+            lines = emptyList()
+        ))
+        load()
+    }
 
     suspend fun submitBoulderContribution(
         lat: Double, lon: Double,

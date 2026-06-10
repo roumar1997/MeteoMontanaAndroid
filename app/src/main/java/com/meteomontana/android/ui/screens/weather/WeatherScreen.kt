@@ -39,7 +39,10 @@ import com.meteomontana.android.ui.components.forecastBody
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun WeatherScreen(viewModel: WeatherViewModel = hiltViewModel()) {
+fun WeatherScreen(
+    onDayClick: (schoolId: String?, lat: Double, lon: Double, dayIndex: Int) -> Unit = { _, _, _, _ -> },
+    viewModel: WeatherViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsState()
     val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_COARSE_LOCATION)
 
@@ -76,7 +79,12 @@ fun WeatherScreen(viewModel: WeatherViewModel = hiltViewModel()) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    forecastBody(s.forecast)
+                    forecastBody(
+                        forecast = s.forecast,
+                        onDayClick = { idx ->
+                            onDayClick(s.selectedFavoriteId, s.forecast.lat, s.forecast.lon, idx)
+                        }
+                    )
                     item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
                     if (s.grid != null && s.grid.rows.isNotEmpty()) {
                         item { FavoritesGridTable(grid = s.grid) }

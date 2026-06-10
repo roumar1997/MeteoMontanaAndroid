@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +29,7 @@ private val DAY_FULL = mapOf(
 )
 
 @Composable
-fun DayRow(day: DayForecast, dayIndex: Int) {
+fun DayRow(day: DayForecast, dayIndex: Int, onClick: (() -> Unit)? = null) {
     val dt = java.time.LocalDate.parse(day.date)
     val dow = dt.dayOfWeek.name.take(3).uppercase() // MON, TUE, ...
     val label = DAY_NAMES[dow] ?: dow
@@ -39,7 +40,10 @@ fun DayRow(day: DayForecast, dayIndex: Int) {
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.width(56.dp)) {
@@ -61,7 +65,8 @@ fun DayRow(day: DayForecast, dayIndex: Int) {
             },
             modifier = Modifier.width(28.dp)
         )
-        // Barra score
+        // Barra score — más corta cuando llueve para dejar espacio al mm
+        val hasRain = day.precipitationTotal > 0.0
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -75,9 +80,18 @@ fun DayRow(day: DayForecast, dayIndex: Int) {
                     .background(scoreColor(day.avgScore))
             )
         }
+        // Indicador mm de lluvia si llueve
+        if (hasRain) {
+            Text(
+                text = "%.1fmm".format(day.precipitationTotal),
+                modifier = Modifier.padding(start = 8.dp).width(52.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
         Text(
             text = "${day.tempMax.toInt()}°",
-            modifier = Modifier.padding(start = 12.dp),
+            modifier = Modifier.padding(start = 8.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -89,7 +103,7 @@ fun DayRow(day: DayForecast, dayIndex: Int) {
         )
         Text(
             text = "${day.avgScore}",
-            modifier = Modifier.padding(start = 16.dp).width(28.dp),
+            modifier = Modifier.padding(start = 12.dp).width(28.dp),
             style = MaterialTheme.typography.titleMedium,
             color = scoreColor(day.avgScore)
         )

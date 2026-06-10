@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
@@ -66,6 +68,7 @@ fun SchoolListScreen(
     val filters by viewModel.filters.collectAsState()
     val unread by viewModel.unreadCount.collectAsState()
     val scores by viewModel.scores.collectAsState()
+    val favoriteIds by viewModel.favoriteIds.collectAsState()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Pide permiso de ubicación al abrir la pantalla — al concederlo el VM
@@ -145,6 +148,7 @@ fun SchoolListScreen(
                     onStyle         = viewModel::setStyle,
                     onRockToggle    = viewModel::toggleRock,
                     onOnlyFavorites = viewModel::setOnlyFavorites,
+                    onOnlySavedOffline = viewModel::setOnlySavedOffline,
                     onSort          = viewModel::setSort
                 )
             }
@@ -166,6 +170,7 @@ fun SchoolListScreen(
                             dry = score?.dryRock,
                             rainMm = score?.rainMm,
                             rainProb = score?.rainProb,
+                            isFavorite = school.id in favoriteIds,
                             onClick = { onSchoolClick(school.id) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
@@ -229,11 +234,39 @@ private fun TopIconsRow(
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
+        ThemeToggleButton()
         IconButton(onClick = onProfileClick) {
             Icon(Icons.Outlined.Person, contentDescription = "Perfil",
                 tint = MaterialTheme.colorScheme.onBackground)
         }
     }
+}
+
+/** Sol / Luna que alterna el tema. Lee el ThemeManager vía hiltViewModel. */
+@Composable
+private fun ThemeToggleButton() {
+    val vm: ThemeToggleViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val mode by vm.mode.collectAsState()
+    val isDark = when (mode) {
+        com.meteomontana.android.ui.theme.ThemeMode.DARK -> true
+        com.meteomontana.android.ui.theme.ThemeMode.LIGHT -> false
+        com.meteomontana.android.ui.theme.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
+    IconButton(onClick = vm::toggle) {
+        Icon(
+            imageVector = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+            contentDescription = "Cambiar tema",
+            tint = MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+@dagger.hilt.android.lifecycle.HiltViewModel
+class ThemeToggleViewModel @javax.inject.Inject constructor(
+    private val themeManager: com.meteomontana.android.ui.theme.ThemeManager
+) : androidx.lifecycle.ViewModel() {
+    val mode = themeManager.mode
+    fun toggle() = themeManager.toggle()
 }
 
 /** Header como en la PWA: título grande, count debajo, botón outlined a la derecha. */
@@ -266,15 +299,16 @@ private fun HeaderEscuelas(
     }
 }
 
-/** Banner café. Fondo `terraBg`, borde `rule`, botón outlined a la derecha. */
+/** Banner café. Adaptativo al tema (usa surface/onSurface). */
 @Composable
 private fun CoffeeBanner(onDonate: () -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.small)
-            .background(TerraBg)
+            .background(MaterialTheme.colorScheme.primaryContainer)
             .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
             .padding(horizontal = Spacing.md, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically
@@ -288,15 +322,92 @@ private fun CoffeeBanner(onDonate: () -> Unit) {
             Text(
                 "¿Te ayuda la app?",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Text(
                 "Mantenida con amor por la comunidad escaladora",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
         }
-        OutlinedCumbreButton(text = "Apóyanos", onClick = onDonate)
+        OutlinedCumbreButton(text = "Apóyanos", onClick = { showDialog = true; onDonate() })
+    }
+    if (showDialog) DonateDialog(onDismiss = { showDialog = false })
+}
+
+/** Dialog que explica y abre Ko-fi en el navegador. */
+@Composable
+private fun DonateDialog(onDismiss: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .padding(Spacing.lg)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Text("✕",
+                    modifier = Modifier.clickable(onClick = onDismiss),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface)
+            }
+            Spacer(Modifier.height(Spacing.sm))
+            Text("☕",
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.sm),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                style = MaterialTheme.typography.displayMedium)
+            Text("¿Te es útil la app?",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(Spacing.md))
+            Text(
+                "ClimbingTeams es una app gratuita hecha con amor para la " +
+                "comunidad escaladora. Si te ayuda a elegir el mejor día en la roca, " +
+                "considera invitarme a un café para seguir mejorándola.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(Modifier.height(Spacing.md))
+            Column(modifier = Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                .padding(Spacing.md)) {
+                listOf(
+                    "Condiciones de escalada en tiempo real",
+                    "Escuelas cercanas con previsión",
+                    "Previsión de 7 días",
+                    "Mejor día y análisis de secado"
+                ).forEach {
+                    Text(it, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+            Spacer(Modifier.height(Spacing.lg))
+            Box(modifier = Modifier.fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .border(1.5.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+                .clickable {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://ko-fi.com/climbingteams"))
+                    context.startActivity(intent)
+                    onDismiss()
+                }
+                .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("☕ INVÍTAME A UN CAFÉ",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(Modifier.height(Spacing.sm))
+            Text("Cada café nos acerca a nuevas funciones. ¡Gracias de corazón!",
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

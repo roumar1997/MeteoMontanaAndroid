@@ -66,11 +66,29 @@ import kotlinx.coroutines.launch
 
 // ─── Estados internos del flujo ─────────────────────────────────────────────
 
+/** Datos del marker fantasma que SchoolMap renderiza durante una corrección. */
+data class CorrectionGhost(
+    val originalId: String?,   // id del marker original a "fantasmear". null=escuela.
+    val newLat: Double?,
+    val newLon: Double?
+)
+
 private sealed interface ProposeStep {
     data object TypePicker    : ProposeStep
     data object WaitingMapTap : ProposeStep
     data class  Form(val lat: Double, val lon: Double)        : ProposeStep  // PARKING
     data class  BoulderForm(val lat: Double, val lon: Double) : ProposeStep  // BOULDER
+    data class  SectorForm(val lat: Double, val lon: Double)  : ProposeStep  // SECTOR
+    data object CorrectionPickTarget : ProposeStep                          // espera tap en marker existente
+    data class  CorrectionMoving(
+        val targetId: String?,    // null = mover escuela entera
+        val targetName: String,
+        val oldLat: Double,
+        val oldLon: Double,
+        val targetType: String,   // BLOCK / PARKING / ZONE / SCHOOL
+        val newLat: Double? = null,  // null = aún no fijada
+        val newLon: Double? = null
+    ) : ProposeStep
     data object Success       : ProposeStep
 }
 
@@ -88,9 +106,26 @@ private sealed interface ProposeStep {
 @Composable
 fun ProposeContributionFlow(
     schoolName: String,
+    schoolLat: Double = 0.0,
+    schoolLon: Double = 0.0,
     waitingForTap: Boolean,
     onStartWaitingTap: () -> Unit,
     onMapTap: ((Double, Double) -> Unit) -> Unit,
+    /** Registra callback al que el mapa llamará cuando el usuario toque un marker existente.
+     *  El bloque contiene id, nombre, lat, lon, type. */
+    onMarkerTapForCorrection: ((com.meteomontana.android.domain.model.Block) -> Unit) -> Unit = {},
+    /** Cuando true → el mapa hace que los markers respondan al tap del usuario para corrección
+     *  en vez del popup normal. SchoolMap debe reaccionar a este flag. */
+    onCorrectionModeChange: (Boolean) -> Unit = {},
+    /** Posición del marker fantasma (nueva posición candidata) + id del original a fantasmear.
+     *  null = no hay corrección activa. */
+    onGhostMarkerChange: (CorrectionGhost?) -> Unit = {},
+    /** Nombre del target seleccionado para mostrar en el banner ("MOVIENDO: …"). null = ninguno. */
+    onCorrectionTargetChange: (String?) -> Unit = {},
+    /** Registra callback que SchoolMap llamará cuando el usuario pulse ACEPTAR. */
+    onAcceptCorrection: ((() -> Unit) -> Unit) = {},
+    /** Si true → el admin mueve directamente vía API admin sin pasar por flujo propuesta. */
+    isAdmin: Boolean = false,
     onDismiss: () -> Unit,
     onMyProposals: () -> Unit,
     viewModel: SchoolDetailViewModel
@@ -106,27 +141,98 @@ fun ProposeContributionFlow(
 
     val scope = rememberCoroutineScope()
 
+    // Tipo de la última opción elegida en el picker — guía el WaitingMapTap a qué Form ir.
+    var pickedType by remember { mutableStateOf("PARKING") }
+
     onMapTap { lat, lon ->
-        if (step is ProposeStep.WaitingMapTap) {
-            step = if (boulderMode) ProposeStep.BoulderForm(lat, lon)
-                   else ProposeStep.Form(lat, lon)
+        when (val cur = step) {
+            is ProposeStep.WaitingMapTap -> {
+                step = when (pickedType) {
+                    "BOULDER" -> ProposeStep.BoulderForm(lat, lon)
+                    "SECTOR"  -> ProposeStep.SectorForm(lat, lon)
+                    else      -> ProposeStep.Form(lat, lon)
+                }
+            }
+            is ProposeStep.CorrectionMoving -> {
+                // Cada tap reposiciona el fantasma. NO transiciona — solo ACEPTAR cierra.
+                step = cur.copy(newLat = lat, newLon = lon)
+                onGhostMarkerChange(CorrectionGhost(originalId = cur.targetId, newLat = lat, newLon = lon))
+            }
+            else -> {}
+        }
+    }
+
+    onMarkerTapForCorrection { tappedBlock ->
+        if (step is ProposeStep.CorrectionPickTarget) {
+            val isSchool = tappedBlock.id == "__SCHOOL__"
+            val targetId = if (isSchool) null else tappedBlock.id
+            val targetName = if (isSchool) "la escuela" else tappedBlock.name
+            step = ProposeStep.CorrectionMoving(
+                targetId = targetId,
+                targetName = targetName,
+                oldLat = tappedBlock.lat,
+                oldLon = tappedBlock.lon,
+                targetType = if (isSchool) "SCHOOL" else tappedBlock.type
+            )
+            onGhostMarkerChange(CorrectionGhost(originalId = targetId, newLat = null, newLon = null))
+            onCorrectionTargetChange(targetName)
+        }
+    }
+
+    // Registramos el callback de ACEPTAR — SchoolMap lo invoca al pulsar el botón.
+    onAcceptCorrection {
+        val cur = step as? ProposeStep.CorrectionMoving ?: return@onAcceptCorrection
+        val newLat = cur.newLat ?: return@onAcceptCorrection
+        val newLon = cur.newLon ?: return@onAcceptCorrection
+        scope.launch {
+            val result = if (isAdmin && cur.targetType == "SCHOOL") {
+                runCatching { viewModel.adminMoveSchool(newLat, newLon) }
+            } else if (isAdmin && cur.targetId != null) {
+                runCatching { viewModel.adminMoveBlock(cur.targetId, newLat, newLon) }
+            } else {
+                viewModel.submitContribution(ContributionRequest(
+                    type = "POSITION_CORRECTION",
+                    name = cur.targetName,
+                    lat = cur.oldLat, lon = cur.oldLon,
+                    notes = null, description = null,
+                    proposedLat = newLat, proposedLon = newLon,
+                    correctionReason = null,
+                    targetBlockId = cur.targetId,
+                    photoUrl = null, bloquesJson = null, topoLinesJson = null
+                ))
+            }
+            if (result.isSuccess) {
+                onGhostMarkerChange(null)
+                onCorrectionTargetChange(null)
+                onCorrectionModeChange(false)
+                step = ProposeStep.Success
+            }
         }
     }
 
     when (val s = step) {
         is ProposeStep.TypePicker -> TypePickerDialog(
             onParking = {
-                boulderMode = false
+                boulderMode = false; pickedType = "PARKING"
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
             },
             onBoulder = {
-                boulderMode = true
+                boulderMode = true; pickedType = "BOULDER"
                 boulderBloques = listOf(BoulderBloqueForm())
                 boulderName = ""
                 boulderPhotoUri = null
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
+            },
+            onSector = {
+                boulderMode = false; pickedType = "SECTOR"
+                step = ProposeStep.WaitingMapTap
+                onStartWaitingTap()
+            },
+            onCorrection = {
+                step = ProposeStep.CorrectionPickTarget
+                onCorrectionModeChange(true)
             },
             onDismiss = onDismiss
         )
@@ -197,6 +303,35 @@ fun ProposeContributionFlow(
             }
         }
 
+        is ProposeStep.SectorForm -> SectorFormDialog(
+            lat = s.lat, lon = s.lon,
+            onCancel = onDismiss,
+            onSubmit = { name, notes ->
+                scope.launch {
+                    val req = ContributionRequest(
+                        type = "SECTOR",
+                        name = name.takeIf { it.isNotBlank() },
+                        lat = s.lat, lon = s.lon,
+                        notes = notes.takeIf { it.isNotBlank() },
+                        description = null,
+                        proposedLat = null, proposedLon = null,
+                        correctionReason = null, targetBlockId = null,
+                        photoUrl = null, bloquesJson = null, topoLinesJson = null
+                    )
+                    val result = viewModel.submitContribution(req)
+                    if (result.isSuccess) step = ProposeStep.Success
+                }
+            }
+        )
+
+        is ProposeStep.CorrectionPickTarget -> {
+            // Banner lo pinta SchoolMap leyendo el flag correctionMode. Aquí sin dialog.
+        }
+
+        is ProposeStep.CorrectionMoving -> {
+            // Banner + ghost marker + ACEPTAR los renderiza SchoolMap leyendo el state.
+        }
+
         is ProposeStep.Success -> SuccessDialog(
             onClose = onDismiss,
             onMyProposals = { onDismiss(); onMyProposals() }
@@ -210,6 +345,8 @@ fun ProposeContributionFlow(
 private fun TypePickerDialog(
     onParking: () -> Unit,
     onBoulder: () -> Unit,
+    onSector: () -> Unit,
+    onCorrection: () -> Unit,
     onDismiss: () -> Unit
 ) {
     CumbreDialog(onDismiss = onDismiss) {
@@ -237,9 +374,9 @@ private fun TypePickerDialog(
         TypeOption(
             icon = "+",
             label = "AÑADIR SECTOR",
-            description = "Sector dentro de la escuela (ej: La Isla, Vertedero…)",
-            enabled = false,
-            onClick = {}
+            description = "Zona con varios bloques (ej: La Isla, Vertedero…)",
+            enabled = true,
+            onClick = onSector
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         TypeOption(
@@ -253,9 +390,9 @@ private fun TypePickerDialog(
         TypeOption(
             icon = "↔",
             label = "CORREGIR POSICIÓN",
-            description = "Sugerir nueva ubicación de la escuela",
-            enabled = false,
-            onClick = {}
+            description = "Mover una piedra, parking o sector existente",
+            enabled = true,
+            onClick = onCorrection
         )
 
         Spacer(Modifier.height(Spacing.lg))
@@ -306,9 +443,98 @@ private fun TypeOption(
 // ─── Banner cancelar ──────────────────────────────────────────────────────────
 
 @Composable
-private fun BannerCancelOverlay(onCancel: () -> Unit) {
-    // El banner visual lo pinta SchoolMap. Esto solo expone un composable
-    // transparente para capturar el cancel si el usuario pulsa fuera.
+private fun BannerCancelOverlay(
+    onCancel: () -> Unit,
+    text: String = "ℹ PULSA EN EL MAPA DONDE QUIERES AÑADIR EL ELEMENTO"
+) {
+    // El banner visual lo pinta SchoolMap mediante el flag waitingMapTap / correctionMode.
+    // Aquí solo dejamos pasar el cancel y el texto si quisieras render adicional.
+}
+
+// ─── SectorFormDialog ────────────────────────────────────────────────────────
+@Composable
+private fun SectorFormDialog(
+    lat: Double,
+    lon: Double,
+    onCancel: () -> Unit,
+    onSubmit: (name: String, notes: String) -> Unit
+) {
+    var name  by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var sending by remember { mutableStateOf(false) }
+
+    CumbreDialog(onDismiss = onCancel) {
+        Text("Nuevo sector",
+            style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
+            color = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.height(Spacing.xs))
+        Text("Una zona con varios bloques. Se ubicará en el punto que pulsaste.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.lg))
+
+        Text("NOMBRE", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        OutlinedTextField(
+            value = name, onValueChange = { name = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Ej: La Isla, Vertedero, Cuevas…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            singleLine = true,
+            shape = MaterialTheme.shapes.small,
+            colors = fieldColors(),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+        )
+        Spacer(Modifier.height(Spacing.md))
+
+        Text("COORDENADAS (LAT, LON)", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        Text("%.6f, %.6f".format(lat, lon),
+            style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Mono),
+            color = Terra)
+        Spacer(Modifier.height(Spacing.md))
+
+        Text("NOTAS (OPCIONAL)", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        OutlinedTextField(
+            value = notes, onValueChange = { notes = it },
+            modifier = Modifier.fillMaxWidth().height(80.dp),
+            placeholder = { Text("Tipo de roca, orientación, accesos…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            shape = MaterialTheme.shapes.small,
+            colors = fieldColors(),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+        )
+        Spacer(Modifier.height(Spacing.lg))
+
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Box(modifier = Modifier.weight(1f).clip(MaterialTheme.shapes.small)
+                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                .clickable(enabled = !sending, onClick = onCancel)
+                .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center) {
+                Text("CANCELAR", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+            }
+            Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
+                .background(Terra)
+                .clickable(enabled = !sending && name.isNotBlank()) {
+                    sending = true; onSubmit(name, notes)
+                }
+                .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center) {
+                if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                    color = Color.White, strokeWidth = 2.dp)
+                else Text("ENVIAR PROPUESTA", style = EyebrowTextStyle, color = Color.White)
+            }
+        }
+    }
 }
 
 // ─── ParkingFormDialog ────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ class KtorForecastApi(private val client: HttpClient) {
         }.body()
 
     suspend fun getForecastByLocation(lat: Double, lon: Double, schoolId: String?): ForecastDto =
-        client.get("forecast") {
+        client.get("forecast/by-location") {
             parameter("lat", lat)
             parameter("lon", lon)
             schoolId?.let { parameter("schoolId", it) }

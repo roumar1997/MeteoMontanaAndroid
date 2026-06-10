@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -55,14 +56,19 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var text by remember { mutableStateOf("") }
 
-    // Auto-scroll al último mensaje al recibir nuevo
+    // Auto-scroll al último mensaje al recibir uno nuevo.
+    // imePadding() en el Column padre se encarga de empujar el input encima del teclado.
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
+            kotlinx.coroutines.delay(50)
             listState.animateScrollToItem(state.messages.size - 1)
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)
+        .imePadding()  // empuja la columna arriba cuando aparece el teclado
+    ) {
         ChatTopBar(
             name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: "Usuario",
             avatarUrl = state.otherProfile?.photoUrl,

@@ -9,4 +9,16 @@ import com.meteomontana.android.domain.model.FileRef
  */
 interface FileReader {
     suspend fun readBytes(ref: FileRef): ByteArray
+
+    /**
+     * Lee y comprime una imagen del FileRef:
+     * - Redimensiona conservando aspecto para que el lado mayor sea como mucho [maxDim] px.
+     * - Recomprime a JPEG con calidad [quality] (0-100).
+     * - Devuelve los bytes JPEG resultantes.
+     *
+     * Implementaciones por plataforma:
+     * - Android: BitmapFactory + Bitmap.createScaledBitmap + compress(JPEG).
+     * - iOS: UIImage + jpegData(compressionQuality:).
+     */
+    suspend fun readImageCompressed(ref: FileRef, maxDim: Int = 1024, quality: Int = 80): ByteArray
 }

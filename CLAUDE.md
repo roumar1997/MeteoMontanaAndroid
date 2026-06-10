@@ -8,6 +8,16 @@ y se conecta al backend Spring Boot.
 > Kotlin entre Android e iOS. UI Android sigue siendo Jetpack Compose;
 > UI iOS será SwiftUI consumiendo el módulo compartido.
 
+> ## 📚 Documentos del repo
+>
+> - [`CLAUDE.md`](./CLAUDE.md) — este fichero. Contexto del proyecto.
+> - [`KMP_MIGRATION.md`](./KMP_MIGRATION.md) — plan migración KMP + backlog iOS.
+> - [`DEPLOYMENT.md`](./DEPLOYMENT.md) — guía para publicar la app (hosting
+>   backend, dominios, keystore, Play Console, política de privacidad,
+>   costes). **LEER ANTES DE PUBLICAR.**
+> - [`DESIGN.md`](./DESIGN.md) — sistema de diseño Cumbre (tokens, espaciado,
+>   tipografía) — espejo Android/iOS.
+
 > ## ⚠️ SI ABRES UNA SESIÓN NUEVA, LEE ESTO PRIMERO
 >
 > 1. Abre [`KMP_MIGRATION.md`](./KMP_MIGRATION.md).

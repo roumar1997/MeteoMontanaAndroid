@@ -107,6 +107,13 @@ dependencies {
     // Maps (MapLibre native)
     implementation(libs.maplibre)
 
+    // Cropper de foto de perfil (zoom + rotación + circular)
+    implementation(libs.ucrop)
+    implementation(libs.androidx.appcompat)  // requerido por uCrop activity
+
+    // kotlinx-serialization (Json) — outbox y deserialización de payloads
+    implementation(libs.kotlinx.serialization.json)
+
     // Tests
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

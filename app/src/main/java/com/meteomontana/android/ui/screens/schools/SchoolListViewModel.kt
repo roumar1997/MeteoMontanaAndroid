@@ -14,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -41,6 +42,7 @@ data class SchoolFilters(
     val maxDistanceKm: Double? = 50.0,       // 50 km por defecto (como la PWA)
     val rockTypes: List<String> = emptyList(),
     val onlyFavorites: Boolean = false,
+    val onlySavedOffline: Boolean = false,
     val sortBy: SortBy = SortBy.Score,       // ordenado por mejor score por defecto
     val query: String = ""
 )
@@ -57,7 +59,8 @@ class SchoolListViewModel @Inject constructor(
     private val getTodayScores: GetTodayScoresUseCase,
     private val getMyFavorites: GetMyFavoritesUseCase,
     private val getMyNotifications: GetMyNotificationsUseCase,
-    private val locationProvider: LocationProvider
+    private val locationProvider: LocationProvider,
+    private val savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository
 ) : ViewModel() {
 
     // Fallback Madrid si no hay permiso de ubicación; se sobreescribe al cargar.
@@ -78,7 +81,8 @@ class SchoolListViewModel @Inject constructor(
     private val _scores = MutableStateFlow<Map<String, com.meteomontana.android.domain.model.SchoolScore>>(emptyMap())
     val scores: StateFlow<Map<String, com.meteomontana.android.domain.model.SchoolScore>> = _scores.asStateFlow()
 
-    private var favoriteIds: Set<String> = emptySet()
+    private val _favoriteIds = MutableStateFlow<Set<String>>(emptySet())
+    val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -88,7 +92,7 @@ class SchoolListViewModel @Inject constructor(
                 userLon = loc.lon
                 _userLocation.value = loc
             }
-            favoriteIds = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
+            _favoriteIds.value = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
             load()
             refreshUnread()
         }
@@ -118,6 +122,23 @@ class SchoolListViewModel @Inject constructor(
         _uiState.value = SchoolListUiState.Loading
         val f = _filters.value
         viewModelScope.launch {
+            // Modo offline: lee las escuelas guardadas en Room. Sin internet.
+            if (f.onlySavedOffline) {
+                _uiState.value = try {
+                    val rows = savedSchoolRepo.observeSaved().first()
+                    val list = rows.map {
+                        School(
+                            id = it.id, name = it.name, location = null,
+                            region = it.region, style = null, rockType = it.rockType,
+                            lat = it.lat, lon = it.lon, source = null
+                        )
+                    }
+                    SchoolListUiState.Success(filterQuery(list, f.query))
+                } catch (t: Throwable) {
+                    SchoolListUiState.Error(t.toUserMessage())
+                }
+                return@launch
+            }
             _uiState.value = try {
                 var list = getSchools(
                     style = f.style.apiValue,
@@ -127,7 +148,7 @@ class SchoolListViewModel @Inject constructor(
                     radioKm = f.maxDistanceKm
                 )
                 list = filterQuery(list, f.query)
-                if (f.onlyFavorites) list = list.filter { it.id in favoriteIds }
+                if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
 
                 // Cargar scores en background para hasta 50 escuelas (límite del backend)
                 loadScoresFor(list.take(50).map { it.id }) {
@@ -201,11 +222,23 @@ class SchoolListViewModel @Inject constructor(
     }
     fun setOnlyFavorites(v: Boolean) {
         viewModelScope.launch {
-            if (v) favoriteIds = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(favoriteIds)
+            if (v) _favoriteIds.value = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(_favoriteIds.value)
             _filters.update { it.copy(onlyFavorites = v) }
             load()
         }
     }
     fun setSort(s: SortBy)                  { _filters.update { it.copy(sortBy = s) }; load() }
-    fun setQuery(q: String)                 { _filters.update { it.copy(query = q) }; load() }
+    private var queryJob: kotlinx.coroutines.Job? = null
+    fun setQuery(q: String) {
+        // Debounce 200ms para evitar el efecto "terremoto" al teclear: la lista
+        // ya no recarga en cada pulsación. Sí actualiza el filtro inmediato para
+        // que la TextField siga responsiva.
+        _filters.update { it.copy(query = q) }
+        queryJob?.cancel()
+        queryJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(200)
+            load()
+        }
+    }
+    fun setOnlySavedOffline(v: Boolean)     { _filters.update { it.copy(onlySavedOffline = v) }; load() }
 }

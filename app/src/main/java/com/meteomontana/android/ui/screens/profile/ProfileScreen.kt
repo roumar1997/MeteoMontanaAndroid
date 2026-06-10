@@ -55,6 +55,9 @@ fun ProfileScreen(
     onEdit: () -> Unit = {},
     onSubmissions: () -> Unit = {},
     onAdmin: () -> Unit = {},
+    onSavedSchools: () -> Unit = {},
+    onOpenFollowers: () -> Unit = {},
+    onOpenFollowing: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenAllBlocks: () -> Unit = {},
     onOpenMaxGrade: () -> Unit = {},
@@ -62,6 +65,19 @@ fun ProfileScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var addBlockOpen by remember { mutableStateOf(false) }
+
+    // Recarga el perfil cada vez que la pantalla vuelve a primer plano
+    // (p.ej. al cerrar EditarPerfil con foto nueva).
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.load()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopBar("Mi Diario", onBack)
@@ -71,10 +87,15 @@ fun ProfileScreen(
             is ProfileUiState.Success -> Content(
                 profile = s.profile,
                 stats = s.stats,
+                followers = s.followers,
+                following = s.following,
                 onAddBlock = { addBlockOpen = true },
                 onEdit = onEdit,
                 onSubmissions = onSubmissions,
                 onAdmin = onAdmin,
+                onSavedSchools = onSavedSchools,
+                onOpenFollowers = onOpenFollowers,
+                onOpenFollowing = onOpenFollowing,
                 onOpenSchoolEntries = onOpenSchoolEntries,
                 onOpenAllBlocks = onOpenAllBlocks,
                 onOpenMaxGrade = onOpenMaxGrade,
@@ -115,22 +136,31 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 private fun Content(
     profile: PrivateProfile,
     stats: JournalStats,
+    followers: Long,
+    following: Long,
     onAddBlock: () -> Unit,
     onEdit: () -> Unit,
     onSubmissions: () -> Unit,
     onAdmin: () -> Unit,
+    onSavedSchools: () -> Unit,
+    onOpenFollowers: () -> Unit,
+    onOpenFollowing: () -> Unit,
     onOpenSchoolEntries: (String) -> Unit,
     onOpenAllBlocks: () -> Unit,
     onOpenMaxGrade: () -> Unit,
     onSignOut: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        item { Header(profile) }
+        item { Header(profile, followers = followers, following = following,
+            onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
         item {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MiniButton("Editar perfil", onClick = onEdit, modifier = Modifier.weight(1f))
                 MiniButton("Mis propuestas", onClick = onSubmissions, modifier = Modifier.weight(1f))
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                MiniButton("Escuelas guardadas (offline)", onClick = onSavedSchools, modifier = Modifier.weight(1f))
             }
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -180,18 +210,30 @@ private fun Content(
 }
 
 @Composable
-private fun Header(p: PrivateProfile) {
+private fun Header(
+    p: PrivateProfile,
+    followers: Long = 0,
+    following: Long = 0,
+    onClickFollowers: () -> Unit = {},
+    onClickFollowing: () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (p.photoUrl != null) {
-            AsyncImage(
-                model = p.photoUrl,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp).clip(CircleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            )
+            androidx.compose.runtime.key(p.photoUrl) {
+                AsyncImage(
+                    model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        .data(p.photoUrl)
+                        .memoryCachePolicy(coil.request.CachePolicy.WRITE_ONLY)
+                        .crossfade(200)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp).clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                )
+            }
         } else {
             Image(
                 painter = painterResource(R.drawable.logo_cumbre),
@@ -212,6 +254,27 @@ private fun Header(p: PrivateProfile) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(Modifier.padding(top = 4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(modifier = Modifier.clickable(onClick = onClickFollowers),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text("$followers ",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onBackground)
+                    Text("seguidores",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Row(modifier = Modifier.clickable(onClick = onClickFollowing),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text("$following ",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onBackground)
+                    Text("siguiendo",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
     }
 }

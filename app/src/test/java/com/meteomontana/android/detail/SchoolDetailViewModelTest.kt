@@ -31,6 +31,7 @@ import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
@@ -69,6 +70,13 @@ class SchoolDetailViewModelTest {
     private lateinit var getMyProfile: GetMyProfileUseCase
     private lateinit var photoUploader: PhotoUploader
     private lateinit var fileReader: FileReader
+    private lateinit var monthlyStatsRepo: com.meteomontana.android.data.stats.MonthlyStatsRepository
+    private lateinit var savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository
+    private lateinit var offlineTiles: com.meteomontana.android.data.map.OfflineTileManager
+    private lateinit var ktorAdminApi: com.meteomontana.android.data.api.KtorAdminApi
+    private lateinit var updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
+    private lateinit var outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
+    private lateinit var networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
 
     private val schoolId = "s1"
     private val school = School(
@@ -110,6 +118,15 @@ class SchoolDetailViewModelTest {
         getMyProfile = mockk()
         photoUploader = mockk()
         fileReader = mockk()
+        monthlyStatsRepo = mockk(relaxed = true)
+        savedSchoolRepo = mockk(relaxed = true)
+        offlineTiles = mockk(relaxed = true)
+        ktorAdminApi = mockk(relaxed = true)
+        updateBlockUseCase = mockk(relaxed = true)
+        outboxRepo = mockk(relaxed = true)
+        networkMonitor = mockk {
+            every { isOnline } returns kotlinx.coroutines.flow.MutableStateFlow(true)
+        }
 
         coEvery { getSchoolById(schoolId) } returns school
         coEvery { getForecast(schoolId) } returns forecast
@@ -124,7 +141,9 @@ class SchoolDetailViewModelTest {
     private fun newVm() = SchoolDetailViewModel(
         savedState(), getSchoolById, getForecast, getNotes, createNote,
         getMyFavorites, addFavorite, removeFavorite, getBlocks, createBlock,
-        deleteBlockUC, submitContribution, getMyProfile, photoUploader, fileReader
+        deleteBlockUC, submitContribution, getMyProfile, photoUploader, fileReader,
+        monthlyStatsRepo, savedSchoolRepo, offlineTiles, ktorAdminApi, updateBlockUseCase,
+        outboxRepo, networkMonitor
     )
 
     @Test fun `load con todo OK produce Success con forecast y sin error`() = runTest {

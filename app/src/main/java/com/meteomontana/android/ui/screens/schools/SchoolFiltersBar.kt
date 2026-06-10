@@ -27,7 +27,8 @@ fun SchoolFiltersBar(
     onStyle: (StyleFilter) -> Unit,
     onRockToggle: (String) -> Unit,
     onOnlyFavorites: (Boolean) -> Unit,
-    onSort: (SortBy) -> Unit
+    onSort: (SortBy) -> Unit,
+    onOnlySavedOffline: (Boolean) -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -63,6 +64,14 @@ fun SchoolFiltersBar(
                 isSelected = { it == filters.onlyFavorites },
                 label = { if (it) "Solo favoritos ★" else "Todos" },
                 onClick = onOnlyFavorites
+            )
+        }
+        Section("OFFLINE") {
+            ChipRow(
+                items = listOf(false, true),
+                isSelected = { it == filters.onlySavedOffline },
+                label = { if (it) "Solo guardadas ▼" else "Todas" },
+                onClick = onOnlySavedOffline
             )
         }
         Section("ORDENAR POR") {

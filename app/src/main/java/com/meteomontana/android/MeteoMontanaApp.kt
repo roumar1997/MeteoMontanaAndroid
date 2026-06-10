@@ -1,20 +1,19 @@
 package com.meteomontana.android
 
 import android.app.Application
+import com.meteomontana.android.data.outbox.OutboxFlusher
 import dagger.hilt.android.HiltAndroidApp
 import org.maplibre.android.MapLibre
+import javax.inject.Inject
 
-/**
- * Entry point de la aplicación.
- * @HiltAndroidApp inicializa el contenedor de inyección de dependencias
- * de Hilt para toda la app.
- */
 @HiltAndroidApp
 class MeteoMontanaApp : Application() {
+
+    @Inject lateinit var outboxFlusher: OutboxFlusher
+
     override fun onCreate() {
         super.onCreate()
-        // Inicializa MapLibre antes de que cualquier MapView pueda inflarse.
-        // Sin API key porque usamos tiles raster propios (Esri / OpenTopoMap).
         MapLibre.getInstance(this)
+        outboxFlusher.start()
     }
 }

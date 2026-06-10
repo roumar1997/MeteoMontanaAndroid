@@ -60,6 +60,27 @@ fun BestDayDto.toDomain() = BestDay(date, score, label, daysFromToday)
 fun OptimalWindowDto.toDomain() = OptimalWindow(start, end, avgScore)
 fun ScoreFactorDto.toDomain() = ScoreFactor(name, display, passes)
 
+// Reverse mappings: domain → DTO (para serializar snapshots offline a JSON)
+fun Forecast.toDto() = ForecastDto(
+    schoolId = schoolId, schoolName = schoolName, lat = lat, lon = lon,
+    current = current.toDto(), hours = hours.map { it.toDto() },
+    days = days.map { it.toDto() }, bestDay = bestDay?.toDto(),
+    bestWindow = bestWindow?.toDto()
+)
+fun Current.toDto() = CurrentDto(
+    time, temperature, humidity, windSpeed, precipitation,
+    precipitationProbability, cloudCover, dewPoint, precip24h, precip72h,
+    dryRock, score, scoreLabel, factors.map { it.toDto() }
+)
+fun HourForecast.toDto() = HourForecastDto(
+    time, temperature, humidity, windSpeed, precipitation,
+    precipitationProbability, cloudCover, dewPoint, score, scoreLabel, weatherCode
+)
+fun DayForecast.toDto() = DayForecastDto(date, tempMax, tempMin, precipitationTotal, avgScore, scoreLabel)
+fun BestDay.toDto() = BestDayDto(date, score, label, daysFromToday)
+fun OptimalWindow.toDto() = OptimalWindowDto(start, end, avgScore)
+fun ScoreFactor.toDto() = ScoreFactorDto(name, display, passes)
+
 fun SchoolScoreDto.toDomain() = SchoolScore(id, todayScore, hourlyScores, dryRock, rainMm, rainProb)
 
 // Block
@@ -92,7 +113,7 @@ fun AdminStatsDto.toDomain() = AdminStats(totalUsers, totalAdmins, totalSchools,
 fun AdminLogDto.toDomain() = AdminLog(id, actorUid, action, targetType, targetId, details, createdAt)
 fun AdminPushResponse.toDomain() = AdminPushResult(sent, recipients)
 fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, proposedStyle, proposedRockType, proposedLat, proposedLon, proposedLocation, proposedSource, notes, status, submittedByUid, reviewedByUid, reviewReason, createdSchoolId, createdAt, reviewedAt)
-fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId)
+fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, proposedLat, proposedLon, correctionReason)
 
 // Journal
 fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt)

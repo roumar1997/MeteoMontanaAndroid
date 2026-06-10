@@ -25,7 +25,9 @@ import com.meteomontana.android.navigation.mainTabs
 import com.meteomontana.android.ui.screens.admin.AdminScreen
 import com.meteomontana.android.ui.screens.chat.ChatListScreen
 import com.meteomontana.android.ui.screens.chat.ChatScreen
+import com.meteomontana.android.ui.screens.day.DayDetailScreen
 import com.meteomontana.android.ui.screens.detail.SchoolDetailScreen
+import com.meteomontana.android.ui.screens.saved.SavedSchoolsScreen
 import com.meteomontana.android.ui.screens.notifications.NotificationsScreen
 import com.meteomontana.android.ui.screens.profile.EditProfileScreen
 import com.meteomontana.android.ui.screens.profile.JournalEntriesScreen
@@ -41,10 +43,28 @@ import com.meteomontana.android.ui.screens.users.SearchUsersScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    deepLink: com.meteomontana.android.DeepLinkTarget? = null,
+    onDeepLinkConsumed: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
+
+    // Consume el deep link entrante del push: navega al destino + marca consumido.
+    androidx.compose.runtime.LaunchedEffect(deepLink) {
+        if (deepLink != null) {
+            when (deepLink.targetType) {
+                "school", "school_detail" ->
+                    deepLink.targetId?.let { navController.navigate(Routes.schoolDetail(it)) }
+                "user"        -> deepLink.targetId?.let { navController.navigate(Routes.publicProfile(it)) }
+                "chat", "message" -> deepLink.targetId?.let { navController.navigate(Routes.chat(it)) }
+                "submission", "contribution" -> navController.navigate(Routes.MY_SUBMISSIONS)
+                "notifications" -> navController.navigate(Routes.NOTIFICATIONS)
+            }
+            onDeepLinkConsumed()
+        }
+    }
 
     val showBottomBar = currentRoute in mainTabs.map { it.route }
 
@@ -84,12 +104,21 @@ fun MainScreen() {
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = Tab.Schools.route,
-            modifier = Modifier.fillMaxSize().padding(padding)
-        ) {
-            composable(Tab.Weather.route) { WeatherScreen() }
+        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            com.meteomontana.android.ui.components.NetworkBanner()
+            NavHost(
+                navController = navController,
+                startDestination = Tab.Schools.route,
+                modifier = Modifier.weight(1f)
+            ) {
+            composable(Tab.Weather.route) {
+                WeatherScreen(
+                    onDayClick = { schoolId, lat, lon, idx ->
+                        if (schoolId != null) navController.navigate(Routes.dayDetail(schoolId, idx))
+                        else navController.navigate(Routes.dayDetailByLocation(lat, lon, idx))
+                    }
+                )
+            }
             composable(Tab.Schools.route) {
                 SchoolListScreen(
                     onSchoolClick = { id -> navController.navigate(Routes.schoolDetail(id)) },
@@ -106,10 +135,31 @@ fun MainScreen() {
                 route = Routes.SCHOOL_DETAIL,
                 arguments = listOf(navArgument("schoolId") { type = NavType.StringType })
             ) {
+                val schoolId = it.arguments?.getString("schoolId") ?: ""
                 SchoolDetailScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) }
+                    onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) },
+                    onDayClick = { idx -> navController.navigate(Routes.dayDetail(schoolId, idx)) }
                 )
+            }
+            composable(
+                route = Routes.DAY_DETAIL,
+                arguments = listOf(
+                    navArgument("schoolId") { type = NavType.StringType },
+                    navArgument("dayIndex") { type = NavType.StringType }
+                )
+            ) {
+                DayDetailScreen(onBack = { navController.popBackStack() })
+            }
+            composable(
+                route = Routes.DAY_DETAIL_BY_LOCATION,
+                arguments = listOf(
+                    navArgument("lat") { type = NavType.StringType },
+                    navArgument("lon") { type = NavType.StringType },
+                    navArgument("dayIndex") { type = NavType.StringType }
+                )
+            ) {
+                DayDetailScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Routes.PROFILE) {
@@ -118,6 +168,17 @@ fun MainScreen() {
                     onEdit = { navController.navigate(Routes.EDIT_PROFILE) },
                     onSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) },
                     onAdmin = { navController.navigate(Routes.ADMIN) },
+                    onSavedSchools = { navController.navigate(Routes.SAVED_SCHOOLS) },
+                    onOpenFollowers = {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                            navController.navigate(Routes.followList(uid, "followers"))
+                        }
+                    },
+                    onOpenFollowing = {
+                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                            navController.navigate(Routes.followList(uid, "following"))
+                        }
+                    },
                     onOpenSchoolEntries = { schoolName ->
                         navController.navigate(Routes.journalEntries("school:$schoolName"))
                     },
@@ -141,6 +202,12 @@ fun MainScreen() {
             composable(Routes.EDIT_PROFILE) {
                 EditProfileScreen(onBack = { navController.popBackStack() })
             }
+            composable(Routes.SAVED_SCHOOLS) {
+                SavedSchoolsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpen = { id -> navController.navigate(Routes.schoolDetail(id)) }
+                )
+            }
             composable(Routes.MY_SUBMISSIONS) {
                 MySubmissionsScreen(onBack = { navController.popBackStack() })
             }
@@ -156,7 +223,10 @@ fun MainScreen() {
             composable(Routes.NOTIFICATIONS) {
                 NotificationsScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenUser = { uid -> navController.navigate(Routes.publicProfile(uid)) }
+                    onOpenUser = { uid -> navController.navigate(Routes.publicProfile(uid)) },
+                    onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) },
+                    onOpenSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) },
+                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) }
                 )
             }
             composable(
@@ -204,6 +274,7 @@ fun MainScreen() {
             ) {
                 TopoEditorScreen(onBack = { navController.popBackStack() })
             }
+        }
         }
     }
 }

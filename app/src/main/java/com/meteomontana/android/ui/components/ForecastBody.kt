@@ -40,7 +40,11 @@ import com.meteomontana.android.domain.model.Forecast
  * Bloque de scoring/forecast reutilizable.
  * Lo usa la pantalla de detalle de escuela y la pantalla Tab Tiempo.
  */
-fun LazyListScope.forecastBody(forecast: Forecast) {
+fun LazyListScope.forecastBody(
+    forecast: Forecast,
+    afterCurrentWeather: (LazyListScope.() -> Unit)? = null,
+    onDayClick: ((Int) -> Unit)? = null
+) {
     item { HeroSection(forecast) }
     item {
         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
@@ -49,6 +53,7 @@ fun LazyListScope.forecastBody(forecast: Forecast) {
     }
     item { FactorsAccordion(forecast.current) }
     item { CurrentWeather(forecast.current) }
+    afterCurrentWeather?.invoke(this)
     item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
     item { SectionTitle("PRÓXIMAS 16 HORAS") }
     item {
@@ -60,7 +65,7 @@ fun LazyListScope.forecastBody(forecast: Forecast) {
     item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
     item { SectionTitle("PRÓXIMOS 7 DÍAS") }
     itemsIndexed(forecast.days.take(7)) { i, d ->
-        DayRow(day = d, dayIndex = i)
+        DayRow(day = d, dayIndex = i, onClick = onDayClick?.let { { it(i) } })
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
     }
     item { BestDayBar(forecast) }

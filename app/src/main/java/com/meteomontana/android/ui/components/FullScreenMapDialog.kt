@@ -4,7 +4,9 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -59,6 +61,10 @@ fun FullScreenMapDialog(
     markerTitle: String = "",
     existingBlocks: List<Block> = emptyList(),
     proposalAsBlock: Block? = null,
+    /** Si !=null → contribución de POSITION_CORRECTION: dibuja marker GRIS en (lat,lon),
+     *  marker ESTRELLA en (proposedLat, proposedLon) y línea terra entre ambos. */
+    positionCorrectionNew: Pair<Double, Double>? = null,
+    positionCorrectionTargetName: String? = null,
     onDeleteBlock: ((String) -> Unit)? = null,
     onUpdateBlock: ((Block, com.meteomontana.android.data.api.dto.CreateBlockRequest) -> Unit)? = null,
     onDismiss: () -> Unit
@@ -68,6 +74,8 @@ fun FullScreenMapDialog(
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     var editingBlock by remember { mutableStateOf<Block?>(null) }
     var movingBlock by remember { mutableStateOf<Block?>(null) }
+    var ghostPosition by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var mapStyle by remember { mutableStateOf("topo") }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -99,6 +107,11 @@ fun FullScreenMapDialog(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
+            // key fuerza re-crear el MapView cuando:
+            //  - Llegan los blocks de la escuela (carga async tras pulsar en GESTIONAR).
+            //  - El admin cambia el estilo de mapa (Topo/Satélite).
+            //  - Cambia la posición candidata (ghost) para repintar el marker fantasma.
+            androidx.compose.runtime.key(existingBlocks.size, mapStyle, ghostPosition, movingBlock?.id) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { context ->
@@ -116,7 +129,7 @@ fun FullScreenMapDialog(
                             false
                         }
                         getMapAsync { map ->
-                            map.setStyle(Style.Builder().fromJson(OSM_TOPO_STYLE)) {
+                            map.setStyle(Style.Builder().fromJson(fullStyleJson(mapStyle))) {
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(lat, lon))
                                     .zoom(15.0)
@@ -125,9 +138,11 @@ fun FullScreenMapDialog(
                                 val iconFactory = IconFactory.getInstance(context)
                                 val markerToBlock = mutableMapOf<Marker, Block>()
 
-                                // Bloques existentes
+                                // Bloques existentes (el que se está moviendo va semitransparente)
                                 existingBlocks.forEach { block ->
-                                    val bmp = bitmapForBlock(block, isProposal = false)
+                                    val isMovingThis = movingBlock?.id == block.id
+                                    val baseBmp = bitmapForBlock(block, isProposal = false)
+                                    val bmp = if (isMovingThis) fadeBitmap(baseBmp) else baseBmp
                                     val marker = map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(block.lat, block.lon))
@@ -136,9 +151,58 @@ fun FullScreenMapDialog(
                                     )
                                     markerToBlock[marker] = block
                                 }
+                                // Marker fantasma ★ en la posición candidata.
+                                ghostPosition?.let { (gLat, gLon) ->
+                                    val bmp = pinBitmap(
+                                        android.graphics.Color.parseColor("#F59E0B"),
+                                        "★", sizeDp = 48
+                                    )
+                                    map.addMarker(
+                                        MarkerOptions()
+                                            .position(LatLng(gLat, gLon))
+                                            .title("Nueva posición")
+                                            .icon(iconFactory.fromBitmap(bmp))
+                                    )
+                                }
 
-                                // Marker principal: o bien la propuesta-as-block, o el simple
-                                if (proposalAsBlock != null) {
+                                // POSITION_CORRECTION: dibuja vieja + nueva + línea, y auto-fit.
+                                if (positionCorrectionNew != null) {
+                                    val (pLat, pLon) = positionCorrectionNew
+                                    val oldIcon = pinBitmap(
+                                        android.graphics.Color.parseColor("#8A8478"), "✕", sizeDp = 44
+                                    )
+                                    map.addMarker(
+                                        MarkerOptions()
+                                            .position(LatLng(lat, lon))
+                                            .title("POSICIÓN ACTUAL${positionCorrectionTargetName?.let { " · $it" } ?: ""}")
+                                            .icon(iconFactory.fromBitmap(oldIcon))
+                                    )
+                                    val newIcon = pinBitmap(
+                                        android.graphics.Color.parseColor("#F59E0B"), "★", sizeDp = 52
+                                    )
+                                    map.addMarker(
+                                        MarkerOptions()
+                                            .position(LatLng(pLat, pLon))
+                                            .title("PROPUESTA · NUEVA POSICIÓN")
+                                            .icon(iconFactory.fromBitmap(newIcon))
+                                    )
+                                    map.addPolyline(
+                                        org.maplibre.android.annotations.PolylineOptions()
+                                            .add(LatLng(lat, lon))
+                                            .add(LatLng(pLat, pLon))
+                                            .color(android.graphics.Color.parseColor("#C2410C"))
+                                            .width(4f)
+                                    )
+                                    // Auto-fit a ambos puntos con padding.
+                                    val bounds = org.maplibre.android.geometry.LatLngBounds.Builder()
+                                        .include(LatLng(lat, lon))
+                                        .include(LatLng(pLat, pLon))
+                                        .build()
+                                    map.animateCamera(
+                                        org.maplibre.android.camera.CameraUpdateFactory
+                                            .newLatLngBounds(bounds, 200)
+                                    )
+                                } else if (proposalAsBlock != null) {
                                     val bmp = bitmapForBlock(proposalAsBlock, isProposal = true)
                                     val marker = map.addMarker(
                                         MarkerOptions()
@@ -171,28 +235,11 @@ fun FullScreenMapDialog(
                                     }
                                 }
 
-                                // Tap en cualquier punto del mapa cuando estamos
-                                // en "modo mover": actualiza el block con las nuevas coords.
+                                // En modo mover: cada tap actualiza la posición candidata (ghost).
+                                // No movemos aún — esperamos a que el admin pulse ACEPTAR.
                                 map.addOnMapClickListener { point ->
-                                    val mb = movingBlock
-                                    if (mb != null && onUpdateBlock != null) {
-                                        val req = com.meteomontana.android.data.api.dto.CreateBlockRequest(
-                                            type = mb.type,
-                                            name = mb.name,
-                                            lat = point.latitude,
-                                            lon = point.longitude,
-                                            photoPath = mb.photoPath,
-                                            description = mb.description,
-                                            lines = mb.lines.map { l ->
-                                                com.meteomontana.android.data.api.dto.CreateBlockLineRequest(
-                                                    name = l.name, grade = l.grade,
-                                                    startType = l.startType,
-                                                    linePath = l.linePath
-                                                )
-                                            }
-                                        )
-                                        onUpdateBlock(mb, req)
-                                        movingBlock = null
+                                    if (movingBlock != null) {
+                                        ghostPosition = point.latitude to point.longitude
                                         true
                                     } else false
                                 }
@@ -204,21 +251,67 @@ fun FullScreenMapDialog(
                     }
                 }
             )
+            }
 
-            // Banner "PULSA EN EL MAPA" cuando estamos moviendo
+            // Banner contextual: paso 1 "pulsa la nueva posición" / paso 2 con ACEPTAR
             movingBlock?.let { mb ->
-                Box(
+                androidx.compose.foundation.layout.Column(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
+                        .align(Alignment.BottomCenter)
                         .padding(Spacing.md)
                         .clip(MaterialTheme.shapes.small)
                         .background(Terra)
                         .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                 ) {
                     Text(
-                        "📍 PULSA EN EL MAPA LA NUEVA POSICIÓN DE ${mb.name.uppercase()}",
+                        if (ghostPosition == null)
+                            "📍 PULSA EN EL MAPA LA NUEVA POSICIÓN DE ${mb.name.uppercase()}"
+                        else
+                            "✓ POSICIÓN FIJADA PARA ${mb.name.uppercase()} · PULSA OTRA VEZ PARA RECORREGIR",
                         style = EyebrowTextStyle, color = Color.White
                     )
+                    if (ghostPosition != null) {
+                        androidx.compose.foundation.layout.Spacer(Modifier.height(Spacing.xs))
+                        androidx.compose.foundation.layout.Row(
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.xs)
+                        ) {
+                            Box(modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .background(Color.White.copy(alpha = 0.18f))
+                                .clickable {
+                                    ghostPosition = null
+                                    movingBlock = null
+                                }
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                            ) {
+                                Text("CANCELAR", style = EyebrowTextStyle, color = Color.White)
+                            }
+                            Box(modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .background(Color.White)
+                                .clickable {
+                                    val (gLat, gLon) = ghostPosition!!
+                                    val req = com.meteomontana.android.data.api.dto.CreateBlockRequest(
+                                        type = mb.type, name = mb.name,
+                                        lat = gLat, lon = gLon,
+                                        photoPath = mb.photoPath, description = mb.description,
+                                        lines = mb.lines.map { l ->
+                                            com.meteomontana.android.data.api.dto.CreateBlockLineRequest(
+                                                name = l.name, grade = l.grade,
+                                                startType = l.startType, linePath = l.linePath
+                                            )
+                                        }
+                                    )
+                                    onUpdateBlock?.invoke(mb, req)
+                                    movingBlock = null
+                                    ghostPosition = null
+                                }
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                            ) {
+                                Text("✓ ACEPTAR Y MOVER", style = EyebrowTextStyle, color = Terra)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -233,6 +326,37 @@ fun FullScreenMapDialog(
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Text("✕ CERRAR", style = EyebrowTextStyle, color = Color.White)
+            }
+
+            // Chips Topo / Satélite arriba a la izquierda
+            androidx.compose.foundation.layout.Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(Spacing.md),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.xs)
+            ) {
+                listOf("topo" to "Topo", "sat" to "Satélite").forEach { (id, label) ->
+                    val selected = mapStyle == id
+                    Box(modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .background(
+                            if (selected) Color.White
+                            else Color.Black.copy(alpha = 0.55f)
+                        )
+                        .clickable {
+                            mapStyle = id
+                            mapViewRef.value?.getMapAsync { map ->
+                                map.setStyle(Style.Builder().fromJson(fullStyleJson(id)))
+                            }
+                        }
+                        .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                    ) {
+                        Text(
+                            label, style = EyebrowTextStyle,
+                            color = if (selected) Color.Black else Color.White
+                        )
+                    }
+                }
             }
 
             // Coordenadas
@@ -301,12 +425,12 @@ internal fun bitmapForBlock(block: Block, isProposal: Boolean): Bitmap {
         )
     }
     return when (block.type) {
-        "PARKING" -> pinBitmap(android.graphics.Color.parseColor("#1D6DD6"), "P", sizeDp = 36)
-        "ZONE"    -> pinBitmap(android.graphics.Color.parseColor("#1FA84E"), "Z", sizeDp = 36)
+        "PARKING" -> pinBitmap(android.graphics.Color.parseColor("#1D6DD6"), "P", sizeDp = 28)
+        "ZONE"    -> pinBitmap(android.graphics.Color.parseColor("#1FA84E"), "Z", sizeDp = 32)
         else      -> pinBitmapBoulder(
             label = block.name.takeIf { it.isNotBlank() } ?: "?",
             fillColor = android.graphics.Color.parseColor("#C2410C"),
-            sizeDp = 44
+            sizeDp = 22
         )
     }
 }
@@ -422,3 +546,20 @@ private val OSM_TOPO_STYLE = """
   "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"
 ],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"topo","type":"raster","source":"topo"}]}
 """.trimIndent()
+
+private val SAT_STYLE = """
+{"version":8,"sources":{"sat":{"type":"raster","tiles":[
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"sat","type":"raster","source":"sat"}]}
+""".trimIndent()
+
+internal fun fullStyleJson(id: String): String = if (id == "sat") SAT_STYLE else OSM_TOPO_STYLE
+
+/** Devuelve una copia del bitmap con alpha 0.35f. */
+private fun fadeBitmap(src: android.graphics.Bitmap): android.graphics.Bitmap {
+    val out = android.graphics.Bitmap.createBitmap(src.width, src.height, android.graphics.Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(out)
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { alpha = 90 }
+    c.drawBitmap(src, 0f, 0f, paint)
+    return out
+}

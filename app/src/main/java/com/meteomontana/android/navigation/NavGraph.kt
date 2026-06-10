@@ -39,4 +39,12 @@ object Routes {
     const val JOURNAL_ENTRIES = "journal/entries?filter={filter}"
     fun journalEntries(filter: String? = null): String =
         if (filter == null) "journal/entries?filter=" else "journal/entries?filter=$filter"
+
+    // schoolId opcional (vacío = tab Tiempo, ubicación actual)
+    const val DAY_DETAIL = "day/{schoolId}/{dayIndex}"
+    fun dayDetail(schoolId: String, dayIndex: Int) = "day/$schoolId/$dayIndex"
+    const val DAY_DETAIL_BY_LOCATION = "day-loc/{lat}/{lon}/{dayIndex}"
+    fun dayDetailByLocation(lat: Double, lon: Double, dayIndex: Int) = "day-loc/$lat/$lon/$dayIndex"
+
+    const val SAVED_SCHOOLS = "saved"
 }

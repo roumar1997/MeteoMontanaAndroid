@@ -19,7 +19,12 @@ import javax.inject.Inject
 
 sealed interface ProfileUiState {
     data object Loading : ProfileUiState
-    data class Success(val profile: PrivateProfile, val stats: JournalStats) : ProfileUiState
+    data class Success(
+        val profile: PrivateProfile,
+        val stats: JournalStats,
+        val followers: Long = 0,
+        val following: Long = 0
+    ) : ProfileUiState
     data class Error(val message: String) : ProfileUiState
 }
 
@@ -28,6 +33,8 @@ class ProfileViewModel @Inject constructor(
     private val getMyProfile: GetMyProfileUseCase,
     private val getMyJournalStats: GetMyJournalStatsUseCase,
     private val createJournalEntry: CreateJournalEntryUseCase,
+    private val getFollowStatus: com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase,
+    private val updateMyProfile: com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase,
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -37,12 +44,18 @@ class ProfileViewModel @Inject constructor(
     init { load() }
 
     fun load() {
-        _uiState.value = ProfileUiState.Loading
+        // Solo mostramos Loading si NO había datos previos. Así un refresh (ON_RESUME
+        // al volver de Editar perfil) mantiene la pantalla pintada y no parpadea.
+        if (_uiState.value !is ProfileUiState.Success) {
+            _uiState.value = ProfileUiState.Loading
+        }
         viewModelScope.launch {
             _uiState.value = try {
                 val profile = getMyProfile()
                 val stats = getMyJournalStats()
-                ProfileUiState.Success(profile, stats)
+                val follow = runCatching { getFollowStatus(profile.uid) }
+                    .getOrDefault(com.meteomontana.android.domain.model.FollowStatus(0, 0, false, false))
+                ProfileUiState.Success(profile, stats, follow.followers, follow.following)
             } catch (t: Throwable) {
                 ProfileUiState.Error(t.toUserMessage())
             }
@@ -53,10 +66,29 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 createJournalEntry(req)
+                // Auto-actualiza el grado máximo del perfil si es mayor que el actual.
+                val cur = _uiState.value as? ProfileUiState.Success
+                val curTop = cur?.profile?.topGrade
+                val newGrade = req.grade
+                if (!newGrade.isNullOrBlank() && gradeRank(newGrade) > gradeRank(curTop)) {
+                    runCatching {
+                        updateMyProfile(com.meteomontana.android.data.api.dto.UpdateProfileRequest(topGrade = newGrade))
+                    }
+                }
                 load()
                 onDone()
             } catch (_: Throwable) {}
         }
+    }
+
+    /** Devuelve un entero comparable para ordenar grados ("6a"<"6b"<"6c"<"6a+"<"7a"…). */
+    private fun gradeRank(g: String?): Int {
+        if (g.isNullOrBlank()) return -1
+        val s = g.lowercase().trim()
+        val n = s.takeWhile { it.isDigit() }.toIntOrNull() ?: return -1
+        val letter = s.firstOrNull { it.isLetter() }?.let { it - 'a' } ?: 0
+        val plus = if (s.endsWith("+")) 1 else 0
+        return n * 100 + letter * 10 + plus * 5
     }
 
     fun signOut() {

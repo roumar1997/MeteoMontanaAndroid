@@ -105,6 +105,9 @@ class NotificationsViewModel @Inject constructor(
 fun NotificationsScreen(
     onBack: () -> Unit,
     onOpenUser: (String) -> Unit = {},
+    onOpenSchool: (String) -> Unit = {},
+    onOpenSubmissions: () -> Unit = {},
+    onOpenChat: (String) -> Unit = {},
     viewModel: NotificationsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -151,7 +154,13 @@ fun NotificationsScreen(
                             NotificationRow(n) {
                                 viewModel.onItemClick(n.id)
                                 val tid = n.targetId
-                                if (n.targetType == "user" && tid != null) onOpenUser(tid)
+                                when (n.targetType) {
+                                    "user"          -> tid?.let(onOpenUser)
+                                    "school", "school_detail" -> tid?.let(onOpenSchool)
+                                    "submission", "contribution" -> onOpenSubmissions()
+                                    "chat", "message" -> tid?.let(onOpenChat)
+                                    else            -> {}
+                                }
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         }

@@ -12,7 +12,9 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import kotlinx.serialization.Serializable
 
 class KtorAdminApi(private val client: HttpClient) {
 
@@ -40,4 +42,13 @@ class KtorAdminApi(private val client: HttpClient) {
 
     suspend fun rejectContribution(id: String, req: RejectReason): ContributionDto =
         client.post("admin/contributions/$id/reject") { setBody(req) }.body()
+
+    suspend fun moveSchool(schoolId: String, lat: Double, lon: Double) {
+        client.put("admin/schools/$schoolId/position") {
+            setBody(MoveSchoolRequest(lat, lon))
+        }
+    }
 }
+
+@Serializable
+data class MoveSchoolRequest(val lat: Double, val lon: Double)
