@@ -64,6 +64,21 @@ data class SchoolHistory(
     val blocks: List<String>      // nombres de bloque previamente usados
 )
 
+/** Vía concreta sugerida al usuario, con su grado y tipo de inicio si los tiene. */
+data class LineSuggestion(
+    val blockName: String,
+    val name: String,           // nombre de la vía (o "L1" si la vía no tiene nombre)
+    val grade: String?,
+    val startType: String?
+) {
+    val displayLabel: String get() = buildString {
+        append(name)
+        val extras = listOfNotNull(grade, startType).joinToString(" · ")
+        if (extras.isNotEmpty()) append(" · ").append(extras)
+        append(" — ").append(blockName)
+    }
+}
+
 @HiltViewModel
 class SchoolSearchViewModel @Inject constructor(
     private val searchSchools: SearchSchoolsUseCase,
@@ -155,12 +170,35 @@ fun AddBlockSheet(
         if (sector.isBlank()) history.sectors.take(5)
         else history.sectors.filter { it.contains(sector, ignoreCase = true) && it != sector }.take(5)
     }
-    val blockSuggestions = remember(blockName, history, schoolBlocks) {
-        val previous = history.blocks
-        val fromSchool = schoolBlocks.filter { it.type == "BLOCK" }.map { it.name }
-        val combined = (previous + fromSchool).distinct()
-        if (blockName.isBlank()) combined.take(5)
-        else combined.filter { it.contains(blockName, ignoreCase = true) && it != blockName }.take(5)
+    // Vías reales registradas en los bloques de la escuela (con grado + tipo).
+    val lineSuggestions = remember(blockName, schoolBlocks) {
+        val all = schoolBlocks.filter { it.type == "BLOCK" }.flatMap { b ->
+            b.lines.map { l ->
+                LineSuggestion(
+                    blockName = b.name,
+                    name = l.name.ifBlank { "L${l.sortOrder + 1}" },
+                    grade = l.grade,
+                    startType = l.startType
+                )
+            }
+        }
+        if (blockName.isBlank()) all.take(6)
+        else all.filter {
+            it.name.contains(blockName, ignoreCase = true) ||
+                it.blockName.contains(blockName, ignoreCase = true)
+        }.take(6)
+    }
+    // Fallback: si la escuela aún no tiene vías catalogadas, sugerimos bloques
+    // (los de la escuela + los del diario previo del usuario).
+    val blockSuggestions = remember(blockName, history, schoolBlocks, lineSuggestions) {
+        if (lineSuggestions.isNotEmpty()) emptyList()
+        else {
+            val previous = history.blocks
+            val fromSchool = schoolBlocks.filter { it.type == "BLOCK" }.map { it.name }
+            val combined = (previous + fromSchool).distinct()
+            if (blockName.isBlank()) combined.take(5)
+            else combined.filter { it.contains(blockName, ignoreCase = true) && it != blockName }.take(5)
+        }
     }
 
     ModalBottomSheet(
@@ -221,7 +259,19 @@ fun AddBlockSheet(
                 placeholder = { Text("ej: El Pollito") },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
-            if (blockSuggestions.isNotEmpty()) {
+            if (lineSuggestions.isNotEmpty()) {
+                SuggestionsBox {
+                    lineSuggestions.forEach { l ->
+                        SuggestionRow(
+                            text = l.displayLabel,
+                            onClick = {
+                                blockName = l.name
+                                if (!l.grade.isNullOrBlank()) grade = l.grade
+                            }
+                        )
+                    }
+                }
+            } else if (blockSuggestions.isNotEmpty()) {
                 SuggestionsBox {
                     blockSuggestions.forEach { b ->
                         SuggestionRow(text = b, onClick = { blockName = b })
