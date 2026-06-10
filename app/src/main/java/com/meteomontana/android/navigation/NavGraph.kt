@@ -31,14 +31,20 @@ object Routes {
     const val ADMIN = "admin"
     const val FOLLOW_LIST = "users/{uid}/follow-list/{mode}"
     fun followList(uid: String, mode: String) = "users/$uid/follow-list/$mode"
+    const val FOLLOW_REQUESTS = "me/follow-requests"
     const val CHAT_LIST = "chats"
     const val CHAT = "chats/{uid}"
     fun chat(uid: String) = "chats/$uid"
     const val TOPO_EDITOR = "topo/{blockId}"
     fun topoEditor(blockId: String) = "topo/$blockId"
-    const val JOURNAL_ENTRIES = "journal/entries?filter={filter}"
-    fun journalEntries(filter: String? = null): String =
-        if (filter == null) "journal/entries?filter=" else "journal/entries?filter=$filter"
+    const val JOURNAL_ENTRIES = "journal/entries?filter={filter}&uid={uid}"
+    fun journalEntries(filter: String? = null, uid: String? = null): String {
+        val f = filter ?: ""
+        val u = uid ?: ""
+        return "journal/entries?filter=$f&uid=$u"
+    }
+    const val JOURNAL_SCHOOLS = "journal/schools?uid={uid}"
+    fun journalSchools(uid: String? = null): String = "journal/schools?uid=${uid ?: ""}"
 
     // schoolId opcional (vacío = tab Tiempo, ubicación actual)
     const val DAY_DETAIL = "day/{schoolId}/{dayIndex}"

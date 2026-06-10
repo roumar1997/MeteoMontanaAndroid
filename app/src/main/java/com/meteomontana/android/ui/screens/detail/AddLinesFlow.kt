@@ -2,6 +2,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 import android.net.Uri
+import com.meteomontana.android.ui.components.toTopoLines
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -226,14 +227,15 @@ fun AddLinesFlow(
                 bloques = updated
                 showTopo = false
             },
-            onDismiss = { showTopo = false }
+            onDismiss = { showTopo = false },
+            existingLines = block.lines.toTopoLines()
         )
     }
 }
 
 /** Fila para un bloque/vía nueva: nombre + grado + tipo de inicio + eliminar. */
 @Composable
-private fun AddLineRow(
+internal fun AddLineRow(
     index: Int,
     bloque: BoulderBloqueForm,
     onUpdate: (BoulderBloqueForm) -> Unit,

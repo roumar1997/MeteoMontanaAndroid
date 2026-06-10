@@ -19,5 +19,10 @@ class KtorJournalApi(private val client: HttpClient) {
 
     suspend fun getMyJournalStats(): JournalStatsDto = client.get("journal/me/stats").body()
 
+    suspend fun getUserStats(uid: String): JournalStatsDto = client.get("users/$uid/stats").body()
+
+    suspend fun getUserJournal(uid: String): List<JournalSessionDto> =
+        client.get("users/$uid/journal").body()
+
     suspend fun deleteJournalSession(id: String) { client.delete("journal/$id") }
 }

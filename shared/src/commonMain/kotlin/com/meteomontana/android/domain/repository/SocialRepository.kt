@@ -11,4 +11,7 @@ interface SocialRepository {
     suspend fun getFollowStatus(uid: String): FollowStatus
     suspend fun getFollowers(uid: String): List<PublicProfile>
     suspend fun getFollowing(uid: String): List<PublicProfile>
+    suspend fun getMyFollowRequests(): List<PublicProfile>
+    suspend fun acceptFollowRequest(requesterUid: String)
+    suspend fun rejectFollowRequest(requesterUid: String)
 }

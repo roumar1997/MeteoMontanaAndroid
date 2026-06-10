@@ -19,14 +19,16 @@ data class PublicProfile(
     val displayName: String?,
     val photoUrl: String?,
     val bio: String?,
-    val topGrade: String?
+    val topGrade: String?,
+    val locked: Boolean = false
 )
 
 data class FollowStatus(
     val followers: Long,
     val following: Long,
     val iFollowThem: Boolean,
-    val theyFollowMe: Boolean
+    val theyFollowMe: Boolean,
+    val requestPending: Boolean = false
 )
 
 data class Notification(

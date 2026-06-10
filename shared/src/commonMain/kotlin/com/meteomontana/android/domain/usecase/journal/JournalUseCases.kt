@@ -13,6 +13,14 @@ class GetMyJournalStatsUseCase(private val repo: JournalRepository) {
     suspend operator fun invoke(): JournalStats = repo.getMyJournalStats()
 }
 
+class GetUserStatsUseCase(private val repo: JournalRepository) {
+    suspend operator fun invoke(uid: String): JournalStats = repo.getUserStats(uid)
+}
+
+class GetUserJournalUseCase(private val repo: JournalRepository) {
+    suspend operator fun invoke(uid: String): List<JournalSession> = repo.getUserJournal(uid)
+}
+
 class CreateJournalEntryUseCase(private val repo: JournalRepository) {
     suspend operator fun invoke(req: CreateJournalRequest): JournalSession =
         repo.createJournalSession(req)

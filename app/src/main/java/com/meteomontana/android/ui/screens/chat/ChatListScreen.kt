@@ -96,8 +96,13 @@ private fun ConvRow(
                 modifier = Modifier.size(44.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
         } else {
-            Box(modifier = Modifier.size(44.dp).clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant))
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(
+                    com.meteomontana.android.R.drawable.logo_cumbre),
+                contentDescription = null,
+                modifier = Modifier.size(44.dp).clip(CircleShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            )
         }
         Column(modifier = Modifier.weight(1f)) {
             Text("@$name", style = MaterialTheme.typography.titleMedium,

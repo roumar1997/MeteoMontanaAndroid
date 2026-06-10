@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -52,6 +53,7 @@ fun SchoolDetailScreen(
     val state by viewModel.uiState.collectAsState()
     val success = state as? SchoolDetailUiState.Success
     var addBlockOpen by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopBar(
@@ -59,7 +61,12 @@ fun SchoolDetailScreen(
             isFavorite = success?.isFavorite ?: false,
             showFavorite = success != null,
             onBack = onBack,
-            onToggleFavorite = viewModel::toggleFavorite
+            onToggleFavorite = viewModel::toggleFavorite,
+            onShare = if (success != null) {
+                {
+                    shareSchool(context, success.school, success.forecast)
+                }
+            } else null
         )
         when (val s = state) {
             is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
@@ -104,7 +111,8 @@ private fun TopBar(
     isFavorite: Boolean,
     showFavorite: Boolean,
     onBack: () -> Unit,
-    onToggleFavorite: () -> Unit
+    onToggleFavorite: () -> Unit,
+    onShare: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -117,6 +125,12 @@ private fun TopBar(
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(start = 4.dp).weight(1f))
+        if (onShare != null) {
+            IconButton(onClick = onShare) {
+                Icon(Icons.Outlined.Share, contentDescription = "Compartir",
+                    tint = MaterialTheme.colorScheme.onBackground)
+            }
+        }
         if (showFavorite) {
             IconButton(onClick = onToggleFavorite) {
                 Icon(
@@ -251,4 +265,46 @@ private fun OfflineSaveButton(viewModel: SchoolDetailViewModel) {
 @Composable
 private fun Center(content: @Composable () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+}
+
+private fun shareSchool(
+    context: android.content.Context,
+    school: School,
+    forecast: Forecast?
+) {
+    val sb = StringBuilder()
+    sb.append("⛰️ ").append(school.name).append('\n')
+    school.region?.let { sb.append(it) }
+    school.location?.let {
+        if (school.region != null) sb.append(" · ")
+        sb.append(it)
+    }
+    if (school.region != null || school.location != null) sb.append('\n')
+    val tags = listOfNotNull(school.style, school.rockType)
+    if (tags.isNotEmpty()) sb.append(tags.joinToString(" · ")).append('\n')
+
+    if (forecast != null) {
+        val c = forecast.current
+        sb.append('\n')
+        sb.append("Ahora: ").append(c.score).append("/100 (")
+            .append(c.scoreLabel).append(")\n")
+        sb.append("Temp ").append(c.temperature.toInt()).append("°C · ")
+            .append("Hum ").append(c.humidity.toInt()).append("% · ")
+            .append("Viento ").append(c.windSpeed.toInt()).append(" km/h\n")
+        sb.append(if (c.dryRock) "Roca seca" else "Roca mojada").append('\n')
+        forecast.bestWindow?.let {
+            sb.append('\n').append("Mejor ventana próximas horas: ")
+                .append(it.start).append(" – ").append(it.end)
+                .append(" (").append(it.avgScore).append("/100)\n")
+        }
+    }
+
+    sb.append('\n').append("Descarga MeteoMontana para ver el detalle.")
+
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_TEXT, sb.toString())
+        putExtra(android.content.Intent.EXTRA_SUBJECT, school.name)
+    }
+    context.startActivity(android.content.Intent.createChooser(intent, "Compartir escuela"))
 }

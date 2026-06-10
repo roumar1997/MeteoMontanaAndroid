@@ -11,8 +11,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,6 +52,7 @@ import com.meteomontana.android.domain.port.ChatService
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     onBack: () -> Unit,
@@ -57,7 +63,6 @@ fun ChatScreen(
     var text by remember { mutableStateOf("") }
 
     // Auto-scroll al último mensaje al recibir uno nuevo.
-    // imePadding() en el Column padre se encarga de empujar el input encima del teclado.
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
             kotlinx.coroutines.delay(50)
@@ -65,9 +70,20 @@ fun ChatScreen(
         }
     }
 
+    // Auto-scroll al último mensaje cuando aparece el teclado (para que los
+    // últimos mensajes no queden tapados al abrir el teclado).
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(imeVisible) {
+        if (imeVisible && state.messages.isNotEmpty()) {
+            kotlinx.coroutines.delay(100)
+            listState.animateScrollToItem(state.messages.size - 1)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
-        .imePadding()  // empuja la columna arriba cuando aparece el teclado
+        .statusBarsPadding()
+        .imePadding()
     ) {
         ChatTopBar(
             name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: "Usuario",
@@ -97,13 +113,27 @@ fun ChatScreen(
                 )
             }
         } else {
-            Row(modifier = Modifier.fillMaxWidth().padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = text, onValueChange = { text = it },
+            Row(modifier = Modifier.fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                androidx.compose.material3.TextField(
+                    value = text,
+                    onValueChange = { text = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Escribe un mensaje") },
-                    maxLines = 4
+                    placeholder = { Text("Escribe un mensaje",
+                        style = MaterialTheme.typography.bodyMedium) },
+                    maxLines = 4,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                        unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                        disabledIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                    )
                 )
                 IconButton(
                     onClick = {
@@ -134,8 +164,13 @@ private fun ChatTopBar(name: String, avatarUrl: String?, onBack: () -> Unit) {
                 modifier = Modifier.size(36.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
         } else {
-            Box(modifier = Modifier.size(36.dp).clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant))
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(
+                    com.meteomontana.android.R.drawable.logo_cumbre),
+                contentDescription = null,
+                modifier = Modifier.size(36.dp).clip(CircleShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            )
         }
         Text("@$name", style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground)

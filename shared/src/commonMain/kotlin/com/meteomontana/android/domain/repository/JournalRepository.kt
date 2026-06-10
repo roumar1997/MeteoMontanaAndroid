@@ -8,5 +8,7 @@ interface JournalRepository {
     suspend fun createJournalSession(req: CreateJournalRequest): JournalSession
     suspend fun getMyJournal(): List<JournalSession>
     suspend fun getMyJournalStats(): JournalStats
+    suspend fun getUserStats(uid: String): JournalStats
+    suspend fun getUserJournal(uid: String): List<JournalSession>
     suspend fun deleteJournalSession(id: String)
 }

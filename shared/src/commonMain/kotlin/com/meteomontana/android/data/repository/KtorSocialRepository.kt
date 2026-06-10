@@ -19,4 +19,10 @@ class KtorSocialRepository(private val api: KtorSocialApi) : SocialRepository {
         api.getFollowers(uid).map { it.toDomain() }
     override suspend fun getFollowing(uid: String): List<PublicProfile> =
         api.getFollowing(uid).map { it.toDomain() }
+    override suspend fun getMyFollowRequests(): List<PublicProfile> =
+        api.getMyFollowRequests().map { it.toDomain() }
+    override suspend fun acceptFollowRequest(requesterUid: String) =
+        api.acceptFollowRequest(requesterUid)
+    override suspend fun rejectFollowRequest(requesterUid: String) =
+        api.rejectFollowRequest(requesterUid)
 }

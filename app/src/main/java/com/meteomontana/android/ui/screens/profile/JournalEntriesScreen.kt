@@ -35,6 +35,8 @@ import com.meteomontana.android.domain.model.JournalSession
 import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
+import com.meteomontana.android.domain.usecase.journal.GetUserJournalUseCase
+import com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase
 import com.meteomontana.android.util.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +47,11 @@ import javax.inject.Inject
 
 sealed interface JournalEntriesUiState {
     data object Loading : JournalEntriesUiState
-    data class Success(val entries: List<JournalSession>, val filter: String?) : JournalEntriesUiState
+    data class Success(
+        val entries: List<JournalSession>,
+        val filter: String?,
+        val isMine: Boolean
+    ) : JournalEntriesUiState
     data class Error(val message: String) : JournalEntriesUiState
 }
 
@@ -54,15 +60,19 @@ class JournalEntriesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getMyJournal: GetMyJournalUseCase,
     private val getMyJournalStats: GetMyJournalStatsUseCase,
+    private val getUserJournal: GetUserJournalUseCase,
+    private val getUserStats: GetUserStatsUseCase,
     private val deleteJournalEntry: DeleteJournalEntryUseCase
 ) : ViewModel() {
     private val filter: String? = savedStateHandle["filter"]
+    private val uid: String? = savedStateHandle.get<String>("uid")?.takeIf { it.isNotBlank() }
+    private val isMine: Boolean = uid == null
 
     private val _state = MutableStateFlow<JournalEntriesUiState>(JournalEntriesUiState.Loading)
     val state: StateFlow<JournalEntriesUiState> = _state.asStateFlow()
 
     val title: String = when {
-        filter == null               -> "Todos mis bloques"
+        filter == null               -> if (isMine) "Todos mis bloques" else "Todos los bloques"
         filter.startsWith("school:") -> filter.removePrefix("school:")
         filter == "grade-max"        -> "Grado máximo"
         else                         -> "Diario"
@@ -73,7 +83,7 @@ class JournalEntriesViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                val all = getMyJournal()
+                val all = if (uid == null) getMyJournal() else getUserJournal(uid)
                 val filtered = when {
                     filter == null               -> all
                     filter.startsWith("school:") -> {
@@ -81,12 +91,13 @@ class JournalEntriesViewModel @Inject constructor(
                         all.filter { it.schoolName?.equals(name, ignoreCase = true) == true }
                     }
                     filter == "grade-max" -> {
-                        val max = getMyJournalStats().maxGrade
+                        val max = if (uid == null) getMyJournalStats().maxGrade
+                                  else getUserStats(uid).maxGrade
                         if (max != null) all.filter { it.grade == max } else emptyList()
                     }
                     else -> all
                 }
-                JournalEntriesUiState.Success(filtered, filter)
+                JournalEntriesUiState.Success(filtered, filter, isMine)
             } catch (t: Throwable) {
                 JournalEntriesUiState.Error(t.toUserMessage())
             }
@@ -94,6 +105,7 @@ class JournalEntriesViewModel @Inject constructor(
     }
 
     fun delete(id: String) {
+        if (!isMine) return
         viewModelScope.launch {
             runCatching { deleteJournalEntry(id) }
             load()
@@ -135,7 +147,7 @@ fun JournalEntriesScreen(
                 } else {
                     LazyColumn {
                         items(s.entries, key = { it.id }) { e ->
-                            EntryRow(e) { viewModel.delete(e.id) }
+                            EntryRow(e, canDelete = s.isMine) { viewModel.delete(e.id) }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         }
                     }
@@ -146,7 +158,7 @@ fun JournalEntriesScreen(
 }
 
 @Composable
-private fun EntryRow(e: JournalSession, onDelete: () -> Unit) {
+private fun EntryRow(e: JournalSession, canDelete: Boolean = true, onDelete: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -190,9 +202,11 @@ private fun EntryRow(e: JournalSession, onDelete: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface)
             }
         }
-        IconButton(onClick = onDelete) {
-            Icon(Icons.Outlined.Delete, contentDescription = "Borrar",
-                tint = MaterialTheme.colorScheme.error)
+        if (canDelete) {
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Outlined.Delete, contentDescription = "Borrar",
+                    tint = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }

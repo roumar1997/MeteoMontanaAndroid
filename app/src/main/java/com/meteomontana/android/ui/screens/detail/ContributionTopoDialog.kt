@@ -62,7 +62,8 @@ fun ContributionTopoDialog(
     photoUri: Uri,
     bloques: List<BoulderBloqueForm>,
     onSave: (List<BoulderBloqueForm>) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    existingLines: List<com.meteomontana.android.ui.components.TopoLine> = emptyList()
 ) {
     var selectedIdx by remember { mutableStateOf(0) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -208,6 +209,19 @@ fun ContributionTopoDialog(
                             )
                         }
                 ) {
+                    // Líneas existentes: se renderizan con su grado/color/badge/tipo
+                    // para que el usuario vea exactamente dónde están las vías ya
+                    // trazadas y no dibuje encima sin querer.
+                    val existing = existingLines.map { line ->
+                        TopoLineData(
+                            name = line.name,
+                            grade = line.grade,
+                            startType = line.startType,
+                            points = line.points.map { it.x to it.y },
+                            strokeWidthPx = 5f
+                        )
+                    }
+                    // Líneas nuevas (editables) — se numeran a continuación de las existentes.
                     val editorLines = lines.entries.sortedBy { it.key }.map { (idx, points) ->
                         val bloque = bloques.getOrNull(idx)
                         val strokeW = if (idx == selectedIdx) 8f else 5f
@@ -221,7 +235,7 @@ fun ContributionTopoDialog(
                     }
                     val nc = drawContext.canvas.nativeCanvas
                     renderTopo(
-                        editorLines, size.width, size.height,
+                        existing + editorLines, size.width, size.height,
                         badgeR = 16f to 13f,
                         badgeTextPx = 26f to 9f,
                         startR = 26f to 22f,

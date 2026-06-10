@@ -31,6 +31,7 @@ import com.meteomontana.android.ui.screens.saved.SavedSchoolsScreen
 import com.meteomontana.android.ui.screens.notifications.NotificationsScreen
 import com.meteomontana.android.ui.screens.profile.EditProfileScreen
 import com.meteomontana.android.ui.screens.profile.JournalEntriesScreen
+import com.meteomontana.android.ui.screens.profile.JournalSchoolsScreen
 import com.meteomontana.android.ui.screens.profile.ProfileScreen
 import com.meteomontana.android.ui.screens.radar.RadarScreen
 import com.meteomontana.android.ui.screens.schools.SchoolListScreen
@@ -38,6 +39,7 @@ import com.meteomontana.android.ui.screens.submissions.MySubmissionsScreen
 import com.meteomontana.android.ui.screens.submissions.SubmitSchoolScreen
 import com.meteomontana.android.ui.screens.topo.TopoEditorScreen
 import com.meteomontana.android.ui.screens.users.FollowListScreen
+import com.meteomontana.android.ui.screens.users.FollowRequestsScreen
 import com.meteomontana.android.ui.screens.users.PublicProfileScreen
 import com.meteomontana.android.ui.screens.users.SearchUsersScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
@@ -61,6 +63,7 @@ fun MainScreen(
                 "chat", "message" -> deepLink.targetId?.let { navController.navigate(Routes.chat(it)) }
                 "submission", "contribution" -> navController.navigate(Routes.MY_SUBMISSIONS)
                 "notifications" -> navController.navigate(Routes.NOTIFICATIONS)
+                "follow_request" -> navController.navigate(Routes.FOLLOW_REQUESTS)
             }
             onDeepLinkConsumed()
         }
@@ -139,6 +142,7 @@ fun MainScreen(
                 SchoolDetailScreen(
                     onBack = { navController.popBackStack() },
                     onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) },
+                    onMyProposals = { navController.navigate(Routes.MY_SUBMISSIONS) },
                     onDayClick = { idx -> navController.navigate(Routes.dayDetail(schoolId, idx)) }
                 )
             }
@@ -179,22 +183,47 @@ fun MainScreen(
                             navController.navigate(Routes.followList(uid, "following"))
                         }
                     },
+                    onOpenFollowRequests = { navController.navigate(Routes.FOLLOW_REQUESTS) },
                     onOpenSchoolEntries = { schoolName ->
                         navController.navigate(Routes.journalEntries("school:$schoolName"))
                     },
                     onOpenAllBlocks = { navController.navigate(Routes.journalEntries(null)) },
+                    onOpenAllSchools = { navController.navigate(Routes.journalSchools(null)) },
                     onOpenMaxGrade = { navController.navigate(Routes.journalEntries("grade-max")) }
                 )
             }
             composable(
                 route = Routes.JOURNAL_ENTRIES,
-                arguments = listOf(navArgument("filter") {
+                arguments = listOf(
+                    navArgument("filter") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    navArgument("uid") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) {
+                JournalEntriesScreen(onBack = { navController.popBackStack() })
+            }
+            composable(
+                route = Routes.JOURNAL_SCHOOLS,
+                arguments = listOf(navArgument("uid") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
                 })
-            ) {
-                JournalEntriesScreen(onBack = { navController.popBackStack() })
+            ) { backStack ->
+                val uid = backStack.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
+                JournalSchoolsScreen(
+                    onBack = { navController.popBackStack() },
+                    onSchoolClick = { schoolName ->
+                        navController.navigate(Routes.journalEntries(filter = "school:$schoolName", uid = uid))
+                    }
+                )
             }
             composable(Routes.ADMIN) {
                 AdminScreen(onBack = { navController.popBackStack() })
@@ -226,7 +255,8 @@ fun MainScreen(
                     onOpenUser = { uid -> navController.navigate(Routes.publicProfile(uid)) },
                     onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) },
                     onOpenSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) },
-                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) }
+                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) },
+                    onOpenFollowRequests = { navController.navigate(Routes.FOLLOW_REQUESTS) }
                 )
             }
             composable(
@@ -241,7 +271,19 @@ fun MainScreen(
                     onFollowingClick = { uid ->
                         navController.navigate(Routes.followList(uid, "following"))
                     },
-                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) }
+                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) },
+                    onOpenAllBlocks = { uid ->
+                        navController.navigate(Routes.journalEntries(filter = null, uid = uid))
+                    },
+                    onOpenMaxGrade = { uid ->
+                        navController.navigate(Routes.journalEntries(filter = "grade-max", uid = uid))
+                    },
+                    onOpenSchools = { uid ->
+                        navController.navigate(Routes.journalSchools(uid))
+                    },
+                    onOpenSchoolEntries = { uid, schoolName ->
+                        navController.navigate(Routes.journalEntries(filter = "school:$schoolName", uid = uid))
+                    }
                 )
             }
             composable(
@@ -252,6 +294,12 @@ fun MainScreen(
                 )
             ) {
                 FollowListScreen(
+                    onBack = { navController.popBackStack() },
+                    onUserClick = { uid -> navController.navigate(Routes.publicProfile(uid)) }
+                )
+            }
+            composable(Routes.FOLLOW_REQUESTS) {
+                FollowRequestsScreen(
                     onBack = { navController.popBackStack() },
                     onUserClick = { uid -> navController.navigate(Routes.publicProfile(uid)) }
                 )

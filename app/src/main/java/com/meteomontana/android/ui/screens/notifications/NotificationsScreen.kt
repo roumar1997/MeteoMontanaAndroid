@@ -108,6 +108,7 @@ fun NotificationsScreen(
     onOpenSchool: (String) -> Unit = {},
     onOpenSubmissions: () -> Unit = {},
     onOpenChat: (String) -> Unit = {},
+    onOpenFollowRequests: () -> Unit = {},
     viewModel: NotificationsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -159,6 +160,7 @@ fun NotificationsScreen(
                                     "school", "school_detail" -> tid?.let(onOpenSchool)
                                     "submission", "contribution" -> onOpenSubmissions()
                                     "chat", "message" -> tid?.let(onOpenChat)
+                                    "follow_request" -> onOpenFollowRequests()
                                     else            -> {}
                                 }
                             }

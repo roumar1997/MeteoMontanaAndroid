@@ -26,6 +26,7 @@ import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
+import com.meteomontana.android.domain.usecase.contributions.GetMyContributionsUseCase
 import com.meteomontana.android.domain.usecase.contributions.SubmitContributionUseCase
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
@@ -35,12 +36,17 @@ import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
+import com.meteomontana.android.domain.usecase.journal.GetUserJournalUseCase
+import com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
+import com.meteomontana.android.domain.usecase.social.AcceptFollowRequestUseCase
 import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowersUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowingUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
+import com.meteomontana.android.domain.usecase.social.GetMyFollowRequestsUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
+import com.meteomontana.android.domain.usecase.social.RejectFollowRequestUseCase
 import com.meteomontana.android.domain.usecase.social.SearchUsersUseCase
 import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
 import com.meteomontana.android.domain.usecase.submissions.GetMySubmissionsUseCase
@@ -108,6 +114,10 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideSubmitContributionUseCase(repo: ContributionRepository) =
         SubmitContributionUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetMyContributionsUseCase(repo: ContributionRepository) =
+        GetMyContributionsUseCase(repo)
 
     // Notes
     @Provides @Singleton
@@ -189,6 +199,12 @@ object UseCasesModule {
     fun provideGetMyJournalStatsUseCase(repo: JournalRepository) = GetMyJournalStatsUseCase(repo)
 
     @Provides @Singleton
+    fun provideGetUserStatsUseCase(repo: JournalRepository) = GetUserStatsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetUserJournalUseCase(repo: JournalRepository) = GetUserJournalUseCase(repo)
+
+    @Provides @Singleton
     fun provideCreateJournalEntryUseCase(repo: JournalRepository) = CreateJournalEntryUseCase(repo)
 
     @Provides @Singleton
@@ -222,4 +238,13 @@ object UseCasesModule {
 
     @Provides @Singleton
     fun provideUnfollowUserUseCase(repo: SocialRepository) = UnfollowUserUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetMyFollowRequestsUseCase(repo: SocialRepository) = GetMyFollowRequestsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideAcceptFollowRequestUseCase(repo: SocialRepository) = AcceptFollowRequestUseCase(repo)
+
+    @Provides @Singleton
+    fun provideRejectFollowRequestUseCase(repo: SocialRepository) = RejectFollowRequestUseCase(repo)
 }

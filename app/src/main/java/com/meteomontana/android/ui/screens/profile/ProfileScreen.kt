@@ -58,8 +58,10 @@ fun ProfileScreen(
     onSavedSchools: () -> Unit = {},
     onOpenFollowers: () -> Unit = {},
     onOpenFollowing: () -> Unit = {},
+    onOpenFollowRequests: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenAllBlocks: () -> Unit = {},
+    onOpenAllSchools: () -> Unit = {},
     onOpenMaxGrade: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
@@ -96,8 +98,10 @@ fun ProfileScreen(
                 onSavedSchools = onSavedSchools,
                 onOpenFollowers = onOpenFollowers,
                 onOpenFollowing = onOpenFollowing,
+                onOpenFollowRequests = onOpenFollowRequests,
                 onOpenSchoolEntries = onOpenSchoolEntries,
                 onOpenAllBlocks = onOpenAllBlocks,
+                onOpenAllSchools = onOpenAllSchools,
                 onOpenMaxGrade = onOpenMaxGrade,
                 onSignOut = viewModel::signOut
             )
@@ -145,8 +149,10 @@ private fun Content(
     onSavedSchools: () -> Unit,
     onOpenFollowers: () -> Unit,
     onOpenFollowing: () -> Unit,
+    onOpenFollowRequests: () -> Unit,
     onOpenSchoolEntries: (String) -> Unit,
     onOpenAllBlocks: () -> Unit,
+    onOpenAllSchools: () -> Unit,
     onOpenMaxGrade: () -> Unit,
     onSignOut: () -> Unit
 ) {
@@ -162,11 +168,16 @@ private fun Content(
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 MiniButton("Escuelas guardadas (offline)", onClick = onSavedSchools, modifier = Modifier.weight(1f))
             }
+            if (!profile.isPublic) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    MiniButton("Solicitudes de seguimiento", onClick = onOpenFollowRequests, modifier = Modifier.weight(1f))
+                }
+            }
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         item { TogglesSection(profile) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-        item { StatsRow(stats, onOpenAllBlocks, onOpenAllBlocks, onOpenMaxGrade) }
+        item { StatsRow(stats, onOpenAllBlocks, onOpenAllSchools, onOpenMaxGrade) }
         item {
             AddBlockButton(onClick = onAddBlock)
         }

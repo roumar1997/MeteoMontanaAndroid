@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -41,7 +43,10 @@ import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.FollowStatus
+import com.meteomontana.android.domain.model.JournalStats
 import com.meteomontana.android.domain.model.PublicProfile
+import com.meteomontana.android.domain.model.SchoolStats
+import com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase
 import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
@@ -55,7 +60,11 @@ import javax.inject.Inject
 
 sealed interface PublicProfileUiState {
     data object Loading : PublicProfileUiState
-    data class Success(val profile: PublicProfile, val status: FollowStatus) : PublicProfileUiState
+    data class Success(
+        val profile: PublicProfile,
+        val status: FollowStatus,
+        val stats: JournalStats? = null
+    ) : PublicProfileUiState
     data class Error(val message: String) : PublicProfileUiState
 }
 
@@ -64,6 +73,7 @@ class PublicProfileViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getPublicProfile: GetPublicProfileUseCase,
     private val getFollowStatus: GetFollowStatusUseCase,
+    private val getUserStats: GetUserStatsUseCase,
     private val followUser: FollowUserUseCase,
     private val unfollowUser: UnfollowUserUseCase
 ) : ViewModel() {
@@ -79,8 +89,10 @@ class PublicProfileViewModel @Inject constructor(
             _state.value = try {
                 val profile = getPublicProfile(uid)
                 val status = runCatching { getFollowStatus(uid) }
-                    .getOrDefault(FollowStatus(0, 0, false, false))
-                PublicProfileUiState.Success(profile, status)
+                    .getOrDefault(FollowStatus(0, 0, false, false, false))
+                val stats = if (profile.locked) null
+                            else runCatching { getUserStats(uid) }.getOrNull()
+                PublicProfileUiState.Success(profile, status, stats)
             } catch (t: Throwable) {
                 PublicProfileUiState.Error(t.toUserMessage())
             }
@@ -93,7 +105,10 @@ class PublicProfileViewModel @Inject constructor(
             try {
                 if (cur.status.iFollowThem) unfollowUser(uid) else followUser(uid)
                 val newStatus = getFollowStatus(uid)
-                _state.value = cur.copy(status = newStatus)
+                val newProfile = runCatching { getPublicProfile(uid) }.getOrDefault(cur.profile)
+                val newStats = if (newProfile.locked) null
+                               else runCatching { getUserStats(uid) }.getOrNull()
+                _state.value = PublicProfileUiState.Success(newProfile, newStatus, newStats)
             } catch (_: Throwable) {}
         }
     }
@@ -105,6 +120,10 @@ fun PublicProfileScreen(
     onFollowersClick: (String) -> Unit = {},
     onFollowingClick: (String) -> Unit = {},
     onOpenChat: (String) -> Unit = {},
+    onOpenAllBlocks: (String) -> Unit = {},
+    onOpenMaxGrade: (String) -> Unit = {},
+    onOpenSchools: (String) -> Unit = {},
+    onOpenSchoolEntries: (uid: String, schoolName: String) -> Unit = { _, _ -> },
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -132,7 +151,11 @@ fun PublicProfileScreen(
                 s, viewModel::toggleFollow,
                 onFollowersClick = { onFollowersClick(s.profile.uid) },
                 onFollowingClick = { onFollowingClick(s.profile.uid) },
-                onMessage = { onOpenChat(s.profile.uid) }
+                onMessage = { onOpenChat(s.profile.uid) },
+                onOpenAllBlocks = { onOpenAllBlocks(s.profile.uid) },
+                onOpenMaxGrade = { onOpenMaxGrade(s.profile.uid) },
+                onOpenSchools = { onOpenSchools(s.profile.uid) },
+                onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) }
             )
         }
     }
@@ -144,10 +167,17 @@ private fun Body(
     onToggleFollow: () -> Unit,
     onFollowersClick: () -> Unit,
     onFollowingClick: () -> Unit,
-    onMessage: () -> Unit
+    onMessage: () -> Unit,
+    onOpenAllBlocks: () -> Unit = {},
+    onOpenMaxGrade: () -> Unit = {},
+    onOpenSchools: () -> Unit = {},
+    onOpenSchoolEntries: (String) -> Unit = {}
 ) {
     val p = s.profile
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    val locked = p.locked
+    Column(modifier = Modifier.fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (p.photoUrl != null) {
                 AsyncImage(model = p.photoUrl, contentDescription = null,
@@ -163,44 +193,126 @@ private fun Body(
                 Text("@${p.username ?: p.displayName ?: "usuario"}",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground)
-                p.bio?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!locked) {
+                    p.bio?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
         Spacer(Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Stat("Seguidores", s.status.followers.toString(),
-                modifier = Modifier.clickable(onClick = onFollowersClick))
+                modifier = if (locked) Modifier else Modifier.clickable(onClick = onFollowersClick))
             Stat("Siguiendo", s.status.following.toString(),
-                modifier = Modifier.clickable(onClick = onFollowingClick))
-            Stat("Grado máx", p.topGrade ?: "—")
+                modifier = if (locked) Modifier else Modifier.clickable(onClick = onFollowingClick))
+            Stat("Grado máx", if (locked) "—" else (p.topGrade ?: "—"))
         }
         Spacer(Modifier.height(24.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
-                FollowButton(s.status.iFollowThem, onToggleFollow)
+                FollowButton(
+                    iFollow = s.status.iFollowThem,
+                    requestPending = s.status.requestPending,
+                    onClick = onToggleFollow
+                )
             }
-            Box(modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-                .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.surface, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                .clickable(onClick = onMessage),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Mensaje", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground)
+            if (!locked) {
+                Box(modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.surface, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                    .clickable(onClick = onMessage),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Mensaje", style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onBackground)
+                }
             }
         }
-        if (s.status.theyFollowMe) {
+        if (s.status.theyFollowMe && !locked) {
             Spacer(Modifier.height(8.dp))
             Text("Te sigue", style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp))
         }
+        if (!locked && s.stats != null) {
+            Spacer(Modifier.height(24.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            Spacer(Modifier.height(16.dp))
+            ActivityStatsRow(
+                stats = s.stats,
+                onBlocksClick = onOpenAllBlocks,
+                onSchoolsClick = onOpenSchools,
+                onMaxClick = onOpenMaxGrade
+            )
+            if (s.stats.bySchool.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                Text("ESCUELAS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp))
+                Spacer(Modifier.height(8.dp))
+                s.stats.bySchool.forEach { school ->
+                    SchoolStatRow(school, onClick = { onOpenSchoolEntries(school.schoolName) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                }
+            }
+        }
+        if (locked) {
+            Spacer(Modifier.height(32.dp))
+            Column(modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Perfil privado", style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground)
+                Spacer(Modifier.height(4.dp))
+                Text("Sigue a este usuario para ver su perfil.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActivityStatsRow(
+    stats: JournalStats,
+    onBlocksClick: () -> Unit,
+    onSchoolsClick: () -> Unit,
+    onMaxClick: () -> Unit
+) {
+    Row(modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween) {
+        Stat("Bloques", stats.blockCount.toString(),
+            modifier = Modifier.clickable(onClick = onBlocksClick))
+        Stat("Escuelas", stats.schoolCount.toString(),
+            modifier = Modifier.clickable(onClick = onSchoolsClick))
+        Stat("Máximo", stats.maxGrade ?: "—",
+            modifier = Modifier.clickable(onClick = onMaxClick))
+    }
+}
+
+@Composable
+private fun SchoolStatRow(school: SchoolStats, onClick: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth()
+        .clickable(onClick = onClick)
+        .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(school.schoolName,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onBackground)
+            Text("${school.blockCount} bloque${if (school.blockCount == 1) "" else "s"}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(school.maxGrade ?: "—",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground)
     }
 }
 
@@ -215,17 +327,23 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FollowButton(iFollow: Boolean, onClick: () -> Unit) {
-    val bg = if (iFollow) MaterialTheme.colorScheme.surface else Color(0xFF1C1C1A)
-    val fg = if (iFollow) MaterialTheme.colorScheme.onBackground else Color.White
+private fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: () -> Unit) {
+    val text = when {
+        iFollow         -> "Dejar de seguir"
+        requestPending  -> "Solicitud enviada"
+        else            -> "Seguir"
+    }
+    val filled = !iFollow && !requestPending
+    val bg = if (filled) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.surface
+    val fg = if (filled) Color.White else MaterialTheme.colorScheme.onBackground
+    val borderColor = if (filled) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.outline
     Box(modifier = Modifier.fillMaxWidth().height(48.dp)
         .clip(RoundedCornerShape(2.dp))
         .background(bg, RoundedCornerShape(2.dp))
-        .border(1.dp, if (iFollow) MaterialTheme.colorScheme.outline else Color(0xFF1C1C1A), RoundedCornerShape(2.dp))
-        .clickable(onClick = onClick),
+        .border(1.dp, borderColor, RoundedCornerShape(2.dp))
+        .clickable(enabled = !requestPending, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text(if (iFollow) "Dejar de seguir" else "Seguir",
-            style = MaterialTheme.typography.labelLarge, color = fg)
+        Text(text, style = MaterialTheme.typography.labelLarge, color = fg)
     }
 }

@@ -9,7 +9,8 @@ data class PublicProfileDto(
     val displayName: String? = null,
     val photoUrl: String? = null,
     val bio: String? = null,
-    val topGrade: String? = null
+    val topGrade: String? = null,
+    val locked: Boolean = false
 )
 
 @Serializable
@@ -17,7 +18,8 @@ data class FollowStatusDto(
     val followers: Long,
     val following: Long,
     val iFollowThem: Boolean,
-    val theyFollowMe: Boolean
+    val theyFollowMe: Boolean,
+    val requestPending: Boolean = false
 )
 
 @Serializable

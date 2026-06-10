@@ -31,4 +31,15 @@ class KtorSocialApi(private val client: HttpClient) {
 
     suspend fun getFollowing(uid: String): List<PublicProfileDto> =
         client.get("users/$uid/following").body()
+
+    suspend fun getMyFollowRequests(): List<PublicProfileDto> =
+        client.get("me/follow-requests").body()
+
+    suspend fun acceptFollowRequest(requesterUid: String) {
+        client.post("me/follow-requests/$requesterUid/accept")
+    }
+
+    suspend fun rejectFollowRequest(requesterUid: String) {
+        client.post("me/follow-requests/$requesterUid/reject")
+    }
 }

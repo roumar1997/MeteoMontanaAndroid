@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.Submission
 
 @Composable
@@ -58,16 +59,30 @@ fun MySubmissionsScreen(
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }
             is MySubmissionsUiState.Success -> {
-                if (s.items.isEmpty()) {
+                if (s.submissions.isEmpty() && s.contributions.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("Aún no has propuesto ninguna escuela",
+                        Text("Aún no has hecho propuestas",
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     LazyColumn {
-                        items(s.items) { sub ->
-                            SubmissionRow(sub)
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        if (s.contributions.isNotEmpty()) {
+                            item {
+                                SectionHeader("MEJORAS DE ESCUELAS")
+                            }
+                            items(s.contributions) { c ->
+                                ContributionRow(c)
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            }
+                        }
+                        if (s.submissions.isNotEmpty()) {
+                            item {
+                                SectionHeader("ESCUELAS NUEVAS")
+                            }
+                            items(s.submissions) { sub ->
+                                SubmissionRow(sub)
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            }
                         }
                     }
                 }
@@ -107,6 +122,57 @@ private fun SubmissionRow(s: Submission) {
             }
         }
         StatusChip(s.status)
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    )
+}
+
+@Composable
+private fun ContributionRow(c: Contribution) {
+    val typeLabel = when (c.type) {
+        "PARKING"              -> "Parking"
+        "BOULDER"              -> when {
+            !c.targetLineId.isNullOrBlank() -> "Corregir vía"
+            !c.targetBlockId.isNullOrBlank() -> "Añadir vías"
+            else                             -> "Piedra nueva"
+        }
+        "SECTOR"               -> "Sector"
+        "POSITION_CORRECTION"  -> "Mover ubicación"
+        else                   -> c.type
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.padding(end = 8.dp).weight(1f)) {
+            Text(typeLabel,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground)
+            Text(c.schoolName,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            c.name?.takeIf { it.isNotBlank() }?.let {
+                Text(it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface)
+            }
+            if (c.reviewReason != null) {
+                Text("Motivo: ${c.reviewReason}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error)
+            }
+        }
+        StatusChip(c.status)
     }
 }
 

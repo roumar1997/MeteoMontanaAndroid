@@ -427,28 +427,39 @@ private fun ContributionCard(
 
         // ── BOULDER: foto con líneas superpuestas + bloques ─────────────────────
         if (c.type == "BOULDER") {
-            // Si es propuesta de AÑADIR VÍAS, usamos la foto del bloque existente
-            val isAddLines = !c.targetBlockId.isNullOrBlank()
-            val targetBlock = if (isAddLines)
+            val isEditLine = !c.targetLineId.isNullOrBlank() && !c.targetBlockId.isNullOrBlank()
+            val isAddLines = !isEditLine && !c.targetBlockId.isNullOrBlank()
+            val targetBlock = if (isAddLines || isEditLine)
                 existingBlocks.firstOrNull { it.id == c.targetBlockId } else null
+            val targetLine = if (isEditLine)
+                targetBlock?.lines?.firstOrNull { it.id == c.targetLineId } else null
 
             val photoForCanvas = when {
-                isAddLines && targetBlock?.photoPath != null -> targetBlock.photoPath
+                (isAddLines || isEditLine) && targetBlock?.photoPath != null -> targetBlock.photoPath
                 else -> c.photoUrl
             }
 
             if (!photoForCanvas.isNullOrBlank()) {
                 Spacer(Modifier.height(Spacing.sm))
-                if (isAddLines) {
-                    Text("AÑADIR VÍAS A \"${targetBlock?.name ?: "?"}\"",
-                        style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.secondary)
-                    Spacer(Modifier.height(Spacing.xs))
+                when {
+                    isEditLine -> {
+                        Text("CORREGIR VÍA \"${targetLine?.name ?: "?"}\" DE \"${targetBlock?.name ?: "?"}\"",
+                            style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.secondary)
+                        Spacer(Modifier.height(Spacing.xs))
+                    }
+                    isAddLines -> {
+                        Text("AÑADIR VÍAS A \"${targetBlock?.name ?: "?"}\"",
+                            style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.secondary)
+                        Spacer(Modifier.height(Spacing.xs))
+                    }
                 }
-                // Para "añadir vías": dibujamos las líneas existentes en gris translúcido
-                // y encima las nuevas con sus colores normales — así el admin ve qué se añade.
-                val existingLines = if (isAddLines)
-                    (targetBlock?.lines ?: emptyList()).toTopoLines() else emptyList()
+                val existingLines = when {
+                    isEditLine -> (targetBlock?.lines ?: emptyList()).toTopoLines()
+                    isAddLines -> (targetBlock?.lines ?: emptyList()).toTopoLines()
+                    else -> emptyList()
+                }
                 val newLines = parseBloquesJson(c.bloquesJson)
                 TopoPhotoCanvas(
                     photoUrl = photoForCanvas,
@@ -457,13 +468,33 @@ private fun ContributionCard(
             }
             c.bloquesJson?.takeIf { it.isNotBlank() }?.let { json ->
                 Spacer(Modifier.height(Spacing.sm))
-                if (isAddLines) {
-                    Text("NUEVAS VÍAS PROPUESTAS:",
-                        style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(Spacing.xs))
+                when {
+                    isEditLine -> {
+                        Text("ORIGINAL", style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(Spacing.xs))
+                        targetLine?.let {
+                            Text(
+                                listOfNotNull(it.name, it.grade,
+                                    it.startType?.toString()).joinToString(" · "),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Spacer(Modifier.height(Spacing.sm))
+                        Text("PROPUESTA", style = EyebrowTextStyle,
+                            color = Terra)
+                        Spacer(Modifier.height(Spacing.xs))
+                        BloquesSummary(json)
+                    }
+                    isAddLines -> {
+                        Text("NUEVAS VÍAS PROPUESTAS:",
+                            style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(Spacing.xs))
+                        BloquesSummary(json)
+                    }
+                    else -> BloquesSummary(json)
                 }
-                BloquesSummary(json)
             }
         }
 

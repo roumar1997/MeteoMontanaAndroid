@@ -237,6 +237,9 @@ private fun InnerMap(
     // Bloque seleccionado (para popup) y bloque al que añadir vías
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
+    var editingLine by remember {
+        mutableStateOf<Pair<Block, com.meteomontana.android.domain.model.BlockLine>?>(null)
+    }
     var successMessage by remember { mutableStateOf<String?>(null) }
 
     // Marker virtual de la escuela (para tap → proponer mover escuela entera).
@@ -419,6 +422,10 @@ private fun InnerMap(
                 addingLinesTo = block
                 selectedBlock = null
             }) else null,
+            onEditLine = if (block.type == "BLOCK") ({ line ->
+                editingLine = block to line
+                selectedBlock = null
+            }) else null,
             onDismiss = { selectedBlock = null }
         )
     }
@@ -431,6 +438,20 @@ private fun InnerMap(
             onDismiss = { addingLinesTo = null },
             onSuccess = {
                 addingLinesTo = null
+                successMessage = "Propuesta enviada. Un admin la revisará en 24-48h."
+            }
+        )
+    }
+
+    // Flujo "✎ CORREGIR VÍA" — redibuja una línea concreta
+    editingLine?.let { (block, line) ->
+        com.meteomontana.android.ui.screens.detail.EditLineFlow(
+            block = block,
+            line = line,
+            viewModel = viewModel,
+            onDismiss = { editingLine = null },
+            onSuccess = {
+                editingLine = null
                 successMessage = "Propuesta enviada. Un admin la revisará en 24-48h."
             }
         )

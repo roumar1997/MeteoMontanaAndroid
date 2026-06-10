@@ -14,6 +14,10 @@ class KtorJournalRepository(private val api: KtorJournalApi) : JournalRepository
         api.getMyJournal().map { it.toDomain() }
     override suspend fun getMyJournalStats(): JournalStats =
         api.getMyJournalStats().toDomain()
+    override suspend fun getUserStats(uid: String): JournalStats =
+        api.getUserStats(uid).toDomain()
+    override suspend fun getUserJournal(uid: String): List<JournalSession> =
+        api.getUserJournal(uid).map { it.toDomain() }
     override suspend fun deleteJournalSession(id: String) =
         api.deleteJournalSession(id)
 }

@@ -32,3 +32,15 @@ class FollowUserUseCase(private val repo: SocialRepository) {
 class UnfollowUserUseCase(private val repo: SocialRepository) {
     suspend operator fun invoke(uid: String) = repo.unfollow(uid)
 }
+
+class GetMyFollowRequestsUseCase(private val repo: SocialRepository) {
+    suspend operator fun invoke(): List<PublicProfile> = repo.getMyFollowRequests()
+}
+
+class AcceptFollowRequestUseCase(private val repo: SocialRepository) {
+    suspend operator fun invoke(requesterUid: String) = repo.acceptFollowRequest(requesterUid)
+}
+
+class RejectFollowRequestUseCase(private val repo: SocialRepository) {
+    suspend operator fun invoke(requesterUid: String) = repo.rejectFollowRequest(requesterUid)
+}

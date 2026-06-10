@@ -15,6 +15,7 @@ fun buildApiHttpClient(
     baseUrl: String,
     tokenProvider: suspend () -> String?
 ): HttpClient = HttpClient {
+    expectSuccess = true
     install(ContentNegotiation) {
         json(Json {
             ignoreUnknownKeys = true

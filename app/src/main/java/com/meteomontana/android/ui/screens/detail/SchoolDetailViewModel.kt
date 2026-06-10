@@ -254,7 +254,7 @@ class SchoolDetailViewModel @Inject constructor(
             notes = null,
             description = null,
             proposedLat = null, proposedLon = null,
-            correctionReason = null, targetBlockId = null,
+            correctionReason = null, targetBlockId = null, targetLineId = null,
             photoUrl = photoUrl,
             bloquesJson = bloques.toBloquesJson(),
             topoLinesJson = null
@@ -279,8 +279,36 @@ class SchoolDetailViewModel @Inject constructor(
             proposedLat = null, proposedLon = null,
             correctionReason = null,
             targetBlockId = targetBlockId,
+            targetLineId = null,
             photoUrl = null,
             bloquesJson = bloques.toBloquesJson(),
+            topoLinesJson = null
+        )
+        submitContributionUseCase(schoolId, req)
+        Unit
+    }
+
+    /** Corrección de una vía existente: actualiza nombre/grado/tipo/línea de targetLineId. */
+    suspend fun submitEditLineContribution(
+        targetBlockId: String,
+        targetLineId: String,
+        targetLat: Double,
+        targetLon: Double,
+        bloque: BoulderBloqueForm
+    ): Result<Unit> = runCatching {
+        val req = ContributionRequest(
+            type = "BOULDER",
+            name = null,
+            lat = targetLat,
+            lon = targetLon,
+            notes = null,
+            description = null,
+            proposedLat = null, proposedLon = null,
+            correctionReason = null,
+            targetBlockId = targetBlockId,
+            targetLineId = targetLineId,
+            photoUrl = null,
+            bloquesJson = listOf(bloque).toBloquesJson(),
             topoLinesJson = null
         )
         submitContributionUseCase(schoolId, req)

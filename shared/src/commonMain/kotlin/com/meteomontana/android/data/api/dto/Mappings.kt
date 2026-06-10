@@ -103,8 +103,8 @@ fun DayCellDto.toDomain() = DayCell(date, avgScore, label)
 
 // Profile & Social
 fun PrivateProfileDto.toDomain() = PrivateProfile(uid, email, username, displayName, photoUrl, bio, topGrade, isPublic, isAdmin, isPremium)
-fun PublicProfileDto.toDomain() = PublicProfile(uid, username, displayName, photoUrl, bio, topGrade)
-fun FollowStatusDto.toDomain() = FollowStatus(followers, following, iFollowThem, theyFollowMe)
+fun PublicProfileDto.toDomain() = PublicProfile(uid, username, displayName, photoUrl, bio, topGrade, locked)
+fun FollowStatusDto.toDomain() = FollowStatus(followers, following, iFollowThem, theyFollowMe, requestPending)
 fun NotificationDto.toDomain() = Notification(id, type, title, body, targetType, targetId, readAt, createdAt)
 fun InboxDto.toDomain() = Inbox(unreadCount, items.map { it.toDomain() })
 
@@ -113,7 +113,7 @@ fun AdminStatsDto.toDomain() = AdminStats(totalUsers, totalAdmins, totalSchools,
 fun AdminLogDto.toDomain() = AdminLog(id, actorUid, action, targetType, targetId, details, createdAt)
 fun AdminPushResponse.toDomain() = AdminPushResult(sent, recipients)
 fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, proposedStyle, proposedRockType, proposedLat, proposedLon, proposedLocation, proposedSource, notes, status, submittedByUid, reviewedByUid, reviewReason, createdSchoolId, createdAt, reviewedAt)
-fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, proposedLat, proposedLon, correctionReason)
+fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, proposedLat, proposedLon, correctionReason)
 
 // Journal
 fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt)
