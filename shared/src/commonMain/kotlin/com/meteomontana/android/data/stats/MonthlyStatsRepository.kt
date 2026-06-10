@@ -1,5 +1,6 @@
 package com.meteomontana.android.data.stats
 
+import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.db.MeteoMontanaDb
 import kotlinx.datetime.Clock
 
@@ -7,9 +8,15 @@ private const val CACHE_TTL_MS = 180L * 24 * 3600 * 1000L
 
 data class MonthlyStats(val scores: List<Int>, val bestRange: String?)
 
+/**
+ * Scores mensuales de una escuela. El cálculo (3 años de histórico Open-Meteo)
+ * vive en el backend (GET /api/schools/{id}/monthly-stats, cacheado allí con
+ * Caffeine); aquí solo pedimos el resultado y lo cacheamos en SQLDelight para
+ * soporte offline.
+ */
 class MonthlyStatsRepository(
     private val db: MeteoMontanaDb,
-    private val client: OpenMeteoArchiveClient
+    private val api: KtorSchoolApi
 ) {
     suspend fun get(schoolId: String, lat: Double, lon: Double, rockType: String?): MonthlyStats {
         val cached = db.schemaQueries.findMonthly(schoolId).executeAsOneOrNull()
@@ -20,7 +27,7 @@ class MonthlyStatsRepository(
                 bestRange = cached.bestRange
             )
         }
-        val fresh = client.fetchMonthly(lat, lon, rockType)
+        val fresh = api.getMonthlyStats(schoolId)
         db.schemaQueries.upsertMonthly(
             schoolId = schoolId,
             monthsJson = encodeList(fresh.scores),

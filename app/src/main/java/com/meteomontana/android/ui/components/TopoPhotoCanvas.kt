@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -69,7 +73,18 @@ fun List<BlockLine>.toTopoLines(): List<TopoLine> = map { line ->
 }
 
 /**
- * Foto con las líneas topo superpuestas. Aspect ratio 4:3 + Crop fijo.
+ * Aspect ratio del canvas topo a partir de las dimensiones reales de la foto.
+ * El clamp evita canvas inutilizables con panorámicas o fotos muy verticales;
+ * editor y visores DEBEN usar esta misma función para que las coordenadas
+ * normalizadas de las líneas mapeen al mismo encuadre en todos los sitios.
+ */
+fun topoAspectRatio(width: Int, height: Int): Float =
+    if (width <= 0 || height <= 0) 4f / 3f
+    else (width.toFloat() / height.toFloat()).coerceIn(0.55f, 2.2f)
+
+/**
+ * Foto con las líneas topo superpuestas. El rectángulo de dibujo respeta el
+ * aspect real de la foto (antes 4:3 fijo, que recortaba verticales/panorámicas).
  * El bloque Canvas traduce DrawOps producidos por renderTopo() — sin android.graphics.* en la lógica.
  */
 @Composable
@@ -78,10 +93,11 @@ fun TopoPhotoCanvas(
     lines: List<TopoLine>,
     modifier: Modifier = Modifier
 ) {
+    var ratio by remember(photoUrl) { mutableStateOf(4f / 3f) }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(4f / 3f)
+            .aspectRatio(ratio)
             .clip(RoundedCornerShape(2.dp))
             .background(Color.Black)
     ) {
@@ -89,7 +105,13 @@ fun TopoPhotoCanvas(
             model = photoUrl,
             contentDescription = "Foto",
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            onSuccess = { state ->
+                ratio = topoAspectRatio(
+                    state.result.drawable.intrinsicWidth,
+                    state.result.drawable.intrinsicHeight
+                )
+            }
         )
 
         if (lines.any { it.points.isNotEmpty() }) {

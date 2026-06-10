@@ -165,12 +165,14 @@ fun ContributionTopoDialog(
             }
 
             // ── Foto + Canvas ────────────────────────────────────────────────────
-            // Aspect ratio 4:3 + Crop fija el rectángulo de dibujo para que las
-            // coordenadas normalizadas se vean idénticas en el admin.
+            // El rectángulo de dibujo usa el aspect real de la foto (misma fórmula
+            // topoAspectRatio que TopoPhotoCanvas) para que las coordenadas
+            // normalizadas se vean idénticas en el admin y en los visores.
+            var photoRatio by remember(photoUri) { mutableStateOf(4f / 3f) }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(4f / 3f)
+                    .aspectRatio(photoRatio)
                     .background(Color.Black)
                     .onSizeChanged { canvasSize = it }
             ) {
@@ -178,7 +180,13 @@ fun ContributionTopoDialog(
                     model = photoUri,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    onSuccess = { state ->
+                        photoRatio = com.meteomontana.android.ui.components.topoAspectRatio(
+                            state.result.drawable.intrinsicWidth,
+                            state.result.drawable.intrinsicHeight
+                        )
+                    }
                 )
 
                 Canvas(

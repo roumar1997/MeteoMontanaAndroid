@@ -31,4 +31,13 @@ class KtorSchoolApi(private val client: HttpClient) {
         }.body()
 
     suspend fun getSchoolById(id: String): SchoolDto = client.get("schools/$id").body()
+
+    suspend fun getMonthlyStats(id: String): MonthlyStatsDto =
+        client.get("schools/$id/monthly-stats").body()
 }
+
+@kotlinx.serialization.Serializable
+data class MonthlyStatsDto(
+    val scores: List<Int> = emptyList(),
+    val bestRange: String? = null
+)

@@ -3,8 +3,8 @@ package com.meteomontana.android.di
 import android.content.Context
 import com.meteomontana.android.data.local.DatabaseFactory
 import com.meteomontana.android.data.saved.SavedSchoolRepository
+import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.android.data.stats.MonthlyStatsRepository
-import com.meteomontana.android.data.stats.OpenMeteoArchiveClient
 import com.meteomontana.db.MeteoMontanaDb
 import dagger.Module
 import dagger.Provides
@@ -22,13 +22,10 @@ object LocalModule {
         DatabaseFactory(ctx).create()
 
     @Provides @Singleton
-    fun provideOpenMeteoArchive(): OpenMeteoArchiveClient = OpenMeteoArchiveClient()
-
-    @Provides @Singleton
     fun provideMonthlyStatsRepository(
         db: MeteoMontanaDb,
-        client: OpenMeteoArchiveClient
-    ): MonthlyStatsRepository = MonthlyStatsRepository(db, client)
+        api: KtorSchoolApi
+    ): MonthlyStatsRepository = MonthlyStatsRepository(db, api)
 
     @Provides @Singleton
     fun provideSavedSchoolRepository(db: MeteoMontanaDb): SavedSchoolRepository =
