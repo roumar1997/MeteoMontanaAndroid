@@ -40,7 +40,9 @@ android {
             // buildConfigField("String", "API_BASE_URL", "\"https://api.climbingteams.com/api/\"")
         }
         release {
-            isMinifyEnabled = false
+            // R8 activado: Compose sin minificar es notablemente más lento (jank).
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

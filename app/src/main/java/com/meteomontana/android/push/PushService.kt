@@ -51,6 +51,7 @@ class PushService : FirebaseMessagingService() {
         val body  = message.notification?.body  ?: message.data["body"]  ?: ""
         val targetType = message.data["targetType"]
         val targetId   = message.data["targetId"]
+        val avatarUrl  = message.data["avatarUrl"]
 
         // PendingIntent que abre MainActivity con extras → MainActivity los lee y navega.
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -64,16 +65,49 @@ class PushService : FirebaseMessagingService() {
         )
 
         ensureChannel()
-        val notif = NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
             .setContentIntent(pi)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
+
+        // Avatar del seguidor como icono grande (circular). onMessageReceived corre
+        // en un hilo de background, así que podemos descargar de forma bloqueante
+        // con un timeout corto — si falla, la notificación sale sin avatar.
+        fetchCircularBitmap(avatarUrl)?.let { builder.setLargeIcon(it) }
+
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(Random.nextInt(), notif)
+        nm.notify(Random.nextInt(), builder.build())
+    }
+
+    private fun fetchCircularBitmap(url: String?): android.graphics.Bitmap? {
+        if (url.isNullOrBlank()) return null
+        return runCatching {
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 4000
+            conn.readTimeout = 4000
+            val src = conn.inputStream.use { android.graphics.BitmapFactory.decodeStream(it) }
+                ?: return null
+            toCircle(src)
+        }.onFailure { log.w("No se pudo cargar avatar de push: ${it.message}") }
+            .getOrNull()
+    }
+
+    /** Recorta el bitmap a un círculo centrado (formato estándar de avatar). */
+    private fun toCircle(src: android.graphics.Bitmap): android.graphics.Bitmap {
+        val size = minOf(src.width, src.height)
+        val out = android.graphics.Bitmap.createBitmap(
+            size, size, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(out)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+        paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+        val left = (size - src.width) / 2f
+        val top = (size - src.height) / 2f
+        canvas.drawBitmap(src, left, top, paint)
+        return out
     }
 
     private fun ensureChannel() {

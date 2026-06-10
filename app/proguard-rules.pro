@@ -1,21 +1,26 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Reglas R8 del proyecto. Mantener la lista corta: la mayoría de libs
+# (Compose, Hilt, Firebase, Coil, Ktor/OkHttp) ya traen sus consumer rules.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Stacktraces legibles en producción (R8 genera mapping.txt para des-ofuscar).
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# kotlinx-serialization — los serializers se buscan por reflexión.
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault
+-keepclassmembers @kotlinx.serialization.Serializable class ** {
+    *** Companion;
+    *** INSTANCE;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keepclasseswithmembers class **$$serializer { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Nuestros DTOs serializables: conservar nombres de campos (mapean al JSON
+# del backend tal cual; sin esto R8 los renombra y la (de)serialización rompe).
+-keepclassmembers class com.meteomontana.android.data.api.** { <fields>; }
+
+# MapLibre usa JNI — los nombres de clases/métodos nativos no pueden cambiar.
+-keep class org.maplibre.android.** { *; }
+-dontwarn org.maplibre.android.**
+
+# SQLDelight driver
+-keep class app.cash.sqldelight.** { *; }
