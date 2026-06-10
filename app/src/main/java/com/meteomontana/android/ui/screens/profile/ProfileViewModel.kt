@@ -11,6 +11,8 @@ import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,11 +53,18 @@ class ProfileViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.value = try {
-                val profile = getMyProfile()
-                val stats = getMyJournalStats()
-                val follow = runCatching { getFollowStatus(profile.uid) }
-                    .getOrDefault(com.meteomontana.android.domain.model.FollowStatus(0, 0, false, false))
-                ProfileUiState.Success(profile, stats, follow.followers, follow.following)
+                // Perfil y stats no dependen entre sí: en paralelo ahorramos
+                // un round-trip completo al backend (~350 ms en remoto).
+                // coroutineScope confina el fallo de un async para que lo
+                // capture el catch en vez de cancelar el ViewModel scope.
+                coroutineScope {
+                    val profileDeferred = async { getMyProfile() }
+                    val statsDeferred = async { getMyJournalStats() }
+                    val profile = profileDeferred.await()
+                    val follow = runCatching { getFollowStatus(profile.uid) }
+                        .getOrDefault(com.meteomontana.android.domain.model.FollowStatus(0, 0, false, false))
+                    ProfileUiState.Success(profile, statsDeferred.await(), follow.followers, follow.following)
+                }
             } catch (t: Throwable) {
                 ProfileUiState.Error(t.toUserMessage())
             }

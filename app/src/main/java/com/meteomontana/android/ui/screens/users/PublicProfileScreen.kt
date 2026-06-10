@@ -52,6 +52,8 @@ import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -87,12 +89,18 @@ class PublicProfileViewModel @Inject constructor(
         _state.value = PublicProfileUiState.Loading
         viewModelScope.launch {
             _state.value = try {
-                val profile = getPublicProfile(uid)
-                val status = runCatching { getFollowStatus(uid) }
-                    .getOrDefault(FollowStatus(0, 0, false, false, false))
-                val stats = if (profile.locked) null
-                            else runCatching { getUserStats(uid) }.getOrNull()
-                PublicProfileUiState.Success(profile, status, stats)
+                // Perfil y follow status en paralelo (ambos solo necesitan uid).
+                coroutineScope {
+                    val profileD = async { getPublicProfile(uid) }
+                    val statusD = async {
+                        runCatching { getFollowStatus(uid) }
+                            .getOrDefault(FollowStatus(0, 0, false, false, false))
+                    }
+                    val profile = profileD.await()
+                    val stats = if (profile.locked) null
+                                else runCatching { getUserStats(uid) }.getOrNull()
+                    PublicProfileUiState.Success(profile, statusD.await(), stats)
+                }
             } catch (t: Throwable) {
                 PublicProfileUiState.Error(t.toUserMessage())
             }

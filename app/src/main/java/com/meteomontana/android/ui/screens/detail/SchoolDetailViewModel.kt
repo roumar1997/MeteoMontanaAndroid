@@ -32,6 +32,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -119,21 +121,27 @@ class SchoolDetailViewModel @Inject constructor(
             }
             _uiState.value = try {
                 val school = schoolFromNet.getOrThrow()
-                val forecastResult = runCatching { getForecast(schoolId) }
-                val notes  = runCatching { getNotes(schoolId) }.getOrDefault(emptyList())
-                val isFav  = runCatching { getMyFavorites().any { it.id == schoolId } }.getOrDefault(false)
-                val blocks = runCatching { getBlocks(schoolId) }.getOrDefault(emptyList())
-                val isAdmin = runCatching { getMyProfile().isAdmin }.getOrDefault(false)
-                val isSaved = runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false)
-                val success = SchoolDetailUiState.Success(
-                    school = school,
-                    forecast = forecastResult.getOrNull(),
-                    forecastError = forecastResult.exceptionOrNull()?.toUserMessage(),
-                    notes = notes, isFavorite = isFav, blocks = blocks,
-                    isCurrentUserAdmin = isAdmin,
-                    isSavedOffline = isSaved,
-                    monthlyLoading = true
-                )
+                // Llamadas independientes en paralelo: en serie eran ~5 round-trips
+                // al backend (~350 ms cada uno en remoto). runCatching dentro de
+                // cada async evita que un fallo individual cancele al resto.
+                val success = coroutineScope {
+                    val forecastD = async { runCatching { getForecast(schoolId) } }
+                    val notesD = async { runCatching { getNotes(schoolId) }.getOrDefault(emptyList()) }
+                    val isFavD = async { runCatching { getMyFavorites().any { it.id == schoolId } }.getOrDefault(false) }
+                    val blocksD = async { runCatching { getBlocks(schoolId) }.getOrDefault(emptyList()) }
+                    val isAdminD = async { runCatching { getMyProfile().isAdmin }.getOrDefault(false) }
+                    val isSavedD = async { runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false) }
+                    val forecastResult = forecastD.await()
+                    SchoolDetailUiState.Success(
+                        school = school,
+                        forecast = forecastResult.getOrNull(),
+                        forecastError = forecastResult.exceptionOrNull()?.toUserMessage(),
+                        notes = notesD.await(), isFavorite = isFavD.await(), blocks = blocksD.await(),
+                        isCurrentUserAdmin = isAdminD.await(),
+                        isSavedOffline = isSavedD.await(),
+                        monthlyLoading = true
+                    )
+                }
                 viewModelScope.launch { loadMonthlyStats(school) }
                 success
             } catch (t: Throwable) {

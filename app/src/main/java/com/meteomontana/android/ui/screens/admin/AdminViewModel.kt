@@ -24,6 +24,8 @@ import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -70,12 +72,15 @@ class AdminViewModel @Inject constructor(
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
-                val stats = getStats()
-                val pending = runCatching { getPendingSubmissions() }.getOrDefault(emptyList())
-                val contributions = runCatching { getPendingContributions() }.getOrDefault(emptyList())
-                val logs = runCatching { getLogs() }.getOrDefault(emptyList())
-                _state.update { it.copy(loading = false, stats = stats, pending = pending,
-                    contributions = contributions, logs = logs) }
+                // Las 4 llamadas son independientes: en paralelo, no en serie.
+                coroutineScope {
+                    val statsD = async { getStats() }
+                    val pendingD = async { runCatching { getPendingSubmissions() }.getOrDefault(emptyList()) }
+                    val contributionsD = async { runCatching { getPendingContributions() }.getOrDefault(emptyList()) }
+                    val logsD = async { runCatching { getLogs() }.getOrDefault(emptyList()) }
+                    _state.update { it.copy(loading = false, stats = statsD.await(), pending = pendingD.await(),
+                        contributions = contributionsD.await(), logs = logsD.await()) }
+                }
             } catch (t: Throwable) {
                 _state.update { it.copy(loading = false, error = t.toUserMessage()) }
             }
