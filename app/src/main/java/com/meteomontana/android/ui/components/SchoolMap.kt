@@ -266,26 +266,7 @@ private fun InnerMap(
         }
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            val mv = mapViewRef.value ?: return@LifecycleEventObserver
-            when (event) {
-                Lifecycle.Event.ON_START   -> mv.onStart()
-                Lifecycle.Event.ON_RESUME  -> mv.onResume()
-                Lifecycle.Event.ON_PAUSE   -> mv.onPause()
-                Lifecycle.Event.ON_STOP    -> mv.onStop()
-                Lifecycle.Event.ON_DESTROY -> mv.onDestroy()
-                else -> {}
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            mapViewRef.value?.apply { onPause(); onStop(); onDestroy() }
-            mapViewRef.value = null
-            mapRef.value = null
-        }
-    }
+    MapViewLifecycleEffect(mapViewRef) { mapRef.value = null }
 
     Column(modifier = Modifier.fillMaxWidth()) {
 

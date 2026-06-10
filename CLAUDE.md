@@ -393,6 +393,25 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-11 (3) — refactor admin + favoritos lista + share imagen
+
+- **AdminScreen.kt troceado** (56 KB → 6 ficheros): `AdminScreen` (tabs+enum),
+  `PropuestasTab`, `ContributionCard`, `SubmissionCard`, `GestionarTab`,
+  `AdminTabsMisc` (Stats/Activity/Push). Funciones cross-file → `internal`.
+- **`MapViewLifecycleEffect`** (ui/components/): único punto de verdad del
+  lifecycle de MapView. Sustituye las 4 copias (SchoolsMapPanel, SchoolMap,
+  FullScreenMapDialog, AdminScreen).
+- **Favorito desde la lista**: estrella tocable en `SchoolListItem` con update
+  optimista (`toggleFavorite` en el VM, revierte si la red falla).
+- **`animateItem()`** en la lista: las cards se deslizan al re-ordenarse.
+- **Estado vacío con "QUITAR FILTROS"** (`clearFilters()` resetea a sin límite).
+- **Compartir como imagen**: `ui/share/ShareConditionsImage.kt` genera una
+  card Cumbre (score hero + datos + heatmap 16h) en PNG y la comparte via
+  FileProvider (`${applicationId}.fileprovider`, `res/xml/file_paths.xml`).
+  Fallback a texto si no hay forecast.
+- **a11y**: `contentDescription` en botones volver (7 pantallas) y estrella
+  de favorito del detalle.
+
 ### Sesión 2026-06-11 (2) — UX: refresh, mapa, forecast stale, skeleton
 
 - **Pull-to-refresh** en la lista (`PullToRefreshBox` M3) + botón REINTENTAR

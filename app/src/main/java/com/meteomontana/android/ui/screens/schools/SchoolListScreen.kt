@@ -167,28 +167,39 @@ fun SchoolListScreen(
                 is SchoolListUiState.Success -> {
                     itemsIndexed(s.schools, key = { _, it -> it.id }) { index, school ->
                         val score = scores[school.id]
-                        SchoolListItem(
-                            rank = index + 1,
-                            school = school,
-                            todayScore = score?.todayScore,
-                            hourlyScores = score?.hourlyScores,
-                            distanceKm = viewModel.distanceTo(school.lat, school.lon),
-                            dry = score?.dryRock,
-                            rainMm = score?.rainMm,
-                            rainProb = score?.rainProb,
-                            isFavorite = school.id in favoriteIds,
-                            onClick = { onSchoolClick(school.id) }
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                        // animateItem(): cuando llegan los scores y la lista se
+                        // re-ordena, las cards se deslizan a su sitio en vez de
+                        // teletransportarse.
+                        Column(modifier = Modifier.animateItem()) {
+                            SchoolListItem(
+                                rank = index + 1,
+                                school = school,
+                                todayScore = score?.todayScore,
+                                hourlyScores = score?.hourlyScores,
+                                distanceKm = viewModel.distanceTo(school.lat, school.lon),
+                                dry = score?.dryRock,
+                                rainMm = score?.rainMm,
+                                rainProb = score?.rainProb,
+                                isFavorite = school.id in favoriteIds,
+                                onClick = { onSchoolClick(school.id) },
+                                onToggleFavorite = { viewModel.toggleFavorite(school.id) }
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                        }
                     }
                     if (s.schools.isEmpty()) {
                         item {
-                            Box(Modifier.fillMaxWidth().padding(Spacing.xl), contentAlignment = Alignment.Center) {
+                            Column(
+                                Modifier.fillMaxWidth().padding(Spacing.xl),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
                                     "No hay escuelas con esos filtros",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Spacer(Modifier.height(Spacing.md))
+                                OutlinedCumbreButton(text = "QUITAR FILTROS", onClick = viewModel::clearFilters)
                             }
                         }
                     }

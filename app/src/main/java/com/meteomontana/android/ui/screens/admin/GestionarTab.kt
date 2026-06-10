@@ -91,120 +91,116 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 
-private enum class AdminTab(val label: String) {
-    Propuestas("PROPUESTAS"),
-    Gestionar("GESTIONAR"),
-    Stats("STATS"),
-    Activity("ACTIVIDAD"),
-    Push("PUSH")
-}
 
 @Composable
-fun AdminScreen(
-    onBack: () -> Unit,
-    viewModel: AdminViewModel = hiltViewModel()
+internal fun GestionarTab(
+    allSchools: List<School>,
+    loading: Boolean,
+    schoolBlocks: Map<String, List<com.meteomontana.android.domain.model.Block>>,
+    onLoadSchools: () -> Unit,
+    onFetchSchoolBlocks: (String) -> Unit,
+    onDeleteBlock: (String, String) -> Unit,
+    onUpdateBlock: (String, String, com.meteomontana.android.data.api.dto.CreateBlockRequest, (Boolean) -> Unit) -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
-    var tab by remember { mutableStateOf(AdminTab.Propuestas) }
+    var query by remember { mutableStateOf("") }
+    var selectedSchool by remember {
+        mutableStateOf<School?>(null)
+    }
 
-    // Refresca al entrar (el VM sobrevive a la navegación; sin esto, las propuestas
-    // nuevas no aparecen hasta matar la app).
-    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.load() }
+    LaunchedEffect(Unit) { onLoadSchools() }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.onBackground)
-            }
-            Text("Admin",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground)
+    val filtered = remember(query, allSchools) {
+        if (query.isBlank()) allSchools
+        else allSchools.filter {
+            it.name.contains(query, ignoreCase = true) ||
+            (it.location?.contains(query, ignoreCase = true) == true) ||
+            (it.region?.contains(query, ignoreCase = true) == true)
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+    }
 
-        // Menú de tabs como en la PWA: lista vertical de selectores
-        TabSelector(tab) { tab = it }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+    Column(modifier = Modifier.fillMaxSize().padding(Spacing.md)) {
+        Text("Buscar escuela por nombre, lugar o región",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Ej: Albarracín, Madrid…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            singleLine = true,
+            shape = MaterialTheme.shapes.small
+        )
+        Spacer(Modifier.height(Spacing.sm))
 
-        if (state.loading) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) {
+        if (loading && allSchools.isEmpty()) {
+            Box(Modifier.fillMaxWidth().padding(Spacing.lg), Alignment.Center) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
-            return@Column
-        }
-        state.error?.let { err ->
-            Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text(err, color = MaterialTheme.colorScheme.error)
-            }
-            return@Column
-        }
+        } else {
+            Text(
+                "${filtered.size} escuela${if (filtered.size == 1) "" else "s"}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(Spacing.xs))
 
-        when (tab) {
-            AdminTab.Propuestas -> PropuestasTab(
-                submissions = state.pending,
-                contributions = state.contributions,
-                schoolBlocks = state.schoolBlocks,
-                onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
-                onDeleteBlock = viewModel::deleteBlock,
-                onUpdateBlock = viewModel::updateBlock,
-                onApproveSubmission = viewModel::approve,
-                onRejectSubmission = viewModel::reject,
-                onApproveContribution = viewModel::approveContribution,
-                onRejectContribution = viewModel::rejectContribution
-            )
-            AdminTab.Gestionar -> GestionarTab(
-                allSchools = state.allSchools,
-                loading = state.schoolsLoading,
-                schoolBlocks = state.schoolBlocks,
-                onLoadSchools = viewModel::loadAllSchools,
-                onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
-                onDeleteBlock = viewModel::deleteBlock,
-                onUpdateBlock = viewModel::updateBlock
-            )
-            AdminTab.Stats -> StatsTab(state.stats)
-            AdminTab.Activity -> ActivityTab(state.logs)
-            AdminTab.Push -> PushTab(
-                busy = state.pushBusy,
-                result = state.pushResult,
-                onSend = viewModel::sendPush
-            )
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(filtered) { school ->
+                    SchoolListRow(school) {
+                        onFetchSchoolBlocks(school.id)
+                        selectedSchool = school
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                }
+            }
         }
+    }
+
+    // Mapa fullscreen de la escuela seleccionada, con BORRAR + EDITAR habilitados
+    selectedSchool?.let { school ->
+        FullScreenMapDialog(
+            lat = school.lat,
+            lon = school.lon,
+            markerTitle = school.name,
+            existingBlocks = schoolBlocks[school.id] ?: emptyList(),
+            onDeleteBlock = { blockId -> onDeleteBlock(blockId, school.id) },
+            onUpdateBlock = { block, req -> onUpdateBlock(block.id, school.id, req) {} },
+            onDismiss = { selectedSchool = null }
+        )
     }
 }
 
 @Composable
-private fun TabSelector(current: AdminTab, onChange: (AdminTab) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-        AdminTab.entries.forEach { tab ->
-            val selected = tab == current
-            val bg = if (selected) MaterialTheme.colorScheme.primary
-                     else MaterialTheme.colorScheme.surface
-            val fg = if (selected) Color.White
-                     else MaterialTheme.colorScheme.onSurface
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(bg, RoundedCornerShape(2.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { onChange(tab) }
-                    .padding(12.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(tab.label, color = fg, style = MaterialTheme.typography.labelLarge)
+private fun SchoolListRow(
+    school: School,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(school.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+            val subtitle = listOfNotNull(school.location, school.region)
+                .joinToString(" · ")
+                .ifEmpty { school.style ?: "" }
+            if (subtitle.isNotBlank()) {
+                Text(subtitle,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(Modifier.height(2.dp))
         }
+        Text("▸", style = MaterialTheme.typography.titleMedium,
+            color = Terra)
     }
 }
 
-// ─────────────────────────── PROPUESTAS ────────────────────────────
-
-internal enum class ContribFilter(val label: String) {
-    TODAS("TODAS"), PIEDRAS("PIEDRAS"), SECTORES("SECTORES"),
-    PARKINGS("PARKINGS"), MOVER("MOVER ESCUELA")
-}
-
+// ─────────────────────────── STATS ────────────────────────────

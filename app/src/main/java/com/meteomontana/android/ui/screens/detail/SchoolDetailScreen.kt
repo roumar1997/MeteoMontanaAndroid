@@ -65,7 +65,17 @@ fun SchoolDetailScreen(
             onToggleFavorite = viewModel::toggleFavorite,
             onShare = if (success != null) {
                 {
-                    shareSchool(context, success.school, success.forecast)
+                    // Con forecast → card de imagen (más viral en WhatsApp);
+                    // sin él, el texto plano de siempre.
+                    if (success.forecast != null) {
+                        runCatching {
+                            com.meteomontana.android.ui.share.shareSchoolAsImage(
+                                context, success.school, success.forecast
+                            )
+                        }.onFailure { shareSchool(context, success.school, success.forecast) }
+                    } else {
+                        shareSchool(context, success.school, success.forecast)
+                    }
                 }
             } else null
         )
@@ -139,7 +149,7 @@ private fun TopBar(
             IconButton(onClick = onToggleFavorite) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = null,
+                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
                     tint = if (isFavorite) MaterialTheme.colorScheme.primary
                            else MaterialTheme.colorScheme.onBackground
                 )

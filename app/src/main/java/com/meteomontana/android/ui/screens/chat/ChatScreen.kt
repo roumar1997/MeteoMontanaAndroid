@@ -156,7 +156,7 @@ private fun ChatTopBar(name: String, avatarUrl: String?, onBack: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         IconButton(onClick = onBack) {
-            Icon(Icons.Outlined.ArrowBack, contentDescription = null,
+            Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
                 tint = MaterialTheme.colorScheme.onBackground)
         }
         if (avatarUrl != null) {

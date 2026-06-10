@@ -58,6 +58,8 @@ class SchoolListViewModel @Inject constructor(
     private val getSchools: GetSchoolsUseCase,
     private val getTodayScores: GetTodayScoresUseCase,
     private val getMyFavorites: GetMyFavoritesUseCase,
+    private val addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase,
+    private val removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase,
     private val getMyNotifications: GetMyNotificationsUseCase,
     private val locationProvider: LocationProvider,
     private val savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository,
@@ -271,6 +273,21 @@ class SchoolListViewModel @Inject constructor(
         }
         load()
     }
+    /** Marca/desmarca favorita desde la lista. Optimista: pinta ya, revierte si falla. */
+    fun toggleFavorite(schoolId: String) {
+        val wasFavorite = schoolId in _favoriteIds.value
+        _favoriteIds.update { if (wasFavorite) it - schoolId else it + schoolId }
+        viewModelScope.launch {
+            runCatching {
+                if (wasFavorite) removeFavorite(schoolId) else addFavorite(schoolId)
+            }.onFailure {
+                _favoriteIds.update { ids -> if (wasFavorite) ids + schoolId else ids - schoolId }
+            }
+            // Si el filtro "solo favoritas" está activo, la lista visible cambia.
+            if (_filters.value.onlyFavorites) load()
+        }
+    }
+
     fun setOnlyFavorites(v: Boolean) {
         viewModelScope.launch {
             if (v) _favoriteIds.value = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(_favoriteIds.value)
@@ -292,4 +309,10 @@ class SchoolListViewModel @Inject constructor(
         }
     }
     fun setOnlySavedOffline(v: Boolean)     { _filters.update { it.copy(onlySavedOffline = v) }; load() }
+
+    /** Botón "QUITAR FILTROS" del estado vacío: vuelve a los filtros por defecto sin límite de distancia. */
+    fun clearFilters() {
+        _filters.value = SchoolFilters(maxDistanceKm = null)
+        load()
+    }
 }

@@ -43,6 +43,8 @@ class SchoolListViewModelTest {
     private lateinit var getSchools: GetSchoolsUseCase
     private lateinit var getTodayScores: GetTodayScoresUseCase
     private lateinit var getMyFavorites: GetMyFavoritesUseCase
+    private lateinit var addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
+    private lateinit var removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
     private lateinit var getMyNotifications: GetMyNotificationsUseCase
     private lateinit var location: LocationProvider
     private lateinit var savedRepo: SavedSchoolRepository
@@ -64,6 +66,8 @@ class SchoolListViewModelTest {
         getSchools = mockk()
         getTodayScores = mockk()
         getMyFavorites = mockk()
+        addFavorite = mockk(relaxed = true)
+        removeFavorite = mockk(relaxed = true)
         getMyNotifications = mockk()
         location = mockk()
         savedRepo = mockk(relaxed = true)
@@ -82,8 +86,8 @@ class SchoolListViewModelTest {
     @After fun tearDown() { Dispatchers.resetMain() }
 
     private fun newVm() = SchoolListViewModel(
-        getSchools, getTodayScores, getMyFavorites, getMyNotifications,
-        location, savedRepo, cachedRepo
+        getSchools, getTodayScores, getMyFavorites, addFavorite, removeFavorite,
+        getMyNotifications, location, savedRepo, cachedRepo
     )
 
     @Test fun `init baja el catalogo completo sin filtros y filtra en local`() = runTest {

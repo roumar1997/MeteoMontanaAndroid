@@ -141,30 +141,7 @@ private fun MapBody(
     // Etiquetas de nombre solo con zoom cercano (si no, se solapan).
     val labelsVisible = remember { mutableStateOf(false) }
 
-    // Lifecycle (replicado del fix de SchoolMap.kt — el MapView nativo
-    // exige onStart/onResume/onPause/onStop o filtrea memoria/contexto).
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            val mv = mapViewRef.value ?: return@LifecycleEventObserver
-            when (event) {
-                Lifecycle.Event.ON_START   -> mv.onStart()
-                Lifecycle.Event.ON_RESUME  -> mv.onResume()
-                Lifecycle.Event.ON_PAUSE   -> mv.onPause()
-                Lifecycle.Event.ON_STOP    -> mv.onStop()
-                Lifecycle.Event.ON_DESTROY -> mv.onDestroy()
-                else -> {}
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            mapViewRef.value?.onPause()
-            mapViewRef.value?.onStop()
-            mapViewRef.value?.onDestroy()
-            mapViewRef.value = null
-            mapRef.value = null
-        }
-    }
+    com.meteomontana.android.ui.components.MapViewLifecycleEffect(mapViewRef) { mapRef.value = null }
 
     // Re-sincronizar markers cuando cambian los filtros (= cambia `schools`)
     // o cuando el mapa ya está listo. Fit-bounds SOLO si cambió la lista de

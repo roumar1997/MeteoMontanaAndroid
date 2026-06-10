@@ -93,7 +93,7 @@ fun FollowListScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = null,
+                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(viewModel.title, style = MaterialTheme.typography.headlineMedium,
