@@ -13,6 +13,15 @@ android {
         version = release(36)
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../../meteomontana-release.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = "meteomontana"
+            keyPassword = System.getenv("KEY_PASSWORD")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.meteomontana.android"
         minSdk = 26
@@ -35,8 +44,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Cambiar cuando despleguemos el back en producción.
-            buildConfigField("String", "API_BASE_URL", "\"https://TODO-prod-url/api/\"")
+            signingConfig = signingConfigs.getByName("release")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.climbingteams.com/api/\"")
         }
     }
     compileOptions {
