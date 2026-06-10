@@ -239,7 +239,8 @@ class SchoolDetailViewModel @Inject constructor(
         lat: Double, lon: Double,
         name: String?,
         bloques: List<BoulderBloqueForm>,
-        photoRef: FileRef?
+        photoRef: FileRef?,
+        sectorBlockId: String? = null
     ): Result<Unit> = runCatching {
         val photoUrl = if (photoRef != null) {
             val bytes = fileReader.readBytes(photoRef)
@@ -255,11 +256,47 @@ class SchoolDetailViewModel @Inject constructor(
             description = null,
             proposedLat = null, proposedLon = null,
             correctionReason = null, targetBlockId = null, targetLineId = null,
+            sectorBlockId = sectorBlockId,
             photoUrl = photoUrl,
             bloquesJson = bloques.toBloquesJson(),
             topoLinesJson = null
         )
         submitContributionUseCase(schoolId, req)
+        Unit
+    }
+
+    /** Propone asignar un sector (ZONE) existente a una piedra (BLOCK) existente. */
+    suspend fun submitAssignSectorContribution(
+        targetBlockId: String,
+        targetLat: Double,
+        targetLon: Double,
+        sectorBlockId: String
+    ): Result<Unit> = runCatching {
+        val req = ContributionRequest(
+            type = "ASSIGN_SECTOR",
+            name = null,
+            lat = targetLat,
+            lon = targetLon,
+            notes = null,
+            description = null,
+            proposedLat = null, proposedLon = null,
+            correctionReason = null,
+            targetBlockId = targetBlockId,
+            targetLineId = null,
+            sectorBlockId = sectorBlockId,
+            photoUrl = null,
+            bloquesJson = null,
+            topoLinesJson = null
+        )
+        android.util.Log.d("AssignSector",
+            "→ POST schoolId=$schoolId targetBlockId=$targetBlockId sectorBlockId=$sectorBlockId")
+        try {
+            submitContributionUseCase(schoolId, req)
+            android.util.Log.d("AssignSector", "← OK")
+        } catch (t: Throwable) {
+            android.util.Log.e("AssignSector", "← FAIL", t)
+            throw t
+        }
         Unit
     }
 

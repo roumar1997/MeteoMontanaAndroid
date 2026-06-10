@@ -58,11 +58,15 @@ fun BlockDetailDialog(
     onEditLine: ((com.meteomontana.android.domain.model.BlockLine) -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    /** Sectores (ZONE) disponibles para "ASIGNAR SECTOR". null = no mostrar el botón. */
+    availableSectors: List<Block>? = null,
+    onAssignSector: ((sectorBlockId: String) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     var showLinePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showSectorPicker by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -111,6 +115,31 @@ fun BlockDetailDialog(
                         .padding(horizontal = Spacing.sm, vertical = 2.dp)
                 ) {
                     Text("✕", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+
+            // Sector actual de la piedra (si lo tiene)
+            if (block.type == "BLOCK" && block.sectorBlockId != null) {
+                Spacer(Modifier.height(Spacing.sm))
+                val sectorName = availableSectors
+                    ?.firstOrNull { it.id == block.sectorBlockId }?.name
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color(0xFF1FA84E))
+                            .padding(horizontal = Spacing.sm, vertical = 2.dp)
+                    ) {
+                        Text("SECTOR", style = EyebrowTextStyle, color = Color.White)
+                    }
+                    Text(
+                        sectorName ?: "(sector desconocido)",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
 
@@ -228,6 +257,23 @@ fun BlockDetailDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Text("+ AÑADIR VÍAS", style = EyebrowTextStyle, color = Terra)
+                }
+            }
+
+            // Botón "+ ASIGNAR SECTOR" — solo BLOCK sin sector y caller con sectores disponibles
+            if (onAssignSector != null && !availableSectors.isNullOrEmpty()
+                    && block.type == "BLOCK" && block.sectorBlockId == null && !isProposal) {
+                Spacer(Modifier.height(Spacing.sm))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(2.dp))
+                        .border(1.dp, Terra, RoundedCornerShape(2.dp))
+                        .clickable { showSectorPicker = true }
+                        .padding(vertical = Spacing.md),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("+ ASIGNAR SECTOR", style = EyebrowTextStyle, color = Terra)
                 }
             }
 
@@ -355,6 +401,52 @@ fun BlockDetailDialog(
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("CANCELAR")
+                }
+            }
+        )
+    }
+
+    // Picker de sector para "ASIGNAR SECTOR"
+    if (showSectorPicker && onAssignSector != null && !availableSectors.isNullOrEmpty()) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showSectorPicker = false },
+            title = { Text("Elegir sector") },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "El admin revisará la propuesta. Si se aprueba, esta piedra quedará asignada al sector elegido.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(Spacing.sm))
+                    availableSectors.forEach { sect ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable {
+                                    showSectorPicker = false
+                                    onAssignSector(sect.id)
+                                }
+                                .padding(vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color(0xFF1FA84E))
+                                    .padding(horizontal = Spacing.sm, vertical = 2.dp)
+                            ) {
+                                Text("ZONA", style = EyebrowTextStyle, color = Color.White)
+                            }
+                            Spacer(Modifier.padding(horizontal = Spacing.xs))
+                            Text(sect.name, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showSectorPicker = false }) {
                     Text("CANCELAR")
                 }
             }

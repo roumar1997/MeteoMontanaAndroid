@@ -87,7 +87,8 @@ fun SchoolScoreDto.toDomain() = SchoolScore(id, todayScore, hourlyScores, dryRoc
 fun BlockDto.toDomain() = Block(
     id = id, schoolId = schoolId, type = type, name = name, lat = lat, lon = lon,
     photoPath = photoPath, description = description, createdByUid = createdByUid,
-    createdAt = createdAt, lines = lines.map { it.toDomain() }
+    createdAt = createdAt, lines = lines.map { it.toDomain() },
+    sectorBlockId = sectorBlockId
 )
 
 fun BlockLineDto.toDomain() = BlockLine(id, name, grade, startType, linePath, sortOrder)
@@ -113,7 +114,7 @@ fun AdminStatsDto.toDomain() = AdminStats(totalUsers, totalAdmins, totalSchools,
 fun AdminLogDto.toDomain() = AdminLog(id, actorUid, action, targetType, targetId, details, createdAt)
 fun AdminPushResponse.toDomain() = AdminPushResult(sent, recipients)
 fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, proposedStyle, proposedRockType, proposedLat, proposedLon, proposedLocation, proposedSource, notes, status, submittedByUid, reviewedByUid, reviewReason, createdSchoolId, createdAt, reviewedAt)
-fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, proposedLat, proposedLon, correctionReason)
+fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, sectorBlockId, proposedLat, proposedLon, correctionReason)
 
 // Journal
 fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt)

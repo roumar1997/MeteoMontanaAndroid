@@ -64,6 +64,10 @@ data class SchoolHistory(
     val blocks: List<String>      // nombres de bloque previamente usados
 )
 
+/** Sugerencia de sector: puede ser uno catalogado (ZONE existente, blockId != null)
+ *  o uno del historial del usuario sin id. */
+data class SectorSuggestion(val name: String, val blockId: String?)
+
 /** Vía concreta sugerida al usuario, con su grado y tipo de inicio si los tiene. */
 data class LineSuggestion(
     val blockName: String,
@@ -165,14 +169,30 @@ fun AddBlockSheet(
     }
     LaunchedEffect(selectedSchool) { searchVM.onSchoolSelected(selectedSchool) }
 
-    // Sugerencias filtradas por lo que escribe el usuario
-    val sectorSuggestions = remember(sector, history) {
-        if (sector.isBlank()) history.sectors.take(5)
-        else history.sectors.filter { it.contains(sector, ignoreCase = true) && it != sector }.take(5)
+    // Sugerencias de SECTOR: historial del usuario + sectores reales (ZONE)
+    // catalogados en la escuela. Cuando el usuario pulsa uno catalogado guardamos
+    // su id para poder filtrar las vías por sector.
+    var selectedSectorBlockId by remember { mutableStateOf<String?>(null) }
+    val sectorSuggestions = remember(sector, history, schoolBlocks, selectedSectorBlockId) {
+        val real = schoolBlocks.filter { it.type == "ZONE" }
+            .map { SectorSuggestion(it.name, it.id) }
+        val historical = history.sectors.map { SectorSuggestion(it, null) }
+        val combined = (real + historical).distinctBy { it.name }
+        val filtered = if (sector.isBlank()) combined
+        else combined.filter { it.name.contains(sector, ignoreCase = true) && it.name != sector }
+        filtered.take(6)
     }
-    // Vías reales registradas en los bloques de la escuela (con grado + tipo).
-    val lineSuggestions = remember(blockName, schoolBlocks) {
-        val all = schoolBlocks.filter { it.type == "BLOCK" }.flatMap { b ->
+
+    // Vías reales (con grado + tipo). Si hay sector seleccionado, filtramos a las
+    // vías de las piedras de ese sector.
+    val lineSuggestions = remember(blockName, schoolBlocks, selectedSectorBlockId) {
+        val blocksScope = schoolBlocks.filter { it.type == "BLOCK" }
+            .let { all ->
+                if (selectedSectorBlockId != null)
+                    all.filter { it.sectorBlockId == selectedSectorBlockId }
+                else all
+            }
+        val all = blocksScope.flatMap { b ->
             b.lines.map { l ->
                 LineSuggestion(
                     blockName = b.name,
@@ -188,8 +208,7 @@ fun AddBlockSheet(
                 it.blockName.contains(blockName, ignoreCase = true)
         }.take(6)
     }
-    // Fallback: si la escuela aún no tiene vías catalogadas, sugerimos bloques
-    // (los de la escuela + los del diario previo del usuario).
+    // Fallback: si la escuela aún no tiene vías catalogadas, sugerimos bloques.
     val blockSuggestions = remember(blockName, history, schoolBlocks, lineSuggestions) {
         if (lineSuggestions.isNotEmpty()) emptyList()
         else {
@@ -240,14 +259,22 @@ fun AddBlockSheet(
             // ─── SECTOR con autocomplete (sectores previos del usuario) ───
             Label("SECTOR (opcional)")
             OutlinedTextField(
-                value = sector, onValueChange = { sector = it },
+                value = sector,
+                onValueChange = { sector = it; selectedSectorBlockId = null },
                 placeholder = { Text("ej: Sector Bajo") },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
             if (sectorSuggestions.isNotEmpty()) {
                 SuggestionsBox {
-                    sectorSuggestions.forEach { s ->
-                        SuggestionRow(text = s, onClick = { sector = s })
+                    sectorSuggestions.forEach { sug ->
+                        val label = if (sug.blockId != null) "${sug.name} · catalogado" else sug.name
+                        SuggestionRow(
+                            text = label,
+                            onClick = {
+                                sector = sug.name
+                                selectedSectorBlockId = sug.blockId
+                            }
+                        )
                     }
                 }
             }

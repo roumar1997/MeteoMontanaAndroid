@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -237,6 +239,7 @@ private fun InnerMap(
     // Bloque seleccionado (para popup) y bloque al que añadir vías
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
+    val mapScope = androidx.compose.runtime.rememberCoroutineScope()
     var editingLine by remember {
         mutableStateOf<Pair<Block, com.meteomontana.android.domain.model.BlockLine>?>(null)
     }
@@ -416,6 +419,7 @@ private fun InnerMap(
     // Dialog de detalles (foto + líneas + vías + CÓMO LLEGAR).
     // No incluye BORRAR — esa acción vive en el panel admin (FullScreenMapDialog).
     selectedBlock?.let { block ->
+        val sectors = blocks.filter { it.type == "ZONE" }
         BlockDetailDialog(
             block = block,
             onAddLines = if (block.type == "BLOCK") ({
@@ -425,6 +429,25 @@ private fun InnerMap(
             onEditLine = if (block.type == "BLOCK") ({ line ->
                 editingLine = block to line
                 selectedBlock = null
+            }) else null,
+            availableSectors = sectors.takeIf { it.isNotEmpty() },
+            onAssignSector = if (block.type == "BLOCK" && block.sectorBlockId == null
+                                  && sectors.isNotEmpty()) ({ sectorId ->
+                selectedBlock = null
+                // Usamos viewModelScope para que la llamada no se cancele cuando
+                // la composición del dialog desaparece.
+                viewModel.viewModelScope.launch {
+                    val r = viewModel.submitAssignSectorContribution(
+                        targetBlockId = block.id,
+                        targetLat = block.lat,
+                        targetLon = block.lon,
+                        sectorBlockId = sectorId
+                    )
+                    successMessage = if (r.isSuccess)
+                        "Propuesta enviada. Un admin la revisará en 24-48h."
+                    else
+                        "No se pudo enviar la propuesta: ${r.exceptionOrNull()?.message ?: "error"}"
+                }
             }) else null,
             onDismiss = { selectedBlock = null }
         )

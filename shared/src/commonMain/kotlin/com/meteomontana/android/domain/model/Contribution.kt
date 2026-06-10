@@ -20,6 +20,7 @@ data class Contribution(
     val topoLinesJson: String?,
     val targetBlockId: String?,
     val targetLineId: String? = null,
+    val sectorBlockId: String? = null,
     val proposedLat: Double? = null,
     val proposedLon: Double? = null,
     val correctionReason: String? = null

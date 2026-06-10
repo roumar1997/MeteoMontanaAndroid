@@ -11,7 +11,8 @@ data class Block(
     val description: String?,
     val createdByUid: String,
     val createdAt: String,
-    val lines: List<BlockLine>
+    val lines: List<BlockLine>,
+    val sectorBlockId: String? = null  // BLOCK: id del sector (ZONE) al que pertenece
 )
 
 data class BlockLine(

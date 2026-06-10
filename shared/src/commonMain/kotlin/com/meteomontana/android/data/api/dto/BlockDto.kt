@@ -14,7 +14,8 @@ data class BlockDto(
     val description: String? = null,
     val createdByUid: String,
     val createdAt: String,
-    val lines: List<BlockLineDto> = emptyList()
+    val lines: List<BlockLineDto> = emptyList(),
+    val sectorBlockId: String? = null
 )
 
 @Serializable
@@ -43,5 +44,6 @@ data class CreateBlockRequest(
     val lon: Double,
     val photoPath: String? = null,
     val description: String? = null,
-    val lines: List<CreateBlockLineRequest> = emptyList()
+    val lines: List<CreateBlockLineRequest> = emptyList(),
+    val sectorBlockId: String? = null
 )

@@ -15,6 +15,7 @@ data class ContributionRequest(
     val correctionReason: String? = null,
     val targetBlockId: String? = null,
     val targetLineId: String? = null,
+    val sectorBlockId: String? = null,
     val photoUrl: String? = null,
     val bloquesJson: String? = null,
     val topoLinesJson: String? = null
@@ -41,6 +42,7 @@ data class ContributionDto(
     val topoLinesJson: String? = null,
     val targetBlockId: String? = null,
     val targetLineId: String? = null,
+    val sectorBlockId: String? = null,
     val proposedLat: Double? = null,
     val proposedLon: Double? = null,
     val correctionReason: String? = null

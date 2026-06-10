@@ -107,6 +107,10 @@ fun AdminScreen(
     val state by viewModel.state.collectAsState()
     var tab by remember { mutableStateOf(AdminTab.Propuestas) }
 
+    // Refresca al entrar (el VM sobrevive a la navegación; sin esto, las propuestas
+    // nuevas no aparecen hasta matar la app).
+    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.load() }
+
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -495,6 +499,31 @@ private fun ContributionCard(
                     }
                     else -> BloquesSummary(json)
                 }
+            }
+        }
+
+        // ── ASSIGN_SECTOR: piedra X → sector Y ──────────────────────────────
+        if (c.type == "ASSIGN_SECTOR") {
+            val targetBlock = existingBlocks.firstOrNull { it.id == c.targetBlockId }
+            val targetSector = existingBlocks.firstOrNull { it.id == c.sectorBlockId }
+            Spacer(Modifier.height(Spacing.sm))
+            Column(modifier = Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f))
+                .padding(Spacing.sm)) {
+                Text("ASIGNAR SECTOR A PIEDRA", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.secondary)
+                Spacer(Modifier.height(Spacing.xs))
+                Text("PIEDRA", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(targetBlock?.name ?: "(no encontrada · ${c.targetBlockId})",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(Spacing.xs))
+                Text("→ SECTOR PROPUESTO", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(targetSector?.name ?: "(no encontrado · ${c.sectorBlockId})",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Terra)
             }
         }
 

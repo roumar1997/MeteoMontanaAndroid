@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.meteomontana.android.data.api.dto.ContributionRequest
+import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
@@ -138,6 +140,12 @@ fun ProposeContributionFlow(
     var boulderBloques by remember { mutableStateOf(listOf(BoulderBloqueForm())) }
     var boulderPhotoUri by remember { mutableStateOf<Uri?>(null) }
     var boulderShowTopo by remember { mutableStateOf(false) }
+    var boulderSectorBlockId by remember { mutableStateOf<String?>(null) }
+
+    // Sectores (ZONE) existentes en la escuela — alimentan el dropdown del BoulderForm.
+    val uiStateForSectors by viewModel.uiState.collectAsState()
+    val sectorBlocks = (uiStateForSectors as? SchoolDetailUiState.Success)
+        ?.blocks?.filter { it.type == "ZONE" } ?: emptyList()
 
     val scope = rememberCoroutineScope()
 
@@ -222,6 +230,7 @@ fun ProposeContributionFlow(
                 boulderBloques = listOf(BoulderBloqueForm())
                 boulderName = ""
                 boulderPhotoUri = null
+                boulderSectorBlockId = null
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
             },
@@ -275,6 +284,9 @@ fun ProposeContributionFlow(
                 photoUri = boulderPhotoUri,
                 onPhotoChange = { boulderPhotoUri = it },
                 onOpenTopo = { boulderShowTopo = true },
+                sectorBlocks = sectorBlocks,
+                sectorBlockId = boulderSectorBlockId,
+                onSectorChange = { boulderSectorBlockId = it },
                 onCancel = onDismiss,
                 onSubmit = {
                     scope.launch {
@@ -282,7 +294,8 @@ fun ProposeContributionFlow(
                             lat = s.lat, lon = s.lon,
                             name = boulderName,
                             bloques = boulderBloques,
-                            photoRef = boulderPhotoUri?.let { FileRef(it.toString()) }
+                            photoRef = boulderPhotoUri?.let { FileRef(it.toString()) },
+                            sectorBlockId = boulderSectorBlockId
                         )
                         if (result.isSuccess) step = ProposeStep.Success
                     }
@@ -637,10 +650,14 @@ private fun BoulderFormDialog(
     photoUri: Uri?,
     onPhotoChange: (Uri?) -> Unit,
     onOpenTopo: () -> Unit,
+    sectorBlocks: List<Block>,
+    sectorBlockId: String?,
+    onSectorChange: (String?) -> Unit,
     onCancel: () -> Unit,
     onSubmit: () -> Unit
 ) {
     var sending by remember { mutableStateOf(false) }
+    var sectorExpanded by remember { mutableStateOf(false) }
     val photoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri -> if (uri != null) onPhotoChange(uri) }
@@ -669,6 +686,46 @@ private fun BoulderFormDialog(
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
         )
         Spacer(Modifier.height(Spacing.md))
+
+        // ── Sector (opcional) ────────────────────────────────────────────────────
+        if (sectorBlocks.isNotEmpty()) {
+            Text("SECTOR (OPCIONAL)", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.xs))
+            val selectedSectorName = sectorBlocks.firstOrNull { it.id == sectorBlockId }?.name
+            ExposedDropdownMenuBox(
+                expanded = sectorExpanded,
+                onExpandedChange = { sectorExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = selectedSectorName ?: "Sin sector",
+                    onValueChange = {}, readOnly = true,
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = sectorExpanded)
+                    },
+                    shape = MaterialTheme.shapes.small, colors = fieldColors()
+                )
+                ExposedDropdownMenu(
+                    expanded = sectorExpanded,
+                    onDismissRequest = { sectorExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Sin sector",
+                            style = MaterialTheme.typography.bodyMedium) },
+                        onClick = { onSectorChange(null); sectorExpanded = false }
+                    )
+                    sectorBlocks.forEach { sect ->
+                        DropdownMenuItem(
+                            text = { Text(sect.name,
+                                style = MaterialTheme.typography.bodyMedium) },
+                            onClick = { onSectorChange(sect.id); sectorExpanded = false }
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(Spacing.md))
+        }
 
         // ── Coordenadas ──────────────────────────────────────────────────────────
         Text("COORDENADAS (LAT, LON)", style = EyebrowTextStyle,
