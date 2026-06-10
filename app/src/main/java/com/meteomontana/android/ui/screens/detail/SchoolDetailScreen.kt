@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,6 +75,9 @@ fun SchoolDetailScreen(
             is SchoolDetailUiState.Success -> {
                 if (s.offlineSnapshotAt != null) {
                     OfflineBanner(timestamp = s.offlineSnapshotAt)
+                }
+                if (s.forecastCachedAt != null) {
+                    StaleForecastBanner(timestamp = s.forecastCachedAt, onRetry = viewModel::load)
                 }
                 Content(
                     school = s.school,
@@ -223,6 +227,35 @@ private fun OfflineBanner(timestamp: Long) {
         Text("Datos del $label",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * Aviso ámbar: el forecast viene de la caché local porque la red falló.
+ * Muestra la antigüedad de los datos y permite reintentar.
+ */
+@Composable
+private fun StaleForecastBanner(timestamp: Long, onRetry: () -> Unit) {
+    val ageMin = ((System.currentTimeMillis() - timestamp) / 60_000L).coerceAtLeast(0)
+    val ageLabel = when {
+        ageMin < 60        -> "hace $ageMin min"
+        ageMin < 60 * 24   -> "hace ${ageMin / 60} h"
+        else               -> "hace ${ageMin / (60 * 24)} días"
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .background(androidx.compose.ui.graphics.Color(0xFFC8843A).copy(alpha = 0.12f))
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("⚠ PREVISIÓN DE $ageLabel".uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = androidx.compose.ui.graphics.Color(0xFFC8843A),
+            modifier = Modifier.weight(1f))
+        Text("REINTENTAR",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable(onClick = onRetry))
     }
 }
 

@@ -112,6 +112,21 @@ class SchoolListViewModel @Inject constructor(
         }
     }
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    /** Pull-to-refresh y botón REINTENTAR: recarga catálogo, scores y favoritos. */
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            _scores.value = emptyMap()   // fuerza scores frescos
+            _favoriteIds.value = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(_favoriteIds.value)
+            refreshFromNetwork()
+            refreshUnread()
+            _isRefreshing.value = false
+        }
+    }
+
     /** Baja el catálogo completo (sin filtros), lo cachea y re-emite la lista. */
     private suspend fun refreshFromNetwork() {
         runCatching {
@@ -181,8 +196,8 @@ class SchoolListViewModel @Inject constructor(
             list = filterQuery(list, f.query)
             if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
 
-            // Cargar scores en background para hasta 50 escuelas (límite del backend)
-            loadScoresFor(list.take(50).map { it.id }) {
+            // Cargar scores en background para todas las visibles (lotes de 50)
+            loadScoresFor(list.map { it.id }) {
                 // tras cargar, re-emitimos el estado para que aplique el sort por score
                 applySort(f)
             }
@@ -207,11 +222,19 @@ class SchoolListViewModel @Inject constructor(
     }
 
     private fun loadScoresFor(ids: List<String>, onDone: () -> Unit = {}) {
-        if (ids.isEmpty()) { onDone(); return }
+        // Solo pedimos los que aún no tenemos: teclear en el buscador re-llama
+        // a load() y sin esto cada letra disparaba una llamada de red + un
+        // re-sort que hacía saltar la lista.
+        val missing = ids.filter { it !in _scores.value }
+        if (missing.isEmpty()) { onDone(); return }
         viewModelScope.launch {
-            runCatching { getTodayScores(ids) }.onSuccess { results ->
-                _scores.value = results.associateBy { it.id }
-                onDone()
+            // El backend acepta máximo 50 ids por petición → lotes encadenados.
+            // Los scores van llegando y la lista se re-ordena progresivamente.
+            missing.chunked(50).forEach { batch ->
+                runCatching { getTodayScores(batch) }.onSuccess { results ->
+                    _scores.update { it + results.associateBy { r -> r.id } }
+                    onDone()
+                }
             }
         }
     }

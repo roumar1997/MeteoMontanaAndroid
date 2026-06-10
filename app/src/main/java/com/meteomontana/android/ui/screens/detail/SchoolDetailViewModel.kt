@@ -52,7 +52,9 @@ sealed interface SchoolDetailUiState {
         val monthlyLoading: Boolean = false,
         val isSavedOffline: Boolean = false,
         /** Si !=null, los datos provienen del snapshot offline guardado en esa fecha (epoch ms). */
-        val offlineSnapshotAt: Long? = null
+        val offlineSnapshotAt: Long? = null,
+        /** Si !=null, el forecast viene de la caché local y se bajó en esa fecha (epoch ms). */
+        val forecastCachedAt: Long? = null
     ) : SchoolDetailUiState
 }
 
@@ -132,14 +134,29 @@ class SchoolDetailViewModel @Inject constructor(
                     val isAdminD = async { runCatching { getMyProfile().isAdmin }.getOrDefault(false) }
                     val isSavedD = async { runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false) }
                     val forecastResult = forecastD.await()
+                    // Forecast fresco → a la caché. Si la red falló → último
+                    // forecast cacheado, marcando su antigüedad para que la UI
+                    // avise de que son datos viejos.
+                    var forecast = forecastResult.getOrNull()
+                    var forecastCachedAt: Long? = null
+                    if (forecast != null) {
+                        runCatching { savedSchoolRepo.cacheForecast(schoolId, forecast) }
+                    } else {
+                        runCatching { savedSchoolRepo.loadCachedForecast(schoolId) }.getOrNull()?.let { (cached, at) ->
+                            forecast = cached
+                            forecastCachedAt = at
+                        }
+                    }
                     SchoolDetailUiState.Success(
                         school = school,
-                        forecast = forecastResult.getOrNull(),
-                        forecastError = forecastResult.exceptionOrNull()?.toUserMessage(),
+                        forecast = forecast,
+                        forecastError = if (forecast == null)
+                            forecastResult.exceptionOrNull()?.toUserMessage() else null,
                         notes = notesD.await(), isFavorite = isFavD.await(), blocks = blocksD.await(),
                         isCurrentUserAdmin = isAdminD.await(),
                         isSavedOffline = isSavedD.await(),
-                        monthlyLoading = true
+                        monthlyLoading = true,
+                        forecastCachedAt = forecastCachedAt
                     )
                 }
                 viewModelScope.launch { loadMonthlyStats(school) }

@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -127,10 +128,18 @@ private fun MapBody(
 ) {
     val ctx = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    // Tiles oscuros si el tema actual es oscuro (CartoDB dark) — el mapa claro
+    // era un fogonazo blanco en mitad de la UI oscura.
+    val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     val mapRef     = remember { mutableStateOf<MapLibreMap?>(null) }
     val mapViewRef = remember { mutableStateOf<MapView?>(null) }
     var selectedSchool by remember { mutableStateOf<School?>(null) }
+    // ids de la última lista pintada: solo re-encuadramos la cámara cuando
+    // cambia QUÉ escuelas se ven (filtros), no cuando llegan scores nuevos.
+    val lastFittedIds = remember { mutableStateOf<Set<String>>(emptySet()) }
+    // Etiquetas de nombre solo con zoom cercano (si no, se solapan).
+    val labelsVisible = remember { mutableStateOf(false) }
 
     // Lifecycle (replicado del fix de SchoolMap.kt — el MapView nativo
     // exige onStart/onResume/onPause/onStop o filtrea memoria/contexto).
@@ -158,12 +167,19 @@ private fun MapBody(
     }
 
     // Re-sincronizar markers cuando cambian los filtros (= cambia `schools`)
-    // o cuando el mapa ya está listo.
-    LaunchedEffect(schools, scoresById, mapRef.value) {
+    // o cuando el mapa ya está listo. Fit-bounds SOLO si cambió la lista de
+    // escuelas; si solo llegaron scores nuevos, la cámara no se mueve.
+    LaunchedEffect(schools, scoresById, mapRef.value, labelsVisible.value) {
         val map = mapRef.value ?: return@LaunchedEffect
-        syncMarkers(ctx, map, schools, scoresById) { tappedSchool ->
-            selectedSchool = tappedSchool
-        }
+        val ids = schools.map { it.id }.toSet()
+        val listChanged = ids != lastFittedIds.value
+        lastFittedIds.value = ids
+        syncMarkers(
+            ctx, map, schools, scoresById,
+            showLabels = labelsVisible.value,
+            fitBounds = listChanged,
+            userLat = userLat, userLon = userLon
+        ) { tappedSchool -> selectedSchool = tappedSchool }
     }
 
     Box(
@@ -190,18 +206,32 @@ private fun MapBody(
                     }
                     getMapAsync { map ->
                         mapRef.value = map
-                        map.setStyle(Style.Builder().fromJson(OSM_RASTER_STYLE)) {
+                        val styleJson = if (isDarkTheme) DARK_RASTER_STYLE else OSM_RASTER_STYLE
+                        map.setStyle(Style.Builder().fromJson(styleJson)) {
+                            // Con ubicación real: centramos cerca del usuario.
+                            // Sin ella: España entera.
                             val center = if (userLat != null && userLon != null)
                                 LatLng(userLat, userLon) else LatLng(40.4, -3.7)
+                            val zoom = if (userLat != null && userLon != null) 8.0 else 5.0
                             map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
-                                .target(center).zoom(5.0).build()
-                            syncMarkers(context, map, schools, scoresById) { tappedSchool ->
-                                selectedSchool = tappedSchool
-                            }
+                                .target(center).zoom(zoom).build()
+                            lastFittedIds.value = schools.map { it.id }.toSet()
+                            syncMarkers(
+                                context, map, schools, scoresById,
+                                showLabels = labelsVisible.value,
+                                fitBounds = false,   // respetamos el centrado en el usuario
+                                userLat = userLat, userLon = userLon
+                            ) { tappedSchool -> selectedSchool = tappedSchool }
                         }
                         map.uiSettings.apply {
                             isRotateGesturesEnabled = false
                             isTiltGesturesEnabled   = false
+                        }
+                        // Etiquetas de nombre solo a partir de zoom 8.5 — más
+                        // lejos se solaparían unas con otras.
+                        map.addOnCameraIdleListener {
+                            val shouldShow = map.cameraPosition.zoom >= 8.5
+                            if (shouldShow != labelsVisible.value) labelsVisible.value = shouldShow
                         }
                     }
                     onStart()
@@ -244,6 +274,10 @@ private fun syncMarkers(
     map: MapLibreMap,
     schools: List<School>,
     scoresById: Map<String, Int>,
+    showLabels: Boolean,
+    fitBounds: Boolean,
+    userLat: Double?,
+    userLon: Double?,
     onMarkerTap: (School) -> Unit
 ) {
     // Limpia los anteriores
@@ -252,16 +286,25 @@ private fun syncMarkers(
     markerSchoolBySnippet.clear()
     map.setOnMarkerClickListener(null)
 
+    // Punto azul con la posición del usuario (si la tenemos).
+    if (userLat != null && userLon != null) {
+        activeMarkers += map.addMarker(
+            MarkerOptions()
+                .position(LatLng(userLat, userLon))
+                .icon(IconFactory.getInstance(ctx).fromBitmap(userDotBitmap()))
+        )
+    }
+
     if (schools.isEmpty()) return
 
     val boundsBuilder = LatLngBounds.Builder()
     schools.forEach { s ->
         val score = scoresById[s.id]
-        val icon  = IconFactory.getInstance(ctx).fromBitmap(diamondBitmap(score, s.name))
+        val bmp = if (showLabels) diamondBitmap(score, s.name) else diamondBitmap(score, null)
         val marker = map.addMarker(
             MarkerOptions()
                 .position(LatLng(s.lat, s.lon))
-                .icon(icon)
+                .icon(IconFactory.getInstance(ctx).fromBitmap(bmp))
                 .snippet(s.id)         // truco: snippet = id para mapear back
         )
         activeMarkers += marker
@@ -277,9 +320,24 @@ private fun syncMarkers(
         true   // consumimos el evento; evita que MapLibre abra su infoWindow por defecto
     }
 
-    runCatching {
+    if (fitBounds) runCatching {
         map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 48), 400)
     }
+}
+
+/** Punto azul estilo "mi ubicación": disco azul con borde blanco y halo suave. */
+private fun userDotBitmap(): Bitmap {
+    val sizePx = 48
+    val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    val cx = sizePx / 2f
+    val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AndroidColor.argb(50, 30, 100, 220) }
+    canvas.drawCircle(cx, cx, 22f, halo)
+    val border = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AndroidColor.WHITE }
+    canvas.drawCircle(cx, cx, 12f, border)
+    val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = "#1E64DC".toColorInt() }
+    canvas.drawCircle(cx, cx, 9f, dot)
+    return bmp
 }
 
 /** Color hex del pin según score, igual que la PWA (`scoreColor` en map-panel.js). */
@@ -295,9 +353,13 @@ private fun pinColorHex(score: Int?): String = when {
  * debajo (con halo blanco para que se lea sobre el mapa). Se construye en
  * código porque MapLibre no acepta vistas Compose como icon, sólo Bitmaps.
  */
-private fun diamondBitmap(score: Int?, name: String): Bitmap {
+private fun diamondBitmap(score: Int?, name: String?): Bitmap {
     val pinPx = 64
-    val label = if (name.length > 16) name.take(15).trimEnd() + "…" else name
+    val label = when {
+        name == null -> null
+        name.length > 16 -> name.take(15).trimEnd() + "…"
+        else -> name
+    }
 
     // Paints del nombre: halo blanco grueso debajo + texto tinta encima.
     val nameHalo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -314,9 +376,9 @@ private fun diamondBitmap(score: Int?, name: String): Bitmap {
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
-    val nameWidth = nameHalo.measureText(label) + 12f
+    val nameWidth = if (label != null) nameHalo.measureText(label) + 12f else 0f
     val widthPx = maxOf(pinPx, nameWidth.toInt())
-    val nameHeightPx = 28
+    val nameHeightPx = if (label != null) 28 else 0
     val bmp = Bitmap.createBitmap(widthPx, pinPx + nameHeightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
 
@@ -355,9 +417,11 @@ private fun diamondBitmap(score: Int?, name: String): Bitmap {
     canvas.drawText(score?.toString() ?: "·", cx, cy + 6f, txt)
 
     // Nombre debajo del pin (halo primero, tinta encima)
-    val nameY = pinPx + nameHeightPx - 8f
-    canvas.drawText(label, cx, nameY, nameHalo)
-    canvas.drawText(label, cx, nameY, nameInk)
+    if (label != null) {
+        val nameY = pinPx + nameHeightPx - 8f
+        canvas.drawText(label, cx, nameY, nameHalo)
+        canvas.drawText(label, cx, nameY, nameInk)
+    }
 
     return bmp
 }
@@ -495,6 +559,11 @@ private fun FilledAction(text: String, onClick: () -> Unit, modifier: Modifier =
 /** Estilo MapLibre con tiles raster de OSM. Mismo origen que la PWA. */
 private val OSM_RASTER_STYLE = """
 {"version":8,"sources":{"osm":{"type":"raster","tiles":["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png","https://b.tile.openstreetmap.org/{z}/{x}/{y}.png","https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap"}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}
+""".trimIndent()
+
+/** Tiles oscuros (CartoDB dark matter) para cuando el tema de la app es oscuro. */
+private val DARK_RASTER_STYLE = """
+{"version":8,"sources":{"carto":{"type":"raster","tiles":["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap © CARTO"}},"layers":[{"id":"carto","type":"raster","source":"carto"}]}
 """.trimIndent()
 
 /** Distancia aproximada en km. Null si no tenemos ubicación del usuario. */

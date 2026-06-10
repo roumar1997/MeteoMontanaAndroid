@@ -393,6 +393,23 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-11 (2) — UX: refresh, mapa, forecast stale, skeleton
+
+- **Pull-to-refresh** en la lista (`PullToRefreshBox` M3) + botón REINTENTAR
+  en el estado de error. `SchoolListViewModel.refresh()` recarga catálogo,
+  scores y favoritos.
+- **Scores para todas las escuelas** en lotes de 50 encadenados (antes solo
+  las primeras 50). Solo se piden los que faltan — teclear en el buscador ya
+  no dispara llamadas ni re-sorts (era la causa del "salto" al escribir).
+- **Mapa de la lista**: punto azul con la ubicación del usuario, centrado en
+  el usuario al abrir (zoom 8), nombre de la escuela bajo el pin solo con
+  zoom ≥ 8.5 (si no se solapan), fit-bounds solo cuando cambia la lista
+  filtrada (no cuando llegan scores), tiles oscuros CartoDB en tema oscuro.
+- **Forecast stale-while-revalidate**: `SavedForecast` ahora cachea el
+  forecast de CUALQUIER escuela visitada. Si la red falla se pinta el último
+  conocido con banner ámbar "PREVISIÓN DE HACE Xh + REINTENTAR".
+- **Skeleton rows** en la carga inicial de la lista (en vez de spinner).
+
 ### Sesión 2026-06-11 — rendimiento percibido (paridad con la PWA)
 
 - **Cargas en paralelo**: Profile, SchoolDetail, Admin y PublicProfile lanzaban

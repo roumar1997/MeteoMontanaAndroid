@@ -24,7 +24,6 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,6 +52,7 @@ import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.TerraBg
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun SchoolListScreen(
     onSchoolClick: (String) -> Unit,
@@ -69,6 +69,8 @@ fun SchoolListScreen(
     val unread by viewModel.unreadCount.collectAsState()
     val scores by viewModel.scores.collectAsState()
     val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val userLocation by viewModel.userLocation.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Pide permiso de ubicación al abrir la pantalla — al concederlo el VM
@@ -80,7 +82,11 @@ fun SchoolListScreen(
         permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = viewModel::refresh,
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+    ) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
 
             // Fila de iconos top (no existe en la PWA pero hay que mantener
@@ -132,8 +138,8 @@ fun SchoolListScreen(
                 SchoolsMapPanel(
                     schools = successState?.schools.orEmpty(),
                     scoresById = scores.mapValues { it.value.todayScore },
-                    userLat = null,   // TODO: pasar ubicación real cuando el VM la exponga.
-                    userLon = null,
+                    userLat = userLocation?.lat,
+                    userLon = userLocation?.lon,
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
                     onSchoolDetail = onSchoolClick
@@ -156,8 +162,8 @@ fun SchoolListScreen(
             item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
 
             when (val s = state) {
-                is SchoolListUiState.Loading -> item { LoaderRow() }
-                is SchoolListUiState.Error   -> item { ErrorRow(s.message) }
+                is SchoolListUiState.Loading -> items(6) { SkeletonRow() }
+                is SchoolListUiState.Error   -> item { ErrorRow(s.message, onRetry = viewModel::refresh) }
                 is SchoolListUiState.Success -> {
                     itemsIndexed(s.schools, key = { _, it -> it.id }) { index, school ->
                         val score = scores[school.id]
@@ -433,20 +439,44 @@ private fun OutlinedCumbreButton(text: String, onClick: () -> Unit) {
     }
 }
 
+/**
+ * Silueta gris de una fila de escuela mientras carga el catálogo. Se percibe
+ * más rápido que un spinner porque ya enseña la estructura de la pantalla.
+ */
 @Composable
-private fun LoaderRow() {
-    Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+private fun SkeletonRow() {
+    val tone = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(40.dp).clip(MaterialTheme.shapes.small).background(tone))
+            Spacer(Modifier.size(Spacing.md))
+            Column {
+                Box(Modifier.height(16.dp).fillMaxWidth(0.55f)
+                    .clip(MaterialTheme.shapes.small).background(tone))
+                Spacer(Modifier.height(Spacing.xs))
+                Box(Modifier.height(12.dp).fillMaxWidth(0.35f)
+                    .clip(MaterialTheme.shapes.small).background(tone))
+            }
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        Box(Modifier.height(12.dp).fillMaxWidth()
+            .clip(MaterialTheme.shapes.small).background(tone))
     }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
 }
 
 @Composable
-private fun ErrorRow(message: String) {
-    Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) {
+private fun ErrorRow(message: String, onRetry: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(Spacing.xxl),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(
             "Error: $message",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.error
         )
+        Spacer(Modifier.height(Spacing.md))
+        OutlinedCumbreButton(text = "REINTENTAR", onClick = onRetry)
     }
 }

@@ -61,6 +61,27 @@ class SavedSchoolRepository(
         q.deleteSchool(id)
     }
 
+    /**
+     * Caché de forecast para CUALQUIER escuela visitada (no solo guardadas
+     * offline — SavedForecast no tiene FK a SavedSchool). Permite pintar el
+     * último forecast conocido al instante o cuando la red falla.
+     */
+    suspend fun cacheForecast(schoolId: String, forecast: Forecast) {
+        q.upsertForecast(
+            schoolId = schoolId,
+            forecastJson = runCatching { ForecastJson.encode(forecast) }.getOrDefault(""),
+            fetchedAt = Clock.System.now().toEpochMilliseconds()
+        )
+    }
+
+    /** Último forecast cacheado + epoch ms en que se bajó, o null si no hay. */
+    suspend fun loadCachedForecast(schoolId: String): Pair<Forecast, Long>? {
+        val row = q.findForecast(schoolId).executeAsOneOrNull() ?: return null
+        val forecast = row.forecastJson.takeIf { it.isNotBlank() }
+            ?.let { runCatching { ForecastJson.decode(it) }.getOrNull() } ?: return null
+        return forecast to row.fetchedAt
+    }
+
     suspend fun loadOffline(id: String): OfflineSnapshot? {
         val s = q.findSchool(id).executeAsOneOrNull() ?: return null
         val blocks = q.blocksOfSchool(id).executeAsList()

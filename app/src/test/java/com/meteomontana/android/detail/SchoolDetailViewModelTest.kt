@@ -123,6 +123,7 @@ class SchoolDetailViewModelTest {
         // relaxed devolvería un snapshot-mock no nulo y el VM entraría en modo
         // offline; sin escuela guardada lo correcto es null.
         coEvery { savedSchoolRepo.loadOffline(any()) } returns null
+        coEvery { savedSchoolRepo.loadCachedForecast(any()) } returns null
         offlineTiles = mockk(relaxed = true)
         ktorAdminApi = mockk(relaxed = true)
         updateBlockUseCase = mockk(relaxed = true)
