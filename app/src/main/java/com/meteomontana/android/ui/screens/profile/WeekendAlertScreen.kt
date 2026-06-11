@@ -58,6 +58,8 @@ data class WeekendAlertUiState(
     val enabled: Boolean = false,
     val notifyDay: Int = 4,        // ISO: 1=lunes .. 7=domingo
     val notifyHour: Int = 20,
+    val nearbyMode: Boolean = false,   // false = MIS ESCUELAS, true = POR CERCANÍA
+    val radiusKm: Int = 50,
     val selected: List<School> = emptyList(),
     val query: String = "",
     val suggestions: List<School> = emptyList(),
@@ -69,7 +71,8 @@ data class WeekendAlertUiState(
 @HiltViewModel
 class WeekendAlertViewModel @Inject constructor(
     private val profileApi: KtorProfileApi,
-    private val cachedSchools: CachedSchoolsRepository
+    private val cachedSchools: CachedSchoolsRepository,
+    private val locationProvider: com.meteomontana.android.data.location.LocationProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WeekendAlertUiState())
@@ -88,6 +91,8 @@ class WeekendAlertViewModel @Inject constructor(
                     enabled = dto?.enabled ?: false,
                     notifyDay = dto?.notifyDay ?: 4,
                     notifyHour = dto?.notifyHour ?: 20,
+                    nearbyMode = dto?.mode.equals("NEARBY", ignoreCase = true),
+                    radiusKm = dto?.radiusKm ?: 50,
                     selected = dto?.schoolIds.orEmpty().mapNotNull { id -> byId[id] }
                 )
             }
@@ -97,6 +102,8 @@ class WeekendAlertViewModel @Inject constructor(
     fun setEnabled(v: Boolean)  { _state.update { it.copy(enabled = v, savedOk = false) } }
     fun setDay(d: Int)          { _state.update { it.copy(notifyDay = d, savedOk = false) } }
     fun setHour(h: Int)         { _state.update { it.copy(notifyHour = h, savedOk = false) } }
+    fun setNearby(v: Boolean)   { _state.update { it.copy(nearbyMode = v, savedOk = false, error = null) } }
+    fun setRadius(km: Int)      { _state.update { it.copy(radiusKm = km, savedOk = false) } }
 
     fun setQuery(q: String) {
         val needle = q.trim().lowercase()
@@ -120,15 +127,28 @@ class WeekendAlertViewModel @Inject constructor(
 
     fun save() {
         val s = _state.value
-        if (s.selected.isEmpty()) {
+        if (!s.nearbyMode && s.selected.isEmpty()) {
             _state.update { it.copy(error = "Elige al menos una escuela") }
             return
         }
         viewModelScope.launch {
             _state.update { it.copy(saving = true, error = null) }
+            // En modo cercanía mandamos tu posición actual (el job la usa como centro).
+            val loc = if (s.nearbyMode) runCatching { locationProvider.current() }.getOrNull() else null
+            if (s.nearbyMode && loc == null) {
+                _state.update { it.copy(saving = false,
+                    error = "No pudimos obtener tu ubicación — concede el permiso e inténtalo de nuevo") }
+                return@launch
+            }
             runCatching {
                 profileApi.updateWeekendAlert(
-                    WeekendAlertDto(s.enabled, s.notifyDay, s.notifyHour, s.selected.map { it.id })
+                    WeekendAlertDto(
+                        enabled = s.enabled, notifyDay = s.notifyDay, notifyHour = s.notifyHour,
+                        schoolIds = if (s.nearbyMode) emptyList() else s.selected.map { it.id },
+                        mode = if (s.nearbyMode) "NEARBY" else "SCHOOLS",
+                        radiusKm = if (s.nearbyMode) s.radiusKm else null,
+                        lat = loc?.lat, lon = loc?.lon
+                    )
                 )
             }.onSuccess {
                 _state.update { it.copy(saving = false, savedOk = true) }
@@ -227,6 +247,34 @@ fun WeekendAlertScreen(
             }
 
             Spacer(Modifier.height(Spacing.lg))
+            Text("QUÉ COMPARAR", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.sm))
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                SelectChip("MIS ESCUELAS", selected = !s.nearbyMode) { viewModel.setNearby(false) }
+                SelectChip("POR CERCANÍA", selected = s.nearbyMode) { viewModel.setNearby(true) }
+            }
+
+            Spacer(Modifier.height(Spacing.lg))
+            if (s.nearbyMode) {
+                Text("RADIO DESDE TU UBICACIÓN", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(Spacing.sm))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    listOf(25, 50, 100, 200).forEach { km ->
+                        SelectChip("$km km", selected = s.radiusKm == km) { viewModel.setRadius(km) }
+                    }
+                }
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    "Compararemos las 3 mejores escuelas dentro del radio, " +
+                    "desde tu posición al guardar.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (!s.nearbyMode) {
             Text("ESCUELAS A COMPARAR (MÁX 3)", style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
@@ -280,6 +328,7 @@ fun WeekendAlertScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                 }
             }
+            }   // fin modo MIS ESCUELAS
 
             Spacer(Modifier.height(Spacing.xl))
 

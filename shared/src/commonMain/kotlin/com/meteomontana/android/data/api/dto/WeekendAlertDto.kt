@@ -11,5 +11,10 @@ data class WeekendAlertDto(
     val enabled: Boolean,
     val notifyDay: Int,
     val notifyHour: Int,
-    val schoolIds: List<String>
+    val schoolIds: List<String>,
+    /** SCHOOLS = escuelas elegidas a mano; NEARBY = las mejores en un radio. */
+    val mode: String = "SCHOOLS",
+    val radiusKm: Int? = null,
+    val lat: Double? = null,
+    val lon: Double? = null
 )
