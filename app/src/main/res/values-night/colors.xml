@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondo Cumbre oscuro (BgDark de Color.kt) — splash y windowBackground
+         cuando el sistema está en modo oscuro. -->
+    <color name="splash_bg">#FF15140F</color>
+</resources>

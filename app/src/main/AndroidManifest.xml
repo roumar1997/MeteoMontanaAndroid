@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Necesario para llamar a la API REST -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Ubicación aproximada (para Tab Tiempo) -->
+    <!-- UbicaciÃ³n aproximada (para Tab Tiempo) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Notificaciones push (Android 13+ requiere permiso runtime) -->
@@ -25,7 +25,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.MeteoMontana"
+            android:theme="@style/Theme.MeteoMontana.Splash"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -58,7 +58,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Servicio de Firebase Cloud Messaging — recibe pushes y muestra notificaciones -->
+        <!-- Servicio de Firebase Cloud Messaging â€” recibe pushes y muestra notificaciones -->
         <service
             android:name=".push.PushService"
             android:exported="false">

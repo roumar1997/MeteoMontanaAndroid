@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,9 @@ class MainActivity : ComponentActivity() {
     private val pendingDeepLink = mutableStateOf<DeepLinkTarget?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Splash Screen API: pinta fondo papel + montaña al instante en vez de
+        // pantalla en blanco mientras la app inicializa. Debe ir antes de super.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         consumeIntentExtras(intent)

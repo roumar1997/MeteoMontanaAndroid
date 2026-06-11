@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MeteoMontana" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.MeteoMontana" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Mismo fondo que el tema Cumbre (Bg) para que no haya flash blanco
+             entre la splash y el primer frame de Compose. -->
+        <item name="android:windowBackground">@color/splash_bg</item>
+    </style>
+
+    <!-- Splash de arranque (Splash Screen API): fondo papel + montaña Terra.
+         Se muestra al instante mientras la app inicializa. -->
+    <style name="Theme.MeteoMontana.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.MeteoMontana</item>
+    </style>
 </resources>
