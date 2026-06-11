@@ -393,6 +393,21 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-12 (2) — feedback de pruebas resuelto
+
+- **Alerta del finde**: la pantalla se cierra sola tras guardar; nuevo modo
+  **POR CERCANÍA** (V21: mode/radius_km/user_lat/user_lon) — radio 25-200 km
+  desde la posición al guardar, el job evalúa hasta 12 escuelas del radio y
+  compara las 3 mejores.
+- **Encoding ?? arreglado** (V20): el import inicial a Railway corrompió los
+  acentos (Alcañiz→Alca??z). V20 regenera name/location/region/style/rock_type
+  de las 191 escuelas desde data/escuelas.json de la PWA. Verificado en prod.
+- **Notificaciones con marca**: ic_notification (montaña monocroma) teñido
+  Terra + BigTextStyle; la alerta del finde pasa a push data-only y el tap
+  abre CompareScreen (deep link targetType=compare con ids CSV).
+- **Punto azul de ubicación en todos los mapas**: userDotBitmap compartido +
+  rememberUserLocation(); SchoolMap (detalle) y FullScreenMapDialog lo pintan.
+
 ### Sesión 2026-06-12 — alerta del finde + comparador + desglose + onboarding
 
 - **Alerta del finde** (backend V18 + Android): el usuario elige hasta 3
