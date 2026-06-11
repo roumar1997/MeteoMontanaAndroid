@@ -45,13 +45,22 @@ fun LazyListScope.forecastBody(
     afterCurrentWeather: (LazyListScope.() -> Unit)? = null,
     onDayClick: ((Int) -> Unit)? = null
 ) {
-    item { HeroSection(forecast) }
     item {
-        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-            HourlyHeatmap(hours = forecast.hours)
+        // Hero + heatmap + factores comparten estado: tocar el score grande
+        // abre el desglose de "¿por qué este índice?".
+        var factorsExpanded by rememberSaveable { mutableStateOf(false) }
+        Column {
+            HeroSection(forecast, onScoreTap = { factorsExpanded = !factorsExpanded })
+            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                HourlyHeatmap(hours = forecast.hours)
+            }
+            FactorsAccordion(
+                current = forecast.current,
+                expanded = factorsExpanded,
+                onToggle = { factorsExpanded = !factorsExpanded }
+            )
         }
     }
-    item { FactorsAccordion(forecast.current) }
     item { CurrentWeather(forecast.current) }
     afterCurrentWeather?.invoke(this)
     item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -72,7 +81,7 @@ fun LazyListScope.forecastBody(
 }
 
 @Composable
-fun HeroSection(forecast: Forecast) {
+fun HeroSection(forecast: Forecast, onScoreTap: (() -> Unit)? = null) {
     val cur = forecast.current
     val verdict = if (cur.score >= 55) "SÍ" else "NO"
     val window = forecast.bestWindow
@@ -100,7 +109,11 @@ fun HeroSection(forecast: Forecast) {
                     color = MaterialTheme.colorScheme.onSurface)
             }
         }
-        Column(horizontalAlignment = Alignment.End) {
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = if (onScoreTap != null)
+                Modifier.clickable(onClick = onScoreTap) else Modifier
+        ) {
             Text("ÍNDICE",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -113,16 +126,20 @@ fun HeroSection(forecast: Forecast) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp))
             }
+            if (onScoreTap != null) {
+                Text("VER DESGLOSE ▾",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }
 
 @Composable
-fun FactorsAccordion(current: Current) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
+fun FactorsAccordion(current: Current, expanded: Boolean, onToggle: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

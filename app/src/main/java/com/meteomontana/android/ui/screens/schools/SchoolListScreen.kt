@@ -75,11 +75,26 @@ fun SchoolListScreen(
 
     // Pide permiso de ubicación al abrir la pantalla — al concederlo el VM
     // recarga ordenado por mejor score + filtra 50 km desde la posición real.
+    // En la primera apertura el permiso se pide al FINAL del onboarding,
+    // después de explicar para qué sirve.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showOnboarding by remember {
+        mutableStateOf(!com.meteomontana.android.ui.onboarding.isOnboardingDone(context))
+    }
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> if (granted) viewModel.onLocationGranted() }
     LaunchedEffect(Unit) {
-        permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (!showOnboarding) permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
+
+    if (showOnboarding) {
+        com.meteomontana.android.ui.onboarding.OnboardingOverlay(onFinish = {
+            com.meteomontana.android.ui.onboarding.markOnboardingDone(context)
+            showOnboarding = false
+            permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+        })
+        return
     }
 
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
