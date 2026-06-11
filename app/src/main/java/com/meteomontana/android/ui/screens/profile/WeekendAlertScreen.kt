@@ -150,6 +150,14 @@ fun WeekendAlertScreen(
 ) {
     val s by viewModel.state.collectAsState()
 
+    // Al guardar con éxito, volvemos atrás (breve pausa para que se vea el ✓).
+    androidx.compose.runtime.LaunchedEffect(s.savedOk) {
+        if (s.savedOk) {
+            kotlinx.coroutines.delay(600)
+            onBack()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
