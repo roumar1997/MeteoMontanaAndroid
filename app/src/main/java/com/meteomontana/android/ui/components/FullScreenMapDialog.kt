@@ -1,6 +1,8 @@
 package com.meteomontana.android.ui.components
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -71,6 +73,8 @@ fun FullScreenMapDialog(
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val mapViewRef = remember { mutableStateOf<MapView?>(null) }
+    // Última ubicación conocida del usuario → punto azul.
+    val userLoc = rememberUserLocation()
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     var editingBlock by remember { mutableStateOf<Block?>(null) }
     var movingBlock by remember { mutableStateOf<Block?>(null) }
@@ -119,6 +123,15 @@ fun FullScreenMapDialog(
 
                                 val iconFactory = IconFactory.getInstance(context)
                                 val markerToBlock = mutableMapOf<Marker, Block>()
+
+                                // Punto azul con la posición del usuario.
+                                userLoc?.let {
+                                    map.addMarker(
+                                        MarkerOptions()
+                                            .position(LatLng(it.lat, it.lon))
+                                            .icon(iconFactory.fromBitmap(userDotBitmap()))
+                                    )
+                                }
 
                                 // Bloques existentes (el que se está moviendo va semitransparente)
                                 existingBlocks.forEach { block ->
@@ -421,6 +434,21 @@ internal fun bitmapForBlock(block: Block, isProposal: Boolean): Bitmap {
  * Bitmap circular con relleno [colorInt], borde blanco, letra centrada.
  * Para PARKING/ZONE.
  */
+/** Punto azul "mi ubicación": disco azul con borde blanco y halo suave. */
+internal fun userDotBitmap(): Bitmap {
+    val sizePx = 48
+    val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    val cx = sizePx / 2f
+    val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.argb(50, 30, 100, 220) }
+    canvas.drawCircle(cx, cx, 22f, halo)
+    val border = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE }
+    canvas.drawCircle(cx, cx, 12f, border)
+    val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.rgb(30, 100, 220) }
+    canvas.drawCircle(cx, cx, 9f, dot)
+    return bmp
+}
+
 internal fun pinBitmap(colorInt: Int, letter: String, sizeDp: Int = 40): Bitmap {
     val size = (sizeDp * 3).coerceAtLeast(64)
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)

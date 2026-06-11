@@ -268,7 +268,8 @@ private fun syncMarkers(
         activeMarkers += map.addMarker(
             MarkerOptions()
                 .position(LatLng(userLat, userLon))
-                .icon(IconFactory.getInstance(ctx).fromBitmap(userDotBitmap()))
+                .icon(IconFactory.getInstance(ctx).fromBitmap(
+                    com.meteomontana.android.ui.components.userDotBitmap()))
         )
     }
 
@@ -302,20 +303,6 @@ private fun syncMarkers(
     }
 }
 
-/** Punto azul estilo "mi ubicación": disco azul con borde blanco y halo suave. */
-private fun userDotBitmap(): Bitmap {
-    val sizePx = 48
-    val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bmp)
-    val cx = sizePx / 2f
-    val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AndroidColor.argb(50, 30, 100, 220) }
-    canvas.drawCircle(cx, cx, 22f, halo)
-    val border = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AndroidColor.WHITE }
-    canvas.drawCircle(cx, cx, 12f, border)
-    val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = "#1E64DC".toColorInt() }
-    canvas.drawCircle(cx, cx, 9f, dot)
-    return bmp
-}
 
 /** Color hex del pin según score, igual que la PWA (`scoreColor` en map-panel.js). */
 private fun pinColorHex(score: Int?): String = when {

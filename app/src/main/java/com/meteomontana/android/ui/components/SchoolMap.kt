@@ -236,6 +236,9 @@ private fun InnerMap(
     val onMarkerTappedForCorrectionState by androidx.compose.runtime.rememberUpdatedState(onMarkerTappedForCorrection)
     val onMapTappedState by androidx.compose.runtime.rememberUpdatedState(onMapTapped)
 
+    // Última ubicación conocida del usuario → punto azul en el mapa.
+    val userLoc = rememberUserLocation()
+
     // Bloque seleccionado (para popup) y bloque al que añadir vías
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
@@ -260,7 +263,7 @@ private fun InnerMap(
     // Re-pinta markers cuando aparece/cambia el ghost para reflejar la posición candidata.
     androidx.compose.runtime.LaunchedEffect(correctionGhost) {
         val map = mapRef.value ?: return@LaunchedEffect
-        placeMarkers(ctx, map, allMarkers, correctionGhost) { tapped ->
+        placeMarkers(ctx, map, allMarkers, correctionGhost, userLoc) { tapped ->
             if (correctionMode) onMarkerTappedForCorrection(tapped)
             else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
         }
@@ -281,7 +284,7 @@ private fun InnerMap(
                         currentStyle = option
                         mapViewRef.value?.getMapAsync { map ->
                             map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
-                                placeMarkers(ctx, map, allMarkers, correctionGhost) { tapped ->
+                                placeMarkers(ctx, map, allMarkers, correctionGhost, userLoc) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
                                     else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
                                 }
@@ -352,7 +355,7 @@ private fun InnerMap(
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(centerLat, centerLon))
                                     .zoom(15.0).build()
-                                placeMarkers(ctx, map, allMarkers, correctionGhost) { tapped ->
+                                placeMarkers(ctx, map, allMarkers, correctionGhost, userLoc) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
                                     else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
                                 }
@@ -561,12 +564,23 @@ private fun placeMarkers(
     map: MapLibreMap,
     blocks: List<Block>,
     ghost: com.meteomontana.android.ui.screens.detail.CorrectionGhost? = null,
+    userLoc: com.meteomontana.android.data.location.UserLocation? = null,
     onBlockTap: (Block) -> Unit
 ) {
     map.clear()
     markerBlockMap.clear()
 
     val iconFactory = IconFactory.getInstance(ctx)
+
+    // Punto azul con la posición del usuario (si la tenemos): así se ve
+    // cómo de cerca estás de la escuela y sus sectores.
+    if (userLoc != null) {
+        map.addMarker(
+            MarkerOptions()
+                .position(LatLng(userLoc.lat, userLoc.lon))
+                .icon(iconFactory.fromBitmap(userDotBitmap()))
+        )
+    }
 
     blocks.forEach { b ->
         // Si este marker está siendo movido (es el original), lo pintamos semitransparente.
