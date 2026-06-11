@@ -3,6 +3,7 @@ package com.meteomontana.android.data.api
 import com.meteomontana.android.data.api.dto.FcmTokenRequest
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
+import com.meteomontana.android.data.api.dto.WeekendAlertDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -19,4 +20,10 @@ class KtorProfileApi(private val client: HttpClient) {
     suspend fun updateFcmToken(req: FcmTokenRequest) {
         client.put("me/fcm-token") { setBody(req) }
     }
+
+    suspend fun getWeekendAlert(): WeekendAlertDto =
+        client.get("me/weekend-alert").body()
+
+    suspend fun updateWeekendAlert(req: WeekendAlertDto): WeekendAlertDto =
+        client.put("me/weekend-alert") { setBody(req) }.body()
 }

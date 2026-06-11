@@ -129,7 +129,8 @@ fun MainScreen(
                     onSubmitSchool = { navController.navigate(Routes.SUBMIT_SCHOOL) },
                     onSearchUsers = { navController.navigate(Routes.SEARCH_USERS) },
                     onNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onChats = { navController.navigate(Routes.CHAT_LIST) }
+                    onChats = { navController.navigate(Routes.CHAT_LIST) },
+                    onCompare = { ids -> navController.navigate(Routes.compare(ids)) }
                 )
             }
             composable(Tab.Radar.route) { RadarScreen() }
@@ -173,6 +174,7 @@ fun MainScreen(
                     onSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) },
                     onAdmin = { navController.navigate(Routes.ADMIN) },
                     onSavedSchools = { navController.navigate(Routes.SAVED_SCHOOLS) },
+                    onWeekendAlert = { navController.navigate(Routes.WEEKEND_ALERT) },
                     onOpenFollowers = {
                         com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
                             navController.navigate(Routes.followList(uid, "followers"))
@@ -230,6 +232,17 @@ fun MainScreen(
             }
             composable(Routes.EDIT_PROFILE) {
                 EditProfileScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.COMPARE) {
+                com.meteomontana.android.ui.screens.compare.CompareScreen(
+                    onBack = { navController.popBackStack() },
+                    onSchoolDetail = { id -> navController.navigate(Routes.schoolDetail(id)) }
+                )
+            }
+            composable(Routes.WEEKEND_ALERT) {
+                com.meteomontana.android.ui.screens.profile.WeekendAlertScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(Routes.SAVED_SCHOOLS) {
                 SavedSchoolsScreen(

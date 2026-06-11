@@ -393,6 +393,26 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-12 — alerta del finde + comparador + desglose + onboarding
+
+- **Alerta del finde** (backend V18 + Android): el usuario elige hasta 3
+  escuelas, día y hora del aviso. `WeekendAlertScheduler` (@Scheduled cada
+  hora, Europe/Madrid) evalúa vie/sáb/dom vía `WeekendAlertUseCase`: media
+  de los 3 días por escuela, desglose V/S/D y lluvia (días con ≥1mm + máx
+  acumulado). Push FCM con ranking 🥇🥈🥉. Endpoints `GET/PUT
+  /api/me/weekend-alert`. Pantalla `WeekendAlertScreen` desde el perfil
+  ("⛰ Alerta del finde"): switch, chips L-D y hora, picker de escuelas
+  (busca en el catálogo cacheado local).
+- **Comparador de escuelas**: long-press en cards de la lista selecciona
+  (máx 3, borde terra); barra inferior "N SELECCIONADAS · COMPARAR" →
+  `CompareScreen` (ruta `compare/{ids}`) con columnas lado a lado: score
+  hero, temp/hum/viento, roca seca, ventana óptima, mejor día, mini-heatmap
+  16h y CÓMO LLEGAR.
+- **Desglose del score al tocarlo**: el índice del hero dice "VER DESGLOSE ▾"
+  y al tocarlo abre el acordeón de factores (estado compartido).
+- **Onboarding primera apertura**: 2 pasos (índice 0-100 + por qué la
+  ubicación); el permiso se pide al terminar. Flag en SharedPreferences.
+
 ### Sesión 2026-06-11 (3) — refactor admin + favoritos lista + share imagen
 
 - **AdminScreen.kt troceado** (56 KB → 6 ficheros): `AdminScreen` (tabs+enum),

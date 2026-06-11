@@ -62,6 +62,7 @@ fun SchoolListScreen(
     onNotifications: () -> Unit = {},
     onChats: () -> Unit = {},
     onDonate: () -> Unit = {},
+    onCompare: (List<String>) -> Unit = {},
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -71,6 +72,7 @@ fun SchoolListScreen(
     val favoriteIds by viewModel.favoriteIds.collectAsState()
     val userLocation by viewModel.userLocation.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val compareSelection by viewModel.compareSelection.collectAsState()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Pide permiso de ubicación al abrir la pantalla — al concederlo el VM
@@ -196,7 +198,13 @@ fun SchoolListScreen(
                                 rainMm = score?.rainMm,
                                 rainProb = score?.rainProb,
                                 isFavorite = school.id in favoriteIds,
-                                onClick = { onSchoolClick(school.id) },
+                                selectedForCompare = school.id in compareSelection,
+                                onClick = {
+                                    // En modo selección el tap también selecciona.
+                                    if (compareSelection.isNotEmpty()) viewModel.toggleCompare(school.id)
+                                    else onSchoolClick(school.id)
+                                },
+                                onLongClick = { viewModel.toggleCompare(school.id) },
                                 onToggleFavorite = { viewModel.toggleFavorite(school.id) }
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
@@ -218,6 +226,43 @@ fun SchoolListScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // Barra de comparación (aparece al seleccionar con long-press)
+        if (compareSelection.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(Spacing.md)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(MaterialTheme.colorScheme.onBackground)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "${compareSelection.size} SELECCIONADA${if (compareSelection.size > 1) "S" else ""}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.background,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    "✕  ",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.background,
+                    modifier = Modifier.clickable(onClick = viewModel::clearCompare)
+                )
+                if (compareSelection.size >= 2) {
+                    Text(
+                        "COMPARAR ▸",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Terra,
+                        modifier = Modifier
+                            .clickable { onCompare(compareSelection.toList()); viewModel.clearCompare() }
+                            .padding(start = Spacing.md)
+                    )
                 }
             }
         }

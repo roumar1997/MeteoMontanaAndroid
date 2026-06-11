@@ -310,6 +310,22 @@ class SchoolListViewModel @Inject constructor(
     }
     fun setOnlySavedOffline(v: Boolean)     { _filters.update { it.copy(onlySavedOffline = v) }; load() }
 
+    // ── Selección para comparar (long-press en las cards, máx 3) ──
+    private val _compareSelection = MutableStateFlow<Set<String>>(emptySet())
+    val compareSelection: StateFlow<Set<String>> = _compareSelection.asStateFlow()
+
+    fun toggleCompare(schoolId: String) {
+        _compareSelection.update {
+            when {
+                schoolId in it -> it - schoolId
+                it.size >= 3   -> it          // máximo 3
+                else           -> it + schoolId
+            }
+        }
+    }
+
+    fun clearCompare() { _compareSelection.value = emptySet() }
+
     /** Botón "QUITAR FILTROS" del estado vacío: vuelve a los filtros por defecto sin límite de distancia. */
     fun clearFilters() {
         _filters.value = SchoolFilters(maxDistanceKm = null)

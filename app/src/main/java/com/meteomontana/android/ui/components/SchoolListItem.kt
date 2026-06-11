@@ -2,7 +2,9 @@ package com.meteomontana.android.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +50,7 @@ import com.meteomontana.android.ui.theme.scoreTextColor
  * Badge tintado por score (fondo color suave + borde fuerte + número grande).
  * Heatmap 16dp con cuadrados saturados sin gap (como PWA).
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SchoolListItem(
     rank: Int,
@@ -59,14 +62,23 @@ fun SchoolListItem(
     rainMm: Double? = null,
     rainProb: Int? = null,
     isFavorite: Boolean = false,
+    selectedForCompare: Boolean = false,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     onToggleFavorite: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .then(
+                if (selectedForCompare)
+                    Modifier
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                        .border(1.dp, MaterialTheme.colorScheme.primary)
+                else Modifier
+            )
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = Spacing.md, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md)

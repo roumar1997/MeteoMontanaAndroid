@@ -56,6 +56,7 @@ fun ProfileScreen(
     onSubmissions: () -> Unit = {},
     onAdmin: () -> Unit = {},
     onSavedSchools: () -> Unit = {},
+    onWeekendAlert: () -> Unit = {},
     onOpenFollowers: () -> Unit = {},
     onOpenFollowing: () -> Unit = {},
     onOpenFollowRequests: () -> Unit = {},
@@ -96,6 +97,7 @@ fun ProfileScreen(
                 onSubmissions = onSubmissions,
                 onAdmin = onAdmin,
                 onSavedSchools = onSavedSchools,
+                onWeekendAlert = onWeekendAlert,
                 onOpenFollowers = onOpenFollowers,
                 onOpenFollowing = onOpenFollowing,
                 onOpenFollowRequests = onOpenFollowRequests,
@@ -147,6 +149,7 @@ private fun Content(
     onSubmissions: () -> Unit,
     onAdmin: () -> Unit,
     onSavedSchools: () -> Unit,
+    onWeekendAlert: () -> Unit,
     onOpenFollowers: () -> Unit,
     onOpenFollowing: () -> Unit,
     onOpenFollowRequests: () -> Unit,
@@ -167,6 +170,9 @@ private fun Content(
             }
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                 MiniButton("Escuelas guardadas (offline)", onClick = onSavedSchools, modifier = Modifier.weight(1f))
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                MiniButton("⛰ Alerta del finde", onClick = onWeekendAlert, modifier = Modifier.weight(1f))
             }
             if (!profile.isPublic) {
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {

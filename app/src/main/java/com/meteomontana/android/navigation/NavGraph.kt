@@ -53,4 +53,7 @@ object Routes {
     fun dayDetailByLocation(lat: Double, lon: Double, dayIndex: Int) = "day-loc/$lat/$lon/$dayIndex"
 
     const val SAVED_SCHOOLS = "saved"
+    const val WEEKEND_ALERT = "weekend-alert"
+    const val COMPARE = "compare/{ids}"
+    fun compare(ids: List<String>) = "compare/${ids.joinToString(",")}"
 }
