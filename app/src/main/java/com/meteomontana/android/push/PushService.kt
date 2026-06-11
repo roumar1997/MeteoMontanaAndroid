@@ -66,9 +66,12 @@ class PushService : FirebaseMessagingService() {
 
         ensureChannel()
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(0xFFC0532B.toInt())  // Terra: tiñe el icono y el nombre de la app
             .setContentTitle(title)
             .setContentText(body)
+            // Los cuerpos largos (alerta del finde con 3 escuelas) se expanden.
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
             .setContentIntent(pi)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

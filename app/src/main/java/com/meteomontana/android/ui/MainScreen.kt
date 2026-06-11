@@ -64,6 +64,8 @@ fun MainScreen(
                 "submission", "contribution" -> navController.navigate(Routes.MY_SUBMISSIONS)
                 "notifications" -> navController.navigate(Routes.NOTIFICATIONS)
                 "follow_request" -> navController.navigate(Routes.FOLLOW_REQUESTS)
+                // Alerta del finde: targetId = ids CSV de las escuelas comparadas
+                "compare" -> deepLink.targetId?.let { navController.navigate("compare/$it") }
             }
             onDeepLinkConsumed()
         }

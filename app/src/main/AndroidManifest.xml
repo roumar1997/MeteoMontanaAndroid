@@ -38,6 +38,15 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <!-- Icono y color por defecto para pushes con bloque notification
+             (los que pinta el sistema sin pasar por PushService) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_terra" />
+
         <!-- FileProvider: expone la imagen de "compartir condiciones" a otras apps -->
         <provider
             android:name="androidx.core.content.FileProvider"
