@@ -58,6 +58,8 @@ data class WeekendAlertUiState(
     val enabled: Boolean = false,
     val notifyDay: Int = 4,        // ISO: 1=lunes .. 7=domingo
     val notifyHour: Int = 20,
+    /** Días ISO (1=lunes .. 7=domingo) que se comparan en el aviso. */
+    val alertDays: Set<Int> = setOf(5, 6, 7),
     val nearbyMode: Boolean = false,   // false = MIS ESCUELAS, true = POR CERCANÍA
     val radiusKm: Int = 50,
     val selected: List<School> = emptyList(),
@@ -91,6 +93,7 @@ class WeekendAlertViewModel @Inject constructor(
                     enabled = dto?.enabled ?: false,
                     notifyDay = dto?.notifyDay ?: 4,
                     notifyHour = dto?.notifyHour ?: 20,
+                    alertDays = dto?.alertDays?.toSet()?.ifEmpty { setOf(5, 6, 7) } ?: setOf(5, 6, 7),
                     nearbyMode = dto?.mode.equals("NEARBY", ignoreCase = true),
                     radiusKm = dto?.radiusKm ?: 50,
                     selected = dto?.schoolIds.orEmpty().mapNotNull { id -> byId[id] }
@@ -102,6 +105,13 @@ class WeekendAlertViewModel @Inject constructor(
     fun setEnabled(v: Boolean)  { _state.update { it.copy(enabled = v, savedOk = false) } }
     fun setDay(d: Int)          { _state.update { it.copy(notifyDay = d, savedOk = false) } }
     fun setHour(h: Int)         { _state.update { it.copy(notifyHour = h, savedOk = false) } }
+
+    fun toggleAlertDay(d: Int) {
+        _state.update {
+            val days = if (d in it.alertDays) it.alertDays - d else it.alertDays + d
+            it.copy(alertDays = days, savedOk = false, error = null)
+        }
+    }
     fun setNearby(v: Boolean)   { _state.update { it.copy(nearbyMode = v, savedOk = false, error = null) } }
     fun setRadius(km: Int)      { _state.update { it.copy(radiusKm = km, savedOk = false) } }
 
@@ -131,6 +141,10 @@ class WeekendAlertViewModel @Inject constructor(
             _state.update { it.copy(error = "Elige al menos una escuela") }
             return
         }
+        if (s.alertDays.isEmpty()) {
+            _state.update { it.copy(error = "Elige al menos un día a comparar") }
+            return
+        }
         viewModelScope.launch {
             _state.update { it.copy(saving = true, error = null) }
             // En modo cercanía mandamos tu posición actual (el job la usa como centro).
@@ -147,7 +161,8 @@ class WeekendAlertViewModel @Inject constructor(
                         schoolIds = if (s.nearbyMode) emptyList() else s.selected.map { it.id },
                         mode = if (s.nearbyMode) "NEARBY" else "SCHOOLS",
                         radiusKm = if (s.nearbyMode) s.radiusKm else null,
-                        lat = loc?.lat, lon = loc?.lon
+                        lat = loc?.lat, lon = loc?.lon,
+                        alertDays = s.alertDays.sorted()
                     )
                 )
             }.onSuccess {
@@ -191,7 +206,7 @@ fun WeekendAlertScreen(
                 Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Alerta del finde", style = MaterialTheme.typography.headlineMedium,
+            Text("Alerta de tiempo", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -210,8 +225,8 @@ fun WeekendAlertScreen(
                 .padding(Spacing.lg)
         ) {
             Text(
-                "Te enviamos una notificación comparando hasta 3 escuelas para el " +
-                "próximo viernes, sábado y domingo: nota global, desglose por día " +
+                "Te enviamos una notificación comparando hasta 3 escuelas para los " +
+                "días que elijas de la próxima semana: nota global, desglose por día " +
                 "y aviso de lluvia.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -225,6 +240,30 @@ fun WeekendAlertScreen(
                     modifier = Modifier.weight(1f))
                 Switch(checked = s.enabled, onCheckedChange = viewModel::setEnabled)
             }
+
+            Spacer(Modifier.height(Spacing.lg))
+            Text("QUÉ DÍAS COMPARAR", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.sm))
+            // Próximos 7 días empezando hoy, con su fecha. Se guarda el día de la
+            // semana, así la alerta se repite cada semana con esos días.
+            val today = java.time.LocalDate.now()
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                (0..6).forEach { offset ->
+                    val date = today.plusDays(offset.toLong())
+                    val iso = date.dayOfWeek.value
+                    val label = "${DAY_LABELS[iso - 1]} ${date.dayOfMonth}"
+                    SelectChip(label, selected = iso in s.alertDays) { viewModel.toggleAlertDay(iso) }
+                }
+            }
+            Spacer(Modifier.height(Spacing.sm))
+            Text(
+                "Marca los días que te interesan (hoy es ${DAY_LABELS[today.dayOfWeek.value - 1]} " +
+                "${today.dayOfMonth}). El aviso comparará esos días cada semana.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             Spacer(Modifier.height(Spacing.lg))
             Text("DÍA DEL AVISO", style = EyebrowTextStyle,

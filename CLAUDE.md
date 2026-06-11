@@ -393,6 +393,16 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-11 — alerta del finde → alerta de tiempo
+
+- La "alerta del finde" pasa a llamarse **"Alerta de tiempo"** y el usuario
+  elige qué días comparar: chips con los próximos 7 días desde hoy ("J 11",
+  "V 12"…). Se guarda el día de la semana (V22: `alert_days` CSV ISO 1-7,
+  default `5,6,7`), así la alerta se repite cada semana con esos días. El
+  job evalúa la próxima ocurrencia de cada día elegido dentro de la ventana
+  de 7 días; el push usa etiquetas reales L/M/X/J/V/S/D y "llueve X de N
+  días". Apps antiguas sin `alertDays` siguen con vie/sáb/dom.
+
 ### Sesión 2026-06-12 (2) — feedback de pruebas resuelto
 
 - **Alerta del finde**: la pantalla se cierra sola tras guardar; nuevo modo

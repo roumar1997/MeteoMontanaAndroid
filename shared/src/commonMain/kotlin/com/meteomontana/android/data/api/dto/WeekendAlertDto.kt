@@ -3,7 +3,7 @@ package com.meteomontana.android.data.api.dto
 import kotlinx.serialization.Serializable
 
 /**
- * Preferencias de la "alerta del finde" (GET/PUT /api/me/weekend-alert).
+ * Preferencias de la "alerta de tiempo" (GET/PUT /api/me/weekend-alert).
  * notifyDay en ISO-8601: 1=lunes .. 7=domingo. notifyHour 0-23 (Europe/Madrid).
  */
 @Serializable
@@ -16,5 +16,7 @@ data class WeekendAlertDto(
     val mode: String = "SCHOOLS",
     val radiusKm: Int? = null,
     val lat: Double? = null,
-    val lon: Double? = null
+    val lon: Double? = null,
+    /** Días ISO-8601 a comparar en el aviso (1=lunes .. 7=domingo). */
+    val alertDays: List<Int> = listOf(5, 6, 7)
 )

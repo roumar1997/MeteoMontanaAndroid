@@ -172,7 +172,7 @@ private fun Content(
                 MiniButton("Escuelas guardadas (offline)", onClick = onSavedSchools, modifier = Modifier.weight(1f))
             }
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-                MiniButton("⛰ Alerta del finde", onClick = onWeekendAlert, modifier = Modifier.weight(1f))
+                MiniButton("⛰ Alerta de tiempo", onClick = onWeekendAlert, modifier = Modifier.weight(1f))
             }
             if (!profile.isPublic) {
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
