@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
@@ -166,7 +167,7 @@ private fun Content(
     forecastError: String?,
     notes: List<Note>,
     blocks: List<Block>,
-    onPublishNote: (String) -> Unit,
+    onPublishNote: (String, FileRef?) -> Unit,
     onAddBlock: () -> Unit,
     onBlockClick: (String) -> Unit,
     viewModel: SchoolDetailViewModel,
@@ -209,7 +210,12 @@ private fun Content(
             }
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
-        item { NotesSection(notes = notes, onPublish = onPublishNote) }
+        item {
+            NotesSection(
+                notes = notes,
+                onPublish = { text, uri -> onPublishNote(text, uri?.let { FileRef(it.toString()) }) }
+            )
+        }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
         item { OfflineSaveButton(viewModel) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }

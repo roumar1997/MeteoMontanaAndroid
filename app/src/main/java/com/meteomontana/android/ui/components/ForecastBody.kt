@@ -230,8 +230,15 @@ fun BestDayBar(forecast: Forecast) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Estimación de secado del backend: 0 = seca; null = >7 días o backend antiguo.
+        val dryIn = cur.hoursToDry?.takeIf { it > 0 }
+            ?.let { h -> if (h >= 24) "~${(h + 12) / 24}d" else "~${h}h" }
         Text(
-            text = if (cur.dryRock) "● ROCA SECA" else "● ROCA HÚMEDA",
+            text = when {
+                cur.dryRock   -> "● ROCA SECA"
+                dryIn != null -> "● HÚMEDA · SECA EN $dryIn"
+                else          -> "● ROCA HÚMEDA"
+            },
             style = MaterialTheme.typography.labelMedium,
             color = if (cur.dryRock) MaterialTheme.colorScheme.secondary
                     else MaterialTheme.colorScheme.error

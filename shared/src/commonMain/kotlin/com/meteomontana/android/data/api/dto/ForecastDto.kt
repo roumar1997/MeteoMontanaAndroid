@@ -28,6 +28,8 @@ data class CurrentDto(
     val precip24h: Double,
     val precip72h: Double,
     val dryRock: Boolean,
+    /** Horas hasta roca seca. 0 = seca ya; null = >7 días o backend antiguo. */
+    val hoursToDry: Int? = null,
     val score: Int,
     val scoreLabel: String,
     val factors: List<ScoreFactorDto>

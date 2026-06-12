@@ -16,4 +16,10 @@ interface PhotoUploader {
 
     /** Sube la foto de perfil del usuario actual y devuelve la URL pública. */
     suspend fun uploadProfilePhoto(bytes: ByteArray, mimeType: String): String
+
+    /**
+     * Sube la foto adjunta a una nota comunitaria y devuelve la URL de descarga.
+     * Requiere que las Storage rules permitan escribir en note-photos/**.
+     */
+    suspend fun uploadNotePhoto(bytes: ByteArray, mimeType: String, schoolId: String): String
 }

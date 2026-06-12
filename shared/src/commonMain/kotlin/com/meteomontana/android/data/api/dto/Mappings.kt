@@ -47,7 +47,7 @@ fun ForecastDto.toDomain() = Forecast(
 fun CurrentDto.toDomain() = Current(
     time, temperature, humidity, windSpeed, precipitation,
     precipitationProbability, cloudCover, dewPoint, precip24h, precip72h,
-    dryRock, score, scoreLabel, factors.map { it.toDomain() }
+    dryRock, hoursToDry, score, scoreLabel, factors.map { it.toDomain() }
 )
 
 fun HourForecastDto.toDomain() = HourForecast(
@@ -70,7 +70,7 @@ fun Forecast.toDto() = ForecastDto(
 fun Current.toDto() = CurrentDto(
     time, temperature, humidity, windSpeed, precipitation,
     precipitationProbability, cloudCover, dewPoint, precip24h, precip72h,
-    dryRock, score, scoreLabel, factors.map { it.toDto() }
+    dryRock, hoursToDry, score, scoreLabel, factors.map { it.toDto() }
 )
 fun HourForecast.toDto() = HourForecastDto(
     time, temperature, humidity, windSpeed, precipitation,
@@ -94,7 +94,7 @@ fun BlockDto.toDomain() = Block(
 fun BlockLineDto.toDomain() = BlockLine(id, name, grade, startType, linePath, sortOrder)
 
 // Note
-fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount)
+fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount, photoUrl)
 
 // Favorites
 fun FavoriteSchoolDto.toDomain() = FavoriteSchool(id, name, region, rockType, isFavorite)

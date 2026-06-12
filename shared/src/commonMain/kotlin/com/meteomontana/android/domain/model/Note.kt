@@ -8,5 +8,6 @@ data class Note(
     val uid: String,
     val createdAt: String,
     val upvotesCount: Int,
-    val downvotesCount: Int
+    val downvotesCount: Int,
+    val photoUrl: String? = null
 )

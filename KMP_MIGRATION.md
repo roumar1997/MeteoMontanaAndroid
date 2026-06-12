@@ -554,7 +554,26 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 3.1: Crear el proyecto iOS (`iosApp/`) y conectar el framework KMP compilado.**
+**✅ Hecho (2026-06-12, sesión remota): bloque backend aprobado** — ETag/304
+en `/api/schools*`, tiempo de secado (`current.hoursToDry` + lluvia pasada
+real con `past_days=3`), mejor franja del día ganador en el push de la
+alerta, y fotos en notas (V23 + UI Android). Detalle en la bitácora de
+ambos CLAUDE.md.
+
+**Pendiente inmediato (próxima sesión local):**
+
+1. Compilar y probar en Android Studio (la sesión remota no tenía SDK):
+   detalle de escuela → "● HÚMEDA · SECA EN ~Xh" tras lluvia, y publicar
+   nota con foto.
+2. **Firebase Console → Storage rules**: permitir escritura autenticada en
+   `note-photos/**` (copiar la regla de `piedra-photos-pending/**`). Sin
+   esto la subida de foto de nota falla con permission-denied.
+3. Desplegar el backend (Railway hace deploy al hacer merge/push a main;
+   Flyway aplica V23 sola).
+4. Opcional: enseñar `hoursToDry` también en `CompareScreen` y valorar el
+   plugin `HttpCache` de Ktor para aprovechar el ETag desde la app.
+
+**Después: Fase 3.1: Crear el proyecto iOS (`iosApp/`) y conectar el framework KMP compilado.**
 
 Fase 2.5 completada. El módulo `shared` está listo para ser consumido desde iOS:
 

@@ -393,6 +393,33 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-12 (3) — bloque backend: ETag, secado, alerta franja, fotos en notas
+
+Backend (`MeteoMontanaAPI`, 4 commits) + Android. Detalle backend en el
+CLAUDE.md del otro repo.
+
+- **ETag/304**: los GET de `/api/schools*` devuelven ETag y 304 con
+  `If-None-Match`. Sin cambios Android (Ktor no lo usa aún; beneficia a la
+  PWA y deja la puerta abierta a `HttpCache` de Ktor más adelante).
+- **Tiempo de secado**: el backend pide `past_days=3` a Open-Meteo (lluvia
+  pasada real) y expone `current.hoursToDry` (0 = seca; null = >7 días o
+  backend antiguo). Android: campo nuevo en `CurrentDto`/`Current` (default
+  null → compatible con caché offline antigua) y `BestDayBar` muestra
+  "● HÚMEDA · SECA EN ~Xh" (o `~Nd` si ≥24h). `current` del backend ahora es
+  la hora actual real (antes eran las 00:00 de hoy).
+- **Alerta de tiempo**: el push añade "🕑 Mejor franja: S 12:00–15:00 (88)"
+  del día ganador. Solo backend, sin cambios Android.
+- **Fotos en notas** (V23 `notes.photo_url`): `NotesSection` tiene botón
+  "📷 Añadir foto" (GetContent) con preview y "Quitar"; la foto se comprime
+  (`readImageCompressed`) y sube a Firebase Storage `note-photos/` vía
+  `PhotoUploader.uploadNotePhoto` (nuevo); el POST manda `photoUrl` y
+  `NoteRow` la pinta con Coil (180dp crop). Offline: la nota se encola
+  SIN foto (subir a Storage requiere red — misma limitación que BOULDER).
+  ⚠️ **Pendiente**: añadir regla de Storage que permita escribir en
+  `note-photos/**` (igual que `piedra-photos-pending/`), y probar en device
+  (esta sesión fue en remoto sin SDK Android — compila el back, el front
+  queda por verificar en Android Studio).
+
 ### Sesión 2026-06-11 — alerta del finde → alerta de tiempo
 
 - La "alerta del finde" pasa a llamarse **"Alerta de tiempo"** y el usuario

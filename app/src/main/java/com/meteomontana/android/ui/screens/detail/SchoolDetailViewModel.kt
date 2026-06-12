@@ -201,11 +201,13 @@ class SchoolDetailViewModel @Inject constructor(
         }
     }
 
-    fun publishNote(text: String) {
+    fun publishNote(text: String, photoRef: FileRef? = null) {
         viewModelScope.launch {
             try {
                 if (!networkMonitor.isOnline.value) {
                     // Sin red → encolar; la UI muestra estado actual sin la nota nueva todavía.
+                    // La foto se descarta: subirla a Storage requiere conexión (misma
+                    // limitación que BOULDER offline — persistir bytes queda pendiente).
                     outboxRepo.enqueue(
                         type = com.meteomontana.android.data.outbox.OutboxType.NOTE,
                         schoolId = schoolId,
@@ -216,7 +218,10 @@ class SchoolDetailViewModel @Inject constructor(
                     )
                     return@launch
                 }
-                createNote(schoolId, text)
+                val photoUrl = photoRef?.let {
+                    photoUploader.uploadNotePhoto(fileReader.readImageCompressed(it), "image/jpeg", schoolId)
+                }
+                createNote(schoolId, text, photoUrl)
                 val notes = getNotes(schoolId)
                 val cur = _uiState.value
                 if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(notes = notes)
