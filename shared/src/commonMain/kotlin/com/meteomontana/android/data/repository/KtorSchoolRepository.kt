@@ -3,9 +3,18 @@ package com.meteomontana.android.data.repository
 import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.model.SchoolCatalog
 import com.meteomontana.android.domain.repository.SchoolRepository
 
 class KtorSchoolRepository(private val api: KtorSchoolApi) : SchoolRepository {
+
+    override suspend fun getCatalog(etag: String?): SchoolCatalog {
+        val resp = api.getSchoolsCatalog(etag)
+        return SchoolCatalog(
+            schools = resp.schools?.map { it.toDomain() },
+            etag = resp.etag
+        )
+    }
 
     override suspend fun getSchools(
         region: String?, style: String?, rockType: List<String>?,

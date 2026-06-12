@@ -11,6 +11,6 @@ class KtorNoteRepository(private val api: KtorNoteApi) : NoteRepository {
     override suspend fun getNotes(schoolId: String): List<Note> =
         api.getNotesBySchool(schoolId).map { it.toDomain() }
 
-    override suspend fun createNote(schoolId: String, text: String): Note =
-        api.createNote(schoolId, CreateNoteRequest(text)).toDomain()
+    override suspend fun createNote(schoolId: String, text: String, photoUrl: String?): Note =
+        api.createNote(schoolId, CreateNoteRequest(text, photoUrl)).toDomain()
 }

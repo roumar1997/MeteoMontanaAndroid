@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-12 (3) (CI GitHub Actions, Crashlytics, widget Glance "Favoritas hoy", fixes consistencia UI). Próximas: sesión con AMBOS repos para el bloque backend aprobado (secado de roca, alerta ventana óptima, fotos en notas, ETag/304) — ver "Próximo paso" al final. iOS port sigue en pausa (sin Mac).
+**Última actualización:** 2026-06-12 (4) (bloque backend+Android completo: ETag/304 en el catálogo, secado de roca en el forecast, alerta "ventana óptima hoy", fotos en notas — backend V23/V24 + app). Pendiente: probar en el móvil con el APK del CI — ver "Próximo paso" al final. iOS port sigue en pausa (sin Mac).
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -1159,30 +1159,49 @@ Entregado (rama `claude/clever-ritchie-9gec3o`):
   en vez de dp literales en SchoolDetailScreen, contentDescription "Volver"
   en 4 pantallas (TopoEditor, SearchUsers, FollowRequests, JournalSchools).
 
-### ⏳ Próximo paso (PRIORITARIO — necesita sesión con AMBOS repos)
+### ✅ Sesión 2026-06-12 (4) — bloque backend + Android (los 4 puntos)
 
-Bloque aprobado por Rodrigo el 2026-06-12, empezar por el backend:
+Sesión con AMBOS repos (rama `claude/gallant-bardeen-rlpmm7` en los dos).
 
-1. **#9 ETag/304 en `GET /api/schools`** (back + Android): hash del catálogo
-   como ETag; Ktor client manda If-None-Match y reusa caché en 304.
-2. **#2 Tiempo de secado tras lluvia** (back + Android): heurística por tipo
-   de roca (arenisca 48h, caliza ~12h según mm acumulados). UI decidida:
-   sublínea junto al indicador "ROCA SECA / MOJADA" del hero del forecast
-   ("Seca en ~12h" / "Arenisca: no escalar 48h tras lluvia").
-3. **#4 Alerta "ventana óptima hoy"** (back + Android): generalizar
-   WeekendAlertScheduler → push si una favorita supera umbral de score hoy.
-   Toggle de activación en la pantalla de alertas del perfil (junto a la
-   alerta de tiempo existente).
-4. **#6 Fotos en notas** (back + Android): subir a Firebase Storage (reusar
-   StorageUploadHelper), `photo_url` en notes (migración Flyway). UI:
-   thumbnail en la nota, tap → dialog a pantalla con la foto + texto.
+1. **#9 ETag/304 en `GET /api/schools`** ✅ — backend: SHA-256 del JSON del
+   catálogo como ETag, `WebRequest.checkNotModified` responde 304. Android:
+   `GetSchoolCatalogUseCase` + `SchoolRepository.getCatalog(etag)`;
+   `KtorSchoolApi.getSchoolsCatalog` manda If-None-Match (expectSuccess off
+   en esa request porque 304 es 3xx); el ETag se guarda en
+   `CatalogEtagStore` (SharedPreferences) y con 304 la lista sigue desde la
+   caché SQLDelight sin re-descargar. Test nuevo del camino 304.
+2. **#2 Secado de roca** ✅ — backend expone `current.drying {wet,
+   dryingHours, message}` en el forecast: ~2/3 del lookback del perfil
+   (caliza 12 h, arenisca 48 h, granito 8 h; +50% si llueve ≥2× el umbral),
+   aviso especial arenisca aunque parezca seca. Android: sublínea bajo
+   "● ROCA SECA/HÚMEDA" del hero con `drying.message`.
+3. **#4 Alerta "ventana óptima hoy"** ✅ — backend V24: `optimal_enabled/
+   threshold/last_sent` en `weekend_alert_prefs`; `OptimalWindowAlertScheduler`
+   (7-11h Madrid) evalúa hasta 6 favoritas y manda push data-only (deep link
+   al detalle) si la mejor ventana del día supera el umbral; máx 1/día.
+   Android: sección "VENTANA ÓPTIMA HOY" en WeekendAlertScreen (switch +
+   chips de umbral 60/70/80); ahora se puede guardar solo este toggle sin
+   configurar la alerta de tiempo.
+4. **#6 Fotos en notas** ✅ — backend V23: `photo_url` en `notes`, POST
+   valida https y ≤1000 chars. Android: `uploadNotePhoto` en PhotoUploader
+   (Storage `note-photos/`), botón 📷 FOTO en el composer (comprimida vía
+   `readImageCompressed`), thumbnail 120dp en la nota y dialog a pantalla
+   completa con foto + texto. Si se publica sin red, el outbox encola solo
+   el texto (subir a Storage requiere conexión).
 
-Rechazado/descartado por Rodrigo: orientación solana/umbría (#3), check-in
-de condiciones (#5), likes en vías (#7).
+### ⏳ Próximo paso
 
-Apuntado para el futuro (sin fecha): **cola offline de escritura** — notas y
-contribuciones escritas sin cobertura se encolan y sincronizan al volver la
-red. La lectura offline (guardar escuela) ya existe; esto sería el lado de
-escritura. Pendiente también: pulido visual (skeletons en detalle, variante
-dark de scoreColor(), touch targets 48dp) y refrescar el widget al togglear
-favorito desde la app (hoy tarda hasta 1h o requiere ↻).
+1. **Probar en el móvil** (APK del CI, Actions → run → `app-debug-apk`):
+   - Detalle de una escuela con lluvia reciente → sublínea de secado bajo
+     ROCA SECA/MOJADA (buscar una con arenisca, p.ej. Albarracín).
+   - Perfil → Alerta de tiempo → activar "Ventana óptima hoy" + umbral →
+     guardar → comprobar push por la mañana (necesita favoritas marcadas).
+   - Publicar una nota con foto → thumbnail + tap → pantalla completa.
+   - Lista de escuelas: segunda apertura debe pintar igual de rápido y en
+     el log del backend la segunda petición a /api/schools devuelve 304.
+2. Pendientes menores arrastrados: refrescar el widget al togglear favorito
+   desde la app; pulido visual (skeletons en detalle, scoreColor() dark,
+   touch targets 48dp); probar APK release minificado R8.
+
+Apuntado para el futuro (sin fecha): completar la cola offline de escritura
+con fotos (hoy una nota sin red se encola solo con texto).

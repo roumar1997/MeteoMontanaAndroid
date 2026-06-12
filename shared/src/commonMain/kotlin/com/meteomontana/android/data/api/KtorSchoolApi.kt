@@ -3,10 +3,39 @@ package com.meteomontana.android.data.api
 import com.meteomontana.android.data.api.dto.SchoolDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ResponseException
+import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.isSuccess
+
+/** Catálogo + ETag de la respuesta. schools == null ⇒ 304, reusar caché local. */
+data class SchoolsCatalogResponse(val schools: List<SchoolDto>?, val etag: String?)
 
 class KtorSchoolApi(private val client: HttpClient) {
+
+    /**
+     * Catálogo completo condicional: manda If-None-Match si tenemos un ETag
+     * previo. expectSuccess se desactiva en esta request porque el 304 es un
+     * status 3xx y el cliente lo trataría como error de redirección.
+     */
+    suspend fun getSchoolsCatalog(etag: String?): SchoolsCatalogResponse {
+        val resp = client.get("schools") {
+            expectSuccess = false
+            etag?.let { header(HttpHeaders.IfNoneMatch, it) }
+        }
+        return when {
+            resp.status == HttpStatusCode.NotModified ->
+                SchoolsCatalogResponse(schools = null, etag = etag)
+            resp.status.isSuccess() ->
+                SchoolsCatalogResponse(schools = resp.body(), etag = resp.headers[HttpHeaders.ETag])
+            else -> throw ResponseException(resp, resp.bodyAsText())
+        }
+    }
 
     suspend fun getSchools(
         region: String? = null,

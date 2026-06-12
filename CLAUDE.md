@@ -421,6 +421,22 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-12 (4) — bloque backend aprobado (ETag, secado, alerta óptima, fotos en notas)
+
+- **ETag/304 en el catálogo**: el backend manda `ETag` en `GET /api/schools`
+  y la app (CatalogEtagStore + GetSchoolCatalogUseCase) manda If-None-Match;
+  con 304 la lista se sirve desde la caché SQLDelight sin re-descargar.
+- **Secado de roca**: el forecast expone `current.drying` (horas estimadas +
+  mensaje); sublínea bajo "● ROCA SECA/HÚMEDA" del hero ("Seca en ~12 h",
+  "Arenisca: evita escalar 48 h tras lluvia").
+- **Alerta "ventana óptima hoy"**: toggle + umbral (60/70/80) en la pantalla
+  de Alerta de tiempo; el backend (V24) evalúa las favoritas entre 7-11h
+  Madrid y manda push (máx 1/día) si la mejor franja supera el umbral.
+- **Fotos en notas** (V23): botón 📷 FOTO en el composer de notas, subida a
+  Firebase Storage (`note-photos/`), thumbnail en la nota y dialog a
+  pantalla completa con foto + texto. Sin red, el outbox encola solo texto.
+- Migraciones Flyway del backend hasta **V24**.
+
 ### Sesión 2026-06-12 (3) — CI, Crashlytics, widget "Favoritas hoy"
 
 - **CI GitHub Actions** (`.github/workflows/android-ci.yml`): compila debug

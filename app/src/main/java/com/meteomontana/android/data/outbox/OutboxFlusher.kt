@@ -57,7 +57,7 @@ class OutboxFlusher @Inject constructor(
                     }
                     OutboxType.NOTE -> {
                         val req = json.decodeFromString<CreateNoteRequest>(row.payloadJson)
-                        createNote(row.schoolId, req.text)
+                        createNote(row.schoolId, req.text, req.photoUrl)
                     }
                     else -> log.w("Tipo desconocido en outbox: ${row.type}")
                 }

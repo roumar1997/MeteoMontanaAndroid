@@ -45,4 +45,9 @@ object LocalModule {
     fun provideOutboxRepository(db: MeteoMontanaDb):
         com.meteomontana.android.data.outbox.OutboxRepository =
         com.meteomontana.android.data.outbox.OutboxRepository(db)
+
+    @Provides @Singleton
+    fun provideCatalogEtagStore(@ApplicationContext ctx: Context):
+        com.meteomontana.android.data.local.CatalogEtagStore =
+        com.meteomontana.android.data.local.CatalogEtagStore(ctx)
 }

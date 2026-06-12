@@ -11,7 +11,8 @@ import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.SchoolScore
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
-import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
+import com.meteomontana.android.domain.model.SchoolCatalog
+import com.meteomontana.android.domain.usecase.schools.GetSchoolCatalogUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import com.meteomontana.android.ui.screens.schools.SchoolListUiState
 import com.meteomontana.android.ui.screens.schools.SchoolListViewModel
@@ -40,7 +41,8 @@ class SchoolListViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var getSchools: GetSchoolsUseCase
+    private lateinit var getSchoolCatalog: GetSchoolCatalogUseCase
+    private lateinit var etagStore: com.meteomontana.android.data.local.CatalogEtagStore
     private lateinit var getTodayScores: GetTodayScoresUseCase
     private lateinit var getMyFavorites: GetMyFavoritesUseCase
     private lateinit var addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
@@ -63,7 +65,8 @@ class SchoolListViewModelTest {
 
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        getSchools = mockk()
+        getSchoolCatalog = mockk()
+        etagStore = mockk(relaxed = true)
         getTodayScores = mockk()
         getMyFavorites = mockk()
         addFavorite = mockk(relaxed = true)
@@ -78,16 +81,17 @@ class SchoolListViewModelTest {
         coEvery { getTodayScores(any()) } returns emptyList()
         coEvery { cachedRepo.load() } returns emptyList()
         coJustRun { cachedRepo.replaceAll(any()) }
+        coEvery { etagStore.get() } returns null
         coEvery {
-            getSchools(any(), any(), any(), any(), any(), any())
-        } returns listOf(schoolA, schoolB)
+            getSchoolCatalog(any())
+        } returns SchoolCatalog(schools = listOf(schoolA, schoolB), etag = "abc123")
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
 
     private fun newVm() = SchoolListViewModel(
-        getSchools, getTodayScores, getMyFavorites, addFavorite, removeFavorite,
-        getMyNotifications, location, savedRepo, cachedRepo
+        getSchoolCatalog, getTodayScores, getMyFavorites, addFavorite, removeFavorite,
+        getMyNotifications, location, savedRepo, cachedRepo, etagStore
     )
 
     @Test fun `init baja el catalogo completo sin filtros y filtra en local`() = runTest {
@@ -98,20 +102,15 @@ class SchoolListViewModelTest {
         assertTrue("estado debe ser Success, era $state", state is SchoolListUiState.Success)
         // Con el radio por defecto de 50 km desde Madrid solo entra Pedriza.
         assertEquals(listOf("B"), (state as SchoolListUiState.Success).schools.map { it.id })
-        // La red se pide UNA vez y sin filtros (el filtrado es local).
-        coVerify(exactly = 1) {
-            getSchools(
-                region = null, style = null, rockType = null,
-                lat = null, lon = null, radioKm = null
-            )
-        }
+        // La red se pide UNA vez; sin caché previa no se manda ETag.
+        coVerify(exactly = 1) { getSchoolCatalog(null) }
         // Y el catálogo fresco se persiste en la caché local.
         coVerify { cachedRepo.replaceAll(listOf(schoolA, schoolB)) }
     }
 
     @Test fun `con cache previa pinta datos aunque la red falle`() = runTest {
         coEvery { cachedRepo.load() } returns listOf(schoolB)
-        coEvery { getSchools(any(), any(), any(), any(), any(), any()) } throws RuntimeException("sin red")
+        coEvery { getSchoolCatalog(any()) } throws RuntimeException("sin red")
         val vm = newVm()
         advanceUntilIdle()
 
@@ -142,7 +141,7 @@ class SchoolListViewModelTest {
         val schools = (vm.uiState.value as SchoolListUiState.Success).schools
         assertEquals(listOf("A"), schools.map { it.id })
         // El refiltrado es local: la red sigue habiéndose llamado solo una vez.
-        coVerify(exactly = 1) { getSchools(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { getSchoolCatalog(any()) }
     }
 
     @Test fun `setStyle Via filtra en local por estilo`() = runTest {
@@ -168,7 +167,7 @@ class SchoolListViewModelTest {
         assertNull(vm.filters.value.maxDistanceKm)
         val schools = (vm.uiState.value as SchoolListUiState.Success).schools
         assertEquals(2, schools.size)
-        coVerify(exactly = 1) { getSchools(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { getSchoolCatalog(any()) }
     }
 
     @Test fun `toggleRock anyade y vuelve a togglear lo quita`() = runTest {
@@ -244,8 +243,23 @@ class SchoolListViewModelTest {
         assertEquals("A", schools.first().id)
     }
 
+    @Test fun `304 reusa la cache local sin reemplazarla`() = runTest {
+        coEvery { cachedRepo.load() } returns listOf(schoolB)
+        coEvery { etagStore.get() } returns "abc123"
+        coEvery { getSchoolCatalog("abc123") } returns SchoolCatalog(schools = null, etag = "abc123")
+        val vm = newVm()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue("debe ser Success desde cache, era $state", state is SchoolListUiState.Success)
+        assertEquals(listOf("B"), (state as SchoolListUiState.Success).schools.map { it.id })
+        // Se mandó el ETag guardado y, al responder 304, la caché no se pisa.
+        coVerify(exactly = 1) { getSchoolCatalog("abc123") }
+        coVerify(exactly = 0) { cachedRepo.replaceAll(any()) }
+    }
+
     @Test fun `error de red sin cache produce estado Error con mensaje`() = runTest {
-        coEvery { getSchools(any(), any(), any(), any(), any(), any()) } throws RuntimeException("boom")
+        coEvery { getSchoolCatalog(any()) } throws RuntimeException("boom")
         val vm = newVm()
         advanceUntilIdle()
 

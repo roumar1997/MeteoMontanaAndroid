@@ -24,6 +24,7 @@ import com.meteomontana.android.domain.model.Notification
 import com.meteomontana.android.domain.model.OptimalWindow
 import com.meteomontana.android.domain.model.PrivateProfile
 import com.meteomontana.android.domain.model.PublicProfile
+import com.meteomontana.android.domain.model.RockDrying
 import com.meteomontana.android.domain.model.ScoreFactor
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.SchoolScore
@@ -47,7 +48,8 @@ fun ForecastDto.toDomain() = Forecast(
 fun CurrentDto.toDomain() = Current(
     time, temperature, humidity, windSpeed, precipitation,
     precipitationProbability, cloudCover, dewPoint, precip24h, precip72h,
-    dryRock, score, scoreLabel, factors.map { it.toDomain() }
+    dryRock, score, scoreLabel, factors.map { it.toDomain() },
+    drying?.let { RockDrying(it.wet, it.dryingHours, it.message) }
 )
 
 fun HourForecastDto.toDomain() = HourForecast(
@@ -70,7 +72,8 @@ fun Forecast.toDto() = ForecastDto(
 fun Current.toDto() = CurrentDto(
     time, temperature, humidity, windSpeed, precipitation,
     precipitationProbability, cloudCover, dewPoint, precip24h, precip72h,
-    dryRock, score, scoreLabel, factors.map { it.toDto() }
+    dryRock, score, scoreLabel, factors.map { it.toDto() },
+    drying?.let { RockDryingDto(it.wet, it.dryingHours, it.message) }
 )
 fun HourForecast.toDto() = HourForecastDto(
     time, temperature, humidity, windSpeed, precipitation,
@@ -94,7 +97,7 @@ fun BlockDto.toDomain() = Block(
 fun BlockLineDto.toDomain() = BlockLine(id, name, grade, startType, linePath, sortOrder)
 
 // Note
-fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount)
+fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount, photoUrl)
 
 // Favorites
 fun FavoriteSchoolDto.toDomain() = FavoriteSchool(id, name, region, rockType, isFavorite)

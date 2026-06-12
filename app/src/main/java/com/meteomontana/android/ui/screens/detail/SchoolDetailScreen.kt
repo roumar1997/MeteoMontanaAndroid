@@ -175,7 +175,7 @@ private fun Content(
     forecastError: String?,
     notes: List<Note>,
     blocks: List<Block>,
-    onPublishNote: (String) -> Unit,
+    onPublishNote: (String, com.meteomontana.android.domain.model.FileRef?) -> Unit,
     onAddBlock: () -> Unit,
     onBlockClick: (String) -> Unit,
     viewModel: SchoolDetailViewModel,

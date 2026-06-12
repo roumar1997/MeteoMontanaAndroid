@@ -26,8 +26,12 @@ data class Current(
     val dryRock: Boolean,
     val score: Int,
     val scoreLabel: String,
-    val factors: List<ScoreFactor>
+    val factors: List<ScoreFactor>,
+    /** Estimación de secado tras lluvia según tipo de roca. Null si no aplica. */
+    val drying: RockDrying? = null
 )
+
+data class RockDrying(val wet: Boolean, val dryingHours: Int?, val message: String?)
 
 data class HourForecast(
     val time: String,
