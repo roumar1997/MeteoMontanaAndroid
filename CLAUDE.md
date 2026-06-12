@@ -59,6 +59,34 @@ edita este repo. Los dos repos se trabajan juntos en la misma sesión.
 
 ---
 
+## 🌐 Workflow GitHub-only (desde 2026-06-12)
+
+Rodrigo trabaja desde **sesiones web de Claude Code** (claude.ai/code), no
+en local. Reglas para la sesión:
+
+1. **Crear la sesión con LOS DOS repos** (Android + API) si la tarea toca
+   backend. Si solo dieron uno, decirlo al principio, no a mitad de tarea.
+2. La sesión desarrolla en su rama `claude/**`. Al terminar: **CI en verde
+   → merge a `main`** (Rodrigo lo aprueba diciendo "mergea a main").
+   Los .md actualizados deben llegar a `main`, si no la siguiente sesión
+   no los ve.
+3. **CI** (`.github/workflows/android-ci.yml`): compila + tests en cada
+   push y deja el **APK debug como artifact** (pestaña Actions → run →
+   Artifacts → `app-debug-apk`). Rodrigo lo descarga e instala en el móvil
+   sin Android Studio.
+4. Para que ese APK tenga Firebase funcional (login Google, push) hace
+   falta el secret **`GOOGLE_SERVICES_JSON`** en el repo (Settings →
+   Secrets and variables → Actions) con el contenido del
+   `google-services.json` real. Sin el secret, el APK compila pero el
+   login no funciona (config dummy).
+5. El backend en prod corre en **Railway** apuntando a `main` — verificar
+   antes de mergear cambios de API que rompan compatibilidad con APKs ya
+   instalados.
+6. El "Arranque rápido" local de abajo sigue siendo válido si algún día se
+   vuelve a trabajar en el PC.
+
+---
+
 ## ⚡ Arranque rápido (cada sesión)
 
 ```powershell

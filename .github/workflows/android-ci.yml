@@ -24,11 +24,16 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       # google-services.json está excluido de git (credenciales Firebase).
-      # El plugin google-services solo necesita un fichero válido para compilar;
-      # en CI usamos uno dummy con el applicationId real.
-      - name: Create dummy google-services.json
+      # Si existe el secret GOOGLE_SERVICES_JSON (contenido del fichero real,
+      # Settings → Secrets → Actions) se usa ese → el APK del artifact tiene
+      # Firebase funcional (login Google, push). Si no, dummy solo-compilar.
+      - name: Write google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          if [ ! -f app/google-services.json ]; then
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          elif [ ! -f app/google-services.json ]; then
             cat > app/google-services.json <<'EOF'
           {
             "project_info": {
@@ -56,6 +61,14 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleDebug :app:testDebugUnitTest --stacktrace
+
+      # APK instalable: Actions → run → Artifacts → app-debug-apk.
+      # Permite probar en el móvil sin compilar en local (workflow GitHub-only).
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload test reports (solo si fallan)
         if: failure()
