@@ -18,5 +18,9 @@ data class WeekendAlertDto(
     val lat: Double? = null,
     val lon: Double? = null,
     /** Días ISO-8601 a comparar en el aviso (1=lunes .. 7=domingo). */
-    val alertDays: List<Int> = listOf(5, 6, 7)
+    val alertDays: List<Int> = listOf(5, 6, 7),
+    /** Alerta "ventana óptima hoy" sobre las favoritas (null en apps antiguas). */
+    val optimalEnabled: Boolean? = null,
+    /** Umbral 0-100 que debe superar la ventana óptima para avisar. */
+    val optimalThreshold: Int? = null
 )

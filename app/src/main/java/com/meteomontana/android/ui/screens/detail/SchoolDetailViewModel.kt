@@ -201,11 +201,12 @@ class SchoolDetailViewModel @Inject constructor(
         }
     }
 
-    fun publishNote(text: String) {
+    fun publishNote(text: String, photoRef: FileRef? = null) {
         viewModelScope.launch {
             try {
                 if (!networkMonitor.isOnline.value) {
-                    // Sin red → encolar; la UI muestra estado actual sin la nota nueva todavía.
+                    // Sin red → encolar solo el texto (subir la foto a Storage
+                    // requiere conexión); la UI muestra estado actual sin la nota.
                     outboxRepo.enqueue(
                         type = com.meteomontana.android.data.outbox.OutboxType.NOTE,
                         schoolId = schoolId,
@@ -216,7 +217,12 @@ class SchoolDetailViewModel @Inject constructor(
                     )
                     return@launch
                 }
-                createNote(schoolId, text)
+                // Foto → Firebase Storage (comprimida); al backend solo va la URL.
+                val photoUrl = photoRef?.let {
+                    val bytes = fileReader.readImageCompressed(it)
+                    photoUploader.uploadNotePhoto(bytes, "image/jpeg", schoolId)
+                }
+                createNote(schoolId, text, photoUrl)
                 val notes = getNotes(schoolId)
                 val cur = _uiState.value
                 if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(notes = notes)

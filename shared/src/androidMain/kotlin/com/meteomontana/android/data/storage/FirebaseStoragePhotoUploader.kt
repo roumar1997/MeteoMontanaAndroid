@@ -17,6 +17,14 @@ class FirebaseStoragePhotoUploader(
         return ref.downloadUrl.await().toString()
     }
 
+    override suspend fun uploadNotePhoto(bytes: ByteArray, mimeType: String, schoolId: String): String {
+        val uid = auth.currentUser?.uid ?: error("Usuario no autenticado")
+        val ts = System.currentTimeMillis()
+        val ref = storage.reference.child("note-photos/${uid}_${schoolId}_${ts}.jpg")
+        ref.putBytes(bytes).await()
+        return ref.downloadUrl.await().toString()
+    }
+
     override suspend fun uploadProfilePhoto(bytes: ByteArray, mimeType: String): String {
         val uid = auth.currentUser?.uid ?: error("Usuario no autenticado")
         val ext = when (mimeType) {

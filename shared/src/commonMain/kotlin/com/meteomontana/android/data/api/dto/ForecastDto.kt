@@ -30,7 +30,17 @@ data class CurrentDto(
     val dryRock: Boolean,
     val score: Int,
     val scoreLabel: String,
-    val factors: List<ScoreFactorDto>
+    val factors: List<ScoreFactorDto>,
+    /** Estimación de secado tras lluvia (null en backends antiguos). */
+    val drying: RockDryingDto? = null
+)
+
+@Serializable
+data class RockDryingDto(
+    val wet: Boolean,
+    val dryingHours: Int? = null,
+    /** Texto listo para la sublínea del hero ("Seca en ~12 h"). */
+    val message: String? = null
 )
 
 @Serializable

@@ -8,7 +8,7 @@ import com.meteomontana.android.data.location.UserLocation
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
-import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
+import com.meteomontana.android.domain.usecase.schools.GetSchoolCatalogUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +55,7 @@ sealed interface SchoolListUiState {
 
 @HiltViewModel
 class SchoolListViewModel @Inject constructor(
-    private val getSchools: GetSchoolsUseCase,
+    private val getSchoolCatalog: GetSchoolCatalogUseCase,
     private val getTodayScores: GetTodayScoresUseCase,
     private val getMyFavorites: GetMyFavoritesUseCase,
     private val addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase,
@@ -63,7 +63,8 @@ class SchoolListViewModel @Inject constructor(
     private val getMyNotifications: GetMyNotificationsUseCase,
     private val locationProvider: LocationProvider,
     private val savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository,
-    private val cachedSchoolsRepo: com.meteomontana.android.data.saved.CachedSchoolsRepository
+    private val cachedSchoolsRepo: com.meteomontana.android.data.saved.CachedSchoolsRepository,
+    private val etagStore: com.meteomontana.android.data.local.CatalogEtagStore
 ) : ViewModel() {
 
     // Catálogo completo en memoria (stale-while-revalidate): se pinta desde la
@@ -129,13 +130,24 @@ class SchoolListViewModel @Inject constructor(
         }
     }
 
-    /** Baja el catálogo completo (sin filtros), lo cachea y re-emite la lista. */
+    /**
+     * Baja el catálogo completo (sin filtros), lo cachea y re-emite la lista.
+     * Manda el ETag guardado como If-None-Match: si el backend responde 304
+     * (catálogo sin cambios), reusa la caché SQLDelight sin re-descargar.
+     */
     private suspend fun refreshFromNetwork() {
+        // Solo tiene sentido el condicional si hay caché que reusar en el 304.
+        val etag = if (allSchools.isNotEmpty()) etagStore.get() else null
         runCatching {
-            getSchools(style = null, rockType = null, lat = null, lon = null, radioKm = null)
-        }.onSuccess { fresh ->
-            allSchools = fresh
-            runCatching { cachedSchoolsRepo.replaceAll(fresh) }
+            getSchoolCatalog(etag)
+        }.onSuccess { catalog ->
+            catalog.schools?.let { fresh ->
+                allSchools = fresh
+                runCatching { cachedSchoolsRepo.replaceAll(fresh) }
+                etagStore.set(catalog.etag)
+            }
+            // Con 304 también re-emitimos: refresh() vació los scores y load()
+            // dispara la recarga de los que falten.
             load()
         }.onFailure { t ->
             // Solo mostramos error si no teníamos nada que enseñar.

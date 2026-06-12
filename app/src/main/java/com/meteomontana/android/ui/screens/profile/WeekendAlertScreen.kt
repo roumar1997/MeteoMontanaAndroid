@@ -65,6 +65,9 @@ data class WeekendAlertUiState(
     val selected: List<School> = emptyList(),
     val query: String = "",
     val suggestions: List<School> = emptyList(),
+    /** Alerta "ventana óptima hoy" sobre las favoritas. */
+    val optimalEnabled: Boolean = false,
+    val optimalThreshold: Int = 70,
     val saving: Boolean = false,
     val savedOk: Boolean = false,
     val error: String? = null
@@ -96,13 +99,17 @@ class WeekendAlertViewModel @Inject constructor(
                     alertDays = dto?.alertDays?.toSet()?.ifEmpty { setOf(5, 6, 7) } ?: setOf(5, 6, 7),
                     nearbyMode = dto?.mode.equals("NEARBY", ignoreCase = true),
                     radiusKm = dto?.radiusKm ?: 50,
-                    selected = dto?.schoolIds.orEmpty().mapNotNull { id -> byId[id] }
+                    selected = dto?.schoolIds.orEmpty().mapNotNull { id -> byId[id] },
+                    optimalEnabled = dto?.optimalEnabled ?: false,
+                    optimalThreshold = dto?.optimalThreshold ?: 70
                 )
             }
         }
     }
 
     fun setEnabled(v: Boolean)  { _state.update { it.copy(enabled = v, savedOk = false) } }
+    fun setOptimalEnabled(v: Boolean) { _state.update { it.copy(optimalEnabled = v, savedOk = false, error = null) } }
+    fun setOptimalThreshold(t: Int)   { _state.update { it.copy(optimalThreshold = t, savedOk = false) } }
     fun setDay(d: Int)          { _state.update { it.copy(notifyDay = d, savedOk = false) } }
     fun setHour(h: Int)         { _state.update { it.copy(notifyHour = h, savedOk = false) } }
 
@@ -137,11 +144,13 @@ class WeekendAlertViewModel @Inject constructor(
 
     fun save() {
         val s = _state.value
-        if (!s.nearbyMode && s.selected.isEmpty()) {
+        // Las escuelas/días solo son obligatorios si la alerta de tiempo está
+        // activa: se puede guardar solo el toggle de "ventana óptima hoy".
+        if (s.enabled && !s.nearbyMode && s.selected.isEmpty()) {
             _state.update { it.copy(error = "Elige al menos una escuela") }
             return
         }
-        if (s.alertDays.isEmpty()) {
+        if (s.enabled && s.alertDays.isEmpty()) {
             _state.update { it.copy(error = "Elige al menos un día a comparar") }
             return
         }
@@ -162,7 +171,9 @@ class WeekendAlertViewModel @Inject constructor(
                         mode = if (s.nearbyMode) "NEARBY" else "SCHOOLS",
                         radiusKm = if (s.nearbyMode) s.radiusKm else null,
                         lat = loc?.lat, lon = loc?.lon,
-                        alertDays = s.alertDays.sorted()
+                        alertDays = s.alertDays.sorted(),
+                        optimalEnabled = s.optimalEnabled,
+                        optimalThreshold = s.optimalThreshold
                     )
                 )
             }.onSuccess {
@@ -241,6 +252,43 @@ fun WeekendAlertScreen(
                 Switch(checked = s.enabled, onCheckedChange = viewModel::setEnabled)
             }
 
+            Spacer(Modifier.height(Spacing.lg))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            Spacer(Modifier.height(Spacing.lg))
+
+            Text("VENTANA ÓPTIMA HOY", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.sm))
+            Text(
+                "Te avisamos por la mañana (7-11h) si alguna de tus escuelas " +
+                "favoritas supera hoy el umbral en su mejor franja de horas. " +
+                "Máximo un aviso al día.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("ACTIVADA", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f))
+                Switch(checked = s.optimalEnabled, onCheckedChange = viewModel::setOptimalEnabled)
+            }
+            if (s.optimalEnabled) {
+                Spacer(Modifier.height(Spacing.sm))
+                Text("UMBRAL DE ÍNDICE", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(Spacing.sm))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    listOf(60, 70, 80).forEach { t ->
+                        SelectChip("$t", selected = s.optimalThreshold == t) {
+                            viewModel.setOptimalThreshold(t)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(Spacing.lg))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Spacer(Modifier.height(Spacing.lg))
             Text("QUÉ DÍAS COMPARAR", style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

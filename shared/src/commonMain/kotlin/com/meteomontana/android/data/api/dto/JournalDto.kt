@@ -50,8 +50,10 @@ data class NoteDto(
     val uid: String,
     val createdAt: String,
     val upvotesCount: Int,
-    val downvotesCount: Int
+    val downvotesCount: Int,
+    /** URL pública de la foto adjunta (Firebase Storage). Null si no hay foto. */
+    val photoUrl: String? = null
 )
 
 @Serializable
-data class CreateNoteRequest(val text: String)
+data class CreateNoteRequest(val text: String, val photoUrl: String? = null)
