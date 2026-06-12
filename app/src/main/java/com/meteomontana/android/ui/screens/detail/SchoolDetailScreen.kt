@@ -42,6 +42,7 @@ import com.meteomontana.android.ui.components.BlocksSection
 import com.meteomontana.android.ui.components.MonthlyStatsSection
 import com.meteomontana.android.ui.components.NotesSection
 import com.meteomontana.android.ui.components.forecastBody
+import com.meteomontana.android.ui.theme.Spacing
 
 @Composable
 fun SchoolDetailScreen(
@@ -81,7 +82,15 @@ fun SchoolDetailScreen(
         )
         when (val s = state) {
             is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-            is SchoolDetailUiState.Error -> Center { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
+            is SchoolDetailUiState.Error -> Center {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(Spacing.md))
+                    androidx.compose.material3.OutlinedButton(onClick = viewModel::load) {
+                        Text("REINTENTAR")
+                    }
+                }
+            }
             is SchoolDetailUiState.Success -> {
                 if (s.offlineSnapshotAt != null) {
                     OfflineBanner(timestamp = s.offlineSnapshotAt)
@@ -129,7 +138,7 @@ private fun TopBar(
     onShare: (() -> Unit)? = null
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onBack) {
@@ -138,7 +147,7 @@ private fun TopBar(
         }
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 4.dp).weight(1f))
+            modifier = Modifier.padding(start = Spacing.xs).weight(1f))
         if (onShare != null) {
             IconButton(onClick = onShare) {
                 Icon(Icons.Outlined.Share, contentDescription = "Compartir",
@@ -192,15 +201,15 @@ private fun Content(
             item {
                 Box(modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(Spacing.lg)
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .padding(16.dp)
+                    .padding(Spacing.lg)
                 ) {
                     Column {
                         Text("Tiempo no disponible",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground)
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(Spacing.xs))
                         Text(forecastError,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -227,13 +236,13 @@ private fun OfflineBanner(timestamp: Long) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .background(MaterialTheme.colorScheme.error.copy(alpha = 0.10f))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text("● SIN CONEXIÓN",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.error)
-        Spacer(Modifier.padding(start = 8.dp))
+        Spacer(Modifier.padding(start = Spacing.sm))
         Text("Datos del $label",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -254,13 +263,13 @@ private fun StaleForecastBanner(timestamp: Long, onRetry: () -> Unit) {
     }
     Row(
         modifier = Modifier.fillMaxWidth()
-            .background(androidx.compose.ui.graphics.Color(0xFFC8843A).copy(alpha = 0.12f))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f))
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text("⚠ PREVISIÓN DE $ageLabel".uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = androidx.compose.ui.graphics.Color(0xFFC8843A),
+            color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f))
         Text("REINTENTAR",
             style = MaterialTheme.typography.labelMedium,
@@ -281,7 +290,7 @@ private fun OfflineSaveButton(viewModel: SchoolDetailViewModel) {
     val saved = s.isSavedOffline
     Row(
         modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {

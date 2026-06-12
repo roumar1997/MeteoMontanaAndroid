@@ -80,7 +80,7 @@ fun TopoEditorScreen(
             horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = null,
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Text(block?.name ?: "Topo",
