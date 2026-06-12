@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -107,6 +108,7 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.crashlytics)
 
     // Credential Manager (Google Sign-In moderno)
     implementation(libs.androidx.credentials)
