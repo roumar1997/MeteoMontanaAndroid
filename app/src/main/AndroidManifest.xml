@@ -58,6 +58,19 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Widget "Favoritas hoy" (Glance) -->
+        <receiver
+            android:name=".ui.widget.FavoritesWidgetReceiver"
+            android:exported="true"
+            android:label="Favoritas hoy">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_favorites_info" />
+        </receiver>
+
         <!-- Servicio de Firebase Cloud Messaging â€” recibe pushes y muestra notificaciones -->
         <service
             android:name=".push.PushService"

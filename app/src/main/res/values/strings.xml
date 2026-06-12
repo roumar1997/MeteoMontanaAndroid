@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Cumbre</string>
+    <string name="widget_favorites_description">Score de hoy de tus escuelas favoritas</string>
 </resources>

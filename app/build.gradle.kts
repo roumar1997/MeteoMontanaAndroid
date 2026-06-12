@@ -129,6 +129,9 @@ dependencies {
     // kotlinx-serialization (Json) — outbox y deserialización de payloads
     implementation(libs.kotlinx.serialization.json)
 
+    // Widget "Favoritas hoy" en la pantalla de inicio
+    implementation(libs.androidx.glance.appwidget)
+
     // Tests
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
