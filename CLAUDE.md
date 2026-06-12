@@ -393,6 +393,23 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-12 (3) — CI, Crashlytics, widget "Favoritas hoy"
+
+- **CI GitHub Actions** (`.github/workflows/android-ci.yml`): compila debug
+  y corre los tests unitarios en cada push (main y claude/**). Genera un
+  google-services.json dummy porque el real está fuera de git.
+- **Crashlytics** integrado (plugin + dep via BoM, recolección automática).
+- **Widget de home "Favoritas hoy"** (Glance, `ui/widget/FavoritesWidget.kt`):
+  score de hoy de las favoritas, refresh horario + botón ↻, fallback al
+  último estado cacheado, tap → detalle de la escuela via deep link.
+- **Consistencia UI**: Warn→tertiary en el tema (banner stale ok en dark),
+  REINTENTAR en el error del detalle, Spacing en SchoolDetailScreen,
+  contentDescription en 4 flechas de volver.
+- **Pendiente bloque backend aprobado** (la sesión remota no tenía acceso a
+  MeteoMontanaAPI): secado de roca, alerta ventana óptima, fotos en notas,
+  ETag/304. Detalle completo en KMP_MIGRATION.md → "Próximo paso".
+  **La próxima sesión web debe crearse con LOS DOS repos.**
+
 ### Sesión 2026-06-11 — alerta del finde → alerta de tiempo
 
 - La "alerta del finde" pasa a llamarse **"Alerta de tiempo"** y el usuario

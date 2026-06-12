@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-09 (UX polish, contadores follow, email Resend, push deep link, theme toggle, outbox, tiles offline, SQLDelight). Próximas: iOS port (cuando llegue Mac) + bloque #6 (vías en vez de bloques) + #8 (stats cacheadas backend) + #9 (foto crop).
+**Última actualización:** 2026-06-12 (3) (CI GitHub Actions, Crashlytics, widget Glance "Favoritas hoy", fixes consistencia UI). Próximas: sesión con AMBOS repos para el bloque backend aprobado (secado de roca, alerta ventana óptima, fotos en notas, ETag/304) — ver "Próximo paso" al final. iOS port sigue en pausa (sin Mac).
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -1133,3 +1133,56 @@ Cambios entregados:
 - **#6 Vías (líneas) en vez de bloques** en `AddBlockSheet`: al elegir bloque mostrar las vías existentes con su grado/tipo, autocompletar el grado de la vía elegida. Si la vía no está en BD, permitir nombre+grado manual.
 - **#8 Stats mensuales lentos**: mover el cálculo a un endpoint backend cacheado (`GET /api/schools/{id}/monthly-stats`) en vez de llamar a `archive-api.open-meteo.com` desde Android. El backend ya tiene `@Cacheable` con Caffeine — añadir un use case más.
 - **#9 Foto crop solo mitad visible**: el `TopoPhotoCanvas` usa aspect 4:3 fijo. Ajustar para respetar el aspect real de la foto subida.
+
+---
+
+## 🆕 Sesión 2026-06-12 (3) — CI, Crashlytics, widget, consistencia UI
+
+Sesión remota (Claude Code web) limitada al repo Android — el proxy git no
+autorizó clonar `MeteoMontanaAPI`, así que el bloque backend quedó pendiente.
+
+Entregado (rama `claude/clever-ritchie-9gec3o`):
+
+- **CI GitHub Actions** (`.github/workflows/android-ci.yml`): `assembleDebug`
+  + `testDebugUnitTest` en cada push a `main` y `claude/**`. Genera un
+  `google-services.json` dummy (el real está excluido de git). Sube reports
+  como artifact si fallan los tests.
+- **Firebase Crashlytics**: plugin 3.0.2 + dependencia via BoM. Sin código
+  extra — recolección automática. Imprescindible antes de Play Store.
+- **Widget "Favoritas hoy"** (`ui/widget/FavoritesWidget.kt`, Glance 1.1.1):
+  score de hoy de las favoritas en la home. Hilt EntryPoint → GetMyFavorites
+  + GetTodayScores; caché del último estado en SharedPreferences (fallback
+  offline/sin sesión); refresh horario del sistema + botón ↻; tap en fila →
+  deep link al detalle (reusa `targetType=school` de los pushes).
+- **Consistencia UI**: Warn/WarnDark mapeados a `tertiary` (el banner stale
+  ya respeta dark mode), botón REINTENTAR en el error del detalle, Spacing
+  en vez de dp literales en SchoolDetailScreen, contentDescription "Volver"
+  en 4 pantallas (TopoEditor, SearchUsers, FollowRequests, JournalSchools).
+
+### ⏳ Próximo paso (PRIORITARIO — necesita sesión con AMBOS repos)
+
+Bloque aprobado por Rodrigo el 2026-06-12, empezar por el backend:
+
+1. **#9 ETag/304 en `GET /api/schools`** (back + Android): hash del catálogo
+   como ETag; Ktor client manda If-None-Match y reusa caché en 304.
+2. **#2 Tiempo de secado tras lluvia** (back + Android): heurística por tipo
+   de roca (arenisca 48h, caliza ~12h según mm acumulados). UI decidida:
+   sublínea junto al indicador "ROCA SECA / MOJADA" del hero del forecast
+   ("Seca en ~12h" / "Arenisca: no escalar 48h tras lluvia").
+3. **#4 Alerta "ventana óptima hoy"** (back + Android): generalizar
+   WeekendAlertScheduler → push si una favorita supera umbral de score hoy.
+   Toggle de activación en la pantalla de alertas del perfil (junto a la
+   alerta de tiempo existente).
+4. **#6 Fotos en notas** (back + Android): subir a Firebase Storage (reusar
+   StorageUploadHelper), `photo_url` en notes (migración Flyway). UI:
+   thumbnail en la nota, tap → dialog a pantalla con la foto + texto.
+
+Rechazado/descartado por Rodrigo: orientación solana/umbría (#3), check-in
+de condiciones (#5), likes en vías (#7).
+
+Apuntado para el futuro (sin fecha): **cola offline de escritura** — notas y
+contribuciones escritas sin cobertura se encolan y sincronizan al volver la
+red. La lectura offline (guardar escuela) ya existe; esto sería el lado de
+escritura. Pendiente también: pulido visual (skeletons en detalle, variante
+dark de scoreColor(), touch targets 48dp) y refrescar el widget al togglear
+favorito desde la app (hoy tarda hasta 1h o requiere ↻).
