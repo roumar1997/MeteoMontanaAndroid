@@ -46,11 +46,11 @@ fun LazyListScope.forecastBody(
     onDayClick: ((Int) -> Unit)? = null
 ) {
     item {
-        // Hero + heatmap + factores comparten estado: tocar el score grande
-        // abre el desglose de "¿por qué este índice?".
+        // El desglose "¿por qué este índice?" se abre solo desde el acordeón
+        // de abajo (FactorsAccordion); el hero es solo presentación.
         var factorsExpanded by rememberSaveable { mutableStateOf(false) }
         Column {
-            HeroSection(forecast, onScoreTap = { factorsExpanded = !factorsExpanded })
+            HeroSection(forecast)
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
                 HourlyHeatmap(hours = forecast.hours)
             }
@@ -81,7 +81,7 @@ fun LazyListScope.forecastBody(
 }
 
 @Composable
-fun HeroSection(forecast: Forecast, onScoreTap: (() -> Unit)? = null) {
+fun HeroSection(forecast: Forecast) {
     val cur = forecast.current
     val verdict = if (cur.score >= 55) "SÍ" else "NO"
     val window = forecast.bestWindow
@@ -109,11 +109,7 @@ fun HeroSection(forecast: Forecast, onScoreTap: (() -> Unit)? = null) {
                     color = MaterialTheme.colorScheme.onSurface)
             }
         }
-        Column(
-            horizontalAlignment = Alignment.End,
-            modifier = if (onScoreTap != null)
-                Modifier.clickable(onClick = onScoreTap) else Modifier
-        ) {
+        Column(horizontalAlignment = Alignment.End) {
             Text("ÍNDICE",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -125,11 +121,6 @@ fun HeroSection(forecast: Forecast, onScoreTap: (() -> Unit)? = null) {
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp))
-            }
-            if (onScoreTap != null) {
-                Text("VER DESGLOSE ▾",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary)
             }
         }
     }
