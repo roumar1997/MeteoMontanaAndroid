@@ -57,6 +57,19 @@ jobs:
           EOF
           fi
 
+      # Sin esto, AGP genera un debug.keystore aleatorio en cada runner y el
+      # SHA-1 del APK no coincide con el registrado en Firebase → Google
+      # Sign-In falla con DEVELOPER_ERROR 10 en el APK del artifact.
+      # El secret es el debug.keystore local en base64 (ver CLAUDE.md).
+      - name: Restore debug keystore
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+            mkdir -p ~/.android
+            printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+          fi
+
       - name: Build debug + unit tests
         run: |
           chmod +x gradlew
