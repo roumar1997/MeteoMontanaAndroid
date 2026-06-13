@@ -74,11 +74,21 @@ en local. Reglas para la sesión:
    push y deja el **APK debug como artifact** (pestaña Actions → run →
    Artifacts → `app-debug-apk`). Rodrigo lo descarga e instala en el móvil
    sin Android Studio.
-4. Para que ese APK tenga Firebase funcional (login Google, push) hace
-   falta el secret **`GOOGLE_SERVICES_JSON`** en el repo (Settings →
-   Secrets and variables → Actions) con el contenido del
-   `google-services.json` real. Sin el secret, el APK compila pero el
-   login no funciona (config dummy).
+4. Para que ese APK tenga Firebase funcional (login Google, push) hacen
+   falta DOS secrets en el repo (Settings → Secrets and variables →
+   Actions):
+   - **`GOOGLE_SERVICES_JSON`** con el contenido del `google-services.json`
+     real. Sin él, el APK compila pero usa config dummy.
+   - **`DEBUG_KEYSTORE_BASE64`** (⚠️ PENDIENTE de crear) con el
+     `~/.android/debug.keystore` en base64
+     (`[Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\.android\debug.keystore"))`).
+     Sin él, el runner firma cada build con un keystore aleatorio → el
+     SHA-1 no coincide con Firebase → Google Sign-In falla con
+     `DEVELOPER_ERROR (10)`. El step "Restore debug keystore" del workflow
+     lo restaura si existe; si no, se salta (CI sigue verde).
+     **Solo necesario si instalas el APK de Actions**; los APK compilados
+     en local ya van firmados con el keystore de tu PC (login OK).
+     La huella de ese keystore debe estar registrada en Firebase Console.
 5. El backend en prod corre en **Railway** apuntando a `main` — verificar
    antes de mergear cambios de API que rompan compatibilidad con APKs ya
    instalados.
@@ -420,6 +430,40 @@ Dialog a pantalla completa con MapLibre (tiles topográficos OpenTopoMap).
 Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina superior.
 
 ## Bitácora reciente
+
+### Sesión 2026-06-13 — fix crash widget + rediseño a tarjetas + firma CI
+
+- **Fix crash widget Favoritas**: faltaba aplicar el plugin
+  `kotlin.plugin.serialization` en `:app`. El `@Serializable WidgetState`
+  compilaba pero no generaba serializer → en runtime lanzaba
+  `SerializationException` y Glance pintaba "no se puede mostrar el
+  contenido". Una dependencia de kotlinx-serialization NO basta: el plugin
+  es lo que genera el código del serializer.
+- **Rediseño del widget a tarjetas** (`ui/widget/FavoritesWidget.kt`): cada
+  favorita es una tarjeta idéntica (bloque de score coloreado + nombre serif
+  + línea "KM · estilo · roca" + heatmap horario a todo el ancho), ordenadas
+  por score. Antes había una escuela "hero" distinta del resto (al usuario
+  no le gustaba esa asimetría). Distancia por Haversine desde
+  `LocationProvider.current()` a las coords del catálogo cacheado
+  (SQLDelight); estilo/roca también del catálogo. Sin red extra (se quitó la
+  llamada de forecast que tenía la hero).
+- **Adaptable**: `SizeMode.Exact` + `LocalSize` → muestra las tarjetas que
+  caben, resto "+N MÁS EN LA APP". Tamaño por defecto subido a 4x4.
+- **Esquinas redondeadas**: drawables `widget_bg.xml` y `widget_card.xml`
+  (+ colores en `values/` y `values-night/`) porque
+  `GlanceModifier.cornerRadius()` solo redondea en Android 12+ (el móvil de
+  pruebas es 11). El cuadrito del score sí usa cornerRadius → sale cuadrado
+  en 11, redondeado en 12+.
+- **`fix(ci)`**: nuevo step que restaura `debug.keystore` desde
+  `DEBUG_KEYSTORE_BASE64` para que el APK de Actions tenga firma estable y
+  Google Sign-In no falle con error 10. Ver punto 4 de "Workflow". Secret
+  PENDIENTE de crear por Rodrigo (opcional, solo para APKs de CI).
+- Build local: `JAVA_HOME` al JDK de Android Studio
+  (`C:\Program Files\Android\Android Studio\jbr`), `gradlew :app:assembleDebug`,
+  instalar con `adb install -r` (adb en
+  `%LOCALAPPDATA%\Android\Sdk\platform-tools`). Tras instalar, quitar y
+  re-añadir el widget para que el launcher coja la versión nueva.
+- Mergeado a `main` directo (sin PR) a petición del usuario.
 
 ### Sesión 2026-06-12 (4) — bloque backend aprobado (ETag, secado, alerta óptima, fotos en notas)
 
