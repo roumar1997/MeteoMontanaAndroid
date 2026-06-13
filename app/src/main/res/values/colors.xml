@@ -11,4 +11,9 @@
     <!-- Fondo Cumbre (Bg de Color.kt) — splash y windowBackground. La variante
          oscura está en values-night/colors.xml. -->
     <color name="splash_bg">#FFF5F3EE</color>
+    <!-- Widget Favoritas: fondo papel + borde (Bg/Rule de Color.kt). -->
+    <color name="widget_bg">#FFF5F3EE</color>
+    <color name="widget_stroke">#FFD6D2C4</color>
+    <!-- Tarjeta de escuela: papel un punto más oscuro que el fondo (Paper). -->
+    <color name="widget_card_bg">#FFEBE7DD</color>
 </resources>

@@ -3,4 +3,9 @@
     <!-- Fondo Cumbre oscuro (BgDark de Color.kt) — splash y windowBackground
          cuando el sistema está en modo oscuro. -->
     <color name="splash_bg">#FF15140F</color>
+    <!-- Widget Favoritas en oscuro (BgDark/RuleDark de Color.kt). -->
+    <color name="widget_bg">#FF15140F</color>
+    <color name="widget_stroke">#FF2A281F</color>
+    <!-- Tarjeta de escuela en oscuro: papel un punto más claro que el fondo. -->
+    <color name="widget_card_bg">#FF211F19</color>
 </resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo de cada tarjeta de escuela dentro del widget. Drawable (no
+     GlanceModifier.cornerRadius) porque cornerRadius solo redondea en
+     Android 12+ y queremos esquinas también en 11. Color ligeramente
+     distinto al fondo del widget para que la tarjeta "flote". -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="12dp" />
+    <solid android:color="@color/widget_card_bg" />
+</shape>
