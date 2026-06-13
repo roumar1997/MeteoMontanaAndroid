@@ -51,6 +51,9 @@ fun LazyListScope.forecastBody(
         var factorsExpanded by rememberSaveable { mutableStateOf(false) }
         Column {
             HeroSection(forecast)
+            // Estado de la roca justo bajo el índice: es la pregunta nº1 de un
+            // escalador (¿seca? ¿cuándo?). Antes vivía al final, en BestDayBar.
+            RockStatusBand(forecast.current)
             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
                 HourlyHeatmap(hours = forecast.hours)
             }
@@ -122,6 +125,43 @@ fun HeroSection(forecast: Forecast) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp))
             }
+        }
+    }
+}
+
+/**
+ * Franja con el estado de la roca (seca/húmeda) y, si llovió, la estimación
+ * de secado del backend. Verde si está lista, rojo si conviene esperar.
+ * Fondo y borde tintados con el color de acento a baja opacidad para no
+ * pelearse con el papel del tema.
+ */
+@Composable
+fun RockStatusBand(cur: Current) {
+    val dry = cur.dryRock
+    val accent = if (dry) MaterialTheme.colorScheme.secondary
+                 else MaterialTheme.colorScheme.error
+    val subtitle = cur.drying?.message
+        ?: if (dry) "Lista para escalar" else "Mejor esperar a que seque"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .background(accent.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+            .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                if (dry) "● ROCA SECA" else "● ROCA HÚMEDA",
+                style = MaterialTheme.typography.labelLarge,
+                color = accent
+            )
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -216,28 +256,12 @@ private fun ConditionCell(label: String, value: String, unit: String, modifier: 
 @Composable
 fun BestDayBar(forecast: Forecast) {
     val best = forecast.bestDay ?: return
-    val cur = forecast.current
+    // El estado de la roca se muestra ahora arriba (RockStatusBand); aquí
+    // solo queda el mejor día próximo.
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
-            Text(
-                text = if (cur.dryRock) "● ROCA SECA" else "● ROCA HÚMEDA",
-                style = MaterialTheme.typography.labelMedium,
-                color = if (cur.dryRock) MaterialTheme.colorScheme.secondary
-                        else MaterialTheme.colorScheme.error
-            )
-            // Estimación de secado del backend ("Seca en ~12 h", aviso arenisca).
-            cur.drying?.message?.let { msg ->
-                Text(
-                    text = msg,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Spacer(Modifier.padding(start = 16.dp))
         Column {
             Text("★ MEJOR DÍA",
                 style = MaterialTheme.typography.labelMedium,
