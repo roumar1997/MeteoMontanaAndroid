@@ -12,7 +12,34 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-12 (4) (bloque backend+Android completo: ETag/304 en el catálogo, secado de roca en el forecast, alerta "ventana óptima hoy", fotos en notas — backend V23/V24 + app). Pendiente: probar en el móvil con el APK del CI — ver "Próximo paso" al final. iOS port sigue en pausa (sin Mac).
+**Última actualización:** 2026-06-13 (preparación pre-Mac). Hoy se ejecutó el
+**PLAN DE ATAQUE PRE-MAC** (ver su sección más abajo): toda la lógica que se
+podía adelantar en Windows está hecha y verificada. Resumen:
+- ✅ **Fase A COMPLETA** — 100% de la lógica de negocio en `shared/commonMain`,
+  cero fugas de plataforma (Geo, LocationProvider→interfaz, use case del
+  widget; barridos limpios). Verificado con `assembleDebug` + tests.
+- ✅ **Fase B** — impls Kotlin de `iosMain` sin UI: `DatabaseFactory` (ya
+  estaba) + `IosNetworkMonitor`.
+- ✅ **Fase C (base, verificada)** — SKIE + framework `Shared` + motor
+  `ktor-client-darwin` + `IosDependencyContainer` (grafo de DI en Kotlin).
+  `iosApp/` con XcodeGen (`project.yml`), Firebase por SPM, app entry, DI y
+  pantalla MVP `SchoolListView` (plantilla). Guía técnica iOS en este doc.
+
+**👉 Qué hacer en una sesión nueva:**
+1. **NO hay más que adelantar bien en Windows.** Lo escrito a ciegas (Swift,
+   ports `suspend`) saldría mal sin Mac. Está documentado, no escrito mal.
+2. **Pendiente del usuario (sin Mac, 10 min):** Fase D — registrar la app iOS
+   en Firebase `climbingteams` (bundle `com.meteomontana.ios`) y meter
+   `GoogleService-Info.plist` en `iosApp/iosApp/`.
+3. **Con Mac:** seguir los "Pasos en el Mac" de la **Guía de implementación
+   iOS** (sección 🍏 más abajo): `xcodegen generate` → Xcode → bridges de los
+   ports → resto de pantallas desde la plantilla.
+4. Mientras tanto, si el usuario quiere **mejoras en la app Android**, adelante
+   (no bloquea nada de iOS). Cada cambio: build verde + commit a `main`.
+
+> ⚠️ Ojo build: tocar `shared/commonMain` recompila el módulo con SKIE
+> (primera vez en frío ~40 min; luego incremental). NO editar ficheros Gradle
+> mientras hay un build corriendo (desincroniza el catálogo de versiones).
 
 **Modelo recomendado:** Sonnet para Fases 1.x y 2.x (refactor mecánico, plan ya escrito). Opus solo para decisiones de arquitectura ambiguas o bugs sin diagnóstico claro.
 
@@ -102,9 +129,10 @@
 
 **👉 Siguiente paso concreto:** ver final del documento ("Próximo paso").
 
-> ⏸️ **FASE 3 EN PAUSA** — requiere Mac. Mientras tanto el usuario realiza
-> mejoras visuales y técnicas en la app Android. Al abrir sesión nueva,
-> preguntar al usuario qué quiere mejorar hoy, NO continuar la migración KMP.
+> ⏸️ **EL TRABAJO PRE-MAC ESTÁ HECHO** (Fases A, B y C-base, 2026-06-13). Lo
+> que queda requiere Mac (ver Guía de implementación iOS 🍏 + "Próximo paso").
+> Mientras no haya Mac, las sesiones pueden hacer mejoras en la app Android
+> (no bloquean iOS) o el usuario puede adelantar la Fase D (Firebase iOS).
 
 **Lo que necesita el usuario aportar pronto:**
 - Antes de fin de Fase 2: registrar app iOS en consola Firebase y descargar
@@ -691,34 +719,28 @@ prisa, cada una con un commit cerrado a `main` y todos los tests verdes.
 
 ## Próximo paso
 
-**Fase 3.1: Crear el proyecto iOS (`iosApp/`) y conectar el framework KMP compilado.**
+**Estado tras la preparación pre-Mac (2026-06-13):** lo máximo que se podía
+hacer en Windows está hecho y verificado. El módulo `shared` se consume desde
+iOS y el andamiaje iOS está montado:
 
-Fase 2.5 completada. El módulo `shared` está listo para ser consumido desde iOS:
+- `commonMain/`: domain + data + use cases + `IosDependencyContainer` (DI) ✅
+- `androidMain/`: Firebase + NetworkMonitor + FileReader + DatabaseFactory ✅
+- `iosMain/`: `DatabaseFactory` + `IosNetworkMonitor` ✅
+- `iosApp/`: XcodeGen (`project.yml`), Firebase SPM, app entry, DI Swift,
+  pantalla MVP `SchoolListView` (plantilla) ✅
+- SKIE + framework `Shared` + `ktor-client-darwin` configurados ✅
 
-- `commonMain/`: domain + data completos (use cases, repos, DTOs, Ktor APIs) ✅
-- `androidMain/`: Firebase implementations (Auth, Chat, Storage, FileReader) ✅
-- `iosMain/`: vacío — se rellena en Fase 3 con equivalentes Swift/iOS
+**Lo que falta (requiere Mac) — orden exacto en la Guía 🍏 "Pasos en el Mac":**
+1. (Usuario, sin Mac) **Fase D**: app iOS en Firebase + `GoogleService-Info.plist`.
+2. `brew install xcodegen`; en `iosApp/`: `xcodegen generate`; abrir en Xcode.
+3. Arreglar firmas que genera SKIE en `SchoolListView` (async, opcionales boxed).
+4. Implementar los **ports `suspend`** con el patrón *bridge* (location,
+   files, Firebase Auth/Chat/Storage) — ver Guía.
+5. Replicar el resto de pantallas desde la plantilla `SchoolListView`.
+6. Provisioning, Sign in with Apple, TestFlight.
 
-Lo que toca en Fase 3.1 (requiere que el usuario tenga Mac o CI Mac):
-
-1. **Crear `iosApp/`** con un Xcode project que referencia el framework KMP compilado
-   (`shared.xcframework` generado por `./gradlew linkReleaseFrameworkIosSimulatorArm64`).
-
-2. **Implementaciones `iosMain/`** equivalentes a `androidMain/`:
-   - `FirebaseAuthService.kt` (iOS) — usando `FirebaseAuth` iOS SDK
-   - `FirebaseStoragePhotoUploader.kt` (iOS)
-   - `FirebaseChatService.kt` (iOS) — o conectar Firestore iOS SDK
-   - `IosFileReader.kt` — leyendo desde URLs de iOS
-
-3. **Inyección de dependencias iOS** — sin Hilt. Manual factory o Swinject.
-   `KtorSchoolRepository(api: KtorSchoolApi)` se instancia en un `AppDependencies.swift`.
-
-4. **Primera pantalla SwiftUI** — `SchoolListView` que consume `GetSchoolsUseCase`
-   publicado como `@Observable` o `ObservableObject`.
-
-**Pendiente Android:** nada — `uploadPhoto` de perfil, flujos SECTOR y
-CORREGIR POSICIÓN, build R8 verificado, etc. están completos (2026-06-10).
-Solo queda la Fase 3 (requiere Mac).
+**Pendiente Android:** nada bloqueante. Mejoras visuales/técnicas se pueden
+seguir haciendo sin afectar a iOS.
 
 ### Sub-paso 2A — Forecast (+ tipos anidados)
 

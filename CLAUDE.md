@@ -431,6 +431,25 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-13 (2) — preparación pre-Mac (KMP Fases A/B/C-base)
+
+- Se ejecutó el **PLAN DE ATAQUE PRE-MAC** de `KMP_MIGRATION.md` (leer su
+  `📍 ESTADO ACTUAL` para el estado al 100%). Objetivo: dejar listo lo máximo
+  posible en Windows para que el Mac sea solo "rematar".
+- **Fase A** (lógica compartida, verificada): `Geo.haversineKm` unificado en
+  `shared/commonMain` (eliminó 3 copias); `LocationProvider` pasó a interfaz
+  en `commonMain` + `AndroidLocationProvider` en `app/`; la lógica del widget
+  Favoritas salió a `GetFavoritesWidgetDataUseCase` en `shared`. Barridos:
+  cero `android./java.` en `commonMain`.
+- **Fase B**: `iosMain` Kotlin sin UI — `DatabaseFactory` + `IosNetworkMonitor`.
+- **Fase C (base)**: SKIE (plugin Gradle) + framework `Shared` + motor
+  `ktor-client-darwin` + `IosDependencyContainer` (DI en Kotlin). `iosApp/`
+  con XcodeGen, Firebase SPM, app entry, DI Swift y pantalla MVP `SchoolListView`.
+- Decisión clave: los ports `suspend` (location/files/Firebase) NO se escriben
+  en Swift a ciegas — patrón *bridge*, a hacer con Mac (documentado en la Guía
+  iOS del `KMP_MIGRATION.md`).
+- Todo en `main`. Builds de Android verdes (SKIE no rompe nada).
+
 ### Sesión 2026-06-13 — fix crash widget + rediseño a tarjetas + firma CI
 
 - **Fix crash widget Favoritas**: faltaba aplicar el plugin
