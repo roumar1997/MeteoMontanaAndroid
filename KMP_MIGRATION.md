@@ -148,19 +148,29 @@ Que NADA de lógica de negocio quede Android-only. Cada paso: `assembleDebug`
 **✅ FASE A COMPLETA (2026-06-13)** — el 100% de la lógica de negocio está en
 `commonMain` y compila sin dependencias de plataforma. Lista para iOS.
 
-### FASE B — Escribir `iosMain` en Kotlin (Windows, "a ciegas", NO compila aquí) ⚠️ media confianza
+### FASE B — Impls iOS en `iosMain` Kotlin (solo lo no-UI) ✅ casi completa
 
-Espejo de los 6 ficheros de `androidMain`, con SDKs iOS. Se escriben y quedan
-en git; los errores reales se ven en el Mac (Fase E2).
+Corrección de alcance (2026-06-13, tras leer los contratos): solo van en
+`iosMain` Kotlin las impls **sin UI ni SDK externo**, que es donde
+Kotlin/Native brilla. Las de UI/sistema (ubicación, ficheros) y Firebase son
+**interop frágil en Kotlin/Native** y se escriben mucho mejor en **Swift**
+(Fase C), implementando la misma interfaz de `commonMain` (Kotlin expone las
+interfaces a Swift por el framework). No se compilan en Windows; se validan
+en Xcode (Fase E2).
 
-- [ ] **B1** — `IosLocationProvider` (CLLocationManager).
-- [ ] **B2** — `FirebaseAuthService`, `FirebaseStoragePhotoUploader`,
-  `FirebaseChatService` (Firebase iOS SDK).
-- [ ] **B3** — `IosNetworkMonitor` (NWPathMonitor), `IosFileReader`
-  (UIImage), `DatabaseFactory` iOS (NativeSqliteDriver).
+- [x] **B1** — `DatabaseFactory` iOS (NativeSqliteDriver). Ya existía.
+- [x] **B2** — `IosNetworkMonitor` (NWPathMonitor). (2026-06-13)
+- [→] **B3** — `LocationProvider`, `FileReader`, Firebase Auth/Chat/Storage:
+  **movidos a Fase C (Swift)**. Ver lista C0.
 
-### FASE C — Escribir la app SwiftUI `iosApp/` (Windows, "a ciegas") ⚠️ media confianza
+### FASE C — App SwiftUI `iosApp/` + impls Swift de ports (Windows, "a ciegas") ⚠️ media confianza
 
+- [ ] **C0 — Impls Swift de los ports de `commonMain`** (clases Swift que
+  implementan las interfaces Kotlin, inyectadas en la DI iOS):
+  - `IosLocationProvider` (CLLocationManager + delegate → `current()`).
+  - `IosFileReader` (UIImage + `jpegData(compressionQuality:)`).
+  - `IosFirebaseAuthService`, `IosFirebaseChatService`,
+    `IosFirebaseStoragePhotoUploader` (Firebase iOS SDK vía SPM).
 - [ ] **C1** — Estructura: carpetas, `Info.plist`, `MeteoMontanaApp.swift`.
 - [ ] **C2** — DI iOS (`AppDependencies.swift`, manual o Koin) instanciando
   repos/use cases del `shared`.
