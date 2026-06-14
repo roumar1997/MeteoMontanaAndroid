@@ -183,34 +183,32 @@ C:\Users\rouma\Desktop\MeteoMontana/
 ## Workflow de cada sesión
 
 **Primer mensaje (sesión nueva sin contexto)**:
-1. Lee `KMP_MIGRATION.md` → sección **📍 ESTADO ACTUAL** → busca el
-   `← SIGUIENTE`.
-2. Lee también el "Próximo paso" al final del documento.
-3. Lee este `CLAUDE.md` para contexto general.
-4. Ya sabes qué tarea toca. **Empieza sin preguntar** salvo que el usuario
-   pida algo distinto explícitamente.
+1. Lee `KMP_MIGRATION.md` → sección **📍 ESTADO ACTUAL** y su bloque
+   **"Qué hacer en una sesión nueva"**: te dice el estado y el siguiente paso.
+2. Lee este `CLAUDE.md` para contexto general (stack, endpoints, convenciones).
+3. **Empieza sin preguntar** salvo que el usuario pida algo distinto.
 
-**Antes de cerrar la sesión**:
-1. **Actualiza `KMP_MIGRATION.md`**:
-   - Marca con `[x]` las sub-tareas completadas en el checklist.
-   - Mueve el `← SIGUIENTE` a la próxima sub-tarea.
-   - Cambia la "Última actualización" al inicio de la sección.
-   - Reescribe la sección "Próximo paso" al final con la próxima tarea
-     concreta (no genérico — específico).
-2. Actualiza **Estado actual** y **Bitácora reciente** de este CLAUDE.md si
-   hubo cambios visibles para el usuario.
-3. Commit + push a `main` (Android y backend si tocaste los dos).
-4. Sincroniza al worktree si trabajaste fuera de él.
+**Flujo de CADA cambio** (detalle en `KMP_MIGRATION.md` → "Cómo se trabaja"):
+1. **Compila + tests** — `JAVA_HOME` al JBR de Android Studio (Java 21):
+   `.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug`.
+   **Tests verdes antes de commit, SIEMPRE.** Si un test se rompe, se arregla
+   primero; no se mergea en rojo. Tocar `shared/commonMain` recompila con
+   SKIE (1ª vez ~40 min; luego incremental).
+2. **Instala** en el móvil para ver el cambio:
+   `adb install -r app\build\outputs\apk\debug\app-debug.apk` (adb en
+   `%LOCALAPPDATA%\Android\Sdk\platform-tools`). Si tocaste el widget, quítalo
+   y re-añádelo en el launcher.
+3. **Commit + push a `main`** (backend también si lo tocaste; Railway
+   redespliega solo). Mensaje descriptivo.
+4. **Actualiza** `📍 ESTADO ACTUAL` + `Próximo paso` de `KMP_MIGRATION.md` y la
+   **Bitácora** de este `CLAUDE.md`.
 
-**Protocolo de edición** (lo que funcionó bien):
-1. Antes de editar un archivo, léelo con Read para no asumir su contenido.
-2. Si el cambio toca backend Y Android, empieza siempre por el backend
-   (compilar back → reiniciar → luego tocar Android).
-3. Cuando el usuario pega un error de compilación, lee la línea exacta
-   antes de proponer el fix.
-4. Aplica los cambios directamente (Edit/Write) — el usuario aprecia no
-   tener que copiar snippets manualmente.
-5. Al terminar un bloque de cambios, haz commit + push de ambos repos.
+**Protocolo de edición**:
+- Antes de editar un archivo, léelo (Read) — no asumas su contenido.
+- Si tocas backend Y Android, empieza por el backend.
+- Aplica los cambios directamente (Edit/Write), no pegues snippets a mano.
+- **NO edites ficheros Gradle mientras hay un build corriendo** (desincroniza
+  el catálogo de versiones → build roto).
 
 ## Cómo trabaja el usuario
 
