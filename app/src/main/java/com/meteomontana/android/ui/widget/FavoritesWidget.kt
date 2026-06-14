@@ -63,11 +63,8 @@ import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.atan2
-import kotlin.math.cos
+import com.meteomontana.android.domain.util.Geo
 import kotlin.math.roundToInt
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 /**
  * Widget "Favoritas hoy" — diseño de tarjetas.
@@ -175,7 +172,7 @@ private suspend fun loadWidgetState(context: Context): WidgetState {
                 style = cat?.style,
                 rock = cat?.rockType ?: fav.rockType,
                 distanceKm = if (loc != null && cat != null)
-                    haversineKm(loc.lat, loc.lon, cat.lat, cat.lon).roundToInt()
+                    Geo.haversineKm(loc.lat, loc.lon, cat.lat, cat.lon).roundToInt()
                 else null
             )
         }.sortedByDescending { it.score }
@@ -190,16 +187,6 @@ private suspend fun loadWidgetState(context: Context): WidgetState {
     val cached = prefs.getString(KEY_STATE, null)
         ?.let { runCatching { json.decodeFromString<WidgetState>(it) }.getOrNull() }
     return cached ?: WidgetState(signedOut = true)
-}
-
-private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-    val r = 6371.0
-    val dLat = Math.toRadians(lat2 - lat1)
-    val dLon = Math.toRadians(lon2 - lon1)
-    val a = sin(dLat / 2) * sin(dLat / 2) +
-            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-            sin(dLon / 2) * sin(dLon / 2)
-    return 2 * r * atan2(sqrt(a), sqrt(1 - a))
 }
 
 /** "42 KM · BOULDER · CALIZA" — solo con las partes que existan. */

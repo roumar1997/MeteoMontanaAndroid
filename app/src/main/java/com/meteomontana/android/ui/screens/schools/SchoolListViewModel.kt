@@ -18,10 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+import com.meteomontana.android.domain.util.Geo
 
 enum class StyleFilter(val label: String, val apiValue: String?) {
     All("Todos", null),
@@ -205,7 +202,7 @@ class SchoolListViewModel @Inject constructor(
             var list = allSchools.asSequence()
                 .filter { f.style.apiValue == null || f.style.apiValue.equals(it.style, ignoreCase = true) }
                 .filter { f.rockTypes.isEmpty() || f.rockTypes.any { r -> r.equals(it.rockType, ignoreCase = true) } }
-                .filter { f.maxDistanceKm == null || haversineKm(userLat, userLon, it.lat, it.lon) <= f.maxDistanceKm }
+                .filter { f.maxDistanceKm == null || Geo.haversineKm(userLat, userLon, it.lat, it.lon) <= f.maxDistanceKm }
                 .toList()
             list = filterQuery(list, f.query)
             if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
@@ -231,7 +228,7 @@ class SchoolListViewModel @Inject constructor(
         f: SchoolFilters,
         scores: Map<String, com.meteomontana.android.domain.model.SchoolScore>
     ): List<School> = when (f.sortBy) {
-        SortBy.Distance -> list.sortedBy { haversineKm(userLat, userLon, it.lat, it.lon) }
+        SortBy.Distance -> list.sortedBy { Geo.haversineKm(userLat, userLon, it.lat, it.lon) }
         SortBy.Score    -> list.sortedByDescending { scores[it.id]?.todayScore ?: -1 }
     }
 
@@ -255,17 +252,7 @@ class SchoolListViewModel @Inject constructor(
 
     /** Distancia entre el usuario y una escuela en km (Haversine). */
     fun distanceTo(schoolLat: Double, schoolLon: Double): Double =
-        haversineKm(userLat, userLon, schoolLat, schoolLon)
-
-    private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(dLon / 2) * sin(dLon / 2)
-        return 2 * r * atan2(sqrt(a), sqrt(1 - a))
-    }
+        Geo.haversineKm(userLat, userLon, schoolLat, schoolLon)
 
     private fun filterQuery(list: List<School>, q: String): List<School> {
         val needle = q.trim().lowercase()

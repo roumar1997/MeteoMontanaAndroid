@@ -1,33 +1,20 @@
 package com.meteomontana.android.geo
 
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+import com.meteomontana.android.domain.util.Geo
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Tests para la fórmula de Haversine.
- *
- * La función está duplicada en `SchoolListViewModel` y `SchoolsMapPanel`.
- * Tras la Fase 1 del refactor pasará a `domain/util/Geo.kt` y estos tests
- * apuntarán ahí.
- *
- * Mientras tanto, replicamos la fórmula aquí en formato puro para que el
- * test exista YA como red de seguridad para el refactor.
+ * Tests de la fórmula de Haversine. Ahora apuntan a la implementación
+ * compartida `domain/util/Geo.kt` (KMP `commonMain`, reutilizable por iOS),
+ * que unificó las 3 copias que había en `SchoolListViewModel`,
+ * `SchoolsMapPanel` y `FavoritesWidget`. Eran la red de seguridad de ese
+ * refactor: si `Geo` se desviara, estos tests se ponen rojos.
  */
 class HaversineTest {
 
-    private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(dLon / 2) * sin(dLon / 2)
-        return 2 * r * atan2(sqrt(a), sqrt(1 - a))
-    }
+    private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double =
+        Geo.haversineKm(lat1, lon1, lat2, lon2)
 
     @Test fun `distancia entre el mismo punto es cero`() {
         val d = haversineKm(40.4168, -3.7038, 40.4168, -3.7038)
