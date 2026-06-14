@@ -19,6 +19,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Ficheros temporales (p. ej. mensajes de commit COMMIT_MSG.tmp)
+*.tmp
+
 # Keystore (firmas de release)
 *.jks
 *.keystore
