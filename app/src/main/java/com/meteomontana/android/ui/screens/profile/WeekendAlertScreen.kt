@@ -77,7 +77,7 @@ data class WeekendAlertUiState(
 class WeekendAlertViewModel @Inject constructor(
     private val profileApi: KtorProfileApi,
     private val cachedSchools: CachedSchoolsRepository,
-    private val locationProvider: com.meteomontana.android.data.location.LocationProvider
+    private val locationProvider: com.meteomontana.android.domain.port.LocationProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WeekendAlertUiState())

@@ -50,4 +50,10 @@ object LocalModule {
     fun provideCatalogEtagStore(@ApplicationContext ctx: Context):
         com.meteomontana.android.data.local.CatalogEtagStore =
         com.meteomontana.android.data.local.CatalogEtagStore(ctx)
+
+    // LocationProvider: interfaz en shared/commonMain, impl Android (FusedLocation).
+    @Provides @Singleton
+    fun provideLocationProvider(
+        impl: com.meteomontana.android.data.location.AndroidLocationProvider
+    ): com.meteomontana.android.domain.port.LocationProvider = impl
 }

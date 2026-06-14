@@ -1,8 +1,8 @@
 package com.meteomontana.android.schools
 
 import app.cash.turbine.test
-import com.meteomontana.android.data.location.LocationProvider
-import com.meteomontana.android.data.location.UserLocation
+import com.meteomontana.android.domain.port.LocationProvider
+import com.meteomontana.android.domain.model.UserLocation
 import com.meteomontana.android.data.saved.CachedSchoolsRepository
 import com.meteomontana.android.data.saved.SavedSchoolRepository
 import com.meteomontana.android.domain.model.FavoriteSchool

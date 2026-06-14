@@ -6,8 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.location.LocationProvider
-import com.meteomontana.android.data.location.UserLocation
+import com.meteomontana.android.domain.port.LocationProvider
+import com.meteomontana.android.domain.model.UserLocation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

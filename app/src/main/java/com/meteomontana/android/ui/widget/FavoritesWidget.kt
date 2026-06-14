@@ -38,7 +38,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.meteomontana.android.R
-import com.meteomontana.android.data.location.LocationProvider
+import com.meteomontana.android.domain.port.LocationProvider
 import com.meteomontana.android.data.saved.CachedSchoolsRepository
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase

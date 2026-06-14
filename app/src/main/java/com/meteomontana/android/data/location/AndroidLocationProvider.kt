@@ -7,26 +7,30 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.meteomontana.android.domain.model.UserLocation
+import com.meteomontana.android.domain.port.LocationProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
-import javax.inject.Singleton
 
-data class UserLocation(val lat: Double, val lon: Double)
-
-@Singleton
-class LocationProvider @Inject constructor(
+/**
+ * Implementación Android de [LocationProvider] (interfaz en shared/commonMain)
+ * usando FusedLocation de Google Play Services. iOS tendrá la suya con
+ * CLLocationManager. El scope (singleton) lo da el @Provides de LocalModule.
+ */
+class AndroidLocationProvider @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : LocationProvider {
+
     private val fused = LocationServices.getFusedLocationProviderClient(context)
 
-    fun hasPermission(): Boolean =
+    override fun hasPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED
 
-    /** Devuelve la última ubicación conocida o null si no hay/sin permiso. */
+    /** Última ubicación conocida o null si no hay/sin permiso. */
     @SuppressLint("MissingPermission")
-    suspend fun current(): UserLocation? {
+    override suspend fun current(): UserLocation? {
         if (!hasPermission()) return null
         return try {
             // currentLocation devuelve null si nunca ha habido ubicación; intentamos getLastLocation

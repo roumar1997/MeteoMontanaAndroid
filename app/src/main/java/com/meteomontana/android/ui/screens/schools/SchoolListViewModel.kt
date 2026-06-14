@@ -3,8 +3,8 @@ import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.location.LocationProvider
-import com.meteomontana.android.data.location.UserLocation
+import com.meteomontana.android.domain.port.LocationProvider
+import com.meteomontana.android.domain.model.UserLocation
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase

@@ -564,7 +564,7 @@ private fun placeMarkers(
     map: MapLibreMap,
     blocks: List<Block>,
     ghost: com.meteomontana.android.ui.screens.detail.CorrectionGhost? = null,
-    userLoc: com.meteomontana.android.data.location.UserLocation? = null,
+    userLoc: com.meteomontana.android.domain.model.UserLocation? = null,
     onBlockTap: (Block) -> Unit
 ) {
     map.clear()
