@@ -131,16 +131,22 @@ Que NADA de lógica de negocio quede Android-only. Cada paso: `assembleDebug`
 + `:app:testDebugUnitTest` verdes antes de commit.
 
 - [x] **A0** — `Geo.haversineKm` unificado en `commonMain` (2026-06-13).
-- [ ] **A1** — `LocationProvider` → interfaz en `commonMain/domain/port/` +
-  impl androidMain (FusedLocation). `iosMain` queda como stub `TODO`.
-  Reconectar `SchoolListViewModel`, mapas y widget a la interfaz.
-- [ ] **A2** — `GetFavoritesWidgetDataUseCase` en `commonMain`: extrae el
-  ensamblado de `loadWidgetState` (orden por score, distancia, qué mostrar)
-  a un use case que devuelva un modelo neutro. El widget Glance solo renderiza.
-- [ ] **A3** — Barrido: `grep` de `android.`/`java.` dentro de `commonMain` y
-  de los use cases. Mover a androidMain/iosMain o abstraer lo que se escape.
-- [ ] **A4** — Verificar que no queda Room en lógica compartida (todo
-  SQLDelight en `commonMain`).
+- [x] **A1** — `LocationProvider` → interfaz en `commonMain/domain/port/` +
+  modelo `UserLocation` en `commonMain/domain/model/`. Impl
+  `AndroidLocationProvider` (FusedLocation) en `app/data/location/`, enlazada
+  por `@Provides` en `LocalModule`. iOS implementará la interfaz en Fase B.
+  7 consumidores reconectados a la interfaz. (2026-06-13)
+- [x] **A2** — `GetFavoritesWidgetDataUseCase` + `FavoriteWidgetItem` en
+  `commonMain`: el ensamblado de datos del widget (favoritas + score +
+  estilo/roca + distancia + orden) salió de `loadWidgetState`. El widget
+  Glance solo mapea y renderiza. (2026-06-13)
+- [x] **A3** — Barrido de `commonMain`: cero `import android./androidx./java./
+  javax.` y cero usos inline (solo aparecen en comentarios). Sin fugas. (2026-06-13)
+- [x] **A4** — Sin `androidx.room` en `commonMain`; caché/offline/stats usan
+  SQLDelight. Lógica compartida limpia. (2026-06-13)
+
+**✅ FASE A COMPLETA (2026-06-13)** — el 100% de la lógica de negocio está en
+`commonMain` y compila sin dependencias de plataforma. Lista para iOS.
 
 ### FASE B — Escribir `iosMain` en Kotlin (Windows, "a ciegas", NO compila aquí) ⚠️ media confianza
 
