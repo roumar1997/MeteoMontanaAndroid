@@ -98,6 +98,17 @@ object UseCasesModule {
     fun provideGetForecastByLocationUseCase(repo: ForecastRepository) =
         GetForecastByLocationUseCase(repo)
 
+    // Widget Favoritas — la lógica de datos vive en shared/commonMain.
+    @Provides @Singleton
+    fun provideGetFavoritesWidgetDataUseCase(
+        getMyFavorites: GetMyFavoritesUseCase,
+        getTodayScores: GetTodayScoresUseCase,
+        cachedSchools: com.meteomontana.android.data.saved.CachedSchoolsRepository,
+        locationProvider: com.meteomontana.android.domain.port.LocationProvider
+    ) = com.meteomontana.android.domain.usecase.widget.GetFavoritesWidgetDataUseCase(
+        getMyFavorites, getTodayScores, cachedSchools, locationProvider
+    )
+
     // Blocks
     @Provides @Singleton
     fun provideGetBlocksUseCase(repo: BlockRepository) = GetBlocksUseCase(repo)

@@ -38,10 +38,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.meteomontana.android.R
-import com.meteomontana.android.domain.port.LocationProvider
-import com.meteomontana.android.data.saved.CachedSchoolsRepository
-import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
-import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
+import com.meteomontana.android.domain.usecase.widget.GetFavoritesWidgetDataUseCase
 import com.meteomontana.android.ui.theme.Ink
 import com.meteomontana.android.ui.theme.Ink2
 import com.meteomontana.android.ui.theme.Ink2Dark
@@ -63,8 +60,6 @@ import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.meteomontana.android.domain.util.Geo
-import kotlin.math.roundToInt
 
 /**
  * Widget "Favoritas hoy" — diseño de tarjetas.
@@ -132,16 +127,11 @@ data class WidgetState(
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface WidgetEntryPoint {
-    fun getMyFavorites(): GetMyFavoritesUseCase
-    fun getTodayScores(): GetTodayScoresUseCase
-    fun cachedSchools(): CachedSchoolsRepository
-    fun locationProvider(): LocationProvider
+    fun getFavoritesWidgetData(): GetFavoritesWidgetDataUseCase
 }
 
 private const val PREFS = "favorites_widget"
 private const val KEY_STATE = "state"
-private const val MAX_SCHOOLS = 8
-private const val HEATMAP_CELLS = 12
 private val json = Json { ignoreUnknownKeys = true }
 
 private suspend fun loadWidgetState(context: Context): WidgetState {
@@ -150,32 +140,16 @@ private suspend fun loadWidgetState(context: Context): WidgetState {
     val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     val fresh = runCatching {
-        val favorites = entryPoint.getMyFavorites().invoke().take(MAX_SCHOOLS)
-        if (favorites.isEmpty()) return@runCatching WidgetState(updatedAt = System.currentTimeMillis())
-        val scores = entryPoint.getTodayScores().invoke(favorites.map { it.id })
-            .associateBy { it.id }
-        // Contexto local, sin red: catálogo cacheado (estilo/roca/coords) y
-        // última ubicación conocida. Si cualquiera falta, esa parte se omite.
-        val catalog = runCatching { entryPoint.cachedSchools().load() }
-            .getOrNull().orEmpty().associateBy { it.id }
-        val loc = runCatching { entryPoint.locationProvider().current() }.getOrNull()
-
-        val schools = favorites.map { fav ->
-            val s = scores[fav.id]
-            val cat = catalog[fav.id]
+        // Toda la lógica de datos vive en shared/commonMain (reutilizable por
+        // iOS). Aquí solo mapeamos al modelo serializable del widget y cacheamos.
+        val items = entryPoint.getFavoritesWidgetData().invoke()
+        if (items.isEmpty()) return@runCatching WidgetState(updatedAt = System.currentTimeMillis())
+        val schools = items.map { i ->
             WidgetSchool(
-                id = fav.id,
-                name = fav.name,
-                score = s?.todayScore ?: -1,
-                dryRock = s?.dryRock ?: true,
-                hours = s?.hourlyScores?.take(HEATMAP_CELLS).orEmpty(),
-                style = cat?.style,
-                rock = cat?.rockType ?: fav.rockType,
-                distanceKm = if (loc != null && cat != null)
-                    Geo.haversineKm(loc.lat, loc.lon, cat.lat, cat.lon).roundToInt()
-                else null
+                id = i.id, name = i.name, score = i.score, dryRock = i.dryRock,
+                hours = i.hours, style = i.style, rock = i.rock, distanceKm = i.distanceKm
             )
-        }.sortedByDescending { it.score }
+        }
         WidgetState(schools = schools, updatedAt = System.currentTimeMillis())
     }.getOrNull()
 
