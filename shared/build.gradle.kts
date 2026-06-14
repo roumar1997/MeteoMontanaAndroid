@@ -3,6 +3,10 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.sqldelight)
+    // SKIE: mejora la API Swift del framework (StateFlow -> AsyncSequence,
+    // suspend -> async throws). Solo actúa al enlazar el framework iOS (Mac);
+    // inerte para el build Android.
+    alias(libs.plugins.skie)
 }
 
 sqldelight {
@@ -22,10 +26,14 @@ kotlin {
         }
     }
 
-    // iOS targets — compilación requiere Mac+Xcode; el código commonMain compila en Windows
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
+    // iOS targets — compilación requiere Mac+Xcode; el código commonMain compila en Windows.
+    // Declaramos el framework "Shared" que consumirá iosApp/ desde Xcode.
+    listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {
@@ -47,8 +55,8 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.native.driver)
+            implementation(libs.ktor.client.darwin)   // motor HTTP de iOS
         }
-        // iosMain.dependencies { ktor-client-darwin } — cuando llegue Mac
     }
 }
 

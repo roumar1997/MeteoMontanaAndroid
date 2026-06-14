@@ -200,6 +200,58 @@ pero TENDRÁN errores que arreglar en E2/E3 — es normal y esperado. Fase D son
 
 ---
 
+## 🍏 Guía de implementación iOS (decisiones técnicas, 2026)
+
+Investigado y decidido en la sesión 2026-06-13. Esto es lo que hace que el
+tiempo de Mac sea mínimo.
+
+### Stack
+- **SKIE** (Touchlab, plugin Gradle en `shared`, v0.10.12): expone `StateFlow`
+  como `AsyncSequence` y `suspend` como `async throws` en Swift. Ya aplicado +
+  framework `Shared` (estático) declarado en `shared/build.gradle.kts`.
+- **Motor HTTP iOS**: `ktor-client-darwin` en `iosMain` (ya añadido).
+- **DI**: **factory manual en Kotlin** — `di/IosDependencyContainer` (commonMain)
+  construye HttpClient + apis + repos + use cases. Swift solo instancia el
+  contenedor. NO usamos Koin (evitamos Hilt+Koin a la vez). Compila para
+  androidTarget → verificable en Windows.
+- **Firebase iOS**: por **SPM** (no CocoaPods, que pasa a solo-lectura dic 2026),
+  declarado en `iosApp/project.yml`. Swizzling desactivado
+  (`FirebaseAppDelegateProxyEnabled=false`) por ser SwiftUI.
+- **Proyecto Xcode**: vía **XcodeGen** (`iosApp/project.yml`) → `xcodegen
+  generate` en el Mac crea el `.xcodeproj` (no se versiona el binario).
+- **Framework**: build phase de Gradle `:shared:embedAndSignAppleFrameworkForXcode`.
+
+### El problema clave: `suspend` en los ports (Swift→Kotlin)
+SKIE deja a Swift **llamar** `suspend` de Kotlin como `async` sin problema. Pero
+**implementar** un `suspend` de Kotlin *desde* Swift (que es lo que hacen los
+ports `LocationProvider`, `FileReader`, `PhotoUploader`, `AuthService`,
+`ChatService`) NO es directo. Solución recomendada = **patrón bridge**:
+1. Swift implementa un protocolo simple **con callbacks** (no suspend), p. ej.
+   `IosLocationBridge { func current(_ cb: @escaping (UserLocation?) -> Void) }`.
+2. En `iosMain`, una clase Kotlin implementa la interfaz `suspend` del port
+   envolviendo el bridge Swift con `suspendCancellableCoroutine`.
+3. El bridge Swift se inyecta al `IosDependencyContainer`.
+→ Hacer esto **con el Mac** (hay que verificar conformance/ABI). Por eso en
+Windows NO escribimos estos impls a ciegas: irían mal seguro.
+
+### Lo que SÍ está hecho en Windows (Fase C parcial)
+- `iosApp/project.yml` (XcodeGen + Firebase SPM + framework).
+- `iosApp/iosApp/MeteoMontanaApp.swift` (entry + FirebaseApp.configure()).
+- `iosApp/iosApp/DI/AppDependencies.swift` (envuelve el contenedor Kotlin).
+- `iosApp/iosApp/Screens/SchoolListView.swift` (pantalla MVP de referencia:
+  framework → DI → use case async → SwiftUI). Plantilla para el resto.
+- `di/IosDependencyContainer` (Kotlin, commonMain) — grafo público MVP.
+
+### Pasos en el Mac (Fase E, en orden)
+1. `brew install xcodegen`; en `iosApp/`: `xcodegen generate`.
+2. Abrir en Xcode; resolver paquetes SPM (Firebase).
+3. Bajar `GoogleService-Info.plist` (Fase D) al target.
+4. Build: arreglar firmas SKIE en `SchoolListView` (async, opcionales boxed).
+5. Implementar los ports con el patrón bridge (location, files, firebase).
+6. Replicar pantallas restantes a partir de la plantilla.
+
+---
+
 ## Por qué KMP y no otra opción
 
 Auditoría real del front actual:

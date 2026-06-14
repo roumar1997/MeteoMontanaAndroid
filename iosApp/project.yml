@@ -1,0 +1,57 @@
+# Especificación XcodeGen del proyecto iOS.
+# En el Mac: `brew install xcodegen` y `xcodegen generate` en esta carpeta
+# genera `MeteoMontana.xcodeproj` de forma reproducible (no hay que versionar
+# el .xcodeproj binario).
+#
+# ⚠️ Escrito sin Mac (Fase C del plan pre-Mac): revisar versiones de Firebase
+# y la ruta del framework al primer `xcodegen generate` + build en Xcode.
+name: MeteoMontana
+options:
+  bundleIdPrefix: com.meteomontana
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "11.0.0"
+
+targets:
+  MeteoMontana:
+    type: application
+    platform: iOS
+    sources:
+      - path: iosApp
+    info:
+      path: iosApp/Info.plist
+      properties:
+        CFBundleDisplayName: MeteoMontana
+        UILaunchScreen: {}
+        # SwiftUI + Firebase: desactivar swizzling del AppDelegate.
+        FirebaseAppDelegateProxyEnabled: false
+        NSLocationWhenInUseUsageDescription: >-
+          Usamos tu ubicación para ordenar las escuelas por cercanía y
+          mostrar tu posición en el mapa.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.meteomontana.ios
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        # El framework KMP se compila y embebe con una build phase de Gradle
+        # (preBuildScripts), no como dependencia SPM.
+        FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS: $(inherited) -framework Shared
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseStorage
+    preBuildScripts:
+      - name: "Compilar y embeber el framework KMP (Shared)"
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode
