@@ -115,6 +115,75 @@
 
 ---
 
+## 🎯 PLAN DE ATAQUE PRE-MAC (orden exacto)
+
+> Objetivo: que cuando llegue el Mac, lo único que quede sea **compilar,
+> ajustar visualmente y publicar** — no empezar. Todo lo de abajo se hace en
+> Windows. Marca `[x]` al cerrar cada paso.
+>
+> Estado real (2026-06-13): `commonMain` = domain+data completos.
+> `androidMain` = 6 impls de plataforma. `iosMain` = casi vacío.
+> `iosApp/` = no existe.
+
+### FASE A — Cerrar la lógica compartida (Windows, 100% verificable en Android) ✅ alta confianza
+
+Que NADA de lógica de negocio quede Android-only. Cada paso: `assembleDebug`
++ `:app:testDebugUnitTest` verdes antes de commit.
+
+- [x] **A0** — `Geo.haversineKm` unificado en `commonMain` (2026-06-13).
+- [ ] **A1** — `LocationProvider` → interfaz en `commonMain/domain/port/` +
+  impl androidMain (FusedLocation). `iosMain` queda como stub `TODO`.
+  Reconectar `SchoolListViewModel`, mapas y widget a la interfaz.
+- [ ] **A2** — `GetFavoritesWidgetDataUseCase` en `commonMain`: extrae el
+  ensamblado de `loadWidgetState` (orden por score, distancia, qué mostrar)
+  a un use case que devuelva un modelo neutro. El widget Glance solo renderiza.
+- [ ] **A3** — Barrido: `grep` de `android.`/`java.` dentro de `commonMain` y
+  de los use cases. Mover a androidMain/iosMain o abstraer lo que se escape.
+- [ ] **A4** — Verificar que no queda Room en lógica compartida (todo
+  SQLDelight en `commonMain`).
+
+### FASE B — Escribir `iosMain` en Kotlin (Windows, "a ciegas", NO compila aquí) ⚠️ media confianza
+
+Espejo de los 6 ficheros de `androidMain`, con SDKs iOS. Se escriben y quedan
+en git; los errores reales se ven en el Mac (Fase E2).
+
+- [ ] **B1** — `IosLocationProvider` (CLLocationManager).
+- [ ] **B2** — `FirebaseAuthService`, `FirebaseStoragePhotoUploader`,
+  `FirebaseChatService` (Firebase iOS SDK).
+- [ ] **B3** — `IosNetworkMonitor` (NWPathMonitor), `IosFileReader`
+  (UIImage), `DatabaseFactory` iOS (NativeSqliteDriver).
+
+### FASE C — Escribir la app SwiftUI `iosApp/` (Windows, "a ciegas") ⚠️ media confianza
+
+- [ ] **C1** — Estructura: carpetas, `Info.plist`, `MeteoMontanaApp.swift`.
+- [ ] **C2** — DI iOS (`AppDependencies.swift`, manual o Koin) instanciando
+  repos/use cases del `shared`.
+- [ ] **C3** — Pantallas MVP espejo de las Composables: Login, Lista de
+  escuelas, Detalle (forecast + heatmap + franja de roca), Mapa.
+- [ ] **C4** — Resto: notas, diario, perfil, proponer parking/piedra, chat,
+  admin. Cada `.swift` con `#Preview` y datos falsos.
+
+### FASE D — Lo que haces TÚ en Windows (navegador, 10 min)
+
+- [ ] **D1** — Registrar app iOS en Firebase `climbingteams` (Add app → iOS →
+  bundle id `com.meteomontana.ios`) y meter `GoogleService-Info.plist` al repo.
+
+### FASE E — SOLO con Mac (lo mínimo posible)
+
+- [ ] **E1** — Generar framework: `./gradlew linkReleaseFrameworkIosSimulatorArm64`.
+- [ ] **E2** — Arreglar errores de compilación de `iosMain` (los que Windows
+  no pudo ver).
+- [ ] **E3** — Abrir Xcode, build SwiftUI, ajustes visuales, simulador.
+- [ ] **E4** — Cuenta Apple Developer ($99/año), provisioning, Sign in with Apple.
+- [ ] **E5** — TestFlight → beta → App Store.
+
+**Reparto honesto de confianza:** Fase A es oro (verificable, además mejora el
+Android). Fases B y C se escriben a ciegas: ahorran muchísimo tiempo de Mac,
+pero TENDRÁN errores que arreglar en E2/E3 — es normal y esperado. Fase D son
+10 min tuyos. Con A–D hechas, el Mac es "rematar", no "arrancar".
+
+---
+
 ## Por qué KMP y no otra opción
 
 Auditoría real del front actual:
@@ -918,6 +987,25 @@ estos pasos:
   - Impl iOS: equivalente con `UIImage`.
 - Así `EditProfileViewModel.uploadPhoto(ref: FileRef)` puede vivir en `shared/`.
 
+#### J) Widget de home "Favoritas hoy"
+- **Estado Android**: ✅ Glance (`ui/widget/FavoritesWidget.kt`). Rediseñado a
+  tarjetas: por cada favorita, bloque de score + nombre + "KM · estilo · roca"
+  + heatmap horario. Datos sin red extra: favoritas + scores
+  (`GetMyFavoritesUseCase`, `GetTodayScoresUseCase`, ambos en `shared`) +
+  catálogo cacheado (SQLDelight) para estilo/roca/coords + `LocationProvider`
+  para la distancia (`Geo.haversineKm`, ya en `shared/commonMain`).
+- **Lado iOS**: el widget se reescribe con **WidgetKit** (SwiftUI +
+  `TimelineProvider`) — Glance no tiene equivalente portable. PERO el
+  **ensamblado de datos** (ordenar favoritas por score, calcular distancia,
+  decidir qué mostrar) que hoy vive en `loadWidgetState` dentro de `app/` es
+  lógica de negocio reutilizable.
+- **Refactor recomendado antes del port**: extraer ese ensamblado a un
+  `GetFavoritesWidgetDataUseCase` en `shared/commonMain` que devuelva un
+  modelo neutro (lista de `{id, name, score, dryRock, hours, style, rock,
+  distanceKm}`). Así el widget Android (Glance) y el iOS (WidgetKit) llaman
+  al mismo cálculo y solo cambia el render. Hoy, portar a iOS obligaría a
+  reescribir esa lógica.
+
 ### Cambios de arquitectura recomendados ANTES de portar a iOS
 
 Para que la fase iOS sea rápida y compartamos código de verdad:
@@ -935,6 +1023,11 @@ Para que la fase iOS sea rápida y compartamos código de verdad:
 5. **Extender `FileReader`** con `readImageCompressed()` para mover lógica
    de subida de foto a shared.
 6. **Adoptar Kermit** para logs.
+7. **Mover `LocationProvider` a `shared`** con `expect/actual`: hoy es
+   Android-only en `app/data/location/` (FusedLocation). Debe ir a
+   `shared/commonMain` (interfaz `expect`) + `androidMain` (FusedLocation) +
+   `iosMain` (`CLLocationManager`). Lo consumen `SchoolListViewModel`, los
+   mapas y el widget Favoritas.
 
 Una vez hecho esto, el port a iOS es básicamente: setup proyecto Xcode +
 SwiftUI screens espejo de las Composables + 2 impls (FileReader, NetworkMonitor)
@@ -948,6 +1041,10 @@ SwiftUI screens espejo de las Composables + 2 impls (FileReader, NetworkMonitor)
 
 Estado de los 6 refactors propuestos para poder portar a iOS sin reescribir:
 
+- [x] **Geo/Haversine unificado** (2026-06-13) — `shared/commonMain/domain/util/Geo.kt`
+  (`object Geo.haversineKm`, solo `kotlin.math`, sin `java.lang.Math`). Eliminó las
+  3 copias que había en `SchoolListViewModel`, `SchoolsMapPanel` y `FavoritesWidget`.
+  `HaversineTest` ahora apunta al `Geo` compartido. iOS lo reutiliza tal cual.
 - [x] **Kermit** logging (`co.touchlab:kermit`) — exposed via `api()` desde shared.
 - [x] **kotlinx-serialization** sustituyendo `org.json` en `ForecastJson.kt` y
   `OpenMeteoArchiveClient.kt` (ambos ya en `shared/commonMain`).
