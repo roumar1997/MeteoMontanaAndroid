@@ -26,6 +26,14 @@ targets:
     platform: iOS
     sources:
       - path: iosApp
+    # Entitlements: keychain-access-groups es obligatorio o FirebaseAuth falla
+    # al persistir la sesión en el simulador (-34018). Firmamos ad-hoc (sin
+    # Apple Developer), así que el prefijo de equipo va vacío.
+    entitlements:
+      path: iosApp/MeteoMontana.entitlements
+      properties:
+        keychain-access-groups:
+          - com.meteomontana.ios
     info:
       path: iosApp/Info.plist
       properties:
@@ -57,6 +65,12 @@ targets:
         PRODUCT_NAME: MeteoMontana
         PRODUCT_BUNDLE_IDENTIFIER: com.meteomontana.ios
         SWIFT_VERSION: "5.0"
+        # Firma ad-hoc en el simulador (sin Apple Developer): basta para que el
+        # entitlement keychain-access-groups se aplique y FirebaseAuth persista
+        # la sesión. En dispositivo real habrá que poner DEVELOPMENT_TEAM.
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_REQUIRED: "NO"
         TARGETED_DEVICE_FAMILY: "1,2"
         # El framework KMP se compila y embebe con una build phase de Gradle
         # (preBuildScripts), no como dependencia SPM.

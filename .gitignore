@@ -48,3 +48,5 @@ iosApp/iosApp/GoogleService-Info.plist
 iosApp/MeteoMontana.xcodeproj/
 iosApp/build/
 iosApp/iosApp/Info.plist
+# Generado por XcodeGen desde project.yml (entitlements.properties).
+iosApp/iosApp/MeteoMontana.entitlements
