@@ -18,6 +18,18 @@ enum Cumbre {
     static let rain    = Color(hex: 0x2563C7)
     static let wind    = Color(hex: 0x4A7C3F)
 
+    /// Etiqueta del score — espejo de `scoreLabel()` de SchoolListItem.kt.
+    static func scoreLabel(_ s: Int?) -> String {
+        guard let s else { return "" }
+        switch s {
+        case 85...:   return "EXCELENTE"
+        case 70..<85: return "MUY BUENO"
+        case 55..<70: return "BUENO"
+        case 40..<55: return "REGULAR"
+        default:      return "MALO"
+        }
+    }
+
     /// Color por score — espejo exacto de `scoreColor()` de Color.kt.
     static func score(_ s: Int) -> Color {
         switch s {
