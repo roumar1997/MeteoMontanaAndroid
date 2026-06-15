@@ -18,12 +18,16 @@ final class SchoolListViewModel: ObservableObject {
     @Published var style: String?
     @Published var rock: String?
     @Published var favoriteIds: Set<String> = []
+    @Published var userLat: Double?
+    @Published var userLon: Double?
 
     private let getSchools: GetSchoolsUseCase
     private let getTodayScores: GetTodayScoresUseCase
     private let getMyFavorites: GetMyFavoritesUseCase
     private let addFavorite: AddFavoriteUseCase
     private let removeFavorite: RemoveFavoriteUseCase
+    private let locationBridge = AppDependencies.shared.locationBridge
+    private let locationProvider = AppDependencies.shared.container.locationProvider
 
     init(
         getSchools: GetSchoolsUseCase = AppDependencies.shared.container.getSchools,
@@ -60,6 +64,7 @@ final class SchoolListViewModel: ObservableObject {
                 region: nil, style: nil, rockType: nil, lat: nil, lon: nil, radioKm: nil
             )
             loading = false
+            await loadLocation()
             await loadFavorites()
             await loadScores()
         } catch {
@@ -68,6 +73,21 @@ final class SchoolListViewModel: ObservableObject {
     }
 
     func refresh() async { await load() }
+
+    private func loadLocation() async {
+        guard locationBridge.hasPermission() else { return }
+        if let loc = try? await locationProvider?.current() {
+            userLat = loc.lat; userLon = loc.lon
+        }
+    }
+
+    /// Distancia en km del usuario a la escuela (Haversine compartido). nil si
+    /// no hay ubicación.
+    func distanceKm(_ school: School) -> Int? {
+        guard let la = userLat, let lo = userLon else { return nil }
+        let km = Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: school.lat, lon2: school.lon)
+        return Int(km.rounded())
+    }
 
     private func loadFavorites() async {
         // Requiere sesión (el login es obligatorio al arrancar). Si falla, vacío.
@@ -134,6 +154,7 @@ struct SchoolListView: View {
                                         rank: idx + 1,
                                         school: school,
                                         score: vm.scores[school.id],
+                                        distanceKm: vm.distanceKm(school),
                                         isFavorite: vm.favoriteIds.contains(school.id),
                                         onToggleFavorite: { vm.toggleFavorite(school.id) }
                                     )
@@ -311,6 +332,7 @@ private struct SchoolListItemView: View {
     let rank: Int
     let school: School
     let score: SchoolScore?
+    var distanceKm: Int? = nil
     var isFavorite: Bool = false
     var onToggleFavorite: () -> Void = {}
 
@@ -358,6 +380,7 @@ private struct SchoolListItemView: View {
         var parts: [String] = []
         if let r = school.rockType, !r.isEmpty { parts.append(r.uppercased()) }
         if let reg = school.region, !reg.isEmpty { parts.append(reg) }
+        if let km = distanceKm { parts.append("\(km) KM") }
         return parts.joined(separator: "  ·  ")
     }
 }
