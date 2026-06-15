@@ -6,6 +6,7 @@ import com.meteomontana.android.data.api.KtorNoteApi
 import com.meteomontana.android.data.api.KtorNotificationApi
 import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.KtorSchoolApi
+import com.meteomontana.android.data.api.KtorSocialApi
 import com.meteomontana.android.data.api.buildApiHttpClient
 import com.meteomontana.android.data.repository.KtorFavoritesRepository
 import com.meteomontana.android.data.repository.KtorForecastRepository
@@ -13,6 +14,7 @@ import com.meteomontana.android.data.repository.KtorNoteRepository
 import com.meteomontana.android.data.repository.KtorNotificationsRepository
 import com.meteomontana.android.data.repository.KtorProfileRepository
 import com.meteomontana.android.data.repository.KtorSchoolRepository
+import com.meteomontana.android.data.repository.KtorSocialRepository
 import com.meteomontana.android.data.saved.CachedSchoolsRepository
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.LocationProvider
@@ -28,6 +30,16 @@ import com.meteomontana.android.domain.usecase.notifications.MarkAllNotification
 import com.meteomontana.android.domain.usecase.notifications.MarkNotificationReadUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase
+import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowersUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowingUseCase
+import com.meteomontana.android.domain.usecase.social.GetMyFollowRequestsUseCase
+import com.meteomontana.android.domain.usecase.social.AcceptFollowRequestUseCase
+import com.meteomontana.android.domain.usecase.social.RejectFollowRequestUseCase
+import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
+import com.meteomontana.android.domain.usecase.social.SearchUsersUseCase
+import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
@@ -77,6 +89,7 @@ class IosDependencyContainer(
     private val noteApi = KtorNoteApi(httpClient)
     private val profileApi = KtorProfileApi(httpClient)
     private val notificationApi = KtorNotificationApi(httpClient)
+    private val socialApi = KtorSocialApi(httpClient)
 
     private val schoolRepository = KtorSchoolRepository(schoolApi)
     private val forecastRepository = KtorForecastRepository(forecastApi)
@@ -84,6 +97,7 @@ class IosDependencyContainer(
     private val noteRepository = KtorNoteRepository(noteApi)
     private val profileRepository = KtorProfileRepository(profileApi)
     private val notificationsRepository = KtorNotificationsRepository(notificationApi)
+    private val socialRepository = KtorSocialRepository(socialApi)
 
     // Use cases públicos del MVP (sin auth). Se irán añadiendo más a medida
     // que las pantallas iOS los necesiten.
@@ -114,6 +128,19 @@ class IosDependencyContainer(
     val getMyNotifications = GetMyNotificationsUseCase(notificationsRepository)
     val markNotificationRead = MarkNotificationReadUseCase(notificationsRepository)
     val markAllNotificationsRead = MarkAllNotificationsReadUseCase(notificationsRepository)
+
+    // Social: buscar usuarios, perfil público, seguir/dejar de seguir,
+    // seguidores/seguidos y solicitudes de seguimiento.
+    val searchUsers = SearchUsersUseCase(socialRepository)
+    val getPublicProfile = GetPublicProfileUseCase(socialRepository)
+    val getFollowStatus = GetFollowStatusUseCase(socialRepository)
+    val followUser = FollowUserUseCase(socialRepository)
+    val unfollowUser = UnfollowUserUseCase(socialRepository)
+    val getFollowers = GetFollowersUseCase(socialRepository)
+    val getFollowing = GetFollowingUseCase(socialRepository)
+    val getMyFollowRequests = GetMyFollowRequestsUseCase(socialRepository)
+    val acceptFollowRequest = AcceptFollowRequestUseCase(socialRepository)
+    val rejectFollowRequest = RejectFollowRequestUseCase(socialRepository)
 
     // Caché local del catálogo (stale-while-revalidate): la lista pinta desde
     // aquí al instante y refresca desde red después. Null si no hay BD.
