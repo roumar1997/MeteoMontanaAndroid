@@ -472,6 +472,20 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
   iOS, exponerlo ahí.
 - `xcodegen` en `~/bin/xcodegen`. Si borras un .swift, REGENERA el proyecto
   (`xcodegen generate`) antes de compilar o xcodebuild busca el fichero viejo.
+- **UI iOS clavada a Android (2026-06-15, 2ª tanda)**: `SchoolListView` réplica
+  fiel de SchoolListScreen.kt (fila iconos, header "Escuelas"+count+"+Enviar
+  escuela", banner ☕, buscador, chips ESTILO/ROCA, fila rica: badge tintado +
+  rank + nombre serif + estrella + subtítulo + heatmap 10 celdas + ●SECA/MOJADA).
+  `SchoolDetailView` réplica de ForecastBody.kt (veredicto SÍ/NO, ÍNDICE/100,
+  banda de roca, desglose factores, tiempo actual, 16h con icono WMO≈SFSymbol,
+  8 celdas de condiciones, 7 días, mejor día).
+- **Fuentes bundladas** en `iosApp/iosApp/Fonts/` (Source Serif 4 + JetBrains
+  Mono, registradas en UIAppFonts del project.yml). Helpers `Cumbre.serif()` /
+  `Cumbre.mono()`. La sans del cuerpo es la del sistema (≈Inter). Si añades una
+  pantalla, usa esos helpers para clavar la tipografía.
+- **PENDIENTE iOS para paridad total**: modo oscuro (toggle luna no funciona),
+  mapa de escuela (MapLibre iOS), filtros completos (distancia/favoritos/orden),
+  iconos WMO SVG reales, y todo lo privado (login/ubicación/fotos → ports bridge).
 
 ### Sesión 2026-06-13 (2) — preparación pre-Mac (KMP Fases A/B/C-base)
 
