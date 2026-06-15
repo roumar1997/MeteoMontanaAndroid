@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseCore
+import GoogleSignIn
 import Shared
 
 // ⚠️ Escrito sin Mac (Fase C). Validar firmas generadas por SKIE al primer
@@ -15,6 +16,8 @@ struct MeteoMontanaApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                // Callback del navegador tras el login de Google.
+                .onOpenURL { url in GIDSignIn.sharedInstance.handle(url) }
         }
     }
 }

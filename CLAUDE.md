@@ -429,6 +429,59 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-15 (3) — iOS: bridge AuthService (login Google) + sesión
+
+- **AuthService bridge** (mismo patrón que ubicación):
+  - `shared/src/iosMain/.../data/auth/IosAuthService.kt`: interfaz
+    `IosAuthBridge` (currentUid/Email/DisplayName, currentIdToken(cb),
+    signOut(cb), observeAuthState(cb)) + `IosAuthService` que mantiene el
+    `StateFlow<AuthState>` y traduce callbacks a suspend.
+  - `iosApp/iosApp/DI/AuthBridge.swift`: impl Swift con FirebaseAuth.
+    `signInWithGoogle()` (no es parte del port, lo dispara la UI) usa el SDK
+    **GoogleSignIn** + `GoogleAuthProvider.credential` + `Auth.signIn`.
+  - `project.yml`: paquete SPM `GoogleSignIn-iOS` + `CFBundleURLTypes` con el
+    REVERSED_CLIENT_ID del GoogleService-Info.plist.
+  - `MeteoMontanaApp`: `.onOpenURL { GIDSignIn.sharedInstance.handle($0) }`.
+- **LoginView** (`Screens/LoginView.swift`): pantalla de cuenta. Sin sesión →
+  "CONTINUAR CON GOOGLE"; con sesión → nombre/email + "CERRAR SESIÓN".
+  `SessionStore` observa FirebaseAuth nativo para el gating de UI (robusto, sin
+  depender del mapeo de enums SKIE). Accesible desde el icono "person" de
+  `SchoolListView` (ahora botón → sheet).
+- **`authService` cableado al `IosDependencyContainer`** → el tokenProvider del
+  HttpClient ya manda el ID token; los endpoints autenticados funcionarán en
+  cuanto haya sesión.
+- Build iOS OK (GoogleSignIn resuelto por SPM) + app arranca sin crash con el
+  listener de auth. ⚠️ **Login interactivo NO probado** (requiere tap + cuenta
+  Google real). Rama `claude/ios-location-bridge`.
+
+### Sesión 2026-06-15 (2) — iOS: primer bridge `suspend` (ubicación) + tab Tiempo
+
+- **Hito**: el **patrón bridge** para implementar ports `suspend` de Kotlin
+  desde Swift queda VALIDADO end-to-end con el primero: `LocationProvider`.
+  - `shared/src/iosMain/.../data/location/IosLocationProvider.kt`: define la
+    interfaz `IosLocationBridge` (callbacks, sin suspend) que implementa Swift,
+    y `IosLocationProvider` que la envuelve con `suspendCancellableCoroutine`
+    para cumplir el port `LocationProvider` (suspend). Equivalente iOS del
+    `AndroidLocationProvider` (FusedLocation).
+  - `iosApp/iosApp/DI/LocationBridge.swift`: impl Swift con `CLLocationManager`
+    (NSObject + CLLocationManagerDelegate). `hasPermission()`, `current(cb)` y
+    `requestPermission()`. Conformance Swift→protocolo Kotlin CONFIRMADA
+    (compila + linka + corre en simulador).
+  - `AppDependencies.swift` crea el `LocationBridge` y lo pasa al
+    `IosDependencyContainer` (nuevo param `locationProvider`).
+- **Tab Tiempo cableado**: `WeatherView` reescrito con `WeatherViewModel`
+  (Swift) que usa `bridge.hasPermission()` + `container.locationProvider.current()`
+  (async vía SKIE) + `GetForecastByLocationUseCase` compartido. Estado
+  needPermission con botón "ACTIVAR UBICACIÓN". Verificado en simulador:
+  muestra forecast real en tu ubicación (Madrid en la prueba).
+- **Refactor**: extraído `ForecastBodyView` de `SchoolDetailView.swift`
+  (reutilizado por detalle de escuela y tab Tiempo; `directions` opcional).
+- **Receta para los demás bridges** (FileReader/Auth/Chat/Storage): copiar el
+  par `IosXxxBridge` (Kotlin iosMain) + impl Swift + wire en AppDependencies.
+- Android sigue verde (103 tests, `:app:testDebugUnitTest`). Build iOS OK
+  (`linkDebugFrameworkIosSimulatorArm64` + xcodebuild). Rama
+  `claude/ios-location-bridge`.
+
 ### Sesión 2026-06-15 — 🎉 PRIMERA SESIÓN EN MAC: la app iOS arranca
 
 - **Hito**: la app iOS **compila, instala y arranca en el simulador** mostrando

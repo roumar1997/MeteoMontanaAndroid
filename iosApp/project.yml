@@ -16,6 +16,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "8.0.0"
 
 targets:
   MeteoMontana:
@@ -23,6 +26,14 @@ targets:
     platform: iOS
     sources:
       - path: iosApp
+    # Entitlements: keychain-access-groups es obligatorio o FirebaseAuth falla
+    # al persistir la sesión en el simulador (-34018). Firmamos ad-hoc (sin
+    # Apple Developer), así que el prefijo de equipo va vacío.
+    entitlements:
+      path: iosApp/MeteoMontana.entitlements
+      properties:
+        keychain-access-groups:
+          - com.meteomontana.ios
     info:
       path: iosApp/Info.plist
       properties:
@@ -41,6 +52,11 @@ targets:
         # Permite detectar si Google Maps está instalado (botón CÓMO LLEGAR).
         LSApplicationQueriesSchemes:
           - comgooglemaps
+        # URL scheme para el callback de Google Sign-In. Es el REVERSED_CLIENT_ID
+        # de GoogleService-Info.plist (proyecto Firebase climbingteams).
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - com.googleusercontent.apps.977545428920-i3vcsfvn6fpaos56h0se5tksb7p0mrvi
         NSLocationWhenInUseUsageDescription: >-
           Usamos tu ubicación para ordenar las escuelas por cercanía y
           mostrar tu posición en el mapa.
@@ -49,6 +65,12 @@ targets:
         PRODUCT_NAME: MeteoMontana
         PRODUCT_BUNDLE_IDENTIFIER: com.meteomontana.ios
         SWIFT_VERSION: "5.0"
+        # Firma ad-hoc en el simulador (sin Apple Developer): basta para que el
+        # entitlement keychain-access-groups se aplique y FirebaseAuth persista
+        # la sesión. En dispositivo real habrá que poner DEVELOPMENT_TEAM.
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_REQUIRED: "NO"
         TARGETED_DEVICE_FAMILY: "1,2"
         # El framework KMP se compila y embebe con una build phase de Gradle
         # (preBuildScripts), no como dependencia SPM.
@@ -63,6 +85,8 @@ targets:
         product: FirebaseFirestore
       - package: Firebase
         product: FirebaseStorage
+      - package: GoogleSignIn
+        product: GoogleSignIn
     preBuildScripts:
       - name: "Compilar y embeber el framework KMP (Shared)"
         basedOnDependencyAnalysis: false

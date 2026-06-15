@@ -38,32 +38,52 @@ struct SchoolDetailView: View {
                 ContentUnavailableView("Sin previsión", systemImage: "cloud.slash", description: Text(err))
                     .padding(.top, 60)
             } else if let f = vm.forecast {
-                VStack(alignment: .leading, spacing: 0) {
-                    HeroSection(forecast: f)
-                    DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
-                        .padding(.horizontal, 16).padding(.bottom, 8)
-                    RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)
-                    HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
-                    FactorsAccordion(current: f.current, expanded: $factorsExpanded)
-                    rule
-                    CurrentWeather(current: f.current)
-                    rule
-                    SectionTitle("PRÓXIMAS 16 HORAS")
-                    HoursGrid(hours: upcomingHours(f.hours, 16)).padding(.vertical, 8)
-                    ConditionsGrid(current: f.current)
-                    rule
-                    SectionTitle("PRÓXIMOS 7 DÍAS")
-                    ForEach(Array(f.days.prefix(7).enumerated()), id: \.offset) { _, d in
-                        DayRow(day: d); rule
-                    }
-                    BestDayBar(forecast: f)
-                }
+                ForecastBodyView(
+                    forecast: f,
+                    directions: (lat: school.lat, lon: school.lon, label: school.name),
+                    factorsExpanded: $factorsExpanded
+                )
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(school.name)
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.load(schoolId: school.id) }
+    }
+}
+
+/// Cuerpo del forecast (réplica de ForecastBody.kt). Reutilizado por el detalle
+/// de escuela y por el tab Tiempo (en tu ubicación). `directions` es opcional:
+/// el tab Tiempo no muestra "CÓMO LLEGAR" (no hay escuela destino).
+struct ForecastBodyView: View {
+    let forecast: Forecast
+    var directions: (lat: Double, lon: Double, label: String)? = nil
+    @Binding var factorsExpanded: Bool
+
+    var body: some View {
+        let f = forecast
+        VStack(alignment: .leading, spacing: 0) {
+            HeroSection(forecast: f)
+            if let d = directions {
+                DirectionsButton(lat: d.lat, lon: d.lon, label: d.label)
+                    .padding(.horizontal, 16).padding(.bottom, 8)
+            }
+            RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)
+            HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
+            FactorsAccordion(current: f.current, expanded: $factorsExpanded)
+            rule
+            CurrentWeather(current: f.current)
+            rule
+            SectionTitle("PRÓXIMAS 16 HORAS")
+            HoursGrid(hours: upcomingHours(f.hours, 16)).padding(.vertical, 8)
+            ConditionsGrid(current: f.current)
+            rule
+            SectionTitle("PRÓXIMOS 7 DÍAS")
+            ForEach(Array(f.days.prefix(7).enumerated()), id: \.offset) { _, d in
+                DayRow(day: d); rule
+            }
+            BestDayBar(forecast: f)
+        }
     }
 
     private var rule: some View { Divider().overlay(Cumbre.rule) }

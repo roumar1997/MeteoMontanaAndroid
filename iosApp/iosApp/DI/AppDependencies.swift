@@ -17,9 +17,27 @@ final class AppDependencies {
     static let shared = AppDependencies()
 
     let container: IosDependencyContainer
+    /// Bridge de ubicación (CLLocationManager). Las pantallas lo usan para
+    /// comprobar/pedir permiso; el `LocationProvider` del contenedor lo
+    /// envuelve para los use cases.
+    let locationBridge = LocationBridge()
+    /// Bridge de autenticación (FirebaseAuth + Google Sign-In). `LoginView` lo
+    /// usa para `signInWithGoogle()`; el `AuthService` del contenedor lo
+    /// envuelve para el tokenProvider del HttpClient.
+    let authBridge = AuthBridge()
+    /// El AuthService compartido (StateFlow de sesión + token + signOut).
+    let authService: IosAuthService
 
     private init() {
-        // authService: nil → MVP público (escuelas + forecast, sin auth).
-        container = IosDependencyContainer(baseUrl: AppConfig.apiBaseUrl, authService: nil)
+        // locationProvider: bridge iOS → tab Tiempo en tu ubicación real.
+        // authService: bridge Firebase → endpoints autenticados reciben token.
+        let location = IosLocationProvider(bridge: locationBridge)
+        let auth = IosAuthService(bridge: authBridge)
+        authService = auth
+        container = IosDependencyContainer(
+            baseUrl: AppConfig.apiBaseUrl,
+            authService: auth,
+            locationProvider: location
+        )
     }
 }
