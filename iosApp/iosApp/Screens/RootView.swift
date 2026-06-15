@@ -28,12 +28,17 @@ final class SessionStore: ObservableObject {
 /// No hay modo invitado, igual que en Android.
 struct RootView: View {
     @EnvironmentObject private var session: SessionStore
+    @ObservedObject private var theme = ThemeManager.shared
 
     var body: some View {
-        if session.user == nil {
-            LoginView()
-        } else {
-            MainTabView()
+        Group {
+            if session.user == nil {
+                LoginView()
+            } else {
+                MainTabView()
+            }
         }
+        // Aplica el tema elegido (nil = seguir al sistema).
+        .preferredColorScheme(theme.colorScheme)
     }
 }

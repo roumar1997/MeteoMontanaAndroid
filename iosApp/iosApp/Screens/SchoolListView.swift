@@ -158,6 +158,7 @@ struct SchoolListView: View {
 private struct TopIconsRow: View {
     @State private var showAccount = false
     @State private var showNotifications = false
+    @ObservedObject private var theme = ThemeManager.shared
 
     var body: some View {
         HStack(spacing: 4) {
@@ -165,6 +166,7 @@ private struct TopIconsRow: View {
             // Búsqueda y chat aún no cableados (chat necesita bridge Firestore).
             iconButton("magnifyingglass") {}
             iconButton("bubble.left") {}
+            iconButton(theme.iconName) { theme.cycle() }
             iconButton("bell") { showNotifications = true }
             iconButton("person") { showAccount = true }
         }

@@ -1,22 +1,34 @@
 import SwiftUI
+import UIKit
 
 /// Tokens del tema Cumbre — espejo de `ui/theme/Color.kt` de Android.
 /// Papel, tinta, terracota. Sin gradientes, sin sombras, bordes 1pt color Rule.
+/// Los colores son DINÁMICOS: cambian solos entre claro y oscuro según el
+/// colorScheme efectivo (lo fija `ThemeManager` en la raíz). Paletas idénticas
+/// a las de Color.kt (light + dark).
 enum Cumbre {
-    static let bg      = Color(hex: 0xF5F3EE)
-    static let paper   = Color(hex: 0xEBE7DD)
-    static let paper2  = Color(hex: 0xF0EAD8)
-    static let ink     = Color(hex: 0x1C1C1A)
-    static let ink2    = Color(hex: 0x5A574F)
-    static let ink3    = Color(hex: 0x8A8478)
-    static let rule    = Color(hex: 0xD6D2C4)
-    static let terra   = Color(hex: 0xC2410C)
-    static let terraBg = Color(hex: 0xFDE4D3)
-    static let ok      = Color(hex: 0x3F6B4A)
-    static let warn    = Color(hex: 0xB45309)
-    static let bad     = Color(hex: 0x9A3412)
-    static let rain    = Color(hex: 0x2563C7)
-    static let wind    = Color(hex: 0x4A7C3F)
+    // light, dark — espejo exacto de Color.kt
+    static let bg      = dyn(0xF5F3EE, 0x15140F)
+    static let paper   = dyn(0xEBE7DD, 0x1D1C17)
+    static let paper2  = dyn(0xF0EAD8, 0x211F19)
+    static let ink     = dyn(0x1C1C1A, 0xECE7D8)
+    static let ink2    = dyn(0x5A574F, 0xA8A397)
+    static let ink3    = dyn(0x8A8478, 0x6E6A5F)
+    static let rule    = dyn(0xD6D2C4, 0x2A281F)
+    static let terra   = dyn(0xC2410C, 0xE0612B)
+    static let terraBg = dyn(0xFDE4D3, 0x2A1A10)
+    static let ok      = dyn(0x3F6B4A, 0x7DA068)
+    static let warn    = dyn(0xB45309, 0xD6904A)
+    static let bad     = dyn(0x9A3412, 0xC9543B)
+    static let rain    = dyn(0x2563C7, 0x5B8AE0)
+    static let wind    = dyn(0x4A7C3F, 0x7D8A6A)
+
+    /// Color que se adapta a claro/oscuro automáticamente.
+    static func dyn(_ light: UInt32, _ dark: UInt32) -> Color {
+        Color(UIColor { tc in
+            tc.userInterfaceStyle == .dark ? UIColor(rgb: dark) : UIColor(rgb: light)
+        })
+    }
 
     /// Etiqueta del score — espejo de `scoreLabel()` de SchoolListItem.kt.
     static func scoreLabel(_ s: Int?) -> String {
@@ -78,6 +90,18 @@ extension Color {
             red:   Double((hex >> 16) & 0xFF) / 255,
             green: Double((hex >> 8) & 0xFF) / 255,
             blue:  Double(hex & 0xFF) / 255
+        )
+    }
+}
+
+extension UIColor {
+    /// Construye un UIColor desde un entero hex 0xRRGGBB (para colores dinámicos).
+    convenience init(rgb: UInt32) {
+        self.init(
+            red:   CGFloat((rgb >> 16) & 0xFF) / 255,
+            green: CGFloat((rgb >> 8) & 0xFF) / 255,
+            blue:  CGFloat(rgb & 0xFF) / 255,
+            alpha: 1
         )
     }
 }
