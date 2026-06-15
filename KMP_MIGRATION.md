@@ -250,6 +250,65 @@ pero TENDRÁN errores que arreglar en E2/E3 — es normal y esperado. Fase D son
 
 ---
 
+## ✅ Paridad iOS — checklist exhaustivo (objetivo: idéntica a Android)
+
+> Meta del usuario (2026-06-15): la app iOS debe ser **exactamente igual** que
+> Android — todas las pantallas, mismo diseño Cumbre, mismos datos.
+> Trabajamos desde el código Android. Estado y dependencias de cada bloque:
+
+**HECHO (sin infra extra):**
+- [x] Tema Cumbre (`CumbreTheme.swift`): colores, scoreColor/scoreLabel, serif/mono.
+- [x] Fuentes reales bundladas: Source Serif 4 + JetBrains Mono (UIAppFonts).
+- [x] **Lista de escuelas** clavada (header iconos, "Escuelas"+count+Enviar,
+  banner ☕, buscador, chips ESTILO/ROCA, fila rica: badge tintado + rank +
+  nombre serif + estrella + subtítulo + heatmap 10 celdas + ●SECA/MOJADA).
+- [x] **Detalle** clavado (ForecastBody): SÍ/NO, ÍNDICE/100, banda roca, desglose
+  factores, tiempo actual, 16h DESDE LA HORA ACTUAL, 8 celdas condiciones,
+  7 días, mejor día.
+- [x] **Barra de tabs** Tiempo·Escuelas·Radar (MainTabView).
+- [x] **Radar** clavado (WKWebView Windy).
+- [x] **CÓMO LLEGAR** (Google Maps) en el detalle.
+
+**PENDIENTE — necesita LocationProvider bridge (CLLocationManager, iosMain Kotlin
++ Swift):**
+- [ ] Tab **Tiempo** (WeatherScreen): forecast por ubicación + chips favoritas + forecastBody.
+- [ ] Distancia "· N KM" en el subtítulo de cada fila de la lista.
+- [ ] Punto azul del usuario en los mapas.
+
+**PENDIENTE — necesita MapLibre iOS (SPM):**
+- [ ] **Mapa de escuela** en el detalle (markers parking/bloque/zona, popup,
+  CÓMO LLEGAR por marker, "+ PROPONER").
+- [ ] **Mapa global** en la lista (SchoolsMapPanel).
+- [ ] Mapas admin (FullScreenMapDialog).
+
+**PENDIENTE — necesita AuthService bridge (Firebase Auth Google Sign-In, patrón
+bridge). Desbloquea TODO lo privado:**
+- [ ] **Login** (LoginScreen) con Google + Sign in with Apple.
+- [ ] **Perfil** (ProfileScreen, EditProfile, foto → PhotoUploader bridge).
+- [ ] **Diario** (JournalEntries/JournalSchools + AddBlockSheet).
+- [ ] **Favoritas** (estrella funcional en lista/detalle + grid en Tiempo).
+- [ ] **Notas** de escuela (NotesSection + composer + foto).
+- [ ] **Notificaciones** (NotificationsScreen).
+- [ ] **Chats** (ChatList + Chat) → necesita ChatService bridge (Firestore).
+- [ ] **Proponer** escuela/parking/piedra (Submit + ProposeContributionFlow +
+  editor topo) → necesita PhotoUploader + FileReader bridges.
+- [ ] **Usuarios**: buscar, perfil público, seguir, solicitudes.
+- [ ] **Admin** (cola de propuestas, gestionar bloques).
+
+**PENDIENTE — necesita use case nuevo en shared (backend ya tiene el endpoint):**
+- [ ] **Stats mensuales últimos años** (GET /api/schools/{id}/monthly-stats):
+  hoy es Android-only (Room). Crear KtorMonthlyStatsApi + repo + use case en
+  shared, exponer en IosDependencyContainer, y MonthlyStatsSection en el detalle.
+
+**PENDIENTE — otros:**
+- [ ] Modo oscuro (toggle luna del header) + paleta dark de Cumbre.
+- [ ] Iconos WMO como SVG reales (hoy SF Symbols aproximados).
+- [ ] DayDetail, Compare, SavedSchools, WeekendAlert.
+
+**Orden recomendado:** (1) LocationProvider bridge → Tiempo+distancias;
+(2) AuthService bridge → login + todo lo privado; (3) MapLibre → mapas;
+(4) monthly stats; (5) modo oscuro + pulido. Cada bridge: ver patrón abajo.
+
 ## 🍏 Guía de implementación iOS (decisiones técnicas, 2026)
 
 Investigado y decidido en la sesión 2026-06-13. Esto es lo que hace que el
