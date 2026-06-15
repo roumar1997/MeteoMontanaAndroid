@@ -2,8 +2,9 @@ import SwiftUI
 import Shared
 
 // Lista de escuelas desde el backend (use case compartido) con el score de hoy
-// de cada una. Pipeline: framework KMP → DI Kotlin → use case (SKIE async) →
-// SwiftUI. Los scores se cargan en lotes tras la lista (igual que Android).
+// de cada una, buscador y filtros por estilo/roca. Pipeline: framework KMP →
+// DI Kotlin → use case (SKIE async) → SwiftUI. Los scores se cargan en lotes
+// tras la lista (igual que Android). El filtrado es local (sin red extra).
 
 @MainActor
 final class SchoolListViewModel: ObservableObject {
@@ -11,6 +12,11 @@ final class SchoolListViewModel: ObservableObject {
     @Published var scores: [String: SchoolScore] = [:]
     @Published var loading = true
     @Published var errorText: String?
+
+    // Filtros (aplicados en local sobre la lista cargada).
+    @Published var query = ""
+    @Published var style: String?
+    @Published var rock: String?
 
     private let getSchools: GetSchoolsUseCase
     private let getTodayScores: GetTodayScoresUseCase
@@ -23,11 +29,28 @@ final class SchoolListViewModel: ObservableObject {
         self.getTodayScores = getTodayScores
     }
 
+    /// Valores únicos de estilo/roca presentes en el catálogo, para los menús.
+    var styles: [String] { uniqueValues(schools.map { $0.style }) }
+    var rocks: [String] { uniqueValues(schools.map { $0.rockType }) }
+
+    /// Lista filtrada por texto + estilo + roca, ordenada por score desc.
+    var filtered: [School] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        return schools.filter { s in
+            (q.isEmpty || s.name.lowercased().contains(q) || (s.location?.lowercased().contains(q) ?? false))
+            && (style == nil || s.style?.caseInsensitiveCompare(style!) == .orderedSame)
+            && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
+        }.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+    }
+
+    var activeFilters: Bool { style != nil || rock != nil }
+
+    func clearFilters() { style = nil; rock = nil; query = "" }
+
     func load() async {
         loading = true
         errorText = nil
         do {
-            // SKIE expone el `suspend operator fun invoke` como `async throws`.
             schools = try await getSchools.invoke(
                 region: nil, style: nil, rockType: nil,
                 lat: nil, lon: nil, radioKm: nil
@@ -49,6 +72,10 @@ final class SchoolListViewModel: ObservableObject {
             for s in batch { scores[s.id] = s }
         }
     }
+
+    private func uniqueValues(_ raw: [String?]) -> [String] {
+        Array(Set(raw.compactMap { $0 }.filter { !$0.isEmpty })).sorted()
+    }
 }
 
 struct SchoolListView: View {
@@ -62,15 +89,58 @@ struct SchoolListView: View {
                 } else if let err = vm.errorText {
                     ContentUnavailableView("Sin conexión", systemImage: "wifi.slash", description: Text(err))
                 } else {
-                    List(vm.schools, id: \.id) { school in
-                        NavigationLink(destination: SchoolDetailView(school: school)) {
-                            SchoolRow(school: school, score: vm.scores[school.id])
-                        }
-                    }
+                    listContent
                 }
             }
             .navigationTitle("Escuelas")
+            .searchable(text: $vm.query, prompt: "Buscar escuela o lugar")
+            .toolbar { filterMenu }
             .task { await vm.load() }
+        }
+    }
+
+    @ViewBuilder private var listContent: some View {
+        let items = vm.filtered
+        if items.isEmpty {
+            ContentUnavailableView {
+                Label("Sin resultados", systemImage: "magnifyingglass")
+            } description: {
+                Text("Prueba a quitar filtros o cambiar la búsqueda.")
+            } actions: {
+                if vm.activeFilters || !vm.query.isEmpty {
+                    Button("Quitar filtros") { vm.clearFilters() }
+                }
+            }
+        } else {
+            List(items, id: \.id) { school in
+                NavigationLink(destination: SchoolDetailView(school: school)) {
+                    SchoolRow(school: school, score: vm.scores[school.id])
+                }
+            }
+        }
+    }
+
+    private var filterMenu: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Picker("Estilo", selection: $vm.style) {
+                    Text("Todos los estilos").tag(String?.none)
+                    ForEach(vm.styles, id: \.self) { Text($0).tag(String?.some($0)) }
+                }
+                Picker("Roca", selection: $vm.rock) {
+                    Text("Todas las rocas").tag(String?.none)
+                    ForEach(vm.rocks, id: \.self) { Text($0).tag(String?.some($0)) }
+                }
+                if vm.activeFilters {
+                    Divider()
+                    Button(role: .destructive) { vm.clearFilters() } label: {
+                        Label("Quitar filtros", systemImage: "xmark.circle")
+                    }
+                }
+            } label: {
+                Image(systemName: vm.activeFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                    .foregroundStyle(Cumbre.terra)
+            }
         }
     }
 }
@@ -110,7 +180,6 @@ private struct SchoolRow: View {
                 .background(Cumbre.score(Int(s.todayScore)))
                 .clipShape(RoundedRectangle(cornerRadius: 2))
         } else {
-            // Placeholder mientras llega el score del lote.
             RoundedRectangle(cornerRadius: 2)
                 .fill(Cumbre.rule)
                 .frame(width: 40, height: 40)

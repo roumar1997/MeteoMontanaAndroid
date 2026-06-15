@@ -136,9 +136,12 @@ Simulator**. La app build/install por CLI funciona perfecto.
   - [x] 3.2 — Shared framework en SwiftUI: DI vía `IosDependencyContainer`
     (Kotlin) envuelto por `AppDependencies.swift`. Funciona: la lista carga
     datos reales del backend.
-  - [~] 3.3 — Pantallas MVP: ✅ lista de escuelas (datos reales). Pendiente:
-    detalle + forecast + diseño Cumbre. ← **SIGUIENTE**
-  - [ ] 3.4 — Ports `suspend` con patrón bridge (location/files/Firebase).
+  - [x] 3.3 — Pantallas MVP iOS (2026-06-15): ✅ lista con score-badge coloreado
+    + buscador + filtros estilo/roca; ✅ detalle con forecast (hero, condiciones,
+    ventana óptima, mejor día, heatmap horas) en diseño Cumbre
+    (`CumbreTheme.swift`). Verificado en simulador con datos reales.
+  - [ ] 3.4 — Ports `suspend` con patrón bridge (location/files/Firebase). ← **SIGUIENTE**
+  - [ ] 3.5 — Mapa de escuela (MapLibre iOS) en el detalle.
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
   - [ ] Estructura `iosApp/iosApp.xcodeproj` (con stubs sin compilar).
   - [ ] Cada sesión que refactorice algo Android → deja .swift equivalente.

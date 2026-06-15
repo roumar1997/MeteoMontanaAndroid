@@ -459,6 +459,19 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 - Flujo build iOS: `xcodegen generate` → `xcodebuild ... -sdk iphonesimulator
   -destination 'id=25D70E56-...' CODE_SIGNING_ALLOWED=NO build` →
   `xcrun simctl install booted <ruta>.app` → tocar icono.
+- **OJO lentitud**: en este Mac `simctl install` tarda ~1-2 min y `launch`
+  hasta ~3 min (NO está colgado, es lento por macOS/Xcode 26 nuevos). Usar
+  timeouts largos (≥240s). Tras instalar build nueva: `simctl terminate` antes
+  de `launch` o reusa el proceso viejo.
+- **Pantallas iOS hechas** (`iosApp/iosApp/`): `SchoolListView` (lista + score
+  badge coloreado + buscador + filtros estilo/roca, orden por score),
+  `SchoolDetailView` (forecast: hero score, condiciones, ventana óptima, mejor
+  día, heatmap horas), `Theme/CumbreTheme.swift` (tokens Cumbre + scoreColor +
+  eyebrow). DI: `IosDependencyContainer` expone getSchools/getSchoolById/
+  searchSchools/getForecast/getTodayScores. Para añadir un use case nuevo a
+  iOS, exponerlo ahí.
+- `xcodegen` en `~/bin/xcodegen`. Si borras un .swift, REGENERA el proyecto
+  (`xcodegen generate`) antes de compilar o xcodebuild busca el fichero viejo.
 
 ### Sesión 2026-06-13 (2) — preparación pre-Mac (KMP Fases A/B/C-base)
 
