@@ -1,0 +1,126 @@
+name: iOS CI
+
+# Compila la app iOS en un runner macOS y deja un .ipa SIN FIRMAR como artifact.
+# Se instala en el iPhone desde Windows con Sideloadly (firma con tu Apple ID).
+# Así NO hace falta Mac para compilar ni instalar.
+#
+# Para que el login de Google funcione hace falta el secret
+# GOOGLE_SERVICE_INFO_PLIST (Settings → Secrets and variables → Actions) con el
+# contenido del GoogleService-Info.plist real del proyecto Firebase climbingteams.
+# Sin él, el .ipa compila pero usa config dummy (la app arranca, el login falla).
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  workflow_dispatch: {}   # permite lanzarlo a mano desde la pestaña Actions
+
+jobs:
+  build-ipa:
+    runs-on: macos-14
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Java 21: la preBuildScript de XcodeGen compila el framework KMP (Shared)
+      # con gradlew, que necesita un JDK. `xcodebuild` limpia el entorno, así que
+      # el script cae en `/usr/libexec/java_home -v 21` → este JDK.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle (con caché de dependencias)
+        uses: gradle/actions/setup-gradle@v4
+
+      # El compilador de Kotlin/Native y SKIE descargan toolchain a ~/.konan.
+      # Cachearlo evita ~10 min de descargas en cada run.
+      - name: Cache Kotlin/Native (~/.konan)
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
+          restore-keys: konan-${{ runner.os }}-
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # GoogleService-Info.plist está fuera de git (credenciales Firebase).
+      # Con el secret → Firebase real (login Google). Sin él → dummy estructural
+      # para que el .ipa compile y la app arranque (login no funcionará).
+      - name: Write GoogleService-Info.plist
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          PLIST=iosApp/iosApp/GoogleService-Info.plist
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" > "$PLIST"
+            echo "GoogleService-Info.plist escrito desde el secret."
+          else
+            echo "::warning::Sin secret GOOGLE_SERVICE_INFO_PLIST — usando dummy. El login de Google NO funcionará en este .ipa."
+            # sed quita el espacio inicial de cada línea → robusto frente al
+            # stripping de indentación de YAML (el <?xml debe quedar en col 0).
+            sed 's/^[[:space:]]*//' > "$PLIST" <<'EOF'
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+            <key>API_KEY</key><string>AIzaSyDUMMY-DUMMY-DUMMY-DUMMY-DUMMY-DUMMY</string>
+            <key>GCM_SENDER_ID</key><string>000000000000</string>
+            <key>PLIST_VERSION</key><string>1</string>
+            <key>BUNDLE_ID</key><string>com.meteomontana.ios</string>
+            <key>PROJECT_ID</key><string>ci-dummy</string>
+            <key>STORAGE_BUCKET</key><string>ci-dummy.appspot.com</string>
+            <key>IS_ADS_ENABLED</key><false/>
+            <key>IS_ANALYTICS_ENABLED</key><false/>
+            <key>IS_APPINVITE_ENABLED</key><true/>
+            <key>IS_GCM_ENABLED</key><true/>
+            <key>IS_SIGNIN_ENABLED</key><true/>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
+            <key>CLIENT_ID</key><string>000000000000-dummy.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-dummy</string>
+            </dict>
+            </plist>
+          EOF
+          fi
+
+      # Genera MeteoMontana.xcodeproj + Info.plist + entitlements desde project.yml.
+      - name: XcodeGen generate
+        working-directory: iosApp
+        run: xcodegen generate
+
+      # Build para dispositivo (iphoneos) sin firma. La preBuildScript compila y
+      # embebe el framework KMP (Shared) automáticamente. Primera vez lenta
+      # (SKIE compila); luego la caché de gradle/konan acelera.
+      - name: Build (iphoneos, sin firma)
+        run: |
+          chmod +x gradlew
+          xcodebuild \
+            -project iosApp/MeteoMontana.xcodeproj \
+            -scheme MeteoMontana \
+            -configuration Debug \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      # Empaqueta el .app en un .ipa sin firmar (truco Payload/ + zip).
+      # Sideloadly lo firma con tu Apple ID al instalar.
+      - name: Empaquetar .ipa sin firmar
+        run: |
+          APP=$(find build/Build/Products/Debug-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          echo "App: $APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qr MeteoMontana-unsigned.ipa Payload
+          ls -la MeteoMontana-unsigned.ipa
+
+      # Descárgalo en: Actions → run → Artifacts → ios-app-unsigned-ipa.
+      - name: Upload .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-unsigned-ipa
+          path: MeteoMontana-unsigned.ipa

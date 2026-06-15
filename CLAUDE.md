@@ -429,6 +429,28 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-15 (5) — iOS CI: .ipa sin firmar para Sideloadly (sin Mac)
+
+- **Objetivo**: poder probar la app iOS en el iPhone de Rodrigo **sin Mac** y
+  sin depender de MacInCloud (lento). Sideloadly (en Windows) instala un `.ipa`,
+  pero NO lo compila → lo compila GitHub Actions en un runner macOS.
+- **`.github/workflows/ios-ci.yml`** (nuevo): runner `macos-14`, JDK 21,
+  `brew install xcodegen`, `xcodegen generate`, `xcodebuild -sdk iphoneos
+  CODE_SIGNING_ALLOWED=NO build`, empaqueta el `.app` en `.ipa` sin firmar
+  (truco `Payload/` + zip) y lo sube como artifact **ios-app-unsigned-ipa**.
+  Caché de `~/.konan` para no re-descargar el toolchain de Kotlin/Native.
+  Triggers: push a main/claude/** + `workflow_dispatch` (lanzar a mano).
+- **Secret PENDIENTE de crear por Rodrigo**: `GOOGLE_SERVICE_INFO_PLIST` con el
+  contenido del `GoogleService-Info.plist` real (Firebase climbingteams). Sin
+  él, el `.ipa` compila pero usa un plist dummy → la app arranca pero el login
+  de Google falla (igual filosofía que `GOOGLE_SERVICES_JSON` en Android CI).
+- **Flujo para Rodrigo**: Actions → run de iOS CI → Artifacts →
+  `ios-app-unsigned-ipa` → descargar → Sideloadly → instalar en iPhone con su
+  Apple ID (caduca a 7 días con Apple ID gratuito; al publicar, Apple Developer
+  $99/año y deja de caducar).
+- **OJO primera ejecución lenta** (~hasta 90 min: SKIE compila el framework KMP
+  desde cero). Runs siguientes mucho más rápidos por la caché.
+
 ### Sesión 2026-06-15 (4) — iOS: login obligatorio al arrancar (paridad con Android)
 
 - **Problema detectado**: en iOS el login era opcional (se abría como sheet al
