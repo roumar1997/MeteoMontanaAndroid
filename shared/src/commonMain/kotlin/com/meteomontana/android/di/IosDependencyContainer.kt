@@ -18,6 +18,7 @@ import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.LocationProvider
 import com.meteomontana.db.MeteoMontanaDb
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
+import com.meteomontana.android.domain.usecase.favorites.GetFavoritesGridUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
@@ -96,6 +97,7 @@ class IosDependencyContainer(
     // Favoritas (requieren sesión; el token lo aporta el authService del
     // httpClient). Estrella en lista/detalle + grid en el tab Tiempo.
     val getMyFavorites = GetMyFavoritesUseCase(favoritesRepository)
+    val getFavoritesGrid = GetFavoritesGridUseCase(favoritesRepository)
     val addFavorite = AddFavoriteUseCase(favoritesRepository)
     val removeFavorite = RemoveFavoriteUseCase(favoritesRepository)
 

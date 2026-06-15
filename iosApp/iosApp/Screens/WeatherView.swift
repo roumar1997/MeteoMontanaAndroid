@@ -5,7 +5,7 @@ import Shared
 // Usa el LocationProvider (bridge iOS, CLLocationManager) para obtener
 // lat/lon y el GetForecastByLocationUseCase compartido. Si no hay permiso,
 // muestra el estado "necesita ubicación" con botón para concederlo.
-// (Los chips de favoritas quedan pendientes: requieren login/auth.)
+// Incluye el grid de favoritas (score medio por día) sobre el forecast.
 
 @MainActor
 final class WeatherViewModel: ObservableObject {
@@ -17,6 +17,7 @@ final class WeatherViewModel: ObservableObject {
     }
 
     @Published var state: State = .loading
+    @Published var favoritesGrid: FavoritesGrid?
 
     private let container = AppDependencies.shared.container
     private let bridge = AppDependencies.shared.locationBridge
@@ -26,6 +27,7 @@ final class WeatherViewModel: ObservableObject {
 
     func load() async {
         state = .loading
+        await loadFavoritesGrid()
         guard bridge.hasPermission() else { state = .needPermission; return }
 
         let loc = try? await container.locationProvider?.current()
@@ -39,6 +41,10 @@ final class WeatherViewModel: ObservableObject {
         } catch {
             state = .error(error.localizedDescription)
         }
+    }
+
+    private func loadFavoritesGrid() async {
+        favoritesGrid = try? await container.getFavoritesGrid.invoke()
     }
 
     func requestPermission() {
@@ -84,6 +90,10 @@ struct WeatherView: View {
             Spacer()
         case .success(let forecast):
             ScrollView {
+                if let grid = vm.favoritesGrid, !grid.rows.isEmpty {
+                    FavoritesGridView(grid: grid)
+                    Divider().overlay(Cumbre.rule)
+                }
                 ForecastBodyView(forecast: forecast, factorsExpanded: $factorsExpanded)
             }
         }
@@ -112,5 +122,67 @@ struct WeatherView: View {
             Spacer()
         }
         .padding(32)
+    }
+}
+
+// MARK: - Grid de favoritas (réplica del grid de WeatherScreen.kt)
+
+/// Tabla compacta de tus escuelas favoritas por día, con score medio coloreado.
+/// Filas = escuela, columnas = día. Scroll horizontal si hay muchos días.
+private struct FavoritesGridView: View {
+    let grid: FavoritesGrid
+
+    private let nameWidth: CGFloat = 120
+    private let cellWidth: CGFloat = 40
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("TUS FAVORITAS").eyebrow().padding(.horizontal, 16).padding(.top, 12)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 4) {
+                    // Cabecera de días
+                    HStack(spacing: 2) {
+                        Color.clear.frame(width: nameWidth, height: 1)
+                        ForEach(Array(grid.days.enumerated()), id: \.offset) { _, day in
+                            Text(dayLabel(day))
+                                .font(Cumbre.mono(10))
+                                .foregroundStyle(Cumbre.ink3)
+                                .frame(width: cellWidth)
+                        }
+                    }
+                    // Filas
+                    ForEach(grid.rows, id: \.schoolId) { row in
+                        HStack(spacing: 2) {
+                            Text(row.schoolName)
+                                .font(Cumbre.serif(14, .semibold))
+                                .foregroundStyle(Cumbre.ink)
+                                .lineLimit(1)
+                                .frame(width: nameWidth, alignment: .leading)
+                            ForEach(Array(row.cells.enumerated()), id: \.offset) { _, cell in
+                                cellBox(Int(cell.avgScore))
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .padding(.bottom, 8)
+        }
+    }
+
+    private func cellBox(_ score: Int) -> some View {
+        let color = Cumbre.score(score)
+        return Text("\(score)")
+            .font(Cumbre.mono(12, .bold))
+            .foregroundStyle(color)
+            .frame(width: cellWidth, height: 30)
+            .background(color.opacity(0.14))
+            .overlay(Rectangle().stroke(color, lineWidth: 1))
+    }
+
+    // "2026-06-16" -> "06-16"; si no encaja, los últimos 5 caracteres.
+    private func dayLabel(_ day: String) -> String {
+        day.count >= 5 ? String(day.suffix(5)) : day
     }
 }
