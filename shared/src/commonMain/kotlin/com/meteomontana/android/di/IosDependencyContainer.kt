@@ -3,11 +3,15 @@ package com.meteomontana.android.di
 import com.meteomontana.android.data.api.KtorFavoritesApi
 import com.meteomontana.android.data.api.KtorForecastApi
 import com.meteomontana.android.data.api.KtorNoteApi
+import com.meteomontana.android.data.api.KtorNotificationApi
+import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.android.data.api.buildApiHttpClient
 import com.meteomontana.android.data.repository.KtorFavoritesRepository
 import com.meteomontana.android.data.repository.KtorForecastRepository
 import com.meteomontana.android.data.repository.KtorNoteRepository
+import com.meteomontana.android.data.repository.KtorNotificationsRepository
+import com.meteomontana.android.data.repository.KtorProfileRepository
 import com.meteomontana.android.data.repository.KtorSchoolRepository
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.LocationProvider
@@ -16,6 +20,11 @@ import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
 import com.meteomontana.android.domain.usecase.notes.GetNotesUseCase
+import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
+import com.meteomontana.android.domain.usecase.notifications.MarkAllNotificationsReadUseCase
+import com.meteomontana.android.domain.usecase.notifications.MarkNotificationReadUseCase
+import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
+import com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
@@ -57,11 +66,15 @@ class IosDependencyContainer(
     private val forecastApi = KtorForecastApi(httpClient)
     private val favoritesApi = KtorFavoritesApi(httpClient)
     private val noteApi = KtorNoteApi(httpClient)
+    private val profileApi = KtorProfileApi(httpClient)
+    private val notificationApi = KtorNotificationApi(httpClient)
 
     private val schoolRepository = KtorSchoolRepository(schoolApi)
     private val forecastRepository = KtorForecastRepository(forecastApi)
     private val favoritesRepository = KtorFavoritesRepository(favoritesApi)
     private val noteRepository = KtorNoteRepository(noteApi)
+    private val profileRepository = KtorProfileRepository(profileApi)
+    private val notificationsRepository = KtorNotificationsRepository(notificationApi)
 
     // Use cases públicos del MVP (sin auth). Se irán añadiendo más a medida
     // que las pantallas iOS los necesiten.
@@ -82,4 +95,13 @@ class IosDependencyContainer(
     // sesión). Foto adjunta pendiente del bridge de Firebase Storage.
     val getNotes = GetNotesUseCase(noteRepository)
     val createNote = CreateNoteUseCase(noteRepository)
+
+    // Perfil privado (JIT provisioning en el primer getMyProfile).
+    val getMyProfile = GetMyProfileUseCase(profileRepository)
+    val updateMyProfile = UpdateMyProfileUseCase(profileRepository)
+
+    // Notificaciones / inbox.
+    val getMyNotifications = GetMyNotificationsUseCase(notificationsRepository)
+    val markNotificationRead = MarkNotificationReadUseCase(notificationsRepository)
+    val markAllNotificationsRead = MarkAllNotificationsReadUseCase(notificationsRepository)
 }

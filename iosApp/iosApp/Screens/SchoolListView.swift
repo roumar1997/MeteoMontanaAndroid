@@ -157,28 +157,32 @@ struct SchoolListView: View {
 
 private struct TopIconsRow: View {
     @State private var showAccount = false
+    @State private var showNotifications = false
+
     var body: some View {
         HStack(spacing: 4) {
             Spacer()
-            // Iconos aún no cableados (búsqueda/chat/notif/tema).
-            ForEach(["magnifyingglass", "bubble.left", "bell", "moon"], id: \.self) { icon in
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundStyle(Cumbre.ink)
-                    .frame(width: 40, height: 40)
-            }
-            // Cuenta → login/logout (Firebase + Google Sign-In).
-            Button { showAccount = true } label: {
-                Image(systemName: "person")
-                    .font(.system(size: 18))
-                    .foregroundStyle(Cumbre.ink)
-                    .frame(width: 40, height: 40)
-            }
-            .buttonStyle(.plain)
+            // Búsqueda y chat aún no cableados (chat necesita bridge Firestore).
+            iconButton("magnifyingglass") {}
+            iconButton("bubble.left") {}
+            iconButton("bell") { showNotifications = true }
+            iconButton("person") { showAccount = true }
         }
         .padding(.horizontal, 4)
         .padding(.top, 4)
         .sheet(isPresented: $showAccount) { AccountView() }
+        .sheet(isPresented: $showNotifications) { NotificationsView() }
+    }
+
+    private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: name)
+                .font(.system(size: 18))
+                .foregroundStyle(Cumbre.ink)
+                .frame(width: 40, height: 40)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
