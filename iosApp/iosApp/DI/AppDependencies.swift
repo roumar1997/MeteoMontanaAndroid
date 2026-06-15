@@ -17,9 +17,19 @@ final class AppDependencies {
     static let shared = AppDependencies()
 
     let container: IosDependencyContainer
+    /// Bridge de ubicación (CLLocationManager). Las pantallas lo usan para
+    /// comprobar/pedir permiso; el `LocationProvider` del contenedor lo
+    /// envuelve para los use cases.
+    let locationBridge = LocationBridge()
 
     private init() {
         // authService: nil → MVP público (escuelas + forecast, sin auth).
-        container = IosDependencyContainer(baseUrl: AppConfig.apiBaseUrl, authService: nil)
+        // locationProvider: bridge iOS → tab Tiempo en tu ubicación real.
+        let location = IosLocationProvider(bridge: locationBridge)
+        container = IosDependencyContainer(
+            baseUrl: AppConfig.apiBaseUrl,
+            authService: nil,
+            locationProvider: location
+        )
     }
 }

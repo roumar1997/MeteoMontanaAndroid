@@ -38,10 +38,20 @@ nativo). Resumen de hoy:
 nuestra app). Para arrancar la app: **tocar el icono a mano en la ventana del
 Simulator**. La app build/install por CLI funciona perfecto.
 
+**Actualización 2026-06-15 (2ª sesión Mac):** ✅ **primer bridge `suspend`
+funcionando end-to-end** — `LocationProvider` (CLLocationManager). El patrón
+bridge queda VALIDADO: Swift conforma un protocolo Kotlin (`IosLocationBridge`)
+con callbacks, y `IosLocationProvider` (iosMain) lo envuelve en `suspend` vía
+`suspendCancellableCoroutine`. El tab **Tiempo** ya muestra el forecast real en
+tu ubicación (reusa `ForecastBodyView`, extraído de `SchoolDetailView`). Build
+iOS OK + Android 103 tests verdes. Los demás bridges (FileReader/Auth/Chat/
+Storage) siguen la misma receta — ver checklist 3.4.
+
 **👉 Qué hacer en una sesión nueva (en el Mac):**
-1. **Implementar los ports `suspend` con el patrón bridge** (location, files,
-   Firebase Auth/Chat/Storage) — ver Guía 🍏 "El problema clave". Sin esto, las
-   pantallas que usen ubicación/login/fotos no funcionan.
+1. **Seguir con los ports `suspend` restantes** (FileReader → fotos, luego
+   AuthService → login, después Chat/Storage) con el MISMO patrón bridge ya
+   validado en `LocationBridge.swift` + `IosLocationProvider.kt`. Sin Auth no
+   funciona nada privado (perfil/favoritas/notas/chat).
 2. **Replicar el resto de pantallas SwiftUI** desde la plantilla `SchoolListView`
    aplicando el diseño Cumbre (hoy la lista es SwiftUI pelado): detalle +
    forecast + heatmap, mapa (MapLibre iOS), login, etc.
@@ -140,7 +150,16 @@ Simulator**. La app build/install por CLI funciona perfecto.
     + buscador + filtros estilo/roca; ✅ detalle con forecast (hero, condiciones,
     ventana óptima, mejor día, heatmap horas) en diseño Cumbre
     (`CumbreTheme.swift`). Verificado en simulador con datos reales.
-  - [ ] 3.4 — Ports `suspend` con patrón bridge (location/files/Firebase). ← **SIGUIENTE**
+  - [~] 3.4 — Ports `suspend` con patrón bridge (location/files/Firebase).
+    - [x] **LocationProvider** (2026-06-15): `IosLocationBridge` (Kotlin
+      iosMain) implementado en Swift con CLLocationManager (`LocationBridge`),
+      envuelto por `IosLocationProvider` (suspendCancellableCoroutine).
+      Tab **Tiempo** cableado al `GetForecastByLocationUseCase` compartido:
+      verificado en simulador (forecast real en tu ubicación). Conformance
+      Swift→protocolo Kotlin confirmada (compila + linka + corre).
+    - [ ] **FileReader** (foto perfil/topo) bridge. ← **SIGUIENTE**
+    - [ ] **AuthService** (Firebase Google Sign-In) bridge → desbloquea login.
+    - [ ] **ChatService** (Firestore) + **PhotoUploader** (Storage) bridges.
   - [ ] 3.5 — Mapa de escuela (MapLibre iOS) en el detalle.
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
   - [ ] Estructura `iosApp/iosApp.xcodeproj` (con stubs sin compilar).
@@ -461,10 +480,17 @@ iOS y el andamiaje iOS está montado:
 xcodegen + build SwiftUI OK, app arranca con datos reales. Detalle arriba en
 📍 ESTADO ACTUAL.
 
+**HECHO en la 2ª sesión Mac (2026-06-15):** primer bridge `suspend`
+(`LocationProvider`/CLLocationManager) funcionando end-to-end + tab Tiempo
+mostrando forecast real. Patrón bridge validado (Swift conforma protocolo
+Kotlin con callbacks; `IosLocationProvider` lo envuelve en suspend). Plantilla
+para los demás: `iosApp/iosApp/DI/LocationBridge.swift` +
+`shared/src/iosMain/.../data/location/IosLocationProvider.kt`.
+
 **Lo que falta (orden para la próxima sesión Mac):**
-1. **Ports `suspend` con patrón *bridge*** (location, files, Firebase
-   Auth/Chat/Storage) — ver Guía 🍏 "El problema clave". Es lo que desbloquea
-   login, fotos y ubicación en iOS.
+1. **Ports `suspend` restantes con el mismo patrón bridge** (ya validado):
+   FileReader (fotos) → AuthService (Firebase Google Sign-In, desbloquea login
+   y todo lo privado) → ChatService (Firestore) + PhotoUploader (Storage).
 2. **Replicar pantallas SwiftUI** desde `SchoolListView` con diseño Cumbre:
    detalle de escuela + forecast + heatmap + mapa (MapLibre iOS) + login.
 3. Provisioning, Sign in with Apple, TestFlight.

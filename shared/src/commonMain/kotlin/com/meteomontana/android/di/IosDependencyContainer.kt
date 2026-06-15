@@ -6,6 +6,8 @@ import com.meteomontana.android.data.api.buildApiHttpClient
 import com.meteomontana.android.data.repository.KtorForecastRepository
 import com.meteomontana.android.data.repository.KtorSchoolRepository
 import com.meteomontana.android.domain.port.AuthService
+import com.meteomontana.android.domain.port.LocationProvider
+import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
@@ -30,7 +32,13 @@ import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
  */
 class IosDependencyContainer(
     baseUrl: String,
-    authService: AuthService? = null
+    authService: AuthService? = null,
+    /**
+     * Ubicación del usuario. En iOS se pasa un [IosLocationProvider]
+     * (envoltorio del bridge Swift con CLLocationManager). Null → la pantalla
+     * de Tiempo cae a una ubicación por defecto (Madrid).
+     */
+    val locationProvider: LocationProvider? = null
 ) {
     private val httpClient = buildApiHttpClient(baseUrl) {
         authService?.currentIdToken(false)
@@ -48,5 +56,6 @@ class IosDependencyContainer(
     val getSchoolById = GetSchoolByIdUseCase(schoolRepository)
     val searchSchools = SearchSchoolsUseCase(schoolRepository)
     val getForecast = GetForecastUseCase(forecastRepository)
+    val getForecastByLocation = GetForecastByLocationUseCase(forecastRepository)
     val getTodayScores = GetTodayScoresUseCase(forecastRepository)
 }

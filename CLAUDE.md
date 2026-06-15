@@ -429,6 +429,34 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-15 (2) — iOS: primer bridge `suspend` (ubicación) + tab Tiempo
+
+- **Hito**: el **patrón bridge** para implementar ports `suspend` de Kotlin
+  desde Swift queda VALIDADO end-to-end con el primero: `LocationProvider`.
+  - `shared/src/iosMain/.../data/location/IosLocationProvider.kt`: define la
+    interfaz `IosLocationBridge` (callbacks, sin suspend) que implementa Swift,
+    y `IosLocationProvider` que la envuelve con `suspendCancellableCoroutine`
+    para cumplir el port `LocationProvider` (suspend). Equivalente iOS del
+    `AndroidLocationProvider` (FusedLocation).
+  - `iosApp/iosApp/DI/LocationBridge.swift`: impl Swift con `CLLocationManager`
+    (NSObject + CLLocationManagerDelegate). `hasPermission()`, `current(cb)` y
+    `requestPermission()`. Conformance Swift→protocolo Kotlin CONFIRMADA
+    (compila + linka + corre en simulador).
+  - `AppDependencies.swift` crea el `LocationBridge` y lo pasa al
+    `IosDependencyContainer` (nuevo param `locationProvider`).
+- **Tab Tiempo cableado**: `WeatherView` reescrito con `WeatherViewModel`
+  (Swift) que usa `bridge.hasPermission()` + `container.locationProvider.current()`
+  (async vía SKIE) + `GetForecastByLocationUseCase` compartido. Estado
+  needPermission con botón "ACTIVAR UBICACIÓN". Verificado en simulador:
+  muestra forecast real en tu ubicación (Madrid en la prueba).
+- **Refactor**: extraído `ForecastBodyView` de `SchoolDetailView.swift`
+  (reutilizado por detalle de escuela y tab Tiempo; `directions` opcional).
+- **Receta para los demás bridges** (FileReader/Auth/Chat/Storage): copiar el
+  par `IosXxxBridge` (Kotlin iosMain) + impl Swift + wire en AppDependencies.
+- Android sigue verde (103 tests, `:app:testDebugUnitTest`). Build iOS OK
+  (`linkDebugFrameworkIosSimulatorArm64` + xcodebuild). Rama
+  `claude/ios-location-bridge`.
+
 ### Sesión 2026-06-15 — 🎉 PRIMERA SESIÓN EN MAC: la app iOS arranca
 
 - **Hito**: la app iOS **compila, instala y arranca en el simulador** mostrando
