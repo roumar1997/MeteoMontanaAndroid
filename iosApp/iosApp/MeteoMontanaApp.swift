@@ -14,7 +14,7 @@ struct MeteoMontanaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            SchoolListView()
+            MainTabView()
         }
     }
 }

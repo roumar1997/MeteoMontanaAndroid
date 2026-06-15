@@ -41,13 +41,13 @@ struct SchoolDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     HeroSection(forecast: f)
                     RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)
-                    HeatmapStrip(hours: f.hours).padding(16)
+                    HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
                     FactorsAccordion(current: f.current, expanded: $factorsExpanded)
                     rule
                     CurrentWeather(current: f.current)
                     rule
                     SectionTitle("PRÓXIMAS 16 HORAS")
-                    HoursGrid(hours: f.hours).padding(.vertical, 8)
+                    HoursGrid(hours: upcomingHours(f.hours, 16)).padding(.vertical, 8)
                     ConditionsGrid(current: f.current)
                     rule
                     SectionTitle("PRÓXIMOS 7 DÍAS")
@@ -131,7 +131,7 @@ private struct HeatmapStrip: View {
     let hours: [HourForecast]
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Array(hours.prefix(24).enumerated()), id: \.offset) { _, h in
+            ForEach(Array(hours.enumerated()), id: \.offset) { _, h in
                 Rectangle().fill(Cumbre.score(Int(h.score)))
             }
         }
@@ -203,7 +203,7 @@ private struct HoursGrid: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                ForEach(Array(hours.prefix(16).enumerated()), id: \.offset) { _, h in
+                ForEach(Array(hours.enumerated()), id: \.offset) { _, h in
                     VStack(spacing: 6) {
                         Text(short(h.time)).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
                         Image(systemName: wmoSymbol(Int(h.weatherCode)))
@@ -308,6 +308,20 @@ private struct SectionTitle: View {
 private func short(_ iso: String) -> String {
     if let t = iso.firstIndex(of: "T") { return String(iso[iso.index(after: t)...].prefix(5)) }
     return iso
+}
+
+/// Devuelve las próximas `count` horas A PARTIR DE LA HORA ACTUAL (no desde el
+/// inicio del día). Espejo de "PRÓXIMAS 16 HORAS desde ahora" de Android.
+private func upcomingHours(_ hours: [HourForecast], _ count: Int) -> [HourForecast] {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.dateFormat = "yyyy-MM-dd'T'HH:mm"
+    let now = Date()
+    let startIdx = hours.firstIndex { h in
+        guard let d = f.date(from: String(h.time.prefix(16))) else { return false }
+        return d >= now.addingTimeInterval(-3600) // incluye la hora en curso
+    } ?? 0
+    return Array(hours[startIdx...].prefix(count))
 }
 
 private func trim(_ d: Double) -> String {
