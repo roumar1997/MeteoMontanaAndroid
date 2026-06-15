@@ -34,10 +34,13 @@ final class AppDependencies {
         let location = IosLocationProvider(bridge: locationBridge)
         let auth = IosAuthService(bridge: authBridge)
         authService = auth
+        // BD SQLDelight local (driver nativo) para el caché del catálogo.
+        let db = DatabaseFactory().create()
         container = IosDependencyContainer(
             baseUrl: AppConfig.apiBaseUrl,
             authService: auth,
-            locationProvider: location
+            locationProvider: location,
+            database: db
         )
     }
 }

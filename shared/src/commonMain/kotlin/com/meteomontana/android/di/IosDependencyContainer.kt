@@ -13,8 +13,10 @@ import com.meteomontana.android.data.repository.KtorNoteRepository
 import com.meteomontana.android.data.repository.KtorNotificationsRepository
 import com.meteomontana.android.data.repository.KtorProfileRepository
 import com.meteomontana.android.data.repository.KtorSchoolRepository
+import com.meteomontana.android.data.saved.CachedSchoolsRepository
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.LocationProvider
+import com.meteomontana.db.MeteoMontanaDb
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
@@ -56,7 +58,13 @@ class IosDependencyContainer(
      * (envoltorio del bridge Swift con CLLocationManager). Null → la pantalla
      * de Tiempo cae a una ubicación por defecto (Madrid).
      */
-    val locationProvider: LocationProvider? = null
+    val locationProvider: LocationProvider? = null,
+    /**
+     * BD SQLDelight para el caché local del catálogo. La construye el lado
+     * Swift con `DatabaseFactory().create()` (driver nativo) y la pasa aquí.
+     * Null → la lista funciona sin caché (solo red).
+     */
+    database: MeteoMontanaDb? = null
 ) {
     private val httpClient = buildApiHttpClient(baseUrl) {
         authService?.currentIdToken(false)
@@ -104,4 +112,8 @@ class IosDependencyContainer(
     val getMyNotifications = GetMyNotificationsUseCase(notificationsRepository)
     val markNotificationRead = MarkNotificationReadUseCase(notificationsRepository)
     val markAllNotificationsRead = MarkAllNotificationsReadUseCase(notificationsRepository)
+
+    // Caché local del catálogo (stale-while-revalidate): la lista pinta desde
+    // aquí al instante y refresca desde red después. Null si no hay BD.
+    val cachedSchools: CachedSchoolsRepository? = database?.let { CachedSchoolsRepository(it) }
 }

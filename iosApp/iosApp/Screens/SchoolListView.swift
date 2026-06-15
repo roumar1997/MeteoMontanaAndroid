@@ -28,6 +28,7 @@ final class SchoolListViewModel: ObservableObject {
     private let removeFavorite: RemoveFavoriteUseCase
     private let locationBridge = AppDependencies.shared.locationBridge
     private let locationProvider = AppDependencies.shared.container.locationProvider
+    private let cachedSchools = AppDependencies.shared.container.cachedSchools
 
     init(
         getSchools: GetSchoolsUseCase = AppDependencies.shared.container.getSchools,
@@ -58,18 +59,29 @@ final class SchoolListViewModel: ObservableObject {
     }
 
     func load() async {
-        loading = true; errorText = nil
+        errorText = nil
+        // 1. Pinta desde la caché local al instante (si la hay).
+        if let cached = try? await cachedSchools?.load(), !cached.isEmpty {
+            schools = cached
+            loading = false
+        } else {
+            loading = true
+        }
+        // 2. Revalida desde red y actualiza la caché.
         do {
-            schools = try await getSchools.invoke(
+            let fresh = try await getSchools.invoke(
                 region: nil, style: nil, rockType: nil, lat: nil, lon: nil, radioKm: nil
             )
-            loading = false
-            await loadLocation()
-            await loadFavorites()
-            await loadScores()
+            schools = fresh
+            try? await cachedSchools?.replaceAll(schools: fresh)
         } catch {
-            errorText = error.localizedDescription; loading = false
+            // Sin red: si no había caché, error; si había, seguimos offline.
+            if schools.isEmpty { errorText = error.localizedDescription }
         }
+        loading = false
+        await loadLocation()
+        await loadFavorites()
+        await loadScores()
     }
 
     func refresh() async { await load() }
