@@ -304,11 +304,10 @@ pero TENDRÁN errores que arreglar en E2/E3 — es normal y esperado. Fase D son
 - [x] **Radar** clavado (WKWebView Windy).
 - [x] **CÓMO LLEGAR** (Google Maps) en el detalle.
 
-**PENDIENTE — necesita LocationProvider bridge (CLLocationManager, iosMain Kotlin
-+ Swift):**
-- [ ] Tab **Tiempo** (WeatherScreen): forecast por ubicación + chips favoritas + forecastBody.
-- [ ] Distancia "· N KM" en el subtítulo de cada fila de la lista.
-- [ ] Punto azul del usuario en los mapas.
+**LocationProvider bridge (CLLocationManager) — HECHO:**
+- [x] Tab **Tiempo** (WeatherScreen): forecast por ubicación + **grid de favoritas** + forecastBody.
+- [x] Distancia "· N KM" en el subtítulo de cada fila de la lista (Geo.haversineKm).
+- [ ] Punto azul del usuario en los mapas (pendiente de MapLibre).
 
 **PENDIENTE — necesita MapLibre iOS (SPM):**
 - [ ] **Mapa de escuela** en el detalle (markers parking/bloque/zona, popup,
@@ -323,15 +322,19 @@ bridge). Desbloquea TODO lo privado:**
   `SessionStore` a nivel de app. `AccountView` (perfil + cerrar sesión) desde
   el icono de persona. **Pendiente: Sign in with Apple** (requisito App Store
   si se mantiene Google).
-- [ ] **Perfil** (ProfileScreen, EditProfile, foto → PhotoUploader bridge).
+- [x] **Perfil** (AccountView: avatar, nombre, usuario, bio, grado, badges).
+  Falta EditProfile + cambiar foto (→ PhotoUploader bridge).
 - [ ] **Diario** (JournalEntries/JournalSchools + AddBlockSheet).
-- [ ] **Favoritas** (estrella funcional en lista/detalle + grid en Tiempo).
-- [ ] **Notas** de escuela (NotesSection + composer + foto).
-- [ ] **Notificaciones** (NotificationsScreen).
+- [x] **Favoritas** (estrella optimista en lista/detalle + grid en Tiempo).
+- [x] **Notas** de escuela (leer + publicar texto). Falta adjuntar foto (bridge Storage).
+- [x] **Notificaciones** (NotificationsView: inbox + marcar leídas).
 - [ ] **Chats** (ChatList + Chat) → necesita ChatService bridge (Firestore).
 - [ ] **Proponer** escuela/parking/piedra (Submit + ProposeContributionFlow +
   editor topo) → necesita PhotoUploader + FileReader bridges.
-- [ ] **Usuarios**: buscar, perfil público, seguir, solicitudes.
+- [x] **Usuarios**: buscar (SearchUsersView), perfil público (PublicProfileView),
+  seguir/dejar de seguir optimista, solicitudes (FollowRequestsView). Falta
+  listas de seguidores/seguidos (use cases ya wired).
+- [x] **Mis propuestas / mis contribuciones** (listas de solo lectura en el perfil).
 - [ ] **Admin** (cola de propuestas, gestionar bloques).
 
 **PENDIENTE — necesita use case nuevo en shared (backend ya tiene el endpoint):**
@@ -339,8 +342,13 @@ bridge). Desbloquea TODO lo privado:**
   hoy es Android-only (Room). Crear KtorMonthlyStatsApi + repo + use case en
   shared, exponer en IosDependencyContainer, y MonthlyStatsSection en el detalle.
 
+**Caché local — HECHO:**
+- [x] Caché del catálogo (SQLDelight, stale-while-revalidate): la lista pinta
+  desde caché al instante y revalida desde red; funciona offline. La BD la crea
+  Swift con `DatabaseFactory().create()` y se pasa al `IosDependencyContainer`.
+
 **PENDIENTE — otros:**
-- [ ] Modo oscuro (toggle luna del header) + paleta dark de Cumbre.
+- [x] Modo oscuro (luna del header cicla sistema/claro/oscuro) + paleta dark.
 - [ ] Iconos WMO como SVG reales (hoy SF Symbols aproximados).
 - [ ] DayDetail, Compare, SavedSchools, WeekendAlert.
 

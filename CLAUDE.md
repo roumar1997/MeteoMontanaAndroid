@@ -429,6 +429,45 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-16 — iOS: paridad masiva (login al arrancar + features) + instalación sin Mac
+
+- **Instalación en iPhone sin Mac VALIDADA**: el `.ipa` de GitHub Actions se
+  instala con **AltStore** (no Sideloadly: su provisión "anisette" crashea en
+  Windows — access violation en CoreADI.dll, bug conocido). AltServer (PC) +
+  AltStore (iPhone). Para pasar el `.ipa` al móvil: **mini-servidor web** en el
+  PC (`python -m http.server` en carpeta aislada) y descargar desde Safari del
+  iPhone (misma WiFi) → Archivos → AltStore `+`. (iCloud Drive también vale pero
+  tarda; Gmail bloquea adjuntos `.ipa`.)
+- **CI iOS afinado**: `concurrency` (cancela builds viejos) + **AppIcon 1024**
+  generado desde `logo_cumbre` (el catálogo de assets lo exige). Build ~6 min
+  con caché de konan. Cada push a `main` deja un `.ipa` nuevo en Artifacts.
+- **Login obligatorio al arrancar** (ver sesión (4) abajo).
+- **Features nuevas iOS** (todas con use cases que YA estaban en `shared`; solo
+  hubo que exponerlos en `IosDependencyContainer` + escribir SwiftUI):
+  - **Favoritas**: estrella optimista en lista y detalle (revierte si falla red).
+  - **Notas** de escuela: leer + publicar texto (foto pendiente de bridge Storage).
+  - **Perfil** real (`AccountView`): avatar, nombre, usuario, bio, grado, badges
+    admin/premium + enlaces a mis propuestas / contribuciones / solicitudes.
+  - **Notificaciones** (`NotificationsView`): inbox + marcar leídas (campana).
+  - **Modo oscuro**: colores `Cumbre` dinámicos (UIColor traitCollection) +
+    `ThemeManager` persistido; la luna del header cicla sistema/claro/oscuro.
+  - **Distancia "· N KM"** en la lista (Geo.haversineKm desde tu ubicación).
+  - **Caché de escuelas** (SQLDelight, stale-while-revalidate): la BD la crea
+    Swift con `DatabaseFactory().create()` y se pasa al container (`database:`).
+    No se puede crear en el container porque el `DatabaseFactory` de Android
+    necesita `Context` (expect/actual con firmas distintas).
+  - **Grid de favoritas** en el tab Tiempo (score medio por día).
+  - **Social**: buscar usuarios (lupa del header), perfil público con seguir/
+    dejar de seguir optimista + contadores, solicitudes de seguimiento.
+  - **Mis propuestas / mis contribuciones**: listas de solo lectura en el perfil.
+- **Patrón de trabajo sin Mac**: como el CI de iOS COMPILA el Swift, cada push
+  verifica de verdad. Se desarrolla en lotes, push a `main`, y el build (verde/
+  rojo) hace de feedback. Errores que pilló el CI: formato de proyecto 77
+  (→ macos-15 + Xcode 16) y el AppIcon que faltaba.
+- **Pendiente** (necesita bridges nativos, próximas sesiones): mapas (MapLibre),
+  subir fotos (Storage: foto de perfil/notas/proponer), chat (Firestore), push.
+  Y sin bridge: iconos WMO SVG, diario, Compare/DayDetail, editar perfil, admin.
+
 ### Sesión 2026-06-15 (5) — iOS CI: .ipa sin firmar para Sideloadly (sin Mac)
 
 - **Objetivo**: poder probar la app iOS en el iPhone de Rodrigo **sin Mac** y
