@@ -11,10 +11,23 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var forecast: Forecast?
     @Published var loading = true
     @Published var errorText: String?
+    @Published var isFavorite = false
 
     private let getForecast: GetForecastUseCase
-    init(getForecast: GetForecastUseCase = AppDependencies.shared.container.getForecast) {
+    private let getMyFavorites: GetMyFavoritesUseCase
+    private let addFavorite: AddFavoriteUseCase
+    private let removeFavorite: RemoveFavoriteUseCase
+
+    init(
+        getForecast: GetForecastUseCase = AppDependencies.shared.container.getForecast,
+        getMyFavorites: GetMyFavoritesUseCase = AppDependencies.shared.container.getMyFavorites,
+        addFavorite: AddFavoriteUseCase = AppDependencies.shared.container.addFavorite,
+        removeFavorite: RemoveFavoriteUseCase = AppDependencies.shared.container.removeFavorite
+    ) {
         self.getForecast = getForecast
+        self.getMyFavorites = getMyFavorites
+        self.addFavorite = addFavorite
+        self.removeFavorite = removeFavorite
     }
 
     func load(schoolId: String) async {
@@ -22,6 +35,20 @@ final class SchoolDetailViewModel: ObservableObject {
         do { forecast = try await getForecast.invoke(schoolId: schoolId) }
         catch { errorText = error.localizedDescription }
         loading = false
+        let favs = try? await getMyFavorites.invoke()
+        isFavorite = (favs ?? []).contains { $0.id == schoolId }
+    }
+
+    /// Toggle optimista con revert si falla (espejo de Android).
+    func toggleFavorite(schoolId: String) {
+        let was = isFavorite
+        isFavorite = !was
+        Task {
+            do {
+                if was { try await removeFavorite.invoke(schoolId: schoolId) }
+                else { try await addFavorite.invoke(schoolId: schoolId) }
+            } catch { isFavorite = was }
+        }
     }
 }
 
@@ -48,6 +75,14 @@ struct SchoolDetailView: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(school.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { vm.toggleFavorite(schoolId: school.id) } label: {
+                    Image(systemName: vm.isFavorite ? "star.fill" : "star")
+                        .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
+                }
+            }
+        }
         .task { await vm.load(schoolId: school.id) }
     }
 }

@@ -17,16 +17,26 @@ final class SchoolListViewModel: ObservableObject {
     @Published var query = ""
     @Published var style: String?
     @Published var rock: String?
+    @Published var favoriteIds: Set<String> = []
 
     private let getSchools: GetSchoolsUseCase
     private let getTodayScores: GetTodayScoresUseCase
+    private let getMyFavorites: GetMyFavoritesUseCase
+    private let addFavorite: AddFavoriteUseCase
+    private let removeFavorite: RemoveFavoriteUseCase
 
     init(
         getSchools: GetSchoolsUseCase = AppDependencies.shared.container.getSchools,
-        getTodayScores: GetTodayScoresUseCase = AppDependencies.shared.container.getTodayScores
+        getTodayScores: GetTodayScoresUseCase = AppDependencies.shared.container.getTodayScores,
+        getMyFavorites: GetMyFavoritesUseCase = AppDependencies.shared.container.getMyFavorites,
+        addFavorite: AddFavoriteUseCase = AppDependencies.shared.container.addFavorite,
+        removeFavorite: RemoveFavoriteUseCase = AppDependencies.shared.container.removeFavorite
     ) {
         self.getSchools = getSchools
         self.getTodayScores = getTodayScores
+        self.getMyFavorites = getMyFavorites
+        self.addFavorite = addFavorite
+        self.removeFavorite = removeFavorite
     }
 
     var styles: [String] { uniqueValues(schools.map { $0.style }) }
@@ -50,6 +60,7 @@ final class SchoolListViewModel: ObservableObject {
                 region: nil, style: nil, rockType: nil, lat: nil, lon: nil, radioKm: nil
             )
             loading = false
+            await loadFavorites()
             await loadScores()
         } catch {
             errorText = error.localizedDescription; loading = false
@@ -57,6 +68,28 @@ final class SchoolListViewModel: ObservableObject {
     }
 
     func refresh() async { await load() }
+
+    private func loadFavorites() async {
+        // Requiere sesión (el login es obligatorio al arrancar). Si falla, vacío.
+        let favs = try? await getMyFavorites.invoke()
+        favoriteIds = Set((favs ?? []).map { $0.id })
+    }
+
+    /// Toggle optimista: actualiza la estrella al instante y revierte si la red
+    /// falla (mismo comportamiento que SchoolListViewModel.kt de Android).
+    func toggleFavorite(_ schoolId: String) {
+        let wasFavorite = favoriteIds.contains(schoolId)
+        if wasFavorite { favoriteIds.remove(schoolId) } else { favoriteIds.insert(schoolId) }
+        Task {
+            do {
+                if wasFavorite { try await removeFavorite.invoke(schoolId: schoolId) }
+                else { try await addFavorite.invoke(schoolId: schoolId) }
+            } catch {
+                // Revertir en caso de error.
+                if wasFavorite { favoriteIds.insert(schoolId) } else { favoriteIds.remove(schoolId) }
+            }
+        }
+    }
 
     private func loadScores() async {
         let ids = schools.map { $0.id }
@@ -97,7 +130,13 @@ struct SchoolListView: View {
                         } else {
                             ForEach(Array(items.enumerated()), id: \.element.id) { idx, school in
                                 NavigationLink(destination: SchoolDetailView(school: school)) {
-                                    SchoolListItemView(rank: idx + 1, school: school, score: vm.scores[school.id])
+                                    SchoolListItemView(
+                                        rank: idx + 1,
+                                        school: school,
+                                        score: vm.scores[school.id],
+                                        isFavorite: vm.favoriteIds.contains(school.id),
+                                        onToggleFavorite: { vm.toggleFavorite(school.id) }
+                                    )
                                 }
                                 .buttonStyle(.plain)
                                 Divider().overlay(Cumbre.rule)
@@ -266,6 +305,8 @@ private struct SchoolListItemView: View {
     let rank: Int
     let school: School
     let score: SchoolScore?
+    var isFavorite: Bool = false
+    var onToggleFavorite: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -281,9 +322,16 @@ private struct SchoolListItemView: View {
                         .font(Cumbre.serif(19, .bold))
                         .foregroundStyle(Cumbre.ink)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Image(systemName: "star")
-                        .font(.system(size: 18))
-                        .foregroundStyle(Cumbre.ink3)
+                    // Estrella tocable con update optimista. BorderlessButtonStyle
+                    // para que reciba el tap sin disparar la navegación de la fila.
+                    Button(action: onToggleFavorite) {
+                        Image(systemName: isFavorite ? "star.fill" : "star")
+                            .font(.system(size: 18))
+                            .foregroundStyle(isFavorite ? Cumbre.terra : Cumbre.ink3)
+                            .frame(width: 36, height: 36)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.borderless)
                 }
                 Text(subtitle)
                     .font(Cumbre.mono(12))
