@@ -12,22 +12,30 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var loading = true
     @Published var errorText: String?
     @Published var isFavorite = false
+    @Published var notes: [Note] = []
+    @Published var publishing = false
 
     private let getForecast: GetForecastUseCase
     private let getMyFavorites: GetMyFavoritesUseCase
     private let addFavorite: AddFavoriteUseCase
     private let removeFavorite: RemoveFavoriteUseCase
+    private let getNotes: GetNotesUseCase
+    private let createNote: CreateNoteUseCase
 
     init(
         getForecast: GetForecastUseCase = AppDependencies.shared.container.getForecast,
         getMyFavorites: GetMyFavoritesUseCase = AppDependencies.shared.container.getMyFavorites,
         addFavorite: AddFavoriteUseCase = AppDependencies.shared.container.addFavorite,
-        removeFavorite: RemoveFavoriteUseCase = AppDependencies.shared.container.removeFavorite
+        removeFavorite: RemoveFavoriteUseCase = AppDependencies.shared.container.removeFavorite,
+        getNotes: GetNotesUseCase = AppDependencies.shared.container.getNotes,
+        createNote: CreateNoteUseCase = AppDependencies.shared.container.createNote
     ) {
         self.getForecast = getForecast
         self.getMyFavorites = getMyFavorites
         self.addFavorite = addFavorite
         self.removeFavorite = removeFavorite
+        self.getNotes = getNotes
+        self.createNote = createNote
     }
 
     func load(schoolId: String) async {
@@ -37,6 +45,21 @@ final class SchoolDetailViewModel: ObservableObject {
         loading = false
         let favs = try? await getMyFavorites.invoke()
         isFavorite = (favs ?? []).contains { $0.id == schoolId }
+        await loadNotes(schoolId: schoolId)
+    }
+
+    func loadNotes(schoolId: String) async {
+        notes = (try? await getNotes.invoke(schoolId: schoolId)) ?? []
+    }
+
+    /// Publica una nota (solo texto por ahora) y refresca la lista.
+    func publishNote(schoolId: String, text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        publishing = true
+        _ = try? await createNote.invoke(schoolId: schoolId, text: trimmed, photoUrl: nil)
+        await loadNotes(schoolId: schoolId)
+        publishing = false
     }
 
     /// Toggle optimista con revert si falla (espejo de Android).
@@ -71,6 +94,12 @@ struct SchoolDetailView: View {
                     factorsExpanded: $factorsExpanded
                 )
             }
+            // Notas comunitarias — bajo el forecast, también si no hubo previsión.
+            NotesSectionView(
+                notes: vm.notes,
+                publishing: vm.publishing,
+                onPublish: { text in Task { await vm.publishNote(schoolId: school.id, text: text) } }
+            )
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(school.name)
@@ -443,6 +472,150 @@ private func wmoSymbol(_ code: Int) -> String {
     case 95, 96, 99: return "cloud.bolt.rain"
     default: return "cloud"
     }
+}
+
+// `Note` (clase Kotlin vía SKIE) ya tiene `id: String`; con esto vale para
+// `.sheet(item:)` y `ForEach(id:)` sin envoltorios.
+extension Note: Identifiable {}
+
+// MARK: - Notas comunitarias (réplica de NotesSection.kt)
+
+/// Sección de notas del detalle de escuela. Leer es público; publicar requiere
+/// sesión (garantizada por el gate de login). La foto se muestra con AsyncImage
+/// nativo; subir foto necesita el bridge de Firebase Storage (pendiente).
+struct NotesSectionView: View {
+    let notes: [Note]
+    let publishing: Bool
+    let onPublish: (String) -> Void
+
+    @State private var draft = ""
+    @State private var photoNote: Note?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("NOTAS COMUNITARIAS").eyebrow()
+                .padding(.top, 8)
+
+            if notes.isEmpty {
+                Text("Sin notas aún. ¡Sé el primero!")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Cumbre.ink2)
+                    .padding(.vertical, 4)
+            } else {
+                ForEach(notes, id: \.id) { n in
+                    NoteRowView(note: n) { photoNote = n }
+                    Divider().overlay(Cumbre.rule)
+                }
+            }
+
+            // Composer
+            VStack(alignment: .trailing, spacing: 8) {
+                TextField("Escribe una nota…", text: $draft, axis: .vertical)
+                    .lineLimit(1...4)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Cumbre.ink)
+                    .padding(10)
+                    .background(Cumbre.paper)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+
+                Button {
+                    let text = draft
+                    draft = ""
+                    onPublish(text)
+                } label: {
+                    HStack(spacing: 6) {
+                        if publishing { ProgressView().tint(.white) }
+                        Text("PUBLICAR").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(canPublish ? Cumbre.terra : Cumbre.ink3)
+                }
+                .buttonStyle(.plain)
+                .disabled(!canPublish)
+            }
+            .padding(.top, 8)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .sheet(item: $photoNote) { n in
+            NotePhotoSheet(note: n)
+        }
+    }
+
+    private var canPublish: Bool {
+        !publishing && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+private struct NoteRowView: View {
+    let note: Note
+    let onPhotoTap: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(note.author ?? "Anónimo")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Cumbre.ink)
+                Spacer()
+                Text(shortDate(note.createdAt))
+                    .font(Cumbre.mono(11))
+                    .foregroundStyle(Cumbre.ink3)
+            }
+            Text(note.text)
+                .font(.system(size: 15))
+                .foregroundStyle(Cumbre.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if let url = note.photoUrl, let u = URL(string: url) {
+                Button(action: onPhotoTap) {
+                    AsyncImage(url: u) { img in
+                        img.resizable().scaledToFill()
+                    } placeholder: {
+                        Rectangle().fill(Cumbre.paper)
+                    }
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+/// Foto de la nota a pantalla completa. `Note` es Identifiable vía su `id`.
+private struct NotePhotoSheet: View {
+    let note: Note
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let url = note.photoUrl, let u = URL(string: url) {
+                        AsyncImage(url: u) { img in
+                            img.resizable().scaledToFit()
+                        } placeholder: { ProgressView() }
+                    }
+                    Text(note.text).font(.system(size: 16)).foregroundStyle(Cumbre.ink)
+                        .padding(.horizontal, 16)
+                }
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
+                }
+            }
+        }
+    }
+}
+
+/// Extrae la fecha (YYYY-MM-DD) de un timestamp ISO; si no encaja, devuelve tal cual.
+private func shortDate(_ iso: String) -> String {
+    if iso.count >= 10 { return String(iso.prefix(10)) }
+    return iso
 }
 
 #Preview {
