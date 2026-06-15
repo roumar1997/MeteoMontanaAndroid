@@ -40,6 +40,8 @@ struct SchoolDetailView: View {
             } else if let f = vm.forecast {
                 VStack(alignment: .leading, spacing: 0) {
                     HeroSection(forecast: f)
+                    DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
+                        .padding(.horizontal, 16).padding(.bottom, 8)
                     RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)
                     HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
                     FactorsAccordion(current: f.current, expanded: $factorsExpanded)
@@ -290,6 +292,34 @@ private struct BestDayBar: View {
             }
             .padding(16)
         }
+    }
+}
+
+/// Botón "CÓMO LLEGAR" → abre Google Maps con la ruta al destino (mismo
+/// patrón que Android: dir/?api=1&destination=lat,lon). Cae a Apple Maps si
+/// Google Maps no está instalado.
+struct DirectionsButton: View {
+    let lat: Double
+    let lon: Double
+    let label: String
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button {
+            let g = URL(string: "comgooglemaps://?daddr=\(lat),\(lon)&directionsmode=driving")!
+            let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(lat),\(lon)")!
+            openURL(UIApplication.shared.canOpenURL(g) ? g : web)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.triangle.turn.up.right.diamond")
+                Text("CÓMO LLEGAR").font(Cumbre.mono(12, .bold)).tracking(0.8)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Cumbre.terra)
+        }
+        .buttonStyle(.plain)
     }
 }
 

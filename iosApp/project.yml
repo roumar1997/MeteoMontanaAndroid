@@ -38,6 +38,9 @@ targets:
           - JetBrainsMono-Bold.ttf
         # SwiftUI + Firebase: desactivar swizzling del AppDelegate.
         FirebaseAppDelegateProxyEnabled: false
+        # Permite detectar si Google Maps está instalado (botón CÓMO LLEGAR).
+        LSApplicationQueriesSchemes:
+          - comgooglemaps
         NSLocationWhenInUseUsageDescription: >-
           Usamos tu ubicación para ordenar las escuelas por cercanía y
           mostrar tu posición en el mapa.
