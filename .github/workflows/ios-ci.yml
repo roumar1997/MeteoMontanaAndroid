@@ -14,6 +14,12 @@ on:
     branches: ["main", "claude/**"]
   workflow_dispatch: {}   # permite lanzarlo a mano desde la pestaña Actions
 
+# Un push nuevo cancela el build anterior de la misma rama (no apila builds
+# lentos: siempre compila lo último).
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-ipa:
     # macos-15 trae Xcode 16+, necesario porque xcodegen genera el .xcodeproj
