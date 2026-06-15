@@ -65,14 +65,14 @@ struct SchoolDetailView: View {
             Text("ÍNDICE DE HOY").eyebrow()
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text("\(c.score)")
-                    .font(.system(size: 56, weight: .bold, design: .serif))
+                    .font(Cumbre.serif(56, .bold))
                     .foregroundStyle(Cumbre.score(Int(c.score)))
                 Text(c.scoreLabel.uppercased())
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Cumbre.ink2)
             }
             Text(c.dryRock ? "● ROCA SECA" : "● ROCA MOJADA")
-                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                .font(Cumbre.mono(13, .semibold))
                 .foregroundStyle(c.dryRock ? Cumbre.ok : Cumbre.rain)
             if let d = c.drying, let msg = d.message {
                 Text(msg).font(.caption).foregroundStyle(Cumbre.ink3)
@@ -103,7 +103,7 @@ struct SchoolDetailView: View {
     private func metric(_ value: String, _ label: String) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                .font(Cumbre.mono(20, .semibold))
                 .foregroundStyle(Cumbre.ink)
             Text(label).eyebrow()
         }
@@ -137,7 +137,7 @@ struct SchoolDetailView: View {
             }
             Spacer()
             Text("\(b.score)")
-                .font(.system(size: 28, weight: .bold, design: .serif))
+                .font(Cumbre.serif(28, .bold))
                 .foregroundStyle(Cumbre.score(Int(b.score)))
         }
         .padding(16)
@@ -154,18 +154,18 @@ struct SchoolDetailView: View {
                     ForEach(Array(hs.prefix(16).enumerated()), id: \.offset) { _, h in
                         VStack(spacing: 6) {
                             Text(shortTime(h.time))
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(Cumbre.mono(11))
                                 .foregroundStyle(Cumbre.ink3)
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(Cumbre.score(Int(h.score)))
                                 .frame(width: 28, height: 28)
                                 .overlay(
                                     Text("\(h.score)")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(Cumbre.mono(11, .bold))
                                         .foregroundStyle(.white)
                                 )
                             Text("\(Int(h.temperature))°")
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(Cumbre.mono(11))
                                 .foregroundStyle(Cumbre.ink2)
                         }
                     }

@@ -46,6 +46,31 @@ enum Cumbre {
     }
 }
 
+// MARK: - Fuentes (mismas familias que Android)
+
+extension Cumbre {
+    /// Source Serif 4 — nombres de escuela, títulos, números de score.
+    static func serif(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        let name: String
+        switch weight {
+        case .bold, .heavy, .black: name = "SourceSerif4-Bold"
+        case .semibold, .medium:    name = "SourceSerif4-Semibold"
+        default:                    name = "SourceSerif4-Regular"
+        }
+        return .custom(name, size: size)
+    }
+
+    /// JetBrains Mono — eyebrows, dígitos, etiquetas técnicas.
+    static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        let name: String
+        switch weight {
+        case .bold, .heavy, .black, .semibold: name = "JetBrainsMono-Bold"
+        default:                               name = "JetBrainsMono-Regular"
+        }
+        return .custom(name, size: size)
+    }
+}
+
 extension Color {
     /// Construye un Color desde un entero hex 0xRRGGBB.
     init(hex: UInt32) {
@@ -60,7 +85,7 @@ extension Color {
 /// Estilo "eyebrow" Cumbre: mono, mayúsculas, tracking ancho.
 extension View {
     func eyebrow(_ color: Color = Cumbre.ink3) -> some View {
-        self.font(.system(size: 10, weight: .bold, design: .monospaced))
+        self.font(Cumbre.mono(10, .bold))
             .tracking(1.8)
             .foregroundStyle(color)
     }

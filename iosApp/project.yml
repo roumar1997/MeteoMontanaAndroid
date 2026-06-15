@@ -28,6 +28,14 @@ targets:
       properties:
         CFBundleDisplayName: MeteoMontana
         UILaunchScreen: {}
+        # Fuentes bundladas (mismas familias que Android: Source Serif 4 para
+        # nombres/títulos, JetBrains Mono para eyebrows/dígitos).
+        UIAppFonts:
+          - SourceSerif4-Regular.ttf
+          - SourceSerif4-Semibold.ttf
+          - SourceSerif4-Bold.ttf
+          - JetBrainsMono-Regular.ttf
+          - JetBrainsMono-Bold.ttf
         # SwiftUI + Firebase: desactivar swizzling del AppDelegate.
         FirebaseAppDelegateProxyEnabled: false
         NSLocationWhenInUseUsageDescription: >-

@@ -138,7 +138,7 @@ private struct HeaderEscuelas: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Escuelas")
-                    .font(.system(size: 34, weight: .bold, design: .serif))
+                    .font(Cumbre.serif(34, .bold))
                     .foregroundStyle(Cumbre.ink)
                 if let count {
                     Text("\(count) escuelas")
@@ -228,7 +228,7 @@ private struct FilterChips: View {
 
     private func chip(_ t: String, active: Bool) -> some View {
         Text(t)
-            .font(.system(size: 11, weight: .bold, design: .monospaced))
+            .font(Cumbre.mono(11, .bold))
             .tracking(0.8)
             .foregroundStyle(active ? .white : Cumbre.ink2)
             .padding(.horizontal, 12).padding(.vertical, 7)
@@ -262,12 +262,12 @@ private struct SchoolListItemView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 0) {
                     Text(String(format: "%02d", rank))
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .font(Cumbre.mono(11, .semibold))
                         .tracking(1.4)
                         .foregroundStyle(Cumbre.ink3)
                         .frame(width: 24, alignment: .leading)
                     Text(school.name)
-                        .font(.system(size: 19, weight: .bold, design: .serif))
+                        .font(Cumbre.serif(19, .bold))
                         .foregroundStyle(Cumbre.ink)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Image(systemName: "star")
@@ -275,7 +275,7 @@ private struct SchoolListItemView: View {
                         .foregroundStyle(Cumbre.ink3)
                 }
                 Text(subtitle)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .font(Cumbre.mono(12))
                     .foregroundStyle(Cumbre.ink3)
                     .padding(.top, 4)
                 HStack(alignment: .center, spacing: 8) {
@@ -303,7 +303,7 @@ private struct ScoreBadge: View {
         let color = score.map { Cumbre.score($0) } ?? Cumbre.rule
         VStack(spacing: 1) {
             Text(score.map(String.init) ?? "—")
-                .font(.system(size: 28, weight: .bold, design: .serif))
+                .font(Cumbre.serif(28, .bold))
                 .foregroundStyle(score != nil ? color : Cumbre.ink2)
             Text(Cumbre.scoreLabel(score))
                 .font(.system(size: 8, weight: .bold))
