@@ -12,30 +12,45 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-13 (preparación pre-Mac). Hoy se ejecutó el
-**PLAN DE ATAQUE PRE-MAC** (ver su sección más abajo): toda la lógica que se
-podía adelantar en Windows está hecha y verificada. Resumen:
-- ✅ **Fase A COMPLETA** — 100% de la lógica de negocio en `shared/commonMain`,
-  cero fugas de plataforma (Geo, LocationProvider→interfaz, use case del
-  widget; barridos limpios). Verificado con `assembleDebug` + tests.
-- ✅ **Fase B** — impls Kotlin de `iosMain` sin UI: `DatabaseFactory` (ya
-  estaba) + `IosNetworkMonitor`.
-- ✅ **Fase C (base, verificada)** — SKIE + framework `Shared` + motor
-  `ktor-client-darwin` + `IosDependencyContainer` (grafo de DI en Kotlin).
-  `iosApp/` con XcodeGen (`project.yml`), Firebase por SPM, app entry, DI y
-  pantalla MVP `SchoolListView` (plantilla). Guía técnica iOS en este doc.
+**Última actualización:** 2026-06-15 (PRIMERA SESIÓN EN MAC — Fase E arrancada).
+🎉 **Hito: la app iOS COMPILA, INSTALA y ARRANCA en el simulador mostrando las
+191 escuelas reales del backend de Railway.** Validación end-to-end de toda la
+arquitectura KMP (Ktor desde iOS + SKIE async/await + DI Kotlin + SQLDelight
+nativo). Resumen de hoy:
+- ✅ **Fase A/B/C** (pre-Mac) seguían correctas.
+- ✅ **Fase D** — app iOS registrada en Firebase `climbingteams`,
+  `GoogleService-Info.plist` colocado en `iosApp/iosApp/` (gitignored).
+- ✅ **Fase E1/E2** — framework iOS compila. Errores de Kotlin/Native que
+  Windows no podía ver, ya arreglados:
+  1. ABI klib: **Ktor 3.1.3 → 3.0.3** y **kotlinx-serialization 1.8.1 → 1.7.3**
+     (las 3.1/1.8 exigen Kotlin 2.1.x; el proyecto usa 2.0.21). Android sigue
+     verde (103 tests OK con estas versiones).
+  2. `gradlew` sin bit de ejecución (se perdió al pasar de Windows). `chmod +x`.
+- ✅ **Fase E3 (parcial)** — `xcodegen generate` OK + build SwiftUI OK en
+  simulador. Fixes en `iosApp/project.yml`:
+  - `PRODUCT_NAME: MeteoMontana` (faltaba → producto `.app` sin nombre).
+  - `OTHER_LDFLAGS += -lsqlite3` (el driver nativo SQLDelight/sqliter referencia
+    símbolos `sqlite3_*` del sistema).
+  - Las firmas SKIE de `SchoolListView` compilaron sin tocar nada.
 
-**👉 Qué hacer en una sesión nueva:**
-1. **NO hay más que adelantar bien en Windows.** Lo escrito a ciegas (Swift,
-   ports `suspend`) saldría mal sin Mac. Está documentado, no escrito mal.
-2. **Pendiente del usuario (sin Mac, 10 min):** Fase D — registrar la app iOS
-   en Firebase `climbingteams` (bundle `com.meteomontana.ios`) y meter
-   `GoogleService-Info.plist` en `iosApp/iosApp/`.
-3. **Con Mac:** seguir los "Pasos en el Mac" de la **Guía de implementación
-   iOS** (sección 🍏 más abajo): `xcodegen generate` → Xcode → bridges de los
-   ports → resto de pantallas desde la plantilla.
-4. Mientras tanto, si el usuario quiere **mejoras en la app Android**, adelante
-   (no bloquea nada de iOS). Cada cambio: build verde + commit a `main`.
+**⚠️ Nota de entorno Mac:** el CLI `xcrun simctl launch` se cuelga en este Mac
+(macOS 26.3 / Xcode 26.5, muy nuevos; afecta también a apps del sistema, NO a
+nuestra app). Para arrancar la app: **tocar el icono a mano en la ventana del
+Simulator**. La app build/install por CLI funciona perfecto.
+
+**👉 Qué hacer en una sesión nueva (en el Mac):**
+1. **Implementar los ports `suspend` con el patrón bridge** (location, files,
+   Firebase Auth/Chat/Storage) — ver Guía 🍏 "El problema clave". Sin esto, las
+   pantallas que usen ubicación/login/fotos no funcionan.
+2. **Replicar el resto de pantallas SwiftUI** desde la plantilla `SchoolListView`
+   aplicando el diseño Cumbre (hoy la lista es SwiftUI pelado): detalle +
+   forecast + heatmap, mapa (MapLibre iOS), login, etc.
+3. **Build/instalar**: `xcodegen generate` (si tocas `project.yml`) +
+   `xcodebuild ... -sdk iphonesimulator -destination 'id=<UDID>' CODE_SIGNING_ALLOWED=NO build`
+   + `xcrun simctl install booted <ruta>.app` + tocar el icono.
+4. Si tocas `shared/commonMain`: re-linkar el framework con
+   `./gradlew :shared:linkDebugFrameworkIosSimulatorArm64` (1ª vez ~3 min).
+5. Mejoras Android siguen sin bloquear iOS. Cada cambio: tests verdes + commit.
 
 > ⚠️ Ojo build: tocar `shared/commonMain` recompila el módulo con SKIE
 > (primera vez en frío ~40 min; luego incremental). NO editar ficheros Gradle
@@ -116,10 +131,14 @@ podía adelantar en Windows está hecha y verificada. Resumen:
     Ningún VM importa KtorXxxApi directamente. SearchSchoolsUseCase añadido.
     SchoolRepository + KtorSchoolRepository implementan searchSchools().
     103 tests verdes. assembleDebug OK. Mergeado y pusheado a main.
-- [ ] **Fase 3** — App iOS en SwiftUI. ← **SIGUIENTE**
-  - [ ] 3.1 — Crear `iosApp/` (Xcode project stub + xcconfig para usar el framework KMP).
-  - [ ] 3.2 — Conectar shared framework en SwiftUI: injección de repositorios vía DI iOS (Swinject o manual).
-  - [ ] 3.3 — Pantallas MVP: lista de escuelas + detalle + forecast.
+- [~] **Fase 3** — App iOS en SwiftUI. ← **EN CURSO** (arrancada en Mac 2026-06-15).
+  - [x] 3.1 — `iosApp/` con XcodeGen; framework KMP enlazado y compilando.
+  - [x] 3.2 — Shared framework en SwiftUI: DI vía `IosDependencyContainer`
+    (Kotlin) envuelto por `AppDependencies.swift`. Funciona: la lista carga
+    datos reales del backend.
+  - [~] 3.3 — Pantallas MVP: ✅ lista de escuelas (datos reales). Pendiente:
+    detalle + forecast + diseño Cumbre. ← **SIGUIENTE**
+  - [ ] 3.4 — Ports `suspend` con patrón bridge (location/files/Firebase).
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
   - [ ] Estructura `iosApp/iosApp.xcodeproj` (con stubs sin compilar).
   - [ ] Cada sesión que refactorice algo Android → deja .swift equivalente.
@@ -376,14 +395,21 @@ iOS y el andamiaje iOS está montado:
   pantalla MVP `SchoolListView` (plantilla) ✅
 - SKIE + framework `Shared` + `ktor-client-darwin` configurados ✅
 
-**Lo que falta (requiere Mac) — orden exacto en la Guía 🍏 "Pasos en el Mac":**
-1. (Usuario, sin Mac) **Fase D**: app iOS en Firebase + `GoogleService-Info.plist`.
-2. `brew install xcodegen`; en `iosApp/`: `xcodegen generate`; abrir en Xcode.
-3. Arreglar firmas que genera SKIE en `SchoolListView` (async, opcionales boxed).
-4. Implementar los **ports `suspend`** con el patrón *bridge* (location,
-   files, Firebase Auth/Chat/Storage) — ver Guía.
-5. Replicar el resto de pantallas desde la plantilla `SchoolListView`.
-6. Provisioning, Sign in with Apple, TestFlight.
+**HECHO en la 1ª sesión Mac (2026-06-15):** Fase D, framework iOS compilando,
+xcodegen + build SwiftUI OK, app arranca con datos reales. Detalle arriba en
+📍 ESTADO ACTUAL.
+
+**Lo que falta (orden para la próxima sesión Mac):**
+1. **Ports `suspend` con patrón *bridge*** (location, files, Firebase
+   Auth/Chat/Storage) — ver Guía 🍏 "El problema clave". Es lo que desbloquea
+   login, fotos y ubicación en iOS.
+2. **Replicar pantallas SwiftUI** desde `SchoolListView` con diseño Cumbre:
+   detalle de escuela + forecast + heatmap + mapa (MapLibre iOS) + login.
+3. Provisioning, Sign in with Apple, TestFlight.
+
+**Recordatorio build iOS:** xcodegen está instalado en `~/bin/xcodegen` (plan B
+sin Homebrew, porque `/opt/homebrew` es del usuario `temp` y `sudo` no va en
+esta cuenta). UDID simulador iPhone 16 usado: `25D70E56-D622-4B37-A44A-95FAB601BF92`.
 
 **Pendiente Android:** nada bloqueante. Mejoras visuales/técnicas se pueden
 seguir haciendo sin afectar a iOS.

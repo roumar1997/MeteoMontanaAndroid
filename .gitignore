@@ -40,3 +40,11 @@ keystore.properties
 
 # Firebase service account (NO subir a git)
 **/serviceAccountKey.json
+
+# Firebase iOS config (lleva API keys) — igual que google-services.json
+iosApp/iosApp/GoogleService-Info.plist
+
+# Generados por XcodeGen / xcodebuild (no versionar, se regeneran)
+iosApp/MeteoMontana.xcodeproj/
+iosApp/build/
+iosApp/iosApp/Info.plist

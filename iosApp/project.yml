@@ -35,13 +35,16 @@ targets:
           mostrar tu posición en el mapa.
     settings:
       base:
+        PRODUCT_NAME: MeteoMontana
         PRODUCT_BUNDLE_IDENTIFIER: com.meteomontana.ios
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         # El framework KMP se compila y embebe con una build phase de Gradle
         # (preBuildScripts), no como dependencia SPM.
         FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
-        OTHER_LDFLAGS: $(inherited) -framework Shared
+        # -lsqlite3: el driver nativo de SQLDelight (sqliter) en el framework
+        # Shared referencia símbolos sqlite3_* del sistema.
+        OTHER_LDFLAGS: $(inherited) -framework Shared -lsqlite3
     dependencies:
       - package: Firebase
         product: FirebaseAuth

@@ -429,6 +429,37 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-15 — 🎉 PRIMERA SESIÓN EN MAC: la app iOS arranca
+
+- **Hito**: la app iOS **compila, instala y arranca en el simulador** mostrando
+  las **191 escuelas reales** del backend de Railway. Validación end-to-end de
+  toda la arquitectura KMP escrita a ciegas en Windows: Ktor desde iOS + SKIE
+  (suspend→async) + DI Kotlin (`IosDependencyContainer`) + SQLDelight nativo.
+  La pantalla es SwiftUI pelado (sin diseño Cumbre todavía) — es la plantilla
+  MVP `SchoolListView`; el resto de pantallas se replican en próximas sesiones.
+- **Errores de Fase E2 resueltos** (los que Windows no podía ver):
+  - **ABI klib iOS**: Ktor 3.1.3→**3.0.3** y kotlinx-serialization 1.8.1→**1.7.3**
+    (las versiones nuevas exigen Kotlin 2.1.x; el proyecto va con 2.0.21).
+    Android sigue verde: 103 tests OK con estas versiones (`testDebugUnitTest`).
+  - `gradlew` sin bit de ejecución (se perdió al traer el repo de Windows) →
+    `chmod +x`.
+  - `iosApp/project.yml`: faltaba `PRODUCT_NAME` (producto `.app` sin nombre →
+    "Multiple commands produce"); faltaba `-lsqlite3` en `OTHER_LDFLAGS` (el
+    driver nativo SQLDelight/sqliter referencia símbolos `sqlite3_*`).
+  - Las firmas SKIE de `SchoolListView` compilaron sin tocar nada.
+- **Fase D hecha**: app iOS registrada en Firebase `climbingteams`,
+  `GoogleService-Info.plist` en `iosApp/iosApp/` (añadido a `.gitignore`).
+- **Herramientas Mac**: Xcode 26.5, Java 21 (Homebrew). `xcodegen` instalado en
+  `~/bin/xcodegen` (plan B sin Homebrew: `/opt/homebrew` es del usuario `temp`
+  y `sudo` no funciona en esta cuenta). `MeteoMontana.xcodeproj` se regenera con
+  `xcodegen generate` (no se versiona).
+- **Rareza del entorno**: `xcrun simctl launch` se cuelga en este Mac (macOS
+  26.3 / Xcode 26.5; afecta también a apps del sistema, NO a la nuestra). Para
+  arrancar la app iOS: **tocar el icono a mano** en la ventana del Simulator.
+- Flujo build iOS: `xcodegen generate` → `xcodebuild ... -sdk iphonesimulator
+  -destination 'id=25D70E56-...' CODE_SIGNING_ALLOWED=NO build` →
+  `xcrun simctl install booted <ruta>.app` → tocar icono.
+
 ### Sesión 2026-06-13 (2) — preparación pre-Mac (KMP Fases A/B/C-base)
 
 - Se ejecutó el **PLAN DE ATAQUE PRE-MAC** de `KMP_MIGRATION.md` (leer su
