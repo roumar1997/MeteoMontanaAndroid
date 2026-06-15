@@ -429,6 +429,31 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-15 (3) — iOS: bridge AuthService (login Google) + sesión
+
+- **AuthService bridge** (mismo patrón que ubicación):
+  - `shared/src/iosMain/.../data/auth/IosAuthService.kt`: interfaz
+    `IosAuthBridge` (currentUid/Email/DisplayName, currentIdToken(cb),
+    signOut(cb), observeAuthState(cb)) + `IosAuthService` que mantiene el
+    `StateFlow<AuthState>` y traduce callbacks a suspend.
+  - `iosApp/iosApp/DI/AuthBridge.swift`: impl Swift con FirebaseAuth.
+    `signInWithGoogle()` (no es parte del port, lo dispara la UI) usa el SDK
+    **GoogleSignIn** + `GoogleAuthProvider.credential` + `Auth.signIn`.
+  - `project.yml`: paquete SPM `GoogleSignIn-iOS` + `CFBundleURLTypes` con el
+    REVERSED_CLIENT_ID del GoogleService-Info.plist.
+  - `MeteoMontanaApp`: `.onOpenURL { GIDSignIn.sharedInstance.handle($0) }`.
+- **LoginView** (`Screens/LoginView.swift`): pantalla de cuenta. Sin sesión →
+  "CONTINUAR CON GOOGLE"; con sesión → nombre/email + "CERRAR SESIÓN".
+  `SessionStore` observa FirebaseAuth nativo para el gating de UI (robusto, sin
+  depender del mapeo de enums SKIE). Accesible desde el icono "person" de
+  `SchoolListView` (ahora botón → sheet).
+- **`authService` cableado al `IosDependencyContainer`** → el tokenProvider del
+  HttpClient ya manda el ID token; los endpoints autenticados funcionarán en
+  cuanto haya sesión.
+- Build iOS OK (GoogleSignIn resuelto por SPM) + app arranca sin crash con el
+  listener de auth. ⚠️ **Login interactivo NO probado** (requiere tap + cuenta
+  Google real). Rama `claude/ios-location-bridge`.
+
 ### Sesión 2026-06-15 (2) — iOS: primer bridge `suspend` (ubicación) + tab Tiempo
 
 - **Hito**: el **patrón bridge** para implementar ports `suspend` de Kotlin

@@ -117,18 +117,29 @@ struct SchoolListView: View {
 // MARK: - Header
 
 private struct TopIconsRow: View {
+    @State private var showAccount = false
     var body: some View {
         HStack(spacing: 4) {
             Spacer()
-            ForEach(["magnifyingglass", "bubble.left", "bell", "moon", "person"], id: \.self) { icon in
+            // Iconos aún no cableados (búsqueda/chat/notif/tema).
+            ForEach(["magnifyingglass", "bubble.left", "bell", "moon"], id: \.self) { icon in
                 Image(systemName: icon)
                     .font(.system(size: 18))
                     .foregroundStyle(Cumbre.ink)
                     .frame(width: 40, height: 40)
             }
+            // Cuenta → login/logout (Firebase + Google Sign-In).
+            Button { showAccount = true } label: {
+                Image(systemName: "person")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Cumbre.ink)
+                    .frame(width: 40, height: 40)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 4)
         .padding(.top, 4)
+        .sheet(isPresented: $showAccount) { LoginView() }
     }
 }
 

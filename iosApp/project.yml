@@ -16,6 +16,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "8.0.0"
 
 targets:
   MeteoMontana:
@@ -41,6 +44,11 @@ targets:
         # Permite detectar si Google Maps está instalado (botón CÓMO LLEGAR).
         LSApplicationQueriesSchemes:
           - comgooglemaps
+        # URL scheme para el callback de Google Sign-In. Es el REVERSED_CLIENT_ID
+        # de GoogleService-Info.plist (proyecto Firebase climbingteams).
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - com.googleusercontent.apps.977545428920-i3vcsfvn6fpaos56h0se5tksb7p0mrvi
         NSLocationWhenInUseUsageDescription: >-
           Usamos tu ubicación para ordenar las escuelas por cercanía y
           mostrar tu posición en el mapa.
@@ -63,6 +71,8 @@ targets:
         product: FirebaseFirestore
       - package: Firebase
         product: FirebaseStorage
+      - package: GoogleSignIn
+        product: GoogleSignIn
     preBuildScripts:
       - name: "Compilar y embeber el framework KMP (Shared)"
         basedOnDependencyAnalysis: false

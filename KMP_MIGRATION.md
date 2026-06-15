@@ -47,11 +47,19 @@ tu ubicación (reusa `ForecastBodyView`, extraído de `SchoolDetailView`). Build
 iOS OK + Android 103 tests verdes. Los demás bridges (FileReader/Auth/Chat/
 Storage) siguen la misma receta — ver checklist 3.4.
 
+**Actualización 2026-06-15 (3ª sesión Mac):** ✅ **AuthService bridge** hecho
+(login Google + token + StateFlow de sesión). El `authService` ya alimenta el
+token del HttpClient → los endpoints autenticados funcionarán en cuanto haya
+sesión. ⚠️ Falta **probar el login a mano** (tap + cuenta Google). Quedan los
+bridges FileReader (fotos) y Chat/Storage, y conectar las pantallas privadas
+(favoritas/perfil/notas) ahora que hay sesión + token.
+
 **👉 Qué hacer en una sesión nueva (en el Mac):**
-1. **Seguir con los ports `suspend` restantes** (FileReader → fotos, luego
-   AuthService → login, después Chat/Storage) con el MISMO patrón bridge ya
-   validado en `LocationBridge.swift` + `IosLocationProvider.kt`. Sin Auth no
-   funciona nada privado (perfil/favoritas/notas/chat).
+1. **Probar el login de Google a mano** (tocar icono "person" en Escuelas →
+   "Continuar con Google"). Si falla, revisar URL scheme / clientID.
+2. **Seguir con FileReader** (fotos perfil/topo) y Chat/Storage con el MISMO
+   patrón bridge ya validado (`LocationBridge`/`AuthBridge`). Luego conectar
+   pantallas privadas (favoritas, perfil, notas) que ya tienen token disponible.
 2. **Replicar el resto de pantallas SwiftUI** desde la plantilla `SchoolListView`
    aplicando el diseño Cumbre (hoy la lista es SwiftUI pelado): detalle +
    forecast + heatmap, mapa (MapLibre iOS), login, etc.
@@ -157,8 +165,16 @@ Storage) siguen la misma receta — ver checklist 3.4.
       Tab **Tiempo** cableado al `GetForecastByLocationUseCase` compartido:
       verificado en simulador (forecast real en tu ubicación). Conformance
       Swift→protocolo Kotlin confirmada (compila + linka + corre).
+    - [x] **AuthService** (2026-06-15): `IosAuthBridge` (Kotlin iosMain) +
+      `AuthBridge.swift` (FirebaseAuth) + `IosAuthService` (StateFlow + suspend).
+      Login con **Google Sign-In** (SPM `GoogleSignIn-iOS`, URL scheme con el
+      REVERSED_CLIENT_ID en project.yml). `LoginView` (cuenta: signed-in/out +
+      cerrar sesión) accesible desde el icono "person" de `SchoolListView`.
+      `onOpenURL` → `GIDSignIn.handle`. `authService` ya pasado al
+      `IosDependencyContainer` → endpoints autenticados reciben token. Compila +
+      arranca sin crash. ⚠️ Login interactivo NO probado (requiere tap + cuenta
+      Google real); pendiente de validar en dispositivo/simulador a mano.
     - [ ] **FileReader** (foto perfil/topo) bridge. ← **SIGUIENTE**
-    - [ ] **AuthService** (Firebase Google Sign-In) bridge → desbloquea login.
     - [ ] **ChatService** (Firestore) + **PhotoUploader** (Storage) bridges.
   - [ ] 3.5 — Mapa de escuela (MapLibre iOS) en el detalle.
 - [ ] **iOS .swift en paralelo** — durante Fases 1 y 2.
@@ -487,10 +503,14 @@ Kotlin con callbacks; `IosLocationProvider` lo envuelve en suspend). Plantilla
 para los demás: `iosApp/iosApp/DI/LocationBridge.swift` +
 `shared/src/iosMain/.../data/location/IosLocationProvider.kt`.
 
+**HECHO en la 3ª sesión Mac (2026-06-15):** AuthService bridge (login Google +
+token + StateFlow de sesión + LoginView). Pendiente probar login a mano.
+
 **Lo que falta (orden para la próxima sesión Mac):**
+0. **Probar el login de Google a mano** (icono person → Continuar con Google).
 1. **Ports `suspend` restantes con el mismo patrón bridge** (ya validado):
-   FileReader (fotos) → AuthService (Firebase Google Sign-In, desbloquea login
-   y todo lo privado) → ChatService (Firestore) + PhotoUploader (Storage).
+   FileReader (fotos) → ChatService (Firestore) + PhotoUploader (Storage).
+   Luego conectar pantallas privadas (favoritas/perfil/notas) — ya hay token.
 2. **Replicar pantallas SwiftUI** desde `SchoolListView` con diseño Cumbre:
    detalle de escuela + forecast + heatmap + mapa (MapLibre iOS) + login.
 3. Provisioning, Sign in with Apple, TestFlight.
