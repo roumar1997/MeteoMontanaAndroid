@@ -16,11 +16,17 @@ on:
 
 jobs:
   build-ipa:
-    runs-on: macos-14
+    # macos-15 trae Xcode 16+, necesario porque xcodegen genera el .xcodeproj
+    # en formato 77 (Xcode 15.4 de macos-14 no lo puede abrir).
+    runs-on: macos-15
     timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
+
+      # Selecciona el Xcode más nuevo instalado en el runner (lee formato 77).
+      - name: Seleccionar Xcode más reciente
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
 
       # Java 21: la preBuildScript de XcodeGen compila el framework KMP (Shared)
       # con gradlew, que necesita un JDK. `xcodebuild` limpia el entorno, así que
