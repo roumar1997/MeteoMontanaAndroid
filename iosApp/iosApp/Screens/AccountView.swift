@@ -43,6 +43,8 @@ struct AccountView: View {
                     }
                     badges
                     Divider().overlay(Cumbre.rule).padding(.vertical, 4)
+                    menuLinks
+                    Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                     signOutButton
                 }
                 .frame(maxWidth: .infinity)
@@ -104,6 +106,28 @@ struct AccountView: View {
             .foregroundStyle(c)
             .padding(.horizontal, 8).padding(.vertical, 4)
             .overlay(Rectangle().stroke(c, lineWidth: 1))
+    }
+
+    private var menuLinks: some View {
+        VStack(spacing: 0) {
+            menuRow("Mis propuestas", "mappin.and.ellipse", MySubmissionsView())
+            menuRow("Mis contribuciones", "square.and.pencil", MyContributionsView())
+            menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
+        }
+    }
+
+    private func menuRow<Dest: View>(_ title: String, _ icon: String, _ dest: Dest) -> some View {
+        NavigationLink(destination: dest) {
+            HStack(spacing: 12) {
+                Image(systemName: icon).font(.system(size: 16)).foregroundStyle(Cumbre.terra).frame(width: 24)
+                Text(title).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var signOutButton: some View {

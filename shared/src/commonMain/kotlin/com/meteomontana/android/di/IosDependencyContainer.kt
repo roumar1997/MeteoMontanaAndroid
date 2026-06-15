@@ -3,18 +3,22 @@ package com.meteomontana.android.di
 import com.meteomontana.android.data.api.KtorFavoritesApi
 import com.meteomontana.android.data.api.KtorForecastApi
 import com.meteomontana.android.data.api.KtorNoteApi
+import com.meteomontana.android.data.api.KtorContributionApi
 import com.meteomontana.android.data.api.KtorNotificationApi
 import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.android.data.api.KtorSocialApi
+import com.meteomontana.android.data.api.KtorSubmissionApi
 import com.meteomontana.android.data.api.buildApiHttpClient
 import com.meteomontana.android.data.repository.KtorFavoritesRepository
 import com.meteomontana.android.data.repository.KtorForecastRepository
 import com.meteomontana.android.data.repository.KtorNoteRepository
 import com.meteomontana.android.data.repository.KtorNotificationsRepository
+import com.meteomontana.android.data.repository.KtorContributionRepository
 import com.meteomontana.android.data.repository.KtorProfileRepository
 import com.meteomontana.android.data.repository.KtorSchoolRepository
 import com.meteomontana.android.data.repository.KtorSocialRepository
+import com.meteomontana.android.data.repository.KtorSubmissionRepository
 import com.meteomontana.android.data.saved.CachedSchoolsRepository
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.LocationProvider
@@ -40,6 +44,8 @@ import com.meteomontana.android.domain.usecase.social.RejectFollowRequestUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.domain.usecase.social.SearchUsersUseCase
 import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
+import com.meteomontana.android.domain.usecase.submissions.GetMySubmissionsUseCase
+import com.meteomontana.android.domain.usecase.contributions.GetMyContributionsUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
@@ -90,6 +96,8 @@ class IosDependencyContainer(
     private val profileApi = KtorProfileApi(httpClient)
     private val notificationApi = KtorNotificationApi(httpClient)
     private val socialApi = KtorSocialApi(httpClient)
+    private val submissionApi = KtorSubmissionApi(httpClient)
+    private val contributionApi = KtorContributionApi(httpClient)
 
     private val schoolRepository = KtorSchoolRepository(schoolApi)
     private val forecastRepository = KtorForecastRepository(forecastApi)
@@ -98,6 +106,8 @@ class IosDependencyContainer(
     private val profileRepository = KtorProfileRepository(profileApi)
     private val notificationsRepository = KtorNotificationsRepository(notificationApi)
     private val socialRepository = KtorSocialRepository(socialApi)
+    private val submissionRepository = KtorSubmissionRepository(submissionApi)
+    private val contributionRepository = KtorContributionRepository(contributionApi)
 
     // Use cases públicos del MVP (sin auth). Se irán añadiendo más a medida
     // que las pantallas iOS los necesiten.
@@ -141,6 +151,11 @@ class IosDependencyContainer(
     val getMyFollowRequests = GetMyFollowRequestsUseCase(socialRepository)
     val acceptFollowRequest = AcceptFollowRequestUseCase(socialRepository)
     val rejectFollowRequest = RejectFollowRequestUseCase(socialRepository)
+
+    // Mis propuestas de escuela y mis contribuciones de mejora (estado pending/
+    // approved/rejected) — accesibles desde el perfil.
+    val getMySubmissions = GetMySubmissionsUseCase(submissionRepository)
+    val getMyContributions = GetMyContributionsUseCase(contributionRepository)
 
     // Caché local del catálogo (stale-while-revalidate): la lista pinta desde
     // aquí al instante y refresca desde red después. Null si no hay BD.
