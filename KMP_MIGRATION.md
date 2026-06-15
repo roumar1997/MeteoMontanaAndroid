@@ -318,7 +318,11 @@ pero TENDRÁN errores que arreglar en E2/E3 — es normal y esperado. Fase D son
 
 **PENDIENTE — necesita AuthService bridge (Firebase Auth Google Sign-In, patrón
 bridge). Desbloquea TODO lo privado:**
-- [ ] **Login** (LoginScreen) con Google + Sign in with Apple.
+- [x] **Login al arrancar** (gate obligatorio = AppRoot.kt): `RootView` muestra
+  `LoginView` (marca CUMBRE + Google) sin sesión, `MainTabView` con sesión.
+  `SessionStore` a nivel de app. `AccountView` (perfil + cerrar sesión) desde
+  el icono de persona. **Pendiente: Sign in with Apple** (requisito App Store
+  si se mantiene Google).
 - [ ] **Perfil** (ProfileScreen, EditProfile, foto → PhotoUploader bridge).
 - [ ] **Diario** (JournalEntries/JournalSchools + AddBlockSheet).
 - [ ] **Favoritas** (estrella funcional en lista/detalle + grid en Tiempo).

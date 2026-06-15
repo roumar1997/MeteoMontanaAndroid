@@ -1,111 +1,105 @@
-import FirebaseAuth
 import SwiftUI
 
-/// Estado de sesión observable para SwiftUI. Se apoya en el listener nativo de
-/// FirebaseAuth (no en el StateFlow de Kotlin) para el gating de UI, mientras
-/// que el `AuthService` compartido sigue alimentando el token del HttpClient.
-@MainActor
-final class SessionStore: ObservableObject {
-    @Published var user: FirebaseAuth.User?
-
-    private var handle: AuthStateDidChangeListenerHandle?
-
-    init() {
-        user = Auth.auth().currentUser
-        handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            self?.user = user
-        }
-    }
-
-    deinit {
-        if let handle { Auth.auth().removeStateDidChangeListener(handle) }
-    }
-}
-
-/// Pantalla de cuenta. Si no hay sesión: botón "Continuar con Google". Si la
-/// hay: muestra el perfil y permite cerrar sesión. Réplica funcional del
-/// LoginScreen.kt de Android (que usa CredentialManager + Firebase).
+/// Pantalla de login — gate obligatorio al arrancar, espejo fiel de
+/// `LoginScreen.kt` de Android: marca arriba (logo + CUMBRE + subtítulos),
+/// botón "Continuar con Google" en el centro, legal abajo. Al iniciar sesión,
+/// el `SessionStore` de la raíz detecta el cambio y muestra `MainTabView`.
 struct LoginView: View {
-    @StateObject private var session = SessionStore()
-    @Environment(\.dismiss) private var dismiss
     @State private var working = false
     @State private var errorText: String?
 
     private let authBridge = AppDependencies.shared.authBridge
 
     var body: some View {
-        VStack(spacing: 20) {
-            header
-            if let user = session.user {
-                signedIn(user)
-            } else {
-                signedOut
+        VStack {
+            // Top: marca
+            VStack(spacing: 0) {
+                Image("logo_cumbre")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 120)
+                    .clipShape(Circle())
+                Spacer().frame(height: 20)
+                Text("CUMBRE")
+                    .font(Cumbre.serif(36, .bold))
+                    .tracking(4)
+                    .foregroundStyle(Cumbre.terra)
+                Spacer().frame(height: 4)
+                Text("MeteoMontana")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Cumbre.ink)
+                Spacer().frame(height: 2)
+                Text("Tiempo para escalar")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Cumbre.ink2)
             }
-            if let err = errorText {
-                Text(err).font(.system(size: 13)).foregroundStyle(Cumbre.bad)
-                    .multilineTextAlignment(.center)
-            }
+            .padding(.top, 40)
+
             Spacer()
+
+            // Middle: estado o botón
+            VStack(spacing: 16) {
+                googleButton
+                if let err = errorText {
+                    Text(err)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Cumbre.bad)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                }
+            }
+
+            Spacer()
+
+            // Bottom: legal
+            VStack(spacing: 4) {
+                Text("Al continuar aceptas los términos y la política de privacidad.")
+                    .font(Cumbre.mono(11))
+                    .foregroundStyle(Cumbre.ink2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                HStack {
+                    Link("TÉRMINOS", destination: URL(string: "https://climbingteams.com/terms.html")!)
+                        .font(Cumbre.mono(11, .bold))
+                        .foregroundStyle(Cumbre.terra)
+                        .padding(8)
+                    Link("PRIVACIDAD", destination: URL(string: "https://climbingteams.com/privacy.html")!)
+                        .font(Cumbre.mono(11, .bold))
+                        .foregroundStyle(Cumbre.terra)
+                        .padding(8)
+                }
+            }
         }
-        .padding(24)
+        .padding(.horizontal, 32)
+        .padding(.vertical, 48)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Cumbre.bg.ignoresSafeArea())
     }
 
-    private var header: some View {
-        HStack {
-            Text("Cuenta").font(Cumbre.serif(34, .bold)).foregroundStyle(Cumbre.ink)
-            Spacer()
-            Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
-        }
-        .padding(.top, 8)
-    }
-
-    private func signedIn(_ user: FirebaseAuth.User) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 56)).foregroundStyle(Cumbre.ink3)
-            Text(user.displayName ?? "Sin nombre")
-                .font(.system(size: 18, weight: .semibold)).foregroundStyle(Cumbre.ink)
-            if let email = user.email {
-                Text(email).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
-            }
-            Button {
-                authBridge.signOut {}
-            } label: {
-                Text("CERRAR SESIÓN").font(Cumbre.mono(12, .bold)).tracking(0.8)
-                    .foregroundStyle(Cumbre.ink)
-                    .padding(.vertical, 12).padding(.horizontal, 20)
-                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
-        }
-        .padding(.top, 24)
-    }
-
-    private var signedOut: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "lock.circle").font(.system(size: 56)).foregroundStyle(Cumbre.ink3)
-            Text("Inicia sesión para acceder a tus favoritas, notas y perfil.")
-                .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                .multilineTextAlignment(.center)
-            Button {
-                Task { await signIn() }
-            } label: {
-                HStack(spacing: 8) {
-                    if working { ProgressView().tint(.white) }
-                    Text("CONTINUAR CON GOOGLE").font(Cumbre.mono(12, .bold)).tracking(0.8)
+    // Botón oscuro con la "G" de Google a color — igual que GoogleSignInButton de Android.
+    private var googleButton: some View {
+        Button {
+            Task { await signIn() }
+        } label: {
+            HStack(spacing: 10) {
+                if working {
+                    ProgressView().tint(.white)
+                } else {
+                    Text("G")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color(hex: 0x4285F4))
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity).padding(.vertical, 14)
-                .background(Cumbre.terra)
+                Text("Continuar con Google")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white)
             }
-            .buttonStyle(.plain)
-            .disabled(working)
-            .padding(.top, 8)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(Cumbre.ink)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
         }
-        .padding(.top, 24)
+        .buttonStyle(.plain)
+        .disabled(working)
     }
 
     private func signIn() async {

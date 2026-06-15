@@ -139,7 +139,7 @@ private struct TopIconsRow: View {
         }
         .padding(.horizontal, 4)
         .padding(.top, 4)
-        .sheet(isPresented: $showAccount) { LoginView() }
+        .sheet(isPresented: $showAccount) { AccountView() }
     }
 }
 

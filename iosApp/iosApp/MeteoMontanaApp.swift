@@ -9,13 +9,18 @@ import Shared
 
 @main
 struct MeteoMontanaApp: App {
+    @StateObject private var session = SessionStore()
+
     init() {
         FirebaseApp.configure()
     }
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            // RootView hace de gate: sin sesión → LoginView, con sesión →
+            // MainTabView (igual que AppRoot.kt en Android).
+            RootView()
+                .environmentObject(session)
                 // Callback del navegador tras el login de Google.
                 .onOpenURL { url in GIDSignIn.sharedInstance.handle(url) }
         }

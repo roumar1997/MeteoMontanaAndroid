@@ -429,6 +429,29 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-15 (4) — iOS: login obligatorio al arrancar (paridad con Android)
+
+- **Problema detectado**: en iOS el login era opcional (se abría como sheet al
+  tocar el icono de persona). En Android `AppRoot.kt` mete TODA la app detrás
+  del login — sin sesión solo se ve `LoginScreen`, no hay modo invitado.
+- **Fix — gate de login al arrancar** (espejo de `AppRoot.kt`):
+  - `RootView.swift` (nuevo): observa `SessionStore` (movido a nivel de app en
+    `MeteoMontanaApp` con `@StateObject` + `.environmentObject`). Sin sesión →
+    `LoginView`; con sesión → `MainTabView`.
+  - `LoginView.swift` reescrito como **pantalla de marca a pantalla completa**
+    (logo `logo_cumbre` en círculo + "CUMBRE" serif 36 tracking 4 + "MeteoMontana"
+    + "Tiempo para escalar", botón oscuro "Continuar con Google" con la G a
+    color, legal TÉRMINOS/PRIVACIDAD abajo). Sin botón "Cerrar" — es el gate.
+  - `AccountView.swift` (nuevo): perfil + CERRAR SESIÓN; se abre desde el icono
+    de persona del header de la lista (`.sheet`). Lee nombre/email del
+    `authBridge` directo (evita el problema de `@EnvironmentObject` en sheets).
+- **Asset**: `logo_cumbre.png` copiado de Android a
+  `iosApp/iosApp/Assets.xcassets/logo_cumbre.imageset/` (XcodeGen lo recoge solo
+  por estar bajo `sources: iosApp`).
+- **Pendiente Mac**: `xcodegen generate` (hay ficheros .swift y .xcassets
+  nuevos) antes de compilar. Validar firmas SKIE no aplica aquí (es SwiftUI
+  puro + bridges ya existentes). Sign in with Apple aún pendiente.
+
 ### Sesión 2026-06-15 (3) — iOS: bridge AuthService (login Google) + sesión
 
 - **AuthService bridge** (mismo patrón que ubicación):
