@@ -50,13 +50,16 @@ struct SchoolListView: View {
                     ContentUnavailableView("Sin conexión", systemImage: "wifi.slash", description: Text(err))
                 } else {
                     List(vm.schools, id: \.id) { school in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(school.name)
-                                .font(.headline)
-                            if let loc = school.location {
-                                Text(loc)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                        NavigationLink(destination: SchoolDetailView(school: school)) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(school.name)
+                                    .font(.system(size: 16, weight: .semibold, design: .serif))
+                                    .foregroundStyle(Cumbre.ink)
+                                if let loc = school.location {
+                                    Text(loc)
+                                        .font(.caption)
+                                        .foregroundStyle(Cumbre.ink3)
+                                }
                             }
                         }
                     }
