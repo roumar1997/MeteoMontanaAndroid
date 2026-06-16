@@ -26,6 +26,7 @@ final class SchoolListViewModel: ObservableObject {
     @Published var favoriteIds: Set<String> = []
     @Published var userLat: Double?
     @Published var userLon: Double?
+    @Published var compareSelection: Set<String> = []  // long-press para comparar (máx 3)
 
     private let getSchools: GetSchoolsUseCase
     private let getTodayScores: GetTodayScoresUseCase
@@ -54,6 +55,12 @@ final class SchoolListViewModel: ObservableObject {
     var rocks: [String] { uniqueValues(schools.map { $0.rockType }) }
     var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || onlyFavorites }
     func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; onlyFavorites = false }
+
+    func toggleCompare(_ id: String) {
+        if compareSelection.contains(id) { compareSelection.remove(id) }
+        else if compareSelection.count < 3 { compareSelection.insert(id) }
+    }
+    func clearCompare() { compareSelection.removeAll() }
 
     var filtered: [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -193,10 +200,12 @@ struct SchoolListView: View {
                                         score: vm.scores[school.id],
                                         distanceKm: vm.distanceKm(school),
                                         isFavorite: vm.favoriteIds.contains(school.id),
+                                        isSelected: vm.compareSelection.contains(school.id),
                                         onToggleFavorite: { vm.toggleFavorite(school.id) }
                                     )
                                 }
                                 .buttonStyle(.plain)
+                                .simultaneousGesture(LongPressGesture().onEnded { _ in vm.toggleCompare(school.id) })
                                 Divider().overlay(Cumbre.rule)
                             }
                         }
@@ -205,9 +214,47 @@ struct SchoolListView: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .overlay(alignment: .bottom) {
+                if vm.compareSelection.count >= 1 {
+                    CompareBar(count: vm.compareSelection.count,
+                               canCompare: vm.compareSelection.count >= 2,
+                               onClear: { vm.clearCompare() },
+                               onCompare: { showCompare = true })
+                }
+            }
+            .sheet(isPresented: $showCompare) {
+                CompareView(schools: vm.filtered.filter { vm.compareSelection.contains($0.id) })
+            }
             .task { await vm.load() }
             .refreshable { await vm.refresh() }
         }
+    }
+
+    @State private var showCompare = false
+}
+
+private struct CompareBar: View {
+    let count: Int
+    let canCompare: Bool
+    let onClear: () -> Void
+    let onCompare: () -> Void
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: onClear) {
+                Image(systemName: "xmark").foregroundStyle(.white).frame(width: 32, height: 32)
+            }
+            Text("\(count) SELECCIONADA\(count == 1 ? "" : "S")")
+                .font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(.white)
+            Spacer()
+            Button(action: onCompare) {
+                Text("COMPARAR ▸").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                    .foregroundStyle(canCompare ? .white : .white.opacity(0.4))
+            }
+            .disabled(!canCompare)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .background(Cumbre.ink)
+        .padding(.horizontal, 12).padding(.bottom, 8)
     }
 }
 
@@ -391,6 +438,7 @@ private struct SchoolListItemView: View {
     let score: SchoolScore?
     var distanceKm: Int? = nil
     var isFavorite: Bool = false
+    var isSelected: Bool = false
     var onToggleFavorite: () -> Void = {}
 
     var body: some View {
@@ -430,6 +478,7 @@ private struct SchoolListItemView: View {
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 12)
+        .overlay(isSelected ? Rectangle().stroke(Cumbre.terra, lineWidth: 2) : nil)
         .contentShape(Rectangle())
     }
 
