@@ -151,16 +151,16 @@ struct SchoolDetailView: View {
                 // Sin previsión: el mapa va igualmente.
                 SchoolMapSection(school: school)
             }
-            // Mejores meses del año (stats mensuales del backend, cacheadas).
-            if !vm.monthlyScores.isEmpty {
-                MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
-            }
-            // Notas comunitarias — bajo el forecast, también si no hubo previsión.
+            // Notas comunitarias — ahora ENCIMA de "mejores meses".
             NotesSectionView(
                 notes: vm.notes,
                 publishing: vm.publishing,
                 onPublish: { text, image in Task { await vm.publishNote(schoolId: school.id, text: text, image: image) } }
             )
+            // Mejores meses del año (stats mensuales del backend, cacheadas).
+            if !vm.monthlyScores.isEmpty {
+                MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
+            }
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(school.name)
@@ -350,8 +350,8 @@ private struct SchoolMapSection: View {
                     }
                 }
                 legend
-                DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
-                    .padding(.horizontal, 16).padding(.vertical, 8)
+                // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
+                // tocar cada parking/piedra en el mapa (BlockInfoSheet).
             }
         }
         .task(id: expanded) {
@@ -872,7 +872,7 @@ struct ForecastBodyView: View {
                 Button { onSelectDay?(d) } label: { DayRow(day: d) }.buttonStyle(.plain)
                 rule
             }
-            BestDayBar(forecast: f)
+            // "MEJOR DÍA" quitado a petición.
         }
     }
 

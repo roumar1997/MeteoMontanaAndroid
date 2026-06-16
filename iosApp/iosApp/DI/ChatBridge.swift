@@ -16,7 +16,9 @@ final class ChatListenerHandle: NSObject, IosChatListener {
 /// Android: colección `conversations` + subcolección `messages`.
 final class ChatBridge: NSObject, IosChatBridge {
 
-    private let db = Firestore.firestore()
+    // `lazy`: Firestore NO se inicializa al arrancar la app (solo al usar el chat),
+    // para no añadir Firestore al arranque (evita cierres en modo avión, etc.).
+    private lazy var db = Firestore.firestore()
     private var convs: CollectionReference { db.collection("conversations") }
 
     private func convIdFor(_ a: String, _ b: String) -> String {
