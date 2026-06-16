@@ -350,41 +350,47 @@ private struct BoulderReviewView: View {
     let contribution: Contribution
     let targetBlock: Block?
 
-    private var isEditLine: Bool { contribution.targetLineId != nil }
     private var isNewBoulder: Bool { contribution.targetBlockId == nil }
     private var newLines: [TopoLineVM] { TopoParse.lines(contribution.bloquesJson) }
-    // Existentes que NO cambian (en corregir, todas menos la editada → normales).
-    private var existingOthers: [TopoLineVM] {
-        (targetBlock?.lines ?? []).filter { $0.id != contribution.targetLineId }.map { TopoLineVM($0) }
+    // ids de vías que esta propuesta corrige: targetLineId de la contribución
+    // (corrección individual) + targetLineId por entrada (editor unificado).
+    private var correctedIds: Set<String> {
+        var ids = TopoParse.targetLineIds(contribution.bloquesJson)
+        if let t = contribution.targetLineId { ids.insert(t) }
+        return ids
     }
-    // SOLO la vía vieja que se corrige (difuminada), para distinguir el cambio.
+    private var isEditLine: Bool { !correctedIds.isEmpty }
+    // Existentes que NO cambian → normales.
+    private var existingNormal: [TopoLineVM] {
+        (targetBlock?.lines ?? []).filter { !correctedIds.contains($0.id) }.map { TopoLineVM($0) }
+    }
+    // Vías viejas que se corrigen (difuminadas), para distinguir el cambio.
     private var oldEdited: [TopoLineVM] {
-        guard isEditLine, let o = editedOriginal else { return [] }
-        return [TopoLineVM(o)]
+        (targetBlock?.lines ?? []).filter { correctedIds.contains($0.id) }.map { TopoLineVM($0) }
     }
     private var photo: String? { isNewBoulder ? contribution.photoUrl : targetBlock?.photoPath }
-    private var editedOriginal: BlockLine? {
-        targetBlock?.lines.first { $0.id == contribution.targetLineId }
+    private var editedOriginals: [BlockLine] {
+        (targetBlock?.lines ?? []).filter { correctedIds.contains($0.id) }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(header).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
             if let photo, !photo.isEmpty {
-                // Existentes que no cambian → normales; SOLO la vía vieja editada va
-                // difuminada; la propuesta/nuevas, sólidas encima.
+                // Existentes que no cambian → normales; las que se corrigen, su
+                // versión vieja difuminada; la propuesta/nuevas, sólidas encima.
                 TopoPhotoView(photoUrl: photo, lines: newLines,
-                              normalLines: isNewBoulder ? [] : existingOthers,
+                              normalLines: isNewBoulder ? [] : existingNormal,
                               referenceLines: oldEdited)
-                if isEditLine && !oldEdited.isEmpty {
-                    Text("- - - vía actual (difuminada)   ·   ▬ corrección propuesta")
+                if !oldEdited.isEmpty {
+                    Text("- - - vía(s) actual(es) (difuminadas)   ·   ▬ correcciones / nuevas")
                         .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
                 }
             } else if !newLines.isEmpty {
                 Text("\(newLines.count) vía(s) propuesta(s) (la piedra no tiene foto)")
                     .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
             }
-            if isEditLine, let o = editedOriginal {
+            ForEach(Array(editedOriginals.enumerated()), id: \.offset) { _, o in
                 Text("ORIGINAL · \(lineSummary(o.name, o.grade, o.startType))")
                     .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
             }
@@ -398,7 +404,10 @@ private struct BoulderReviewView: View {
     private var header: String {
         if isNewBoulder { return "PIEDRA NUEVA" }
         let nm = (targetBlock?.name ?? contribution.name ?? "piedra").uppercased()
-        return isEditLine ? "CORRIGE UNA VÍA DE «\(nm)»" : "AÑADE VÍAS A «\(nm)»"
+        if isEditLine && !newLines.isEmpty && newLines.count > oldEdited.count {
+            return "EDITA / AÑADE VÍAS DE «\(nm)»"
+        }
+        return isEditLine ? "CORRIGE VÍA(S) DE «\(nm)»" : "AÑADE VÍAS A «\(nm)»"
     }
 }
 

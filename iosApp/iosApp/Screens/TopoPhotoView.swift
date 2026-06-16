@@ -34,6 +34,16 @@ enum TopoParse {
         }
     }
 
+    /// ids de vías que un `bloquesJson` corrige (entradas con `targetLineId`).
+    /// Para que el admin distinga, en el editor unificado, qué vías son
+    /// correcciones (difuminar su versión vieja) y cuáles son nuevas.
+    static func targetLineIds(_ bloquesJson: String?) -> Set<String> {
+        guard let bloquesJson, let data = bloquesJson.data(using: .utf8),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { return [] }
+        return Set(arr.compactMap { $0["targetLineId"] as? String }.filter { !$0.isEmpty })
+    }
+
     /// Parsea `[{"x":..,"y":..}, ...]` a puntos normalizados.
     static func points(_ json: String?) -> [CGPoint] {
         guard let json, let data = json.data(using: .utf8),

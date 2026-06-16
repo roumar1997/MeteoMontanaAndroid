@@ -39,7 +39,10 @@ func buildBloquesJson(_ blocks: [BoulderBlockForm]) -> String {
                 "name": b.name,
                 "grade": b.grade as Any? ?? NSNull(),
                 "startType": b.startType as Any? ?? NSNull(),
-                "linePath": linePath]
+                "linePath": linePath,
+                // Si la fila representa una vía existente, el backend la CORRIGE
+                // (en vez de añadir) — permite editar varias en una sola propuesta.
+                "targetLineId": b.existingLineId as Any? ?? NSNull()]
     }
     return (try? JSONSerialization.data(withJSONObject: arr))
         .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
@@ -726,32 +729,24 @@ struct EditLinesSheet: View {
 
     private func send() async {
         sending = true
-        var anyOk = false, anySent = false
-        let container = AppDependencies.shared.container
-        // 1. Vías existentes que cambiaron → una corrección por cada una.
-        for b in blocks where b.existingLineId != nil {
-            guard let orig = block.lines.first(where: { $0.id == b.existingLineId }),
-                  lineChanged(b, vs: orig) else { continue }
-            anySent = true
-            let req = ContributionRequest(
-                type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
-                notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
-                targetBlockId: block.id, targetLineId: b.existingLineId, sectorBlockId: nil,
-                photoUrl: nil, bloquesJson: buildBloquesJson([b]), topoLinesJson: nil)
-            if (try? await container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil { anyOk = true }
+        // UNA sola propuesta con todos los cambios: vías existentes modificadas
+        // (con su targetLineId → el backend las corrige) + vías nuevas (sin
+        // targetLineId → las añade). Las existentes sin cambios no se mandan.
+        let changedExisting = blocks.filter { b in
+            guard let id = b.existingLineId, let orig = block.lines.first(where: { $0.id == id }) else { return false }
+            return lineChanged(b, vs: orig)
         }
-        // 2. Vías nuevas con contenido → una propuesta de "añadir vías".
         let newOnes = blocks.filter { $0.existingLineId == nil && ($0.grade != nil || !$0.name.isEmpty || !$0.line.isEmpty) }
-        if !newOnes.isEmpty {
-            anySent = true
-            let req = ContributionRequest(
-                type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
-                notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
-                targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
-                photoUrl: nil, bloquesJson: buildBloquesJson(newOnes), topoLinesJson: nil)
-            if (try? await container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil { anyOk = true }
-        }
-        sending = false; dismiss(); onDone(anySent ? anyOk : false)
+        let payload = changedExisting + newOnes
+        guard !payload.isEmpty else { sending = false; dismiss(); onDone(false); return }
+
+        let req = ContributionRequest(
+            type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
+            notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+            targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
+            photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil)
+        let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
+        sending = false; dismiss(); onDone(ok)
     }
 
     private func lineChanged(_ b: BoulderBlockForm, vs orig: BlockLine) -> Bool {
