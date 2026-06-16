@@ -219,6 +219,7 @@ private struct SchoolMapSection: View {
     @State private var corrOld: CLLocationCoordinate2D?
     @State private var corrNew: CLLocationCoordinate2D?
     @State private var userCoord: CLLocationCoordinate2D?   // mi ubicación en el sector
+    @State private var addLinesBlock: Block?
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -310,7 +311,15 @@ private struct SchoolMapSection: View {
                 userCoord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon)
             }
         }
-        .sheet(item: $selectedBlock) { b in BlockInfoSheet(block: b) }
+        .sheet(item: $selectedBlock) { b in
+            BlockInfoSheet(block: b, onAddLines: { addLinesBlock = b })
+        }
+        .sheet(item: $addLinesBlock) { b in
+            AddLinesSheet(block: b, schoolId: school.id) { ok in
+                addLinesBlock = nil
+                if ok { afterSubmit() }
+            }
+        }
         .sheet(isPresented: $showTypePicker) {
             ContributionTypePicker { type in
                 showTypePicker = false
@@ -626,6 +635,7 @@ private struct ContributionSuccessSheet: View {
 /// vías y "CÓMO LLEGAR"). Espejo simplificado de BlockDetailDialog.kt.
 private struct BlockInfoSheet: View {
     let block: Block
+    var onAddLines: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
@@ -670,6 +680,15 @@ private struct BlockInfoSheet: View {
                         .font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3).padding(.top, 2)
 
                     DirectionsButton(lat: block.lat, lon: block.lon, label: block.name).padding(.top, 8)
+
+                    // Añadir vías (solo piedras) — espejo de "+ AÑADIR VÍAS" de Android.
+                    if block.type.uppercased() == "BLOCK", let onAddLines {
+                        Button { dismiss(); onAddLines() } label: {
+                            Text("+ AÑADIR VÍAS").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
                 }
                 .padding(16)
             }
