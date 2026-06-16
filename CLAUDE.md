@@ -464,9 +464,29 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
   verifica de verdad. Se desarrolla en lotes, push a `main`, y el build (verde/
   rojo) hace de feedback. Errores que pilló el CI: formato de proyecto 77
   (→ macos-15 + Xcode 16) y el AppIcon que faltaba.
-- **Pendiente** (necesita bridges nativos, próximas sesiones): mapas (MapLibre),
-  subir fotos (Storage: foto de perfil/notas/proponer), chat (Firestore), push.
-  Y sin bridge: iconos WMO SVG, diario, Compare/DayDetail, editar perfil, admin.
+- **Segunda tanda (paridad masiva, auditoría)**: se lanzó un Workflow de
+  auditoría (16 agentes) comparando cada pantalla Android vs iOS → lista maestra
+  de gaps. Implementado todo lo de alto valor SIN bridge:
+  - **Editar perfil** (UpdateProfile, campos texto) · **Seguidores/Seguidos**
+    (contadores tappables) · **Iconos WMO reales** (mini-parser SVG, no SF Symbols)
+  - **Filtros de lista**: DISTANCIA (Geo.haversineKm), toggle FAVORITAS, ORDENAR
+    (score/cercanía) — paridad con SchoolFiltersBar.
+  - **Comparar escuelas**: long-press selección (máx 3) + barra flotante +
+    `CompareView` (columnas lado a lado).
+  - **DayDetail** (`DayDetailView` como sheet desde los días del forecast).
+  - **Chips de favoritas en Tiempo** (alternar ubicación / escuela favorita).
+  - **Badge de no leídas** en la campana · **Donate dialog** (ko-fi) ·
+    **JIT provisioning** al login (getMyProfile en RootView).
+  - **Submissions**: tipo de roca + 'Motivo:' del rechazo.
+  - **Diario** (`JournalView`: stats bloques/escuelas/grado, + AÑADIR BLOQUE,
+    borrar) + **GradeColor.swift** (color por grado, espejo exacto).
+  - Patrón siempre el mismo: exponer use case (ya en `shared`) en
+    `IosDependencyContainer` + SwiftUI. Verificado vía CI (compila).
+- **Pendiente** (necesita bridges nativos, próximas sesiones con Mac): mapas
+  (MapLibre: mapa de escuela, SchoolsMapPanel, proponer/topo), subir fotos
+  (Storage: foto perfil/notas), chat (Firestore), push. Sin bridge pero pendiente:
+  SavedSchools/offline, banners de forecast stale, admin queue, onboarding,
+  Sign in with Apple, stats mensuales (si el use case existe en shared).
 
 ### Sesión 2026-06-15 (5) — iOS CI: .ipa sin firmar para Sideloadly (sin Mac)
 
