@@ -6,7 +6,7 @@ import Shared
 @MainActor
 final class ChatListVM: ObservableObject {
     @Published var conversations: [ChatServiceConversation] = []
-    @Published var names: [String: String] = [:]
+    @Published var profiles: [String: PublicProfile] = [:]
     @Published var loading = true
 
     private let chat = AppDependencies.shared.container.chatService
@@ -16,6 +16,9 @@ final class ChatListVM: ObservableObject {
     func other(_ c: ChatServiceConversation) -> String {
         c.participants.compactMap { $0 as? String }.first { $0 != me } ?? ""
     }
+    func name(_ uid: String) -> String {
+        profiles[uid].flatMap { $0.displayName ?? $0.username } ?? "Usuario"
+    }
 
     func start() {
         guard task == nil, let chat else { loading = false; return }
@@ -24,23 +27,30 @@ final class ChatListVM: ObservableObject {
                 guard let self else { return }
                 self.conversations = convs
                 self.loading = false
-                await self.resolveNames(convs)
+                await self.resolveProfiles(convs)
             }
         }
     }
 
-    private func resolveNames(_ convs: [ChatServiceConversation]) async {
+    private func resolveProfiles(_ convs: [ChatServiceConversation]) async {
         let getProfile = AppDependencies.shared.container.getPublicProfile
         for c in convs {
             let uid = other(c)
-            if uid.isEmpty || names[uid] != nil { continue }
-            if let p = try? await getProfile.invoke(uid: uid) {
-                names[uid] = p.displayName ?? p.username ?? uid
-            }
+            if uid.isEmpty || profiles[uid] != nil { continue }
+            if let p = try? await getProfile.invoke(uid: uid) { profiles[uid] = p }
         }
     }
 
     func stop() { task?.cancel(); task = nil }
+}
+
+/// Hora de un mensaje/conversación (millis epoch): HH:mm si es hoy, si no dd/MM.
+func chatTime(_ millis: Int64) -> String {
+    guard millis > 0 else { return "" }
+    let date = Date(timeIntervalSince1970: Double(millis) / 1000)
+    let f = DateFormatter()
+    f.dateFormat = Calendar.current.isDateInToday(date) ? "HH:mm" : "dd/MM"
+    return f.string(from: date)
 }
 
 struct ChatListView: View {
@@ -60,20 +70,28 @@ struct ChatListView: View {
             } else {
                 List(vm.conversations, id: \.id) { c in
                     let uid = vm.other(c)
-                    let name = vm.names[uid] ?? "Usuario"
+                    let name = vm.name(uid)
                     NavigationLink(destination: ChatView(otherUid: uid, otherName: name)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Text(name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                Spacer()
-                                if c.unreadCount > 0 {
-                                    Text("\(c.unreadCount)").font(Cumbre.mono(10, .bold)).foregroundStyle(.white)
-                                        .padding(.horizontal, 6).padding(.vertical, 2)
-                                        .background(Cumbre.terra).clipShape(Capsule())
+                        HStack(spacing: 12) {
+                            AvatarCircle(url: vm.profiles[uid]?.photoUrl, size: 44)
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text(name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                                    Spacer()
+                                    Text(chatTime(c.lastAtMillis?.int64Value ?? -1))
+                                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 }
-                            }
-                            if let lm = c.lastMessage, !lm.isEmpty {
-                                Text(lm).font(.system(size: 13)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                                HStack {
+                                    if let lm = c.lastMessage, !lm.isEmpty {
+                                        Text(lm).font(.system(size: 13)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                                    }
+                                    Spacer()
+                                    if c.unreadCount > 0 {
+                                        Text("\(c.unreadCount)").font(Cumbre.mono(10, .bold)).foregroundStyle(.white)
+                                            .padding(.horizontal, 6).padding(.vertical, 2)
+                                            .background(Cumbre.terra).clipShape(Capsule())
+                                    }
+                                }
                             }
                         }
                     }

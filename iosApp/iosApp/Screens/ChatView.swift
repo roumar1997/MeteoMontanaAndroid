@@ -81,15 +81,20 @@ struct ChatView: View {
 
     private func bubble(_ m: ChatServiceChatMessage) -> some View {
         let mine = m.fromUid == vm.me
+        let time = chatTime(m.createdAtMillis?.int64Value ?? -1)
         return HStack {
             if mine { Spacer(minLength: 40) }
-            Text(m.text)
-                .font(.system(size: 15))
-                .foregroundStyle(mine ? .white : Cumbre.ink)
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(mine ? Cumbre.terra : Cumbre.paper)
-                .overlay(Rectangle().stroke(mine ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                .frame(maxWidth: .infinity, alignment: mine ? .trailing : .leading)
+            VStack(alignment: mine ? .trailing : .leading, spacing: 2) {
+                Text(m.text)
+                    .font(.system(size: 15))
+                    .foregroundStyle(mine ? .white : Cumbre.ink)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(mine ? Cumbre.terra : Cumbre.paper)
+                    .overlay(Rectangle().stroke(mine ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                if !time.isEmpty {
+                    Text(time).font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                }
+            }
             if !mine { Spacer(minLength: 40) }
         }
     }
