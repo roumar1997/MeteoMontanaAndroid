@@ -16,13 +16,16 @@ final class SchoolListViewModel: ObservableObject {
     @Published var errorText: String?
 
     enum SortMode: String, CaseIterable { case score = "Mejor score", distance = "Más cercanos" }
+    // Filtro rápido: todas / solo favoritas / solo guardadas offline.
+    enum ShowMode: String, CaseIterable { case all = "Todas", favorites = "Favoritos ★", saved = "Guardados ⬇" }
     static let distanceOptions: [Double?] = [nil, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
 
     @Published var query = ""
     @Published var style: String?
     @Published var rock: String?
     @Published var maxDistanceKm: Double? = 50   // 50 km por defecto (como Android/PWA)
-    @Published var onlyFavorites = false
+    @Published var showMode: ShowMode = .all
+    @Published var savedIds: Set<String> = []    // escuelas guardadas offline (observeSaved)
     @Published var sortBy: SortMode = .score
     @Published var favoriteIds: Set<String> = []
     @Published var userLat: Double?
@@ -38,6 +41,8 @@ final class SchoolListViewModel: ObservableObject {
     private let locationBridge = AppDependencies.shared.locationBridge
     private let locationProvider = AppDependencies.shared.container.locationProvider
     private let cachedSchools = AppDependencies.shared.container.cachedSchools
+    private let savedSchools = AppDependencies.shared.container.savedSchools
+    private var savedTask: Task<Void, Never>?
 
     init(
         getSchools: GetSchoolsUseCase = AppDependencies.shared.container.getSchools,
@@ -55,8 +60,8 @@ final class SchoolListViewModel: ObservableObject {
 
     var styles: [String] { uniqueValues(schools.map { $0.style }) }
     var rocks: [String] { uniqueValues(schools.map { $0.rockType }) }
-    var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || onlyFavorites }
-    func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; onlyFavorites = false }
+    var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || showMode != .all }
+    func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; showMode = .all }
 
     func toggleCompare(_ id: String) {
         if compareSelection.contains(id) { compareSelection.remove(id) }
@@ -75,8 +80,12 @@ final class SchoolListViewModel: ObservableObject {
         if let max = maxDistanceKm, let la = userLat, let lo = userLon {
             list = list.filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
         }
-        // Solo favoritas.
-        if onlyFavorites { list = list.filter { favoriteIds.contains($0.id) } }
+        // Solo favoritas / solo guardadas offline.
+        switch showMode {
+        case .all: break
+        case .favorites: list = list.filter { favoriteIds.contains($0.id) }
+        case .saved: list = list.filter { savedIds.contains($0.id) }
+        }
         // Orden.
         switch sortBy {
         case .score:
@@ -94,6 +103,7 @@ final class SchoolListViewModel: ObservableObject {
 
     func load() async {
         errorText = nil
+        startObservingSaved()
         // 1. Pinta desde la caché local al instante (si la hay).
         if let cached = try? await cachedSchools?.load(), !cached.isEmpty {
             schools = cached
@@ -120,6 +130,18 @@ final class SchoolListViewModel: ObservableObject {
     }
 
     func refresh() async { await load() }
+
+    /// Observa las escuelas guardadas offline (Flow de SQLDelight) para el filtro
+    /// GUARDADOS. Idempotente: solo arranca un task.
+    func startObservingSaved() {
+        guard savedTask == nil, let savedSchools else { return }
+        savedTask = Task { [weak self] in
+            for await list in savedSchools.observeSaved() {
+                guard let self else { return }
+                self.savedIds = Set(list.map { $0.id })
+            }
+        }
+    }
 
     private func loadUnread() async {
         if let inbox = try? await AppDependencies.shared.container.getMyNotifications.invoke(limit: 50) {
@@ -607,10 +629,10 @@ private struct FilterChips: View {
                         isSel: { $0 == vm.rock },
                         label: { $0 ?? "Todas" }) { vm.rock = $0 }
             }
-            section("FAVORITOS") {
-                chipRow([false, true], id: { $0 ? "fav" : "all" },
-                        isSel: { $0 == vm.onlyFavorites },
-                        label: { $0 ? "Solo favoritos ★" : "Todos" }) { vm.onlyFavorites = $0 }
+            section("MOSTRAR") {
+                chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
+                        isSel: { $0 == vm.showMode },
+                        label: { $0.rawValue }) { vm.showMode = $0 }
             }
             section("ORDENAR POR") {
                 chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },

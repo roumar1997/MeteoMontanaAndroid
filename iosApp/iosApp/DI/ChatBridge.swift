@@ -32,11 +32,13 @@ final class ChatBridge: NSObject, IosChatBridge {
 
     func observeConversations(onChange: @escaping ([IosConvDto]) -> Void) -> IosChatListener {
         guard let me = Auth.auth().currentUser?.uid else { onChange([]); return ChatListenerHandle(nil) }
+        // Solo filtramos por `arrayContains` y ordenamos en cliente: combinar
+        // `arrayContains` + `order(by:)` exige un índice compuesto en Firestore;
+        // sin él el listener falla. Ordenar aquí evita esa dependencia.
         let reg = convs
             .whereField("participants", arrayContains: me)
-            .order(by: "lastAt", descending: true)
             .addSnapshotListener { snap, _ in
-                let list: [IosConvDto] = snap?.documents.compactMap { doc in
+                let list: [IosConvDto] = (snap?.documents.compactMap { doc -> IosConvDto? in
                     let d = doc.data()
                     let participants = (d["participants"] as? [String]) ?? []
                     if participants.isEmpty { return nil }
@@ -48,7 +50,8 @@ final class ChatBridge: NSObject, IosChatBridge {
                         lastFromUid: d["lastFromUid"] as? String,
                         lastAtMillis: self.millis(d["lastAt"]),
                         unreadCount: unread)
-                } ?? []
+                } ?? [])
+                .sorted { $0.lastAtMillis > $1.lastAtMillis }
                 onChange(list)
             }
         return ChatListenerHandle(reg)
