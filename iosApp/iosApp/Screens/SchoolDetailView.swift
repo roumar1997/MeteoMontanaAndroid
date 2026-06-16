@@ -220,6 +220,8 @@ private struct SchoolMapSection: View {
     @State private var corrNew: CLLocationCoordinate2D?
     @State private var userCoord: CLLocationCoordinate2D?   // mi ubicación en el sector
     @State private var addLinesBlock: Block?
+    @State private var editLineCtx: EditLineCtx?
+    @State private var assignSectorBlock: Block?
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -312,11 +314,29 @@ private struct SchoolMapSection: View {
             }
         }
         .sheet(item: $selectedBlock) { b in
-            BlockInfoSheet(block: b, onAddLines: { addLinesBlock = b })
+            BlockInfoSheet(
+                block: b,
+                sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
+                onAddLines: { addLinesBlock = b },
+                onEditLine: { line in editLineCtx = EditLineCtx(block: b, line: line) },
+                onAssignSector: { assignSectorBlock = b })
         }
         .sheet(item: $addLinesBlock) { b in
             AddLinesSheet(block: b, schoolId: school.id) { ok in
                 addLinesBlock = nil
+                if ok { afterSubmit() }
+            }
+        }
+        .sheet(item: $editLineCtx) { ctx in
+            EditLineSheet(block: ctx.block, line: ctx.line, schoolId: school.id) { ok in
+                editLineCtx = nil
+                if ok { afterSubmit() }
+            }
+        }
+        .sheet(item: $assignSectorBlock) { b in
+            AssignSectorSheet(block: b, schoolId: school.id,
+                              sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
+                assignSectorBlock = nil
                 if ok { afterSubmit() }
             }
         }
@@ -507,6 +527,13 @@ private struct CoordItem: Identifiable {
     var id: String { "\(coord.latitude),\(coord.longitude)" }
 }
 
+/// Contexto para corregir una vía (qué bloque y qué línea).
+private struct EditLineCtx: Identifiable {
+    let block: Block
+    let line: BlockLine
+    var id: String { line.id }
+}
+
 /// Selector de tipo de propuesta — espejo de TypePickerDialog.kt. PARKING está
 /// activo; el resto (piedra/sector/corregir) llegará en próximas iteraciones.
 private struct ContributionTypePicker: View {
@@ -635,8 +662,16 @@ private struct ContributionSuccessSheet: View {
 /// vías y "CÓMO LLEGAR"). Espejo simplificado de BlockDetailDialog.kt.
 private struct BlockInfoSheet: View {
     let block: Block
+    var sectors: [Block] = []
     var onAddLines: (() -> Void)? = nil
+    var onEditLine: ((BlockLine) -> Void)? = nil
+    var onAssignSector: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
+
+    private var sectorName: String? {
+        guard let sid = block.sectorBlockId else { return nil }
+        return sectors.first(where: { $0.id == sid })?.name
+    }
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -644,6 +679,13 @@ private struct BlockInfoSheet: View {
                     Text(typeLabel).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
                     Text(block.name.isEmpty ? typeLabel : block.name)
                         .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+
+                    // Sector al que pertenece (si lo tiene).
+                    if let sn = sectorName, !sn.isEmpty {
+                        Text("SECTOR · \(sn.uppercased())").font(Cumbre.mono(10, .bold))
+                            .foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Cumbre.ok)
+                    }
 
                     // Foto con las vías dibujadas encima (solo PIEDRA con foto).
                     if block.type.uppercased() == "BLOCK",
@@ -671,6 +713,12 @@ private struct BlockInfoSheet: View {
                                 if let st = l.startType, !st.isEmpty {
                                     Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 }
+                                // Corregir esta vía (espejo de "✎ CORREGIR VÍA").
+                                if let onEditLine {
+                                    Button { dismiss(); onEditLine(l) } label: {
+                                        Image(systemName: "pencil").font(.system(size: 13)).foregroundStyle(Cumbre.terra)
+                                    }
+                                }
                             }
                         }
                     }
@@ -687,6 +735,16 @@ private struct BlockInfoSheet: View {
                             Text("+ AÑADIR VÍAS").font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
+
+                    // Asignar sector (solo piedras sin sector y si hay zonas).
+                    if block.type.uppercased() == "BLOCK", block.sectorBlockId == nil,
+                       !sectors.isEmpty, let onAssignSector {
+                        Button { dismiss(); onAssignSector() } label: {
+                            Text("+ ASIGNAR SECTOR").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                .foregroundStyle(Cumbre.ink).frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                         }.buttonStyle(.plain)
                     }
                 }

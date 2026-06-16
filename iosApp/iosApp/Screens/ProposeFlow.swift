@@ -444,3 +444,139 @@ struct AddLinesSheet: View {
         onDone(ok)
     }
 }
+
+/// Mapea el tipo de inicio del backend (STAND/JUMP) a la UI (PIE/LANCE).
+func startTypeForUi(_ t: String?) -> String? {
+    switch t?.uppercased() {
+    case "STAND", "PIE": return "PIE"
+    case "SIT": return "SIT"
+    case "JUMP", "LANCE": return "LANCE"
+    case "TRAV": return "TRAV"
+    default: return nil
+    }
+}
+
+/// Flujo "✎ CORREGIR VÍA" — espejo de EditLineFlow.kt. Precarga los datos de la
+/// vía elegida; al guardar envía BOULDER con targetBlockId + targetLineId (el
+/// backend reemplaza esa vía). Las demás vías se muestran de referencia.
+struct EditLineSheet: View {
+    let block: Block
+    let line: BlockLine
+    let schoolId: String
+    let onDone: (Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var blocks: [BoulderBlockForm] = []
+    @State private var showEditor = false
+    @State private var sending = false
+
+    private var hasPhoto: Bool { !(block.photoPath ?? "").isEmpty }
+    private var otherLines: [TopoLineVM] { block.lines.filter { $0.id != line.id }.map { TopoLineVM($0) } }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Corrigiendo «\(line.name.isEmpty ? "vía" : line.name)» de «\(block.name)». Un admin la revisará.")
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+
+                    Text("DATOS DE LA VÍA").eyebrow()
+                    if !blocks.isEmpty {
+                        BoulderBlockRow(block: $blocks[0], index: line.sortOrder, onDelete: nil)
+                    }
+
+                    if hasPhoto {
+                        Button { showEditor = true } label: {
+                            Text(blocks.first?.line.isEmpty == false ? "✎ EDITAR LÍNEA SOBRE LA FOTO" : "✎ DIBUJAR LÍNEA SOBRE LA FOTO")
+                                .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12).background(Cumbre.terra)
+                        }.buttonStyle(.plain)
+                    }
+
+                    Button { Task { await send() } } label: {
+                        HStack { if sending { ProgressView().tint(.white) }
+                            Text("ENVIAR CORRECCIÓN").font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                    }.buttonStyle(.plain).disabled(sending || blocks.isEmpty).padding(.top, 4)
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Corregir vía")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) {
+                Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+        }
+        .onAppear {
+            if blocks.isEmpty {
+                blocks = [BoulderBlockForm(name: line.name, grade: line.grade,
+                                          startType: startTypeForUi(line.startType),
+                                          line: TopoParse.points(line.linePath))]
+            }
+        }
+        .sheet(isPresented: $showEditor) {
+            TopoEditorView(photoUrl: block.photoPath, existingLines: otherLines, blocks: $blocks)
+        }
+    }
+
+    private func send() async {
+        sending = true
+        let req = ContributionRequest(
+            type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
+            notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+            targetBlockId: block.id, targetLineId: line.id, sectorBlockId: nil,
+            photoUrl: nil, bloquesJson: buildBloquesJson(blocks), topoLinesJson: nil)
+        let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
+        sending = false; dismiss(); onDone(ok)
+    }
+}
+
+/// Flujo "+ ASIGNAR SECTOR" — espejo de la contribución ASSIGN_SECTOR. Elige una
+/// zona y propone que esta piedra pertenezca a ese sector.
+struct AssignSectorSheet: View {
+    let block: Block
+    let schoolId: String
+    let sectors: [Block]
+    let onDone: (Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var sending = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Elige el sector (zona) al que pertenece «\(block.name)». Un admin lo revisará.")
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    ForEach(sectors, id: \.id) { s in
+                        Button { Task { await assign(s.id) } } label: {
+                            HStack {
+                                Text(s.name.isEmpty ? "Zona" : s.name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            }
+                            .padding(12).frame(maxWidth: .infinity)
+                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        }.buttonStyle(.plain).disabled(sending)
+                    }
+                    if sending { ProgressView().frame(maxWidth: .infinity) }
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Asignar sector")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) {
+                Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+        }
+    }
+
+    private func assign(_ sectorId: String) async {
+        sending = true
+        let req = ContributionRequest(
+            type: "ASSIGN_SECTOR", name: nil, lat: block.lat, lon: block.lon,
+            notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+            targetBlockId: block.id, targetLineId: nil, sectorBlockId: sectorId,
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil)
+        let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
+        sending = false; dismiss(); onDone(ok)
+    }
+}
