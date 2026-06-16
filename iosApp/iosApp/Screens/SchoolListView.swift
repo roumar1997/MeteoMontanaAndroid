@@ -27,6 +27,7 @@ final class SchoolListViewModel: ObservableObject {
     @Published var userLat: Double?
     @Published var userLon: Double?
     @Published var compareSelection: Set<String> = []  // long-press para comparar (máx 3)
+    @Published var unreadNotifications: Int = 0
 
     private let getSchools: GetSchoolsUseCase
     private let getTodayScores: GetTodayScoresUseCase
@@ -113,10 +114,17 @@ final class SchoolListViewModel: ObservableObject {
         loading = false
         await loadLocation()
         await loadFavorites()
+        await loadUnread()
         await loadScores()
     }
 
     func refresh() async { await load() }
+
+    private func loadUnread() async {
+        if let inbox = try? await AppDependencies.shared.container.getMyNotifications.invoke(limit: 50) {
+            unreadNotifications = Int(inbox.unreadCount)
+        }
+    }
 
     private func loadLocation() async {
         guard locationBridge.hasPermission() else { return }
@@ -176,7 +184,7 @@ struct SchoolListView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 0, pinnedViews: []) {
-                    TopIconsRow()
+                    TopIconsRow(unreadCount: vm.unreadNotifications)
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     CoffeeBanner()
                     SearchField(text: $vm.query)
@@ -261,6 +269,7 @@ private struct CompareBar: View {
 // MARK: - Header
 
 private struct TopIconsRow: View {
+    var unreadCount: Int = 0
     @State private var showAccount = false
     @State private var showNotifications = false
     @State private var showSearch = false
@@ -273,7 +282,7 @@ private struct TopIconsRow: View {
             iconButton("magnifyingglass") { showSearch = true }
             iconButton("bubble.left") {}
             iconButton(theme.iconName) { theme.cycle() }
-            iconButton("bell") { showNotifications = true }
+            bellButton
             iconButton("person") { showAccount = true }
         }
         .padding(.horizontal, 4)
@@ -290,6 +299,25 @@ private struct TopIconsRow: View {
                 .foregroundStyle(Cumbre.ink)
                 .frame(width: 40, height: 40)
                 .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Campana con badge rojo de no leídas (número o "9+").
+    private var bellButton: some View {
+        Button { showNotifications = true } label: {
+            Image(systemName: "bell")
+                .font(.system(size: 18)).foregroundStyle(Cumbre.ink)
+                .frame(width: 40, height: 40).contentShape(Rectangle())
+                .overlay(alignment: .topTrailing) {
+                    if unreadCount > 0 {
+                        Text(unreadCount > 9 ? "9+" : "\(unreadCount)")
+                            .font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Capsule().fill(Cumbre.bad))
+                            .offset(x: -4, y: 4)
+                    }
+                }
         }
         .buttonStyle(.plain)
     }

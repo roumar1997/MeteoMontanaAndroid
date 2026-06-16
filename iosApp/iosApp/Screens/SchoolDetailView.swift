@@ -79,6 +79,7 @@ struct SchoolDetailView: View {
     let school: School
     @StateObject private var vm = SchoolDetailViewModel()
     @State private var factorsExpanded = false
+    @State private var selectedDay: DayForecast?
 
     var body: some View {
         ScrollView {
@@ -91,7 +92,8 @@ struct SchoolDetailView: View {
                 ForecastBodyView(
                     forecast: f,
                     directions: (lat: school.lat, lon: school.lon, label: school.name),
-                    factorsExpanded: $factorsExpanded
+                    factorsExpanded: $factorsExpanded,
+                    onSelectDay: { selectedDay = $0 }
                 )
             }
             // Notas comunitarias — bajo el forecast, también si no hubo previsión.
@@ -112,6 +114,9 @@ struct SchoolDetailView: View {
                 }
             }
         }
+        .sheet(item: $selectedDay) { d in
+            DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
+        }
         .task { await vm.load(schoolId: school.id) }
     }
 }
@@ -123,6 +128,7 @@ struct ForecastBodyView: View {
     let forecast: Forecast
     var directions: (lat: Double, lon: Double, label: String)? = nil
     @Binding var factorsExpanded: Bool
+    var onSelectDay: ((DayForecast) -> Void)? = nil
 
     var body: some View {
         let f = forecast
@@ -144,7 +150,8 @@ struct ForecastBodyView: View {
             rule
             SectionTitle("PRÓXIMOS 7 DÍAS")
             ForEach(Array(f.days.prefix(7).enumerated()), id: \.offset) { _, d in
-                DayRow(day: d); rule
+                Button { onSelectDay?(d) } label: { DayRow(day: d) }.buttonStyle(.plain)
+                rule
             }
             BestDayBar(forecast: f)
         }

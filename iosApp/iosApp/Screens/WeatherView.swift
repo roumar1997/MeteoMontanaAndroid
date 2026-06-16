@@ -72,6 +72,7 @@ final class WeatherViewModel: ObservableObject {
 struct WeatherView: View {
     @StateObject private var vm = WeatherViewModel()
     @State private var factorsExpanded = false
+    @State private var selectedDay: DayForecast?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -137,7 +138,11 @@ struct WeatherView: View {
                     FavoritesGridView(grid: grid)
                     Divider().overlay(Cumbre.rule)
                 }
-                ForecastBodyView(forecast: forecast, factorsExpanded: $factorsExpanded)
+                ForecastBodyView(forecast: forecast, factorsExpanded: $factorsExpanded,
+                                 onSelectDay: { selectedDay = $0 })
+            }
+            .sheet(item: $selectedDay) { d in
+                DayDetailView(day: d, allHours: forecast.hours)
             }
         }
     }
