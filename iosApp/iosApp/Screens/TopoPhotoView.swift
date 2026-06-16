@@ -22,6 +22,18 @@ extension TopoLineVM {
 }
 
 enum TopoParse {
+    /// Parsea `bloquesJson` (`[{name,grade,startType,linePath}, ...]`, donde
+    /// linePath es un string JSON de puntos) a vías dibujables.
+    static func lines(_ bloquesJson: String?) -> [TopoLineVM] {
+        guard let bloquesJson, let data = bloquesJson.data(using: .utf8),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { return [] }
+        return arr.enumerated().map { idx, o in
+            TopoLineVM(id: "b\(idx)", name: o["name"] as? String, grade: o["grade"] as? String,
+                       startType: o["startType"] as? String, points: points(o["linePath"] as? String))
+        }
+    }
+
     /// Parsea `[{"x":..,"y":..}, ...]` a puntos normalizados.
     static func points(_ json: String?) -> [CGPoint] {
         guard let json, let data = json.data(using: .utf8),

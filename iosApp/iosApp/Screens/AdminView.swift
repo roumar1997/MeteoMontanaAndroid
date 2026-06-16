@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import CoreLocation
 
 // Panel de admin — cola de propuestas de escuela y contribuciones de mejora
 // pendientes, con aprobar / rechazar (con motivo). Espejo parcial de
@@ -48,9 +49,32 @@ final class AdminViewModel: ObservableObject {
     }
 }
 
+private enum ContribFilter: String, CaseIterable {
+    case todas = "TODAS", piedras = "PIEDRAS", sectores = "SECTORES"
+    case parkings = "PARKINGS", mover = "MOVER"
+    func matches(_ t: String) -> Bool {
+        switch self {
+        case .todas: return true
+        case .piedras: return t.uppercased() == "BOULDER"
+        case .sectores: return t.uppercased() == "SECTOR"
+        case .parkings: return t.uppercased() == "PARKING"
+        case .mover: return t.uppercased() == "POSITION_CORRECTION"
+        }
+    }
+}
+
 struct AdminView: View {
     @StateObject private var vm = AdminViewModel()
     @State private var rejecting: RejectTarget?
+    @State private var filter: ContribFilter = .todas
+
+    private var filteredContributions: [Contribution] {
+        vm.contributions.filter { filter.matches($0.type) }
+    }
+    private var groupedBySchool: [(school: String, items: [Contribution])] {
+        let groups = Dictionary(grouping: filteredContributions, by: { $0.schoolName })
+        return groups.keys.sorted().map { (school: $0, items: groups[$0] ?? []) }
+    }
 
     var body: some View {
         Group {
@@ -80,16 +104,37 @@ struct AdminView: View {
                         }
                         if !vm.contributions.isEmpty {
                             Section {
-                                ForEach(vm.contributions, id: \.id) { c in
-                                    ContributionAdminCard(
-                                        contribution: c,
-                                        busy: vm.working.contains(c.id),
-                                        onApprove: { vm.reviewContribution(c.id, approve: true, reason: nil) },
-                                        onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) }
-                                    )
-                                    Divider().overlay(Cumbre.rule)
+                                // Chips de filtro por tipo.
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        ForEach(ContribFilter.allCases, id: \.self) { f in
+                                            let on = filter == f
+                                            Button { filter = f } label: {
+                                                Text(f.rawValue).font(Cumbre.mono(10, .bold)).tracking(0.6)
+                                                    .foregroundStyle(on ? .white : Cumbre.ink2)
+                                                    .padding(.horizontal, 10).padding(.vertical, 6)
+                                                    .background(on ? Cumbre.ink : Color.clear)
+                                                    .overlay(Rectangle().stroke(on ? Cumbre.ink : Cumbre.rule, lineWidth: 1))
+                                            }.buttonStyle(.plain)
+                                        }
+                                    }.padding(.horizontal, 16).padding(.vertical, 8)
                                 }
-                            } header: { sectionHeader("MEJORAS · \(vm.contributions.count)") }
+                                ForEach(groupedBySchool, id: \.school) { group in
+                                    Text("\(group.school.uppercased()) · \(group.items.count)")
+                                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, 16).padding(.top, 8)
+                                    ForEach(group.items, id: \.id) { c in
+                                        ContributionAdminCard(
+                                            contribution: c,
+                                            busy: vm.working.contains(c.id),
+                                            onApprove: { vm.reviewContribution(c.id, approve: true, reason: nil) },
+                                            onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) }
+                                        )
+                                        Divider().overlay(Cumbre.rule)
+                                    }
+                                }
+                            } header: { sectionHeader("MEJORAS · \(filteredContributions.count)") }
                         }
                     }
                 }
@@ -144,10 +189,21 @@ private struct ContributionAdminCard: View {
     let busy: Bool
     let onApprove: () -> Void
     let onReject: () -> Void
+    @State private var showMap = false
+
+    private var isCorrection: Bool { contribution.type.uppercased() == "POSITION_CORRECTION" }
+    private var newCoord: CLLocationCoordinate2D? {
+        guard let la = contribution.proposedLat?.doubleValue,
+              let lo = contribution.proposedLon?.doubleValue else { return nil }
+        return CLLocationCoordinate2D(latitude: la, longitude: lo)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(typeLabel(contribution.type)).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                Text(adminTypeLabel(contribution.type)).font(Cumbre.mono(11, .bold)).tracking(0.8)
+                    .foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(isCorrection ? Cumbre.bad : Cumbre.terra)
                 Spacer()
                 if let a = contribution.submittedByName, !a.isEmpty {
                     Text(a).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
@@ -156,21 +212,105 @@ private struct ContributionAdminCard: View {
             Text(contribution.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
             if let nm = contribution.name, !nm.isEmpty { Text(nm).font(.system(size: 14)).foregroundStyle(Cumbre.ink) }
             if let n = contribution.notes, !n.isEmpty { Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2) }
-            Text(String(format: "%.5f, %.5f", contribution.lat, contribution.lon))
+
+            // QUÉ CAMBIA — visualización por tipo (clave para revisar bien).
+            switch contribution.type.uppercased() {
+            case "POSITION_CORRECTION":
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MUEVE «\((contribution.name ?? "elemento").uppercased())»")
+                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
+                    Text("✕ actual: \(coordStr(contribution.lat, contribution.lon))")
+                        .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                    if let nc = newCoord {
+                        Text("★ nueva: \(coordStr(nc.latitude, nc.longitude))")
+                            .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                    }
+                }
+            case "BOULDER":
+                if let p = contribution.photoUrl, !p.isEmpty {
+                    Text(contribution.targetBlockId == nil ? "PIEDRA NUEVA" : "AÑADE VÍAS A UNA PIEDRA")
+                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
+                    TopoPhotoView(photoUrl: p, lines: TopoParse.lines(contribution.bloquesJson))
+                } else if let bj = contribution.bloquesJson, !bj.isEmpty {
+                    Text("\(TopoParse.lines(bj).count) vía(s) propuesta(s)")
+                        .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                }
+            case "ASSIGN_SECTOR":
+                Text("ASIGNA ESTA PIEDRA A UN SECTOR")
+                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
+            default:
+                EmptyView()
+            }
+
+            Text(coordStr(contribution.lat, contribution.lon))
                 .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+
+            Button { showMap = true } label: {
+                Text("VER EN MAPA").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
+                    .frame(maxWidth: .infinity).padding(.vertical, 9)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            }.buttonStyle(.plain)
+
             ReviewButtons(busy: busy, onApprove: onApprove, onReject: onReject)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
+        .sheet(isPresented: $showMap) {
+            ContributionMapSheet(contribution: contribution)
+        }
     }
 
-    private func typeLabel(_ t: String) -> String {
-        switch t.uppercased() {
-        case "PARKING": return "PARKING"
-        case "BOULDER": return "PIEDRA"
-        case "SECTOR": return "SECTOR"
-        case "POSITION_CORRECTION": return "CORREGIR POSICIÓN"
-        case "ASSIGN_SECTOR": return "ASIGNAR SECTOR"
-        default: return t.uppercased()
+    private func coordStr(_ lat: Double, _ lon: Double) -> String {
+        String(format: "%.5f, %.5f", lat, lon)
+    }
+}
+
+func adminTypeLabel(_ t: String) -> String {
+    switch t.uppercased() {
+    case "PARKING": return "PARKING"
+    case "BOULDER": return "PIEDRA"
+    case "SECTOR": return "SECTOR"
+    case "POSITION_CORRECTION": return "CORREGIR POSICIÓN"
+    case "ASSIGN_SECTOR": return "ASIGNAR SECTOR"
+    default: return t.uppercased()
+    }
+}
+
+/// Marcadores de una contribución para el mapa (CORREGIR = viejo ✕ gris + nuevo
+/// ★ amarillo; el resto = un marcador amarillo en la posición propuesta).
+func contributionMarkers(_ c: Contribution) -> [CumbreMarker] {
+    let highlight = UIColor(hex: 0xF59E0B)
+    if c.type.uppercased() == "POSITION_CORRECTION" {
+        var ms = [CumbreMarker(id: "old", coordinate: CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon),
+                               title: "Actual", kind: .block, color: UIColor(white: 0.55, alpha: 1), name: "✕")]
+        if let la = c.proposedLat?.doubleValue, let lo = c.proposedLon?.doubleValue {
+            ms.append(CumbreMarker(id: "new", coordinate: CLLocationCoordinate2D(latitude: la, longitude: lo),
+                                   title: "Nueva", kind: .block, color: highlight, name: "★"))
+        }
+        return ms
+    }
+    return [CumbreMarker(id: "p", coordinate: CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon),
+                         title: c.name ?? adminTypeLabel(c.type), kind: .block, color: highlight,
+                         name: c.name ?? "★")]
+}
+
+/// Mapa a pantalla completa de una propuesta (espejo de FullScreenMapDialog).
+private struct ContributionMapSheet: View {
+    let contribution: Contribution
+    @Environment(\.dismiss) private var dismiss
+    @State private var style: MapStyleKind = .topo
+    var body: some View {
+        NavigationStack {
+            ZStack(alignment: .topLeading) {
+                MapLibreView(
+                    center: CLLocationCoordinate2D(latitude: contribution.lat, longitude: contribution.lon),
+                    zoom: 15, markers: contributionMarkers(contribution), style: style)
+                MapStyleChips(selection: $style)
+            }
+            .ignoresSafeArea(edges: .bottom)
+            .navigationTitle(adminTypeLabel(contribution.type))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) {
+                Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
         }
     }
 }
