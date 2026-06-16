@@ -4,6 +4,7 @@ import com.meteomontana.android.data.api.KtorFavoritesApi
 import com.meteomontana.android.data.api.KtorForecastApi
 import com.meteomontana.android.data.api.KtorNoteApi
 import com.meteomontana.android.data.api.KtorContributionApi
+import com.meteomontana.android.data.api.KtorJournalApi
 import com.meteomontana.android.data.api.KtorNotificationApi
 import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.KtorSchoolApi
@@ -15,6 +16,7 @@ import com.meteomontana.android.data.repository.KtorForecastRepository
 import com.meteomontana.android.data.repository.KtorNoteRepository
 import com.meteomontana.android.data.repository.KtorNotificationsRepository
 import com.meteomontana.android.data.repository.KtorContributionRepository
+import com.meteomontana.android.data.repository.KtorJournalRepository
 import com.meteomontana.android.data.repository.KtorProfileRepository
 import com.meteomontana.android.data.repository.KtorSchoolRepository
 import com.meteomontana.android.data.repository.KtorSocialRepository
@@ -46,6 +48,10 @@ import com.meteomontana.android.domain.usecase.social.SearchUsersUseCase
 import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
 import com.meteomontana.android.domain.usecase.submissions.GetMySubmissionsUseCase
 import com.meteomontana.android.domain.usecase.contributions.GetMyContributionsUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
+import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
@@ -108,6 +114,7 @@ class IosDependencyContainer(
     private val socialRepository = KtorSocialRepository(socialApi)
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
+    private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
 
     // Use cases públicos del MVP (sin auth). Se irán añadiendo más a medida
     // que las pantallas iOS los necesiten.
@@ -156,6 +163,12 @@ class IosDependencyContainer(
     // approved/rejected) — accesibles desde el perfil.
     val getMySubmissions = GetMySubmissionsUseCase(submissionRepository)
     val getMyContributions = GetMyContributionsUseCase(contributionRepository)
+
+    // Diario de escalada: entradas, stats (bloques/escuelas/grado máximo), crear/borrar.
+    val getMyJournal = GetMyJournalUseCase(journalRepository)
+    val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)
+    val createJournalEntry = CreateJournalEntryUseCase(journalRepository)
+    val deleteJournalEntry = DeleteJournalEntryUseCase(journalRepository)
 
     // Caché local del catálogo (stale-while-revalidate): la lista pinta desde
     // aquí al instante y refresca desde red después. Null si no hay BD.
