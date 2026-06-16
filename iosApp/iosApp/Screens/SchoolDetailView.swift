@@ -207,6 +207,7 @@ private struct SchoolMapSection: View {
     @State private var formCoord: CLLocationCoordinate2D?
     @State private var proposeType = "PARKING"
     @State private var showSuccess = false
+    @State private var mapStyle: MapStyleKind = .topo
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -238,6 +239,7 @@ private struct SchoolMapSection: View {
                         center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
                         zoom: 14,
                         markers: markers,
+                        style: mapStyle,
                         onTapMarker: { id in
                             if !waitingTap { selectedBlock = blocks.first { $0.id == id } }
                         },
@@ -247,6 +249,12 @@ private struct SchoolMapSection: View {
                         } : nil
                     )
                     .frame(height: 280)
+
+                    // Chips topográfico / satélite (esquina superior izquierda).
+                    if !waitingTap {
+                        VStack { HStack { MapStyleChips(selection: $mapStyle); Spacer() }; Spacer() }
+                            .frame(height: 280)
+                    }
 
                     // Banner "PULSA EN EL MAPA" mientras se espera el tap.
                     if waitingTap {
@@ -320,16 +328,26 @@ private struct SchoolMapSection: View {
         var ms = [CumbreMarker(
             id: school.id,
             coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-            title: school.name, color: schoolColor)]
+            title: school.name, kind: .school, color: schoolColor)]
         for b in blocks {
             ms.append(CumbreMarker(
                 id: b.id,
                 coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon),
                 title: b.name.isEmpty ? b.type : b.name,
                 subtitle: typeLabel(b.type),
-                color: color(for: b.type)))
+                kind: markerKind(for: b.type),
+                color: color(for: b.type),
+                name: b.name))
         }
         return ms
+    }
+
+    private func markerKind(for type: String) -> MarkerKind {
+        switch type.uppercased() {
+        case "PARKING": return .parking
+        case "ZONE": return .zone
+        default: return .block
+        }
     }
 
     private var legend: some View {

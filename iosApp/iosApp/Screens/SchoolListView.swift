@@ -493,15 +493,28 @@ private struct MapToggleAndPanel: View {
     }
 
     private var markers: [CumbreMarker] {
-        vm.filtered.prefix(200).map { s in
+        var ms: [CumbreMarker] = []
+        // Punto azul de mi ubicación (confirma que se cogió la ubicación).
+        if let la = vm.userLat, let lo = vm.userLon {
+            ms.append(CumbreMarker(
+                id: "__USER__",
+                coordinate: CLLocationCoordinate2D(latitude: la, longitude: lo),
+                title: "", kind: .user))
+        }
+        for s in vm.filtered.prefix(200) {
             let score = vm.scores[s.id].map { Int($0.todayScore) }
-            return CumbreMarker(
+            ms.append(CumbreMarker(
                 id: s.id,
                 coordinate: CLLocationCoordinate2D(latitude: s.lat, longitude: s.lon),
                 title: s.name,
                 subtitle: score.map { "\($0)/100" },
-                color: UIColor(score.map { Cumbre.score($0) } ?? Cumbre.rule))
+                kind: .score,
+                color: UIColor(score.map { Cumbre.score($0) } ?? Cumbre.rule),
+                score: score,
+                name: s.name,
+                showName: true))
         }
+        return ms
     }
 
     private var center: CLLocationCoordinate2D {
