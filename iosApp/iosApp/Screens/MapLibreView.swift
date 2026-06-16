@@ -83,9 +83,27 @@ struct MapLibreView: UIViewRepresentable {
         var parent: MapLibreView
         init(_ parent: MapLibreView) { self.parent = parent }
 
-        // Pin coloreado simple (color del marcador correspondiente por título).
+        // Pin coloreado por tipo (busca el marcador por título y genera un punto
+        // del color correspondiente, cacheado por color).
         func mapView(_ mapView: MLNMapView, imageFor annotation: MLNAnnotation) -> MLNAnnotationImage? {
-            nil // usa el pin por defecto de MapLibre
+            guard let title = annotation.title ?? nil,
+                  let marker = parent.markers.first(where: { $0.title == title }) else { return nil }
+            let hex = marker.color.hexKey
+            if let cached = mapView.dequeueReusableAnnotationImage(withIdentifier: hex) { return cached }
+            return MLNAnnotationImage(image: Coordinator.dot(color: marker.color), reuseIdentifier: hex)
+        }
+
+        /// Punto circular con borde blanco como imagen de marcador.
+        static func dot(color: UIColor, size: CGFloat = 22) -> UIImage {
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
+            return renderer.image { ctx in
+                let rect = CGRect(x: 1, y: 1, width: size - 2, height: size - 2)
+                ctx.cgContext.setFillColor(color.cgColor)
+                ctx.cgContext.fillEllipse(in: rect)
+                ctx.cgContext.setStrokeColor(UIColor.white.cgColor)
+                ctx.cgContext.setLineWidth(2)
+                ctx.cgContext.strokeEllipse(in: rect)
+            }
         }
 
         func mapView(_ mapView: MLNMapView, didSelect annotation: MLNAnnotation) {
@@ -97,5 +115,14 @@ struct MapLibreView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MLNMapView, annotationCanShowCallout annotation: MLNAnnotation) -> Bool { true }
+    }
+}
+
+private extension UIColor {
+    /// Clave estable por color (para cachear la imagen del marcador).
+    var hexKey: String {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "dot-%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
     }
 }

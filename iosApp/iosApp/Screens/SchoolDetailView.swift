@@ -2,6 +2,9 @@ import SwiftUI
 import Shared
 import CoreLocation
 
+// Block (clase Kotlin) Identifiable por su id — para .sheet(item:).
+extension Block: Identifiable {}
+
 // Detalle de escuela — réplica fiel de ForecastBody.kt de Android:
 // veredicto SÍ/NO "¿PUEDO ESCALAR HOY?" + ÍNDICE, banda de roca, heatmap,
 // desglose de factores, tiempo actual, próximas 16 h, condiciones (8 celdas),
@@ -188,12 +191,24 @@ private struct MonthlyStatsSection: View {
 private struct SchoolMapSection: View {
     let school: School
     @State private var expanded = false
+    @State private var blocks: [Block] = []
+    @State private var selectedBlock: Block?
+
+    // Colores de marcador por tipo (espejo de Android: parking azul, piedra
+    // terra, zona verde; la escuela en tinta oscura).
+    private let parkingColor = UIColor(red: 0.20, green: 0.45, blue: 0.85, alpha: 1)
+    private let blockColor = UIColor(red: 0.78, green: 0.40, blue: 0.13, alpha: 1)
+    private let zoneColor = UIColor(red: 0.29, green: 0.49, blue: 0.35, alpha: 1)
+    private let schoolColor = UIColor(red: 0.11, green: 0.11, blue: 0.10, alpha: 1)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button { withAnimation { expanded.toggle() } } label: {
                 HStack {
                     Text("VER MAPA").eyebrow()
+                    if !blocks.isEmpty {
+                        Text("· \(blocks.count)").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                    }
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
@@ -206,20 +221,122 @@ private struct SchoolMapSection: View {
             if expanded {
                 MapLibreView(
                     center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-                    zoom: 13,
-                    markers: [CumbreMarker(
-                        id: school.id,
-                        coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-                        title: school.name
-                    )]
+                    zoom: 14,
+                    markers: markers,
+                    onTapMarker: { id in selectedBlock = blocks.first { $0.id == id } }
                 )
-                .frame(height: 260)
+                .frame(height: 280)
+                legend
                 DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
                     .padding(.horizontal, 16).padding(.vertical, 8)
             }
         }
+        .task(id: expanded) {
+            if expanded && blocks.isEmpty {
+                blocks = (try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id)) ?? []
+            }
+        }
+        .sheet(item: $selectedBlock) { b in BlockInfoSheet(block: b) }
+    }
+
+    private var markers: [CumbreMarker] {
+        var ms = [CumbreMarker(
+            id: school.id,
+            coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
+            title: school.name, color: schoolColor)]
+        for b in blocks {
+            ms.append(CumbreMarker(
+                id: b.id,
+                coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon),
+                title: b.name.isEmpty ? b.type : b.name,
+                subtitle: typeLabel(b.type),
+                color: color(for: b.type)))
+        }
+        return ms
+    }
+
+    private var legend: some View {
+        HStack(spacing: 14) {
+            legendItem("Parking", Color(parkingColor))
+            legendItem("Piedra", Color(blockColor))
+            legendItem("Zona", Color(zoneColor))
+        }
+        .padding(.horizontal, 16).padding(.top, 8)
+    }
+    private func legendItem(_ t: String, _ c: Color) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(c).frame(width: 9, height: 9).overlay(Circle().stroke(.white, lineWidth: 1))
+            Text(t).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+        }
+    }
+
+    private func color(for type: String) -> UIColor {
+        switch type.uppercased() {
+        case "PARKING": return parkingColor
+        case "ZONE": return zoneColor
+        default: return blockColor
+        }
+    }
+    private func typeLabel(_ t: String) -> String {
+        switch t.uppercased() {
+        case "PARKING": return "PARKING"
+        case "ZONE": return "ZONA"
+        default: return "PIEDRA"
+        }
     }
 }
+
+/// Hoja con la info de un bloque tocado en el mapa (nombre, tipo, descripción,
+/// vías y "CÓMO LLEGAR"). Espejo simplificado de BlockDetailDialog.kt.
+private struct BlockInfoSheet: View {
+    let block: Block
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(typeLabel).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                    Text(block.name.isEmpty ? typeLabel : block.name)
+                        .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+                    if !block.lines.isEmpty {
+                        Text("VÍAS").eyebrow().padding(.top, 4)
+                        ForEach(block.lines, id: \.id) { l in
+                            HStack(spacing: 10) {
+                                if let g = l.grade, !g.isEmpty {
+                                    Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                                        .frame(width: 40, height: 26).background(GradeColor.color(g))
+                                }
+                                Text(l.name.isEmpty ? "Vía \(l.sortOrder + 1)" : l.name)
+                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                Spacer()
+                                if let st = l.startType, !st.isEmpty {
+                                    Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                                }
+                            }
+                        }
+                    }
+                    DirectionsButton(lat: block.lat, lon: block.lon, label: block.name).padding(.top, 8)
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle(block.name.isEmpty ? typeLabel : block.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) }
+            }
+        }
+    }
+    private var typeLabel: String {
+        switch block.type.uppercased() {
+        case "PARKING": return "PARKING"
+        case "ZONE": return "ZONA"
+        default: return "PIEDRA"
+        }
+    }
+}
+
+/// Carga una escuela por id y muestra su detalle. Útil cuando solo tenemos el
 
 /// Carga una escuela por id y muestra su detalle. Útil cuando solo tenemos el
 /// schoolId (p. ej. al tocar una notificación con targetType "school").
