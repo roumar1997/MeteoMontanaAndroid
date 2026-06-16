@@ -219,6 +219,7 @@ private struct SchoolMapSection: View {
     @State private var corrOld: CLLocationCoordinate2D?
     @State private var corrNew: CLLocationCoordinate2D?
     @State private var userCoord: CLLocationCoordinate2D?   // mi ubicación en el sector
+    @State private var collapsedSectors: Set<String> = []   // zonas con piedras ocultas
     @State private var addLinesBlock: Block?
     @State private var editLineCtx: EditLineCtx?
     @State private var assignSectorBlock: Block?
@@ -258,7 +259,16 @@ private struct SchoolMapSection: View {
                             if correctionMode && !corrActive {
                                 selectCorrectionTarget(id)
                             } else if !waitingTap && !correctionMode {
-                                selectedBlock = blocks.first { $0.id == id }
+                                // Tocar una ZONA con piedras → colapsa/expande sus piedras;
+                                // el resto de marcadores abre su ficha.
+                                if let b = blocks.first(where: { $0.id == id }),
+                                   b.type.uppercased() == "ZONE",
+                                   blocks.contains(where: { $0.sectorBlockId == b.id }) {
+                                    if collapsedSectors.contains(b.id) { collapsedSectors.remove(b.id) }
+                                    else { collapsedSectors.insert(b.id) }
+                                } else {
+                                    selectedBlock = blocks.first { $0.id == id }
+                                }
                             }
                         },
                         onMapTap: (waitingTap || (correctionMode && corrActive)) ? { coord in
@@ -460,6 +470,13 @@ private struct SchoolMapSection: View {
             coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
             title: school.name, kind: .school, color: schoolColor)]
         for b in blocks {
+            // Piedra oculta si pertenece a un sector colapsado.
+            if b.type.uppercased() == "BLOCK", let sid = b.sectorBlockId, collapsedSectors.contains(sid) {
+                continue
+            }
+            // Zona colapsada: muestra cuántas piedras tiene ocultas.
+            let collapsed = b.type.uppercased() == "ZONE" && collapsedSectors.contains(b.id)
+            let hidden = collapsed ? blocks.filter { $0.sectorBlockId == b.id }.count : 0
             ms.append(CumbreMarker(
                 id: b.id,
                 coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon),
@@ -467,7 +484,7 @@ private struct SchoolMapSection: View {
                 subtitle: typeLabel(b.type),
                 kind: markerKind(for: b.type),
                 color: color(for: b.type),
-                name: b.name))
+                name: collapsed && hidden > 0 ? "\(b.name) (+\(hidden))" : b.name))
         }
         // Mi ubicación (punto azul) para orientarme en el sector.
         if let u = userCoord {

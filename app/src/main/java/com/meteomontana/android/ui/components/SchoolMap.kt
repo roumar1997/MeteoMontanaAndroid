@@ -258,14 +258,32 @@ private fun InnerMap(
             createdByUid = "", createdAt = "", lines = emptyList()
         )
     }
-    val allMarkers = remember(blocks, schoolMarker) { listOf(schoolMarker) + blocks }
+    // Sectores colapsados: sus piedras se ocultan (tocar la zona alterna).
+    var collapsedSectors by remember { mutableStateOf(setOf<String>()) }
+    val collapsedState by androidx.compose.runtime.rememberUpdatedState(collapsedSectors)
 
-    // Re-pinta markers cuando aparece/cambia el ghost para reflejar la posición candidata.
-    androidx.compose.runtime.LaunchedEffect(correctionGhost) {
+    val visibleMarkers = remember(blocks, schoolMarker, collapsedSectors) {
+        listOf(schoolMarker) + blocks.filter { b ->
+            !(b.type == "BLOCK" && b.sectorBlockId != null && b.sectorBlockId in collapsedSectors)
+        }
+    }
+
+    // Tap de marcador: ZONA con piedras → colapsa/expande sus piedras; resto → popup.
+    val onBlockTap: (Block) -> Unit = { tapped ->
+        if (tapped.id != "__SCHOOL__") {
+            if (tapped.type == "ZONE" && blocks.any { it.sectorBlockId == tapped.id }) {
+                val cur = collapsedState
+                collapsedSectors = if (tapped.id in cur) cur - tapped.id else cur + tapped.id
+            } else selectedBlock = tapped
+        }
+    }
+
+    // Re-pinta markers cuando cambia el ghost o se colapsa/expande un sector.
+    androidx.compose.runtime.LaunchedEffect(correctionGhost, visibleMarkers) {
         val map = mapRef.value ?: return@LaunchedEffect
-        placeMarkers(ctx, map, allMarkers, correctionGhost, userLoc) { tapped ->
-            if (correctionMode) onMarkerTappedForCorrection(tapped)
-            else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
+        placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc) { tapped ->
+            if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+            else onBlockTap(tapped)
         }
     }
 
@@ -284,9 +302,9 @@ private fun InnerMap(
                         currentStyle = option
                         mapViewRef.value?.getMapAsync { map ->
                             map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
-                                placeMarkers(ctx, map, allMarkers, correctionGhost, userLoc) { tapped ->
+                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
-                                    else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
+                                    else onBlockTap(tapped)
                                 }
                             }
                         }
@@ -355,9 +373,9 @@ private fun InnerMap(
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(centerLat, centerLon))
                                     .zoom(15.0).build()
-                                placeMarkers(ctx, map, allMarkers, correctionGhost, userLoc) { tapped ->
+                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
-                                    else if (tapped.id != "__SCHOOL__") selectedBlock = tapped
+                                    else onBlockTap(tapped)
                                 }
                             }
                             map.uiSettings.apply {
