@@ -368,7 +368,8 @@ private struct SchoolMapSection: View {
             type: "POSITION_CORRECTION", name: corrTargetName,
             lat: old.latitude, lon: old.longitude,
             notes: nil, description: nil,
-            proposedLat: nw.latitude, proposedLon: nw.longitude, correctionReason: nil,
+            proposedLat: KotlinDouble(double: nw.latitude),
+            proposedLon: KotlinDouble(double: nw.longitude), correctionReason: nil,
             targetBlockId: corrTargetId, targetLineId: nil, sectorBlockId: nil,
             photoUrl: nil, bloquesJson: nil, topoLinesJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: school.id, req: req)) != nil
