@@ -242,10 +242,16 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
   todas las escuelas filtradas como marcadores coloreados por score; tap → detalle.
 - ⬜ Siguiente: proponer en mapa ("+ PROPONER") y editor topo.
 
+## Subir fotos (Firebase Storage) — EN MARCHA (2026-06-16)
+- ✅ **`StorageUploader`** (Swift, FirebaseStorage): sube un JPEG y devuelve la
+  URL de descarga. Funciona en sideload (no requiere cuenta de pago).
+- ✅ **Foto de perfil**: `EditProfileView` con `PhotosPicker` → sube a
+  `profile-photos/` → guarda la URL en el perfil (`UpdateProfileRequest.photoUrl`).
+- ⬜ Siguiente: foto en notas (el use case `createNote` ya acepta `photoUrl`).
+
 ## Pendiente de bridges nativos (sesión con Mac) — 🟦
-- Mapas (MapLibre): panel mapa en lista, "+ PROPONER", topo (marcadores de bloque
-  en el detalle ya en marcha; ver sección "Mapas (MapLibre iOS)" arriba).
-- Subir fotos (Firebase Storage): foto de perfil, foto en notas, proponer.
+- Mapas (MapLibre): "+ PROPONER" en mapa y editor topo (mapa de escuela + panel
+  de lista ya hechos; ver "Mapas (MapLibre iOS)").
 - Chat (Firestore): lista de chats + conversación.
 - Push notifications (FCM token).
 - "CÓMO LLEGAR" se reactiva con los mapas.

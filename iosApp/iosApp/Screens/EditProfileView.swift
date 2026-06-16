@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import PhotosUI
 
 @MainActor
 final class EditProfileViewModel: ObservableObject {
@@ -8,8 +9,12 @@ final class EditProfileViewModel: ObservableObject {
     @Published var bio = ""
     @Published var topGrade = ""
     @Published var isPublic = true
+    @Published var photoUrl: String?
+    @Published var pickedImage: UIImage?      // foto nueva pendiente de subir
+    @Published var uploading = false
     @Published var loading = true
     @Published var saving = false
+    private var uid: String?
 
     private let getMyProfile: GetMyProfileUseCase
     private let updateMyProfile: UpdateMyProfileUseCase
@@ -25,26 +30,35 @@ final class EditProfileViewModel: ObservableObject {
     func load() async {
         loading = true
         if let p = try? await getMyProfile.invoke() {
+            uid = p.uid
             username = p.username ?? ""
             displayName = p.displayName ?? ""
             bio = p.bio ?? ""
             topGrade = p.topGrade ?? ""
             isPublic = p.isPublic
+            photoUrl = p.photoUrl
         }
         loading = false
     }
 
-    /// Guarda y devuelve true si fue bien.
+    /// Guarda y devuelve true si fue bien. Si hay foto nueva, la sube primero.
     func save() async -> Bool {
         saving = true
         defer { saving = false }
+        // Sube la foto nueva a Storage (si la hay) y usa su URL.
+        if let img = pickedImage, let id = uid ?? AppDependencies.shared.authBridge.currentUid() {
+            uploading = true
+            let path = "profile-photos/\(id)-\(Int(Date().timeIntervalSince1970)).jpg"
+            photoUrl = (try? await StorageUploader.uploadJPEG(img, path: path)) ?? photoUrl
+            uploading = false
+        }
         let req = UpdateProfileRequest(
             username: username.trimmingCharacters(in: .whitespaces).nilIfEmpty,
             displayName: displayName.trimmingCharacters(in: .whitespaces).nilIfEmpty,
             bio: bio.nilIfEmpty,
             topGrade: topGrade.trimmingCharacters(in: .whitespaces).nilIfEmpty,
             isPublic: KotlinBoolean(bool: isPublic),
-            photoUrl: nil
+            photoUrl: photoUrl
         )
         return (try? await updateMyProfile.invoke(req: req)) != nil
     }
@@ -55,6 +69,7 @@ final class EditProfileViewModel: ObservableObject {
 struct EditProfileView: View {
     @StateObject private var vm = EditProfileViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var pickerItem: PhotosPickerItem?
 
     var body: some View {
         ScrollView {
@@ -62,6 +77,7 @@ struct EditProfileView: View {
                 ProgressView().padding(.top, 60)
             } else {
                 VStack(alignment: .leading, spacing: 16) {
+                    avatarPicker
                     field("NOMBRE", text: $vm.displayName, placeholder: "Tu nombre")
                     field("USUARIO", text: $vm.username, placeholder: "usuario", lower: true)
                     field("GRADO TOPE", text: $vm.topGrade, placeholder: "p. ej. 7b+")
@@ -105,6 +121,41 @@ struct EditProfileView: View {
             }
         }
         .task { await vm.load() }
+    }
+
+    private var avatarPicker: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                if let img = vm.pickedImage {
+                    Image(uiImage: img).resizable().scaledToFill()
+                } else if let u = vm.photoUrl.flatMap({ URL(string: $0) }) {
+                    AsyncImage(url: u) { $0.resizable().scaledToFill() } placeholder: {
+                        Image(systemName: "person.crop.circle.fill").resizable().foregroundStyle(Cumbre.ink3)
+                    }
+                } else {
+                    Image(systemName: "person.crop.circle.fill").resizable().foregroundStyle(Cumbre.ink3)
+                }
+            }
+            .frame(width: 72, height: 72).clipShape(Circle())
+            .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+
+            PhotosPicker(selection: $pickerItem, matching: .images) {
+                Text(vm.uploading ? "Subiendo…" : "Cambiar foto")
+                    .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            }
+            Spacer()
+        }
+        .onChange(of: pickerItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    vm.pickedImage = img
+                }
+            }
+        }
     }
 
     private func field(_ label: String, text: Binding<String>, placeholder: String, lower: Bool = false) -> some View {
