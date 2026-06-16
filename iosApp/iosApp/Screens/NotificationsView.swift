@@ -51,7 +51,7 @@ final class NotificationsViewModel: ObservableObject {
 }
 
 /// Destino de navegación de una notificación.
-enum NotifTarget: Identifiable {
+enum NotifTarget: Identifiable, Hashable {
     case school(String)
     case user(String)
     var id: String {
