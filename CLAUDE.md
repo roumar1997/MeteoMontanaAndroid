@@ -18,6 +18,9 @@ y se conecta al backend Spring Boot.
 >
 > - [`CLAUDE.md`](./CLAUDE.md) — este fichero. Contexto del proyecto.
 > - [`KMP_MIGRATION.md`](./KMP_MIGRATION.md) — plan migración KMP + backlog iOS.
+> - [`IOS_PARITY_FEEDBACK.md`](./IOS_PARITY_FEEDBACK.md) — **doc vivo**: feedback
+>   de Rodrigo por feature iOS (qué debe hacer + qué mejorar + estado). LEER al
+>   trabajar paridad iOS; actualizar el estado de cada punto al tocarlo.
 > - [`DEPLOYMENT.md`](./DEPLOYMENT.md) — guía para publicar la app (hosting
 >   backend, dominios, keystore, Play Console, política de privacidad,
 >   costes). **LEER ANTES DE PUBLICAR.**
