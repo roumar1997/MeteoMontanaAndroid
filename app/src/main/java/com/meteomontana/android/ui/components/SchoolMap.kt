@@ -415,8 +415,7 @@ private fun InnerMap(
                 selectedBlock = null
             }) else null,
             availableSectors = sectors.takeIf { it.isNotEmpty() },
-            onAssignSector = if (block.type == "BLOCK" && block.sectorBlockId == null
-                                  && sectors.isNotEmpty()) ({ sectorId ->
+            onAssignSector = if (block.type == "BLOCK" && sectors.isNotEmpty()) ({ sectorId ->
                 selectedBlock = null
                 // Usamos viewModelScope para que la llamada no se cancele cuando
                 // la composición del dialog desaparece.

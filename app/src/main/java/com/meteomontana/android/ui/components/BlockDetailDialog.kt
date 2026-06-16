@@ -260,9 +260,10 @@ fun BlockDetailDialog(
                 }
             }
 
-            // Botón "+ ASIGNAR SECTOR" — solo BLOCK sin sector y caller con sectores disponibles
-            if (onAssignSector != null && !availableSectors.isNullOrEmpty()
-                    && block.type == "BLOCK" && block.sectorBlockId == null && !isProposal) {
+            // Botón "+ ASIGNAR / CAMBIAR SECTOR" — BLOCK con al menos un sector
+            // distinto al actual (el backend sobrescribe el sector al aprobar).
+            if (onAssignSector != null && block.type == "BLOCK" && !isProposal
+                    && availableSectors?.any { it.id != block.sectorBlockId } == true) {
                 Spacer(Modifier.height(Spacing.sm))
                 Box(
                     modifier = Modifier
@@ -273,7 +274,10 @@ fun BlockDetailDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("+ ASIGNAR SECTOR", style = EyebrowTextStyle, color = Terra)
+                    Text(
+                        if (block.sectorBlockId == null) "+ ASIGNAR SECTOR" else "CAMBIAR SECTOR",
+                        style = EyebrowTextStyle, color = Terra
+                    )
                 }
             }
 
@@ -420,7 +424,8 @@ fun BlockDetailDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(Spacing.sm))
-                    availableSectors.forEach { sect ->
+                    // Excluye el sector actual: solo tiene sentido cambiar a otro.
+                    availableSectors.filter { it.id != block.sectorBlockId }.forEach { sect ->
                         Row(
                             modifier = Modifier.fillMaxWidth()
                                 .clickable {

@@ -738,11 +738,13 @@ private struct BlockInfoSheet: View {
                         }.buttonStyle(.plain)
                     }
 
-                    // Asignar sector (solo piedras sin sector y si hay zonas).
-                    if block.type.uppercased() == "BLOCK", block.sectorBlockId == nil,
-                       !sectors.isEmpty, let onAssignSector {
+                    // Asignar / cambiar sector (piedra con al menos un sector distinto
+                    // al actual; el backend sobrescribe el sector al aprobar).
+                    if block.type.uppercased() == "BLOCK", let onAssignSector,
+                       sectors.contains(where: { $0.id != block.sectorBlockId }) {
                         Button { dismiss(); onAssignSector() } label: {
-                            Text("+ ASIGNAR SECTOR").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                            Text(block.sectorBlockId == nil ? "+ ASIGNAR SECTOR" : "CAMBIAR SECTOR")
+                                .font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.ink).frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                         }.buttonStyle(.plain)

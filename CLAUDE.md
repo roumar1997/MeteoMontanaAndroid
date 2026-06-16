@@ -515,6 +515,12 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
   PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
 - **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+- **CAMBIAR SECTOR de una piedra ya asignada** (iOS + Android, paridad): antes el
+  botón solo salía si la piedra no tenía sector. Ahora sale si hay ≥1 sector
+  distinto al actual; etiqueta "+ ASIGNAR SECTOR" (sin sector) o "CAMBIAR SECTOR"
+  (ya tiene); el picker excluye el sector actual. El backend ya sobrescribía el
+  sector al aprobar `ASSIGN_SECTOR` (sin cambios). iOS: `BlockInfoSheet` +
+  `AssignSectorSheet`; Android: `BlockDetailDialog` + caller `SchoolMap`.
 
 ### Sesión 2026-06-16 (mapas iOS a fondo + proponer/editar + seed prod)
 
