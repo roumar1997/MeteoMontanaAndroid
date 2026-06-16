@@ -91,6 +91,12 @@ struct MapLibreView: UIViewRepresentable {
     var zoom: Double = 12
     var markers: [CumbreMarker] = []
     var style: MapStyleKind = .topo
+    /// Si true, re-encuadra a los marcadores cuando cambia el conjunto (espejo
+    /// del fitBounds de Android al cambiar filtros). El primer encuadre no se
+    /// fuerza (se respeta el centrado inicial en el usuario).
+    var autoFitToMarkers: Bool = false
+    /// Notifica el nivel de zoom actual (para mostrar/ocultar etiquetas).
+    var onZoomChange: ((Double) -> Void)? = nil
     /// Se llama al tocar un marcador (por id).
     var onTapMarker: ((String) -> Void)? = nil
     /// Si está presente, un tap en el mapa (no en un marcador) devuelve la
@@ -137,6 +143,7 @@ struct MapLibreView: UIViewRepresentable {
         weak var mapView: MLNMapView?
         var currentStyle: MapStyleKind = .topo
         private var lastSignature: String = ""
+        private var lastFittedIds: Set<String> = []
         /// Mapa annotation→marker para resolver taps sin depender del título.
         private var byAnnotation: [ObjectIdentifier: CumbreMarker] = [:]
 
@@ -164,6 +171,27 @@ struct MapLibreView: UIViewRepresentable {
                 byAnnotation[ObjectIdentifier(a)] = m
                 map.addAnnotation(a)
             }
+            // Re-encuadre al cambiar el conjunto de escuelas (no en el primer
+            // apply ni con cambio de estilo: ahí respetamos el centrado inicial).
+            guard parent.autoFitToMarkers else { return }
+            let ids = Set(markers.filter { $0.id != "__USER__" }.map { $0.id })
+            if force { lastFittedIds = ids; return }
+            if ids != lastFittedIds && !ids.isEmpty {
+                lastFittedIds = ids
+                fit(map, to: markers.filter { $0.id != "__USER__" })
+            }
+        }
+
+        private func fit(_ map: MLNMapView, to markers: [CumbreMarker]) {
+            guard !markers.isEmpty else { return }
+            let lats = markers.map { $0.coordinate.latitude }
+            let lons = markers.map { $0.coordinate.longitude }
+            let sw = CLLocationCoordinate2D(latitude: lats.min()!, longitude: lons.min()!)
+            let ne = CLLocationCoordinate2D(latitude: lats.max()!, longitude: lons.max()!)
+            let bounds = MLNCoordinateBounds(sw: sw, ne: ne)
+            map.setVisibleCoordinateBounds(bounds,
+                edgePadding: UIEdgeInsets(top: 48, left: 48, bottom: 48, right: 48),
+                animated: true)
         }
 
         // Imagen del marcador por tipo (cacheada por firma de dibujo).
@@ -181,6 +209,10 @@ struct MapLibreView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MLNMapView, annotationCanShowCallout annotation: MLNAnnotation) -> Bool { false }
+
+        func mapView(_ mapView: MLNMapView, regionDidChangeAnimated animated: Bool) {
+            parent.onZoomChange?(mapView.zoomLevel)
+        }
     }
 }
 

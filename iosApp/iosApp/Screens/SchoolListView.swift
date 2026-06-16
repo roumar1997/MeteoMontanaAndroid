@@ -457,6 +457,8 @@ private struct MapToggleAndPanel: View {
     let onOpen: (School) -> Void
     @State private var show = false
     @State private var popup: School?
+    @State private var mapStyle: MapStyleKind = .topo
+    @State private var zoom: Double = 8
 
     var body: some View {
         VStack(spacing: 0) {
@@ -474,11 +476,17 @@ private struct MapToggleAndPanel: View {
             .buttonStyle(.plain)
 
             if show {
-                MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
-                             markers: markers, onTapMarker: { id in
-                                 popup = vm.filtered.first { $0.id == id }
-                             })
-                .frame(height: 300)
+                ZStack(alignment: .topLeading) {
+                    MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
+                                 markers: markers, style: mapStyle,
+                                 autoFitToMarkers: true,
+                                 onZoomChange: { zoom = $0 },
+                                 onTapMarker: { id in
+                                     popup = vm.filtered.first { $0.id == id }
+                                 })
+                    .frame(height: 300)
+                    MapStyleChips(selection: $mapStyle)
+                }
                 Divider().overlay(Cumbre.rule)
             }
         }
@@ -512,7 +520,7 @@ private struct MapToggleAndPanel: View {
                 color: UIColor(score.map { Cumbre.score($0) } ?? Cumbre.rule),
                 score: score,
                 name: s.name,
-                showName: true))
+                showName: zoom >= 8.5))
         }
         return ms
     }

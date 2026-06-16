@@ -531,10 +531,6 @@ private struct BlockInfoSheet: View {
                             .padding(.top, 4)
                     }
 
-                    if let d = block.description, !d.isEmpty {
-                        Text(d).font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.top, 2)
-                    }
-
                     if !block.lines.isEmpty {
                         Text("VÍAS (\(block.lines.count))").eyebrow().padding(.top, 4)
                         ForEach(Array(block.lines.enumerated()), id: \.element.id) { idx, l in
