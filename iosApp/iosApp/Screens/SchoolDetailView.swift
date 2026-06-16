@@ -117,11 +117,13 @@ struct SchoolDetailView: View {
                     forecast: f,
                     directions: (lat: school.lat, lon: school.lon, label: school.name),
                     factorsExpanded: $factorsExpanded,
-                    onSelectDay: { selectedDay = $0 }
+                    onSelectDay: { selectedDay = $0 },
+                    mapSlot: AnyView(SchoolMapSection(school: school))
                 )
+            } else {
+                // Sin previsión: el mapa va igualmente.
+                SchoolMapSection(school: school)
             }
-            // Mapa de la escuela (MapLibre + topo). Plegable.
-            SchoolMapSection(school: school)
             // Mejores meses del año (stats mensuales del backend, cacheadas).
             if !vm.monthlyScores.isEmpty {
                 MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
@@ -216,6 +218,7 @@ private struct SchoolMapSection: View {
     @State private var corrTargetName = ""
     @State private var corrOld: CLLocationCoordinate2D?
     @State private var corrNew: CLLocationCoordinate2D?
+    @State private var userCoord: CLLocationCoordinate2D?   // mi ubicación en el sector
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -297,8 +300,14 @@ private struct SchoolMapSection: View {
             }
         }
         .task(id: expanded) {
-            if expanded && blocks.isEmpty {
+            guard expanded else { return }
+            if blocks.isEmpty {
                 blocks = (try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id)) ?? []
+            }
+            // Mi ubicación (para verme mientras ando por el sector).
+            if AppDependencies.shared.locationBridge.hasPermission(),
+               let loc = try? await AppDependencies.shared.container.locationProvider?.current() {
+                userCoord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon)
             }
         }
         .sheet(item: $selectedBlock) { b in BlockInfoSheet(block: b) }
@@ -430,6 +439,10 @@ private struct SchoolMapSection: View {
                 kind: markerKind(for: b.type),
                 color: color(for: b.type),
                 name: b.name))
+        }
+        // Mi ubicación (punto azul) para orientarme en el sector.
+        if let u = userCoord {
+            ms.append(CumbreMarker(id: "__USER__", coordinate: u, title: "", kind: .user))
         }
         // Fantasma de la nueva posición al corregir.
         if let nw = corrNew {
@@ -712,6 +725,9 @@ struct ForecastBodyView: View {
     var directions: (lat: Double, lon: Double, label: String)? = nil
     @Binding var factorsExpanded: Bool
     var onSelectDay: ((DayForecast) -> Void)? = nil
+    /// Mapa de la escuela, insertado entre el tiempo actual y "Próximas 16 h"
+    /// (el tab Tiempo no lo pasa). AnyView para no acoplar el tipo.
+    var mapSlot: AnyView? = nil
 
     var body: some View {
         let f = forecast
@@ -725,6 +741,10 @@ struct ForecastBodyView: View {
             rule
             CurrentWeather(current: f.current)
             rule
+            if let mapSlot {
+                mapSlot
+                rule
+            }
             SectionTitle("PRÓXIMAS 16 HORAS")
             HoursGrid(hours: upcomingHours(f.hours, 16)).padding(.vertical, 8)
             ConditionsGrid(current: f.current)

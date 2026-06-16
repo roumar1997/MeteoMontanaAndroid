@@ -113,7 +113,11 @@ struct MapLibreView: UIViewRepresentable {
         let tap = UITapGestureRecognizer(target: context.coordinator,
                                          action: #selector(Coordinator.handleTap(_:)))
         tap.cancelsTouchesInView = false
+        // Solo activo cuando hace falta fijar una coordenada (proponer/corregir).
+        // Si no, robaría el tap a la selección de marcadores de MapLibre.
+        tap.isEnabled = (onMapTap != nil)
         map.addGestureRecognizer(tap)
+        context.coordinator.tapRecognizer = tap
         context.coordinator.mapView = map
         context.coordinator.currentStyle = style
         context.coordinator.applyMarkersIfChanged(to: map, markers: markers, force: true)
@@ -122,6 +126,7 @@ struct MapLibreView: UIViewRepresentable {
 
     func updateUIView(_ map: MLNMapView, context: Context) {
         context.coordinator.parent = self
+        context.coordinator.tapRecognizer?.isEnabled = (onMapTap != nil)
         // Cambiar estilo de tiles si el usuario tocó topo/satélite.
         if context.coordinator.currentStyle != style {
             context.coordinator.currentStyle = style
@@ -142,6 +147,7 @@ struct MapLibreView: UIViewRepresentable {
         var parent: MapLibreView
         weak var mapView: MLNMapView?
         var currentStyle: MapStyleKind = .topo
+        var tapRecognizer: UITapGestureRecognizer?
         private var lastSignature: String = ""
         private var lastFittedIds: Set<String> = []
         /// Mapa annotation→marker para resolver taps sin depender del título.
@@ -186,9 +192,20 @@ struct MapLibreView: UIViewRepresentable {
             guard !markers.isEmpty else { return }
             let lats = markers.map { $0.coordinate.latitude }
             let lons = markers.map { $0.coordinate.longitude }
-            let sw = CLLocationCoordinate2D(latitude: lats.min()!, longitude: lons.min()!)
-            let ne = CLLocationCoordinate2D(latitude: lats.max()!, longitude: lons.max()!)
-            let bounds = MLNCoordinateBounds(sw: sw, ne: ne)
+            let minLat = lats.min()!, maxLat = lats.max()!
+            let minLon = lons.min()!, maxLon = lons.max()!
+            // Encuadre degenerado (1 escuela o todas muy juntas, p.ej. al filtrar por
+            // favoritas): fitBounds podría disparar un zoom inestable y "pillar" el
+            // mapa. En ese caso centramos con un zoom fijo cómodo.
+            if markers.count == 1 || (maxLat - minLat < 0.03 && maxLon - minLon < 0.03) {
+                let c = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2,
+                                               longitude: (minLon + maxLon) / 2)
+                map.setCenter(c, zoomLevel: 12, animated: true)
+                return
+            }
+            let bounds = MLNCoordinateBounds(
+                sw: CLLocationCoordinate2D(latitude: minLat, longitude: minLon),
+                ne: CLLocationCoordinate2D(latitude: maxLat, longitude: maxLon))
             map.setVisibleCoordinateBounds(bounds,
                 edgePadding: UIEdgeInsets(top: 48, left: 48, bottom: 48, right: 48),
                 animated: true)
