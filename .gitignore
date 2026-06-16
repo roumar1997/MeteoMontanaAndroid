@@ -41,6 +41,10 @@ keystore.properties
 # Firebase service account (NO subir a git)
 **/serviceAccountKey.json
 
+# Firebase Android config (lleva API keys) — se inyecta en CI con el secret
+# GOOGLE_SERVICES_JSON; en local cada quien pone el suyo.
+app/google-services.json
+
 # Firebase iOS config (lleva API keys) — igual que google-services.json
 iosApp/iosApp/GoogleService-Info.plist
 
