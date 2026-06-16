@@ -1,6 +1,8 @@
 import SwiftUI
 import Shared
 import CoreLocation
+import UIKit
+import PhotosUI
 
 // Block (clase Kotlin) Identifiable por su id — para .sheet(item:).
 extension Block: Identifiable {}
@@ -68,12 +70,18 @@ final class SchoolDetailViewModel: ObservableObject {
         notes = (try? await getNotes.invoke(schoolId: schoolId)) ?? []
     }
 
-    /// Publica una nota (solo texto por ahora) y refresca la lista.
-    func publishNote(schoolId: String, text: String) async {
+    /// Publica una nota (texto + foto opcional) y refresca la lista. Si hay
+    /// imagen, la sube a Firebase Storage y adjunta su URL.
+    func publishNote(schoolId: String, text: String, image: UIImage?) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         publishing = true
-        _ = try? await createNote.invoke(schoolId: schoolId, text: trimmed, photoUrl: nil)
+        var photoUrl: String?
+        if let img = image {
+            let path = "note-photos/\(schoolId)-\(Int(Date().timeIntervalSince1970)).jpg"
+            photoUrl = try? await StorageUploader.uploadJPEG(img, path: path)
+        }
+        _ = try? await createNote.invoke(schoolId: schoolId, text: trimmed, photoUrl: photoUrl)
         await loadNotes(schoolId: schoolId)
         publishing = false
     }
@@ -122,7 +130,7 @@ struct SchoolDetailView: View {
             NotesSectionView(
                 notes: vm.notes,
                 publishing: vm.publishing,
-                onPublish: { text in Task { await vm.publishNote(schoolId: school.id, text: text) } }
+                onPublish: { text, image in Task { await vm.publishNote(schoolId: school.id, text: text, image: image) } }
             )
         }
         .background(Cumbre.bg.ignoresSafeArea())
@@ -759,10 +767,12 @@ extension Note: Identifiable {}
 struct NotesSectionView: View {
     let notes: [Note]
     let publishing: Bool
-    let onPublish: (String) -> Void
+    let onPublish: (String, UIImage?) -> Void
 
     @State private var draft = ""
     @State private var photoNote: Note?
+    @State private var pickerItem: PhotosPickerItem?
+    @State private var pickedImage: UIImage?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -791,25 +801,51 @@ struct NotesSectionView: View {
                     .background(Cumbre.paper)
                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
 
-                Button {
-                    let text = draft
-                    draft = ""
-                    onPublish(text)
-                } label: {
-                    HStack(spacing: 6) {
-                        if publishing { ProgressView().tint(.white) }
-                        Text("PUBLICAR").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                // Vista previa de la foto elegida (con opción de quitarla).
+                if let img = pickedImage {
+                    HStack(spacing: 8) {
+                        Image(uiImage: img).resizable().scaledToFill()
+                            .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 4))
+                        Button { pickedImage = nil; pickerItem = nil } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(Cumbre.ink3)
+                        }.buttonStyle(.plain)
+                        Spacer()
                     }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(canPublish ? Cumbre.terra : Cumbre.ink3)
                 }
-                .buttonStyle(.plain)
-                .disabled(!canPublish)
+
+                HStack(spacing: 10) {
+                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                        Image(systemName: "camera").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
+                            .frame(width: 40, height: 40).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+                    Spacer()
+                    Button {
+                        let text = draft; let img = pickedImage
+                        draft = ""; pickedImage = nil; pickerItem = nil
+                        onPublish(text, img)
+                    } label: {
+                        HStack(spacing: 6) {
+                            if publishing { ProgressView().tint(.white) }
+                            Text("PUBLICAR").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        .background(canPublish ? Cumbre.terra : Cumbre.ink3)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canPublish)
+                }
             }
             .padding(.top, 8)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
+        .onChange(of: pickerItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) { pickedImage = img }
+            }
+        }
         .sheet(item: $photoNote) { n in
             NotePhotoSheet(note: n)
         }

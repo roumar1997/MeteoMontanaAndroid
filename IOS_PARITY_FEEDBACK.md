@@ -247,7 +247,7 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
   URL de descarga. Funciona en sideload (no requiere cuenta de pago).
 - ✅ **Foto de perfil**: `EditProfileView` con `PhotosPicker` → sube a
   `profile-photos/` → guarda la URL en el perfil (`UpdateProfileRequest.photoUrl`).
-- ⬜ Siguiente: foto en notas (el use case `createNote` ya acepta `photoUrl`).
+- ✅ **Foto en notas**: composer con botón 📷 (PhotosPicker) → sube a `note-photos/` y publica la nota con la URL. Vista previa + quitar.
 
 ## Pendiente de bridges nativos (sesión con Mac) — 🟦
 - Mapas (MapLibre): "+ PROPONER" en mapa y editor topo (mapa de escuela + panel
