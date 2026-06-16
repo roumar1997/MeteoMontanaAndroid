@@ -14,9 +14,15 @@ final class SchoolListViewModel: ObservableObject {
     @Published var loading = true
     @Published var errorText: String?
 
+    enum SortMode: String, CaseIterable { case score = "Mejor score", distance = "Más cercanos" }
+    static let distanceOptions: [Double?] = [nil, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
+
     @Published var query = ""
     @Published var style: String?
     @Published var rock: String?
+    @Published var maxDistanceKm: Double?
+    @Published var onlyFavorites = false
+    @Published var sortBy: SortMode = .score
     @Published var favoriteIds: Set<String> = []
     @Published var userLat: Double?
     @Published var userLon: Double?
@@ -46,16 +52,35 @@ final class SchoolListViewModel: ObservableObject {
 
     var styles: [String] { uniqueValues(schools.map { $0.style }) }
     var rocks: [String] { uniqueValues(schools.map { $0.rockType }) }
-    var activeFilters: Bool { style != nil || rock != nil }
-    func clearFilters() { style = nil; rock = nil; query = "" }
+    var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || onlyFavorites }
+    func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; onlyFavorites = false }
 
     var filtered: [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        return schools.filter { s in
+        var list = schools.filter { s in
             (q.isEmpty || s.name.lowercased().contains(q) || (s.location?.lowercased().contains(q) ?? false))
             && (style == nil || s.style?.caseInsensitiveCompare(style!) == .orderedSame)
             && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
-        }.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+        }
+        // Distancia (solo si hay ubicación y límite elegido).
+        if let max = maxDistanceKm, let la = userLat, let lo = userLon {
+            list = list.filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
+        }
+        // Solo favoritas.
+        if onlyFavorites { list = list.filter { favoriteIds.contains($0.id) } }
+        // Orden.
+        switch sortBy {
+        case .score:
+            return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+        case .distance:
+            guard let la = userLat, let lo = userLon else {
+                return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+            }
+            return list.sorted {
+                Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon)
+                < Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $1.lat, lon2: $1.lon)
+            }
+        }
     }
 
     func load() async {
@@ -307,6 +332,24 @@ private struct FilterChips: View {
                         ForEach(vm.rocks, id: \.self) { Text($0).tag(String?.some($0)) }
                     }
                 } label: { chip("ROCA" + (vm.rock.map { ": \($0.uppercased())" } ?? ""), active: vm.rock != nil) }
+
+                Menu {
+                    Picker("Distancia", selection: $vm.maxDistanceKm) {
+                        ForEach(Array(SchoolListViewModel.distanceOptions.enumerated()), id: \.offset) { _, opt in
+                            Text(opt == nil ? "Todas" : "\(Int(opt!)) km").tag(opt)
+                        }
+                    }
+                } label: { chip("DISTANCIA" + (vm.maxDistanceKm.map { ": \(Int($0)) KM" } ?? ""), active: vm.maxDistanceKm != nil) }
+
+                Button { vm.onlyFavorites.toggle() } label: {
+                    chip(vm.onlyFavorites ? "★ SOLO FAVORITAS" : "☆ FAVORITAS", active: vm.onlyFavorites)
+                }
+
+                Menu {
+                    Picker("Ordenar", selection: $vm.sortBy) {
+                        ForEach(SchoolListViewModel.SortMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                    }
+                } label: { chip("ORDEN: \(vm.sortBy == .score ? "SCORE" : "CERCANÍA")", active: false) }
 
                 if vm.activeFilters {
                     Button { vm.clearFilters() } label: { chip("✕ QUITAR", active: false) }
