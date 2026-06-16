@@ -172,6 +172,20 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
 
 ---
 
+## Feedback 3ª ronda (2026-06-16) — sobre el .ipa de paridad
+
+- **13 (enviar escuela)**: roca, región, estilo y ubicación pasan a
+  **desplegables** con los valores del catálogo (opción "Otro…" para escribir) →
+  evita erratas. Carga las opciones de `getSchools`.
+- **14 (16h)**: cada hora muestra ahora icono + score + temp + **mm de lluvia**
+  (si los hay) + **viento km/h** debajo (paridad con Android). Igual en el
+  detalle de día (`DayDetailView`).
+- **15 (compartir)**: botón de **compartir** (icono `square.and.arrow.up`) al
+  lado de la estrella en cada fila de la lista; comparte un resumen con el score.
+- **Extra (más cosas)**: sección **"MEJORES MESES"** en el detalle de escuela
+  (stats mensuales del backend, cacheadas) — `MonthlyStatsRepository` expuesto
+  en el container; barras de score medio por mes + mejor época.
+
 ## Backlog sin bridge — implementado 2026-06-16 (2ª ronda)
 
 - ✅ **Enviar escuela**: el botón "+ Enviar escuela" del header (antes inerte)

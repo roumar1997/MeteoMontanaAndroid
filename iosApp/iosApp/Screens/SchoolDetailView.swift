@@ -14,6 +14,8 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var isFavorite = false
     @Published var notes: [Note] = []
     @Published var publishing = false
+    @Published var monthlyScores: [Int] = []
+    @Published var monthlyBestRange: String?
 
     private let getForecast: GetForecastUseCase
     private let getMyFavorites: GetMyFavoritesUseCase
@@ -38,7 +40,7 @@ final class SchoolDetailViewModel: ObservableObject {
         self.createNote = createNote
     }
 
-    func load(schoolId: String) async {
+    func load(schoolId: String, lat: Double, lon: Double, rockType: String?) async {
         loading = true; errorText = nil
         do { forecast = try await getForecast.invoke(schoolId: schoolId) }
         catch { errorText = error.localizedDescription }
@@ -46,6 +48,16 @@ final class SchoolDetailViewModel: ObservableObject {
         let favs = try? await getMyFavorites.invoke()
         isFavorite = (favs ?? []).contains { $0.id == schoolId }
         await loadNotes(schoolId: schoolId)
+        await loadMonthly(schoolId: schoolId, lat: lat, lon: lon, rockType: rockType)
+    }
+
+    /// Stats mensuales (mejores meses del año). Cache-backed; null si no hay BD.
+    func loadMonthly(schoolId: String, lat: Double, lon: Double, rockType: String?) async {
+        guard let repo = AppDependencies.shared.container.monthlyStats else { return }
+        if let m = try? await repo.get(schoolId: schoolId, lat: lat, lon: lon, rockType: rockType) {
+            monthlyScores = m.scores.map { $0.intValue }
+            monthlyBestRange = m.bestRange
+        }
     }
 
     func loadNotes(schoolId: String) async {
@@ -96,6 +108,10 @@ struct SchoolDetailView: View {
                     onSelectDay: { selectedDay = $0 }
                 )
             }
+            // Mejores meses del año (stats mensuales del backend, cacheadas).
+            if !vm.monthlyScores.isEmpty {
+                MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
+            }
             // Notas comunitarias — bajo el forecast, también si no hubo previsión.
             NotesSectionView(
                 notes: vm.notes,
@@ -117,7 +133,40 @@ struct SchoolDetailView: View {
         .sheet(item: $selectedDay) { d in
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
         }
-        .task { await vm.load(schoolId: school.id) }
+        .task { await vm.load(schoolId: school.id, lat: school.lat, lon: school.lon, rockType: school.rockType) }
+    }
+}
+
+/// "Mejores meses del año" — barras de score medio por mes (3 años de histórico,
+/// calculado en el backend). Espejo de la sección mensual de Android.
+private struct MonthlyStatsSection: View {
+    let scores: [Int]
+    let bestRange: String?
+    private let months = ["E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle("MEJORES MESES")
+            if let r = bestRange, !r.isEmpty {
+                Text("Mejor época: \(r)")
+                    .font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
+                    .padding(.horizontal, 16)
+            }
+            HStack(alignment: .bottom, spacing: 6) {
+                ForEach(Array(scores.prefix(12).enumerated()), id: \.offset) { i, s in
+                    VStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Cumbre.score(s))
+                            .frame(height: max(4, CGFloat(s) * 0.7))
+                        Text(months[i % 12]).font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 90, alignment: .bottom)
+            .padding(.horizontal, 16)
+        }
+        .padding(.vertical, 12)
     }
 }
 
@@ -308,11 +357,14 @@ private struct HoursGrid: View {
                         Text("\(Int(h.temperature))°").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink2)
                         // Lluvia en mm (solo si la hay) — paridad con ForecastBody.
                         if h.precipitation > 0 {
-                            Text(String(format: "%.1f", h.precipitation))
+                            Text("\(String(format: "%.1f", h.precipitation)) mm")
                                 .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.rain)
                         } else {
                             Text(" ").font(Cumbre.mono(9))
                         }
+                        // Viento km/h (siempre) — debajo de la lluvia, como Android.
+                        Text("\(Int(h.windSpeed)) km/h")
+                            .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
                     }
                 }
             }

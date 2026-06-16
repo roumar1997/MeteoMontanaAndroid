@@ -96,6 +96,8 @@ struct DayDetailView: View {
             if h.precipitationProbability > 0 {
                 Text("\(h.precipitationProbability)%").font(Cumbre.mono(11)).foregroundStyle(Cumbre.rain)
             }
+            // Viento km/h — como Android.
+            Text("\(Int(h.windSpeed)) km/h").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
     }

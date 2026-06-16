@@ -563,6 +563,16 @@ private struct SchoolListItemView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.borderless)
+                    // Compartir la escuela (icono al lado de la estrella, mismo
+                    // estilo). Comparte un resumen de texto con el score de hoy.
+                    ShareLink(item: shareText) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 17))
+                            .foregroundStyle(Cumbre.ink3)
+                            .frame(width: 36, height: 36)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.borderless)
                 }
                 Text(subtitle)
                     .font(Cumbre.mono(12))
@@ -586,6 +596,15 @@ private struct SchoolListItemView: View {
         if let reg = school.region, !reg.isEmpty { parts.append(reg) }
         if let km = distanceKm { parts.append("\(km) KM") }
         return parts.joined(separator: "  ·  ")
+    }
+
+    /// Texto que se comparte desde el botón de compartir de la fila.
+    private var shareText: String {
+        var t = school.name
+        if let s = score { t += " — Cumbre hoy: \(Int(s.todayScore))/100 (\(Cumbre.scoreLabel(Int(s.todayScore))))" }
+        if let reg = school.region, !reg.isEmpty { t += "\n\(reg)" }
+        t += "\n\nVía MeteoMontana"
+        return t
     }
 }
 

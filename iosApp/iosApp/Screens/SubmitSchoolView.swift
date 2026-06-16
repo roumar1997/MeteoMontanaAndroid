@@ -20,9 +20,35 @@ final class SubmitSchoolViewModel: ObservableObject {
     @Published var errorText: String?
     @Published var done = false
 
+    // Valores existentes del catálogo para los desplegables (evita erratas).
+    @Published var regionOptions: [String] = []
+    @Published var styleOptions: [String] = []
+    @Published var rockOptions: [String] = []
+    @Published var locationOptions: [String] = []
+
     private let submitSchool: SubmitSchoolUseCase
-    init(submitSchool: SubmitSchoolUseCase = AppDependencies.shared.container.submitSchool) {
+    private let getSchools: GetSchoolsUseCase
+    init(
+        submitSchool: SubmitSchoolUseCase = AppDependencies.shared.container.submitSchool,
+        getSchools: GetSchoolsUseCase = AppDependencies.shared.container.getSchools
+    ) {
         self.submitSchool = submitSchool
+        self.getSchools = getSchools
+    }
+
+    /// Carga las opciones de los desplegables desde el catálogo (valores únicos).
+    func loadOptions() async {
+        guard let schools = try? await getSchools.invoke(
+            region: nil, style: nil, rockType: nil, lat: nil, lon: nil, radioKm: nil
+        ) else { return }
+        regionOptions = unique(schools.map { $0.region })
+        styleOptions = unique(schools.map { $0.style })
+        rockOptions = unique(schools.map { $0.rockType })
+        locationOptions = unique(schools.map { $0.location })
+    }
+
+    private func unique(_ raw: [String?]) -> [String] {
+        Array(Set(raw.compactMap { $0 }.filter { !$0.isEmpty })).sorted()
     }
 
     var canSubmit: Bool {
@@ -97,6 +123,7 @@ struct SubmitSchoolView: View {
                     Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.ink3)
                 }
             }
+            .task { await vm.loadOptions() }
         }
     }
 
@@ -104,9 +131,9 @@ struct SubmitSchoolView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 field("NOMBRE", $vm.name, "ej: La Pedriza")
-                field("REGIÓN", $vm.region, "ej: Madrid")
-                field("ESTILO", $vm.style, "Vía / Bloque")
-                field("TIPO DE ROCA", $vm.rockType, "ej: Granito")
+                pickerField("REGIÓN", $vm.region, vm.regionOptions)
+                pickerField("ESTILO", $vm.style, vm.styleOptions)
+                pickerField("TIPO DE ROCA", $vm.rockType, vm.rockOptions)
 
                 // Pegar coordenadas de Google Maps.
                 VStack(alignment: .leading, spacing: 6) {
@@ -125,7 +152,7 @@ struct SubmitSchoolView: View {
                     field("LONGITUD", $vm.lon, "-3.70").frame(maxWidth: .infinity)
                 }
 
-                field("UBICACIÓN", $vm.location, "Localidad")
+                pickerField("UBICACIÓN", $vm.location, vm.locationOptions)
                 field("NOTAS", $vm.notes, "Cualquier info útil")
 
                 if let e = vm.errorText {
@@ -172,6 +199,39 @@ struct SubmitSchoolView: View {
             TextField(ph, text: text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .padding(10).background(Cumbre.paper)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        }
+    }
+
+    /// Campo desplegable con valores del catálogo (evita erratas). La última
+    /// opción "Otro…" muestra un campo de texto para casos no listados.
+    @ViewBuilder
+    private func pickerField(_ label: String, _ value: Binding<String>, _ options: [String]) -> some View {
+        let isOther = !value.wrappedValue.isEmpty && !options.contains(value.wrappedValue)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label).eyebrow()
+            Menu {
+                ForEach(options, id: \.self) { opt in
+                    Button(opt) { value.wrappedValue = opt }
+                }
+                Divider()
+                Button("Otro…") { value.wrappedValue = " " }   // espacio → modo "otro"
+            } label: {
+                HStack {
+                    Text(value.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty ? "Seleccionar…" : value.wrappedValue)
+                        .foregroundStyle(value.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty ? Cumbre.ink3 : Cumbre.ink)
+                    Spacer()
+                    Image(systemName: "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                .font(.system(size: 15))
+                .padding(10).background(Cumbre.paper)
+                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            }
+            if isOther {
+                TextField("Escribe el valor", text: value)
+                    .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                    .padding(10).background(Cumbre.paper)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            }
         }
     }
 }
