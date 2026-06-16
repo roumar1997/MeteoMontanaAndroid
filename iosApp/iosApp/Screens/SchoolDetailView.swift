@@ -208,6 +208,14 @@ private struct SchoolMapSection: View {
     @State private var proposeType = "PARKING"
     @State private var showSuccess = false
     @State private var mapStyle: MapStyleKind = .topo
+    @State private var boulderCoord: CLLocationCoordinate2D?
+    // Corregir posición: seleccionar un marcador y fijar su nueva posición.
+    @State private var correctionMode = false
+    @State private var corrActive = false        // ya hay un target elegido
+    @State private var corrTargetId: String?     // nil + corrActive ⇒ la escuela
+    @State private var corrTargetName = ""
+    @State private var corrOld: CLLocationCoordinate2D?
+    @State private var corrNew: CLLocationCoordinate2D?
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -241,36 +249,37 @@ private struct SchoolMapSection: View {
                         markers: markers,
                         style: mapStyle,
                         onTapMarker: { id in
-                            if !waitingTap { selectedBlock = blocks.first { $0.id == id } }
+                            if correctionMode && !corrActive {
+                                selectCorrectionTarget(id)
+                            } else if !waitingTap && !correctionMode {
+                                selectedBlock = blocks.first { $0.id == id }
+                            }
                         },
-                        onMapTap: waitingTap ? { coord in
-                            waitingTap = false
-                            formCoord = coord
+                        onMapTap: (waitingTap || (correctionMode && corrActive)) ? { coord in
+                            if waitingTap {
+                                waitingTap = false
+                                if proposeType == "BOULDER" { boulderCoord = coord } else { formCoord = coord }
+                            } else {
+                                corrNew = coord
+                            }
                         } : nil
                     )
                     .frame(height: 280)
 
                     // Chips topográfico / satélite (esquina superior izquierda).
-                    if !waitingTap {
+                    if !waitingTap && !correctionMode {
                         VStack { HStack { MapStyleChips(selection: $mapStyle); Spacer() }; Spacer() }
                             .frame(height: 280)
                     }
 
-                    // Banner "PULSA EN EL MAPA" mientras se espera el tap.
                     if waitingTap {
-                        VStack {
-                            Text("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN")
-                                .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
-                                .padding(.horizontal, 12).padding(.vertical, 8)
-                                .frame(maxWidth: .infinity)
-                                .background(Cumbre.terra)
-                            Spacer()
-                            Button("CANCELAR") { waitingTap = false }
-                                .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
-                                .padding(.horizontal, 12).padding(.vertical, 6)
-                                .background(Cumbre.ink).padding(.bottom, 8)
-                        }
-                        .frame(height: 280)
+                        // Banner "PULSA EN EL MAPA" (parking/sector/piedra).
+                        mapBanner("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN",
+                                  cancel: { waitingTap = false })
+                    } else if correctionMode {
+                        mapBanner(correctionBannerText,
+                                  accept: (corrActive && corrNew != nil) ? { Task { await submitCorrection() } } : nil,
+                                  cancel: cancelCorrection)
                     } else {
                         // Botón "+ PROPONER" (esquina inferior derecha).
                         Button { showTypePicker = true } label: {
@@ -296,22 +305,104 @@ private struct SchoolMapSection: View {
         .sheet(isPresented: $showTypePicker) {
             ContributionTypePicker { type in
                 showTypePicker = false
-                if type == "PARKING" || type == "SECTOR" { proposeType = type; waitingTap = true }
+                switch type {
+                case "PARKING", "SECTOR", "BOULDER": proposeType = type; waitingTap = true
+                case "CORRECTION": correctionMode = true; corrActive = false; corrNew = nil
+                default: break
+                }
             }
         }
         .sheet(item: coordItem) { item in
             ContributionFormSheet(type: proposeType, schoolId: school.id, coord: item.coord) { ok in
                 formCoord = nil
-                if ok {
-                    Task {
-                        try? await Task.sleep(nanoseconds: 400_000_000) // deja cerrar el form
-                        showSuccess = true
-                        await reloadBlocks()
-                    }
-                }
+                if ok { afterSubmit() }
+            }
+        }
+        .sheet(item: boulderCoordItem) { item in
+            BoulderFormSheet(schoolId: school.id, coord: item.coord,
+                             sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
+                boulderCoord = nil
+                if ok { afterSubmit() }
             }
         }
         .sheet(isPresented: $showSuccess) { ContributionSuccessSheet() }
+    }
+
+    private func afterSubmit() {
+        Task {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            showSuccess = true
+            await reloadBlocks()
+        }
+    }
+
+    // Wrapper Identifiable para presentar el formulario de piedra.
+    private var boulderCoordItem: Binding<CoordItem?> {
+        Binding(get: { boulderCoord.map { CoordItem(coord: $0) } },
+                set: { if $0 == nil { boulderCoord = nil } })
+    }
+
+    // MARK: - Corrección de posición
+
+    private func selectCorrectionTarget(_ id: String) {
+        if let b = blocks.first(where: { $0.id == id }) {
+            corrTargetId = b.id
+            corrTargetName = b.name.isEmpty ? typeLabel(b.type) : b.name
+            corrOld = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
+        } else if id == school.id {
+            corrTargetId = nil
+            corrTargetName = "la escuela"
+            corrOld = CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)
+        } else { return }
+        corrActive = true
+        corrNew = nil
+    }
+
+    private func cancelCorrection() {
+        correctionMode = false; corrActive = false; corrTargetId = nil; corrNew = nil
+    }
+
+    private func submitCorrection() async {
+        guard let old = corrOld, let nw = corrNew else { return }
+        let req = ContributionRequest(
+            type: "POSITION_CORRECTION", name: corrTargetName,
+            lat: old.latitude, lon: old.longitude,
+            notes: nil, description: nil,
+            proposedLat: nw.latitude, proposedLon: nw.longitude, correctionReason: nil,
+            targetBlockId: corrTargetId, targetLineId: nil, sectorBlockId: nil,
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil)
+        let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: school.id, req: req)) != nil
+        cancelCorrection()
+        if ok { afterSubmit() }
+    }
+
+    private var correctionBannerText: String {
+        if !corrActive { return "PULSA EL MARCADOR QUE QUIERES MOVER" }
+        if corrNew == nil { return "MOVIENDO «\(corrTargetName)» · PULSA LA NUEVA POSICIÓN" }
+        return "POSICIÓN FIJADA · PULSA OTRA VEZ PARA RECORREGIR O ACEPTA"
+    }
+
+    /// Banner superior + botón cancelar (y aceptar opcional) sobre el mapa.
+    private func mapBanner(_ text: String, accept: (() -> Void)? = nil,
+                           cancel: @escaping () -> Void) -> some View {
+        VStack {
+            Text(text)
+                .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .frame(maxWidth: .infinity).background(Cumbre.terra)
+            Spacer()
+            HStack(spacing: 8) {
+                Button("CANCELAR", action: cancel)
+                    .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                    .padding(.horizontal, 12).padding(.vertical, 6).background(Cumbre.ink)
+                if let accept {
+                    Button("✓ ACEPTAR", action: accept)
+                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 6).background(.white)
+                }
+            }.padding(.bottom, 8)
+        }
+        .frame(height: 280)
     }
 
     // Wrapper Identifiable para presentar el formulario con la coordenada fijada.
@@ -338,6 +429,12 @@ private struct SchoolMapSection: View {
                 kind: markerKind(for: b.type),
                 color: color(for: b.type),
                 name: b.name))
+        }
+        // Fantasma de la nueva posición al corregir.
+        if let nw = corrNew {
+            ms.append(CumbreMarker(
+                id: "__GHOST__", coordinate: nw, title: "Nueva posición",
+                kind: .block, color: UIColor(hex: 0xF59E0B), name: "★"))
         }
         return ms
     }
@@ -395,10 +492,10 @@ private struct ContributionTypePicker: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
-                row("PARKING", "Añadir un aparcamiento", "car.fill", enabled: true) { onPick("PARKING") }
+                row("PIEDRA", "Añadir un bloque y sus vías", "mountain.2.fill", enabled: true) { onPick("BOULDER") }
                 row("SECTOR", "Añadir una zona", "square.dashed", enabled: true) { onPick("SECTOR") }
-                row("PIEDRA", "Añadir un bloque y sus vías", "mountain.2.fill", enabled: false) {}
-                row("CORREGIR", "Mover una posición", "mappin.and.ellipse", enabled: false) {}
+                row("PARKING", "Añadir un aparcamiento", "car.fill", enabled: true) { onPick("PARKING") }
+                row("CORREGIR", "Mover una posición existente", "mappin.and.ellipse", enabled: true) { onPick("CORRECTION") }
                 Spacer()
             }
             .padding(16)
