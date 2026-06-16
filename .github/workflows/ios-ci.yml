@@ -9,10 +9,16 @@ name: iOS CI
 # contenido del GoogleService-Info.plist real del proyecto Firebase climbingteams.
 # Sin él, el .ipa compila pero usa config dummy (la app arranca, el login falla).
 
+# ⚠️ MANUAL ONLY (desde 2026-06-16): el runner de macOS cuenta x10 en la cuota
+# de Actions (cada build ~6 min reales ≈ ~60 min de cuota). Para no agotar los
+# 2.000 min/mes del plan gratis, este workflow NO se lanza en cada push: solo a
+# mano cuando de verdad queremos un .ipa nuevo para probar.
+#   - Desde el PC:  gh workflow run ios-ci.yml --ref main
+#   - O en GitHub:  pestaña Actions → iOS CI → "Run workflow".
+# El CI de Android (Linux, x1) sí corre en cada push y verifica que no rompemos
+# la compilación; el de iOS solo cuando se pide.
 on:
-  push:
-    branches: ["main", "claude/**"]
-  workflow_dispatch: {}   # permite lanzarlo a mano desde la pestaña Actions
+  workflow_dispatch: {}   # SOLO a mano (ahorra minutos de macOS)
 
 # Un push nuevo cancela el build anterior de la misma rama (no apila builds
 # lentos: siempre compila lo último).
