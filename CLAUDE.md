@@ -97,6 +97,60 @@ en local. Reglas para la sesión:
 
 ---
 
+## 📱 Probar la app iOS en el iPhone SIN MAC (flujo oficial)
+
+Validado el 2026-06-16. Este es el flujo de SIEMPRE para que Rodrigo pruebe
+cambios de iOS en su iPhone. No hace falta Mac para nada.
+
+**Resumen**: GitHub Actions compila el `.ipa` → se descarga al PC → un
+mini-servidor web lo sirve → Safari del iPhone lo descarga → **AltStore** lo
+instala. (Sideloadly NO funciona en este PC: su provisión "anisette" crashea —
+access violation en `CoreADI.dll`. Por eso AltStore.)
+
+**Requisitos ya instalados en el PC de Rodrigo** (no reinstalar):
+- iTunes + iCloud (versiones web de apple.com, NO Microsoft Store).
+- **AltServer** Windows (`C:\Program Files (x86)\AltServer\AltServer.exe`) →
+  vive en la bandeja del sistema (icono rombo ◇). AltStore ya está instalado en
+  el iPhone.
+- Regla de firewall "ipa-serve 8000" para el servidor web.
+
+**Pasos cuando hay un build verde nuevo (lo hace Claude desde el PC):**
+1. Descargar el `.ipa` del último run verde:
+   `gh run download <id> --name ios-app-unsigned-ipa --dir C:\Users\rouma\ipa-serve`
+   (o copiarlo a `C:\Users\rouma\ipa-serve\MeteoMontana.ipa`).
+2. Servir esa carpeta (aislada, no exponer iCloud entero):
+   `cd C:\Users\rouma\ipa-serve; python -m http.server 8000 --bind 0.0.0.0`
+   (déjalo corriendo en background).
+3. Decirle a Rodrigo la URL. IP del PC: **192.168.0.12** (Ethernet, misma WiFi
+   que el iPhone) o 172.20.10.2 si comparte internet por el móvil.
+
+**Pasos que hace Rodrigo en el iPhone:**
+1. Safari → `http://192.168.0.12:8000/MeteoMontana.ipa` → Descargar.
+2. AltStore → pestaña **My Apps** → **`+`** → Examinar → Descargas →
+   `MeteoMontana.ipa`. Pide Apple ID + **contraseña específica de app**
+   (account.apple.com → Seguridad → Contraseñas de aplicaciones; por el 2FA).
+3. Si "desarrollador no fiable": Ajustes → General → VPN y gestión de
+   dispositivos → confiar en su Apple ID.
+
+**Cadencia recomendada**: acumular varias features → un build → reinstalar una
+vez (la app caduca a 7 días con Apple ID gratuito; reinstalar la renueva).
+
+Detalle técnico y troubleshooting completo en la memoria
+`project_ios_install_sin_mac.md`.
+
+### CI iOS (`.github/workflows/ios-ci.yml`)
+- Runner **macos-15** (Xcode 16: xcodegen genera el proyecto en formato 77).
+- `xcodegen generate` → `xcodebuild -sdk iphoneos CODE_SIGNING_ALLOWED=NO` →
+  empaqueta `.app` en `.ipa` sin firmar (Payload/ + zip) → artifact
+  **ios-app-unsigned-ipa**. Caché de `~/.konan`. `concurrency` cancela builds
+  viejos. Build ~6 min con caché.
+- **El CI COMPILA el Swift** → es el feedback real sin Mac. Flujo de desarrollo
+  iOS: lote de cambios → push a `main` → el build (verde/rojo) verifica.
+- Secret **`GOOGLE_SERVICE_INFO_PLIST`** (ya creado) = `GoogleService-Info.plist`
+  real de Firebase climbingteams (para que el login Google funcione en el `.ipa`).
+
+---
+
 ## ⚡ Arranque rápido (cada sesión)
 
 ```powershell
