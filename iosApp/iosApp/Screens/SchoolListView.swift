@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import CoreLocation
 
 // Lista de escuelas — réplica fiel de SchoolListScreen.kt de Android:
 // fila de iconos, header "Escuelas" + count + "+ Enviar escuela", banner ☕,
@@ -188,6 +189,7 @@ struct SchoolListView: View {
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     CoffeeBanner()
                     SearchField(text: $vm.query)
+                    MapToggleAndPanel(vm: vm, onOpen: { navSchool = $0 })
                     FilterChips(vm: vm)
                     Divider().overlay(Cumbre.rule)
 
@@ -445,6 +447,63 @@ private struct SearchField: View {
         .background(Cumbre.paper)
         .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         .padding(.horizontal, 16).padding(.vertical, 8)
+    }
+}
+
+/// Toggle "VER MAPA" + panel con todas las escuelas filtradas como marcadores
+/// coloreados por score (tap → detalle). Espejo de SchoolsMapPanel.kt.
+private struct MapToggleAndPanel: View {
+    @ObservedObject var vm: SchoolListViewModel
+    let onOpen: (School) -> Void
+    @State private var show = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button { withAnimation { show.toggle() } } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "map").font(.system(size: 13))
+                    Text(show ? "OCULTAR MAPA" : "VER MAPA").font(Cumbre.mono(11, .bold)).tracking(0.8)
+                    Spacer()
+                    Image(systemName: show ? "chevron.up" : "chevron.down").font(.system(size: 11))
+                }
+                .foregroundStyle(Cumbre.ink2)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if show {
+                MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
+                             markers: markers, onTapMarker: { id in
+                                 if let s = vm.filtered.first(where: { $0.id == id }) { onOpen(s) }
+                             })
+                .frame(height: 300)
+                Divider().overlay(Cumbre.rule)
+            }
+        }
+    }
+
+    private var markers: [CumbreMarker] {
+        vm.filtered.prefix(200).map { s in
+            let score = vm.scores[s.id].map { Int($0.todayScore) }
+            return CumbreMarker(
+                id: s.id,
+                coordinate: CLLocationCoordinate2D(latitude: s.lat, longitude: s.lon),
+                title: s.name,
+                subtitle: score.map { "\($0)/100" },
+                color: UIColor(score.map { Cumbre.score($0) } ?? Cumbre.rule))
+        }
+    }
+
+    private var center: CLLocationCoordinate2D {
+        if let la = vm.userLat, let lo = vm.userLon {
+            return CLLocationCoordinate2D(latitude: la, longitude: lo)
+        }
+        let pts = vm.filtered
+        if pts.isEmpty { return CLLocationCoordinate2D(latitude: 40.2, longitude: -3.7) }
+        let lat = pts.map { $0.lat }.reduce(0, +) / Double(pts.count)
+        let lon = pts.map { $0.lon }.reduce(0, +) / Double(pts.count)
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 }
 

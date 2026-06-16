@@ -236,8 +236,11 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
   topográficos OpenTopoMap (sin API key) + marcadores + tap por marcador.
 - ✅ **Mapa en el detalle de escuela**: sección plegable "VER MAPA" con el
   marcador de la escuela y **"CÓMO LLEGAR"** (reactivado, abre Google/Apple Maps).
-- ⬜ Siguiente: marcadores de bloques (parking/piedra/zona) en el mapa de
-  escuela, panel de mapa en la lista (`SchoolsMapPanel`), y proponer/topo.
+- ✅ **Marcadores de bloques** en el mapa de escuela (parking/piedra/zona
+  coloreados + leyenda); tap abre `BlockInfoSheet` (tipo, vías, CÓMO LLEGAR).
+- ✅ **Panel de mapa en la lista** (`MapToggleAndPanel`): toggle "VER MAPA" con
+  todas las escuelas filtradas como marcadores coloreados por score; tap → detalle.
+- ⬜ Siguiente: proponer en mapa ("+ PROPONER") y editor topo.
 
 ## Pendiente de bridges nativos (sesión con Mac) — 🟦
 - Mapas (MapLibre): panel mapa en lista, "+ PROPONER", topo (marcadores de bloque
