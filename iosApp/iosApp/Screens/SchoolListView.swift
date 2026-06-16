@@ -20,7 +20,7 @@ final class SchoolListViewModel: ObservableObject {
     @Published var query = ""
     @Published var style: String?
     @Published var rock: String?
-    @Published var maxDistanceKm: Double?
+    @Published var maxDistanceKm: Double? = 50   // 50 km por defecto (como Android/PWA)
     @Published var onlyFavorites = false
     @Published var sortBy: SortMode = .score
     @Published var favoriteIds: Set<String> = []
@@ -201,7 +201,14 @@ struct SchoolListView: View {
                             EmptyRow(canClear: vm.activeFilters || !vm.query.isEmpty) { vm.clearFilters() }
                         } else {
                             ForEach(Array(items.enumerated()), id: \.element.id) { idx, school in
-                                NavigationLink(destination: SchoolDetailView(school: school)) {
+                                // Tap: si hay selección de comparar activa, togglea;
+                                // si no, navega al detalle. Long-press: entra en
+                                // modo selección. (Sin NavigationLink para que el
+                                // long-press no dispare la navegación.)
+                                Button {
+                                    if vm.compareSelection.isEmpty { navSchool = school }
+                                    else { vm.toggleCompare(school.id) }
+                                } label: {
                                     SchoolListItemView(
                                         rank: idx + 1,
                                         school: school,
@@ -213,7 +220,7 @@ struct SchoolListView: View {
                                     )
                                 }
                                 .buttonStyle(.plain)
-                                .simultaneousGesture(LongPressGesture().onEnded { _ in vm.toggleCompare(school.id) })
+                                .onLongPressGesture { vm.toggleCompare(school.id) }
                                 Divider().overlay(Cumbre.rule)
                             }
                         }
@@ -222,6 +229,7 @@ struct SchoolListView: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(item: $navSchool) { SchoolDetailView(school: $0) }
             .overlay(alignment: .bottom) {
                 if vm.compareSelection.count >= 1 {
                     CompareBar(count: vm.compareSelection.count,
@@ -239,7 +247,11 @@ struct SchoolListView: View {
     }
 
     @State private var showCompare = false
+    @State private var navSchool: School?
 }
+
+// School (clase Kotlin) Identifiable por su id — para navigationDestination(item:).
+extension School: Identifiable {}
 
 private struct CompareBar: View {
     let count: Int

@@ -71,7 +71,8 @@ agrupa de cierta forma — secciones/orden). Clavar el layout.
 **50 km por defecto**." (Hoy iOS arranca con distancia = Todas; Android por
 defecto 50 km como la PWA.) → Cambiar `maxDistanceKm` inicial a `50.0`.
 OJO: si no hay permiso de ubicación aún, no esconder todo — pedir ubicación.
-**Estado:** ⬜ pendiente.
+**Estado:** ✅ hecho — `maxDistanceKm` inicial = 50; el filtro de distancia solo
+aplica si hay ubicación (si no, muestra todas), así no queda vacío sin permiso.
 
 ### 3. Estrella favorita en lista — ✅ OK
 
@@ -87,7 +88,10 @@ escuela** en vez de seleccionarla para comparar (el `NavigationLink` gana al
 vez de navegar; el long-press no debe disparar la navegación. Probablemente
 quitar el `NavigationLink` y navegar programáticamente, o usar
 `.highPriorityGesture`/estado de modo-selección.
-**Estado:** ⬜ pendiente. (Y portar la mejora a Android cuando esté.)
+**Estado:** ✅ hecho — quitado el `NavigationLink`; ahora es `Button` +
+`navigationDestination(item:)`. Tap: si hay selección activa togglea, si no
+navega. Long-press entra en selección. **A validar por Rodrigo.** (Pendiente:
+portar la mejora de comparar a Android.)
 
 ### 5. Modo oscuro — ✅ OK
 ### 6. Badge notificaciones — ✅ OK
@@ -105,14 +109,26 @@ quitar el `NavigationLink` y navegar programáticamente, o usar
 (a) texto que llega del backend mal codificado, o (b) un string en el código
 iOS guardado sin UTF-8, o (c) cómo se renderiza. Localizar el/los textos
 afectados y corregir (asegurar UTF-8 en los `.swift` y/o en la respuesta).
-**Estado:** ⬜ pendiente (identificar qué textos exactos salen con ??).
+**Investigado 2026-06-16**: los `.swift` SÍ están en UTF-8 correcto
+(SchoolDetailView.swift verificado: "PRÓXIMAS", "ÍNDICE", "ROCÍO" bien). Por
+tanto el "??" NO viene de los literales del código iOS → viene del **backend**
+(o del cliente Ktor decodificando mal la respuesta). Sospechas: (a) algún campo
+del backend (scoreLabel, factor.display, factor.name, drying.message, region)
+con acentos corruptos; (b) Ktor cayendo a ISO-8859-1 si la respuesta no trae
+charset=utf-8 en Content-Type. **Siguiente paso**: que Rodrigo diga QUÉ texto
+exacto sale con "??" (¿una etiqueta fija o un dato de escuela/factor?). Si es
+dato del backend, mirar `MeteoMontanaAPI`; si es del cliente, forzar UTF-8 en
+`ApiHttpClient`.
+**Estado:** ⬜ pendiente (falta saber el texto exacto).
 
 ### 3. Condiciones: % lluvia sí, mm no — 🔧 BUG
 **Feedback:** sale el % de probabilidad de lluvia pero **los mm no** (ya
 probado). → Revisar la celda de condiciones / la fila horaria: mostrar los mm
 de precipitación (`precipitation` / `precip24h`) correctamente. Comparar con
 `ForecastBody.kt` / `ConditionsGrid` de Android.
-**Estado:** ⬜ pendiente.
+**Estado:** ✅ hecho — `ConditionsGrid` ya mostraba mm (LLUVIA 24H/72H). Faltaban
+los mm **por hora**: añadidos en el grid de 16h (`HoursGrid`) y en las filas
+hora-a-hora de `DayDetailView`. **A validar.**
 
 ### 4. "CÓMO LLEGAR" → debe ser botón COMPARTIR — 🔧 cambiar
 **Feedback:** no le gusta "CÓMO LLEGAR" ahí. En su lugar debe haber un
@@ -123,7 +139,10 @@ alguien). El "CÓMO LLEGAR" llegará **cuando se añadan los mapas**.
 **iOS:** sustituir `DirectionsButton` del detalle por un botón Compartir
 (`UIActivityViewController` / `ShareLink` de SwiftUI) con texto de condiciones
 (imagen como mejora posterior).
-**Estado:** ⬜ pendiente.
+**Estado:** ✅ hecho — `ShareConditionsButton` (ShareLink con resumen de texto)
+sustituye al "CÓMO LLEGAR" en el detalle. `DirectionsButton` se conserva para
+reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
+`ShareConditionsImage.kt`). **A validar.**
 
 ---
 

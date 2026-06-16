@@ -88,6 +88,11 @@ struct DayDetailView: View {
                 .overlay(Text("\(Int(h.score))").font(Cumbre.mono(10, .bold)).foregroundStyle(.white))
             Text("\(Int(h.temperature))°").font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink)
             Spacer()
+            // Lluvia: mm si los hay, y la probabilidad.
+            if h.precipitation > 0 {
+                Text(String(format: "%.1f mm", h.precipitation))
+                    .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.rain)
+            }
             if h.precipitationProbability > 0 {
                 Text("\(h.precipitationProbability)%").font(Cumbre.mono(11)).foregroundStyle(Cumbre.rain)
             }

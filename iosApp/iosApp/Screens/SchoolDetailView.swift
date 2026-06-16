@@ -134,8 +134,10 @@ struct ForecastBodyView: View {
         let f = forecast
         VStack(alignment: .leading, spacing: 0) {
             HeroSection(forecast: f)
-            if let d = directions {
-                DirectionsButton(lat: d.lat, lon: d.lon, label: d.label)
+            // Botón COMPARTIR (paridad con Android). "CÓMO LLEGAR" volverá con
+            // los mapas. Solo en contexto de escuela (directions != nil).
+            if directions != nil {
+                ShareConditionsButton(forecast: f)
                     .padding(.horizontal, 16).padding(.bottom, 8)
             }
             RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)
@@ -304,6 +306,13 @@ private struct HoursGrid: View {
                             .frame(width: 30, height: 30)
                             .overlay(Text("\(Int(h.score))").font(Cumbre.mono(11, .bold)).foregroundStyle(.white))
                         Text("\(Int(h.temperature))°").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink2)
+                        // Lluvia en mm (solo si la hay) — paridad con ForecastBody.
+                        if h.precipitation > 0 {
+                            Text(String(format: "%.1f", h.precipitation))
+                                .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.rain)
+                        } else {
+                            Text(" ").font(Cumbre.mono(9))
+                        }
                     }
                 }
             }
@@ -403,6 +412,35 @@ struct DirectionsButton: View {
             HStack(spacing: 8) {
                 Image(systemName: "arrow.triangle.turn.up.right.diamond")
                 Text("CÓMO LLEGAR").font(Cumbre.mono(12, .bold)).tracking(0.8)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Cumbre.terra)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Botón COMPARTIR — comparte un resumen de condiciones por el share sheet del
+/// sistema (paridad con Android, que comparte una tarjeta). De momento texto;
+/// la imagen-tarjeta es una mejora posterior.
+struct ShareConditionsButton: View {
+    let forecast: Forecast
+
+    private var summary: String {
+        let c = forecast.current
+        let score = Int(c.score)
+        return "\(forecast.schoolName) — Índice \(score)/100 (\(c.scoreLabel)) hoy. "
+            + "\(Int(c.temperature))°, viento \(Int(c.windSpeed)) km/h, roca \(c.dryRock ? "seca" : "mojada"). "
+            + "Tiempo para escalar · MeteoMontana"
+    }
+
+    var body: some View {
+        ShareLink(item: summary) {
+            HStack(spacing: 8) {
+                Image(systemName: "square.and.arrow.up")
+                Text("COMPARTIR").font(Cumbre.mono(12, .bold)).tracking(0.8)
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
