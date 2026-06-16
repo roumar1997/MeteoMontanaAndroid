@@ -201,6 +201,11 @@ private struct SchoolMapSection: View {
     @State private var expanded = false
     @State private var blocks: [Block] = []
     @State private var selectedBlock: Block?
+    // Proponer mejora (PARKING): tap en el mapa fija coords → formulario → envío.
+    @State private var waitingTap = false
+    @State private var showTypePicker = false
+    @State private var formCoord: CLLocationCoordinate2D?
+    @State private var showSuccess = false
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -227,13 +232,47 @@ private struct SchoolMapSection: View {
             .buttonStyle(.plain)
 
             if expanded {
-                MapLibreView(
-                    center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-                    zoom: 14,
-                    markers: markers,
-                    onTapMarker: { id in selectedBlock = blocks.first { $0.id == id } }
-                )
-                .frame(height: 280)
+                ZStack(alignment: .bottomTrailing) {
+                    MapLibreView(
+                        center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
+                        zoom: 14,
+                        markers: markers,
+                        onTapMarker: { id in
+                            if !waitingTap { selectedBlock = blocks.first { $0.id == id } }
+                        },
+                        onMapTap: waitingTap ? { coord in
+                            waitingTap = false
+                            formCoord = coord
+                        } : nil
+                    )
+                    .frame(height: 280)
+
+                    // Banner "PULSA EN EL MAPA" mientras se espera el tap.
+                    if waitingTap {
+                        VStack {
+                            Text("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN")
+                                .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .background(Cumbre.terra)
+                            Spacer()
+                            Button("CANCELAR") { waitingTap = false }
+                                .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .background(Cumbre.ink).padding(.bottom, 8)
+                        }
+                        .frame(height: 280)
+                    } else {
+                        // Botón "+ PROPONER" (esquina inferior derecha).
+                        Button { showTypePicker = true } label: {
+                            Text("+ PROPONER").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 10)
+                                .background(Cumbre.terra)
+                        }
+                        .buttonStyle(.plain).padding(12)
+                    }
+                }
                 legend
                 DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
                     .padding(.horizontal, 16).padding(.vertical, 8)
@@ -245,6 +284,35 @@ private struct SchoolMapSection: View {
             }
         }
         .sheet(item: $selectedBlock) { b in BlockInfoSheet(block: b) }
+        .sheet(isPresented: $showTypePicker) {
+            ContributionTypePicker { type in
+                showTypePicker = false
+                if type == "PARKING" { waitingTap = true }
+            }
+        }
+        .sheet(item: coordItem) { item in
+            ParkingFormSheet(schoolId: school.id, coord: item.coord) { ok in
+                formCoord = nil
+                if ok {
+                    Task {
+                        try? await Task.sleep(nanoseconds: 400_000_000) // deja cerrar el form
+                        showSuccess = true
+                        await reloadBlocks()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showSuccess) { ContributionSuccessSheet() }
+    }
+
+    // Wrapper Identifiable para presentar el formulario con la coordenada fijada.
+    private var coordItem: Binding<CoordItem?> {
+        Binding(get: { formCoord.map { CoordItem(coord: $0) } },
+                set: { if $0 == nil { formCoord = nil } })
+    }
+
+    private func reloadBlocks() async {
+        blocks = (try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id)) ?? []
     }
 
     private var markers: [CumbreMarker] {
@@ -291,6 +359,132 @@ private struct SchoolMapSection: View {
         case "ZONE": return "ZONA"
         default: return "PIEDRA"
         }
+    }
+}
+
+/// Coordenada Identifiable para presentar el formulario por sheet(item:).
+private struct CoordItem: Identifiable {
+    let coord: CLLocationCoordinate2D
+    var id: String { "\(coord.latitude),\(coord.longitude)" }
+}
+
+/// Selector de tipo de propuesta — espejo de TypePickerDialog.kt. PARKING está
+/// activo; el resto (piedra/sector/corregir) llegará en próximas iteraciones.
+private struct ContributionTypePicker: View {
+    let onPick: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 12) {
+                row("PARKING", "Añadir un aparcamiento", "car.fill", enabled: true) { onPick("PARKING") }
+                row("PIEDRA", "Añadir un bloque y sus vías", "mountain.2.fill", enabled: false) {}
+                row("SECTOR", "Añadir una zona", "square.dashed", enabled: false) {}
+                row("CORREGIR", "Mover una posición", "mappin.and.ellipse", enabled: false) {}
+                Spacer()
+            }
+            .padding(16)
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Proponer mejora")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.ink3) } }
+        }
+    }
+    private func row(_ t: String, _ sub: String, _ icon: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon).font(.system(size: 18)).foregroundStyle(enabled ? Cumbre.terra : Cumbre.ink3).frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(t).font(Cumbre.mono(13, .bold)).tracking(0.6).foregroundStyle(enabled ? Cumbre.ink : Cumbre.ink3)
+                    Text(enabled ? sub : "\(sub) · próximamente").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                Spacer()
+            }
+            .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain).disabled(!enabled)
+    }
+}
+
+/// Formulario de propuesta de PARKING — espejo de ParkingFormDialog.kt. Coords
+/// fijadas por el tap en el mapa. Envía POST /contributions y devuelve si fue ok.
+private struct ParkingFormSheet: View {
+    let schoolId: String
+    let coord: CLLocationCoordinate2D
+    let onDone: (Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var notes = ""
+    @State private var sending = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    field("NOMBRE (opcional)", $name, "ej: Parking de arriba")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("COORDENADAS").eyebrow()
+                        Text(String(format: "%.5f, %.5f", coord.latitude, coord.longitude))
+                            .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
+                    }
+                    field("NOTAS (opcional)", $notes, "Cómo es el acceso, etc.")
+                    Button { Task { await send() } } label: {
+                        HStack { if sending { ProgressView().tint(.white) }
+                            Text("ENVIAR PROPUESTA").font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                    }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Nuevo parking")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+        }
+    }
+
+    private func send() async {
+        sending = true
+        let req = ContributionRequest(
+            type: "PARKING",
+            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? nil : name,
+            lat: coord.latitude, lon: coord.longitude,
+            notes: notes.trimmingCharacters(in: .whitespaces).isEmpty ? nil : notes,
+            description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+            targetBlockId: nil, targetLineId: nil, sectorBlockId: nil,
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil)
+        let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
+        sending = false
+        dismiss()
+        onDone(ok)
+    }
+
+    private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label).eyebrow()
+            TextField(ph, text: text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                .padding(10).background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        }
+    }
+}
+
+/// Confirmación tras enviar una propuesta — espejo de SuccessDialog.kt.
+private struct ContributionSuccessSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checkmark.seal.fill").font(.system(size: 56)).foregroundStyle(Cumbre.ok)
+            Text("¡Propuesta enviada!").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+            Text("La revisaremos en 24-48 h. Gracias por mejorar el mapa de la comunidad.")
+                .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
+                .multilineTextAlignment(.center).padding(.horizontal, 24)
+            Button("CERRAR") { dismiss() }
+                .font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
+                .padding(.vertical, 14).padding(.horizontal, 32)
+                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1)).padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
+        .background(Cumbre.bg.ignoresSafeArea())
     }
 }
 

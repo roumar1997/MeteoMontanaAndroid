@@ -56,6 +56,7 @@ import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
 import com.meteomontana.android.domain.usecase.submissions.GetMySubmissionsUseCase
 import com.meteomontana.android.domain.usecase.submissions.SubmitSchoolUseCase
 import com.meteomontana.android.domain.usecase.contributions.GetMyContributionsUseCase
+import com.meteomontana.android.domain.usecase.contributions.SubmitContributionUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
 import com.meteomontana.android.domain.usecase.journal.GetUserJournalUseCase
@@ -187,6 +188,7 @@ class IosDependencyContainer(
     val getMySubmissions = GetMySubmissionsUseCase(submissionRepository)
     val submitSchool = SubmitSchoolUseCase(submissionRepository)
     val getMyContributions = GetMyContributionsUseCase(contributionRepository)
+    val submitContribution = SubmitContributionUseCase(contributionRepository)
 
     // Diario de escalada: entradas, stats (bloques/escuelas/grado máximo), crear/borrar.
     // Bloques de una escuela (para autocompletar el diario con vías/sectores reales).

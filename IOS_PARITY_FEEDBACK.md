@@ -240,7 +240,14 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
   coloreados + leyenda); tap abre `BlockInfoSheet` (tipo, vías, CÓMO LLEGAR).
 - ✅ **Panel de mapa en la lista** (`MapToggleAndPanel`): toggle "VER MAPA" con
   todas las escuelas filtradas como marcadores coloreados por score; tap → detalle.
-- ⬜ Siguiente: proponer en mapa ("+ PROPONER") y editor topo.
+- ✅ **Proponer PARKING en el mapa** ("+ PROPONER" en el mapa de escuela):
+  `ContributionTypePicker` (PARKING activo; piedra/sector/corregir
+  "próximamente") → banner "PULSA EN EL MAPA" → tap fija coords
+  (`MapLibreView.onMapTap`) → `ParkingFormSheet` (nombre/coords/notas) →
+  `submitContribution` (expuesto) → `ContributionSuccessSheet`. Espejo de
+  `ProposeContributionFlow.kt` / `ParkingFormDialog.kt`.
+- ⬜ Siguiente: proponer PIEDRA (con editor topo de líneas), SECTOR y CORREGIR
+  POSICIÓN; popup del panel de la lista (nombre/score/tags/CÓMO LLEGAR/VER DETALLE).
 
 ## Subir fotos (Firebase Storage) — EN MARCHA (2026-06-16)
 - ✅ **`StorageUploader`** (Swift, FirebaseStorage): sube un JPEG y devuelve la

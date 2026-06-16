@@ -23,6 +23,9 @@ struct MapLibreView: UIViewRepresentable {
     var markers: [CumbreMarker] = []
     /// Se llama al tocar un marcador (por id).
     var onTapMarker: ((String) -> Void)? = nil
+    /// Si está presente, un tap en el mapa (no en un marcador) devuelve la
+    /// coordenada — para fijar la posición al proponer una mejora.
+    var onMapTap: ((CLLocationCoordinate2D) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -32,6 +35,12 @@ struct MapLibreView: UIViewRepresentable {
         map.setCenter(center, zoomLevel: zoom, animated: false)
         map.delegate = context.coordinator
         map.logoView.isHidden = false
+        // Tap para fijar coordenada (no interfiere con la selección de markers).
+        let tap = UITapGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handleTap(_:)))
+        tap.cancelsTouchesInView = false
+        map.addGestureRecognizer(tap)
+        context.coordinator.mapView = map
         applyMarkers(to: map)
         return map
     }
@@ -81,7 +90,15 @@ struct MapLibreView: UIViewRepresentable {
 
     final class Coordinator: NSObject, MLNMapViewDelegate {
         var parent: MapLibreView
+        weak var mapView: MLNMapView?
         init(_ parent: MapLibreView) { self.parent = parent }
+
+        @objc func handleTap(_ g: UITapGestureRecognizer) {
+            guard let onTap = parent.onMapTap, let map = mapView else { return }
+            let point = g.location(in: map)
+            let coord = map.convert(point, toCoordinateFrom: map)
+            onTap(coord)
+        }
 
         // Pin coloreado por tipo (busca el marcador por título y genera un punto
         // del color correspondiente, cacheado por color).
