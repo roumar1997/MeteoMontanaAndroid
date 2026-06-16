@@ -292,8 +292,7 @@ private struct HoursGrid: View {
                 ForEach(Array(hours.enumerated()), id: \.offset) { _, h in
                     VStack(spacing: 6) {
                         Text(short(h.time)).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                        Image(systemName: wmoSymbol(Int(h.weatherCode)))
-                            .font(.system(size: 18)).foregroundStyle(Cumbre.ink2)
+                        WmoIcon(code: Int(h.weatherCode), size: 22, tint: Cumbre.ink2)
                         RoundedRectangle(cornerRadius: 2).fill(Cumbre.score(Int(h.score)))
                             .frame(width: 30, height: 30)
                             .overlay(Text("\(Int(h.score))").font(Cumbre.mono(11, .bold)).foregroundStyle(.white))
@@ -456,22 +455,6 @@ private func dayLabel(_ iso: String) -> String {
     guard let d = f.date(from: String(iso.prefix(10))) else { return iso }
     let out = DateFormatter(); out.locale = Locale(identifier: "es_ES"); out.dateFormat = "EEE d MMM"
     return out.string(from: d).capitalized
-}
-
-/// Código WMO → SF Symbol aproximado (espejo simplificado de WmoWeatherIcon).
-private func wmoSymbol(_ code: Int) -> String {
-    switch code {
-    case 0: return "sun.max"
-    case 1, 2, 3: return "cloud.sun"
-    case 45, 48: return "cloud.fog"
-    case 51, 53, 55, 56, 57: return "cloud.drizzle"
-    case 61, 63, 65, 66, 67: return "cloud.rain"
-    case 71, 73, 75, 77: return "cloud.snow"
-    case 80, 81, 82: return "cloud.heavyrain"
-    case 85, 86: return "cloud.snow"
-    case 95, 96, 99: return "cloud.bolt.rain"
-    default: return "cloud"
-    }
 }
 
 // `Note` (clase Kotlin vía SKIE) ya tiene `id: String`; con esto vale para
