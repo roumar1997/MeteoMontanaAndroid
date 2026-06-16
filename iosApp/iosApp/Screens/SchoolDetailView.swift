@@ -201,10 +201,11 @@ private struct SchoolMapSection: View {
     @State private var expanded = false
     @State private var blocks: [Block] = []
     @State private var selectedBlock: Block?
-    // Proponer mejora (PARKING): tap en el mapa fija coords → formulario → envío.
+    // Proponer mejora: tap en el mapa fija coords → formulario → envío.
     @State private var waitingTap = false
     @State private var showTypePicker = false
     @State private var formCoord: CLLocationCoordinate2D?
+    @State private var proposeType = "PARKING"
     @State private var showSuccess = false
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
@@ -287,11 +288,11 @@ private struct SchoolMapSection: View {
         .sheet(isPresented: $showTypePicker) {
             ContributionTypePicker { type in
                 showTypePicker = false
-                if type == "PARKING" { waitingTap = true }
+                if type == "PARKING" || type == "SECTOR" { proposeType = type; waitingTap = true }
             }
         }
         .sheet(item: coordItem) { item in
-            ParkingFormSheet(schoolId: school.id, coord: item.coord) { ok in
+            ContributionFormSheet(type: proposeType, schoolId: school.id, coord: item.coord) { ok in
                 formCoord = nil
                 if ok {
                     Task {
@@ -377,8 +378,8 @@ private struct ContributionTypePicker: View {
         NavigationStack {
             VStack(spacing: 12) {
                 row("PARKING", "Añadir un aparcamiento", "car.fill", enabled: true) { onPick("PARKING") }
+                row("SECTOR", "Añadir una zona", "square.dashed", enabled: true) { onPick("SECTOR") }
                 row("PIEDRA", "Añadir un bloque y sus vías", "mountain.2.fill", enabled: false) {}
-                row("SECTOR", "Añadir una zona", "square.dashed", enabled: false) {}
                 row("CORREGIR", "Mover una posición", "mappin.and.ellipse", enabled: false) {}
                 Spacer()
             }
@@ -406,9 +407,10 @@ private struct ContributionTypePicker: View {
     }
 }
 
-/// Formulario de propuesta de PARKING — espejo de ParkingFormDialog.kt. Coords
-/// fijadas por el tap en el mapa. Envía POST /contributions y devuelve si fue ok.
-private struct ParkingFormSheet: View {
+/// Formulario de propuesta PARKING/SECTOR — espejo de ParkingFormDialog.kt.
+/// Coords fijadas por el tap en el mapa. Envía POST /contributions y devuelve ok.
+private struct ContributionFormSheet: View {
+    let type: String           // "PARKING" | "SECTOR"
     let schoolId: String
     let coord: CLLocationCoordinate2D
     let onDone: (Bool) -> Void
@@ -417,17 +419,20 @@ private struct ParkingFormSheet: View {
     @State private var notes = ""
     @State private var sending = false
 
+    private var isSector: Bool { type == "SECTOR" }
+    private var title: String { isSector ? "Nueva zona" : "Nuevo parking" }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    field("NOMBRE (opcional)", $name, "ej: Parking de arriba")
+                    field("NOMBRE (opcional)", $name, isSector ? "ej: Sector Bajo" : "ej: Parking de arriba")
                     VStack(alignment: .leading, spacing: 6) {
                         Text("COORDENADAS").eyebrow()
                         Text(String(format: "%.5f, %.5f", coord.latitude, coord.longitude))
                             .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
                     }
-                    field("NOTAS (opcional)", $notes, "Cómo es el acceso, etc.")
+                    field("NOTAS (opcional)", $notes, isSector ? "Descripción de la zona" : "Cómo es el acceso, etc.")
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
                             Text("ENVIAR PROPUESTA").font(Cumbre.mono(13, .bold)).tracking(0.8) }
@@ -437,7 +442,7 @@ private struct ParkingFormSheet: View {
                 .padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Nuevo parking")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
         }
@@ -446,7 +451,7 @@ private struct ParkingFormSheet: View {
     private func send() async {
         sending = true
         let req = ContributionRequest(
-            type: "PARKING",
+            type: type,
             name: name.trimmingCharacters(in: .whitespaces).isEmpty ? nil : name,
             lat: coord.latitude, lon: coord.longitude,
             notes: notes.trimmingCharacters(in: .whitespaces).isEmpty ? nil : notes,
