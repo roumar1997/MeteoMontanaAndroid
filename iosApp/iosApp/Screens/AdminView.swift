@@ -252,8 +252,8 @@ private struct ContributionAdminCard: View {
     // Bloques de la escuela (para resolver la piedra/sector destino al revisar
     // corregir/añadir vías o asignar sector — el admin debe ver QUÉ se cambia).
     @State private var schoolBlocks: [Block] = []
+    @State private var blocksLoaded = false
     private var targetBlock: Block? { schoolBlocks.first { $0.id == contribution.targetBlockId } }
-    private var needsBlocks: Bool { contribution.targetBlockId != nil || contribution.sectorBlockId != nil }
 
     private var isCorrection: Bool { contribution.type.uppercased() == "POSITION_CORRECTION" }
     private var newCoord: CLLocationCoordinate2D? {
@@ -312,6 +312,12 @@ private struct ContributionAdminCard: View {
             Text(coordStr(contribution.lat, contribution.lon))
                 .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
 
+            // Mini-mapa con el cambio en contexto (existentes atenuados + propuesta
+            // resaltada). El admin ve directamente dónde cae y si pisa algo.
+            if blocksLoaded {
+                ContributionMiniMap(contribution: contribution, blocks: schoolBlocks)
+            }
+
             Button { showMap = true } label: {
                 Text("VER EN MAPA").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
                     .frame(maxWidth: .infinity).padding(.vertical, 9)
@@ -325,9 +331,10 @@ private struct ContributionAdminCard: View {
             ContributionMapSheet(contribution: contribution)
         }
         .task(id: contribution.id) {
-            guard needsBlocks, schoolBlocks.isEmpty else { return }
+            guard !blocksLoaded else { return }
             schoolBlocks = (try? await AppDependencies.shared.container.getBlocks
                 .invoke(schoolId: contribution.schoolId)) ?? []
+            blocksLoaded = true
         }
     }
 
@@ -403,46 +410,125 @@ func adminTypeLabel(_ t: String) -> String {
     }
 }
 
-/// Marcadores de una contribución para el mapa (CORREGIR = viejo ✕ gris + nuevo
-/// ★ amarillo; el resto = un marcador amarillo en la posición propuesta).
-func contributionMarkers(_ c: Contribution) -> [CumbreMarker] {
-    let highlight = UIColor(hex: 0xF59E0B)
-    if c.type.uppercased() == "POSITION_CORRECTION" {
+/// Color por tipo de bloque (parking azul, zona verde, piedra terra).
+func blockTypeColor(_ t: String) -> UIColor {
+    switch t.uppercased() {
+    case "PARKING": return UIColor(red: 0.20, green: 0.45, blue: 0.85, alpha: 1)
+    case "ZONE":    return UIColor(red: 0.29, green: 0.49, blue: 0.35, alpha: 1)
+    default:        return UIColor(red: 0.78, green: 0.40, blue: 0.13, alpha: 1)
+    }
+}
+func markerKindFor(_ t: String) -> MarkerKind {
+    switch t.uppercased() { case "PARKING": return .parking; case "ZONE": return .zone; default: return .block }
+}
+
+/// Bloques existentes de la escuela como CONTEXTO (atenuados), para que el admin
+/// vea dónde cae la propuesta y si pisa algo. Excluye la piedra/sector implicados
+/// (van resaltados en `contributionMarkers`).
+func contextMarkers(_ c: Contribution, blocks: [Block]) -> [CumbreMarker] {
+    blocks.filter { $0.id != c.targetBlockId && $0.id != c.sectorBlockId }.map { b in
+        CumbreMarker(id: "ctx-\(b.id)",
+            coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon),
+            title: b.name.isEmpty ? b.type : b.name, kind: markerKindFor(b.type),
+            color: blockTypeColor(b.type).withAlphaComponent(0.5), name: b.name)
+    }
+}
+
+/// Marcadores RESALTADOS de la propuesta (lo que cambia):
+/// CORREGIR = ✕ viejo gris + ★ nuevo ámbar; ASIGNAR SECTOR = piedra ★ ámbar +
+/// sector viejo ✕ gris + sector nuevo ★ verde; resto = ★ ámbar en la propuesta.
+func contributionMarkers(_ c: Contribution, blocks: [Block] = []) -> [CumbreMarker] {
+    let amber = UIColor(hex: 0xF59E0B)
+    let gray = UIColor(white: 0.55, alpha: 1)
+    let green = UIColor(red: 0.20, green: 0.55, blue: 0.30, alpha: 1)
+    switch c.type.uppercased() {
+    case "POSITION_CORRECTION":
         var ms = [CumbreMarker(id: "old", coordinate: CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon),
-                               title: "Actual", kind: .block, color: UIColor(white: 0.55, alpha: 1), name: "✕")]
+                               title: "Actual", kind: .block, color: gray, name: "✕")]
         if let la = c.proposedLat?.doubleValue, let lo = c.proposedLon?.doubleValue {
             ms.append(CumbreMarker(id: "new", coordinate: CLLocationCoordinate2D(latitude: la, longitude: lo),
-                                   title: "Nueva", kind: .block, color: highlight, name: "★"))
+                                   title: "Nueva", kind: .block, color: amber, name: "★"))
         }
         return ms
+    case "ASSIGN_SECTOR":
+        let stone = blocks.first { $0.id == c.targetBlockId }
+        let stoneCoord = stone.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+            ?? CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon)
+        var ms = [CumbreMarker(id: "stone", coordinate: stoneCoord, title: "Piedra", kind: .block,
+                               color: amber, name: stone.flatMap { $0.name.isEmpty ? nil : $0.name } ?? "PIEDRA")]
+        if let oldId = stone?.sectorBlockId, let oldSec = blocks.first(where: { $0.id == oldId }) {
+            ms.append(CumbreMarker(id: "oldsec",
+                coordinate: CLLocationCoordinate2D(latitude: oldSec.lat, longitude: oldSec.lon),
+                title: "Sector actual", kind: .zone, color: gray, name: "✕ \(oldSec.name)"))
+        }
+        if let newSec = blocks.first(where: { $0.id == c.sectorBlockId }) {
+            ms.append(CumbreMarker(id: "newsec",
+                coordinate: CLLocationCoordinate2D(latitude: newSec.lat, longitude: newSec.lon),
+                title: "Sector nuevo", kind: .zone, color: green, name: "★ \(newSec.name)"))
+        }
+        return ms
+    default:
+        return [CumbreMarker(id: "p", coordinate: CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon),
+                             title: c.name ?? adminTypeLabel(c.type), kind: markerKindFor(c.type),
+                             color: amber, name: c.name.flatMap { $0.isEmpty ? nil : $0 } ?? "★")]
     }
-    return [CumbreMarker(id: "p", coordinate: CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon),
-                         title: c.name ?? adminTypeLabel(c.type), kind: .block, color: highlight,
-                         name: c.name ?? "★")]
+}
+
+/// Mini-mapa (no interactivo) dentro de la card del admin: contexto + cambio.
+/// Espejo del mini-mapa de ContributionCard.kt. Para interactuar, "VER EN MAPA".
+private struct ContributionMiniMap: View {
+    let contribution: Contribution
+    let blocks: [Block]
+    @State private var style: MapStyleKind = .topo
+    private var proposed: [CumbreMarker] { contributionMarkers(contribution, blocks: blocks) }
+    var body: some View {
+        MapLibreView(
+            center: CLLocationCoordinate2D(latitude: contribution.lat, longitude: contribution.lon),
+            zoom: 16, markers: contextMarkers(contribution, blocks: blocks) + proposed, style: style,
+            fitToCoordinatesOnLoad: proposed.count >= 2 ? proposed.map { $0.coordinate } : [])
+        .frame(height: 200)
+        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .allowsHitTesting(false)
+    }
 }
 
 /// Mapa a pantalla completa de una propuesta (espejo de FullScreenMapDialog).
+/// Carga los bloques de la escuela: pinta los existentes de CONTEXTO (atenuados)
+/// y resalta lo que cambia (✕ viejo / ★ nuevo, o piedra + sector viejo/nuevo).
 private struct ContributionMapSheet: View {
     let contribution: Contribution
     @Environment(\.dismiss) private var dismiss
     @State private var style: MapStyleKind = .topo
+    @State private var blocks: [Block] = []
+    @State private var loaded = false
+
+    private var proposed: [CumbreMarker] { contributionMarkers(contribution, blocks: blocks) }
+
     var body: some View {
         NavigationStack {
             ZStack(alignment: .topLeading) {
-                MapLibreView(
-                    center: CLLocationCoordinate2D(latitude: contribution.lat, longitude: contribution.lon),
-                    zoom: 15, markers: contributionMarkers(contribution), style: style,
-                    // En una corrección hay 2 marcadores (✕ viejo + ★ nuevo): encuadra
-                    // ambos al cargar para que el destino nunca quede fuera de pantalla.
-                    fitToCoordinatesOnLoad: contribution.type.uppercased() == "POSITION_CORRECTION"
-                        ? contributionMarkers(contribution).map { $0.coordinate } : [])
-                MapStyleChips(selection: $style)
+                if loaded {
+                    MapLibreView(
+                        center: CLLocationCoordinate2D(latitude: contribution.lat, longitude: contribution.lon),
+                        zoom: 16, markers: contextMarkers(contribution, blocks: blocks) + proposed, style: style,
+                        // Encuadra los marcadores clave de la propuesta al cargar
+                        // (✕/★ o piedra+sectores) para que todos entren en pantalla.
+                        fitToCoordinatesOnLoad: proposed.count >= 2 ? proposed.map { $0.coordinate } : [])
+                    MapStyleChips(selection: $style)
+                } else {
+                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle(adminTypeLabel(contribution.type))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
                 Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+        }
+        .task {
+            blocks = (try? await AppDependencies.shared.container.getBlocks
+                .invoke(schoolId: contribution.schoolId)) ?? []
+            loaded = true
         }
     }
 }

@@ -194,6 +194,7 @@ struct TopoEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selected = 0
     @State private var loaded: UIImage?
+    @State private var drawingActive = false   // ¿estamos en mitad de un trazo?
 
     private var image: UIImage? { photo ?? loaded }
     private var ratio: CGFloat {
@@ -237,10 +238,15 @@ struct TopoEditorView: View {
                         let h = geo.size.width / ratio
                         let nx = max(0, min(1, v.location.x / geo.size.width))
                         let ny = max(0, min(1, v.location.y / h))
-                        if blocks.indices.contains(selected) {
-                            blocks[selected].line.append(CGPoint(x: nx, y: ny))
+                        guard blocks.indices.contains(selected) else { return }
+                        // Cada pulsación nueva traza una línea NUEVA: no alarga la
+                        // anterior (ni la precargada al corregir). Se redibuja limpio.
+                        if !drawingActive {
+                            drawingActive = true
+                            blocks[selected].line = []
                         }
-                    })
+                        blocks[selected].line.append(CGPoint(x: nx, y: ny))
+                    }.onEnded { _ in drawingActive = false })
                 }
                 .aspectRatio(ratio, contentMode: .fit)
                 .padding(.horizontal, 12)
@@ -490,7 +496,6 @@ struct EditLineSheet: View {
     @State private var sending = false
 
     private var hasPhoto: Bool { !(block.photoPath ?? "").isEmpty }
-    private var otherLines: [TopoLineVM] { block.lines.filter { $0.id != line.id }.map { TopoLineVM($0) } }
 
     var body: some View {
         NavigationStack {
@@ -528,23 +533,34 @@ struct EditLineSheet: View {
         }
         .onAppear {
             if blocks.isEmpty {
+                // La línea editable empieza VACÍA (se redibuja limpia); la vieja se
+                // ve difuminada como referencia. Mantenemos nombre/grado/tipo.
                 blocks = [BoulderBlockForm(name: line.name, grade: line.grade,
                                           startType: startTypeForUi(line.startType),
-                                          line: TopoParse.points(line.linePath))]
+                                          line: [])]
             }
         }
         .sheet(isPresented: $showEditor) {
-            TopoEditorView(photoUrl: block.photoPath, existingLines: otherLines, blocks: $blocks)
+            // Referencia difuminada: TODAS las vías (incluida la que se corrige) para
+            // que el usuario vea la antigua mientras dibuja la nueva.
+            TopoEditorView(photoUrl: block.photoPath,
+                           existingLines: block.lines.map { TopoLineVM($0) }, blocks: $blocks)
         }
     }
 
     private func send() async {
         sending = true
+        // Si no se redibujó la línea, conservamos el trazo original (corrección de
+        // solo nombre/grado/tipo no debe borrar el dibujo).
+        var out = blocks
+        if out.indices.contains(0), out[0].line.isEmpty {
+            out[0].line = TopoParse.points(line.linePath)
+        }
         let req = ContributionRequest(
             type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: block.id, targetLineId: line.id, sectorBlockId: nil,
-            photoUrl: nil, bloquesJson: buildBloquesJson(blocks), topoLinesJson: nil)
+            photoUrl: nil, bloquesJson: buildBloquesJson(out), topoLinesJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false; dismiss(); onDone(ok)
     }

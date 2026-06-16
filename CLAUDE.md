@@ -515,6 +515,17 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
   PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
 - **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+- **Editor de vías: redibujar empieza de cero** (no alarga la línea): cada trazo
+  nuevo limpia la línea del bloque seleccionado (`TopoEditorView.drawingActive`).
+  Al **corregir** (`EditLineSheet`) la línea editable arranca **vacía** y la vieja
+  se ve **difuminada** (referencia = todas las vías); si no se redibuja, se
+  conserva el trazo original al enviar.
+- **Mapa del admin con contexto**: `ContributionMapSheet` y un **mini-mapa inline**
+  en la card cargan los bloques de la escuela → pintan los existentes **atenuados**
+  (ver si la propuesta pisa algo) y resaltan el cambio. `ASSIGN_SECTOR` muestra en
+  el mapa la **piedra ★** + **sector viejo ✕ gris** + **sector nuevo ★ verde**
+  (antes el admin no veía qué piedra ni de/ a qué sector). `contributionMarkers`
+  ahora recibe `blocks` y `contextMarkers`/`blockTypeColor`/`markerKindFor` nuevos.
 - **Admin ve QUÉ cambia en vías (iOS, espejo de ContributionCard.kt)**: la card
   de BOULDER al revisar **corregir/añadir vías** carga la piedra destino
   (getBlocks por schoolId), usa SU foto y dibuja **existentes difuminadas +
