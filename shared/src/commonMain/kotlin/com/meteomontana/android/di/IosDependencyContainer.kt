@@ -69,7 +69,12 @@ import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
+import com.meteomontana.android.domain.usecase.admin.GetAdminStatsUseCase
+import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
+import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
+import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
@@ -201,6 +206,13 @@ class IosDependencyContainer(
     val rejectSubmission = RejectSubmissionUseCase(adminRepository)
     val approveContribution = ApproveContributionUseCase(adminRepository)
     val rejectContribution = RejectContributionUseCase(adminRepository)
+    // Admin avanzado (iOS): stats, logs de auditoría, push manual y edición de
+    // bloques desde GESTIONAR (mover/editar/borrar reutilizando los use cases).
+    val getAdminStats = GetAdminStatsUseCase(adminRepository)
+    val getAdminLogs = GetAdminLogsUseCase(adminRepository)
+    val sendPush = SendPushUseCase(adminRepository)
+    val updateBlock = UpdateBlockUseCase(blockRepository)
+    val deleteBlock = DeleteBlockUseCase(blockRepository)
 
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)
