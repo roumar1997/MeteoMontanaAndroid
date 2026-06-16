@@ -515,6 +515,14 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
   PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
 - **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+- **Editor unificado de vías** (iOS, `EditLinesSheet`): un botón "✎ EDITAR /
+  AÑADIR VÍAS" en `BlockInfoSheet` abre un editor con TODAS las vías (existentes
+  precargadas + "+ NUEVA VÍA"); tocas cualquiera para cambiar nombre/grado/tipo o
+  redibujarla (selector por chips en `TopoEditorView`), y al enviar manda una
+  corrección por cada vía existente modificada (diff) + una propuesta con las
+  nuevas. Sustituye el lápiz por vía y el flujo "+ AÑADIR VÍAS" sueltos.
+  `BoulderBlockForm` gana `existingLineId`. (Los structs `AddLinesSheet`/
+  `EditLineSheet` quedan sin uso → limpiar.)
 - **Tocar zona oculta/muestra piedras** (mapa escuela, iOS + Android): tocar un
   marcador ZONA con piedras colapsa/expande las de ese sector. iOS
   `SchoolDetailView`, Android `SchoolMap` (tap centralizado `onBlockTap` +

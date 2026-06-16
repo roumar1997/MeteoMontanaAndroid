@@ -220,8 +220,7 @@ private struct SchoolMapSection: View {
     @State private var corrNew: CLLocationCoordinate2D?
     @State private var userCoord: CLLocationCoordinate2D?   // mi ubicación en el sector
     @State private var collapsedSectors: Set<String> = []   // zonas con piedras ocultas
-    @State private var addLinesBlock: Block?
-    @State private var editLineCtx: EditLineCtx?
+    @State private var editLinesBlock: Block?
     @State private var assignSectorBlock: Block?
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
@@ -327,19 +326,12 @@ private struct SchoolMapSection: View {
             BlockInfoSheet(
                 block: b,
                 sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
-                onAddLines: { addLinesBlock = b },
-                onEditLine: { line in editLineCtx = EditLineCtx(block: b, line: line) },
+                onEditLines: { editLinesBlock = b },
                 onAssignSector: { assignSectorBlock = b })
         }
-        .sheet(item: $addLinesBlock) { b in
-            AddLinesSheet(block: b, schoolId: school.id) { ok in
-                addLinesBlock = nil
-                if ok { afterSubmit() }
-            }
-        }
-        .sheet(item: $editLineCtx) { ctx in
-            EditLineSheet(block: ctx.block, line: ctx.line, schoolId: school.id) { ok in
-                editLineCtx = nil
+        .sheet(item: $editLinesBlock) { b in
+            EditLinesSheet(block: b, schoolId: school.id) { ok in
+                editLinesBlock = nil
                 if ok { afterSubmit() }
             }
         }
@@ -544,13 +536,6 @@ private struct CoordItem: Identifiable {
     var id: String { "\(coord.latitude),\(coord.longitude)" }
 }
 
-/// Contexto para corregir una vía (qué bloque y qué línea).
-private struct EditLineCtx: Identifiable {
-    let block: Block
-    let line: BlockLine
-    var id: String { line.id }
-}
-
 /// Selector de tipo de propuesta — espejo de TypePickerDialog.kt. PARKING está
 /// activo; el resto (piedra/sector/corregir) llegará en próximas iteraciones.
 private struct ContributionTypePicker: View {
@@ -680,8 +665,7 @@ private struct ContributionSuccessSheet: View {
 private struct BlockInfoSheet: View {
     let block: Block
     var sectors: [Block] = []
-    var onAddLines: (() -> Void)? = nil
-    var onEditLine: ((BlockLine) -> Void)? = nil
+    var onEditLines: (() -> Void)? = nil
     var onAssignSector: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
@@ -730,12 +714,6 @@ private struct BlockInfoSheet: View {
                                 if let st = l.startType, !st.isEmpty {
                                     Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 }
-                                // Corregir esta vía (espejo de "✎ CORREGIR VÍA").
-                                if let onEditLine {
-                                    Button { dismiss(); onEditLine(l) } label: {
-                                        Image(systemName: "pencil").font(.system(size: 13)).foregroundStyle(Cumbre.terra)
-                                    }
-                                }
                             }
                         }
                     }
@@ -746,10 +724,11 @@ private struct BlockInfoSheet: View {
 
                     DirectionsButton(lat: block.lat, lon: block.lon, label: block.name).padding(.top, 8)
 
-                    // Añadir vías (solo piedras) — espejo de "+ AÑADIR VÍAS" de Android.
-                    if block.type.uppercased() == "BLOCK", let onAddLines {
-                        Button { dismiss(); onAddLines() } label: {
-                            Text("+ AÑADIR VÍAS").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                    // Editor unificado de vías (corregir existentes + añadir nuevas).
+                    if block.type.uppercased() == "BLOCK", let onEditLines {
+                        Button { dismiss(); onEditLines() } label: {
+                            Text(block.lines.isEmpty ? "+ AÑADIR VÍAS" : "✎ EDITAR / AÑADIR VÍAS")
+                                .font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
                         }.buttonStyle(.plain)

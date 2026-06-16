@@ -23,6 +23,9 @@ struct BoulderBlockForm: Identifiable {
     var grade: String? = nil
     var startType: String? = nil
     var line: [CGPoint] = []   // puntos normalizados 0..1
+    /// id de la vía existente que representa esta fila (nil = vía nueva). Usado por
+    /// el editor unificado para distinguir "corregir existente" de "añadir nueva".
+    var existingLineId: String? = nil
 }
 
 /// Serializa los bloques al formato que espera el backend (espejo de
@@ -636,5 +639,130 @@ struct AssignSectorSheet: View {
             photoUrl: nil, bloquesJson: nil, topoLinesJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false; dismiss(); onDone(ok)
+    }
+}
+
+/// Editor UNIFICADO de vías ("✎ EDITAR / AÑADIR VÍAS"): muestra TODAS las vías de
+/// la piedra (existentes precargadas + las nuevas que añadas). Tocas cualquiera
+/// para cambiar nombre/grado/tipo o redibujarla sobre la foto, y al enviar manda
+/// una corrección por cada vía existente modificada y una propuesta con las nuevas.
+struct EditLinesSheet: View {
+    let block: Block
+    let schoolId: String
+    let onDone: (Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var blocks: [BoulderBlockForm] = []
+    @State private var showEditor = false
+    @State private var sending = false
+
+    private var hasPhoto: Bool { !(block.photoPath ?? "").isEmpty }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Edita las vías de «\(block.name)»: toca una para cambiar nombre/grado/tipo o redibujarla, añade nuevas, y envía todo junto. Un admin lo revisará.")
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+
+                    ForEach(Array(blocks.enumerated()), id: \.element.id) { idx, _ in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(blocks[idx].existingLineId != nil ? "VÍA EXISTENTE" : "NUEVA")
+                                .font(Cumbre.mono(9, .bold))
+                                .foregroundStyle(blocks[idx].existingLineId != nil ? Cumbre.ink3 : Cumbre.terra)
+                            // Las vías existentes no se borran (el backend no lo soporta);
+                            // solo las nuevas tienen botón de quitar.
+                            BoulderBlockRow(block: $blocks[idx], index: idx,
+                                            onDelete: blocks[idx].existingLineId == nil ? { blocks.remove(at: idx) } : nil)
+                        }
+                    }
+
+                    Button { blocks.append(BoulderBlockForm()) } label: {
+                        Text("+ NUEVA VÍA").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                            .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                    }.buttonStyle(.plain)
+
+                    if hasPhoto {
+                        Button { showEditor = true } label: {
+                            Text("✎ DIBUJAR / EDITAR SOBRE LA FOTO")
+                                .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12).background(Cumbre.terra)
+                        }.buttonStyle(.plain)
+                    } else {
+                        Text("Esta piedra no tiene foto, no puedes dibujar líneas.")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+
+                    Button { Task { await send() } } label: {
+                        HStack { if sending { ProgressView().tint(.white) }
+                            Text("ENVIAR CAMBIOS").font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                    }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Editar vías")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) {
+                Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+        }
+        .onAppear {
+            if blocks.isEmpty {
+                blocks = block.lines.map { l in
+                    BoulderBlockForm(name: l.name, grade: l.grade,
+                                     startType: startTypeForUi(l.startType),
+                                     line: TopoParse.points(l.linePath),
+                                     existingLineId: l.id)
+                }
+                if blocks.isEmpty { blocks = [BoulderBlockForm()] }   // piedra sin vías → empieza una nueva
+            }
+        }
+        .sheet(isPresented: $showEditor) {
+            // Todas las vías son editables (selector por chips dentro del editor).
+            TopoEditorView(photoUrl: block.photoPath, blocks: $blocks)
+        }
+    }
+
+    private func send() async {
+        sending = true
+        var anyOk = false, anySent = false
+        let container = AppDependencies.shared.container
+        // 1. Vías existentes que cambiaron → una corrección por cada una.
+        for b in blocks where b.existingLineId != nil {
+            guard let orig = block.lines.first(where: { $0.id == b.existingLineId }),
+                  lineChanged(b, vs: orig) else { continue }
+            anySent = true
+            let req = ContributionRequest(
+                type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
+                notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+                targetBlockId: block.id, targetLineId: b.existingLineId, sectorBlockId: nil,
+                photoUrl: nil, bloquesJson: buildBloquesJson([b]), topoLinesJson: nil)
+            if (try? await container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil { anyOk = true }
+        }
+        // 2. Vías nuevas con contenido → una propuesta de "añadir vías".
+        let newOnes = blocks.filter { $0.existingLineId == nil && ($0.grade != nil || !$0.name.isEmpty || !$0.line.isEmpty) }
+        if !newOnes.isEmpty {
+            anySent = true
+            let req = ContributionRequest(
+                type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
+                notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+                targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
+                photoUrl: nil, bloquesJson: buildBloquesJson(newOnes), topoLinesJson: nil)
+            if (try? await container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil { anyOk = true }
+        }
+        sending = false; dismiss(); onDone(anySent ? anyOk : false)
+    }
+
+    private func lineChanged(_ b: BoulderBlockForm, vs orig: BlockLine) -> Bool {
+        if b.name != orig.name { return true }
+        if (b.grade ?? "") != (orig.grade ?? "") { return true }
+        if (b.startType ?? "") != (startTypeForUi(orig.startType) ?? "") { return true }
+        let origPts = TopoParse.points(orig.linePath)
+        if b.line.count != origPts.count { return true }
+        for (i, p) in b.line.enumerated() where abs(p.x - origPts[i].x) > 0.001 || abs(p.y - origPts[i].y) > 0.001 {
+            return true
+        }
+        return false
     }
 }
