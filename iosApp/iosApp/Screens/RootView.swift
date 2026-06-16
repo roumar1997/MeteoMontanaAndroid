@@ -40,5 +40,11 @@ struct RootView: View {
         }
         // Aplica el tema elegido (nil = seguir al sistema).
         .preferredColorScheme(theme.colorScheme)
+        // JIT provisioning: al iniciar sesión, getMyProfile crea/asegura el
+        // usuario en el backend (espejo de ensureUserProvisioned en AppRoot.kt).
+        .task(id: session.user?.uid) {
+            guard session.user != nil else { return }
+            _ = try? await AppDependencies.shared.container.getMyProfile.invoke()
+        }
     }
 }

@@ -18,6 +18,8 @@ final class WeatherViewModel: ObservableObject {
 
     @Published var state: State = .loading
     @Published var favoritesGrid: FavoritesGrid?
+    @Published var favorites: [FavoriteSchool] = []
+    @Published var selectedFavoriteId: String?   // nil = ubicación
 
     private let container = AppDependencies.shared.container
     private let bridge = AppDependencies.shared.locationBridge
@@ -25,11 +27,21 @@ final class WeatherViewModel: ObservableObject {
     /// Madrid — fallback si hay permiso pero el sistema aún no tiene fix.
     private let fallback = (lat: 40.4168, lon: -3.7038)
 
+    var selectedName: String? { favorites.first { $0.id == selectedFavoriteId }?.name }
+
     func load() async {
         state = .loading
         await loadFavoritesGrid()
-        guard bridge.hasPermission() else { state = .needPermission; return }
+        favorites = (try? await container.getMyFavorites.invoke()) ?? []
 
+        // Si hay una favorita seleccionada, su forecast (no la ubicación).
+        if let id = selectedFavoriteId {
+            do { state = .success(try await container.getForecast.invoke(schoolId: id)) }
+            catch { state = .error(error.localizedDescription) }
+            return
+        }
+
+        guard bridge.hasPermission() else { state = .needPermission; return }
         let loc = try? await container.locationProvider?.current()
         let lat = loc?.lat ?? fallback.lat
         let lon = loc?.lon ?? fallback.lon
@@ -41,6 +53,11 @@ final class WeatherViewModel: ObservableObject {
         } catch {
             state = .error(error.localizedDescription)
         }
+    }
+
+    func selectFavorite(_ id: String?) {
+        selectedFavoriteId = id
+        Task { await load() }
     }
 
     private func loadFavoritesGrid() async {
@@ -59,6 +76,7 @@ struct WeatherView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            if !vm.favorites.isEmpty { favoriteChips }
             Divider().overlay(Cumbre.rule).padding(.top, 8)
             content
         }
@@ -71,11 +89,36 @@ struct WeatherView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Tiempo").font(Cumbre.serif(34, .bold)).foregroundStyle(Cumbre.ink)
-                Text("En tu ubicación").font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                Text(vm.selectedName ?? "En tu ubicación")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
         }
         .padding(.horizontal, 16).padding(.top, 8)
+    }
+
+    private var favoriteChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                chip("📍 Ubicación", selected: vm.selectedFavoriteId == nil) { vm.selectFavorite(nil) }
+                ForEach(vm.favorites, id: \.id) { f in
+                    chip(f.name, selected: vm.selectedFavoriteId == f.id) { vm.selectFavorite(f.id) }
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .padding(.top, 8)
+    }
+
+    private func chip(_ t: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(t).font(Cumbre.mono(11, .bold)).tracking(0.6)
+                .foregroundStyle(selected ? .white : Cumbre.ink2)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(selected ? Cumbre.terra : Cumbre.paper)
+                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder private var content: some View {

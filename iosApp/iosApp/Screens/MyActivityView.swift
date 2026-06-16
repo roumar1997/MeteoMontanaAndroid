@@ -64,11 +64,14 @@ struct MySubmissionsView: View {
                         Spacer()
                         StatusBadge(status: s.status)
                     }
-                    if let r = s.proposedRegion, !r.isEmpty {
-                        Text(r).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3)
+                    if !subtitle(s).isEmpty {
+                        Text(subtitle(s)).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3)
                     }
                     if let n = s.notes, !n.isEmpty {
                         Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
+                    }
+                    if let reason = s.reviewReason, !reason.isEmpty {
+                        Text("Motivo: \(reason)").font(.system(size: 13)).foregroundStyle(Cumbre.bad)
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 12)
@@ -76,6 +79,14 @@ struct MySubmissionsView: View {
             }
         }
         .task { await vm.load() }
+    }
+
+    // Tipo de roca (mayúsculas) · región — como en Android.
+    private func subtitle(_ s: Submission) -> String {
+        var parts: [String] = []
+        if let r = s.proposedRockType, !r.isEmpty { parts.append(r.uppercased()) }
+        if let reg = s.proposedRegion, !reg.isEmpty { parts.append(reg) }
+        return parts.joined(separator: "  ·  ")
     }
 }
 
@@ -112,6 +123,9 @@ struct MyContributionsView: View {
                     Text(c.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                     if let n = c.notes, !n.isEmpty {
                         Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
+                    }
+                    if let reason = c.reviewReason, !reason.isEmpty {
+                        Text("Motivo: \(reason)").font(.system(size: 13)).foregroundStyle(Cumbre.bad)
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 12)

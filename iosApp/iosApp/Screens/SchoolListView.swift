@@ -318,6 +318,7 @@ private struct HeaderEscuelas: View {
 }
 
 private struct CoffeeBanner: View {
+    @State private var showDonate = false
     var body: some View {
         HStack(spacing: 8) {
             Text("☕").font(.system(size: 30))
@@ -330,13 +331,54 @@ private struct CoffeeBanner: View {
                     .foregroundStyle(Cumbre.ink2.opacity(0.8))
             }
             Spacer()
-            OutlinedCumbreButton(text: "Apóyanos", tint: Cumbre.ink)
+            Button { showDonate = true } label: { OutlinedCumbreButton(text: "Apóyanos", tint: Cumbre.ink) }
+                .buttonStyle(.plain)
         }
         .padding(12)
         .background(Cumbre.terraBg)
         .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+        .sheet(isPresented: $showDonate) { DonateView() }
+    }
+}
+
+/// Diálogo "Apóyanos" — espejo del DonateDialog de Android.
+private struct DonateView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("☕").font(.system(size: 56)).padding(.top, 24)
+            Text("¿Te ayuda la app?").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+            Text("MeteoMontana es gratis y sin anuncios, mantenida por la comunidad escaladora. Si te resulta útil, invítame a un café.")
+                .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
+                .multilineTextAlignment(.center).padding(.horizontal, 24)
+            VStack(alignment: .leading, spacing: 6) {
+                feature("Previsión de escalada por hora")
+                feature("Mapas, bloques y vías de cada escuela")
+                feature("Notas y fotos de la comunidad")
+                feature("Sin anuncios, sin rastreadores")
+            }.padding(.horizontal, 24).padding(.top, 4)
+            Button {
+                openURL(URL(string: "https://ko-fi.com/climbingteams")!)
+            } label: {
+                Text("☕ INVÍTAME A UN CAFÉ").font(Cumbre.mono(13, .bold)).tracking(0.8)
+                    .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
+                    .background(Cumbre.terra)
+            }
+            .buttonStyle(.plain).padding(.horizontal, 24).padding(.top, 8)
+            Button("Ahora no") { dismiss() }.foregroundStyle(Cumbre.ink3).padding(.top, 4)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Cumbre.bg.ignoresSafeArea())
+    }
+    private func feature(_ t: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(Cumbre.ok).font(.system(size: 14))
+            Text(t).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+        }
     }
 }
 
