@@ -564,11 +564,16 @@ struct AssignSectorSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
+                    let options = sectors.filter { $0.id != block.sectorBlockId }
                     Text(block.sectorBlockId == nil
                          ? "Elige el sector (zona) al que pertenece «\(block.name)». Un admin lo revisará."
                          : "Elige el nuevo sector (zona) de «\(block.name)». Un admin lo revisará.")
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                    ForEach(sectors.filter { $0.id != block.sectorBlockId }, id: \.id) { s in
+                    if options.isEmpty {
+                        Text("Esta escuela solo tiene este sector. Crea otro con «+ PROPONER → SECTOR» para poder cambiarlo.")
+                            .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                    }
+                    ForEach(options, id: \.id) { s in
                         Button { Task { await assign(s.id) } } label: {
                             HStack {
                                 Text(s.name.isEmpty ? "Zona" : s.name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)

@@ -260,10 +260,11 @@ fun BlockDetailDialog(
                 }
             }
 
-            // Botón "+ ASIGNAR / CAMBIAR SECTOR" — BLOCK con al menos un sector
-            // distinto al actual (el backend sobrescribe el sector al aprobar).
+            // Botón "+ ASIGNAR / CAMBIAR SECTOR" — BLOCK si la escuela tiene algún
+            // sector. Si ya tiene → "CAMBIAR SECTOR" (el picker muestra los demás;
+            // si no hay otro, lo avisa). El backend sobrescribe el sector al aprobar.
             if (onAssignSector != null && block.type == "BLOCK" && !isProposal
-                    && availableSectors?.any { it.id != block.sectorBlockId } == true) {
+                    && !availableSectors.isNullOrEmpty()) {
                 Spacer(Modifier.height(Spacing.sm))
                 Box(
                     modifier = Modifier
@@ -425,7 +426,15 @@ fun BlockDetailDialog(
                     )
                     Spacer(Modifier.height(Spacing.sm))
                     // Excluye el sector actual: solo tiene sentido cambiar a otro.
-                    availableSectors.filter { it.id != block.sectorBlockId }.forEach { sect ->
+                    val otherSectors = availableSectors.filter { it.id != block.sectorBlockId }
+                    if (otherSectors.isEmpty()) {
+                        Text(
+                            "Esta escuela solo tiene este sector. Crea otro con \"+ PROPONER → SECTOR\" para poder cambiarlo.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    otherSectors.forEach { sect ->
                         Row(
                             modifier = Modifier.fillMaxWidth()
                                 .clickable {

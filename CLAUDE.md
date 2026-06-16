@@ -529,6 +529,9 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (ya tiene); el picker excluye el sector actual. El backend ya sobrescribía el
   sector al aprobar `ASSIGN_SECTOR` (sin cambios). iOS: `BlockInfoSheet` +
   `AssignSectorSheet`; Android: `BlockDetailDialog` + caller `SchoolMap`.
+  **Ajuste**: el botón aparece si la escuela tiene **algún** sector (antes exigía
+  uno distinto al actual → en escuelas con 1 solo sector no salía nada); el picker
+  excluye el actual y, si no hay otro, avisa de crear uno con "+ PROPONER → SECTOR".
 
 ### Sesión 2026-06-16 (mapas iOS a fondo + proponer/editar + seed prod)
 
