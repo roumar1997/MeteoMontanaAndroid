@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import CoreLocation
 
 // Detalle de escuela — réplica fiel de ForecastBody.kt de Android:
 // veredicto SÍ/NO "¿PUEDO ESCALAR HOY?" + ÍNDICE, banda de roca, heatmap,
@@ -108,6 +109,8 @@ struct SchoolDetailView: View {
                     onSelectDay: { selectedDay = $0 }
                 )
             }
+            // Mapa de la escuela (MapLibre + topo). Plegable.
+            SchoolMapSection(school: school)
             // Mejores meses del año (stats mensuales del backend, cacheadas).
             if !vm.monthlyScores.isEmpty {
                 MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
@@ -176,6 +179,45 @@ private struct MonthlyStatsSection: View {
             .padding(.horizontal, 16)
         }
         .padding(.vertical, 12)
+    }
+}
+
+/// Sección de mapa de la escuela (plegable). Muestra un MapLibre con tiles
+/// topográficos, un marcador en la escuela y el botón "CÓMO LLEGAR". Los bloques
+/// (parking/piedras/zonas) se añadirán como marcadores en una iteración siguiente.
+private struct SchoolMapSection: View {
+    let school: School
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button { withAnimation { expanded.toggle() } } label: {
+                HStack {
+                    Text("VER MAPA").eyebrow()
+                    Spacer()
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if expanded {
+                MapLibreView(
+                    center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
+                    zoom: 13,
+                    markers: [CumbreMarker(
+                        id: school.id,
+                        coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
+                        title: school.name
+                    )]
+                )
+                .frame(height: 260)
+                DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+            }
+        }
     }
 }
 

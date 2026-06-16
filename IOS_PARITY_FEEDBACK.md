@@ -228,8 +228,20 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
   + ubicación), espejo de `OnboardingOverlay.kt`. Persistido con `@AppStorage`;
   pide permiso de ubicación al terminar. Enganchado en `RootView` (tras login).
 
+## Mapas (MapLibre iOS) — EN MARCHA (2026-06-16)
+
+- ✅ **Paquete MapLibre** añadido por SPM (`maplibre-gl-native-distribution`) en
+  `project.yml`. Funciona en apps sideloaded (no necesita cuenta de pago).
+- ✅ **`MapLibreView`** (UIViewRepresentable sobre `MLNMapView`) con tiles
+  topográficos OpenTopoMap (sin API key) + marcadores + tap por marcador.
+- ✅ **Mapa en el detalle de escuela**: sección plegable "VER MAPA" con el
+  marcador de la escuela y **"CÓMO LLEGAR"** (reactivado, abre Google/Apple Maps).
+- ⬜ Siguiente: marcadores de bloques (parking/piedra/zona) en el mapa de
+  escuela, panel de mapa en la lista (`SchoolsMapPanel`), y proponer/topo.
+
 ## Pendiente de bridges nativos (sesión con Mac) — 🟦
-- Mapas (MapLibre): mapa de escuela, panel mapa en lista, "+ PROPONER", topo.
+- Mapas (MapLibre): panel mapa en lista, "+ PROPONER", topo (marcadores de bloque
+  en el detalle ya en marcha; ver sección "Mapas (MapLibre iOS)" arriba).
 - Subir fotos (Firebase Storage): foto de perfil, foto en notas, proponer.
 - Chat (Firestore): lista de chats + conversación.
 - Push notifications (FCM token).
