@@ -483,6 +483,25 @@ func contributionMarkers(_ c: Contribution, blocks: [Block] = []) -> [CumbreMark
     }
 }
 
+/// Polilíneas de un cambio de sector: piedra → sector viejo (gris) y → nuevo (verde).
+func contributionPolylines(_ c: Contribution, blocks: [Block]) -> [CumbrePolyline] {
+    guard c.type.uppercased() == "ASSIGN_SECTOR",
+          let stone = blocks.first(where: { $0.id == c.targetBlockId }) else { return [] }
+    let stoneCoord = CLLocationCoordinate2D(latitude: stone.lat, longitude: stone.lon)
+    var lines: [CumbrePolyline] = []
+    if let oldId = stone.sectorBlockId, let oldSec = blocks.first(where: { $0.id == oldId }) {
+        lines.append(CumbrePolyline(id: "old",
+            coordinates: [stoneCoord, CLLocationCoordinate2D(latitude: oldSec.lat, longitude: oldSec.lon)],
+            color: UIColor(white: 0.55, alpha: 1), width: 3, alpha: 0.9))
+    }
+    if let newSec = blocks.first(where: { $0.id == c.sectorBlockId }) {
+        lines.append(CumbrePolyline(id: "new",
+            coordinates: [stoneCoord, CLLocationCoordinate2D(latitude: newSec.lat, longitude: newSec.lon)],
+            color: UIColor(red: 0.20, green: 0.55, blue: 0.30, alpha: 1), width: 4, alpha: 1))
+    }
+    return lines
+}
+
 /// Mini-mapa (no interactivo) dentro de la card del admin: contexto + cambio.
 /// Espejo del mini-mapa de ContributionCard.kt. Para interactuar, "VER EN MAPA".
 private struct ContributionMiniMap: View {
@@ -494,7 +513,8 @@ private struct ContributionMiniMap: View {
         MapLibreView(
             center: CLLocationCoordinate2D(latitude: contribution.lat, longitude: contribution.lon),
             zoom: 16, markers: contextMarkers(contribution, blocks: blocks) + proposed, style: style,
-            fitToCoordinatesOnLoad: proposed.count >= 2 ? proposed.map { $0.coordinate } : [])
+            fitToCoordinatesOnLoad: proposed.count >= 2 ? proposed.map { $0.coordinate } : [],
+            polylines: contributionPolylines(contribution, blocks: blocks))
         .frame(height: 200)
         .clipShape(RoundedRectangle(cornerRadius: 2))
         .allowsHitTesting(false)
@@ -522,7 +542,8 @@ private struct ContributionMapSheet: View {
                         zoom: 16, markers: contextMarkers(contribution, blocks: blocks) + proposed, style: style,
                         // Encuadra los marcadores clave de la propuesta al cargar
                         // (✕/★ o piedra+sectores) para que todos entren en pantalla.
-                        fitToCoordinatesOnLoad: proposed.count >= 2 ? proposed.map { $0.coordinate } : [])
+                        fitToCoordinatesOnLoad: proposed.count >= 2 ? proposed.map { $0.coordinate } : [],
+                        polylines: contributionPolylines(contribution, blocks: blocks))
                     MapStyleChips(selection: $style)
                 } else {
                     ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)

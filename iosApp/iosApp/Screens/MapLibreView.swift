@@ -86,6 +86,20 @@ struct CumbreMarker: Identifiable {
     }
 }
 
+/// Polilínea con estilo para el mapa (color/grosor/opacidad).
+struct CumbrePolyline {
+    let id: String
+    let coordinates: [CLLocationCoordinate2D]
+    var color: UIColor
+    var width: CGFloat = 3
+    var alpha: CGFloat = 1
+    /// Firma para el diff (re-aplicar marcadores+líneas solo si cambian).
+    var signature: String {
+        let pts = coordinates.map { String(format: "%.5f,%.5f", $0.latitude, $0.longitude) }.joined(separator: "_")
+        return "\(id)|\(color.hexKey)|\(Int(width))|\(pts)"
+    }
+}
+
 struct MapLibreView: UIViewRepresentable {
     let center: CLLocationCoordinate2D
     var zoom: Double = 12
@@ -107,6 +121,9 @@ struct MapLibreView: UIViewRepresentable {
     /// se garantiza que AMBOS marcadores entran en pantalla aunque el movimiento
     /// sea grande (p. ej. mover la escuela entera).
     var fitToCoordinatesOnLoad: [CLLocationCoordinate2D] = []
+    /// Polilíneas a dibujar (p. ej. de la piedra a su sector viejo/nuevo al revisar
+    /// un cambio de sector). Color y grosor por línea.
+    var polylines: [CumbrePolyline] = []
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -158,6 +175,8 @@ struct MapLibreView: UIViewRepresentable {
         private var didLoadFit = false
         /// Mapa annotation→marker para resolver taps sin depender del título.
         private var byAnnotation: [ObjectIdentifier: CumbreMarker] = [:]
+        /// Estilo (color/grosor) por polilínea para los delegates de MapLibre.
+        private var polylineStyle: [ObjectIdentifier: CumbrePolyline] = [:]
 
         init(_ parent: MapLibreView) { self.parent = parent }
 
@@ -170,10 +189,19 @@ struct MapLibreView: UIViewRepresentable {
 
         func applyMarkersIfChanged(to map: MLNMapView, markers: [CumbreMarker], force: Bool) {
             let sig = markers.map { $0.drawSignature }.joined(separator: ";")
+                + "||" + parent.polylines.map { $0.signature }.joined(separator: ";")
             if !force && sig == lastSignature { return }
             lastSignature = sig
             if let existing = map.annotations, !existing.isEmpty { map.removeAnnotations(existing) }
             byAnnotation.removeAll()
+            polylineStyle.removeAll()
+            // Polilíneas primero (van debajo de los marcadores).
+            for poly in parent.polylines where poly.coordinates.count >= 2 {
+                var coords = poly.coordinates
+                let pl = MLNPolyline(coordinates: &coords, count: UInt(coords.count))
+                polylineStyle[ObjectIdentifier(pl)] = poly
+                map.addAnnotation(pl)
+            }
             for m in markers {
                 let a = CumbreAnnotation()
                 a.coordinate = m.coordinate
@@ -232,6 +260,17 @@ struct MapLibreView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MLNMapView, annotationCanShowCallout annotation: MLNAnnotation) -> Bool { false }
+
+        // Estilo de las polilíneas (piedra→sector viejo/nuevo, etc.).
+        func mapView(_ mapView: MLNMapView, strokeColorForShapeAnnotation annotation: MLNShape) -> UIColor {
+            polylineStyle[ObjectIdentifier(annotation)]?.color ?? .clear
+        }
+        func mapView(_ mapView: MLNMapView, lineWidthForPolylineAnnotation annotation: MLNPolyline) -> CGFloat {
+            polylineStyle[ObjectIdentifier(annotation)]?.width ?? 3
+        }
+        func mapView(_ mapView: MLNMapView, alphaForShapeAnnotation annotation: MLNShape) -> CGFloat {
+            polylineStyle[ObjectIdentifier(annotation)]?.alpha ?? 1
+        }
 
         func mapView(_ mapView: MLNMapView, regionDidChangeAnimated animated: Bool) {
             parent.onZoomChange?(mapView.zoomLevel)

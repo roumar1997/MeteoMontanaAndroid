@@ -515,6 +515,14 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
   PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
 - **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+- **Tocar zona oculta/muestra piedras** (mapa escuela, iOS + Android): tocar un
+  marcador ZONA con piedras colapsa/expande las de ese sector. iOS
+  `SchoolDetailView`, Android `SchoolMap` (tap centralizado `onBlockTap` +
+  `visibleMarkers`).
+- **Líneas piedra→sector en el mapa del admin** (iOS): `MapLibreView` ahora dibuja
+  **polilíneas** (`CumbrePolyline` + delegates stroke/width/alpha). En ASSIGN_SECTOR
+  traza piedra→sector viejo (gris) y piedra→sector nuevo (verde) en el mini-mapa y
+  el mapa a pantalla completa.
 - **Difuminado SOLO de la vía que cambia** (editor + admin): las demás vías
   existentes se ven **normales** (sólidas, con número y tipo de inicio); solo la
   **versión vieja de la vía que se corrige** va difuminada, para que se distinga
