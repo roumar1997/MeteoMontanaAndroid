@@ -33,8 +33,14 @@ final class AdminViewModel: ObservableObject {
         loading = false
     }
 
+    @Published var allSchools: [School] = []
+
     func loadStats() async { stats = try? await c.getAdminStats.invoke() }
     func loadLogs() async { logs = (try? await c.getAdminLogs.invoke(limit: 100)) ?? [] }
+    func loadSchools() async {
+        allSchools = (try? await c.getSchools.invoke(region: nil, style: nil, rockType: nil,
+                                                      lat: nil, lon: nil, radioKm: nil)) ?? []
+    }
 
     func sendPush(targetUid: String?, title: String, body: String) {
         pushBusy = true; pushResult = nil
@@ -116,6 +122,7 @@ struct AdminView: View {
             Divider().overlay(Cumbre.rule)
             switch tab {
             case .propuestas: propuestasContent
+            case .gestionar: GestionarTab(vm: vm)
             case .stats: AdminStatsTab(stats: vm.stats)
             case .actividad: AdminLogsTab(logs: vm.logs)
             case .push: AdminPushTab(vm: vm)
@@ -128,6 +135,7 @@ struct AdminView: View {
         .task(id: tab) {
             if tab == .stats, vm.stats == nil { await vm.loadStats() }
             if tab == .actividad, vm.logs.isEmpty { await vm.loadLogs() }
+            if tab == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
         }
         .sheet(item: $rejecting) { target in
             RejectReasonSheet { reason in
@@ -425,6 +433,7 @@ private struct RejectReasonSheet: View {
 
 private enum AdminTab: String, CaseIterable {
     case propuestas = "PROPUESTAS"
+    case gestionar = "GESTIONAR"
     case stats = "STATS"
     case actividad = "ACTIVIDAD"
     case push = "PUSH"
@@ -520,6 +529,194 @@ private struct AdminPushTab: View {
             }.padding(16)
         }
     }
+    private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label).eyebrow()
+            TextField(ph, text: text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        }
+    }
+}
+
+/// Tab GESTIONAR — buscar una escuela y editar/borrar/mover sus bloques
+/// (espejo de GestionarTab.kt). Buscar → mapa con todos los bloques → tocar uno.
+private struct GestionarTab: View {
+    @ObservedObject var vm: AdminViewModel
+    @State private var query = ""
+    @State private var selected: School?
+
+    private var filtered: [School] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        if q.isEmpty { return Array(vm.allSchools.prefix(60)) }
+        return vm.allSchools.filter {
+            $0.name.lowercased().contains(q)
+            || ($0.location?.lowercased().contains(q) ?? false)
+            || ($0.region?.lowercased().contains(q) ?? false)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TextField("Buscar escuela (nombre, lugar, región)…", text: $query)
+                .font(.system(size: 15)).padding(10)
+                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1)).padding(16)
+            if vm.allSchools.isEmpty {
+                ProgressView().frame(maxWidth: .infinity).padding(.top, 30); Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(filtered, id: \.id) { s in
+                            Button { selected = s } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(s.name).font(Cumbre.serif(15, .semibold)).foregroundStyle(Cumbre.ink)
+                                        let sub = [s.location, s.region].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+                                        if !sub.isEmpty { Text(sub).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3) }
+                                    }
+                                    Spacer()
+                                    Text("▸").foregroundStyle(Cumbre.terra)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 10).contentShape(Rectangle())
+                            }.buttonStyle(.plain)
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(item: $selected) { s in SchoolBlocksManageSheet(school: s) }
+    }
+}
+
+/// Mapa a pantalla completa con todos los bloques de una escuela; tocar uno abre
+/// la gestión (editar/borrar). Espejo del FullScreenMapDialog admin.
+private struct SchoolBlocksManageSheet: View {
+    let school: School
+    @Environment(\.dismiss) private var dismiss
+    @State private var blocks: [Block] = []
+    @State private var style: MapStyleKind = .topo
+    @State private var manage: Block?
+
+    var body: some View {
+        NavigationStack {
+            ZStack(alignment: .topLeading) {
+                MapLibreView(
+                    center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
+                    zoom: 15, markers: markers, style: style,
+                    onTapMarker: { id in manage = blocks.first { $0.id == id } })
+                MapStyleChips(selection: $style)
+            }
+            .ignoresSafeArea(edges: .bottom)
+            .navigationTitle(school.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) {
+                Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+        }
+        .task { await reload() }
+        .sheet(item: $manage) { b in
+            BlockManageSheet(block: b) { Task { await reload() }; manage = nil }
+        }
+    }
+
+    private func reload() async {
+        blocks = (try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id)) ?? []
+    }
+
+    private var markers: [CumbreMarker] {
+        blocks.map { b in
+            CumbreMarker(id: b.id, coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon),
+                         title: b.name.isEmpty ? b.type : b.name, kind: kind(b.type),
+                         color: color(b.type), name: b.name)
+        }
+    }
+    private func kind(_ t: String) -> MarkerKind {
+        switch t.uppercased() { case "PARKING": return .parking; case "ZONE": return .zone; default: return .block }
+    }
+    private func color(_ t: String) -> UIColor {
+        switch t.uppercased() {
+        case "PARKING": return UIColor(red: 0.20, green: 0.45, blue: 0.85, alpha: 1)
+        case "ZONE": return UIColor(red: 0.29, green: 0.49, blue: 0.35, alpha: 1)
+        default: return UIColor(red: 0.78, green: 0.40, blue: 0.13, alpha: 1)
+        }
+    }
+}
+
+/// Gestión de un bloque (admin): editar nombre + coordenadas (preservando las
+/// vías) o borrarlo. Espejo de EditBlockDialog/BlockDetailDialog admin.
+private struct BlockManageSheet: View {
+    let block: Block
+    let onDone: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String
+    @State private var latText: String
+    @State private var lonText: String
+    @State private var busy = false
+    @State private var confirmDelete = false
+
+    init(block: Block, onDone: @escaping () -> Void) {
+        self.block = block; self.onDone = onDone
+        _name = State(initialValue: block.name)
+        _latText = State(initialValue: String(format: "%.6f", block.lat))
+        _lonText = State(initialValue: String(format: "%.6f", block.lon))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(typeLabel).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                    field("NOMBRE", $name, "Nombre")
+                    field("LATITUD", $latText, "lat")
+                    field("LONGITUD", $lonText, "lon")
+                    Button { Task { await save() } } label: {
+                        HStack { if busy { ProgressView().tint(.white) }
+                            Text("GUARDAR CAMBIOS").font(Cumbre.mono(12, .bold)).tracking(0.8) }
+                        .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 13).background(Cumbre.terra)
+                    }.buttonStyle(.plain).disabled(busy)
+                    Button { confirmDelete = true } label: {
+                        Text("BORRAR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.bad)
+                            .frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
+                    }.buttonStyle(.plain).disabled(busy)
+                }.padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle(block.name.isEmpty ? typeLabel : block.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) {
+                Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.ink3) } }
+            .alert("¿Borrar este bloque?", isPresented: $confirmDelete) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Borrar", role: .destructive) { Task { await remove() } }
+            } message: { Text("Se borrará «\(block.name)» y sus vías. No se puede deshacer.") }
+        }
+    }
+
+    private var typeLabel: String {
+        switch block.type.uppercased() { case "PARKING": return "PARKING"; case "ZONE": return "ZONA"; default: return "PIEDRA" }
+    }
+
+    private func save() async {
+        busy = true
+        let lat = Double(latText) ?? block.lat
+        let lon = Double(lonText) ?? block.lon
+        // Preservamos type/foto/descripción/sector y las VÍAS (si no, se borrarían).
+        let lines = block.lines.map {
+            CreateBlockLineRequest(name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath)
+        }
+        let req = CreateBlockRequest(type: block.type, name: name, lat: lat, lon: lon,
+                                     photoPath: block.photoPath, description: nil,
+                                     lines: lines, sectorBlockId: block.sectorBlockId)
+        _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: block.id, req: req)
+        busy = false; dismiss(); onDone()
+    }
+
+    private func remove() async {
+        busy = true
+        _ = try? await AppDependencies.shared.container.deleteBlock.invoke(blockId: block.id)
+        busy = false; dismiss(); onDone()
+    }
+
     private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label).eyebrow()

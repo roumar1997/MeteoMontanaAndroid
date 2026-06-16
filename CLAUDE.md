@@ -535,18 +535,24 @@ Trabajo iOS de paridad de **mapas** y **contribuciones**, todo verificado por CI
   es el feedback real) → `.ipa` a `C:\Users\rouma\ipa-serve\` servido por
   `python -m http.server 8000` → AltStore. IP PC: 192.168.0.12.
 
-> **SIGUIENTE (← AQUÍ): ADMIN iOS completo** (`AdminView.swift` es básico:
-> solo aprobar/rechazar). Falta replicar `AdminScreen.kt` de Android:
-> filtros chips (TODAS/PIEDRAS/SECTORES/PARKINGS/MOVER), agrupación por escuela
-> con badges, **ContributionCard rica por tipo** (BOULDER foto+líneas,
-> POSITION_CORRECTION viejo→nuevo con línea, ASSIGN_SECTOR piedra→sector),
-> **mini-mapa por propuesta** + "VER EN MAPA" a pantalla completa, y tabs
-> **GESTIONAR** (buscar escuela→mapa→editar/borrar/mover bloques), **STATS**,
-> **ACTIVIDAD** (logs), **PUSH**. Exponer en `IosDependencyContainer` los use
-> cases que falten (getAdminStats, getAdminLogs, sendPush, update/deleteBlock,
-> getSchools admin, adminMoveSchool/Block). **CLAVE (pedido por Rodrigo)**: que
-> las CORRECCIONES se VEAN claras — qué vía/bloque se mueve y a dónde (mapa con
-> posición vieja gris ✕ + nueva amarilla ★ + línea), si no es un caos.
+- **ADMIN iOS completo** (`AdminView.swift`, commits "paso 1..4"):
+  - Use cases expuestos en `IosDependencyContainer`: getAdminStats, getAdminLogs,
+    sendPush, updateBlock, deleteBlock (getSchools ya estaba).
+  - Tabs: **PROPUESTAS** (filtros TODAS/PIEDRAS/SECTORES/PARKINGS/MOVER +
+    agrupación por escuela; cards ricas que muestran QUÉ cambia: CORREGIR
+    ✕actual→★nueva con coords, PIEDRA foto+líneas de bloquesJson, ASIGNAR SECTOR;
+    "VER EN MAPA" a pantalla completa con viejo gris ✕ + nuevo amarillo ★),
+    **GESTIONAR** (buscar escuela→mapa con bloques→editar nombre/coords
+    preservando vías, o borrar), **STATS**, **ACTIVIDAD** (logs), **PUSH** (manual).
+
+> **SIGUIENTE / pendientes iOS** (menores, no bloqueantes):
+> - Admin GESTIONAR: mover bloque pulsando en el mapa (ahora se edita por
+>   coords/texto); editar la descripción del bloque (se omite por el choque
+>   `NSObject.description` en SKIE — buscar el accesor real o un alias).
+> - **APNs** (push real al iPhone cerrado) — sigue pendiente; las notificaciones
+>   in-app sí funcionan.
+> - Bridges aún pendientes: chat (Firestore), Sign in with Apple.
+> - Quitar el seed de pruebas V25 del backend cuando ya no haga falta.
 
 ### Sesión 2026-06-16 — iOS: paridad masiva (login al arrancar + features) + instalación sin Mac
 
