@@ -353,7 +353,15 @@ private struct BoulderReviewView: View {
     private var isEditLine: Bool { contribution.targetLineId != nil }
     private var isNewBoulder: Bool { contribution.targetBlockId == nil }
     private var newLines: [TopoLineVM] { TopoParse.lines(contribution.bloquesJson) }
-    private var existing: [TopoLineVM] { (targetBlock?.lines ?? []).map { TopoLineVM($0) } }
+    // Existentes que NO cambian (en corregir, todas menos la editada → normales).
+    private var existingOthers: [TopoLineVM] {
+        (targetBlock?.lines ?? []).filter { $0.id != contribution.targetLineId }.map { TopoLineVM($0) }
+    }
+    // SOLO la vía vieja que se corrige (difuminada), para distinguir el cambio.
+    private var oldEdited: [TopoLineVM] {
+        guard isEditLine, let o = editedOriginal else { return [] }
+        return [TopoLineVM(o)]
+    }
     private var photo: String? { isNewBoulder ? contribution.photoUrl : targetBlock?.photoPath }
     private var editedOriginal: BlockLine? {
         targetBlock?.lines.first { $0.id == contribution.targetLineId }
@@ -363,12 +371,13 @@ private struct BoulderReviewView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(header).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
             if let photo, !photo.isEmpty {
-                // En corregir/añadir, `existing` (incluida la vía vieja) va difuminada
-                // detrás; las nuevas/corregidas, sólidas encima.
+                // Existentes que no cambian → normales; SOLO la vía vieja editada va
+                // difuminada; la propuesta/nuevas, sólidas encima.
                 TopoPhotoView(photoUrl: photo, lines: newLines,
-                              referenceLines: isNewBoulder ? [] : existing)
-                if !isNewBoulder && !existing.isEmpty {
-                    Text("- - - existentes (difuminadas)   ·   ▬ propuesta")
+                              normalLines: isNewBoulder ? [] : existingOthers,
+                              referenceLines: oldEdited)
+                if isEditLine && !oldEdited.isEmpty {
+                    Text("- - - vía actual (difuminada)   ·   ▬ corrección propuesta")
                         .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
                 }
             } else if !newLines.isEmpty {

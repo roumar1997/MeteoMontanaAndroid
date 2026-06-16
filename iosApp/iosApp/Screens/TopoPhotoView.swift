@@ -51,10 +51,13 @@ enum TopoParse {
 /// para que las líneas normalizadas caigan en el mismo sitio en ambas plataformas.
 struct TopoPhotoView: View {
     let photoUrl: String
+    /// Vías a destacar (la propuesta/nuevas). Se pintan sólidas con badge.
     let lines: [TopoLineVM]
-    /// Vías de referencia (p. ej. las existentes de la piedra al revisar una
-    /// corrección): se pintan DIFUMINADAS detrás de `lines` para que el admin vea
-    /// "lo antiguo" vs "la propuesta". Vacío = no se pinta nada extra.
+    /// Vías existentes que NO cambian: se pintan **normales** (sólidas con su
+    /// número y tipo) como contexto, no difuminadas.
+    var normalLines: [TopoLineVM] = []
+    /// Vías difuminadas: SOLO la versión vieja de la vía que se corrige, para que
+    /// se distinga del resto. Vacío = nada difuminado.
     var referenceLines: [TopoLineVM] = []
     @State private var image: UIImage?
     @State private var ratio: CGFloat = 4.0 / 3.0
@@ -90,7 +93,7 @@ struct TopoPhotoView: View {
     }
 
     private func draw(_ ctx: GraphicsContext, _ size: CGSize) {
-        // Vías de referencia (existentes) difuminadas, sin badges, detrás de todo.
+        // 1. SOLO la vía vieja que se corrige, difuminada (para distinguirla).
         for line in referenceLines where !line.points.isEmpty {
             let style = GradeColor.style(line.grade)
             let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
@@ -99,33 +102,35 @@ struct TopoPhotoView: View {
             ctx.stroke(path, with: .color(style.stroke.opacity(0.35)),
                        style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round, dash: [6, 6]))
         }
-        for (idx, line) in lines.enumerated() where !line.points.isEmpty {
-            let style = GradeColor.style(line.grade)
-            let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
+        // 2. Existentes normales + propuesta, sólidas y numeradas en continuo.
+        let solid = normalLines + lines
+        for (idx, line) in solid.enumerated() where !line.points.isEmpty {
+            drawSolidLine(ctx, size, line: line, number: idx + 1)
+        }
+    }
 
-            var path = Path()
-            path.move(to: pts[0])
-            for p in pts.dropFirst() { path.addLine(to: p) }
-            let dash: [CGFloat] = style.dashed ? [10, 8] : []
-            // Línea blanca: contorno negro para que se vea sobre cualquier foto.
-            if style.dark {
-                ctx.stroke(path, with: .color(.black.opacity(0.8)),
-                           style: StrokeStyle(lineWidth: 9, lineCap: .round, lineJoin: .round, dash: dash))
-            }
-            ctx.stroke(path, with: .color(style.stroke),
-                       style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round, dash: dash))
-
-            // Badge numérico en el inicio.
-            let textColor: Color = style.dark ? .black : .white
-            badge(ctx, at: pts[0], outer: 12, inner: 9.5, fill: .white, ring: style.stroke,
-                  text: "\(idx + 1)", textSize: 13, textColor: textColor)
-
-            // Badge de tipo de inicio en el final.
-            if let label = startLabel(line.startType) {
-                badge(ctx, at: pts[pts.count - 1], outer: 14, inner: 11,
-                      fill: style.dark ? .black : .white, ring: style.stroke,
-                      text: label, textSize: 9, textColor: textColor)
-            }
+    private func drawSolidLine(_ ctx: GraphicsContext, _ size: CGSize, line: TopoLineVM, number: Int) {
+        let style = GradeColor.style(line.grade)
+        let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
+        guard !pts.isEmpty else { return }
+        var path = Path()
+        path.move(to: pts[0])
+        for p in pts.dropFirst() { path.addLine(to: p) }
+        let dash: [CGFloat] = style.dashed ? [10, 8] : []
+        // Línea blanca: contorno negro para que se vea sobre cualquier foto.
+        if style.dark {
+            ctx.stroke(path, with: .color(.black.opacity(0.8)),
+                       style: StrokeStyle(lineWidth: 9, lineCap: .round, lineJoin: .round, dash: dash))
+        }
+        ctx.stroke(path, with: .color(style.stroke),
+                   style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round, dash: dash))
+        let textColor: Color = style.dark ? .black : .white
+        badge(ctx, at: pts[0], outer: 12, inner: 9.5, fill: .white, ring: style.stroke,
+              text: "\(number)", textSize: 13, textColor: textColor)
+        if let label = startLabel(line.startType), pts.count > 1 {
+            badge(ctx, at: pts[pts.count - 1], outer: 14, inner: 11,
+                  fill: style.dark ? .black : .white, ring: style.stroke,
+                  text: label, textSize: 9, textColor: textColor)
         }
     }
 

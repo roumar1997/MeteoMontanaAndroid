@@ -515,6 +515,13 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
   PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
 - **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+- **Difuminado SOLO de la vía que cambia** (editor + admin): las demás vías
+  existentes se ven **normales** (sólidas, con número y tipo de inicio); solo la
+  **versión vieja de la vía que se corrige** va difuminada, para que se distinga
+  cuál cambió (si todo iba difuminado, el admin no sabía cuál era). `TopoPhotoView`
+  separa `normalLines` (sólidas) de `referenceLines` (difuminada); `TopoEditorView`
+  separa `normalLines` de `fadedLines`. Al **añadir** vías, las existentes quedan
+  tal cual.
 - **Editor de vías: redibujar empieza de cero** (no alarga la línea): cada trazo
   nuevo limpia la línea del bloque seleccionado (`TopoEditorView.drawingActive`).
   Al **corregir** (`EditLineSheet`) la línea editable arranca **vacía** y la vieja

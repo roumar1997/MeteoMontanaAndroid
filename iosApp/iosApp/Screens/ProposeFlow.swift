@@ -189,7 +189,10 @@ struct BoulderFormSheet: View {
 struct TopoEditorView: View {
     var photo: UIImage? = nil
     var photoUrl: String? = nil               // alternativa: cargar foto remota
-    var existingLines: [TopoLineVM] = []      // vías existentes (referencia, no editables)
+    /// Vías existentes que NO cambian: se ven NORMALES (sólidas con número/tipo).
+    var normalLines: [TopoLineVM] = []
+    /// Vías difuminadas: SOLO la versión vieja de la que se corrige.
+    var fadedLines: [TopoLineVM] = []
     @Binding var blocks: [BoulderBlockForm]
     @Environment(\.dismiss) private var dismiss
     @State private var selected = 0
@@ -283,43 +286,53 @@ struct TopoEditorView: View {
     }
 
     private func drawLines(_ ctx: GraphicsContext, _ size: CGSize) {
-        // Vías existentes como referencia (semitransparentes, no editables).
-        for line in existingLines where !line.points.isEmpty {
+        // 1. Existentes que NO cambian → NORMALES (sólidas, con número y tipo).
+        for (i, line) in normalLines.enumerated() where !line.points.isEmpty {
+            drawTopoLine(ctx, size, points: line.points, grade: line.grade,
+                         startType: line.startType, number: i + 1, lineWidth: 5)
+        }
+        // 2. SOLO la vía vieja que se corrige, difuminada (para distinguirla).
+        for line in fadedLines where !line.points.isEmpty {
             let style = GradeColor.style(line.grade)
             let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
             var path = Path(); path.move(to: pts[0])
             for p in pts.dropFirst() { path.addLine(to: p) }
-            ctx.stroke(path, with: .color(style.stroke.opacity(0.45)),
-                       style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+            ctx.stroke(path, with: .color(style.stroke.opacity(0.4)),
+                       style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round, dash: [6, 6]))
         }
+        // 3. Las que se están dibujando (editable), resaltadas.
         for (idx, b) in blocks.enumerated() where !b.line.isEmpty {
-            let style = GradeColor.style(b.grade)
-            let pts = b.line.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
-            var path = Path(); path.move(to: pts[0])
-            for p in pts.dropFirst() { path.addLine(to: p) }
-            let w: CGFloat = idx == selected ? 8 : 5
-            if style.dark {
-                ctx.stroke(path, with: .color(.black.opacity(0.8)),
-                           style: StrokeStyle(lineWidth: w + 4, lineCap: .round, lineJoin: .round))
-            }
-            ctx.stroke(path, with: .color(style.stroke),
-                       style: StrokeStyle(lineWidth: w, lineCap: .round, lineJoin: .round))
-            // Badge número en el inicio.
-            let fill: Color = .white
-            ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 12, y: pts[0].y - 12, width: 24, height: 24)), with: .color(fill))
-            ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 9, y: pts[0].y - 9, width: 18, height: 18)), with: .color(style.stroke))
-            ctx.draw(Text("\(idx + 1)").font(.system(size: 12, weight: .bold))
-                .foregroundColor(style.dark ? .black : .white), at: pts[0], anchor: .center)
-            // Badge de tipo de inicio en el final (PIE/SIT/LAN/TRV) — para no
-            // "perder" el tipo de vista mientras se dibuja.
-            if let label = startLabelShort(b.startType), let end = pts.last {
-                ctx.fill(Path(ellipseIn: CGRect(x: end.x - 13, y: end.y - 13, width: 26, height: 26)),
-                         with: .color(style.dark ? .black : .white))
-                ctx.fill(Path(ellipseIn: CGRect(x: end.x - 10.5, y: end.y - 10.5, width: 21, height: 21)),
-                         with: .color(style.stroke))
-                ctx.draw(Text(label).font(.system(size: 9, weight: .bold))
-                    .foregroundColor(style.dark ? .black : .white), at: end, anchor: .center)
-            }
+            drawTopoLine(ctx, size, points: b.line, grade: b.grade, startType: b.startType,
+                         number: idx + 1, lineWidth: idx == selected ? 8 : 5)
+        }
+    }
+
+    private func drawTopoLine(_ ctx: GraphicsContext, _ size: CGSize, points: [CGPoint],
+                              grade: String?, startType: String?, number: Int, lineWidth: CGFloat) {
+        let style = GradeColor.style(grade)
+        let pts = points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
+        guard !pts.isEmpty else { return }
+        var path = Path(); path.move(to: pts[0])
+        for p in pts.dropFirst() { path.addLine(to: p) }
+        if style.dark {
+            ctx.stroke(path, with: .color(.black.opacity(0.8)),
+                       style: StrokeStyle(lineWidth: lineWidth + 4, lineCap: .round, lineJoin: .round))
+        }
+        ctx.stroke(path, with: .color(style.stroke),
+                   style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+        // Badge número en el inicio.
+        ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 12, y: pts[0].y - 12, width: 24, height: 24)), with: .color(.white))
+        ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 9, y: pts[0].y - 9, width: 18, height: 18)), with: .color(style.stroke))
+        ctx.draw(Text("\(number)").font(.system(size: 12, weight: .bold))
+            .foregroundColor(style.dark ? .black : .white), at: pts[0], anchor: .center)
+        // Badge de tipo de inicio (PIE/SIT/LAN/TRV) al final.
+        if let label = startLabelShort(startType), let end = pts.last {
+            ctx.fill(Path(ellipseIn: CGRect(x: end.x - 13, y: end.y - 13, width: 26, height: 26)),
+                     with: .color(style.dark ? .black : .white))
+            ctx.fill(Path(ellipseIn: CGRect(x: end.x - 10.5, y: end.y - 10.5, width: 21, height: 21)),
+                     with: .color(style.stroke))
+            ctx.draw(Text(label).font(.system(size: 9, weight: .bold))
+                .foregroundColor(style.dark ? .black : .white), at: end, anchor: .center)
         }
     }
 
@@ -450,7 +463,7 @@ struct AddLinesSheet: View {
         }
         .sheet(isPresented: $showEditor) {
             TopoEditorView(photoUrl: block.photoPath,
-                           existingLines: block.lines.map { TopoLineVM($0) },
+                           normalLines: block.lines.map { TopoLineVM($0) },
                            blocks: $blocks)
         }
     }
@@ -541,10 +554,12 @@ struct EditLineSheet: View {
             }
         }
         .sheet(isPresented: $showEditor) {
-            // Referencia difuminada: TODAS las vías (incluida la que se corrige) para
-            // que el usuario vea la antigua mientras dibuja la nueva.
+            // Las demás vías se ven NORMALES; solo la que se corrige va difuminada
+            // (su versión vieja) para distinguirla mientras dibujas la nueva.
             TopoEditorView(photoUrl: block.photoPath,
-                           existingLines: block.lines.map { TopoLineVM($0) }, blocks: $blocks)
+                           normalLines: block.lines.filter { $0.id != line.id }.map { TopoLineVM($0) },
+                           fadedLines: [TopoLineVM(line)],
+                           blocks: $blocks)
         }
     }
 
