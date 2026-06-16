@@ -37,9 +37,18 @@
   `FollowListView` para perfiles públicos, pero falta acceso desde el perfil
   propio — añadir contadores tappables en `AccountView`).
 
-**Estado:** ⬜ pendiente (autocompletado escuela/vías necesita exponer
-GetBlocks/sectores; navegación bloques/escuelas usa `JournalStats.bySchool`;
-arreglar maxGrade; añadir followers/following al perfil propio).
+**Estado:** ✅ hecho (a validar):
+- **Autocompletado del diario**: `AddBlockSheet` reescrito con buscador de
+  escuela (SearchSchools), sugerencias de SECTOR (ZONE catalogados + historial)
+  y de VÍAS reales (grado+tipo) de los bloques de la escuela; al elegir una vía
+  autocompleta el grado. Grado por menú (lista fija de grados). Se expuso
+  `GetBlocksUseCase` en `IosDependencyContainer` (+ `KtorBlockRepository`).
+- **maxGrade arreglado**: el badge "TOPE" del perfil ahora usa
+  `JournalStats.maxGrade` (máximo REAL del diario), no el `topGrade` editable.
+- **Navegación bloques/escuelas**: `AccountView` añade una stats row
+  (BLOQUES→JournalView · ESCUELAS→`JournalSchoolsView` · MÁXIMO) tappable.
+- **Seguidores/Seguidos**: contadores tappables en `AccountView`
+  (getFollowStatus del propio uid) → `FollowListView`.
 
 ### Perfil público vs privado — ⬜ explicar + implementar
 **Qué hace en Android:** el flag `isPublic` del perfil controla la
@@ -52,8 +61,11 @@ estado "SOLICITADO") que tú aceptas/rechazas en "Solicitudes de seguimiento".
   está en `EditProfileView` (se omitió por el `Boolean?` boxed de SKIE).
   Falta: toggle público/privado + respetar `locked` en `PublicProfileView`.
 
-**Estado:** ⬜ pendiente (añadir toggle isPublic en editar perfil; ocultar
-contenido en perfiles privados bloqueados).
+**Estado:** ✅ hecho (a validar): toggle "PERFIL PÚBLICO" en `EditProfileView`
+(se pasa `KotlinBoolean(bool:)` a `UpdateProfileRequest.isPublic`) con texto
+explicativo de público/privado; `PublicProfileView` respeta `locked` (perfil
+privado bloqueado: solo nombre/avatar + candado + botón para solicitar seguir,
+oculta bio/grado/stats).
 
 ---
 
@@ -64,7 +76,9 @@ contenido en perfiles privados bloqueados).
 mejor uso." → Revisar `SchoolFiltersBar.kt` y replicar la **disposición/orden
 exacto** de los filtros (en iOS están todos en una fila de chips; Android los
 agrupa de cierta forma — secciones/orden). Clavar el layout.
-**Estado:** ⬜ pendiente.
+**Estado:** ✅ hecho (a validar): `FilterChips` de iOS reescrito como secciones
+apiladas igual que `SchoolFiltersBar.kt` — eyebrow + fila de chips por sección,
+en el orden DISTANCIA · ESTILO · TIPO DE ROCA · FAVORITOS · ORDENAR POR.
 
 ### 2. Distancia "· N KM" — 🔧 default 50 km
 **Feedback:** "me gusta lo de la distancia, y que al abrir la app esté en
@@ -119,7 +133,13 @@ charset=utf-8 en Content-Type. **Siguiente paso**: que Rodrigo diga QUÉ texto
 exacto sale con "??" (¿una etiqueta fija o un dato de escuela/factor?). Si es
 dato del backend, mirar `MeteoMontanaAPI`; si es del cliente, forzar UTF-8 en
 `ApiHttpClient`.
-**Estado:** ⬜ pendiente (falta saber el texto exacto).
+**Mitigación 2026-06-16**: añadido fallback UTF-8 en el cliente Ktor
+(`ApiHttpClient.kt` → bloque `Charsets { responseCharsetFallback = UTF_8 }`).
+Si el "??" venía de que el backend no mandaba `charset=utf-8` y Ktor caía a
+ISO-8859-1, esto lo arregla. Si los bytes ya están corruptos en la BD (como
+pasó con la V20 — "Alcañiz→Alca??z"), haría falta una migración en el backend.
+**Estado:** 🔧 mitigado en cliente — validar en el próximo `.ipa`. Si persiste,
+Rodrigo dice el texto exacto y se mira si es dato de BD (→ migración backend).
 
 ### 3. Condiciones: % lluvia sí, mm no — 🔧 BUG
 **Feedback:** sale el % de probabilidad de lluvia pero **los mm no** (ya

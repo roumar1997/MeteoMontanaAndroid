@@ -443,50 +443,61 @@ private struct SearchField: View {
     }
 }
 
+/// Barra de filtros — réplica de SchoolFiltersBar.kt: secciones apiladas
+/// (DISTANCIA, ESTILO, TIPO DE ROCA, FAVORITOS, ORDENAR POR), cada una con su
+/// eyebrow y una fila horizontal de chips seleccionables.
 private struct FilterChips: View {
     @ObservedObject var vm: SchoolListViewModel
     var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            section("DISTANCIA") {
+                chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
+                        isSel: { $0 == vm.maxDistanceKm },
+                        label: { $0 == nil ? "Todas" : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
+            }
+            section("ESTILO") {
+                chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
+                        isSel: { $0 == vm.style },
+                        label: { $0 ?? "Todas" }) { vm.style = $0 }
+            }
+            section("TIPO DE ROCA") {
+                chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
+                        isSel: { $0 == vm.rock },
+                        label: { $0 ?? "Todas" }) { vm.rock = $0 }
+            }
+            section("FAVORITOS") {
+                chipRow([false, true], id: { $0 ? "fav" : "all" },
+                        isSel: { $0 == vm.onlyFavorites },
+                        label: { $0 ? "Solo favoritos ★" : "Todos" }) { vm.onlyFavorites = $0 }
+            }
+            section("ORDENAR POR") {
+                chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },
+                        isSel: { $0 == vm.sortBy },
+                        label: { $0.rawValue }) { vm.sortBy = $0 }
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).eyebrow().padding(.horizontal, 12)
+            content()
+        }
+    }
+
+    private func chipRow<T>(_ items: [T], id: @escaping (T) -> String,
+                            isSel: @escaping (T) -> Bool, label: @escaping (T) -> String,
+                            onPick: @escaping (T) -> Void) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                Menu {
-                    Picker("Estilo", selection: $vm.style) {
-                        Text("Todos").tag(String?.none)
-                        ForEach(vm.styles, id: \.self) { Text($0).tag(String?.some($0)) }
-                    }
-                } label: { chip("ESTILO" + (vm.style.map { ": \($0.uppercased())" } ?? ""), active: vm.style != nil) }
-
-                Menu {
-                    Picker("Roca", selection: $vm.rock) {
-                        Text("Todas").tag(String?.none)
-                        ForEach(vm.rocks, id: \.self) { Text($0).tag(String?.some($0)) }
-                    }
-                } label: { chip("ROCA" + (vm.rock.map { ": \($0.uppercased())" } ?? ""), active: vm.rock != nil) }
-
-                Menu {
-                    Picker("Distancia", selection: $vm.maxDistanceKm) {
-                        ForEach(Array(SchoolListViewModel.distanceOptions.enumerated()), id: \.offset) { _, opt in
-                            Text(opt == nil ? "Todas" : "\(Int(opt!)) km").tag(opt)
-                        }
-                    }
-                } label: { chip("DISTANCIA" + (vm.maxDistanceKm.map { ": \(Int($0)) KM" } ?? ""), active: vm.maxDistanceKm != nil) }
-
-                Button { vm.onlyFavorites.toggle() } label: {
-                    chip(vm.onlyFavorites ? "★ SOLO FAVORITAS" : "☆ FAVORITAS", active: vm.onlyFavorites)
-                }
-
-                Menu {
-                    Picker("Ordenar", selection: $vm.sortBy) {
-                        ForEach(SchoolListViewModel.SortMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                    }
-                } label: { chip("ORDEN: \(vm.sortBy == .score ? "SCORE" : "CERCANÍA")", active: false) }
-
-                if vm.activeFilters {
-                    Button { vm.clearFilters() } label: { chip("✕ QUITAR", active: false) }
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    Button { onPick(item) } label: { chip(label(item), active: isSel(item)) }
+                        .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
         }
-        .padding(.vertical, 4)
     }
 
     private func chip(_ t: String, active: Bool) -> some View {

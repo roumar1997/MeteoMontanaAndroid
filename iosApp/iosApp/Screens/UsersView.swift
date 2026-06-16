@@ -162,26 +162,40 @@ struct PublicProfileView: View {
                 if let u = vm.profile?.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
                 }
-                if let bio = vm.profile?.bio, !bio.isEmpty {
-                    Text(bio).font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
-                        .multilineTextAlignment(.center).padding(.horizontal, 24)
-                }
-                if let g = vm.profile?.topGrade, !g.isEmpty {
-                    Text("TOPE \(g.uppercased())").font(Cumbre.mono(10, .bold)).tracking(1.0)
-                        .foregroundStyle(Cumbre.terra)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
-                }
-                if let s = vm.status {
-                    HStack(spacing: 24) {
-                        NavigationLink(destination: FollowListView(uid: uid, mode: .followers)) {
-                            stat("\(s.followers)", "SEGUIDORES")
-                        }.buttonStyle(.plain)
-                        NavigationLink(destination: FollowListView(uid: uid, mode: .following)) {
-                            stat("\(s.following)", "SIGUIENDO")
-                        }.buttonStyle(.plain)
+                if vm.profile?.locked == true {
+                    // Perfil privado: bloqueado para quien no le sigue. Solo
+                    // nombre/avatar + botón para solicitar seguir.
+                    VStack(spacing: 8) {
+                        Image(systemName: "lock.fill").font(.system(size: 22)).foregroundStyle(Cumbre.ink3)
+                        Text("Este perfil es privado")
+                            .font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink2)
+                        Text("Sigue a este usuario para ver su diario y estadísticas.")
+                            .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                            .multilineTextAlignment(.center).padding(.horizontal, 32)
+                    }.padding(.vertical, 8)
+                    if let s = vm.status { followButton(s) }
+                } else {
+                    if let bio = vm.profile?.bio, !bio.isEmpty {
+                        Text(bio).font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
+                            .multilineTextAlignment(.center).padding(.horizontal, 24)
                     }
-                    followButton(s)
+                    if let g = vm.profile?.topGrade, !g.isEmpty {
+                        Text("TOPE \(g.uppercased())").font(Cumbre.mono(10, .bold)).tracking(1.0)
+                            .foregroundStyle(Cumbre.terra)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                    }
+                    if let s = vm.status {
+                        HStack(spacing: 24) {
+                            NavigationLink(destination: FollowListView(uid: uid, mode: .followers)) {
+                                stat("\(s.followers)", "SEGUIDORES")
+                            }.buttonStyle(.plain)
+                            NavigationLink(destination: FollowListView(uid: uid, mode: .following)) {
+                                stat("\(s.following)", "SIGUIENDO")
+                            }.buttonStyle(.plain)
+                        }
+                        followButton(s)
+                    }
                 }
             }
             .frame(maxWidth: .infinity)

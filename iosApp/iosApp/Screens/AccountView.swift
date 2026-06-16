@@ -4,16 +4,34 @@ import Shared
 @MainActor
 final class AccountViewModel: ObservableObject {
     @Published var profile: PrivateProfile?
+    @Published var stats: JournalStats?
+    @Published var follow: FollowStatus?
     @Published var loading = true
 
     private let getMyProfile: GetMyProfileUseCase
-    init(getMyProfile: GetMyProfileUseCase = AppDependencies.shared.container.getMyProfile) {
+    private let getMyStats: GetMyJournalStatsUseCase
+    private let getFollowStatus: GetFollowStatusUseCase
+    private let authBridge = AppDependencies.shared.authBridge
+
+    init(
+        getMyProfile: GetMyProfileUseCase = AppDependencies.shared.container.getMyProfile,
+        getMyStats: GetMyJournalStatsUseCase = AppDependencies.shared.container.getMyJournalStats,
+        getFollowStatus: GetFollowStatusUseCase = AppDependencies.shared.container.getFollowStatus
+    ) {
         self.getMyProfile = getMyProfile
+        self.getMyStats = getMyStats
+        self.getFollowStatus = getFollowStatus
     }
 
     func load() async {
         loading = true
         profile = try? await getMyProfile.invoke()  // JIT provisioning en el backend
+        stats = try? await getMyStats.invoke()
+        // Contadores de seguidores/seguidos: igual que Android (getFollowStatus
+        // del propio uid devuelve followers/following).
+        if let uid = profile?.uid ?? authBridge.currentUid() {
+            follow = try? await getFollowStatus.invoke(uid: uid)
+        }
         loading = false
     }
 }
@@ -42,6 +60,8 @@ struct AccountView: View {
                             .padding(.horizontal, 24)
                     }
                     badges
+                    followCounters
+                    statsRow
                     Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                     menuLinks
                     Divider().overlay(Cumbre.rule).padding(.vertical, 4)
@@ -95,10 +115,59 @@ struct AccountView: View {
 
     private var badges: some View {
         HStack(spacing: 8) {
-            if let g = vm.profile?.topGrade, !g.isEmpty { badge("TOPE \(g.uppercased())", Cumbre.terra) }
+            // TOPE = grado máximo REAL del diario (no el topGrade editable del
+            // perfil). Espejo de la stat "MÁXIMO" de Android.
+            if let g = vm.stats?.maxGrade, !g.isEmpty { badge("TOPE \(g.uppercased())", Cumbre.terra) }
             if vm.profile?.isAdmin == true { badge("ADMIN", Cumbre.ink) }
             if vm.profile?.isPremium == true { badge("PREMIUM", Cumbre.ok) }
         }
+    }
+
+    /// Seguidores / seguidos tappables (→ FollowListView del propio uid).
+    @ViewBuilder private var followCounters: some View {
+        if let f = vm.follow, let uid = vm.profile?.uid {
+            HStack(spacing: 24) {
+                NavigationLink(destination: FollowListView(uid: uid, mode: .followers)) {
+                    counter("\(f.followers)", "SEGUIDORES")
+                }.buttonStyle(.plain)
+                NavigationLink(destination: FollowListView(uid: uid, mode: .following)) {
+                    counter("\(f.following)", "SIGUIENDO")
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func counter(_ v: String, _ l: String) -> some View {
+        VStack(spacing: 2) {
+            Text(v).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
+            Text(l).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+        }
+    }
+
+    /// Stats del diario: BLOQUES / ESCUELAS / MÁXIMO, tappables para navegar.
+    @ViewBuilder private var statsRow: some View {
+        if let s = vm.stats {
+            HStack(spacing: 8) {
+                NavigationLink(destination: JournalView()) {
+                    statCell("\(s.blockCount)", "BLOQUES")
+                }.buttonStyle(.plain)
+                NavigationLink(destination: JournalSchoolsView(schools: s.bySchool)) {
+                    statCell("\(s.schoolCount)", "ESCUELAS")
+                }.buttonStyle(.plain)
+                statCell(s.maxGrade ?? "—", "MÁXIMO")
+            }
+        }
+    }
+
+    private func statCell(_ v: String, _ l: String) -> some View {
+        VStack(spacing: 3) {
+            Text(v).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+            Text(l).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Cumbre.paper)
+        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
     }
 
     private func badge(_ t: String, _ c: Color) -> some View {

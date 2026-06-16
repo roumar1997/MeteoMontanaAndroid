@@ -2,6 +2,7 @@ package com.meteomontana.android.data.api
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.api.createClientPlugin
+import io.ktor.client.plugins.Charsets
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.header
@@ -30,6 +31,14 @@ fun buildApiHttpClient(
 
     return HttpClient {
         expectSuccess = true
+        // Forzar UTF-8 al decodificar respuestas: si el backend no manda
+        // `charset=utf-8` en el Content-Type, Ktor podría caer a ISO-8859-1 y
+        // las tildes/ñ saldrían como "??". Esto garantiza UTF-8 siempre.
+        Charsets {
+            register(io.ktor.utils.io.charsets.Charsets.UTF_8)
+            sendCharset = io.ktor.utils.io.charsets.Charsets.UTF_8
+            responseCharsetFallback = io.ktor.utils.io.charsets.Charsets.UTF_8
+        }
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true

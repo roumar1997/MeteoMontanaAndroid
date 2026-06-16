@@ -7,6 +7,7 @@ final class EditProfileViewModel: ObservableObject {
     @Published var displayName = ""
     @Published var bio = ""
     @Published var topGrade = ""
+    @Published var isPublic = true
     @Published var loading = true
     @Published var saving = false
 
@@ -28,6 +29,7 @@ final class EditProfileViewModel: ObservableObject {
             displayName = p.displayName ?? ""
             bio = p.bio ?? ""
             topGrade = p.topGrade ?? ""
+            isPublic = p.isPublic
         }
         loading = false
     }
@@ -41,7 +43,7 @@ final class EditProfileViewModel: ObservableObject {
             displayName: displayName.trimmingCharacters(in: .whitespaces).nilIfEmpty,
             bio: bio.nilIfEmpty,
             topGrade: topGrade.trimmingCharacters(in: .whitespaces).nilIfEmpty,
-            isPublic: nil,
+            isPublic: KotlinBoolean(bool: isPublic),
             photoUrl: nil
         )
         return (try? await updateMyProfile.invoke(req: req)) != nil
@@ -70,6 +72,20 @@ struct EditProfileView: View {
                             .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                             .padding(10).background(Cumbre.paper)
                             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+                    // Público/privado: si es privado, tu perfil sale bloqueado a
+                    // quien no te sigue y los follows pasan por solicitud.
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle(isOn: $vm.isPublic) {
+                            Text("PERFIL PÚBLICO").eyebrow()
+                        }
+                        .tint(Cumbre.terra)
+                        .padding(10).background(Cumbre.paper)
+                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        Text(vm.isPublic
+                             ? "Cualquiera puede ver tu perfil, diario y estadísticas."
+                             : "Tu perfil queda bloqueado; seguirte requiere aprobar una solicitud.")
+                            .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                     }
                 }
                 .padding(16)

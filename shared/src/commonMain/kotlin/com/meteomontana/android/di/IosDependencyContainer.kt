@@ -3,6 +3,7 @@ package com.meteomontana.android.di
 import com.meteomontana.android.data.api.KtorFavoritesApi
 import com.meteomontana.android.data.api.KtorForecastApi
 import com.meteomontana.android.data.api.KtorNoteApi
+import com.meteomontana.android.data.api.KtorBlockApi
 import com.meteomontana.android.data.api.KtorContributionApi
 import com.meteomontana.android.data.api.KtorJournalApi
 import com.meteomontana.android.data.api.KtorNotificationApi
@@ -15,6 +16,7 @@ import com.meteomontana.android.data.repository.KtorFavoritesRepository
 import com.meteomontana.android.data.repository.KtorForecastRepository
 import com.meteomontana.android.data.repository.KtorNoteRepository
 import com.meteomontana.android.data.repository.KtorNotificationsRepository
+import com.meteomontana.android.data.repository.KtorBlockRepository
 import com.meteomontana.android.data.repository.KtorContributionRepository
 import com.meteomontana.android.data.repository.KtorJournalRepository
 import com.meteomontana.android.data.repository.KtorProfileRepository
@@ -52,6 +54,7 @@ import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
@@ -115,6 +118,7 @@ class IosDependencyContainer(
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
+    private val blockRepository = KtorBlockRepository(KtorBlockApi(httpClient))
 
     // Use cases públicos del MVP (sin auth). Se irán añadiendo más a medida
     // que las pantallas iOS los necesiten.
@@ -165,6 +169,9 @@ class IosDependencyContainer(
     val getMyContributions = GetMyContributionsUseCase(contributionRepository)
 
     // Diario de escalada: entradas, stats (bloques/escuelas/grado máximo), crear/borrar.
+    // Bloques de una escuela (para autocompletar el diario con vías/sectores reales).
+    val getBlocks = GetBlocksUseCase(blockRepository)
+
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)
     val createJournalEntry = CreateJournalEntryUseCase(journalRepository)
