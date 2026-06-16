@@ -7,6 +7,12 @@ y se conecta al backend Spring Boot.
 > (KMP)** para soportar también iOS. Compartiremos `domain/` y `data/` en
 > Kotlin entre Android e iOS. UI Android sigue siendo Jetpack Compose;
 > UI iOS será SwiftUI consumiendo el módulo compartido.
+>
+> 🎯 **Objetivo de paridad (2026-06-15)**: **la app iOS debe ser EXACTAMENTE
+> IGUAL que Android** — todas las pantallas, cada interacción, cada detalle de
+> diseño (textos, orden, colores, estados). Al implementar iOS, replicar el
+> comportamiento Android verbatim; no inventar variantes. Checklist de paridad
+> en `KMP_MIGRATION.md`.
 
 > ## 📚 Documentos del repo
 >
