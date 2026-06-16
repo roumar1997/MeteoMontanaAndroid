@@ -456,6 +456,7 @@ private struct MapToggleAndPanel: View {
     @ObservedObject var vm: SchoolListViewModel
     let onOpen: (School) -> Void
     @State private var show = false
+    @State private var popup: School?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -475,11 +476,19 @@ private struct MapToggleAndPanel: View {
             if show {
                 MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
                              markers: markers, onTapMarker: { id in
-                                 if let s = vm.filtered.first(where: { $0.id == id }) { onOpen(s) }
+                                 popup = vm.filtered.first { $0.id == id }
                              })
                 .frame(height: 300)
                 Divider().overlay(Cumbre.rule)
             }
+        }
+        // Popup al tocar un marcador: nombre, score, tags, CÓMO LLEGAR + VER DETALLE
+        // (espejo de SchoolsMapPanel.kt).
+        .sheet(item: $popup) { s in
+            SchoolMapPopup(school: s, score: vm.scores[s.id].map { Int($0.todayScore) }) {
+                popup = nil; onOpen(s)
+            }
+            .presentationDetents([.height(280)])
         }
     }
 
@@ -504,6 +513,53 @@ private struct MapToggleAndPanel: View {
         let lat = pts.map { $0.lat }.reduce(0, +) / Double(pts.count)
         let lon = pts.map { $0.lon }.reduce(0, +) / Double(pts.count)
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
+}
+
+/// Popup de una escuela al tocar su marcador en el panel de mapa de la lista.
+/// Nombre + score + tags + "CÓMO LLEGAR" y "VER DETALLE" (espejo de SchoolsMapPanel).
+private struct SchoolMapPopup: View {
+    let school: School
+    let score: Int?
+    let onDetail: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                if let s = score {
+                    VStack(spacing: 0) {
+                        Text("\(s)").font(Cumbre.serif(26, .bold)).foregroundStyle(Cumbre.score(s))
+                        Text(Cumbre.scoreLabel(s)).font(.system(size: 8, weight: .bold)).foregroundStyle(Cumbre.score(s))
+                    }
+                    .frame(width: 60, height: 60)
+                    .background(Cumbre.score(s).opacity(0.12))
+                    .overlay(Rectangle().stroke(Cumbre.score(s), lineWidth: 1.5))
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(school.name).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
+                    Text(tags).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                }
+                Spacer()
+            }
+            HStack(spacing: 10) {
+                DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
+                Button(action: onDetail) {
+                    Text("VER DETALLE ▸").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                        .foregroundStyle(Cumbre.ink).frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Cumbre.bg.ignoresSafeArea())
+    }
+
+    private var tags: String {
+        [school.rockType?.uppercased(), school.region, school.style]
+            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  ·  ")
     }
 }
 

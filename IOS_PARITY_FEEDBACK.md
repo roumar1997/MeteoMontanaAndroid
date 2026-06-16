@@ -246,8 +246,11 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
   (`MapLibreView.onMapTap`) → `ParkingFormSheet` (nombre/coords/notas) →
   `submitContribution` (expuesto) → `ContributionSuccessSheet`. Espejo de
   `ProposeContributionFlow.kt` / `ParkingFormDialog.kt`.
+- ✅ **Popup del panel de la lista** (`SchoolMapPopup`): al tocar un marcador,
+  hoja con score + nombre + tags + "CÓMO LLEGAR" y "VER DETALLE ▸" (espejo de
+  `SchoolsMapPanel.kt`).
 - ⬜ Siguiente: proponer PIEDRA (con editor topo de líneas), SECTOR y CORREGIR
-  POSICIÓN; popup del panel de la lista (nombre/score/tags/CÓMO LLEGAR/VER DETALLE).
+  POSICIÓN.
 
 ## Subir fotos (Firebase Storage) — EN MARCHA (2026-06-16)
 - ✅ **`StorageUploader`** (Swift, FirebaseStorage): sube un JPEG y devuelve la
