@@ -110,23 +110,31 @@ private struct UserRow: View {
 final class PublicProfileViewModel: ObservableObject {
     @Published var profile: PublicProfile?
     @Published var status: FollowStatus?
+    @Published var stats: JournalStats?
+    @Published var entries: [JournalSession] = []
     @Published var loading = true
 
     private let getPublicProfile: GetPublicProfileUseCase
     private let getFollowStatus: GetFollowStatusUseCase
     private let followUser: FollowUserUseCase
     private let unfollowUser: UnfollowUserUseCase
+    private let getUserStats: GetUserStatsUseCase
+    private let getUserJournal: GetUserJournalUseCase
 
     init(
         getPublicProfile: GetPublicProfileUseCase = AppDependencies.shared.container.getPublicProfile,
         getFollowStatus: GetFollowStatusUseCase = AppDependencies.shared.container.getFollowStatus,
         followUser: FollowUserUseCase = AppDependencies.shared.container.followUser,
-        unfollowUser: UnfollowUserUseCase = AppDependencies.shared.container.unfollowUser
+        unfollowUser: UnfollowUserUseCase = AppDependencies.shared.container.unfollowUser,
+        getUserStats: GetUserStatsUseCase = AppDependencies.shared.container.getUserStats,
+        getUserJournal: GetUserJournalUseCase = AppDependencies.shared.container.getUserJournal
     ) {
         self.getPublicProfile = getPublicProfile
         self.getFollowStatus = getFollowStatus
         self.followUser = followUser
         self.unfollowUser = unfollowUser
+        self.getUserStats = getUserStats
+        self.getUserJournal = getUserJournal
     }
 
     func load(uid: String) async {
@@ -134,6 +142,16 @@ final class PublicProfileViewModel: ObservableObject {
         profile = try? await getPublicProfile.invoke(uid: uid)
         status = try? await getFollowStatus.invoke(uid: uid)
         loading = false
+        // Diario y stats del usuario (solo si su perfil no está bloqueado).
+        await loadJournal(uid: uid)
+    }
+
+    /// Carga el diario/stats del usuario. Si su perfil es privado y no le sigues,
+    /// el backend devuelve 403 → quedan vacíos (y la UI no muestra la sección).
+    func loadJournal(uid: String) async {
+        if profile?.locked == true { stats = nil; entries = []; return }
+        stats = try? await getUserStats.invoke(uid: uid)
+        entries = (try? await getUserJournal.invoke(uid: uid)) ?? []
     }
 
     func toggleFollow(uid: String) {
@@ -144,6 +162,8 @@ final class PublicProfileViewModel: ObservableObject {
                 if wasFollowing { try await unfollowUser.invoke(uid: uid) }
                 else { try await followUser.invoke(uid: uid) }
                 status = try? await getFollowStatus.invoke(uid: uid)
+                profile = try? await getPublicProfile.invoke(uid: uid)
+                await loadJournal(uid: uid)   // tras aceptar/seguir puede desbloquearse
             } catch {}
         }
     }
@@ -195,6 +215,13 @@ struct PublicProfileView: View {
                             }.buttonStyle(.plain)
                         }
                         followButton(s)
+                    }
+                    // Diario del usuario: BLOQUES / ESCUELAS / MÁXIMO navegables
+                    // (igual que tu cuenta). Solo si su perfil es visible.
+                    if let st = vm.stats {
+                        Divider().overlay(Cumbre.rule).padding(.vertical, 4)
+                        Text("DIARIO").eyebrow().frame(maxWidth: .infinity, alignment: .leading)
+                        JournalStatsNav(stats: st, entries: vm.entries)
                     }
                 }
             }

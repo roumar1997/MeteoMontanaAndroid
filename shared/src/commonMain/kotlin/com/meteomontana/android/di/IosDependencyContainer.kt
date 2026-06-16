@@ -52,6 +52,8 @@ import com.meteomontana.android.domain.usecase.submissions.GetMySubmissionsUseCa
 import com.meteomontana.android.domain.usecase.contributions.GetMyContributionsUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
+import com.meteomontana.android.domain.usecase.journal.GetUserJournalUseCase
+import com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
@@ -174,6 +176,9 @@ class IosDependencyContainer(
 
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)
+    // Diario y stats de OTRO usuario (perfil público de quien sigues).
+    val getUserJournal = GetUserJournalUseCase(journalRepository)
+    val getUserStats = GetUserStatsUseCase(journalRepository)
     val createJournalEntry = CreateJournalEntryUseCase(journalRepository)
     val deleteJournalEntry = DeleteJournalEntryUseCase(journalRepository)
 

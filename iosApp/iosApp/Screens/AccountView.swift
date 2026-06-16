@@ -5,21 +5,25 @@ import Shared
 final class AccountViewModel: ObservableObject {
     @Published var profile: PrivateProfile?
     @Published var stats: JournalStats?
+    @Published var entries: [JournalSession] = []
     @Published var follow: FollowStatus?
     @Published var loading = true
 
     private let getMyProfile: GetMyProfileUseCase
     private let getMyStats: GetMyJournalStatsUseCase
+    private let getMyJournal: GetMyJournalUseCase
     private let getFollowStatus: GetFollowStatusUseCase
     private let authBridge = AppDependencies.shared.authBridge
 
     init(
         getMyProfile: GetMyProfileUseCase = AppDependencies.shared.container.getMyProfile,
         getMyStats: GetMyJournalStatsUseCase = AppDependencies.shared.container.getMyJournalStats,
+        getMyJournal: GetMyJournalUseCase = AppDependencies.shared.container.getMyJournal,
         getFollowStatus: GetFollowStatusUseCase = AppDependencies.shared.container.getFollowStatus
     ) {
         self.getMyProfile = getMyProfile
         self.getMyStats = getMyStats
+        self.getMyJournal = getMyJournal
         self.getFollowStatus = getFollowStatus
     }
 
@@ -27,6 +31,7 @@ final class AccountViewModel: ObservableObject {
         loading = true
         profile = try? await getMyProfile.invoke()  // JIT provisioning en el backend
         stats = try? await getMyStats.invoke()
+        entries = (try? await getMyJournal.invoke()) ?? []
         // Contadores de seguidores/seguidos: igual que Android (getFollowStatus
         // del propio uid devuelve followers/following).
         if let uid = profile?.uid ?? authBridge.currentUid() {
@@ -147,27 +152,8 @@ struct AccountView: View {
     /// Stats del diario: BLOQUES / ESCUELAS / MÁXIMO, tappables para navegar.
     @ViewBuilder private var statsRow: some View {
         if let s = vm.stats {
-            HStack(spacing: 8) {
-                NavigationLink(destination: JournalView()) {
-                    statCell("\(s.blockCount)", "BLOQUES")
-                }.buttonStyle(.plain)
-                NavigationLink(destination: JournalSchoolsView(schools: s.bySchool)) {
-                    statCell("\(s.schoolCount)", "ESCUELAS")
-                }.buttonStyle(.plain)
-                statCell(s.maxGrade ?? "—", "MÁXIMO")
-            }
+            JournalStatsNav(stats: s, entries: vm.entries)
         }
-    }
-
-    private func statCell(_ v: String, _ l: String) -> some View {
-        VStack(spacing: 3) {
-            Text(v).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
-            Text(l).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(Cumbre.paper)
-        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
     }
 
     private func badge(_ t: String, _ c: Color) -> some View {

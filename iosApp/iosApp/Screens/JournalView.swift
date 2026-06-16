@@ -118,9 +118,10 @@ struct JournalStatsRow: View {
     }
 }
 
-private struct JournalRow: View {
+struct JournalRow: View {
     let entry: JournalSession
-    let onDelete: () -> Void
+    /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
+    var onDelete: (() -> Void)? = nil
     var body: some View {
         HStack(spacing: 12) {
             if let g = entry.grade, !g.isEmpty {
@@ -136,9 +137,11 @@ private struct JournalRow: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
                 Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-                Button(action: onDelete) {
-                    Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad)
-                }.buttonStyle(.plain)
+                if let onDelete {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad)
+                    }.buttonStyle(.plain)
+                }
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
@@ -422,30 +425,39 @@ private struct AddBlockSheet: View {
 }
 
 /// Desglose del diario por escuela — espejo de la navegación "ESCUELAS" del
-/// perfil de Android (`onOpenAllSchools`). Lista cada escuela con su nº de
-/// bloques y grado máximo.
+/// perfil de Android (`onOpenAllSchools`). Cada escuela es pulsable y abre la
+/// lista de bloques registrados en esa escuela.
 struct JournalSchoolsView: View {
     let schools: [SchoolStats]
+    let entries: [JournalSession]
     var body: some View {
         Group {
             if schools.isEmpty {
-                Text("Aún no tienes bloques en ninguna escuela.")
+                Text("Aún no hay bloques en ninguna escuela.")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(schools, id: \.schoolName) { s in
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(s.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                    let blocks = "\(s.blockCount) \(s.blockCount == 1 ? "bloque" : "bloques")"
-                                    let grade = s.maxGrade.map { " · máx \($0)" } ?? ""
-                                    Text(blocks + grade).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                            NavigationLink(destination: SchoolJournalBlocksView(
+                                schoolName: s.schoolName,
+                                entries: entriesFor(s.schoolName)
+                            )) {
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(s.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                                        let blocks = "\(s.blockCount) \(s.blockCount == 1 ? "bloque" : "bloques")"
+                                        let grade = s.maxGrade.map { " · máx \($0)" } ?? ""
+                                        Text(blocks + grade).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
                                 }
-                                Spacer()
+                                .padding(.horizontal, 16).padding(.vertical, 12)
+                                .contentShape(Rectangle())
                             }
-                            .padding(.horizontal, 16).padding(.vertical, 12)
+                            .buttonStyle(.plain)
                             Divider().overlay(Cumbre.rule)
                         }
                     }
@@ -455,6 +467,93 @@ struct JournalSchoolsView: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle("Escuelas")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func entriesFor(_ schoolName: String) -> [JournalSession] {
+        entries.filter { $0.schoolName?.caseInsensitiveCompare(schoolName) == .orderedSame }
+    }
+}
+
+/// Bloques registrados en una escuela concreta (solo lectura). Se llega desde
+/// el desglose por escuela; sirve tanto para tu diario como para el de otro.
+struct SchoolJournalBlocksView: View {
+    let schoolName: String
+    let entries: [JournalSession]
+    var body: some View {
+        Group {
+            if entries.isEmpty {
+                Text("Sin bloques registrados aquí.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(entries, id: \.id) { e in
+                            JournalRow(entry: e)   // solo lectura (sin borrar)
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle(schoolName)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Lista de bloques (solo lectura) del diario de un usuario, reutilizable.
+struct JournalBlocksListView: View {
+    let title: String
+    let entries: [JournalSession]
+    var body: some View {
+        Group {
+            if entries.isEmpty {
+                Text("Sin bloques registrados.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(entries, id: \.id) { e in
+                            JournalRow(entry: e)
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Stats del diario (BLOQUES/ESCUELAS/MÁXIMO) tappables — componente reutilizable
+/// para tu cuenta y para el perfil público de quien sigues.
+struct JournalStatsNav: View {
+    let stats: JournalStats
+    let entries: [JournalSession]
+    var body: some View {
+        HStack(spacing: 8) {
+            NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries)) {
+                cell("\(stats.blockCount)", "BLOQUES")
+            }.buttonStyle(.plain)
+            NavigationLink(destination: JournalSchoolsView(schools: stats.bySchool, entries: entries)) {
+                cell("\(stats.schoolCount)", "ESCUELAS")
+            }.buttonStyle(.plain)
+            cell(stats.maxGrade ?? "—", "MÁXIMO")
+        }
+    }
+    private func cell(_ v: String, _ l: String) -> some View {
+        VStack(spacing: 3) {
+            Text(v).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+            Text(l).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Cumbre.paper)
+        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
     }
 }
 

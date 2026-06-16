@@ -45,10 +45,16 @@
   `GetBlocksUseCase` en `IosDependencyContainer` (+ `KtorBlockRepository`).
 - **maxGrade arreglado**: el badge "TOPE" del perfil ahora usa
   `JournalStats.maxGrade` (máximo REAL del diario), no el `topGrade` editable.
-- **Navegación bloques/escuelas**: `AccountView` añade una stats row
-  (BLOQUES→JournalView · ESCUELAS→`JournalSchoolsView` · MÁXIMO) tappable.
+- **Navegación bloques/escuelas**: stats row tappable (`JournalStatsNav`
+  reutilizable): BLOQUES→lista de bloques · ESCUELAS→`JournalSchoolsView` y cada
+  escuela abre `SchoolJournalBlocksView` (los bloques hechos en esa escuela) ·
+  MÁXIMO.
 - **Seguidores/Seguidos**: contadores tappables en `AccountView`
   (getFollowStatus del propio uid) → `FollowListView`.
+- **Diario de quien sigues**: `PublicProfileView` muestra el `JournalStatsNav`
+  del usuario (BLOQUES/ESCUELAS/MÁXIMO navegables) cargando `getUserStats` +
+  `getUserJournal` (expuestos en el container); si su perfil es privado y no le
+  sigues, no se muestra (el backend devuelve 403).
 
 ### Perfil público vs privado — ⬜ explicar + implementar
 **Qué hace en Android:** el flag `isPublic` del perfil controla la
