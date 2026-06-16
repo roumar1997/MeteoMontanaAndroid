@@ -172,6 +172,22 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
 
 ---
 
+## Más pantallas (2026-06-16, 5ª tanda)
+
+- ✅ **Notificaciones navegables**: tocar una notificación navega a su destino
+  (`targetType` "user"→perfil público, "school"→detalle vía
+  `SchoolDetailLoaderView` que carga la escuela por id) — espejo de
+  `NotificationsScreen.kt`.
+- ✅ **Alerta de tiempo** (`WeekendAlertView`): pantalla nueva (espejo de
+  `WeekendAlertScreen.kt`) — switch ACTIVADA, días a comparar (L-D), modo MIS
+  ESCUELAS / POR CERCANÍA (+ radio), selector de escuelas (máx 3, búsqueda en
+  catálogo), día/hora de aviso, y "ventana óptima hoy" + umbral. Persiste en
+  `/api/me/weekend-alert` (use cases `GetWeekendAlertUseCase`/
+  `UpdateWeekendAlertUseCase` expuestos). Acceso desde el perfil.
+  ⚠️ El **envío del push** en iOS llegará con el **bridge de FCM** (el backend
+  manda la alerta a los tokens FCM del usuario; iOS aún no registra token). La
+  configuración ya se guarda y funciona en cuanto exista el token.
+
 ## Feedback 4ª ronda (2026-06-16)
 
 - **15 (compartir)**: movido al **detalle** de escuela, como **icono** junto a

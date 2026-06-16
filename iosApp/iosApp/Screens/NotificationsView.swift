@@ -35,9 +35,30 @@ final class NotificationsViewModel: ObservableObject {
         await load()
     }
 
-    func tap(_ n: Shared.Notification) {
-        guard n.readAt == nil else { return }
-        Task { try? await markRead.invoke(id: n.id); await load() }
+    /// Marca leída (si no lo estaba). Devuelve el destino de navegación según el
+    /// targetType (espejo de NotificationsScreen.kt: "user"→perfil, "school"→detalle).
+    func tap(_ n: Shared.Notification) -> NotifTarget? {
+        if n.readAt == nil {
+            Task { try? await markRead.invoke(id: n.id); await load() }
+        }
+        guard let tid = n.targetId, !tid.isEmpty else { return nil }
+        switch n.targetType {
+        case "user": return .user(tid)
+        case "school", "school_detail": return .school(tid)
+        default: return nil
+        }
+    }
+}
+
+/// Destino de navegación de una notificación.
+enum NotifTarget: Identifiable {
+    case school(String)
+    case user(String)
+    var id: String {
+        switch self {
+        case .school(let s): return "school-\(s)"
+        case .user(let u): return "user-\(u)"
+        }
     }
 }
 
@@ -46,6 +67,7 @@ final class NotificationsViewModel: ObservableObject {
 struct NotificationsView: View {
     @StateObject private var vm = NotificationsViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var target: NotifTarget?
 
     var body: some View {
         NavigationStack {
@@ -62,7 +84,7 @@ struct NotificationsView: View {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(vm.items, id: \.id) { n in
-                                NotificationRow(n: n).onTapGesture { vm.tap(n) }
+                                NotificationRow(n: n).onTapGesture { target = vm.tap(n) }
                                 Divider().overlay(Cumbre.rule)
                             }
                         }
@@ -72,6 +94,12 @@ struct NotificationsView: View {
             .background(Cumbre.bg.ignoresSafeArea())
             .navigationTitle("Notificaciones")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(item: $target) { t in
+                switch t {
+                case .school(let id): SchoolDetailLoaderView(schoolId: id)
+                case .user(let uid): PublicProfileView(uid: uid)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)

@@ -179,6 +179,31 @@ private struct MonthlyStatsSection: View {
     }
 }
 
+/// Carga una escuela por id y muestra su detalle. Útil cuando solo tenemos el
+/// schoolId (p. ej. al tocar una notificación con targetType "school").
+struct SchoolDetailLoaderView: View {
+    let schoolId: String
+    @State private var school: School?
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if let s = school {
+                SchoolDetailView(school: s)
+            } else if failed {
+                ContentUnavailableView("Escuela no encontrada", systemImage: "mappin.slash")
+            } else {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .task {
+            if let s = try? await AppDependencies.shared.container.getSchoolById.invoke(id: schoolId) {
+                school = s
+            } else { failed = true }
+        }
+    }
+}
+
 /// Cuerpo del forecast (réplica de ForecastBody.kt). Reutilizado por el detalle
 /// de escuela y por el tab Tiempo (en tu ubicación). `directions` es opcional:
 /// el tab Tiempo no muestra "CÓMO LLEGAR" (no hay escuela destino).

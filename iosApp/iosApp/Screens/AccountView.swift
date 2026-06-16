@@ -167,6 +167,7 @@ struct AccountView: View {
         VStack(spacing: 0) {
             menuRow("Editar perfil", "pencil", EditProfileView())
             menuRow("Mi diario", "book.closed", JournalView())
+            menuRow("Alerta de tiempo", "bell.badge", WeekendAlertView())
             menuRow("Mis propuestas", "mappin.and.ellipse", MySubmissionsView())
             menuRow("Mis contribuciones", "square.and.pencil", MyContributionsView())
             menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
