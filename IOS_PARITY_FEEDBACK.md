@@ -172,6 +172,20 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
 
 ---
 
+## Feedback 4ª ronda (2026-06-16)
+
+- **15 (compartir)**: movido al **detalle** de escuela, como **icono** junto a
+  la estrella del toolbar (mismo estilo); quitado de las filas de la lista y
+  quitado el botón grande "COMPARTIR" del detalle.
+- **13 (ubicación por región)**: la UBICACIÓN ahora solo lista localidades de la
+  región elegida (se resetea al cambiar región) — **en iOS Y Android** (Android
+  `SubmitSchoolScreen` reescrito con `DropdownField` + "Otro…", VM carga el
+  catálogo). Es el mismo comportamiento en ambas apps.
+- **Más (pantalla nueva)**: **Panel de admin** (`AdminView`) — cola de escuelas
+  nuevas + mejoras pendientes con **APROBAR / RECHAZAR** (motivo opcional).
+  Use cases admin expuestos en el container. Accesible desde el perfil solo si
+  `isAdmin`. (Mini-mapa "VER EN MAPA" pendiente del bridge MapLibre.)
+
 ## Feedback 3ª ronda (2026-06-16) — sobre el .ipa de paridad
 
 - **13 (enviar escuela)**: roca, región, estilo y ubicación pasan a

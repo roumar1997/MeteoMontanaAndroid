@@ -170,6 +170,10 @@ struct AccountView: View {
             menuRow("Mis propuestas", "mappin.and.ellipse", MySubmissionsView())
             menuRow("Mis contribuciones", "square.and.pencil", MyContributionsView())
             menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
+            // Panel de admin: solo si el perfil es admin.
+            if vm.profile?.isAdmin == true {
+                menuRow("Panel de admin", "checkmark.shield", AdminView())
+            }
         }
     }
 

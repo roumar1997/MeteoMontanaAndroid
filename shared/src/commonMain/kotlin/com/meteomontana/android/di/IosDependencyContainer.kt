@@ -3,6 +3,7 @@ package com.meteomontana.android.di
 import com.meteomontana.android.data.api.KtorFavoritesApi
 import com.meteomontana.android.data.api.KtorForecastApi
 import com.meteomontana.android.data.api.KtorNoteApi
+import com.meteomontana.android.data.api.KtorAdminApi
 import com.meteomontana.android.data.api.KtorBlockApi
 import com.meteomontana.android.data.api.KtorContributionApi
 import com.meteomontana.android.data.api.KtorJournalApi
@@ -16,6 +17,7 @@ import com.meteomontana.android.data.repository.KtorFavoritesRepository
 import com.meteomontana.android.data.repository.KtorForecastRepository
 import com.meteomontana.android.data.repository.KtorNoteRepository
 import com.meteomontana.android.data.repository.KtorNotificationsRepository
+import com.meteomontana.android.data.repository.KtorAdminRepository
 import com.meteomontana.android.data.repository.KtorBlockRepository
 import com.meteomontana.android.data.repository.KtorContributionRepository
 import com.meteomontana.android.data.repository.KtorJournalRepository
@@ -58,6 +60,12 @@ import com.meteomontana.android.domain.usecase.journal.GetUserJournalUseCase
 import com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase
+import com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase
+import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
+import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
+import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
+import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
@@ -123,6 +131,7 @@ class IosDependencyContainer(
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
     private val blockRepository = KtorBlockRepository(KtorBlockApi(httpClient))
+    private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
 
     // Use cases públicos del MVP (sin auth). Se irán añadiendo más a medida
     // que las pantallas iOS los necesiten.
@@ -176,6 +185,14 @@ class IosDependencyContainer(
     // Diario de escalada: entradas, stats (bloques/escuelas/grado máximo), crear/borrar.
     // Bloques de una escuela (para autocompletar el diario con vías/sectores reales).
     val getBlocks = GetBlocksUseCase(blockRepository)
+
+    // Admin: cola de propuestas/contribuciones pendientes + aprobar/rechazar.
+    val getPendingSubmissions = GetPendingSubmissionsUseCase(adminRepository)
+    val getPendingContributions = GetPendingContributionsUseCase(adminRepository)
+    val approveSubmission = ApproveSubmissionUseCase(adminRepository)
+    val rejectSubmission = RejectSubmissionUseCase(adminRepository)
+    val approveContribution = ApproveContributionUseCase(adminRepository)
+    val rejectContribution = RejectContributionUseCase(adminRepository)
 
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)

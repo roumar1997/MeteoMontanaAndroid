@@ -123,6 +123,15 @@ struct SchoolDetailView: View {
         .navigationTitle(school.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // Compartir (icono, mismo estilo que la estrella) — solo si hay
+            // forecast cargado para resumir las condiciones.
+            ToolbarItem(placement: .topBarTrailing) {
+                if let f = vm.forecast {
+                    ShareLink(item: conditionsShareSummary(f)) {
+                        Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink3)
+                    }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { vm.toggleFavorite(schoolId: school.id) } label: {
                     Image(systemName: vm.isFavorite ? "star.fill" : "star")
@@ -183,12 +192,8 @@ struct ForecastBodyView: View {
         let f = forecast
         VStack(alignment: .leading, spacing: 0) {
             HeroSection(forecast: f)
-            // Botón COMPARTIR (paridad con Android). "CÓMO LLEGAR" volverá con
-            // los mapas. Solo en contexto de escuela (directions != nil).
-            if directions != nil {
-                ShareConditionsButton(forecast: f)
-                    .padding(.horizontal, 16).padding(.bottom, 8)
-            }
+            // El compartir vive ahora como icono junto a la estrella del toolbar
+            // (el detalle ya tiene muchos datos). "CÓMO LLEGAR" volverá con mapas.
             RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)
             HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
             FactorsAccordion(current: f.current, expanded: $factorsExpanded)
@@ -477,16 +482,20 @@ struct DirectionsButton: View {
 /// Botón COMPARTIR — comparte un resumen de condiciones por el share sheet del
 /// sistema (paridad con Android, que comparte una tarjeta). De momento texto;
 /// la imagen-tarjeta es una mejora posterior.
+/// Resumen de condiciones para compartir (texto). Reutilizado por el icono del
+/// toolbar del detalle.
+func conditionsShareSummary(_ forecast: Forecast) -> String {
+    let c = forecast.current
+    let score = Int(c.score)
+    return "\(forecast.schoolName) — Índice \(score)/100 (\(c.scoreLabel)) hoy. "
+        + "\(Int(c.temperature))°, viento \(Int(c.windSpeed)) km/h, roca \(c.dryRock ? "seca" : "mojada"). "
+        + "Tiempo para escalar · MeteoMontana"
+}
+
 struct ShareConditionsButton: View {
     let forecast: Forecast
 
-    private var summary: String {
-        let c = forecast.current
-        let score = Int(c.score)
-        return "\(forecast.schoolName) — Índice \(score)/100 (\(c.scoreLabel)) hoy. "
-            + "\(Int(c.temperature))°, viento \(Int(c.windSpeed)) km/h, roca \(c.dryRock ? "seca" : "mojada"). "
-            + "Tiempo para escalar · MeteoMontana"
-    }
+    private var summary: String { conditionsShareSummary(forecast) }
 
     var body: some View {
         ShareLink(item: summary) {

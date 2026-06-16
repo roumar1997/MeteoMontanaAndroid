@@ -24,7 +24,7 @@ final class SubmitSchoolViewModel: ObservableObject {
     @Published var regionOptions: [String] = []
     @Published var styleOptions: [String] = []
     @Published var rockOptions: [String] = []
-    @Published var locationOptions: [String] = []
+    private var schools: [School] = []
 
     private let submitSchool: SubmitSchoolUseCase
     private let getSchools: GetSchoolsUseCase
@@ -38,13 +38,23 @@ final class SubmitSchoolViewModel: ObservableObject {
 
     /// Carga las opciones de los desplegables desde el catálogo (valores únicos).
     func loadOptions() async {
-        guard let schools = try? await getSchools.invoke(
+        guard let list = try? await getSchools.invoke(
             region: nil, style: nil, rockType: nil, lat: nil, lon: nil, radioKm: nil
         ) else { return }
-        regionOptions = unique(schools.map { $0.region })
-        styleOptions = unique(schools.map { $0.style })
-        rockOptions = unique(schools.map { $0.rockType })
-        locationOptions = unique(schools.map { $0.location })
+        schools = list
+        regionOptions = unique(list.map { $0.region })
+        styleOptions = unique(list.map { $0.style })
+        rockOptions = unique(list.map { $0.rockType })
+    }
+
+    /// Localidades del catálogo, filtradas por la región elegida (si la hay).
+    /// Mismo criterio que Android: si no hay región, todas; si hay, solo las de
+    /// esa región. Evita listar localidades que no pertenecen a la región.
+    func locationOptions(forRegion region: String) -> [String] {
+        let r = region.trimmingCharacters(in: .whitespaces)
+        let scope = r.isEmpty ? schools
+            : schools.filter { $0.region?.caseInsensitiveCompare(r) == .orderedSame }
+        return unique(scope.map { $0.location })
     }
 
     private func unique(_ raw: [String?]) -> [String] {
@@ -132,6 +142,7 @@ struct SubmitSchoolView: View {
             VStack(alignment: .leading, spacing: 14) {
                 field("NOMBRE", $vm.name, "ej: La Pedriza")
                 pickerField("REGIÓN", $vm.region, vm.regionOptions)
+                    .onChange(of: vm.region) { _, _ in vm.location = "" }   // resetea localidad al cambiar región
                 pickerField("ESTILO", $vm.style, vm.styleOptions)
                 pickerField("TIPO DE ROCA", $vm.rockType, vm.rockOptions)
 
@@ -152,7 +163,7 @@ struct SubmitSchoolView: View {
                     field("LONGITUD", $vm.lon, "-3.70").frame(maxWidth: .infinity)
                 }
 
-                pickerField("UBICACIÓN", $vm.location, vm.locationOptions)
+                pickerField("UBICACIÓN", $vm.location, vm.locationOptions(forRegion: vm.region))
                 field("NOTAS", $vm.notes, "Cualquier info útil")
 
                 if let e = vm.errorText {

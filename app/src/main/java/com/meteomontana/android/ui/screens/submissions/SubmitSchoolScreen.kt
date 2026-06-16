@@ -17,6 +17,11 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +48,7 @@ fun SubmitSchoolScreen(
     viewModel: SubmitSchoolViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val options by viewModel.options.collectAsState()
 
     var name by remember { mutableStateOf("") }
     var region by remember { mutableStateOf("") }
@@ -79,9 +85,13 @@ fun SubmitSchoolScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Field("NOMBRE", name, { name = it }, placeholder = "ej: La Pedriza")
-            Field("REGIÓN", region, { region = it }, placeholder = "ej: Madrid")
-            Field("ESTILO", style, { style = it }, placeholder = "Vía / Bloque")
-            Field("TIPO DE ROCA", rockType, { rockType = it }, placeholder = "ej: Granito")
+            // Desplegables con valores del catálogo (+ "Otro…") para evitar erratas.
+            DropdownField("REGIÓN", region, options.regions, onChange = {
+                region = it
+                location = "" // resetea la localidad al cambiar de región
+            })
+            DropdownField("ESTILO", style, options.styles, onChange = { style = it })
+            DropdownField("TIPO DE ROCA", rockType, options.rockTypes, onChange = { rockType = it })
 
             // ── Pegar coordenadas de Google Maps (lat, lon) ──────────────────
             // Acepta "40.4168, -3.7038" o "40.4168,-3.7038" o solo dos números
@@ -110,7 +120,9 @@ fun SubmitSchoolScreen(
                     Field("LONGITUD", lon, { lon = it }, placeholder = "-3.70")
                 }
             }
-            Field("UBICACIÓN", location, { location = it }, placeholder = "Localidad")
+            // Localidad filtrada por la región elegida (igual que iOS).
+            DropdownField("UBICACIÓN", location, viewModel.locationOptions(region),
+                onChange = { location = it })
             Field("NOTAS", notes, { notes = it }, placeholder = "Cualquier info útil", height = 80.dp)
 
             if (state is SubmitState.Error) {
@@ -172,6 +184,64 @@ private fun parseLatLonPaste(raw: String): Pair<Double, Double>? {
     // Sanity check: lat ∈ [-90,90], lon ∈ [-180,180]
     if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) return null
     return lat to lon
+}
+
+/**
+ * Campo desplegable con valores del catálogo + opción "Otro…" que revela un
+ * campo de texto para casos no listados. Espejo del pickerField de iOS.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DropdownField(
+    label: String,
+    value: String,
+    options: List<String>,
+    onChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    // "Otro" = hay un valor que no está en la lista (lo escribió el usuario).
+    val isOther = value.isNotBlank() && options.none { it.equals(value, ignoreCase = true) }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(label, style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = if (value.isBlank()) "" else value,
+                onValueChange = {},
+                readOnly = true,
+                placeholder = { Text("Seleccionar…") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { opt ->
+                    DropdownMenuItem(
+                        text = { Text(opt) },
+                        onClick = { onChange(opt); expanded = false }
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("Otro…") },
+                    onClick = { onChange(" "); expanded = false }
+                )
+            }
+        }
+        if (isOther) {
+            OutlinedTextField(
+                value = value.trimStart(),
+                onValueChange = { onChange(it) },
+                placeholder = { Text("Escribe el valor") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }
 
 @Composable
