@@ -515,6 +515,14 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
   PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
 - **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+- **Admin ve QUÉ cambia en vías (iOS, espejo de ContributionCard.kt)**: la card
+  de BOULDER al revisar **corregir/añadir vías** carga la piedra destino
+  (getBlocks por schoolId), usa SU foto y dibuja **existentes difuminadas +
+  nuevas sólidas** (`TopoPhotoView.referenceLines`), con texto ORIGINAL/PROPUESTA
+  (nombre·grado·tipo). `ASSIGN_SECTOR` ahora muestra PIEDRA → SECTOR por nombre.
+  El editor (`TopoEditorView`) pinta el **badge de tipo** (PIE/SIT/LAN/TRV) al
+  final de cada línea mientras dibujas (antes "desaparecía"). Antes el admin solo
+  veía las nuevas y con `photoUrl` nil (corregir/añadir) no veía nada.
 - **CAMBIAR SECTOR de una piedra ya asignada** (iOS + Android, paridad): antes el
   botón solo salía si la piedra no tenía sector. Ahora sale si hay ≥1 sector
   distinto al actual; etiqueta "+ ASIGNAR SECTOR" (sin sector) o "CAMBIAR SECTOR"

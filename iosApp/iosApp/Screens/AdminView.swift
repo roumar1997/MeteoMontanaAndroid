@@ -249,6 +249,11 @@ private struct ContributionAdminCard: View {
     let onApprove: () -> Void
     let onReject: () -> Void
     @State private var showMap = false
+    // Bloques de la escuela (para resolver la piedra/sector destino al revisar
+    // corregir/añadir vías o asignar sector — el admin debe ver QUÉ se cambia).
+    @State private var schoolBlocks: [Block] = []
+    private var targetBlock: Block? { schoolBlocks.first { $0.id == contribution.targetBlockId } }
+    private var needsBlocks: Bool { contribution.targetBlockId != nil || contribution.sectorBlockId != nil }
 
     private var isCorrection: Bool { contribution.type.uppercased() == "POSITION_CORRECTION" }
     private var newCoord: CLLocationCoordinate2D? {
@@ -290,17 +295,16 @@ private struct ContributionAdminCard: View {
                     }
                 }
             case "BOULDER":
-                if let p = contribution.photoUrl, !p.isEmpty {
-                    Text(contribution.targetBlockId == nil ? "PIEDRA NUEVA" : "AÑADE VÍAS A UNA PIEDRA")
-                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
-                    TopoPhotoView(photoUrl: p, lines: TopoParse.lines(contribution.bloquesJson))
-                } else if let bj = contribution.bloquesJson, !bj.isEmpty {
-                    Text("\(TopoParse.lines(bj).count) vía(s) propuesta(s)")
-                        .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                }
+                BoulderReviewView(contribution: contribution, targetBlock: targetBlock)
             case "ASSIGN_SECTOR":
-                Text("ASIGNA ESTA PIEDRA A UN SECTOR")
-                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
+                let sector = schoolBlocks.first { $0.id == contribution.sectorBlockId }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ASIGNAR SECTOR A PIEDRA").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
+                    Text("PIEDRA · \((targetBlock?.name ?? contribution.name ?? "?").uppercased())")
+                        .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                    Text("→ SECTOR · \((sector?.name ?? "?").uppercased())")
+                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                }
             default:
                 EmptyView()
             }
@@ -320,11 +324,72 @@ private struct ContributionAdminCard: View {
         .sheet(isPresented: $showMap) {
             ContributionMapSheet(contribution: contribution)
         }
+        .task(id: contribution.id) {
+            guard needsBlocks, schoolBlocks.isEmpty else { return }
+            schoolBlocks = (try? await AppDependencies.shared.container.getBlocks
+                .invoke(schoolId: contribution.schoolId)) ?? []
+        }
     }
 
     private func coordStr(_ lat: Double, _ lon: Double) -> String {
         String(format: "%.5f, %.5f", lat, lon)
     }
+}
+
+/// Visualización de una contribución BOULDER para el admin: piedra nueva, añadir
+/// vías, o corregir una vía. Dibuja existentes (difuminadas) + nuevas sobre la
+/// foto y resume ORIGINAL vs PROPUESTA. Espejo de ContributionCard.kt.
+private struct BoulderReviewView: View {
+    let contribution: Contribution
+    let targetBlock: Block?
+
+    private var isEditLine: Bool { contribution.targetLineId != nil }
+    private var isNewBoulder: Bool { contribution.targetBlockId == nil }
+    private var newLines: [TopoLineVM] { TopoParse.lines(contribution.bloquesJson) }
+    private var existing: [TopoLineVM] { (targetBlock?.lines ?? []).map { TopoLineVM($0) } }
+    private var photo: String? { isNewBoulder ? contribution.photoUrl : targetBlock?.photoPath }
+    private var editedOriginal: BlockLine? {
+        targetBlock?.lines.first { $0.id == contribution.targetLineId }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(header).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
+            if let photo, !photo.isEmpty {
+                // En corregir/añadir, `existing` (incluida la vía vieja) va difuminada
+                // detrás; las nuevas/corregidas, sólidas encima.
+                TopoPhotoView(photoUrl: photo, lines: newLines,
+                              referenceLines: isNewBoulder ? [] : existing)
+                if !isNewBoulder && !existing.isEmpty {
+                    Text("- - - existentes (difuminadas)   ·   ▬ propuesta")
+                        .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                }
+            } else if !newLines.isEmpty {
+                Text("\(newLines.count) vía(s) propuesta(s) (la piedra no tiene foto)")
+                    .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+            }
+            if isEditLine, let o = editedOriginal {
+                Text("ORIGINAL · \(lineSummary(o.name, o.grade, o.startType))")
+                    .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+            }
+            ForEach(Array(newLines.enumerated()), id: \.offset) { _, l in
+                Text("\(isEditLine ? "PROPUESTA" : "NUEVA") · \(lineSummary(l.name, l.grade, l.startType))")
+                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+            }
+        }
+    }
+
+    private var header: String {
+        if isNewBoulder { return "PIEDRA NUEVA" }
+        let nm = (targetBlock?.name ?? contribution.name ?? "piedra").uppercased()
+        return isEditLine ? "CORRIGE UNA VÍA DE «\(nm)»" : "AÑADE VÍAS A «\(nm)»"
+    }
+}
+
+/// Resumen de una vía (nombre · grado · tipo) para el admin.
+private func lineSummary(_ name: String?, _ grade: String?, _ start: String?) -> String {
+    [name?.isEmpty == false ? name : nil, grade, start]
+        .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
 }
 
 func adminTypeLabel(_ t: String) -> String {

@@ -52,6 +52,10 @@ enum TopoParse {
 struct TopoPhotoView: View {
     let photoUrl: String
     let lines: [TopoLineVM]
+    /// Vías de referencia (p. ej. las existentes de la piedra al revisar una
+    /// corrección): se pintan DIFUMINADAS detrás de `lines` para que el admin vea
+    /// "lo antiguo" vs "la propuesta". Vacío = no se pinta nada extra.
+    var referenceLines: [TopoLineVM] = []
     @State private var image: UIImage?
     @State private var ratio: CGFloat = 4.0 / 3.0
 
@@ -86,6 +90,15 @@ struct TopoPhotoView: View {
     }
 
     private func draw(_ ctx: GraphicsContext, _ size: CGSize) {
+        // Vías de referencia (existentes) difuminadas, sin badges, detrás de todo.
+        for line in referenceLines where !line.points.isEmpty {
+            let style = GradeColor.style(line.grade)
+            let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
+            var path = Path(); path.move(to: pts[0])
+            for p in pts.dropFirst() { path.addLine(to: p) }
+            ctx.stroke(path, with: .color(style.stroke.opacity(0.35)),
+                       style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round, dash: [6, 6]))
+        }
         for (idx, line) in lines.enumerated() where !line.points.isEmpty {
             let style = GradeColor.style(line.grade)
             let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }

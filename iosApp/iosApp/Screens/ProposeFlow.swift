@@ -304,6 +304,26 @@ struct TopoEditorView: View {
             ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 9, y: pts[0].y - 9, width: 18, height: 18)), with: .color(style.stroke))
             ctx.draw(Text("\(idx + 1)").font(.system(size: 12, weight: .bold))
                 .foregroundColor(style.dark ? .black : .white), at: pts[0], anchor: .center)
+            // Badge de tipo de inicio en el final (PIE/SIT/LAN/TRV) — para no
+            // "perder" el tipo de vista mientras se dibuja.
+            if let label = startLabelShort(b.startType), let end = pts.last {
+                ctx.fill(Path(ellipseIn: CGRect(x: end.x - 13, y: end.y - 13, width: 26, height: 26)),
+                         with: .color(style.dark ? .black : .white))
+                ctx.fill(Path(ellipseIn: CGRect(x: end.x - 10.5, y: end.y - 10.5, width: 21, height: 21)),
+                         with: .color(style.stroke))
+                ctx.draw(Text(label).font(.system(size: 9, weight: .bold))
+                    .foregroundColor(style.dark ? .black : .white), at: end, anchor: .center)
+            }
+        }
+    }
+
+    private func startLabelShort(_ t: String?) -> String? {
+        switch t?.uppercased() {
+        case "PIE", "STAND": return "PIE"
+        case "SIT": return "SIT"
+        case "LANCE", "JUMP": return "LAN"
+        case "TRAV": return "TRV"
+        default: return nil
         }
     }
 }
