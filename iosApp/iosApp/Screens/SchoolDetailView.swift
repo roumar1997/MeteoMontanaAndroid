@@ -523,15 +523,32 @@ private struct BlockInfoSheet: View {
                     Text(typeLabel).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
                     Text(block.name.isEmpty ? typeLabel : block.name)
                         .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+
+                    // Foto con las vías dibujadas encima (solo PIEDRA con foto).
+                    if block.type.uppercased() == "BLOCK",
+                       let photo = block.photoPath, !photo.isEmpty {
+                        TopoPhotoView(photoUrl: photo, lines: block.lines.map { TopoLineVM($0) })
+                            .padding(.top, 4)
+                    }
+
+                    if let d = block.description, !d.isEmpty {
+                        Text(d).font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.top, 2)
+                    }
+
                     if !block.lines.isEmpty {
-                        Text("VÍAS").eyebrow().padding(.top, 4)
-                        ForEach(block.lines, id: \.id) { l in
+                        Text("VÍAS (\(block.lines.count))").eyebrow().padding(.top, 4)
+                        ForEach(Array(block.lines.enumerated()), id: \.element.id) { idx, l in
                             HStack(spacing: 10) {
+                                // Número coloreado por grado (espejo del badge del topo).
+                                Text("\(idx + 1)").font(Cumbre.mono(11, .bold))
+                                    .foregroundStyle(GradeColor.style(l.grade).dark ? .black : .white)
+                                    .frame(width: 24, height: 24)
+                                    .background(Circle().fill(GradeColor.color(l.grade)))
                                 if let g = l.grade, !g.isEmpty {
-                                    Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
-                                        .frame(width: 40, height: 26).background(GradeColor.color(g))
+                                    Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
+                                        .frame(width: 38, alignment: .leading)
                                 }
-                                Text(l.name.isEmpty ? "Vía \(l.sortOrder + 1)" : l.name)
+                                Text(l.name.isEmpty ? "Vía \(idx + 1)" : l.name)
                                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                                 Spacer()
                                 if let st = l.startType, !st.isEmpty {
@@ -540,6 +557,11 @@ private struct BlockInfoSheet: View {
                             }
                         }
                     }
+
+                    // Coordenadas (espejo de BlockDetailDialog).
+                    Text(String(format: "%.5f, %.5f", block.lat, block.lon))
+                        .font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3).padding(.top, 2)
+
                     DirectionsButton(lat: block.lat, lon: block.lon, label: block.name).padding(.top, 8)
                 }
                 .padding(16)
