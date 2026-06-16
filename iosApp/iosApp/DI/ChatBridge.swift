@@ -1,0 +1,99 @@
+import FirebaseFirestore
+import FirebaseAuth
+import Foundation
+import Shared
+
+/// Handle de un snapshot listener de Firestore para el lado Kotlin (lo quita en
+/// `awaitClose` cuando el Flow se cancela).
+final class ChatListenerHandle: NSObject, IosChatListener {
+    private let registration: ListenerRegistration?
+    init(_ r: ListenerRegistration?) { self.registration = r }
+    func remove() { registration?.remove() }
+}
+
+/// Implementación Swift del bridge `IosChatBridge` (Kotlin iosMain) con
+/// FirebaseFirestore. MISMA estructura Firestore que `FirebaseChatService` de
+/// Android: colección `conversations` + subcolección `messages`.
+final class ChatBridge: NSObject, IosChatBridge {
+
+    private let db = Firestore.firestore()
+    private var convs: CollectionReference { db.collection("conversations") }
+
+    private func convIdFor(_ a: String, _ b: String) -> String {
+        [a, b].sorted().joined(separator: "_")
+    }
+
+    private func millis(_ any: Any?) -> Int64 {
+        guard let ts = any as? Timestamp else { return -1 }
+        return Int64(ts.dateValue().timeIntervalSince1970 * 1000)
+    }
+
+    func observeConversations(onChange: @escaping ([IosConvDto]) -> Void) -> IosChatListener {
+        guard let me = Auth.auth().currentUser?.uid else { onChange([]); return ChatListenerHandle(nil) }
+        let reg = convs
+            .whereField("participants", arrayContains: me)
+            .order(by: "lastAt", descending: true)
+            .addSnapshotListener { snap, _ in
+                let list: [IosConvDto] = snap?.documents.compactMap { doc in
+                    let d = doc.data()
+                    let participants = (d["participants"] as? [String]) ?? []
+                    if participants.isEmpty { return nil }
+                    let unread = (d["unread_\(me)"] as? NSNumber)?.int64Value ?? 0
+                    return IosConvDto(
+                        id: doc.documentID,
+                        participants: participants,
+                        lastMessage: d["lastMessage"] as? String,
+                        lastFromUid: d["lastFromUid"] as? String,
+                        lastAtMillis: self.millis(d["lastAt"]),
+                        unreadCount: unread)
+                } ?? []
+                onChange(list)
+            }
+        return ChatListenerHandle(reg)
+    }
+
+    func observeMessages(convId: String, onChange: @escaping ([IosMsgDto]) -> Void) -> IosChatListener {
+        let reg = convs.document(convId).collection("messages")
+            .order(by: "createdAt")
+            .limit(toLast: 200)
+            .addSnapshotListener { snap, _ in
+                let list: [IosMsgDto] = snap?.documents.map { doc in
+                    let d = doc.data()
+                    return IosMsgDto(
+                        id: doc.documentID,
+                        fromUid: d["fromUid"] as? String ?? "",
+                        text: d["text"] as? String ?? "",
+                        createdAtMillis: self.millis(d["createdAt"]))
+                } ?? []
+                onChange(list)
+            }
+        return ChatListenerHandle(reg)
+    }
+
+    func sendMessage(otherUid: String, text: String, completion: @escaping (String?) -> Void) {
+        guard let me = Auth.auth().currentUser?.uid else { completion("No hay sesión"); return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.count <= 1000 else { completion("Mensaje vacío o muy largo"); return }
+        let ref = convs.document(convIdFor(me, otherUid))
+        let now = Timestamp(date: Date())
+        ref.collection("messages").addDocument(data: [
+            "fromUid": me, "text": trimmed, "createdAt": now
+        ]) { err in
+            if let err = err { completion(err.localizedDescription); return }
+            ref.setData([
+                "participants": [me, otherUid].sorted(),
+                "lastMessage": trimmed,
+                "lastFromUid": me,
+                "lastAt": now,
+                "unread_\(otherUid)": FieldValue.increment(Int64(1))
+            ], merge: true) { err2 in completion(err2?.localizedDescription) }
+        }
+    }
+
+    func markRead(convId: String, completion: @escaping (String?) -> Void) {
+        guard let me = Auth.auth().currentUser?.uid else { completion(nil); return }
+        convs.document(convId).setData(["unread_\(me)": 0], merge: true) { err in
+            completion(err?.localizedDescription)
+        }
+    }
+}

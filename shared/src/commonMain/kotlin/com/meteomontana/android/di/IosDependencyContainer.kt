@@ -28,6 +28,7 @@ import com.meteomontana.android.data.repository.KtorSubmissionRepository
 import com.meteomontana.android.data.saved.CachedSchoolsRepository
 import com.meteomontana.android.data.stats.MonthlyStatsRepository
 import com.meteomontana.android.domain.port.AuthService
+import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.domain.port.LocationProvider
 import com.meteomontana.db.MeteoMontanaDb
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
@@ -112,7 +113,12 @@ class IosDependencyContainer(
      * Swift con `DatabaseFactory().create()` (driver nativo) y la pasa aquí.
      * Null → la lista funciona sin caché (solo red).
      */
-    database: MeteoMontanaDb? = null
+    database: MeteoMontanaDb? = null,
+    /**
+     * Chat 1-a-1 (Firestore). En iOS se pasa un [com.meteomontana.android.data.chat.IosChatService]
+     * (envoltorio del bridge Swift con FirebaseFirestore). Null → sin chat.
+     */
+    val chatService: ChatService? = null
 ) {
     private val httpClient = buildApiHttpClient(baseUrl) {
         authService?.currentIdToken(false)

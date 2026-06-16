@@ -27,6 +27,9 @@ final class AppDependencies {
     let authBridge = AuthBridge()
     /// El AuthService compartido (StateFlow de sesión + token + signOut).
     let authService: IosAuthService
+    /// Bridge de chat (FirebaseFirestore). El `ChatService` del contenedor lo
+    /// envuelve en Flow/suspend para las pantallas de chat.
+    let chatBridge = ChatBridge()
 
     private init() {
         // locationProvider: bridge iOS → tab Tiempo en tu ubicación real.
@@ -34,13 +37,15 @@ final class AppDependencies {
         let location = IosLocationProvider(bridge: locationBridge)
         let auth = IosAuthService(bridge: authBridge)
         authService = auth
+        let chat = IosChatService(bridge: chatBridge)
         // BD SQLDelight local (driver nativo) para el caché del catálogo.
         let db = DatabaseFactory().create()
         container = IosDependencyContainer(
             baseUrl: AppConfig.apiBaseUrl,
             authService: auth,
             locationProvider: location,
-            database: db
+            database: db,
+            chatService: chat
         )
     }
 }

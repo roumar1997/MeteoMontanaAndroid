@@ -515,6 +515,17 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
   PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
 - **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+- **Chat (Firestore) en iOS — primera versión** (pendiente de validar en device):
+  bridge `IosChatBridge`/`IosChatService` (iosMain) que envuelve Firestore en
+  `Flow`/`suspend`, con DTOs de nivel superior (`IosConvDto`/`IosMsgDto`) para no
+  construir clases anidadas desde Swift. Swift `ChatBridge.swift` (FirebaseFirestore,
+  misma estructura que `FirebaseChatService` de Android: colección `conversations`
+  + subcolección `messages`). `chatService` cableado en `IosDependencyContainer` y
+  `AppDependencies`. Pantallas `ChatView` (conversación + enviar) y `ChatListView`
+  (mis conversaciones, resuelve nombres con getPublicProfile). Entradas: botón
+  **MENSAJE** en el perfil público + icono de chat del header → lista. Falta probar
+  en iPhone y el push real (APNs/FCM token). El backend `notifyMessage` (push) lo
+  llama Android; iOS aún no.
 - **Editor unificado de vías** (iOS, `EditLinesSheet`): un botón "✎ EDITAR /
   AÑADIR VÍAS" en `BlockInfoSheet` abre un editor con TODAS las vías (existentes
   precargadas + "+ NUEVA VÍA"); tocas cualquiera para cambiar nombre/grado/tipo o

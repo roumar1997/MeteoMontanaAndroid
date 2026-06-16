@@ -287,14 +287,14 @@ private struct TopIconsRow: View {
     @State private var showAccount = false
     @State private var showNotifications = false
     @State private var showSearch = false
+    @State private var showChats = false
     @ObservedObject private var theme = ThemeManager.shared
 
     var body: some View {
         HStack(spacing: 4) {
             Spacer()
-            // Chat aún no cableado (necesita bridge Firestore).
             iconButton("magnifyingglass") { showSearch = true }
-            iconButton("bubble.left") {}
+            iconButton("bubble.left") { showChats = true }
             iconButton(theme.iconName) { theme.cycle() }
             bellButton
             iconButton("person") { showAccount = true }
@@ -304,6 +304,7 @@ private struct TopIconsRow: View {
         .sheet(isPresented: $showAccount) { AccountView() }
         .sheet(isPresented: $showNotifications) { NotificationsView() }
         .sheet(isPresented: $showSearch) { SearchUsersView() }
+        .sheet(isPresented: $showChats) { NavigationStack { ChatListView() } }
     }
 
     private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {

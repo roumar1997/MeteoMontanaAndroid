@@ -215,6 +215,14 @@ struct PublicProfileView: View {
                             }.buttonStyle(.plain)
                         }
                         followButton(s)
+                        // Chat 1-a-1 con este usuario (Firestore).
+                        NavigationLink(destination: ChatView(
+                            otherUid: uid,
+                            otherName: vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")) {
+                            Text("MENSAJE").font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                        }.buttonStyle(.plain)
                     }
                     // Diario del usuario: BLOQUES / ESCUELAS / MÁXIMO navegables
                     // (igual que tu cuenta). Solo si su perfil es visible.
