@@ -481,7 +481,7 @@ struct EditLineSheet: View {
 
                     Text("DATOS DE LA VÍA").eyebrow()
                     if !blocks.isEmpty {
-                        BoulderBlockRow(block: $blocks[0], index: line.sortOrder, onDelete: nil)
+                        BoulderBlockRow(block: $blocks[0], index: Int(line.sortOrder), onDelete: nil)
                     }
 
                     if hasPhoto {

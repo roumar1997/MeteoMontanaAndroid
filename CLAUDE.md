@@ -492,6 +492,62 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-16 (mapas iOS a fondo + proponer/editar + seed prod)
+
+Rama `claude/stoic-moser-40955c` (merge a `main` por push directo; ver workflow).
+Trabajo iOS de paridad de **mapas** y **contribuciones**, todo verificado por CI
+(verde) y probado por Rodrigo en iPhone. **Estado: HECHO salvo ADMIN (siguiente).**
+
+- **Mapas (MapLibreView.swift + MarkerRenderer.swift)**:
+  - Toggle **Topográfico / Satélite** (Esri) reutilizable (`MapStyleChips`) en
+    mapa de detalle y de lista.
+  - Marcadores con FORMA por tipo (parking cuadrado "P", zona pin "Z", piedra
+    polígono de roca con nombre, escuela triángulo, usuario punto azul) +
+    **diamante con score y nombre** en la lista. Drawing en `MarkerRenderer`.
+  - **Fix raíz**: ya no re-centra/re-crea marcadores en cada update (causaba que
+    el mapa de la lista se "perdiera"); diff por firma. `autoFitToMarkers`
+    (fitBounds al cambiar el set, blindado contra encuadre degenerado = el
+    "pillado" al filtrar favoritas). Etiquetas con zoom ≥ 8.5.
+  - **Fix tap**: el `UITapGestureRecognizer` (fijar posición) robaba el tap a la
+    selección de marcadores → se desactiva salvo en proponer/corregir. Ahora se
+    puede tocar escuela (lista→popup) y bloque/parking/zona (detalle→panel).
+  - Mapa de detalle reubicado **entre "tiempo actual" y "Próximas 16 h"**
+    (`ForecastBodyView.mapSlot`). Punto azul de mi ubicación también en detalle.
+- **Tocar piedra (BlockInfoSheet)**: foto con vías dibujadas (`TopoPhotoView` ≈
+  TopoPhotoCanvas/renderTopo, parsea linePath JSON), lista de vías por grado,
+  coords, CÓMO LLEGAR.
+- **Contribuciones (ProposeFlow.swift)** — espejo de ProposeContributionFlow:
+  - Proponer **PIEDRA** (BoulderFormSheet: nombre, sector opcional, bloques con
+    grado+tipo, foto, **editor de líneas** TopoEditorView con arrastre), **SECTOR**,
+    **PARKING**, **CORREGIR POSICIÓN** (elige marcador → nueva posición → acepta).
+  - **+ AÑADIR VÍAS** a piedra existente (AddLinesSheet, reusa foto + vías de
+    referencia) → BOULDER con `targetBlockId`.
+  - **✎ CORREGIR VÍA** (EditLineSheet, precarga la vía) → BOULDER con
+    `targetBlockId+targetLineId`. **+ ASIGNAR SECTOR** (AssignSectorSheet) →
+    `ASSIGN_SECTOR`. Fila de bloque compartida = `BoulderBlockRow`.
+- **Backend V25** (`MeteoMontanaAPI`, prod Railway): seed de pruebas — usuario
+  público falso `demo-cumbre-001` (cumbre_demo, con foto) + notificación
+  `NEW_FOLLOWER` para Rodrigo (por email). Reversible borrando esas 2 filas.
+- **Notas técnicas SKIE**: campos `Double?`/`Int` de Kotlin llegan como
+  `KotlinDouble?` / `Int32` → envolver/convertir (`KotlinDouble(double:)`,
+  `Int(...)`). `block.description` choca con `NSObject.description` (no usar).
+- **Flujo sin Mac**: lote de cambios → push a `main` → CI iOS compila (verde/rojo
+  es el feedback real) → `.ipa` a `C:\Users\rouma\ipa-serve\` servido por
+  `python -m http.server 8000` → AltStore. IP PC: 192.168.0.12.
+
+> **SIGUIENTE (← AQUÍ): ADMIN iOS completo** (`AdminView.swift` es básico:
+> solo aprobar/rechazar). Falta replicar `AdminScreen.kt` de Android:
+> filtros chips (TODAS/PIEDRAS/SECTORES/PARKINGS/MOVER), agrupación por escuela
+> con badges, **ContributionCard rica por tipo** (BOULDER foto+líneas,
+> POSITION_CORRECTION viejo→nuevo con línea, ASSIGN_SECTOR piedra→sector),
+> **mini-mapa por propuesta** + "VER EN MAPA" a pantalla completa, y tabs
+> **GESTIONAR** (buscar escuela→mapa→editar/borrar/mover bloques), **STATS**,
+> **ACTIVIDAD** (logs), **PUSH**. Exponer en `IosDependencyContainer` los use
+> cases que falten (getAdminStats, getAdminLogs, sendPush, update/deleteBlock,
+> getSchools admin, adminMoveSchool/Block). **CLAVE (pedido por Rodrigo)**: que
+> las CORRECCIONES se VEAN claras — qué vía/bloque se mueve y a dónde (mapa con
+> posición vieja gris ✕ + nueva amarilla ★ + línea), si no es un caos.
+
 ### Sesión 2026-06-16 — iOS: paridad masiva (login al arrancar + features) + instalación sin Mac
 
 - **Instalación en iPhone sin Mac VALIDADA**: el `.ipa` de GitHub Actions se
