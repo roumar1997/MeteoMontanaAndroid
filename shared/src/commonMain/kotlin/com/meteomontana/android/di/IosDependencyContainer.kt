@@ -26,6 +26,7 @@ import com.meteomontana.android.data.repository.KtorSchoolRepository
 import com.meteomontana.android.data.repository.KtorSocialRepository
 import com.meteomontana.android.data.repository.KtorSubmissionRepository
 import com.meteomontana.android.data.saved.CachedSchoolsRepository
+import com.meteomontana.android.data.saved.SavedSchoolRepository
 import com.meteomontana.android.data.stats.MonthlyStatsRepository
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
@@ -231,6 +232,10 @@ class IosDependencyContainer(
     // Caché local del catálogo (stale-while-revalidate): la lista pinta desde
     // aquí al instante y refresca desde red después. Null si no hay BD.
     val cachedSchools: CachedSchoolsRepository? = database?.let { CachedSchoolsRepository(it) }
+
+    // Escuelas guardadas para OFFLINE (detalle + bloques + vías + forecast). La
+    // lógica está en commonMain; iOS solo cachea aparte las FOTOS (ImageCache Swift).
+    val savedSchools: SavedSchoolRepository? = database?.let { SavedSchoolRepository(it) }
 
     // Stats mensuales (mejores meses del año por escuela). Requiere BD para la
     // caché; el cálculo lo hace el backend. Null si no hay BD.

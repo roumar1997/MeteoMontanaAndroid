@@ -166,6 +166,7 @@ struct AccountView: View {
     private var menuLinks: some View {
         VStack(spacing: 0) {
             menuRow("Editar perfil", "pencil", EditProfileView())
+            menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
             menuRow("Mi diario", "book.closed", JournalView())
             menuRow("Alerta de tiempo", "bell.badge", WeekendAlertView())
             menuRow("Mis propuestas", "mappin.and.ellipse", MySubmissionsView())

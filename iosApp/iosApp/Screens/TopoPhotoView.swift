@@ -91,9 +91,8 @@ struct TopoPhotoView: View {
     }
 
     private func load() async {
-        guard let url = URL(string: photoUrl) else { return }
-        if let (data, _) = try? await URLSession.shared.data(from: url),
-           let img = UIImage(data: data) {
+        // Caché en disco: se ve sin conexión si la escuela se guardó offline.
+        if let img = await ImageCache.image(photoUrl) {
             await MainActor.run {
                 image = img
                 let w = img.size.width, h = img.size.height

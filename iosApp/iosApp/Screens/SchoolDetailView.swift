@@ -22,7 +22,11 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var publishing = false
     @Published var monthlyScores: [Int] = []
     @Published var monthlyBestRange: String?
+    @Published var isSaved = false          // guardada para offline
+    @Published var savingOffline = false
 
+    private let savedSchools = AppDependencies.shared.container.savedSchools
+    private let getBlocks = AppDependencies.shared.container.getBlocks
     private let getForecast: GetForecastUseCase
     private let getMyFavorites: GetMyFavoritesUseCase
     private let addFavorite: AddFavoriteUseCase
@@ -55,6 +59,29 @@ final class SchoolDetailViewModel: ObservableObject {
         isFavorite = (favs ?? []).contains { $0.id == schoolId }
         await loadNotes(schoolId: schoolId)
         await loadMonthly(schoolId: schoolId, lat: lat, lon: lon, rockType: rockType)
+        await checkSaved(schoolId: schoolId)
+    }
+
+    func checkSaved(schoolId: String) async {
+        guard let repo = savedSchools else { return }
+        isSaved = (try? await repo.loadOffline(id: schoolId)) != nil
+    }
+
+    /// Guarda la escuela para OFFLINE: detalle + bloques + vías + forecast, y
+    /// pre-descarga las fotos de las piedras a la caché de imágenes.
+    func saveOffline(school: School) async {
+        guard let repo = savedSchools else { return }
+        savingOffline = true
+        let blocks = (try? await getBlocks.invoke(schoolId: school.id)) ?? []
+        try? await repo.saveOffline(school: school, blocks: blocks, forecast: forecast)
+        await ImageCache.prefetch(blocks.compactMap { $0.photoPath })
+        isSaved = true; savingOffline = false
+    }
+
+    func removeOffline(schoolId: String) async {
+        guard let repo = savedSchools else { return }
+        try? await repo.remove(id: schoolId)
+        isSaved = false
     }
 
     /// Stats mensuales (mejores meses del año). Cache-backed; null si no hay BD.
@@ -152,6 +179,22 @@ struct SchoolDetailView: View {
                 Button { vm.toggleFavorite(schoolId: school.id) } label: {
                     Image(systemName: vm.isFavorite ? "star.fill" : "star")
                         .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
+                }
+            }
+            // Guardar para offline (detalle + mapa + piedras + fotos).
+            ToolbarItem(placement: .topBarTrailing) {
+                if vm.savingOffline {
+                    ProgressView()
+                } else {
+                    Button {
+                        Task {
+                            if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
+                            else { await vm.saveOffline(school: school) }
+                        }
+                    } label: {
+                        Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
+                            .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
+                    }
                 }
             }
         }

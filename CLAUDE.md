@@ -515,6 +515,16 @@ Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
   (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
   PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
 - **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+- **Offline en iOS — primera versión** (a validar): reutiliza `SavedSchoolRepository`
+  de `shared` (ya tenía todo: SavedSchool/Block/Line/Forecast). Expuesto
+  `savedSchools` en el container. Botón **descargar** en el toolbar del detalle →
+  `saveOffline(school, blocks, forecast)` + **pre-descarga de fotos** (`ImageCache`
+  Swift, FNV hash estable en `Caches/photo-cache`). `TopoPhotoView` lee de
+  `ImageCache` (fotos sin red). **SavedSchoolsView** (lista, desde el perfil) →
+  **OfflineSchoolView** (lee `loadOffline`: forecast + mapa con marcadores +
+  piedras + fotos de la caché). ⚠️ Los **tiles del mapa** sí necesitan red (cachear
+  tiles = extra futuro; Android usa `OfflineTileManager`). El catálogo/lista ya
+  cacheaba (`CachedSchoolsRepository`).
 - **Chat (Firestore) en iOS — primera versión** (pendiente de validar en device):
   bridge `IosChatBridge`/`IosChatService` (iosMain) que envuelve Firestore en
   `Flow`/`suspend`, con DTOs de nivel superior (`IosConvDto`/`IosMsgDto`) para no
