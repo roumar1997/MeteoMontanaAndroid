@@ -174,8 +174,12 @@ struct PublicProfileView: View {
                 }
                 if let s = vm.status {
                     HStack(spacing: 24) {
-                        stat("\(s.followers)", "SEGUIDORES")
-                        stat("\(s.following)", "SIGUIENDO")
+                        NavigationLink(destination: FollowListView(uid: uid, mode: .followers)) {
+                            stat("\(s.followers)", "SEGUIDORES")
+                        }.buttonStyle(.plain)
+                        NavigationLink(destination: FollowListView(uid: uid, mode: .following)) {
+                            stat("\(s.following)", "SIGUIENDO")
+                        }.buttonStyle(.plain)
                     }
                     followButton(s)
                 }
@@ -230,5 +234,67 @@ struct AvatarCircle: View {
         .frame(width: size, height: size)
         .clipShape(Circle())
         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+}
+
+// MARK: - Lista de seguidores / seguidos
+
+enum FollowListMode { case followers, following }
+
+@MainActor
+final class FollowListViewModel: ObservableObject {
+    @Published var items: [PublicProfile] = []
+    @Published var loading = true
+
+    private let getFollowers: GetFollowersUseCase
+    private let getFollowing: GetFollowingUseCase
+    init(
+        getFollowers: GetFollowersUseCase = AppDependencies.shared.container.getFollowers,
+        getFollowing: GetFollowingUseCase = AppDependencies.shared.container.getFollowing
+    ) {
+        self.getFollowers = getFollowers
+        self.getFollowing = getFollowing
+    }
+
+    func load(uid: String, mode: FollowListMode) async {
+        loading = true
+        switch mode {
+        case .followers: items = (try? await getFollowers.invoke(uid: uid)) ?? []
+        case .following: items = (try? await getFollowing.invoke(uid: uid)) ?? []
+        }
+        loading = false
+    }
+}
+
+struct FollowListView: View {
+    let uid: String
+    let mode: FollowListMode
+    @StateObject private var vm = FollowListViewModel()
+
+    var body: some View {
+        Group {
+            if vm.loading {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if vm.items.isEmpty {
+                Text(mode == .followers ? "Sin seguidores" : "No sigue a nadie")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(vm.items, id: \.uid) { u in
+                            NavigationLink(destination: PublicProfileView(uid: u.uid)) {
+                                UserRow(profile: u)
+                            }.buttonStyle(.plain)
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle(mode == .followers ? "Seguidores" : "Siguiendo")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await vm.load(uid: uid, mode: mode) }
     }
 }
