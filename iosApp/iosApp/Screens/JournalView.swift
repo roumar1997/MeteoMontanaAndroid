@@ -149,7 +149,7 @@ private let JOURNAL_GRADES = ["4", "5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "
     "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a", "9a+"]
 
 /// Sugerencia de vía real (de un bloque catalogado de la escuela).
-private struct LineSuggestion: Identifiable {
+struct LineSuggestion: Identifiable {
     let id = UUID()
     let blockName: String
     let name: String
