@@ -200,7 +200,25 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
 - **Más (pantalla nueva)**: **Panel de admin** (`AdminView`) — cola de escuelas
   nuevas + mejoras pendientes con **APROBAR / RECHAZAR** (motivo opcional).
   Use cases admin expuestos en el container. Accesible desde el perfil solo si
-  `isAdmin`. (Mini-mapa "VER EN MAPA" pendiente del bridge MapLibre.)
+  `isAdmin`. **"VER EN MAPA"** ya implementado (mapa a pantalla completa con el
+  bridge MapLibre); ver "Admin completo" abajo.
+
+## Admin completo (2026-06-16, última tanda)
+
+- ✅ **PROPUESTAS** con cards ricas que muestran QUÉ cambia por tipo: CORREGIR
+  (✕ actual → ★ nueva con coords; "MUEVE LA ESCUELA ENTERA" si `targetBlockId`
+  es nil, si no "MUEVE «‹bloque›»"), PIEDRA (foto + líneas), ASIGNAR SECTOR.
+  "VER EN MAPA" a pantalla completa: corrección encuadra **ambos** marcadores
+  (✕ viejo gris + ★ nuevo ámbar) al cargar, para que el destino nunca quede
+  fuera de pantalla.
+- ✅ **GESTIONAR**: buscar escuela → mapa con todos los bloques → tocar uno →
+  editar **nombre / descripción / coordenadas** (preservando las VÍAS) o
+  **borrar**, y **MOVER pulsando en el mapa** (banner "PULSA LA NUEVA POSICIÓN").
+  La descripción usa el alias `Block.descriptionText` (evita el choque con
+  `NSObject.description` de SKIE).
+- ✅ **STATS / ACTIVIDAD (logs) / PUSH** (envío manual).
+- 🟦 Pendiente admin: **APNs** (push real al iPhone con la app cerrada; lo in-app
+  funciona).
 
 ## Feedback 3ª ronda (2026-06-16) — sobre el .ipa de paridad
 
@@ -249,8 +267,11 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
 - ✅ **Popup del panel de la lista** (`SchoolMapPopup`): al tocar un marcador,
   hoja con score + nombre + tags + "CÓMO LLEGAR" y "VER DETALLE ▸" (espejo de
   `SchoolsMapPanel.kt`).
-- ⬜ Siguiente: proponer PIEDRA (con editor topo de líneas), SECTOR y CORREGIR
-  POSICIÓN.
+- ✅ **Proponer PIEDRA / SECTOR / CORREGIR POSICIÓN** (`ProposeFlow.swift`):
+  PIEDRA con editor topo de líneas (arrastre), SECTOR, PARKING y CORREGIR
+  (elige marcador → nueva posición). Además **+ AÑADIR VÍAS** a piedra existente
+  (`AddLinesSheet`), **✎ CORREGIR VÍA** (`EditLineSheet`) y **+ ASIGNAR SECTOR**
+  (`AssignSectorSheet`). Espejo de `ProposeContributionFlow.kt`.
 
 ## Subir fotos (Firebase Storage) — EN MARCHA (2026-06-16)
 - ✅ **`StorageUploader`** (Swift, FirebaseStorage): sube un JPEG y devuelve la

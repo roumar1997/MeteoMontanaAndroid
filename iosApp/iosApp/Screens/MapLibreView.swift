@@ -102,6 +102,11 @@ struct MapLibreView: UIViewRepresentable {
     /// Si está presente, un tap en el mapa (no en un marcador) devuelve la
     /// coordenada — para fijar la posición al proponer una mejora.
     var onMapTap: ((CLLocationCoordinate2D) -> Void)? = nil
+    /// Coords a encuadrar UNA sola vez al terminar de cargar el mapa (≥2). Para
+    /// mapas estáticos como la corrección de posición (viejo ✕ + nuevo ★): así
+    /// se garantiza que AMBOS marcadores entran en pantalla aunque el movimiento
+    /// sea grande (p. ej. mover la escuela entera).
+    var fitToCoordinatesOnLoad: [CLLocationCoordinate2D] = []
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -150,6 +155,7 @@ struct MapLibreView: UIViewRepresentable {
         var tapRecognizer: UITapGestureRecognizer?
         private var lastSignature: String = ""
         private var lastFittedIds: Set<String> = []
+        private var didLoadFit = false
         /// Mapa annotation→marker para resolver taps sin depender del título.
         private var byAnnotation: [ObjectIdentifier: CumbreMarker] = [:]
 
@@ -229,6 +235,27 @@ struct MapLibreView: UIViewRepresentable {
 
         func mapView(_ mapView: MLNMapView, regionDidChangeAnimated animated: Bool) {
             parent.onZoomChange?(mapView.zoomLevel)
+        }
+
+        // Encuadre inicial a ≥2 coords (corrección viejo+nuevo). Se hace aquí —
+        // no en makeUIView — porque el mapa ya tiene tamaño y setVisibleCoordinateBounds
+        // calcula bien el zoom. Solo una vez (didLoadFit) para no pisar el pan del
+        // usuario al alternar topo/satélite (que vuelve a disparar este callback).
+        func mapViewDidFinishLoadingMap(_ mapView: MLNMapView) {
+            guard !didLoadFit, parent.fitToCoordinatesOnLoad.count >= 2 else { return }
+            didLoadFit = true
+            let coords = parent.fitToCoordinatesOnLoad
+            let lats = coords.map { $0.latitude }, lons = coords.map { $0.longitude }
+            let bounds = MLNCoordinateBounds(
+                sw: CLLocationCoordinate2D(latitude: lats.min()!, longitude: lons.min()!),
+                ne: CLLocationCoordinate2D(latitude: lats.max()!, longitude: lons.max()!))
+            mapView.setVisibleCoordinateBounds(bounds,
+                edgePadding: UIEdgeInsets(top: 90, left: 60, bottom: 90, right: 60), animated: false)
+            // Si las dos coords están casi pegadas (corrección de pocos metros), el
+            // fit deja un zoom altísimo y desorienta; lo capamos a algo cómodo.
+            if mapView.zoomLevel > 16.5 {
+                mapView.setCenter(mapView.centerCoordinate, zoomLevel: 16.5, animated: false)
+            }
         }
     }
 }

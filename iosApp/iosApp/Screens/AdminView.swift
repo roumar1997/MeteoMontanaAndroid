@@ -276,7 +276,11 @@ private struct ContributionAdminCard: View {
             switch contribution.type.uppercased() {
             case "POSITION_CORRECTION":
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("MUEVE «\((contribution.name ?? "elemento").uppercased())»")
+                    // targetBlockId == nil ⇒ el backend mueve la escuela entera;
+                    // si hay id, mueve ese bloque concreto (espejo de la materialización).
+                    Text(contribution.targetBlockId == nil
+                         ? "MUEVE LA ESCUELA ENTERA"
+                         : "MUEVE «\((contribution.name ?? "bloque").uppercased())»")
                         .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
                     Text("✕ actual: \(coordStr(contribution.lat, contribution.lon))")
                         .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
@@ -362,7 +366,11 @@ private struct ContributionMapSheet: View {
             ZStack(alignment: .topLeading) {
                 MapLibreView(
                     center: CLLocationCoordinate2D(latitude: contribution.lat, longitude: contribution.lon),
-                    zoom: 15, markers: contributionMarkers(contribution), style: style)
+                    zoom: 15, markers: contributionMarkers(contribution), style: style,
+                    // En una corrección hay 2 marcadores (✕ viejo + ★ nuevo): encuadra
+                    // ambos al cargar para que el destino nunca quede fuera de pantalla.
+                    fitToCoordinatesOnLoad: contribution.type.uppercased() == "POSITION_CORRECTION"
+                        ? contributionMarkers(contribution).map { $0.coordinate } : [])
                 MapStyleChips(selection: $style)
             }
             .ignoresSafeArea(edges: .bottom)
@@ -596,6 +604,7 @@ private struct SchoolBlocksManageSheet: View {
     @State private var blocks: [Block] = []
     @State private var style: MapStyleKind = .topo
     @State private var manage: Block?
+    @State private var moving: Block?   // bloque en modo "mover pulsando en el mapa"
 
     var body: some View {
         NavigationStack {
@@ -603,9 +612,13 @@ private struct SchoolBlocksManageSheet: View {
                 MapLibreView(
                     center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
                     zoom: 15, markers: markers, style: style,
-                    onTapMarker: { id in manage = blocks.first { $0.id == id } })
+                    // En modo mover, el tap del mapa fija la nueva posición; si no,
+                    // tocar un marcador abre su gestión.
+                    onTapMarker: { id in if moving == nil { manage = blocks.first { $0.id == id } } },
+                    onMapTap: moving == nil ? nil : { coord in Task { await move(to: coord) } })
                 MapStyleChips(selection: $style)
             }
+            .overlay(alignment: .top) { if let m = moving { moveBanner(m) } }
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle(school.name)
             .navigationBarTitleDisplayMode(.inline)
@@ -614,8 +627,39 @@ private struct SchoolBlocksManageSheet: View {
         }
         .task { await reload() }
         .sheet(item: $manage) { b in
-            BlockManageSheet(block: b) { Task { await reload() }; manage = nil }
+            BlockManageSheet(block: b,
+                             onMove: { moved in moving = moved; manage = nil },
+                             onDone: { Task { await reload() }; manage = nil })
         }
+    }
+
+    private func moveBanner(_ b: Block) -> some View {
+        HStack(spacing: 10) {
+            Text("PULSA LA NUEVA POSICIÓN DE «\((b.name.isEmpty ? blockTypeLabel(b.type) : b.name).uppercased())»")
+                .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button { moving = nil } label: {
+                Text("CANCELAR").font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
+            }.buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .frame(maxWidth: .infinity).background(Cumbre.terra)
+    }
+
+    /// Mueve el bloque a la coord pulsada, preservando type/foto/sector y las VÍAS
+    /// (mismo cuidado que BlockManageSheet.save: si no se mandan, se borrarían).
+    private func move(to coord: CLLocationCoordinate2D) async {
+        guard let b = moving else { return }
+        let lines = b.lines.map {
+            CreateBlockLineRequest(name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath)
+        }
+        let req = CreateBlockRequest(type: b.type, name: b.name,
+                                     lat: coord.latitude, lon: coord.longitude,
+                                     photoPath: b.photoPath, description: b.descriptionText,
+                                     lines: lines, sectorBlockId: b.sectorBlockId)
+        _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: b.id, req: req)
+        moving = nil
+        await reload()
     }
 
     private func reload() async {
@@ -641,21 +685,30 @@ private struct SchoolBlocksManageSheet: View {
     }
 }
 
-/// Gestión de un bloque (admin): editar nombre + coordenadas (preservando las
-/// vías) o borrarlo. Espejo de EditBlockDialog/BlockDetailDialog admin.
+/// Etiqueta corta del tipo de un bloque (PARKING / ZONA / PIEDRA).
+func blockTypeLabel(_ t: String) -> String {
+    switch t.uppercased() { case "PARKING": return "PARKING"; case "ZONE": return "ZONA"; default: return "PIEDRA" }
+}
+
+/// Gestión de un bloque (admin): editar nombre + descripción + coordenadas
+/// (preservando las vías) o borrarlo. Espejo de EditBlockDialog/BlockDetailDialog.
 private struct BlockManageSheet: View {
     let block: Block
+    let onMove: (Block) -> Void
     let onDone: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
+    @State private var desc: String
     @State private var latText: String
     @State private var lonText: String
     @State private var busy = false
     @State private var confirmDelete = false
 
-    init(block: Block, onDone: @escaping () -> Void) {
-        self.block = block; self.onDone = onDone
+    init(block: Block, onMove: @escaping (Block) -> Void, onDone: @escaping () -> Void) {
+        self.block = block; self.onMove = onMove; self.onDone = onDone
         _name = State(initialValue: block.name)
+        // `descriptionText` (alias Kotlin) evita el choque con NSObject.description.
+        _desc = State(initialValue: block.descriptionText ?? "")
         _latText = State(initialValue: String(format: "%.6f", block.lat))
         _lonText = State(initialValue: String(format: "%.6f", block.lon))
     }
@@ -666,12 +719,24 @@ private struct BlockManageSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(typeLabel).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
                     field("NOMBRE", $name, "Nombre")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("DESCRIPCIÓN").eyebrow()
+                        TextField("Descripción (opcional)", text: $desc, axis: .vertical)
+                            .lineLimit(2...5).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                            .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
                     field("LATITUD", $latText, "lat")
                     field("LONGITUD", $lonText, "lon")
                     Button { Task { await save() } } label: {
                         HStack { if busy { ProgressView().tint(.white) }
                             Text("GUARDAR CAMBIOS").font(Cumbre.mono(12, .bold)).tracking(0.8) }
                         .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 13).background(Cumbre.terra)
+                    }.buttonStyle(.plain).disabled(busy)
+                    Button { onMove(block) } label: {
+                        Text("📍 MOVER PULSANDO EN EL MAPA").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                            .foregroundStyle(Cumbre.ink)
+                            .frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                     }.buttonStyle(.plain).disabled(busy)
                     Button { confirmDelete = true } label: {
                         Text("BORRAR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.bad)
@@ -692,20 +757,20 @@ private struct BlockManageSheet: View {
         }
     }
 
-    private var typeLabel: String {
-        switch block.type.uppercased() { case "PARKING": return "PARKING"; case "ZONE": return "ZONA"; default: return "PIEDRA" }
-    }
+    private var typeLabel: String { blockTypeLabel(block.type) }
 
     private func save() async {
         busy = true
         let lat = Double(latText) ?? block.lat
         let lon = Double(lonText) ?? block.lon
-        // Preservamos type/foto/descripción/sector y las VÍAS (si no, se borrarían).
+        // Preservamos type/foto/sector y las VÍAS (si no, se borrarían).
         let lines = block.lines.map {
             CreateBlockLineRequest(name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath)
         }
+        let trimmed = desc.trimmingCharacters(in: .whitespacesAndNewlines)
         let req = CreateBlockRequest(type: block.type, name: name, lat: lat, lon: lon,
-                                     photoPath: block.photoPath, description: nil,
+                                     photoPath: block.photoPath,
+                                     description: trimmed.isEmpty ? nil : trimmed,
                                      lines: lines, sectorBlockId: block.sectorBlockId)
         _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: block.id, req: req)
         busy = false; dismiss(); onDone()

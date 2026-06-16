@@ -13,7 +13,13 @@ data class Block(
     val createdAt: String,
     val lines: List<BlockLine>,
     val sectorBlockId: String? = null  // BLOCK: id del sector (ZONE) al que pertenece
-)
+) {
+    // Alias para Swift: en iOS `block.description` lo intercepta NSObjectProtocol
+    // (devuelve el debug string del objeto, no esta propiedad). SKIE exporta este
+    // accesor con nombre propio, así que iOS lee la descripción real vía
+    // `descriptionText`. Android sigue usando `description` con normalidad.
+    val descriptionText: String? get() = description
+}
 
 data class BlockLine(
     val id: String,

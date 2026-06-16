@@ -492,6 +492,30 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-16 (admin iOS: pulido de correcciones + GESTIONAR a fondo)
+
+Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
+**pendiente de que el CI compile** (sin Mac; no probado en pantalla).
+
+- **Visualización de CORREGIR clara**: `ContributionMapSheet` ahora encuadra
+  **ambos** marcadores (✕ viejo gris + ★ nuevo ámbar) al cargar — nuevo
+  `MapLibreView.fitToCoordinatesOnLoad` + delegate `mapViewDidFinishLoadingMap`
+  (fit una sola vez, cap a zoom 16.5 si las coords están casi pegadas). Antes el
+  mapa se centraba en la coord vieja a zoom 15 fijo y el destino podía quedar
+  fuera de pantalla. La card distingue **"MUEVE LA ESCUELA ENTERA"**
+  (`targetBlockId == nil`) de "MUEVE «‹bloque›»".
+- **GESTIONAR — mover bloque pulsando en el mapa**: botón "📍 MOVER PULSANDO EN
+  EL MAPA" en `BlockManageSheet` → banner Terra "PULSA LA NUEVA POSICIÓN" →
+  `MapLibreView.onMapTap` fija coords y hace `updateBlock` preservando vías.
+- **GESTIONAR — editar descripción del bloque**: campo DESCRIPCIÓN en
+  `BlockManageSheet`. Sorteado el choque `NSObject.description` de SKIE con un
+  alias en el modelo compartido: `Block.descriptionText` (`get() = description`)
+  en `shared/commonMain` (Android sigue usando `description`, sin ripple).
+- ⚠️ Toqué `shared/commonMain/.../Block.kt` → recompila con SKIE. Cambio trivial
+  (un getter). `IOS_PARITY_FEEDBACK.md` actualizado (admin completo + propose
+  PIEDRA/SECTOR/CORREGIR marcados ✅, que estaban desfasados a ⬜).
+- **Pendiente admin**: APNs (push con app cerrada); lo in-app funciona.
+
 ### Sesión 2026-06-16 (mapas iOS a fondo + proponer/editar + seed prod)
 
 Rama `claude/stoic-moser-40955c` (merge a `main` por push directo; ver workflow).
