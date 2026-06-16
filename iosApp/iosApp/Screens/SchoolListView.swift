@@ -337,6 +337,7 @@ private struct TopIconsRow: View {
 
 private struct HeaderEscuelas: View {
     let count: Int?
+    @State private var showSubmit = false
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
@@ -350,10 +351,14 @@ private struct HeaderEscuelas: View {
                 }
             }
             Spacer()
-            OutlinedCumbreButton(text: "+ Enviar escuela", tint: Cumbre.terra)
+            Button { showSubmit = true } label: {
+                OutlinedCumbreButton(text: "+ Enviar escuela", tint: Cumbre.terra)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+        .sheet(isPresented: $showSubmit) { SubmitSchoolView() }
     }
 }
 

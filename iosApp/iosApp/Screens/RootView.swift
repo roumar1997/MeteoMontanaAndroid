@@ -29,11 +29,19 @@ final class SessionStore: ObservableObject {
 struct RootView: View {
     @EnvironmentObject private var session: SessionStore
     @ObservedObject private var theme = ThemeManager.shared
+    // Onboarding de primera apertura (persistido). Espejo de isOnboardingDone.
+    @AppStorage("onboarding_done_v1") private var onboardingDone = false
 
     var body: some View {
         Group {
             if session.user == nil {
                 LoginView()
+            } else if !onboardingDone {
+                OnboardingView {
+                    // Pide ubicación tras explicar para qué sirve y marca visto.
+                    AppDependencies.shared.locationBridge.requestPermission()
+                    onboardingDone = true
+                }
             } else {
                 MainTabView()
             }

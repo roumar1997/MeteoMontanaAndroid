@@ -172,6 +172,18 @@ reusarlo con los mapas. Mejora futura: compartir IMAGEN-tarjeta (como
 
 ---
 
+## Backlog sin bridge — implementado 2026-06-16 (2ª ronda)
+
+- ✅ **Enviar escuela**: el botón "+ Enviar escuela" del header (antes inerte)
+  abre `SubmitSchoolView` — réplica de `SubmitSchoolScreen.kt`: nombre, región,
+  estilo, roca, **pegar coordenadas de Google Maps** (parser tolerante), lat/lon,
+  ubicación, notas → `SubmitSchoolUseCase` (expuesto en el container) →
+  pantalla de éxito "24-48 h". (Fijar posición tocando el mapa llegará con el
+  bridge de MapLibre.)
+- ✅ **Onboarding de primera apertura**: `OnboardingView` (2 pasos: índice 0–100
+  + ubicación), espejo de `OnboardingOverlay.kt`. Persistido con `@AppStorage`;
+  pide permiso de ubicación al terminar. Enganchado en `RootView` (tras login).
+
 ## Pendiente de bridges nativos (sesión con Mac) — 🟦
 - Mapas (MapLibre): mapa de escuela, panel mapa en lista, "+ PROPONER", topo.
 - Subir fotos (Firebase Storage): foto de perfil, foto en notas, proponer.
