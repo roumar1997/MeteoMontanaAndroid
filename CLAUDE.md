@@ -492,6 +492,54 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (5) (vías hechas robustas offline + perfil iOS con diario inline)
+
+- **"Vía hecha" robusta offline (iOS + Android)** — varias iteraciones tras feedback:
+  - **No duplicar sin conexión**: el ✓ se calculaba solo con el diario del
+    servidor; offline esa consulta falla → dejaba re-marcar. Nuevo **registro
+    local** (`JournalDoneStore`: SharedPreferences en Android / UserDefaults en
+    iOS) de claves `escuelaId|nombreVía`, que funciona sin red → dedup correcto.
+  - **Toggle marcar/desmarcar** (ya estaba) + **desmarcar offline sincroniza**:
+    nuevo `OutboxType.JOURNAL_DELETE` (payload = clave). Al desmarcar sin red se
+    encola el borrado; el flusher (Android) / `flushJournalOutbox` (iOS) lo
+    resuelve contra el diario y borra al reconectar. Marcar cancela borrados
+    pendientes y viceversa. `doneViaKeys`/`loadDone` descuentan borrados
+    pendientes para que el ✓ no reaparezca.
+  - Helpers nuevos en `IosDependencyContainer`: `dequeueJournal` (devuelve Bool),
+    `enqueueJournalDelete`, `dequeueJournalDelete`, `pendingJournalDeleteKeys`.
+    OJO SKIE: Kotlin `Boolean` → `KotlinBoolean` en Swift (usar `.boolValue`).
+- **Perfil iOS = diario inline (como Android)**: `AccountView` muestra stats
+  BLOQUES/ESCUELAS/GRADO MÁX + "+ AÑADIR BLOQUE" + lista con BORRAR directamente
+  (quitado el enlace "Mi diario"). `AddBlockSheet`/`JournalRow`/`JournalStatsRow`
+  pasaron a internal para reutilizarse. `JournalView`/`JournalStatsNav` quedan
+  sin uso (se pueden limpiar).
+- **Instalación local Android con login real**: `google-services.json` real está
+  en `C:\Users\rouma\Downloads\google-services (6).json` (proyecto climbingteams,
+  package com.meteomontana.android). Copiar a `app/` + `local.properties` con
+  `sdk.dir=C:/Users/rouma/AppData/Local/Android/Sdk` para compilar; el APK local
+  se firma con el debug.keystore del PC (SHA-1 registrado en Firebase → login OK).
+  La app instalada del CI está firmada con otra clave → para instalar el APK local
+  hay que **desinstalar primero** (se pierden datos offline) y aceptar el diálogo
+  de instalación por USB en el Xiaomi.
+
+> ### 📌 PENDIENTE (para próxima sesión)
+> 1. **Mensajes (chat) — decisión de producto + implementación si se quiere
+>    restringir.** Hoy el chat (Firestore) NO restringe por seguidores: cualquiera
+>    con perfil visible (público) puede escribir y el otro responder; los privados
+>    no son visibles para no-seguidores → no les pueden escribir. Si Rodrigo quiere
+>    exigir **seguir** o **seguimiento mutuo** para escribir, hay que añadir la
+>    regla en UI (botón MENSAJE condicionado) + reglas de seguridad Firestore.
+>    PENDIENTE: que Rodrigo decida (abierto vs. seguir vs. mutuo).
+> 2. **Perfil y diario OFFLINE (cachear).** Hoy el perfil propio no carga sin
+>    conexión (pantalla vacía). Propuesta: cachear el `PrivateProfile` y el diario
+>    (lista + stats) la última vez que cargan online y mostrarlos offline con aviso
+>    "sin conexión"; avatar cacheable en disco como las fotos de piedras. El
+>    registro local de vías hechas (`JournalDoneStore`) ya existe y puede ayudar.
+> 3. **Limpieza menor iOS**: borrar `JournalView`/`JournalStatsNav` (sin uso tras
+>    mover el diario al perfil) y los structs `AddLinesSheet`/`EditLineSheet`
+>    antiguos si siguen sin uso.
+> 4. **APNs** (push real con app cerrada) sigue pendiente; lo in-app funciona.
+
 ### Sesión 2026-06-17 (4) (lote feedback: toolbar, tic toggle, grados, notifs)
 
 - **Android**: botón "guardar offline" movido al **toolbar** superior (como iOS).
