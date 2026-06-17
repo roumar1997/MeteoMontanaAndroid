@@ -14,6 +14,8 @@ import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsU
 import com.meteomontana.android.domain.model.SchoolCatalog
 import com.meteomontana.android.domain.usecase.schools.GetSchoolCatalogUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
+import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
+import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.ui.screens.schools.SchoolListUiState
 import com.meteomontana.android.ui.screens.schools.SchoolListViewModel
 import com.meteomontana.android.ui.screens.schools.SortBy
@@ -21,8 +23,10 @@ import com.meteomontana.android.ui.screens.schools.StyleFilter
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -44,6 +48,7 @@ class SchoolListViewModelTest {
     private lateinit var getSchoolCatalog: GetSchoolCatalogUseCase
     private lateinit var etagStore: com.meteomontana.android.data.local.CatalogEtagStore
     private lateinit var getTodayScores: GetTodayScoresUseCase
+    private lateinit var getRangeScores: GetRangeScoresUseCase
     private lateinit var getMyFavorites: GetMyFavoritesUseCase
     private lateinit var addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
     private lateinit var removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
@@ -51,6 +56,7 @@ class SchoolListViewModelTest {
     private lateinit var location: LocationProvider
     private lateinit var savedRepo: SavedSchoolRepository
     private lateinit var cachedRepo: CachedSchoolsRepository
+    private lateinit var chatService: ChatService
 
     // A está a ~190 km de Madrid (queda fuera del radio por defecto de 50 km).
     private val schoolA = School(
@@ -68,6 +74,9 @@ class SchoolListViewModelTest {
         getSchoolCatalog = mockk()
         etagStore = mockk(relaxed = true)
         getTodayScores = mockk()
+        getRangeScores = mockk(relaxed = true)
+        chatService = mockk(relaxed = true)
+        every { chatService.observeMyConversations() } returns emptyFlow()
         getMyFavorites = mockk()
         addFavorite = mockk(relaxed = true)
         removeFavorite = mockk(relaxed = true)
@@ -90,8 +99,8 @@ class SchoolListViewModelTest {
     @After fun tearDown() { Dispatchers.resetMain() }
 
     private fun newVm() = SchoolListViewModel(
-        getSchoolCatalog, getTodayScores, getMyFavorites, addFavorite, removeFavorite,
-        getMyNotifications, location, savedRepo, cachedRepo, etagStore
+        getSchoolCatalog, getTodayScores, getRangeScores, getMyFavorites, addFavorite, removeFavorite,
+        getMyNotifications, location, savedRepo, cachedRepo, etagStore, chatService
     )
 
     @Test fun `init baja el catalogo completo sin filtros y filtra en local`() = runTest {

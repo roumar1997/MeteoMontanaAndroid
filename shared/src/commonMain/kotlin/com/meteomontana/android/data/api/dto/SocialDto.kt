@@ -10,7 +10,8 @@ data class PublicProfileDto(
     val photoUrl: String? = null,
     val bio: String? = null,
     val topGrade: String? = null,
-    val locked: Boolean = false
+    val locked: Boolean = false,
+    val isPublic: Boolean = false
 )
 
 @Serializable
