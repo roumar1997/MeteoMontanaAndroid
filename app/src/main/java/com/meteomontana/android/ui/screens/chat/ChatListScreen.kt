@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,11 +19,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -29,6 +33,11 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.window.Dialog
+import com.meteomontana.android.domain.model.PublicProfile
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +52,8 @@ fun ChatListScreen(
     viewModel: ChatListViewModel = hiltViewModel()
 ) {
     val items by viewModel.items.collectAsState()
+    val contacts by viewModel.contacts.collectAsState()
+    var showPicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -53,8 +64,21 @@ fun ChatListScreen(
             }
             Text("Chats", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = { viewModel.loadContacts(); showPicker = true }) {
+                Icon(Icons.Outlined.Edit, contentDescription = "Nuevo mensaje",
+                    tint = MaterialTheme.colorScheme.primary)
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+
+        if (showPicker) {
+            NewChatDialog(
+                contacts = contacts,
+                onDismiss = { showPicker = false },
+                onPick = { uid -> showPicker = false; onOpenChat(uid) }
+            )
+        }
 
         if (items.isEmpty()) {
             Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -78,6 +102,68 @@ fun ChatListScreen(
                         onMarkUnread = { viewModel.markUnread(item.conversation.id) }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                }
+            }
+        }
+    }
+}
+
+/** Diálogo para iniciar un chat nuevo: busca entre tus seguidores/seguidos. */
+@Composable
+private fun NewChatDialog(
+    contacts: List<PublicProfile>,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    val filtered = contacts.filter {
+        val q = query.trim().lowercase()
+        q.isEmpty() || (it.username ?: "").lowercase().contains(q) ||
+            (it.displayName ?: "").lowercase().contains(q)
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(16.dp)
+        ) {
+            Text("Nuevo mensaje", style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.size(8.dp))
+            OutlinedTextField(
+                value = query, onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Buscar entre seguidores/seguidos…") },
+                singleLine = true
+            )
+            Spacer(Modifier.size(8.dp))
+            if (contacts.isEmpty()) {
+                Text("Sigue a alguien (o que te sigan) para poder escribirle.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 12.dp))
+            } else {
+                LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                    items(filtered, key = { it.uid }) { p ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable { onPick(p.uid) }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            if (p.photoUrl != null) {
+                                AsyncImage(model = p.photoUrl, contentDescription = null,
+                                    modifier = Modifier.size(36.dp).clip(CircleShape)
+                                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+                            } else {
+                                Box(Modifier.size(36.dp).clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant))
+                            }
+                            Text("@" + (p.username ?: p.displayName ?: p.uid.take(6)),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
                 }
             }
         }

@@ -13,6 +13,9 @@ final class ChatVM: ObservableObject {
 
     private let chat = AppDependencies.shared.container.chatService
     private var task: Task<Void, Never>?
+    private var convTask: Task<Void, Never>?
+    private var rawMessages: [ChatServiceChatMessage] = []
+    private var clearedAt: Int64 = 0   // mi cleared_<me> en millis (0 = no borrada)
     var me: String { AppDependencies.shared.authBridge.currentUid() ?? "" }
     private var convId: String { chat?.convIdFor(uidA: me, uidB: otherUid) ?? "" }
 
@@ -27,11 +30,26 @@ final class ChatVM: ObservableObject {
         task = Task { [weak self] in
             for await msgs in chat.observeMessages(convId: cid) {
                 guard let self else { return }
-                self.messages = msgs
+                self.rawMessages = msgs
+                self.recompute()
                 self.loading = false
                 try? await chat.markRead(convId: cid)
             }
         }
+        // Observa mis conversaciones para conocer mi cleared_<me> y ocultar el
+        // historial anterior a un "borrado para mí".
+        convTask = Task { [weak self] in
+            for await convs in chat.observeMyConversations() {
+                guard let self else { return }
+                self.clearedAt = convs.first { $0.id == cid }?.clearedAtMillis?.int64Value ?? 0
+                self.recompute()
+            }
+        }
+    }
+
+    private func recompute() {
+        messages = clearedAt <= 0 ? rawMessages
+            : rawMessages.filter { ($0.createdAtMillis?.int64Value ?? Int64.max) > clearedAt }
     }
 
     func send() {
@@ -41,7 +59,7 @@ final class ChatVM: ObservableObject {
         Task { try? await chat.sendMessage(otherUid: otherUid, text: text) }
     }
 
-    func stop() { task?.cancel(); task = nil }
+    func stop() { task?.cancel(); task = nil; convTask?.cancel(); convTask = nil }
 }
 
 struct ChatView: View {

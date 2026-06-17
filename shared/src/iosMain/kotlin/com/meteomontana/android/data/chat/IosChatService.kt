@@ -30,6 +30,7 @@ data class IosConvDto(
     val lastFromUid: String?,
     val lastAtMillis: Long,
     val unreadCount: Long,
+    val clearedAtMillis: Long = -1,   // -1 = no borrada para mí
 )
 
 data class IosMsgDto(
@@ -120,6 +121,7 @@ class IosChatService(
         lastFromUid = lastFromUid,
         lastAtMillis = lastAtMillis.takeIf { it >= 0 },
         unreadCount = unreadCount,
+        clearedAtMillis = clearedAtMillis.takeIf { it >= 0 },
     )
 
     private fun IosMsgDto.toModel() = ChatService.ChatMessage(
