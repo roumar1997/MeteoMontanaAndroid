@@ -35,8 +35,20 @@ final class AccountViewModel: ObservableObject {
 
     /// Recarga solo el diario (tras añadir/borrar un bloque).
     func reloadJournal() async {
-        entries = (try? await getMyJournal.invoke()) ?? []
+        entries = await loadEntries()
         stats = try? await getMyStats.invoke()
+    }
+
+    /// Diario del servidor menos las vías con BORRADO pendiente en la cola offline
+    /// (desmarcadas sin red). Si no, el perfil seguía mostrándolas hasta sincronizar.
+    private func loadEntries() async -> [JournalSession] {
+        let all = (try? await getMyJournal.invoke()) ?? []
+        let pendingDeletes = (try? await AppDependencies.shared.container.pendingJournalDeleteKeys()) ?? []
+        guard !pendingDeletes.isEmpty else { return all }
+        return all.filter { e in
+            let key = "\(e.schoolId ?? "")|\(e.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+            return !pendingDeletes.contains(key)
+        }
     }
 
     func addBlock(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String) async {
@@ -58,7 +70,7 @@ final class AccountViewModel: ObservableObject {
         loading = true
         profile = try? await getMyProfile.invoke()  // JIT provisioning en el backend
         stats = try? await getMyStats.invoke()
-        entries = (try? await getMyJournal.invoke()) ?? []
+        entries = await loadEntries()
         // Contadores de seguidores/seguidos: igual que Android (getFollowStatus
         // del propio uid devuelve followers/following).
         if let uid = profile?.uid ?? authBridge.currentUid() {
