@@ -1,3 +1,5 @@
+import AuthenticationServices
+import CryptoKit
 import FirebaseAuth
 import FirebaseCore
 import Foundation
@@ -75,5 +77,89 @@ final class AuthBridge: NSObject, IosAuthBridge {
         var top = scene?.keyWindow?.rootViewController
         while let presented = top?.presentedViewController { top = presented }
         return top
+    }
+
+    // MARK: - Login con Apple (Sign in with Apple → credencial Firebase)
+    // Requisito de la App Store por ofrecer login de Google. Necesita:
+    //  - Capability "Sign in with Apple" en el target (entitlement applesignin).
+    //  - Apple habilitado como proveedor en Firebase Auth (consola).
+    //  - Cuenta Apple Developer de pago (las firmas gratuitas/AltStore NO
+    //    soportan esta capability → el botón fallará al sidecargar).
+
+    private var appleCoordinator: AppleSignInCoordinator?
+
+    @MainActor
+    func signInWithApple() async throws {
+        let nonce = Self.randomNonce()
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = Self.sha256(nonce)
+
+        let coordinator = AppleSignInCoordinator()
+        appleCoordinator = coordinator
+        let authorization = try await coordinator.perform(request: request)
+        defer { appleCoordinator = nil }
+
+        guard
+            let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+            let tokenData = credential.identityToken,
+            let idToken = String(data: tokenData, encoding: .utf8)
+        else { throw SignInError.noToken }
+
+        let firebaseCredential = OAuthProvider.appleCredential(
+            withIDToken: idToken, rawNonce: nonce, fullName: credential.fullName)
+        try await Auth.auth().signIn(with: firebaseCredential)
+    }
+
+    // Nonce aleatorio + SHA256 (recomendado por Firebase/Apple para evitar replay).
+    private static func randomNonce(length: Int = 32) -> String {
+        let chars = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var remaining = length
+        while remaining > 0 {
+            var random: UInt8 = 0
+            _ = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
+            if random < UInt8(chars.count) { result.append(chars[Int(random)]); remaining -= 1 }
+        }
+        return result
+    }
+
+    private static func sha256(_ input: String) -> String {
+        SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+/// Envuelve `ASAuthorizationController` (basado en delegate) en `async`.
+private final class AppleSignInCoordinator: NSObject,
+    ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+
+    private var continuation: CheckedContinuation<ASAuthorization, Error>?
+
+    @MainActor
+    func perform(request: ASAuthorizationAppleIDRequest) async throws -> ASAuthorization {
+        try await withCheckedThrowingContinuation { cont in
+            self.continuation = cont
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            controller.performRequests()
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController,
+                                 didCompleteWithAuthorization authorization: ASAuthorization) {
+        continuation?.resume(returning: authorization); continuation = nil
+    }
+
+    func authorizationController(controller: ASAuthorizationController,
+                                 didCompleteWithError error: Error) {
+        continuation?.resume(throwing: error); continuation = nil
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }?
+            .keyWindow ?? ASPresentationAnchor()
     }
 }

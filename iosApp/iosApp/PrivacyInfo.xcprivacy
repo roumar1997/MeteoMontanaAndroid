@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Privacy manifest (obligatorio en App Store desde 2024). Declara que NO hacemos
+  tracking, los tipos de datos que recogemos y las "required reason APIs" usadas.
+  XcodeGen lo incluye por estar bajo `sources: iosApp`.
+-->
+<plist version="1.0">
+<dict>
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <!-- Ubicación aproximada: ordenar escuelas por cercanía. -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeCoarseLocation</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key><true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key><false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+        </dict>
+        <!-- Email (login). -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeEmailAddress</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key><true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key><false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+        </dict>
+        <!-- Nombre / usuario. -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeName</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key><true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key><false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+        </dict>
+        <!-- Fotos y contenido del usuario (notas, topos, diario). -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePhotosorVideos</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key><true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key><false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+        </dict>
+    </array>
+
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <!-- UserDefaults: tema, registro local de vías hechas, caché de perfil. -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array><string>CA92.1</string></array>
+        </dict>
+        <!-- Timestamps de ficheros: caché de imágenes en disco. -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array><string>C617.1</string></array>
+        </dict>
+    </array>
+</dict>
+</plist>
