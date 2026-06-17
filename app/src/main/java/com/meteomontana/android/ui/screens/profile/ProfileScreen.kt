@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -106,7 +107,8 @@ fun ProfileScreen(
                 onOpenAllBlocks = onOpenAllBlocks,
                 onOpenAllSchools = onOpenAllSchools,
                 onOpenMaxGrade = onOpenMaxGrade,
-                onSignOut = viewModel::signOut
+                onSignOut = viewModel::signOut,
+                onDeleteAccount = { viewModel.deleteAccount() }
             )
         }
     }
@@ -159,7 +161,8 @@ private fun Content(
     onOpenAllBlocks: () -> Unit,
     onOpenAllSchools: () -> Unit,
     onOpenMaxGrade: () -> Unit,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit = {}
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         if (offline) {
@@ -233,9 +236,33 @@ private fun Content(
             }
         }
         item {
-            TextButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 24.dp)) {
+            TextButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
                 Text("CERRAR SESIÓN", color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        item {
+            var showDelete by remember { mutableStateOf(false) }
+            TextButton(onClick = { showDelete = true },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                Text("Eliminar cuenta",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium)
+            }
+            if (showDelete) {
+                AlertDialog(
+                    onDismissRequest = { showDelete = false },
+                    title = { Text("¿Eliminar tu cuenta?") },
+                    text = { Text("Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.") },
+                    confirmButton = {
+                        TextButton(onClick = { showDelete = false; onDeleteAccount() }) {
+                            Text("ELIMINAR", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDelete = false }) { Text("Cancelar") }
+                    }
+                )
             }
         }
     }

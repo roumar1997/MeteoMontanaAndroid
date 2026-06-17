@@ -15,4 +15,6 @@ class KtorProfileRepository(private val api: KtorProfileApi) : ProfileRepository
         api.updateMyProfile(req).toDomain()
 
     override suspend fun updateFcmToken(req: FcmTokenRequest) = api.updateFcmToken(req)
+
+    override suspend fun deleteMyAccount() = api.deleteMyAccount()
 }

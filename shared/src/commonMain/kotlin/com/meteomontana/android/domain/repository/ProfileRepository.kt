@@ -8,4 +8,5 @@ interface ProfileRepository {
     suspend fun getMyProfile(): PrivateProfile
     suspend fun updateMyProfile(req: UpdateProfileRequest): PrivateProfile
     suspend fun updateFcmToken(req: FcmTokenRequest)
+    suspend fun deleteMyAccount()
 }
