@@ -151,6 +151,10 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideRemoveFavoriteUseCase(repo: FavoritesRepository) = RemoveFavoriteUseCase(repo)
 
+    @Provides @Singleton
+    fun provideGetFavoritesGridUseCase(repo: FavoritesRepository) =
+        com.meteomontana.android.domain.usecase.favorites.GetFavoritesGridUseCase(repo)
+
     // Profile
     @Provides @Singleton
     fun provideGetMyProfileUseCase(repo: ProfileRepository) = GetMyProfileUseCase(repo)
