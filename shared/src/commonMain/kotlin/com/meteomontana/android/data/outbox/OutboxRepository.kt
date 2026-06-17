@@ -13,7 +13,8 @@ object OutboxType {
     const val CONTRIBUTION = "CONTRIBUTION"
     const val NOTE         = "NOTE"
     const val SUBMISSION   = "SUBMISSION"
-    const val JOURNAL      = "JOURNAL"      // vía marcada como hecha (POST /api/journal)
+    const val JOURNAL        = "JOURNAL"        // vía marcada como hecha (POST /api/journal)
+    const val JOURNAL_DELETE = "JOURNAL_DELETE" // vía DESMARCADA sin red (payload = clave "escuelaId|vía")
 }
 
 class OutboxRepository(private val db: MeteoMontanaDb) {

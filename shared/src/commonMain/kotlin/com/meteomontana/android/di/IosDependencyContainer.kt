@@ -259,21 +259,38 @@ class IosDependencyContainer(
         )
     }
 
-    /** Quita de la cola la vía pendiente con esa clave "escuela|vía" (al desmarcar). */
+    /** Quita de la cola la CREACIÓN pendiente con esa clave "escuela|vía"
+     *  (al desmarcar). Devuelve true si había una (marcada offline, sin subir). */
     @Throws(Exception::class)
-    suspend fun dequeueJournal(key: String) {
-        val repo = outbox ?: return
+    suspend fun dequeueJournal(key: String): Boolean {
+        val repo = outbox ?: return false
+        var removed = false
         repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
             .forEach { row ->
                 val match = runCatching {
                     outboxJson.decodeFromString(
                         com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
                 }.getOrNull()?.let { "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" == key } ?: false
-                if (match) repo.delete(row.id)
+                if (match) { repo.delete(row.id); removed = true }
             }
+        return removed
     }
 
-    /** Claves "escuela|vía" de las vías encoladas (para marcar ✓ sin red aún). */
+    /** Encola un BORRADO de vía (desmarcada sin red); se aplica al volver online. */
+    @Throws(Exception::class)
+    suspend fun enqueueJournalDelete(key: String) {
+        outbox?.enqueue(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, "", key)
+    }
+
+    /** Cancela un borrado pendiente de esa vía (al re-marcarla). */
+    @Throws(Exception::class)
+    suspend fun dequeueJournalDelete(key: String) {
+        val repo = outbox ?: return
+        repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
+            .forEach { row -> if (row.payloadJson == key) repo.delete(row.id) }
+    }
+
+    /** Claves "escuela|vía" de las vías encoladas para CREAR (✓ sin red aún). */
     @Throws(Exception::class)
     suspend fun pendingJournalKeys(): Set<String> {
         val pend = outbox?.all() ?: return emptySet()
@@ -288,6 +305,14 @@ class IosDependencyContainer(
             .toSet()
     }
 
+    /** Claves "escuela|vía" con BORRADO pendiente (desmarcadas sin red). */
+    @Throws(Exception::class)
+    suspend fun pendingJournalDeleteKeys(): Set<String> {
+        val pend = outbox?.all() ?: return emptySet()
+        return pend.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
+            .map { it.payloadJson }.toSet()
+    }
+
     /**
      * Sube las vías encoladas (las que se marcaron sin red). Llamar al abrir o
      * activar la app. Borra cada entrada al subirla con éxito; las que fallen se
@@ -296,14 +321,29 @@ class IosDependencyContainer(
     @Throws(Exception::class)
     suspend fun flushJournalOutbox() {
         val repo = outbox ?: return
-        repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
-            .forEach { row ->
-                val ok = runCatching {
-                    val req = outboxJson.decodeFromString(
-                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                    createJournalEntry(req)
-                }.isSuccess
-                if (ok) repo.delete(row.id)
+        repo.all().forEach { row ->
+            when (row.type) {
+                com.meteomontana.android.data.outbox.OutboxType.JOURNAL -> {
+                    val ok = runCatching {
+                        val req = outboxJson.decodeFromString(
+                            com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                        createJournalEntry(req)
+                    }.isSuccess
+                    if (ok) repo.delete(row.id)
+                }
+                com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE -> {
+                    // payload = clave "escuela|vía"; resolvemos el id real y borramos.
+                    val ok = runCatching {
+                        val entry = getMyJournal().firstOrNull { e ->
+                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == row.payloadJson
+                        }
+                        if (entry != null) deleteJournalEntry(entry.id)
+                        true   // si no existe ya, también se considera hecho
+                    }.isSuccess
+                    if (ok) repo.delete(row.id)
+                }
+                else -> {}
             }
+        }
     }
 }

@@ -897,9 +897,11 @@ struct BlockInfoSheet: View {
     /// la vía (mismo nombre que se guardó al dar el tic).
     private func loadDone() async {
         let container = AppDependencies.shared.container
-        // Claves pendientes en la cola offline (sin subir aún).
+        // Claves pendientes en la cola offline.
         let pendingKeys: Set<String> = (try? await container.pendingJournalKeys()) ?? []
-        // Con red: sincroniza el registro local con la verdad del servidor.
+        let pendingDeletes: Set<String> = (try? await container.pendingJournalDeleteKeys()) ?? []
+        // Con red: sincroniza el registro local con la verdad del servidor
+        // (descontando las que tienen borrado pendiente).
         if let journal = try? await container.getMyJournal.invoke() {
             var serverKeys = Set<String>()
             for j in journal {
@@ -907,7 +909,7 @@ struct BlockInfoSheet: View {
                     serverKeys.insert("\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())")
                 }
             }
-            JournalDoneStore.shared.sync(server: serverKeys, pending: pendingKeys)
+            JournalDoneStore.shared.sync(server: serverKeys.subtracting(pendingDeletes), pending: pendingKeys)
         }
         // El registro local (UserDefaults) funciona también SIN conexión → evita
         // duplicar al volver a entrar offline en la misma piedra.
@@ -916,7 +918,9 @@ struct BlockInfoSheet: View {
         for (idx, l) in block.lines.enumerated() {
             let viaName = l.name.isEmpty ? "Vía \(idx + 1)" : l.name
             let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
-            if storeKeys.contains(key) || pendingKeys.contains(key) { done.insert(l.id) }
+            if (storeKeys.contains(key) || pendingKeys.contains(key)) && !pendingDeletes.contains(key) {
+                done.insert(l.id)
+            }
         }
         tickedLines = done
     }
@@ -942,17 +946,25 @@ struct BlockInfoSheet: View {
             // DESMARCAR
             tickedLines.remove(line.id)
             JournalDoneStore.shared.remove(key)
-            try? await container.dequeueJournal(key: key)   // quita la pendiente (si no se subió)
-            if let j = (try? await container.getMyJournal.invoke())?.first(where: {
-                $0.schoolId == block.schoolId &&
-                $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
-            }) {
-                _ = try? await container.deleteJournalEntry.invoke(id: j.id)
+            // 1) Si solo estaba ENCOLADA (sin subir) → cancela la creación y listo.
+            let hadPending = (try? await container.dequeueJournal(key: key)) ?? false
+            if !hadPending {
+                // 2) Está (o estará) en el servidor: borra ya si hay red; si no,
+                //    ENCOLA el borrado para aplicarlo al volver la conexión.
+                var deleted = false
+                if let j = (try? await container.getMyJournal.invoke())?.first(where: {
+                    $0.schoolId == block.schoolId &&
+                    $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
+                }) {
+                    deleted = ((try? await container.deleteJournalEntry.invoke(id: j.id)) != nil)
+                }
+                if !deleted { try? await container.enqueueJournalDelete(key: key) }
             }
         } else {
             // MARCAR (dedup: no estaba hecha)
             tickedLines.insert(line.id)
             JournalDoneStore.shared.add(key)
+            try? await container.dequeueJournalDelete(key: key)   // cancela borrado pendiente
             let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
             let stoneName = block.name.isEmpty ? "Piedra" : block.name
             let req = CreateJournalRequest(

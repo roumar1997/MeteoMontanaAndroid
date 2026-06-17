@@ -7,6 +7,8 @@ import com.meteomontana.android.data.api.dto.CreateNoteRequest
 import com.meteomontana.android.domain.port.NetworkMonitor
 import com.meteomontana.android.domain.usecase.contributions.SubmitContributionUseCase
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +30,9 @@ class OutboxFlusher @Inject constructor(
     private val networkMonitor: NetworkMonitor,
     private val submitContribution: SubmitContributionUseCase,
     private val createNote: CreateNoteUseCase,
-    private val createJournalEntry: CreateJournalEntryUseCase
+    private val createJournalEntry: CreateJournalEntryUseCase,
+    private val getMyJournal: GetMyJournalUseCase,
+    private val deleteJournalEntry: DeleteJournalEntryUseCase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val log = Logger.withTag("Outbox")
@@ -65,6 +69,16 @@ class OutboxFlusher @Inject constructor(
                     OutboxType.JOURNAL -> {
                         val req = json.decodeFromString<CreateJournalRequest>(row.payloadJson)
                         createJournalEntry(req)
+                    }
+                    OutboxType.JOURNAL_DELETE -> {
+                        // payload = clave "escuelaId|nombreVía". Resolvemos el id real
+                        // contra el diario actual y borramos esa entrada.
+                        val key = row.payloadJson
+                        val entry = getMyJournal().firstOrNull { e ->
+                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
+                        }
+                        if (entry != null) deleteJournalEntry(entry.id)
+                        // Si no existe, ya estaba borrada → se considera hecho.
                     }
                     else -> log.w("Tipo desconocido en outbox: ${row.type}")
                 }
