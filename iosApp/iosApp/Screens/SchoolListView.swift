@@ -26,6 +26,7 @@ final class SchoolListViewModel: ObservableObject {
     @Published var maxDistanceKm: Double? = 50   // 50 km por defecto (como Android/PWA)
     @Published var showMode: ShowMode = .all
     @Published var savedIds: Set<String> = []    // escuelas guardadas offline (observeSaved)
+    @Published var savedSchoolsList: [SavedSchool] = []  // datos de las guardadas (para verlas sin red)
     @Published var sortBy: SortMode = .score
     @Published var favoriteIds: Set<String> = []
     @Published var userLat: Double?
@@ -71,7 +72,20 @@ final class SchoolListViewModel: ObservableObject {
 
     var filtered: [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        var list = schools.filter { s in
+        // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
+        // catálogo no está en caché (sin red, primera vez), las sintetizamos
+        // desde el snapshot guardado para que SÍ se vean.
+        let base: [School]
+        if showMode == .saved {
+            base = savedSchoolsList.map { sv in
+                schools.first { $0.id == sv.id }
+                    ?? School(id: sv.id, name: sv.name, location: nil, region: sv.region,
+                              style: nil, rockType: sv.rockType, lat: sv.lat, lon: sv.lon, source: nil)
+            }
+        } else {
+            base = schools
+        }
+        var list = base.filter { s in
             (q.isEmpty || s.name.lowercased().contains(q) || (s.location?.lowercased().contains(q) ?? false))
             && (style == nil || s.style?.caseInsensitiveCompare(style!) == .orderedSame)
             && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
@@ -84,7 +98,7 @@ final class SchoolListViewModel: ObservableObject {
         switch showMode {
         case .all: break
         case .favorites: list = list.filter { favoriteIds.contains($0.id) }
-        case .saved: list = list.filter { savedIds.contains($0.id) }
+        case .saved: break   // `base` ya está restringido a las guardadas
         }
         // Orden.
         switch sortBy {
@@ -139,6 +153,7 @@ final class SchoolListViewModel: ObservableObject {
             for await list in savedSchools.observeSaved() {
                 guard let self else { return }
                 self.savedIds = Set(list.map { $0.id })
+                self.savedSchoolsList = list
             }
         }
     }

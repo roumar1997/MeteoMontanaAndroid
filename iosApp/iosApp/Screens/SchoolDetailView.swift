@@ -775,7 +775,7 @@ private struct ContributionSuccessSheet: View {
 
 /// Hoja con la info de un bloque tocado en el mapa (nombre, tipo, descripción,
 /// vías y "CÓMO LLEGAR"). Espejo simplificado de BlockDetailDialog.kt.
-private struct BlockInfoSheet: View {
+struct BlockInfoSheet: View {
     let block: Block
     var sectors: [Block] = []
     var onEditLines: (() -> Void)? = nil

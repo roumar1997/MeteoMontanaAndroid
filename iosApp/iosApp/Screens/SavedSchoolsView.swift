@@ -65,6 +65,8 @@ struct OfflineSchoolView: View {
     @State private var loading = true
     @State private var factorsExpanded = false
     @State private var selectedDay: DayForecast?
+    @State private var selectedBlock: Block?
+    @State private var collapsedSectors: Set<String> = []   // zonas con piedras ocultas
 
     private let repo = AppDependencies.shared.container.savedSchools
 
@@ -93,6 +95,9 @@ struct OfflineSchoolView: View {
         .navigationTitle(snapshot?.school.name ?? "Offline")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedDay) { d in DayDetailView(day: d, allHours: snapshot?.forecast?.hours ?? []) }
+        .sheet(item: $selectedBlock) { b in
+            BlockInfoSheet(block: b, sectors: blocks.filter { $0.type.uppercased() == "ZONE" })
+        }
         .task { await load() }
     }
 
@@ -111,7 +116,20 @@ struct OfflineSchoolView: View {
             Text("MAPA").eyebrow().padding(.horizontal, 16).padding(.top, 8)
             MapLibreView(
                 center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-                zoom: 15, markers: offlineMarkers(school))
+                zoom: 15, markers: offlineMarkers(school),
+                onTapMarker: { id in
+                    // Zona CON piedras → colapsa/expande sus piedras.
+                    // Zona SIN piedras (o cualquier otro marcador) → abre la ficha
+                    // (con CÓMO LLEGAR). Las piedras se tocan para su CÓMO LLEGAR.
+                    if let b = blocks.first(where: { $0.id == id }),
+                       b.type.uppercased() == "ZONE",
+                       blocks.contains(where: { $0.sectorBlockId == b.id }) {
+                        if collapsedSectors.contains(b.id) { collapsedSectors.remove(b.id) }
+                        else { collapsedSectors.insert(b.id) }
+                    } else {
+                        selectedBlock = blocks.first { $0.id == id }
+                    }
+                })
                 .frame(height: 260)
                 .clipShape(RoundedRectangle(cornerRadius: 2))
                 .padding(.horizontal, 16)
@@ -133,11 +151,19 @@ struct OfflineSchoolView: View {
             coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
             title: school.name, kind: .school)]
         for b in blocks {
+            // Piedra oculta si su sector está colapsado.
+            if b.type.uppercased() == "BLOCK", let sid = b.sectorBlockId, collapsedSectors.contains(sid) {
+                continue
+            }
+            // Zona colapsada: muestra cuántas piedras tiene ocultas.
+            let collapsed = b.type.uppercased() == "ZONE" && collapsedSectors.contains(b.id)
+            let hidden = collapsed ? blocks.filter { $0.sectorBlockId == b.id }.count : 0
             ms.append(CumbreMarker(
                 id: b.id,
                 coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon),
                 title: b.name, kind: markerKindFor(b.type),
-                color: blockTypeColor(b.type), name: b.name))
+                color: blockTypeColor(b.type),
+                name: collapsed && hidden > 0 ? "\(b.name) (+\(hidden))" : b.name))
         }
         return ms
     }
