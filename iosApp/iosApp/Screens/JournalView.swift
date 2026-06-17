@@ -69,7 +69,7 @@ struct JournalView: View {
                         Button { showAdd = true } label: {
                             Text("+ AÑADIR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8)
                                 .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                                .background(Cumbre.ink)
+                                .background(Cumbre.terra)
                         }
                         .buttonStyle(.plain).padding(16)
                         Divider().overlay(Cumbre.rule)
