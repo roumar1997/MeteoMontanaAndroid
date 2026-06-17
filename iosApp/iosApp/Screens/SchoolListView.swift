@@ -279,7 +279,6 @@ struct SchoolListView: View {
                                 chatUnread: vm.unreadChats,
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
-                    CoffeeBanner()
                     SearchField(text: $vm.query)
                     MapToggleAndPanel(vm: vm, onOpen: { navSchool = $0 })
                     FilterChips(vm: vm)
