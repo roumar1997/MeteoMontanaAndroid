@@ -93,6 +93,14 @@ class SchoolDetailViewModel @Inject constructor(
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
 
+    // Deep-link desde el diario: vía a abrir (se despliega el mapa y se abre la
+    // piedra que la contiene). One-shot: se consume al abrirla.
+    private val _autoOpenVia = MutableStateFlow(
+        savedStateHandle.get<String>("via")?.takeIf { it.isNotBlank() }
+    )
+    val autoOpenVia: StateFlow<String?> = _autoOpenVia.asStateFlow()
+    fun consumeAutoOpenVia() { _autoOpenVia.value = null }
+
     private val journalJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
 
     /** Diario del usuario (para marcar las vías ya hechas con ✓ persistente). */

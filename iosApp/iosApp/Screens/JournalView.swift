@@ -145,9 +145,10 @@ struct JournalRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Si hay escuela, la parte izquierda navega a su detalle (ver piedra).
+            // Si hay escuela, la parte izquierda navega a su detalle y abre la
+            // piedra que contiene esta vía (deep-link del diario).
             if let sid = schoolId, !sid.isEmpty {
-                NavigationLink(destination: SchoolLoaderView(schoolId: sid)) { leading }
+                NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: entry.blockName)) { leading }
                     .buttonStyle(.plain)
             } else {
                 leading
@@ -170,14 +171,16 @@ struct JournalRow: View {
 }
 
 /// Carga una escuela por id y muestra su detalle (para abrir desde el diario).
+/// Si `openVia` se indica, el detalle abre la piedra que contiene esa vía.
 struct SchoolLoaderView: View {
     let schoolId: String
+    var openVia: String? = nil
     @State private var school: School?
     @State private var failed = false
     var body: some View {
         Group {
             if let school {
-                SchoolDetailView(school: school)
+                SchoolDetailView(school: school, openVia: openVia)
             } else if failed {
                 Text("No se pudo abrir la escuela.")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
@@ -534,8 +537,22 @@ struct SchoolJournalBlocksView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        // Nombre de la escuela → abre la escuela (sin piedra).
+                        if let sid = entries.first?.schoolId, !sid.isEmpty {
+                            NavigationLink(destination: SchoolLoaderView(schoolId: sid)) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "mountain.2").font(.system(size: 14)).foregroundStyle(Cumbre.terra)
+                                    Text("VER ESCUELA").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                            }.buttonStyle(.plain)
+                            Divider().overlay(Cumbre.rule)
+                        }
                         ForEach(entries, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId)   // solo lectura (sin borrar)
+                            JournalRow(entry: e, schoolId: e.schoolId)   // toca la vía → su piedra
                             Divider().overlay(Cumbre.rule)
                         }
                     }

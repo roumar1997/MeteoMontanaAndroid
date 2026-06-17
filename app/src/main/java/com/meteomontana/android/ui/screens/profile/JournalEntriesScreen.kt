@@ -136,7 +136,7 @@ class JournalEntriesViewModel @Inject constructor(
 @Composable
 fun JournalEntriesScreen(
     onBack: () -> Unit,
-    onOpenSchool: (String) -> Unit = {},
+    onOpenSchool: (schoolId: String, via: String?) -> Unit = { _, _ -> },
     viewModel: JournalEntriesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -167,10 +167,28 @@ fun JournalEntriesScreen(
                     }
                 } else {
                     LazyColumn {
+                        // Si estamos viendo una escuela concreta, fila para abrir
+                        // la escuela (sin piedra).
+                        val headerSchoolId = s.entries.firstOrNull { !it.schoolId.isNullOrBlank() }?.schoolId
+                        if (s.filter?.startsWith("school:") == true && headerSchoolId != null) {
+                            item {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .clickable { onOpenSchool(headerSchoolId, null) }
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("VER ESCUELA",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary)
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            }
+                        }
                         items(s.entries, key = { it.id }) { e ->
                             EntryRow(
                                 e, canDelete = s.isMine,
-                                onClick = { e.schoolId?.let(onOpenSchool) },
+                                onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName) } },
                                 onDelete = { viewModel.delete(e.id) }
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
