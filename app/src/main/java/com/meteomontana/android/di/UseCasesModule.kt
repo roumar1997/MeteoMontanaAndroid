@@ -237,6 +237,10 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideDeleteJournalEntryUseCase(repo: JournalRepository) = DeleteJournalEntryUseCase(repo)
 
+    @Provides @Singleton
+    fun provideGetJournalViaInfoUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase(repo)
+
     // Submissions
     @Provides @Singleton
     fun provideGetMySubmissionsUseCase(repo: SubmissionRepository) = GetMySubmissionsUseCase(repo)
@@ -265,6 +269,10 @@ object UseCasesModule {
 
     @Provides @Singleton
     fun provideUnfollowUserUseCase(repo: SocialRepository) = UnfollowUserUseCase(repo)
+
+    @Provides @Singleton
+    fun provideRemoveFollowerUseCase(repo: SocialRepository) =
+        com.meteomontana.android.domain.usecase.social.RemoveFollowerUseCase(repo)
 
     @Provides @Singleton
     fun provideGetMyFollowRequestsUseCase(repo: SocialRepository) = GetMyFollowRequestsUseCase(repo)

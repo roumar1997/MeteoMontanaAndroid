@@ -8,6 +8,7 @@ interface SocialRepository {
     suspend fun getUserProfile(uid: String): PublicProfile
     suspend fun follow(uid: String)
     suspend fun unfollow(uid: String)
+    suspend fun removeFollower(uid: String)
     suspend fun getFollowStatus(uid: String): FollowStatus
     suspend fun getFollowers(uid: String): List<PublicProfile>
     suspend fun getFollowing(uid: String): List<PublicProfile>

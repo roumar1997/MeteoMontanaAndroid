@@ -1,12 +1,14 @@
 package com.meteomontana.android
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.collectAsState
@@ -27,6 +29,13 @@ class MainActivity : ComponentActivity() {
     // Deep link en caliente: el push abrió la app con extras → guardamos para que AppRoot
     // los lea y navegue.
     private val pendingDeepLink = mutableStateOf<DeepLinkTarget?>(null)
+
+    // El launcher de permisos DEBE registrarse como campo (antes de STARTED). Si se
+    // registra dentro de onCreate y se lanza en línea, la Activity Result API puede
+    // tirar IllegalStateException o no mostrar el diálogo → el permiso de
+    // notificaciones nunca se concede y NO llega ninguna push (Android 13+).
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* resultado ignorado */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash Screen API: pinta fondo papel + montaña al instante en vez de
@@ -64,8 +73,10 @@ class MainActivity : ComponentActivity() {
 
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= 33) {
-            val launcher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* ignore result */ }
-            launcher.launch("android.permission.POST_NOTIFICATIONS")
+            val granted = ContextCompat.checkSelfPermission(
+                this, "android.permission.POST_NOTIFICATIONS"
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) notificationPermissionLauncher.launch("android.permission.POST_NOTIFICATIONS")
         }
     }
 }

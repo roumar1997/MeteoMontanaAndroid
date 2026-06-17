@@ -112,6 +112,7 @@ final class PublicProfileViewModel: ObservableObject {
     @Published var status: FollowStatus?
     @Published var stats: JournalStats?
     @Published var entries: [JournalSession] = []
+    @Published var viaInfo: [String: ViaCatalogInfo] = [:]
     @Published var loading = true
 
     private let getPublicProfile: GetPublicProfileUseCase
@@ -120,6 +121,7 @@ final class PublicProfileViewModel: ObservableObject {
     private let unfollowUser: UnfollowUserUseCase
     private let getUserStats: GetUserStatsUseCase
     private let getUserJournal: GetUserJournalUseCase
+    private let getJournalViaInfo: GetJournalViaInfoUseCase
 
     init(
         getPublicProfile: GetPublicProfileUseCase = AppDependencies.shared.container.getPublicProfile,
@@ -127,7 +129,8 @@ final class PublicProfileViewModel: ObservableObject {
         followUser: FollowUserUseCase = AppDependencies.shared.container.followUser,
         unfollowUser: UnfollowUserUseCase = AppDependencies.shared.container.unfollowUser,
         getUserStats: GetUserStatsUseCase = AppDependencies.shared.container.getUserStats,
-        getUserJournal: GetUserJournalUseCase = AppDependencies.shared.container.getUserJournal
+        getUserJournal: GetUserJournalUseCase = AppDependencies.shared.container.getUserJournal,
+        getJournalViaInfo: GetJournalViaInfoUseCase = AppDependencies.shared.container.getJournalViaInfo
     ) {
         self.getPublicProfile = getPublicProfile
         self.getFollowStatus = getFollowStatus
@@ -135,6 +138,7 @@ final class PublicProfileViewModel: ObservableObject {
         self.unfollowUser = unfollowUser
         self.getUserStats = getUserStats
         self.getUserJournal = getUserJournal
+        self.getJournalViaInfo = getJournalViaInfo
     }
 
     func load(uid: String) async {
@@ -149,9 +153,11 @@ final class PublicProfileViewModel: ObservableObject {
     /// Carga el diario/stats del usuario. Si su perfil es privado y no le sigues,
     /// el backend devuelve 403 → quedan vacíos (y la UI no muestra la sección).
     func loadJournal(uid: String) async {
-        if profile?.locked == true { stats = nil; entries = []; return }
+        if profile?.locked == true { stats = nil; entries = []; viaInfo = [:]; return }
         stats = try? await getUserStats.invoke(uid: uid)
         entries = (try? await getUserJournal.invoke(uid: uid)) ?? []
+        // Nº de piedra + sector de cada vía, resueltos en vivo del catálogo.
+        viaInfo = (try? await getJournalViaInfo.invoke(entries: entries)) ?? [:]
     }
 
     func toggleFollow(uid: String) {
@@ -229,7 +235,7 @@ struct PublicProfileView: View {
                     if let st = vm.stats {
                         Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                         Text("DIARIO").eyebrow().frame(maxWidth: .infinity, alignment: .leading)
-                        JournalStatsNav(stats: st, entries: vm.entries)
+                        JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo)
                     }
                 }
             }
@@ -297,12 +303,15 @@ final class FollowListViewModel: ObservableObject {
 
     private let getFollowers: GetFollowersUseCase
     private let getFollowing: GetFollowingUseCase
+    private let removeFollowerUseCase: RemoveFollowerUseCase
     init(
         getFollowers: GetFollowersUseCase = AppDependencies.shared.container.getFollowers,
-        getFollowing: GetFollowingUseCase = AppDependencies.shared.container.getFollowing
+        getFollowing: GetFollowingUseCase = AppDependencies.shared.container.getFollowing,
+        removeFollowerUseCase: RemoveFollowerUseCase = AppDependencies.shared.container.removeFollower
     ) {
         self.getFollowers = getFollowers
         self.getFollowing = getFollowing
+        self.removeFollowerUseCase = removeFollowerUseCase
     }
 
     func load(uid: String, mode: FollowListMode) async {
@@ -313,12 +322,27 @@ final class FollowListViewModel: ObservableObject {
         }
         loading = false
     }
+
+    /// Elimina a un seguidor (optimista; si la red falla, recargo mi lista).
+    func remove(followerUid: String, myUid: String) {
+        let backup = items
+        items = items.filter { $0.uid != followerUid }
+        Task {
+            do { try await removeFollowerUseCase.invoke(uid: followerUid) }
+            catch { items = backup }
+        }
+    }
 }
 
 struct FollowListView: View {
     let uid: String
     let mode: FollowListMode
     @StateObject private var vm = FollowListViewModel()
+
+    // Solo puedo eliminar seguidores en MI propia lista de "Seguidores".
+    private var canRemove: Bool {
+        mode == .followers && uid == AppDependencies.shared.authBridge.currentUid()
+    }
 
     var body: some View {
         Group {
@@ -332,9 +356,21 @@ struct FollowListView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(vm.items, id: \.uid) { u in
-                            NavigationLink(destination: PublicProfileView(uid: u.uid)) {
-                                UserRow(profile: u)
-                            }.buttonStyle(.plain)
+                            HStack(spacing: 0) {
+                                NavigationLink(destination: PublicProfileView(uid: u.uid)) {
+                                    UserRow(profile: u)
+                                }.buttonStyle(.plain)
+                                if canRemove {
+                                    Button { vm.remove(followerUid: u.uid, myUid: uid) } label: {
+                                        Text("ELIMINAR").font(Cumbre.mono(10, .bold)).tracking(0.6)
+                                            .foregroundStyle(Cumbre.ink2)
+                                            .padding(.horizontal, 12).padding(.vertical, 6)
+                                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.trailing, 12)
+                                }
+                            }
                             Divider().overlay(Cumbre.rule)
                         }
                     }

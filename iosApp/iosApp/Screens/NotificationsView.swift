@@ -53,6 +53,12 @@ final class NotificationsViewModel: ObservableObject {
         switch n.targetType {
         case "user": return .user(tid)
         case "school", "school_detail": return .school(tid)
+        // Paridad con Android (MainScreen.kt): chat y propuestas. Hoy estos tipos
+        // solo llegan por push (chat/notify, alerta), y iOS tiene APNs apagado, así
+        // que aún no aparecen en la bandeja; el enrutado queda listo para cuando se
+        // active APNs. El título de la notif de chat es el nombre del remitente.
+        case "chat", "message": return .chat(tid, n.title)
+        case "submission", "contribution": return .submissions
         default: return nil
         }
     }
@@ -62,11 +68,15 @@ final class NotificationsViewModel: ObservableObject {
 enum NotifTarget: Identifiable, Hashable {
     case school(String)
     case user(String)
+    case chat(String, String)   // (otherUid, otherName)
+    case submissions
     case followRequests
     var id: String {
         switch self {
         case .school(let s): return "school-\(s)"
         case .user(let u): return "user-\(u)"
+        case .chat(let u, _): return "chat-\(u)"
+        case .submissions: return "submissions"
         case .followRequests: return "follow-requests"
         }
     }
@@ -108,6 +118,8 @@ struct NotificationsView: View {
                 switch t {
                 case .school(let id): SchoolDetailLoaderView(schoolId: id)
                 case .user(let uid): PublicProfileView(uid: uid)
+                case .chat(let uid, let name): ChatView(otherUid: uid, otherName: name)
+                case .submissions: MySubmissionsView()
                 case .followRequests: FollowRequestsView()
                 }
             }

@@ -199,6 +199,7 @@ class IosDependencyContainer(
     val getFollowStatus = GetFollowStatusUseCase(socialRepository)
     val followUser = FollowUserUseCase(socialRepository)
     val unfollowUser = UnfollowUserUseCase(socialRepository)
+    val removeFollower = com.meteomontana.android.domain.usecase.social.RemoveFollowerUseCase(socialRepository)
     val getFollowers = GetFollowersUseCase(socialRepository)
     val getFollowing = GetFollowingUseCase(socialRepository)
     val getMyFollowRequests = GetMyFollowRequestsUseCase(socialRepository)
@@ -238,6 +239,9 @@ class IosDependencyContainer(
     val getUserStats = GetUserStatsUseCase(journalRepository)
     val createJournalEntry = CreateJournalEntryUseCase(journalRepository)
     val deleteJournalEntry = DeleteJournalEntryUseCase(journalRepository)
+    // Nº de piedra + sector de cada vía del diario, resueltos en vivo del catálogo.
+    val getJournalViaInfo =
+        com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase(blockRepository)
 
     // Caché local del catálogo (stale-while-revalidate): la lista pinta desde
     // aquí al instante y refresca desde red después. Null si no hay BD.

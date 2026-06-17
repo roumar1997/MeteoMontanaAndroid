@@ -54,18 +54,23 @@ fun MainScreen(
     val currentRoute = backStack?.destination?.route
 
     // Consume el deep link entrante del push: navega al destino + marca consumido.
+    // launchSingleTop evita apilar dos veces el mismo destino si el push entra
+    // duplicado o hay recomposición (antes: dos FOLLOW_REQUESTS en la pila → al
+    // pulsar atrás solo se quitaba una copia y parecía que "atrás no funcionaba").
+    // El destino raíz (Schools) siempre queda debajo, así que atrás vuelve a él.
     androidx.compose.runtime.LaunchedEffect(deepLink) {
         if (deepLink != null) {
+            val opts: androidx.navigation.NavOptionsBuilder.() -> Unit = { launchSingleTop = true }
             when (deepLink.targetType) {
                 "school", "school_detail" ->
-                    deepLink.targetId?.let { navController.navigate(Routes.schoolDetail(it)) }
-                "user"        -> deepLink.targetId?.let { navController.navigate(Routes.publicProfile(it)) }
-                "chat", "message" -> deepLink.targetId?.let { navController.navigate(Routes.chat(it)) }
-                "submission", "contribution" -> navController.navigate(Routes.MY_SUBMISSIONS)
-                "notifications" -> navController.navigate(Routes.NOTIFICATIONS)
-                "follow_request" -> navController.navigate(Routes.FOLLOW_REQUESTS)
+                    deepLink.targetId?.let { navController.navigate(Routes.schoolDetail(it), opts) }
+                "user"        -> deepLink.targetId?.let { navController.navigate(Routes.publicProfile(it), opts) }
+                "chat", "message" -> deepLink.targetId?.let { navController.navigate(Routes.chat(it), opts) }
+                "submission", "contribution" -> navController.navigate(Routes.MY_SUBMISSIONS, opts)
+                "notifications" -> navController.navigate(Routes.NOTIFICATIONS, opts)
+                "follow_request" -> navController.navigate(Routes.FOLLOW_REQUESTS, opts)
                 // Alerta del finde: targetId = ids CSV de las escuelas comparadas
-                "compare" -> deepLink.targetId?.let { navController.navigate("compare/$it") }
+                "compare" -> deepLink.targetId?.let { navController.navigate("compare/$it", opts) }
             }
             onDeepLinkConsumed()
         }

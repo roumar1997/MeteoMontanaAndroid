@@ -51,7 +51,9 @@ sealed interface JournalEntriesUiState {
     data class Success(
         val entries: List<JournalSession>,
         val filter: String?,
-        val isMine: Boolean
+        val isMine: Boolean,
+        // entryId -> (nº piedra, sector) resueltos del catálogo en vivo.
+        val viaInfo: Map<String, com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo> = emptyMap()
     ) : JournalEntriesUiState
     data class Error(val message: String) : JournalEntriesUiState
 }
@@ -64,6 +66,7 @@ class JournalEntriesViewModel @Inject constructor(
     private val getUserJournal: GetUserJournalUseCase,
     private val getUserStats: GetUserStatsUseCase,
     private val deleteJournalEntry: DeleteJournalEntryUseCase,
+    private val getJournalViaInfo: com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
 ) : ViewModel() {
     private val filter: String? = savedStateHandle["filter"]
@@ -117,7 +120,10 @@ class JournalEntriesViewModel @Inject constructor(
                     }
                     else -> all
                 }
-                JournalEntriesUiState.Success(filtered, filter, isMine)
+                // Resuelvo nº de piedra + sector en vivo del catálogo (no se guardan
+                // en la entrada). Si falla la red, queda vacío y no se muestran.
+                val viaInfo = runCatching { getJournalViaInfo(filtered) }.getOrDefault(emptyMap())
+                JournalEntriesUiState.Success(filtered, filter, isMine, viaInfo)
             } catch (t: Throwable) {
                 JournalEntriesUiState.Error(t.toUserMessage())
             }
@@ -188,6 +194,7 @@ fun JournalEntriesScreen(
                         items(s.entries, key = { it.id }) { e ->
                             EntryRow(
                                 e, canDelete = s.isMine,
+                                info = s.viaInfo[e.id],
                                 onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName) } },
                                 onDelete = { viewModel.delete(e.id) }
                             )
@@ -201,7 +208,13 @@ fun JournalEntriesScreen(
 }
 
 @Composable
-private fun EntryRow(e: JournalSession, canDelete: Boolean = true, onClick: () -> Unit = {}, onDelete: () -> Unit) {
+private fun EntryRow(
+    e: JournalSession,
+    canDelete: Boolean = true,
+    info: com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo? = null,
+    onClick: () -> Unit = {},
+    onDelete: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .then(if (e.schoolId != null) Modifier.clickable(onClick = onClick) else Modifier)
@@ -229,10 +242,15 @@ private fun EntryRow(e: JournalSession, canDelete: Boolean = true, onClick: () -
             Text(e.blockName,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
+            // Escuela + (nº de piedra · sector) resueltos del catálogo en vivo.
+            // Si no se pudo resolver (sin red / vía no catalogada) solo va la escuela.
+            val subtitle = buildString {
+                append(e.schoolName.orEmpty())
+                info?.boulderNumber?.let { if (isNotEmpty()) append(" · "); append("Piedra $it") }
+                info?.sector?.let { if (isNotEmpty()) append(" · "); append(it) }
+            }
             Text(
-                // Solo la escuela: el sector es del catálogo (la piedra) y puede
-                // borrarse/cambiar → no lo mostramos en el diario.
-                e.schoolName.orEmpty(),
+                subtitle,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -13,6 +13,7 @@ class KtorSocialRepository(private val api: KtorSocialApi) : SocialRepository {
         api.getUserProfile(uid).toDomain()
     override suspend fun follow(uid: String) = api.follow(uid)
     override suspend fun unfollow(uid: String) = api.unfollow(uid)
+    override suspend fun removeFollower(uid: String) = api.removeFollower(uid)
     override suspend fun getFollowStatus(uid: String): FollowStatus =
         api.getFollowStatus(uid).toDomain()
     override suspend fun getFollowers(uid: String): List<PublicProfile> =

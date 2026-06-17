@@ -492,6 +492,49 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-18 (eliminar seguidor + notifs/navegación + push app-cerrada + nº piedra/sector)
+
+Lote de feedback de Rodrigo (5 frentes) sobre Android+iOS+backend. Todo en `main`.
+
+- **#1 Eliminar seguidor (no solo dejar de seguir)** — backend+shared+Android+iOS:
+  - Backend `MeteoMontanaAPI`: `DELETE /api/me/followers/{uid}` +
+    `FollowUseCase.removeFollower(miUid, followerUid)` (= `remove(followerUid, miUid)`,
+    mismo borrado que rechazar solicitud; idempotente). Protegido (anyRequest auth).
+  - Shared: `KtorSocialApi.removeFollower`, `SocialRepository`, `KtorSocialRepository`,
+    `RemoveFollowerUseCase`; expuesto en `IosDependencyContainer` (`removeFollower`).
+  - UI: botón "Eliminar" por fila SOLO en MI lista de Seguidores
+    (`canRemove = mode==followers && uid==miUid`), optimista con rollback.
+    Android `FollowListScreen`, iOS `FollowListView` (botón junto al NavigationLink).
+- **#2 Enrutado notifs iOS**: `NotificationsView.swift` añade casos `chat`/`message`
+  → `ChatView`, `submission`/`contribution` → `MySubmissionsView` (paridad con
+  Android). `compare` queda documentado (solo push; APNs iOS off). Los follows ya
+  enrutaban (user/follow_request).
+- **#3 Atascado en "Solicitudes" (Android)**: el deep-link a `FOLLOW_REQUESTS`
+  apilaba duplicados → atrás solo quitaba una copia. Fix: `launchSingleTop` en
+  TODAS las navegaciones del deep-link de `MainScreen`. iOS verificado OK
+  (`FollowRequestsView` va en `NavigationStack` → atrás del sistema funciona).
+- **#4 Push de chat con app CERRADA**: `FcmService` (backend) ahora manda
+  **prioridad ALTA** (`AndroidConfig.Priority.HIGH` + canal/icono/color) en ambos
+  métodos, y `sendDataToToken` (follows/alertas) lleva además bloque `notification`
+  → fiable con app muerta (Xiaomi/MIUI ya no lo descarta); el `data` sigue para el
+  deep-link al tocar y el avatar en primer plano. Android `MainActivity`: el
+  launcher de `POST_NOTIFICATIONS` pasa a CAMPO de la Activity (antes se registraba
+  en onCreate y podía no pedirse nunca → ninguna push). **iOS push (APNs) sigue OFF**
+  (cuenta Apple de pago) — código `PushManager` listo pero desactivado.
+- **#5 Nº de piedra + sector en las vías del perfil** (Android+iOS): nuevo
+  `GetJournalViaInfoUseCase` (shared) que resuelve **en vivo** del catálogo de
+  bloques `entryId -> (nº piedra = Block.name, sector = nombre de la ZONA por
+  `sectorBlockId`)`, localizando la vía por nombre en `block.lines`. No se guarda
+  (el catálogo se recicla). Subtítulo de la fila: "Escuela · Piedra N · Sector".
+  Android `JournalEntriesScreen`; iOS `JournalRow` + se hila `viaInfo` por
+  `JournalStatsNav`/listas y se calcula en `AccountViewModel`/`PublicProfileViewModel`.
+  Sin red → solo la escuela (graceful).
+
+> **OJO despliegue**: el #1 y el #4 necesitan el backend en Railway (main). El #4
+> de notificaciones es solo-backend (vale al redesplegar). Probar push con app
+> cerrada en el Xiaomi requiere conceder el permiso de notificaciones + (MIUI)
+> Inicio automático activado.
+
 ### Sesión 2026-06-17 (9) (chat: notificaciones + modelo de privacidad real, seguridad Firestore)
 
 Diagnóstico de Rodrigo: al escribir a otra cuenta NO llegaban notificaciones

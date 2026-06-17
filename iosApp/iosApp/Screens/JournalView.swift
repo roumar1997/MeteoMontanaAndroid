@@ -122,8 +122,19 @@ struct JournalRow: View {
     let entry: JournalSession
     /// Si se indica, la fila es pulsable y abre esa escuela (ver la piedra).
     var schoolId: String? = nil
+    /// nº de piedra + sector resueltos en vivo del catálogo (no se guardan).
+    var info: ViaCatalogInfo? = nil
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
     var onDelete: (() -> Void)? = nil
+
+    /// "Escuela · Piedra N · Sector" — lo que se pueda resolver del catálogo.
+    private var subtitle: String {
+        var parts: [String] = []
+        if let sn = entry.schoolName, !sn.isEmpty { parts.append(sn) }
+        if let n = info?.boulderNumber, !n.isEmpty { parts.append("Piedra \(n)") }
+        if let s = info?.sector, !s.isEmpty { parts.append(s) }
+        return parts.joined(separator: " · ")
+    }
 
     private var leading: some View {
         HStack(spacing: 12) {
@@ -136,10 +147,9 @@ struct JournalRow: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                // Solo la escuela: el sector pertenece a la piedra (catálogo) y
-                // puede borrarse/cambiar → no lo mostramos en el diario.
-                if let sn = entry.schoolName, !sn.isEmpty {
-                    Text(sn).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                // Escuela + nº de piedra + sector (resueltos del catálogo en vivo).
+                if !subtitle.isEmpty {
+                    Text(subtitle).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
                 }
                 // Ocultamos la nota auto "Piedra: N" (obsoleta: el número se recicla).
                 if let n = entry.notes, !n.isEmpty, !n.hasPrefix("Piedra: ") {
@@ -489,6 +499,7 @@ struct AddBlockSheet: View {
 struct JournalSchoolsView: View {
     let schools: [SchoolStats]
     let entries: [JournalSession]
+    var viaInfo: [String: ViaCatalogInfo] = [:]
     var body: some View {
         Group {
             if schools.isEmpty {
@@ -501,7 +512,8 @@ struct JournalSchoolsView: View {
                         ForEach(schools, id: \.schoolName) { s in
                             NavigationLink(destination: SchoolJournalBlocksView(
                                 schoolName: s.schoolName,
-                                entries: entriesFor(s.schoolName)
+                                entries: entriesFor(s.schoolName),
+                                viaInfo: viaInfo
                             )) {
                                 HStack(spacing: 12) {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -538,6 +550,7 @@ struct JournalSchoolsView: View {
 struct SchoolJournalBlocksView: View {
     let schoolName: String
     let entries: [JournalSession]
+    var viaInfo: [String: ViaCatalogInfo] = [:]
     var body: some View {
         Group {
             if entries.isEmpty {
@@ -562,7 +575,7 @@ struct SchoolJournalBlocksView: View {
                             Divider().overlay(Cumbre.rule)
                         }
                         ForEach(entries, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId)   // toca la vía → su piedra
+                            JournalRow(entry: e, schoolId: e.schoolId, info: viaInfo[e.id])   // toca la vía → su piedra
                             Divider().overlay(Cumbre.rule)
                         }
                     }
@@ -579,6 +592,7 @@ struct SchoolJournalBlocksView: View {
 struct JournalBlocksListView: View {
     let title: String
     let entries: [JournalSession]
+    var viaInfo: [String: ViaCatalogInfo] = [:]
     var body: some View {
         Group {
             if entries.isEmpty {
@@ -589,7 +603,7 @@ struct JournalBlocksListView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(entries, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId)
+                            JournalRow(entry: e, schoolId: e.schoolId, info: viaInfo[e.id])
                             Divider().overlay(Cumbre.rule)
                         }
                     }
@@ -607,12 +621,13 @@ struct JournalBlocksListView: View {
 struct JournalStatsNav: View {
     let stats: JournalStats
     let entries: [JournalSession]
+    var viaInfo: [String: ViaCatalogInfo] = [:]
     var body: some View {
         HStack(spacing: 8) {
-            NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries)) {
+            NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries, viaInfo: viaInfo)) {
                 cell("\(stats.blockCount)", "BLOQUES")
             }.buttonStyle(.plain)
-            NavigationLink(destination: JournalSchoolsView(schools: stats.bySchool, entries: entries)) {
+            NavigationLink(destination: JournalSchoolsView(schools: stats.bySchool, entries: entries, viaInfo: viaInfo)) {
                 cell("\(stats.schoolCount)", "ESCUELAS")
             }.buttonStyle(.plain)
             cell(stats.maxGrade ?? "—", "MÁXIMO")

@@ -40,6 +40,12 @@ class UnfollowUserUseCase(private val repo: SocialRepository) {
     suspend operator fun invoke(uid: String) = repo.unfollow(uid)
 }
 
+/** Elimina a [uid] de mis seguidores (lo fuerza a dejar de seguirme). */
+class RemoveFollowerUseCase(private val repo: SocialRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(uid: String) = repo.removeFollower(uid)
+}
+
 class GetMyFollowRequestsUseCase(private val repo: SocialRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(): List<PublicProfile> = repo.getMyFollowRequests()

@@ -6,6 +6,7 @@ final class AccountViewModel: ObservableObject {
     @Published var profile: PrivateProfile?
     @Published var stats: JournalStats?
     @Published var entries: [JournalSession] = []
+    @Published var viaInfo: [String: ViaCatalogInfo] = [:]
     @Published var follow: FollowStatus?
     @Published var loading = true
     /// true cuando los datos vienen de la caché local (sin conexión).
@@ -18,6 +19,7 @@ final class AccountViewModel: ObservableObject {
     private let getFollowStatus: GetFollowStatusUseCase
     private let createEntry: CreateJournalEntryUseCase
     private let deleteEntry: DeleteJournalEntryUseCase
+    private let getJournalViaInfo: GetJournalViaInfoUseCase
     private let authBridge = AppDependencies.shared.authBridge
 
     init(
@@ -26,7 +28,8 @@ final class AccountViewModel: ObservableObject {
         getMyJournal: GetMyJournalUseCase = AppDependencies.shared.container.getMyJournal,
         getFollowStatus: GetFollowStatusUseCase = AppDependencies.shared.container.getFollowStatus,
         createEntry: CreateJournalEntryUseCase = AppDependencies.shared.container.createJournalEntry,
-        deleteEntry: DeleteJournalEntryUseCase = AppDependencies.shared.container.deleteJournalEntry
+        deleteEntry: DeleteJournalEntryUseCase = AppDependencies.shared.container.deleteJournalEntry,
+        getJournalViaInfo: GetJournalViaInfoUseCase = AppDependencies.shared.container.getJournalViaInfo
     ) {
         self.getMyProfile = getMyProfile
         self.getMyStats = getMyStats
@@ -34,6 +37,12 @@ final class AccountViewModel: ObservableObject {
         self.getFollowStatus = getFollowStatus
         self.createEntry = createEntry
         self.deleteEntry = deleteEntry
+        self.getJournalViaInfo = getJournalViaInfo
+    }
+
+    /// Resuelve nº de piedra + sector de las vías actuales (catálogo en vivo).
+    private func refreshViaInfo() async {
+        viaInfo = (try? await getJournalViaInfo.invoke(entries: entries)) ?? [:]
     }
 
     /// Recarga solo el diario (tras añadir/borrar un bloque). Si no hay red,
@@ -41,6 +50,7 @@ final class AccountViewModel: ObservableObject {
     func reloadJournal() async {
         guard let fresh = await loadEntries() else { return }
         entries = fresh
+        await refreshViaInfo()
         stats = (try? await getMyStats.invoke()) ?? stats
         if let p = profile {
             ProfileCache.shared.save(profile: p, stats: stats, entries: entries,
@@ -114,6 +124,7 @@ final class AccountViewModel: ObservableObject {
             profile = p
             stats = try? await getMyStats.invoke()
             entries = (await loadEntries()) ?? []
+            await refreshViaInfo()
             // Contadores de seguidores/seguidos: igual que Android (getFollowStatus
             // del propio uid devuelve followers/following).
             follow = try? await getFollowStatus.invoke(uid: p.uid)
@@ -127,6 +138,7 @@ final class AccountViewModel: ObservableObject {
             profile = cached.profile
             stats = cached.stats
             entries = await filterPendingDeletes(cached.entries)
+            await refreshViaInfo()   // sin red devuelve vacío → solo escuela
             follow = FollowStatus(followers: cached.followers, following: cached.following,
                                   iFollowThem: false, theyFollowMe: false, requestPending: false)
             offline = true
@@ -393,7 +405,7 @@ private struct AccountBlocksList: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(vm.entries, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId) { vm.deleteBlock(e.id) }
+                            JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id]) { vm.deleteBlock(e.id) }
                             Divider().overlay(Cumbre.rule)
                         }
                     }
@@ -477,7 +489,7 @@ private struct AccountSchoolBlocksList: View {
                             Divider().overlay(Cumbre.rule)
                         }
                         ForEach(entries, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId) { vm.deleteBlock(e.id) }
+                            JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id]) { vm.deleteBlock(e.id) }
                             Divider().overlay(Cumbre.rule)
                         }
                     }

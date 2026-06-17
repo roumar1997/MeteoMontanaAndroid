@@ -23,6 +23,9 @@ class KtorSocialApi(private val client: HttpClient) {
 
     suspend fun unfollow(uid: String) { client.delete("users/$uid/follow") }
 
+    /** Elimina a [uid] de mis seguidores (fuerza que deje de seguirme). */
+    suspend fun removeFollower(uid: String) { client.delete("me/followers/$uid") }
+
     suspend fun getFollowStatus(uid: String): FollowStatusDto =
         client.get("users/$uid/follow-status").body()
 

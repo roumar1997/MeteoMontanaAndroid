@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,9 +36,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.usecase.social.GetFollowersUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowingUseCase
+import com.meteomontana.android.domain.usecase.social.RemoveFollowerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,7 +58,8 @@ sealed interface FollowListUiState {
 class FollowListViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getFollowers: GetFollowersUseCase,
-    private val getFollowing: GetFollowingUseCase
+    private val getFollowing: GetFollowingUseCase,
+    private val removeFollowerUseCase: RemoveFollowerUseCase
 ) : ViewModel() {
     private val uid: String = checkNotNull(savedStateHandle["uid"])
     private val mode: String = checkNotNull(savedStateHandle["mode"]) // "followers" | "following"
@@ -64,6 +68,10 @@ class FollowListViewModel @Inject constructor(
     val state: StateFlow<FollowListUiState> = _state.asStateFlow()
 
     val title: String = if (mode == "followers") "Seguidores" else "Siguiendo"
+
+    // Solo puedo eliminar seguidores en MI propia lista de "Seguidores".
+    val canRemove: Boolean =
+        mode == "followers" && uid == FirebaseAuth.getInstance().currentUser?.uid
 
     init { load() }
 
@@ -75,6 +83,15 @@ class FollowListViewModel @Inject constructor(
             } catch (t: Throwable) {
                 FollowListUiState.Error(t.toUserMessage())
             }
+        }
+    }
+
+    /** Elimina a un seguidor (optimista; si la red falla, recargo la lista). */
+    fun removeFollower(followerUid: String) {
+        val cur = _state.value as? FollowListUiState.Success ?: return
+        _state.value = FollowListUiState.Success(cur.items.filter { it.uid != followerUid })
+        viewModelScope.launch {
+            runCatching { removeFollowerUseCase(followerUid) }.onFailure { load() }
         }
     }
 }
@@ -115,8 +132,14 @@ fun FollowListScreen(
                     }
                 } else {
                     LazyColumn {
-                        items(s.items) { u ->
-                            UserRow(u) { onUserClick(u.uid) }
+                        items(s.items, key = { it.uid }) { u ->
+                            UserRow(
+                                u = u,
+                                onClick = { onUserClick(u.uid) },
+                                onRemove = if (viewModel.canRemove) {
+                                    { viewModel.removeFollower(u.uid) }
+                                } else null
+                            )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         }
                     }
@@ -127,7 +150,7 @@ fun FollowListScreen(
 }
 
 @Composable
-private fun UserRow(u: PublicProfile, onClick: () -> Unit) {
+private fun UserRow(u: PublicProfile, onClick: () -> Unit, onRemove: (() -> Unit)? = null) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -152,10 +175,24 @@ private fun UserRow(u: PublicProfile, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        val uTopGrade = u.topGrade
-        if (!uTopGrade.isNullOrBlank()) {
-            Text(uTopGrade, style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary)
+        if (onRemove != null) {
+            // "Eliminar" en MI lista de seguidores → fuerza que dejen de seguirme.
+            Box(modifier = Modifier
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                .clickable(onClick = onRemove)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text("Eliminar", style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground)
+            }
+        } else {
+            val uTopGrade = u.topGrade
+            if (!uTopGrade.isNullOrBlank()) {
+                Text(uTopGrade, style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }
