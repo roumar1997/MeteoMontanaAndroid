@@ -319,6 +319,9 @@ struct AddBlockSheet: View {
     let onSave: (String, String, String?, String, String, String) -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = AddBlockViewModel()
+    // Los sheets no heredan el modo claro/oscuro forzado por el tema → forzarlo
+    // aquí o se ve blanco brillante en modo oscuro.
+    @ObservedObject private var theme = ThemeManager.shared
 
     @State private var block = ""
     @State private var grade = ""
@@ -355,6 +358,7 @@ struct AddBlockSheet: View {
             }
             .task { await vm.loadJournal() }
         }
+        .preferredColorScheme(theme.colorScheme)
     }
 
     // ─── ESCUELA con autocomplete ───
