@@ -68,7 +68,13 @@ class OutboxFlusher @Inject constructor(
                     }
                     OutboxType.JOURNAL -> {
                         val req = json.decodeFromString<CreateJournalRequest>(row.payloadJson)
-                        createJournalEntry(req)
+                        // Idempotente: si esa vía ya está en el diario (p.ej. se
+                        // marcó también en otro sitio), NO la creamos otra vez.
+                        val key = "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
+                        val exists = getMyJournal().any { e ->
+                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
+                        }
+                        if (!exists) createJournalEntry(req)
                     }
                     OutboxType.JOURNAL_DELETE -> {
                         // payload = clave "escuelaId|nombreVía". Resolvemos el id real
