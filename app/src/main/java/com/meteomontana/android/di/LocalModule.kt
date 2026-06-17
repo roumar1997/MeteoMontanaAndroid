@@ -56,6 +56,11 @@ object LocalModule {
         com.meteomontana.android.data.local.CatalogEtagStore =
         com.meteomontana.android.data.local.CatalogEtagStore(ctx)
 
+    @Provides @Singleton
+    fun provideProfileCache(@ApplicationContext ctx: Context):
+        com.meteomontana.android.data.local.ProfileCache =
+        com.meteomontana.android.data.local.ProfileCache(ctx)
+
     // LocationProvider: interfaz en shared/commonMain, impl Android (FusedLocation).
     @Provides @Singleton
     fun provideLocationProvider(
