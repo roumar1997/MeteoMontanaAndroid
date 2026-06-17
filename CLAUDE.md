@@ -492,6 +492,63 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (8) (chat nav/borrar-para-mí, piedras numeradas, admin directo, deep-link, push iOS listo)
+
+Lote grande de feedback de Rodrigo probando en ambos dispositivos. Backend en
+Railway; APK/`.ipa` apuntan a prod. Regla de trabajo: NO generar `.ipa` salvo
+que lo pida; al servirla, reabrir también Android (ver [[feedback_ipa_then_open_android]]).
+
+- **Chat estilo WhatsApp (cont.)**: borrar = "solo para mí" (soft-delete
+  `cleared_<uid>` en la conversación; no destruye la del otro; reaparece si te
+  escriben). Reglas Firestore: `conversations` delete=false, mensajes solo el
+  autor. Buscador "Nuevo mensaje" (seguidores ∪ seguidos). Teclado iOS ya no tapa
+  los mensajes. Tocar el nombre del chat → perfil del otro.
+- **Piedras = NÚMERO automático único por escuela**: el proponente no pone
+  nombre; al materializar (aprobar o crear admin) se asigna el **menor número
+  libre** de la escuela (se recicla al borrar; único por escuela). Quitado el
+  campo nombre en proponer. Backend: `nextBlockNumber` en ReviewContribution +
+  SchoolBlockUseCase.
+- **Admin = todo directo**: `SubmitContributionUseCase` auto-aprueba
+  (materializa) si el proponente es admin → crear piedra/parking/sector y
+  corregir posición (incl. escuela) se publican al instante, en ambas apps, sin
+  cambio de UI. No se auto-envía email (approve(notify=false)). Mensaje en la app
+  "PUBLICADO" (no "propuesta 24-48h"). Admin puede **eliminar** desde la ficha de
+  un bloque en el mapa (BlockDetailDialog/BlockInfoSheet, onDelete si admin).
+- **Deep-link diario → piedra**: tocar un bloque del diario abre la escuela con
+  el mapa desplegado y la **piedra abierta** (busca el bloque por nombre de vía).
+  Android: ruta `schools/{id}?via=`, VM autoOpenVia, SchoolMap auto-abre. iOS:
+  SchoolDetailView/SchoolMapSection openVia + SchoolLoaderView. En ESCUELAS del
+  perfil: "VER ESCUELA" abre la escuela; cada vía abre su piedra.
+- **Diario limpio**: dedup por escuela|sector|vía; cola offline idempotente (no
+  recrea vías existentes al reconectar); ya no se guarda/mostra "Piedra: N" ni el
+  sector (catálogo inestable: se borra/recicla). La fila muestra solo la escuela.
+- **iOS app se llama "Cumbre"** (CFBundleDisplayName; PRODUCT_NAME sigue
+  MeteoMontana para el empaquetado del `.ipa`). Notificaciones Android: icono
+  grande = logo Cumbre a color cuando no hay avatar; título por defecto "Cumbre".
+- **Perfil offline** (sesión previa, ya en main): ProfileCache Android+iOS.
+- **PUSH iOS — CÓDIGO LISTO, DESACTIVADO** (`PushManager.swift`, `enabled=false`):
+  registra remote notifications + token FCM → `PUT /api/me/fcm-token`
+  (updateFcmToken expuesto en el container). FirebaseMessaging añadido a
+  project.yml. Las notificaciones IN-APP (campana) ya funcionan; el PUSH del
+  sistema NO hasta activar APNs.
+
+> ### 📌 PENDIENTE — TAREAS ANTES DE PUBLICAR (bloqueantes)
+> **iOS push (APNs) — ACTIVAR antes de sacar la app:**
+> 1. Cuenta Apple Developer de pago → crear APNs Auth Key (.p8).
+> 2. Subir la key a Firebase (climbingteams → Cloud Messaging → APNs).
+> 3. project.yml: descomentar `aps-environment` + `UIBackgroundModes:
+>    [remote-notification]` + `FirebaseAppDelegateProxyEnabled: true` (o reenviar
+>    apnsToken a Messaging desde un AppDelegate).
+> 4. `PushManager.enabled = true`.
+>    (OJO: la capability rompe el sideload con Apple ID gratis → solo al publicar.)
+> **iOS Sign in with Apple** — código listo, activar igual (entitlement
+> `applesignin` comentado + Firebase Apple provider). Ver sesión (7).
+> **iOS `PrivacyInfo.xcprivacy`** ya creado; **firma real** + cuenta Developer.
+> **Play**: generar AAB firmado + Data Safety + cuenta ($25).
+> **Borrado de cuenta** YA hecho (DELETE /api/me + UI) — declararlo en consolas.
+> **Seguridad**: endurecer secretos en Railway (env vars) — acción de Rodrigo.
+> **Deuda**: resto refactor a puertos (WeatherProvider/FileStorage) + tests.
+
 ### Sesión 2026-06-17 (7) (chat WhatsApp, modo oscuro iOS, Apple sign-in, puerto PushSender + tests)
 
 Continuación de la (6). Backend en Railway; APK/`.ipa` apuntan a prod.
