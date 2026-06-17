@@ -346,7 +346,13 @@ class IosDependencyContainer(
                     val ok = runCatching {
                         val req = outboxJson.decodeFromString(
                             com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                        createJournalEntry(req)
+                        // Idempotente: no crear si esa vía ya está en el diario.
+                        val key = "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
+                        val exists = getMyJournal().any { e ->
+                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
+                        }
+                        if (!exists) createJournalEntry(req)
+                        true
                     }.isSuccess
                     if (ok) repo.delete(row.id)
                 }
