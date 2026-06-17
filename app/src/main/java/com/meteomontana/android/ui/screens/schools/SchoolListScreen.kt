@@ -143,9 +143,6 @@ fun SchoolListScreen(
                 )
             }
 
-            // Banner café: ¿Te ayuda la app? · Apóyanos
-            item { CoffeeBanner(onDonate = onDonate) }
-
             // Buscador
             item {
                 Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
