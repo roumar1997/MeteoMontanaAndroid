@@ -88,7 +88,7 @@ class JournalEntriesViewModel @Inject constructor(
                 // En mi propio diario, descuento las vías con BORRADO pendiente en
                 // la cola offline (desmarcadas sin red): si no, seguían apareciendo
                 // hasta sincronizar. Espejo de doneViaKeys en el detalle.
-                val all = if (isMine) {
+                val visible = if (isMine) {
                     val pendingDeletes = outboxRepo.all()
                         .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
                         .map { it.payloadJson }.toSet()
@@ -97,6 +97,12 @@ class JournalEntriesViewModel @Inject constructor(
                         "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" !in pendingDeletes
                     }
                 } else server
+                // Sin duplicados: la misma vía marcada varias veces (mismo
+                // escuela|sector|vía) se colapsa en una (la más reciente; el
+                // servidor las devuelve por fecha desc).
+                val all = visible.distinctBy {
+                    "${it.schoolId ?: ""}|${(it.sector ?: "").trim().lowercase()}|${it.blockName.trim().lowercase()}"
+                }
                 val filtered = when {
                     filter == null               -> all
                     filter.startsWith("school:") -> {

@@ -67,7 +67,10 @@ struct BoulderFormSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    field("NOMBRE", $name, "ej: Bloque del Pulpo")
+                    // La piedra NO lleva nombre: al aprobar/crear se le asigna un
+                    // número automático único en la escuela (se ve en el mapa).
+                    Text("A esta piedra se le asignará un número automático al publicarse.")
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
 
                     if !sectors.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
@@ -178,7 +181,7 @@ struct BoulderFormSheet: View {
         }
         let req = ContributionRequest(
             type: "BOULDER",
-            name: name.trimmingCharacters(in: .whitespaces).isEmpty ? nil : name,
+            name: nil,   // el número lo asigna el backend al materializar
             lat: coord.latitude, lon: coord.longitude,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: nil, targetLineId: nil, sectorBlockId: sectorId,

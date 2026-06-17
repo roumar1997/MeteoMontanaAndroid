@@ -56,16 +56,19 @@ final class AccountViewModel: ObservableObject {
         return await filterPendingDeletes(all)
     }
 
-    /// Quita de [list] las entradas con borrado pendiente (clave o uid).
+    /// Quita de [list] las entradas con borrado pendiente (clave o uid) y
+    /// colapsa duplicados (misma escuela|sector|vía → una sola, la más reciente).
     private func filterPendingDeletes(_ list: [JournalSession]) async -> [JournalSession] {
         let c = AppDependencies.shared.container
         let keys = (try? await c.pendingJournalDeleteKeys()) ?? []
         let ids = (try? await c.pendingJournalDeleteIds()) ?? []
-        guard !keys.isEmpty || !ids.isEmpty else { return list }
+        var seen = Set<String>()
         return list.filter { e in
             if ids.contains(e.id) { return false }
             let key = "\(e.schoolId ?? "")|\(e.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
-            return !keys.contains(key)
+            if keys.contains(key) { return false }
+            let dedupKey = "\(e.schoolId ?? "")|\((e.sector ?? "").trimmingCharacters(in: .whitespaces).lowercased())|\(e.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+            return seen.insert(dedupKey).inserted
         }
     }
 
