@@ -229,8 +229,18 @@ private struct FavoritesGridView: View {
             .overlay(Rectangle().stroke(color, lineWidth: 1))
     }
 
-    // "2026-06-16" -> "06-16"; si no encaja, los últimos 5 caracteres.
+    // "2026-06-16" -> "LUN"/"MAR"/… (día de la semana, como Android). Si no
+    // parsea, cae a los últimos 5 caracteres ("06-16").
     private func dayLabel(_ day: String) -> String {
-        day.count >= 5 ? String(day.suffix(5)) : day
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.locale = Locale(identifier: "en_US_POSIX")
+        guard let date = fmt.date(from: day) else {
+            return day.count >= 5 ? String(day.suffix(5)) : day
+        }
+        // weekday: 1=domingo … 7=sábado
+        let weekday = Calendar(identifier: .gregorian).component(.weekday, from: date)
+        let labels = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"]
+        return labels[(weekday - 1) % 7]
     }
 }
