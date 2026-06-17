@@ -94,7 +94,7 @@ func chatTime(_ millis: Int64) -> String {
 }
 
 /// Destino de navegación al iniciar un chat nuevo desde el picker.
-private struct ChatTarget: Identifiable { let uid: String; let name: String; var id: String { uid } }
+private struct ChatTarget: Identifiable, Hashable { let uid: String; let name: String; var id: String { uid } }
 
 struct ChatListView: View {
     @StateObject private var vm = ChatListVM()
