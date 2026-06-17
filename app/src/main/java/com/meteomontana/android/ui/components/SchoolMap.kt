@@ -250,6 +250,10 @@ private fun InnerMap(
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
 
+    // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
+    val isAdminUser = (viewModel.uiState.collectAsState().value
+        as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
+
     // Deep-link del diario: abre la piedra que contiene la vía objetivo.
     val autoOpenVia by viewModel.autoOpenVia.collectAsState()
     androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia) {
@@ -488,6 +492,12 @@ private fun InnerMap(
                     else
                         "No se pudo enviar la propuesta: ${r.exceptionOrNull()?.message ?: "error"}"
                 }
+            }) else null,
+            // Admin: borrar la piedra/zona/parking directamente desde el mapa.
+            onDelete = if (isAdminUser) ({
+                val id = block.id
+                selectedBlock = null
+                viewModel.deleteBlock(id) {}
             }) else null,
             onDismiss = { selectedBlock = null }
         )

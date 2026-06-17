@@ -461,6 +461,20 @@ private struct AccountSchoolBlocksList: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        // Nombre de la escuela → abre la escuela (sin piedra).
+                        if let sid = entries.first?.schoolId, !sid.isEmpty {
+                            NavigationLink(destination: SchoolLoaderView(schoolId: sid)) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "mountain.2").font(.system(size: 14)).foregroundStyle(Cumbre.terra)
+                                    Text("VER ESCUELA").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                            }.buttonStyle(.plain)
+                            Divider().overlay(Cumbre.rule)
+                        }
                         ForEach(entries, id: \.id) { e in
                             JournalRow(entry: e, schoolId: e.schoolId) { vm.deleteBlock(e.id) }
                             Divider().overlay(Cumbre.rule)

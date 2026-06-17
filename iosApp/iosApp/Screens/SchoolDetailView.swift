@@ -301,6 +301,7 @@ private struct SchoolMapSection: View {
     let school: School
     var openVia: String? = nil
     @State private var didAutoOpen = false
+    @State private var isAdmin = false
     @State private var expanded = false
     @State private var blocks: [Block] = []
     @State private var selectedBlock: Block?
@@ -436,13 +437,25 @@ private struct SchoolMapSection: View {
         .onAppear {
             if let v = openVia, !v.isEmpty, !didAutoOpen, !expanded { expanded = true }
         }
+        // ¿Admin? → puede eliminar bloques desde su ficha.
+        .task {
+            isAdmin = ((try? await AppDependencies.shared.container.getMyProfile.invoke())?.isAdmin) ?? false
+        }
         .sheet(item: $selectedBlock) { b in
             BlockInfoSheet(
                 block: b,
                 sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
                 schoolName: school.name,
                 onEditLines: { editLinesBlock = b },
-                onAssignSector: { assignSectorBlock = b })
+                onAssignSector: { assignSectorBlock = b },
+                onDelete: isAdmin ? {
+                    let id = b.id
+                    selectedBlock = nil
+                    Task {
+                        try? await AppDependencies.shared.container.deleteBlock.invoke(blockId: id)
+                        await reloadBlocks()
+                    }
+                } : nil)
         }
         .sheet(item: $editLinesBlock) { b in
             EditLinesSheet(block: b, schoolId: school.id) { ok in
@@ -815,9 +828,12 @@ struct BlockInfoSheet: View {
     var schoolName: String? = nil
     var onEditLines: (() -> Void)? = nil
     var onAssignSector: (() -> Void)? = nil
+    /// Admin: borrar este bloque (piedra/zona/parking) directamente.
+    var onDelete: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var tickedLines: Set<String> = []   // vías marcadas como hechas en esta sesión
     @State private var tickingLine: String?            // vía guardándose ahora
+    @State private var showDeleteConfirm = false
 
     private var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
@@ -907,6 +923,21 @@ struct BlockInfoSheet: View {
                                 .foregroundStyle(Cumbre.ink).frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                         }.buttonStyle(.plain)
+                    }
+
+                    // Admin: eliminar este bloque (piedra/zona/parking).
+                    if let onDelete {
+                        Button(role: .destructive) { showDeleteConfirm = true } label: {
+                            Text("ELIMINAR").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                .foregroundStyle(Cumbre.bad).frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                        .alert("¿Eliminar \(typeLabel.lowercased())?", isPresented: $showDeleteConfirm) {
+                            Button("Cancelar", role: .cancel) {}
+                            Button("Eliminar", role: .destructive) { dismiss(); onDelete() }
+                        } message: {
+                            Text("Se borrará del mapa para todos. No se puede deshacer.")
+                        }
                     }
                 }
                 .padding(16)
