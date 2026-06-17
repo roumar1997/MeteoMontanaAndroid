@@ -170,6 +170,9 @@ final class SchoolDetailViewModel: ObservableObject {
 
 struct SchoolDetailView: View {
     let school: School
+    /// Si se indica, al abrir se despliega el mapa y se abre la piedra que
+    /// contiene esa vía (deep-link desde el diario).
+    var openVia: String? = nil
     @StateObject private var vm = SchoolDetailViewModel()
     @State private var factorsExpanded = false
     @State private var selectedDay: DayForecast?
@@ -198,11 +201,11 @@ struct SchoolDetailView: View {
                     directions: (lat: school.lat, lon: school.lon, label: school.name),
                     factorsExpanded: $factorsExpanded,
                     onSelectDay: { selectedDay = $0 },
-                    mapSlot: AnyView(SchoolMapSection(school: school))
+                    mapSlot: AnyView(SchoolMapSection(school: school, openVia: openVia))
                 )
             } else {
                 // Sin previsión: el mapa va igualmente.
-                SchoolMapSection(school: school)
+                SchoolMapSection(school: school, openVia: openVia)
             }
             // Notas comunitarias — ahora ENCIMA de "mejores meses".
             NotesSectionView(
@@ -296,6 +299,8 @@ private struct MonthlyStatsSection: View {
 /// (parking/piedras/zonas) se añadirán como marcadores en una iteración siguiente.
 private struct SchoolMapSection: View {
     let school: School
+    var openVia: String? = nil
+    @State private var didAutoOpen = false
     @State private var expanded = false
     @State private var blocks: [Block] = []
     @State private var selectedBlock: Block?
@@ -420,11 +425,16 @@ private struct SchoolMapSection: View {
             if blocks.isEmpty {
                 blocks = await loadBlocksOnlineOrOffline()
             }
+            maybeAutoOpen()
             // Mi ubicación (para verme mientras ando por el sector).
             if AppDependencies.shared.locationBridge.hasPermission(),
                let loc = try? await AppDependencies.shared.container.locationProvider?.current() {
                 userCoord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon)
             }
+        }
+        // Deep-link desde el diario: despliega el mapa al entrar.
+        .onAppear {
+            if let v = openVia, !v.isEmpty, !didAutoOpen, !expanded { expanded = true }
         }
         .sheet(item: $selectedBlock) { b in
             BlockInfoSheet(
@@ -555,6 +565,19 @@ private struct SchoolMapSection: View {
     private var coordItem: Binding<CoordItem?> {
         Binding(get: { formCoord.map { CoordItem(coord: $0) } },
                 set: { if $0 == nil { formCoord = nil } })
+    }
+
+    /// Abre la piedra que contiene la vía indicada (deep-link del diario): busca
+    /// el bloque cuya vía coincide por nombre (o el bloque con ese nombre).
+    private func maybeAutoOpen() {
+        guard !didAutoOpen, let via = openVia, !via.isEmpty, !blocks.isEmpty else { return }
+        let target = blocks.first { b in
+            b.lines.contains { $0.name.caseInsensitiveCompare(via) == .orderedSame }
+        } ?? blocks.first { $0.name.caseInsensitiveCompare(via) == .orderedSame }
+        if let target {
+            didAutoOpen = true
+            selectedBlock = target
+        }
     }
 
     private func reloadBlocks() async {

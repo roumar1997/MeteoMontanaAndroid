@@ -18,8 +18,9 @@ sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
 val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Radar)
 
 object Routes {
-    const val SCHOOL_DETAIL = "schools/{schoolId}"
-    fun schoolDetail(id: String) = "schools/$id"
+    const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}"
+    fun schoolDetail(id: String, via: String? = null) =
+        "schools/$id" + (via?.takeIf { it.isNotBlank() }?.let { "?via=${android.net.Uri.encode(it)}" } ?: "")
     const val PROFILE = "profile"
     const val EDIT_PROFILE = "profile/edit"
     const val MY_SUBMISSIONS = "submissions/me"

@@ -89,6 +89,12 @@ fun SchoolMap(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    // Deep-link desde el diario: si hay una vía objetivo, despliega el mapa.
+    val autoOpenVia by viewModel.autoOpenVia.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(autoOpenVia) {
+        if (!autoOpenVia.isNullOrBlank()) expanded = true
+    }
+
     // Estado del flujo de propuesta
     var proposeOpen    by remember { mutableStateOf(false) }
     var waitingMapTap  by remember { mutableStateOf(false) }
@@ -243,6 +249,19 @@ private fun InnerMap(
     // Bloque seleccionado (para popup) y bloque al que añadir vías
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
+
+    // Deep-link del diario: abre la piedra que contiene la vía objetivo.
+    val autoOpenVia by viewModel.autoOpenVia.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia) {
+        val via = autoOpenVia?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        if (blocks.isEmpty()) return@LaunchedEffect
+        val target = blocks.firstOrNull { b -> b.lines.any { it.name.equals(via, ignoreCase = true) } }
+            ?: blocks.firstOrNull { it.name.equals(via, ignoreCase = true) }
+        if (target != null) {
+            selectedBlock = target
+            viewModel.consumeAutoOpenVia()
+        }
+    }
     val mapScope = androidx.compose.runtime.rememberCoroutineScope()
     var editingLine by remember {
         mutableStateOf<Pair<Block, com.meteomontana.android.domain.model.BlockLine>?>(null)

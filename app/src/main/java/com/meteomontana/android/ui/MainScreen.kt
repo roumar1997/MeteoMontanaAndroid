@@ -139,7 +139,10 @@ fun MainScreen(
 
             composable(
                 route = Routes.SCHOOL_DETAIL,
-                arguments = listOf(navArgument("schoolId") { type = NavType.StringType })
+                arguments = listOf(
+                    navArgument("schoolId") { type = NavType.StringType },
+                    navArgument("via") { type = NavType.StringType; nullable = true; defaultValue = null }
+                )
             ) {
                 val schoolId = it.arguments?.getString("schoolId") ?: ""
                 SchoolDetailScreen(
@@ -213,7 +216,7 @@ fun MainScreen(
             ) {
                 JournalEntriesScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) }
+                    onOpenSchool = { id, via -> navController.navigate(Routes.schoolDetail(id, via)) }
                 )
             }
             composable(
