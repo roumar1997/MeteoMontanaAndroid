@@ -410,7 +410,7 @@ private struct SchoolMapSection: View {
         .task(id: expanded) {
             guard expanded else { return }
             if blocks.isEmpty {
-                blocks = (try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id)) ?? []
+                blocks = await loadBlocksOnlineOrOffline()
             }
             // Mi ubicación (para verme mientras ando por el sector).
             if AppDependencies.shared.locationBridge.hasPermission(),
@@ -549,7 +549,24 @@ private struct SchoolMapSection: View {
     }
 
     private func reloadBlocks() async {
-        blocks = (try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id)) ?? []
+        blocks = await loadBlocksOnlineOrOffline()
+    }
+
+    /// Carga los bloques (piedras/parkings/zonas) por red; si la red falla o no
+    /// devuelve nada (offline), cae al snapshot guardado `loadOffline` para que
+    /// el mapa, las piedras y sus vías salgan igual sin internet. Las fotos las
+    /// resuelve `TopoPhotoView` desde `ImageCache`.
+    private func loadBlocksOnlineOrOffline() async -> [Block] {
+        if let online = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id),
+           !online.isEmpty {
+            return online
+        }
+        // Sin red (o sin bloques en la respuesta): tira del snapshot offline.
+        if let repo = AppDependencies.shared.container.savedSchools,
+           let snap = try? await repo.loadOffline(id: school.id) {
+            return snap.blocks.map { repo.toBlock(entity: $0, lines: snap.lines) }
+        }
+        return []
     }
 
     private var markers: [CumbreMarker] {

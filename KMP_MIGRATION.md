@@ -493,6 +493,16 @@ de Fase 2.
 
 ## Próximo paso
 
+> ### ✅ HECHO (2026-06-17) — OFFLINE COMPLETO EN EL DETALLE
+> Resuelto: `SchoolMapSection` (en `SchoolDetailView.swift`) ya no depende solo
+> de la red. Nuevo helper `loadBlocksOnlineOrOffline()` usado por
+> `.task(id: expanded)` y `reloadBlocks()`: intenta `getBlocks.invoke`; si falla
+> o devuelve `[]` (sin red), cae a `savedSchools.loadOffline(id)` y mapea con
+> `repo.toBlock(entity:lines:)`. Así offline salen el mapa con marcadores, las
+> piedras, sus vías (de `snap.lines`) y las fotos (`TopoPhotoView` ← `ImageCache`
+> en disco). Pendiente de que el CI iOS compile (sin Mac). Los **tiles** del mapa
+> siguen necesitando red (futuro: `OfflineTileManager` como Android).
+>
 > ### ⛰️ PENDIENTE PRIORITARIO (pedido 2026-06-17) — OFFLINE COMPLETO EN EL DETALLE
 > **Síntoma**: al entrar a una escuela **guardada SIN internet**, el detalle abre
 > el **mapa solo con el pin de la escuela** — NO cargan los **bloques/piedras**,

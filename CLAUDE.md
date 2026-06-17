@@ -492,6 +492,18 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (iOS: offline completo en el detalle)
+
+- **Detalle offline ahora carga piedras + vías + fotos** (antes solo el mapa con
+  el pin de la escuela). En `SchoolDetailView.swift`, `SchoolMapSection` usaba
+  `getBlocks.invoke` (solo red) → sin internet devolvía `[]`. Nuevo helper
+  `loadBlocksOnlineOrOffline()` (usado por `.task(id: expanded)` y `reloadBlocks`):
+  intenta red; si falla o vuelve vacío, cae a `savedSchools.loadOffline(id)` y
+  mapea con `repo.toBlock(entity:lines:)`. Las vías vienen en `snap.lines`; las
+  fotos las resuelve `TopoPhotoView` desde `ImageCache` (disco). Espejo de
+  `OfflineSchoolView`. Tiles del mapa siguen necesitando red (futuro).
+- ⚠️ Solo Swift (no toca `shared`); pendiente de que el CI iOS compile (sin Mac).
+
 ### Sesión 2026-06-16 (admin iOS: pulido de correcciones + GESTIONAR a fondo)
 
 Rama `claude/sleepy-gagarin-b8a8f8`. Tres mejoras del panel admin iOS, todo
