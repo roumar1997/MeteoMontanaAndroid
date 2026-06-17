@@ -41,7 +41,8 @@ class FirebaseChatService(
                         lastMessage = doc.getString("lastMessage"),
                         lastFromUid = doc.getString("lastFromUid"),
                         lastAtMillis = doc.getDate("lastAt").toMillis(),
-                        unreadCount = doc.getLong("unread_$me") ?: 0L
+                        unreadCount = doc.getLong("unread_$me") ?: 0L,
+                        clearedAtMillis = doc.getDate("cleared_$me").toMillis()
                     )
                 } ?: emptyList()
                 trySend(list)
@@ -109,14 +110,11 @@ class FirebaseChatService(
     }
 
     override suspend fun deleteConversation(convId: String) {
-        val ref = convsCol.document(convId)
-        // Borra los mensajes en lotes y luego el documento de la conversación.
-        val msgs = ref.collection("messages").get().await()
-        msgs.documents.chunked(400).forEach { chunk ->
-            val batch = firestore.batch()
-            chunk.forEach { batch.delete(it.reference) }
-            batch.commit().await()
-        }
-        ref.delete().await()
+        // "Borrar para mí": marca cleared_<me> = ahora. No toca los datos del otro.
+        val me = auth.currentUser?.uid ?: return
+        convsCol.document(convId).set(
+            mapOf("cleared_$me" to Date()),
+            SetOptions.merge()
+        ).await()
     }
 }

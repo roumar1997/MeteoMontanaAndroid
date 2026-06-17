@@ -14,7 +14,10 @@ interface ChatService {
         val lastMessage: String?,
         val lastFromUid: String?,
         val lastAtMillis: Long?,     // millis desde epoch — portable entre plataformas
-        val unreadCount: Long
+        val unreadCount: Long,
+        /** millis en que YO "borré para mí" esta conversación (null = no borrada).
+         *  Si hay un mensaje posterior a esto, vuelve a aparecer. */
+        val clearedAtMillis: Long? = null
     )
 
     data class ChatMessage(
@@ -40,7 +43,9 @@ interface ChatService {
     @Throws(Exception::class)
     suspend fun markUnread(convId: String)
 
-    /** Borra la conversación (mensajes + documento) para ambos. */
+    /** "Borrar para mí": oculta la conversación de MI lista y mi historial
+     *  (marca cleared_<miUid> = ahora). No afecta a la otra persona; si me
+     *  vuelve a escribir, reaparece con los mensajes nuevos. */
     @Throws(Exception::class)
     suspend fun deleteConversation(convId: String)
 }

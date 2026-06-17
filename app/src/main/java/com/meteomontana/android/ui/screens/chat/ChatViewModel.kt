@@ -53,8 +53,18 @@ class ChatViewModel @Inject constructor(
             val canWrite = other != null || follow.iFollowThem || follow.theyFollowMe
             _state.value = _state.value.copy(otherProfile = other, myProfile = mine, canWrite = canWrite)
 
-            chatService.observeMessages(convId).collect { msgs ->
-                _state.value = _state.value.copy(messages = msgs, loading = false)
+            // Combinamos mensajes + mis conversaciones para ocultar el historial
+            // anterior a un "borrado para mí" (cleared_<me>). Si me escriben de
+            // nuevo, los mensajes nuevos (posteriores a cleared) sí se ven.
+            kotlinx.coroutines.flow.combine(
+                chatService.observeMessages(convId),
+                chatService.observeMyConversations()
+            ) { msgs, convs ->
+                val cleared = convs.firstOrNull { it.id == convId }?.clearedAtMillis
+                if (cleared == null) msgs
+                else msgs.filter { (it.createdAtMillis ?: Long.MAX_VALUE) > cleared }
+            }.collect { visible ->
+                _state.value = _state.value.copy(messages = visible, loading = false)
                 runCatching { chatService.markRead(convId) }
             }
         }

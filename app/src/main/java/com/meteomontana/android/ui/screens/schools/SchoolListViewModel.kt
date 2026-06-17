@@ -162,7 +162,9 @@ class SchoolListViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching {
                 chatService.observeMyConversations().collect { convs ->
-                    _chatUnread.value = convs.sumOf { it.unreadCount }
+                    _chatUnread.value = convs
+                        .filterNot { com.meteomontana.android.ui.screens.chat.isHiddenForMe(it) }
+                        .sumOf { it.unreadCount }
                 }
             }
         }

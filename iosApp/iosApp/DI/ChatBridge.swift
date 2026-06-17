@@ -49,7 +49,8 @@ final class ChatBridge: NSObject, IosChatBridge {
                         lastMessage: d["lastMessage"] as? String,
                         lastFromUid: d["lastFromUid"] as? String,
                         lastAtMillis: self.millis(d["lastAt"]),
-                        unreadCount: unread)
+                        unreadCount: unread,
+                        clearedAtMillis: self.millis(d["cleared_\(me)"]))
                 } ?? [])
                 .sorted { $0.lastAtMillis > $1.lastAtMillis }
                 onChange(list)
@@ -110,15 +111,10 @@ final class ChatBridge: NSObject, IosChatBridge {
     }
 
     func deleteConversation(convId: String, completion: @escaping (String?) -> Void) {
-        let ref = convs.document(convId)
-        // Borra los mensajes y luego el documento de la conversación.
-        ref.collection("messages").getDocuments { snap, err in
-            if let err = err { completion(err.localizedDescription); return }
-            let batch = self.db.batch()
-            snap?.documents.forEach { batch.deleteDocument($0.reference) }
-            batch.commit { _ in
-                ref.delete { err2 in completion(err2?.localizedDescription) }
-            }
+        // "Borrar para mí": marca cleared_<me> = ahora. No toca los datos del otro.
+        guard let me = Auth.auth().currentUser?.uid else { completion(nil); return }
+        convs.document(convId).setData(["cleared_\(me)": Timestamp(date: Date())], merge: true) { err in
+            completion(err?.localizedDescription)
         }
     }
 }

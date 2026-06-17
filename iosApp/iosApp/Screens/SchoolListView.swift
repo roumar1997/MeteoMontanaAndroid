@@ -157,7 +157,9 @@ final class SchoolListViewModel: ObservableObject {
         chatTask = Task { [weak self] in
             for await convs in chat.observeMyConversations() {
                 guard let self else { return }
-                self.unreadChats = convs.reduce(0) { $0 + Int(truncatingIfNeeded: $1.unreadCount) }
+                self.unreadChats = convs
+                    .filter { !chatIsHiddenForMe($0) }
+                    .reduce(0) { $0 + Int(truncatingIfNeeded: $1.unreadCount) }
             }
         }
     }
