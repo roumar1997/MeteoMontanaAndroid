@@ -35,21 +35,36 @@ final class AccountViewModel: ObservableObject {
         self.deleteEntry = deleteEntry
     }
 
-    /// Recarga solo el diario (tras añadir/borrar un bloque).
+    /// Recarga solo el diario (tras añadir/borrar un bloque). Si no hay red,
+    /// deja la lista/stats como estaban (no las vacía con un fetch fallido).
     func reloadJournal() async {
-        entries = await loadEntries()
-        stats = try? await getMyStats.invoke()
+        guard let fresh = await loadEntries() else { return }
+        entries = fresh
+        stats = (try? await getMyStats.invoke()) ?? stats
+        if let p = profile {
+            ProfileCache.shared.save(profile: p, stats: stats, entries: entries,
+                                     followers: follow?.followers ?? 0, following: follow?.following ?? 0)
+        }
     }
 
-    /// Diario del servidor menos las vías con BORRADO pendiente en la cola offline
-    /// (desmarcadas sin red). Si no, el perfil seguía mostrándolas hasta sincronizar.
-    private func loadEntries() async -> [JournalSession] {
-        let all = (try? await getMyJournal.invoke()) ?? []
-        let pendingDeletes = (try? await AppDependencies.shared.container.pendingJournalDeleteKeys()) ?? []
-        guard !pendingDeletes.isEmpty else { return all }
-        return all.filter { e in
+    /// Diario del servidor menos las entradas con BORRADO pendiente en la cola
+    /// offline (por clave "escuela|vía" del tic, y por uid de las borradas en el
+    /// perfil). Devuelve nil si no hay red (para no vaciar la lista cacheada).
+    private func loadEntries() async -> [JournalSession]? {
+        guard let all = try? await getMyJournal.invoke() else { return nil }
+        return await filterPendingDeletes(all)
+    }
+
+    /// Quita de [list] las entradas con borrado pendiente (clave o uid).
+    private func filterPendingDeletes(_ list: [JournalSession]) async -> [JournalSession] {
+        let c = AppDependencies.shared.container
+        let keys = (try? await c.pendingJournalDeleteKeys()) ?? []
+        let ids = (try? await c.pendingJournalDeleteIds()) ?? []
+        guard !keys.isEmpty || !ids.isEmpty else { return list }
+        return list.filter { e in
+            if ids.contains(e.id) { return false }
             let key = "\(e.schoolId ?? "")|\(e.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
-            return !pendingDeletes.contains(key)
+            return !keys.contains(key)
         }
     }
 
@@ -64,8 +79,22 @@ final class AccountViewModel: ObservableObject {
     }
 
     func deleteBlock(_ id: String) {
-        entries.removeAll { $0.id == id }
-        Task { try? await deleteEntry.invoke(id: id); await reloadJournal() }
+        entries.removeAll { $0.id == id }   // optimista
+        // Refresca la caché ya sin el bloque → offline no reaparece al reabrir.
+        if let p = profile {
+            ProfileCache.shared.save(profile: p, stats: stats, entries: entries,
+                                     followers: follow?.followers ?? 0, following: follow?.following ?? 0)
+        }
+        Task {
+            do {
+                try await deleteEntry.invoke(id: id)   // con red: borra ya
+                await reloadJournal()
+            } catch {
+                // Sin red: encola el borrado por uid; se aplica al volver internet.
+                // El flusher (flushJournalOutbox) lo resuelve por id exacto.
+                try? await AppDependencies.shared.container.enqueueJournalDeleteById(id: id)
+            }
+        }
     }
 
     func load() async {
@@ -73,7 +102,7 @@ final class AccountViewModel: ObservableObject {
         if let p = try? await getMyProfile.invoke() {   // JIT provisioning en el backend
             profile = p
             stats = try? await getMyStats.invoke()
-            entries = await loadEntries()
+            entries = (await loadEntries()) ?? []
             // Contadores de seguidores/seguidos: igual que Android (getFollowStatus
             // del propio uid devuelve followers/following).
             follow = try? await getFollowStatus.invoke(uid: p.uid)
@@ -82,10 +111,11 @@ final class AccountViewModel: ObservableObject {
             ProfileCache.shared.save(profile: p, stats: stats, entries: entries,
                                      followers: follow?.followers ?? 0, following: follow?.following ?? 0)
         } else if let cached = ProfileCache.shared.load() {
-            // Sin conexión: última copia cacheada en vez de pantalla vacía.
+            // Sin conexión: última copia cacheada en vez de pantalla vacía,
+            // descontando lo que ya borraste offline (aún sin sincronizar).
             profile = cached.profile
             stats = cached.stats
-            entries = cached.entries
+            entries = await filterPendingDeletes(cached.entries)
             follow = FollowStatus(followers: cached.followers, following: cached.following,
                                   iFollowThem: false, theyFollowMe: false, requestPending: false)
             offline = true

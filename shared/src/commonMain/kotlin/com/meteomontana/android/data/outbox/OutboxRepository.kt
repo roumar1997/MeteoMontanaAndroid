@@ -15,6 +15,7 @@ object OutboxType {
     const val SUBMISSION   = "SUBMISSION"
     const val JOURNAL        = "JOURNAL"        // vía marcada como hecha (POST /api/journal)
     const val JOURNAL_DELETE = "JOURNAL_DELETE" // vía DESMARCADA sin red (payload = clave "escuelaId|vía")
+    const val JOURNAL_DELETE_ID = "JOURNAL_DELETE_ID" // entrada de diario borrada sin red (payload = uid de la entrada)
 }
 
 class OutboxRepository(private val db: MeteoMontanaDb) {

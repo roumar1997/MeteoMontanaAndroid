@@ -313,6 +313,21 @@ class IosDependencyContainer(
             .map { it.payloadJson }.toSet()
     }
 
+    /** Encola un BORRADO de entrada de diario por su uid (borrada sin red desde el
+     *  perfil). Se aplica al volver la conexión. Borra por id → no puede tocar otra. */
+    @Throws(Exception::class)
+    suspend fun enqueueJournalDeleteById(id: String) {
+        outbox?.enqueue(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE_ID, "", id)
+    }
+
+    /** uids de entradas de diario con BORRADO pendiente (borradas sin red). */
+    @Throws(Exception::class)
+    suspend fun pendingJournalDeleteIds(): Set<String> {
+        val pend = outbox?.all() ?: return emptySet()
+        return pend.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE_ID }
+            .map { it.payloadJson }.toSet()
+    }
+
     /**
      * Sube las vías encoladas (las que se marcaron sin red). Llamar al abrir o
      * activar la app. Borra cada entrada al subirla con éxito; las que fallen se
@@ -339,6 +354,15 @@ class IosDependencyContainer(
                         }
                         if (entry != null) deleteJournalEntry(entry.id)
                         true   // si no existe ya, también se considera hecho
+                    }.isSuccess
+                    if (ok) repo.delete(row.id)
+                }
+                com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE_ID -> {
+                    // payload = uid exacto de la entrada; solo borra esa.
+                    val ok = runCatching {
+                        val exists = getMyJournal().any { it.id == row.payloadJson }
+                        if (exists) deleteJournalEntry(row.payloadJson)
+                        true   // si ya no está, también hecho
                     }.isSuccess
                     if (ok) repo.delete(row.id)
                 }
