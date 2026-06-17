@@ -194,7 +194,8 @@ fun BlockDetailDialog(
                             Text(
                                 lineGrade,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = style.stroke
+                                // Grados claros (≤5c son blancos) → texto oscuro para que se lea.
+                                color = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
                             )
                         }
                         if (line.startType != null) {
@@ -211,7 +212,8 @@ fun BlockDetailDialog(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        // Tic: suma la vía a tu diario como "vía hecha".
+                        // Tic: marca/desmarca la vía en tu diario (toggle). Tocar
+                        // una hecha la quita; no se puede añadir dos veces.
                         if (onTickLine != null && !isProposal) {
                             Spacer(Modifier.weight(1f))
                             val done = tickedLines.contains(line.id)
@@ -222,9 +224,10 @@ fun BlockDetailDialog(
                                         else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .clip(CircleShape)
-                                    .clickable(enabled = !done) {
-                                        tickedLines.add(line.id)
-                                        onTickLine(line, idx)
+                                    .clickable {
+                                        if (done) tickedLines.remove(line.id)
+                                        else tickedLines.add(line.id)
+                                        onTickLine(line, idx)   // el VM decide marcar/desmarcar
                                     }
                                     .padding(horizontal = 6.dp)
                             )

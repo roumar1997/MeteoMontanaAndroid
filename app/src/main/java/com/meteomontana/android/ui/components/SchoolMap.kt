@@ -445,10 +445,11 @@ private fun InnerMap(
             }) else null,
             onTickLine = if (block.type == "BLOCK") ({ line, idx ->
                 val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
+                // Toggle: marca/desmarca en el diario. SIN diálogo de "propuesta"
+                // (el ✓ de la fila es el feedback); así no parece una propuesta ni
+                // navega a "solicitudes".
                 viewModel.viewModelScope.launch {
-                    val r = viewModel.tickLine(block, line, idx, schoolName, sectorName)
-                    successMessage = if (r.isSuccess) "Vía sumada a tu diario."
-                    else "No se pudo guardar: ${r.exceptionOrNull()?.message ?: "error"}"
+                    viewModel.toggleLine(block, line, idx, schoolName, sectorName)
                 }
             }) else null,
             availableSectors = sectors.takeIf { it.isNotEmpty() },

@@ -125,8 +125,11 @@ struct JournalRow: View {
     var body: some View {
         HStack(spacing: 12) {
             if let g = entry.grade, !g.isEmpty {
-                Text(g).font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
+                // Texto negro sobre grados claros (≤5c son blancos) para que se lea.
+                Text(g).font(Cumbre.mono(12, .bold))
+                    .foregroundStyle(GradeColor.style(g).dark ? .black : .white)
                     .frame(width: 44, height: 32).background(GradeColor.color(g))
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: GradeColor.style(g).dark ? 1 : 0))
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)

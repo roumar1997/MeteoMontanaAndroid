@@ -835,8 +835,8 @@ struct BlockInfoSheet: View {
                                 if let st = l.startType, !st.isEmpty {
                                     Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 }
-                                // Tic: suma la vía a tu diario como "vía hecha".
-                                Button { Task { await tick(l, index: idx) } } label: {
+                                // Tic: marca/desmarca la vía en tu diario (toggle).
+                                Button { Task { await toggle(l, index: idx) } } label: {
                                     if tickingLine == l.id {
                                         ProgressView().scaleEffect(0.7).frame(width: 28, height: 28)
                                     } else {
@@ -847,7 +847,7 @@ struct BlockInfoSheet: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
-                                .disabled(tickedLines.contains(l.id) || tickingLine != nil)
+                                .disabled(tickingLine != nil)
                             }
                         }
                     }
@@ -921,23 +921,37 @@ struct BlockInfoSheet: View {
         }
     }
 
-    /// Marca la vía como hecha → crea una entrada en tu diario (POST /api/journal),
-    /// prellenando escuela, sector, nombre de la vía y grado. Necesita red.
-    private func tick(_ line: BlockLine, index: Int) async {
+    /// Marca/DESMARCA la vía en tu diario (toggle). Si no estaba hecha la añade
+    /// (POST, o cola sin red); si ya estaba, la quita (borra la subida y/o la
+    /// pendiente). No se puede añadir dos veces. Espejo del toggle de Android.
+    private func toggle(_ line: BlockLine, index: Int) async {
         tickingLine = line.id
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-        let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
-        let stoneName = block.name.isEmpty ? "Piedra" : block.name
-        let req = CreateJournalRequest(
-            schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
-            blockName: viaName, grade: line.grade,
-            notes: "Piedra: \(stoneName)", date: df.string(from: Date()))
         let container = AppDependencies.shared.container
-        let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
-        // Sin red (o fallo): a la cola; se subirá al recuperar conexión.
-        if !ok { try? await container.enqueueJournal(req: req) }
-        // Marcada igualmente: el ✓ persiste vía diario + cola (loadDone).
-        tickedLines.insert(line.id)
+        let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
+        let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
+
+        if tickedLines.contains(line.id) {
+            // DESMARCAR
+            tickedLines.remove(line.id)
+            try? await container.dequeueJournal(key: key)   // quita la pendiente (si no se subió)
+            if let j = (try? await container.getMyJournal.invoke())?.first(where: {
+                $0.schoolId == block.schoolId &&
+                $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
+            }) {
+                _ = try? await container.deleteJournalEntry.invoke(id: j.id)
+            }
+        } else {
+            // MARCAR (dedup: no estaba hecha)
+            tickedLines.insert(line.id)
+            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+            let stoneName = block.name.isEmpty ? "Piedra" : block.name
+            let req = CreateJournalRequest(
+                schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
+                blockName: viaName, grade: line.grade,
+                notes: "Piedra: \(stoneName)", date: df.string(from: Date()))
+            let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
+            if !ok { try? await container.enqueueJournal(req: req) }   // sin red → cola
+        }
         tickingLine = nil
     }
 }

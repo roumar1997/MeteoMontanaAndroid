@@ -259,6 +259,20 @@ class IosDependencyContainer(
         )
     }
 
+    /** Quita de la cola la vía pendiente con esa clave "escuela|vía" (al desmarcar). */
+    @Throws(Exception::class)
+    suspend fun dequeueJournal(key: String) {
+        val repo = outbox ?: return
+        repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
+            .forEach { row ->
+                val match = runCatching {
+                    outboxJson.decodeFromString(
+                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                }.getOrNull()?.let { "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" == key } ?: false
+                if (match) repo.delete(row.id)
+            }
+    }
+
     /** Claves "escuela|vía" de las vías encoladas (para marcar ✓ sin red aún). */
     @Throws(Exception::class)
     suspend fun pendingJournalKeys(): Set<String> {

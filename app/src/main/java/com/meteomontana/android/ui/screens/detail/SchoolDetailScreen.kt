@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
@@ -64,6 +66,9 @@ fun SchoolDetailScreen(
             showFavorite = success != null,
             onBack = onBack,
             onToggleFavorite = viewModel::toggleFavorite,
+            isSavedOffline = success?.isSavedOffline ?: false,
+            showSaveOffline = success != null,
+            onToggleSaveOffline = viewModel::toggleSaveOffline,
             onShare = if (success != null) {
                 {
                     // Con forecast → card de imagen (más viral en WhatsApp);
@@ -135,6 +140,9 @@ private fun TopBar(
     showFavorite: Boolean,
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
+    isSavedOffline: Boolean = false,
+    showSaveOffline: Boolean = false,
+    onToggleSaveOffline: () -> Unit = {},
     onShare: (() -> Unit)? = null
 ) {
     Row(
@@ -152,6 +160,16 @@ private fun TopBar(
             IconButton(onClick = onShare) {
                 Icon(Icons.Outlined.Share, contentDescription = "Compartir",
                     tint = MaterialTheme.colorScheme.onBackground)
+            }
+        }
+        if (showSaveOffline) {
+            IconButton(onClick = onToggleSaveOffline) {
+                Icon(
+                    imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
+                    contentDescription = if (isSavedOffline) "Quitar de offline" else "Guardar para offline",
+                    tint = if (isSavedOffline) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.onBackground
+                )
             }
         }
         if (showFavorite) {
@@ -220,8 +238,7 @@ private fun Content(
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
         item { NotesSection(notes = notes, onPublish = onPublishNote) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
-        item { OfflineSaveButton(viewModel) }
-        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
+        // (Guardar offline movido al toolbar superior, como en iOS.)
         item {
             val s = viewModel.uiState.collectAsState().value as? SchoolDetailUiState.Success
             MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
@@ -282,36 +299,6 @@ private fun formatOfflineTimestamp(ms: Long): String {
     val date = java.util.Date(ms)
     val fmt = java.text.SimpleDateFormat("d MMM HH:mm", java.util.Locale("es"))
     return fmt.format(date)
-}
-
-@Composable
-private fun OfflineSaveButton(viewModel: SchoolDetailViewModel) {
-    val s = viewModel.uiState.collectAsState().value as? SchoolDetailUiState.Success ?: return
-    val saved = s.isSavedOffline
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                if (saved) "✓ Guardado para uso offline" else "Guardar para uso offline",
-                style = MaterialTheme.typography.titleMedium,
-                color = if (saved) MaterialTheme.colorScheme.secondary
-                        else MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                "Mapa, bloques y vías disponibles sin internet",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        androidx.compose.material3.OutlinedButton(
-            onClick = { viewModel.toggleSaveOffline() }
-        ) {
-            Text(if (saved) "QUITAR" else "GUARDAR")
-        }
-    }
 }
 
 @Composable

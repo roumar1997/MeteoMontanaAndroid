@@ -86,7 +86,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
     private val createJournalEntry: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase,
-    private val getMyJournal: com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
+    private val getMyJournal: com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase,
+    private val deleteJournalEntry: com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -128,43 +129,62 @@ class SchoolDetailViewModel @Inject constructor(
     }
 
     /**
-     * Marca una vía como hecha → crea una entrada en el diario del usuario
-     * (POST /api/journal). Si no hay red (o el POST falla) la ENCOLA en el outbox
-     * y se subirá sola al recuperar la conexión. El ✓ se mantiene igual gracias a
-     * [doneViaKeys] (que mira diario + cola). Espejo del tic de iOS.
+     * Marca/DESMARCA una vía como hecha (toggle). Si no estaba hecha la añade al
+     * diario (POST, o cola si no hay red); si ya estaba, la quita (borra la
+     * entrada subida y/o la pendiente en la cola). Evita duplicados: si ya está
+     * hecha, [toggleLine] desmarca en vez de volver a añadir. Devuelve el nuevo
+     * estado (true = ahora hecha). Espejo del tic de iOS.
      */
-    suspend fun tickLine(
+    suspend fun toggleLine(
         block: Block,
         line: com.meteomontana.android.domain.model.BlockLine,
         index: Int,
         schoolName: String,
         sectorName: String?
-    ): Result<Unit> = runCatching {
+    ): Result<Boolean> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
-        val stoneName = block.name.ifBlank { "Piedra" }
-        val req = com.meteomontana.android.data.api.dto.CreateJournalRequest(
-            schoolId = block.schoolId,
-            schoolName = schoolName.ifBlank { null },
-            sector = sectorName,
-            blockName = viaName,
-            grade = line.grade,
-            notes = "Piedra: $stoneName",
-            date = java.time.LocalDate.now().toString()
-        )
-        val online = networkMonitor.isOnline.value
-        val sent = online && runCatching { createJournalEntry(req) }.isSuccess
-        if (sent) {
-            refreshJournal()   // ya subida → aparece en el perfil
+        val key = viaKey(block.schoolId, viaName)
+        if (doneViaKeys.value.contains(key)) {
+            // DESMARCAR: quitar de la cola pendiente (sin subir) y borrar la subida.
+            outboxRepo.all()
+                .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
+                .forEach { row ->
+                    val match = runCatching {
+                        journalJson.decodeFromString(
+                            com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                    }.getOrNull()?.let { viaKey(it.schoolId, it.blockName) == key } ?: false
+                    if (match) outboxRepo.delete(row.id)
+                }
+            _myJournal.value.firstOrNull { viaKey(it.schoolId, it.blockName) == key }?.let {
+                runCatching { deleteJournalEntry(it.id) }
+            }
+            refreshJournal()
+            false
         } else {
-            // Sin red o fallo: a la cola; el OutboxFlusher la sube al volver online.
-            outboxRepo.enqueue(
-                com.meteomontana.android.data.outbox.OutboxType.JOURNAL,
-                block.schoolId,
-                journalJson.encodeToString(
-                    com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), req)
+            // MARCAR: crear (o encolar sin red). Dedup garantizado: no estaba hecha.
+            val stoneName = block.name.ifBlank { "Piedra" }
+            val req = com.meteomontana.android.data.api.dto.CreateJournalRequest(
+                schoolId = block.schoolId,
+                schoolName = schoolName.ifBlank { null },
+                sector = sectorName,
+                blockName = viaName,
+                grade = line.grade,
+                notes = "Piedra: $stoneName",
+                date = java.time.LocalDate.now().toString()
             )
+            val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
+            if (sent) {
+                refreshJournal()
+            } else {
+                outboxRepo.enqueue(
+                    com.meteomontana.android.data.outbox.OutboxType.JOURNAL,
+                    block.schoolId,
+                    journalJson.encodeToString(
+                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), req)
+                )
+            }
+            true
         }
-        Unit
     }
 
     private val _uiState = MutableStateFlow<SchoolDetailUiState>(SchoolDetailUiState.Loading)
