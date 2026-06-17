@@ -492,6 +492,25 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (4) (lote feedback: toolbar, tic toggle, grados, notifs)
+
+- **Android**: botón "guardar offline" movido al **toolbar** superior (como iOS).
+- **Tic "vía hecha" → TOGGLE** (iOS+Android): marca/desmarca, **sin duplicar**
+  (si ya está hecha, al tocar la quita: borra la entrada subida y/o la pendiente
+  en la cola). El tic de Android ya **no** muestra el diálogo de "propuesta
+  enviada" (causaba el "se va a solicitudes").
+- **Fix grados blancos sobre blanco**: grados ≤5c (blancos) ahora con texto
+  oscuro en el diario (iOS `JournalView`) y en la lista de vías (Android
+  `BlockDetailDialog`).
+- **Notificaciones**: al salir de la bandeja se marcan todas leídas y el badge
+  de la campana se refresca al volver (iOS onDismiss/onDisappear; Android
+  DisposableEffect + lifecycle ON_RESUME). iOS: tocar una notif **FOLLOW_REQUEST**
+  abre la lista de solicitudes (aceptar/rechazar); antes no hacía nada.
+- **Pendiente / decisión de producto**: el chat (Firestore) NO restringe por
+  seguidores — cualquiera con perfil visible puede escribir y responder. Si se
+  quiere exigir seguir/seguimiento mutuo, hay que añadir esa regla (UI + reglas
+  Firestore). Ver respuesta a Rodrigo.
+
 ### Sesión 2026-06-17 (3) ("vía hecha" persistente + cola offline en AMBOS)
 
 - **El tic de "vía hecha" queda marcado (✓) de forma persistente** y funciona
