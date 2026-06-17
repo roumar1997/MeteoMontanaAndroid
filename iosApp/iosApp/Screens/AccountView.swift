@@ -213,9 +213,10 @@ struct AccountView: View {
     @ViewBuilder private var diarySection: some View {
         AccountJournalStatsNav(vm: vm)
         Button { showAddBlock = true } label: {
+            // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
             Text("+ AÑADIR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                .background(Cumbre.ink)
+                .background(Cumbre.terra)
         }.buttonStyle(.plain).padding(.top, 4)
     }
 
