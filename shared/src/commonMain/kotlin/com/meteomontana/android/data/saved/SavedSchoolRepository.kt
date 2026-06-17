@@ -77,6 +77,14 @@ class SavedSchoolRepository(
         )
     }
 
+    /**
+     * Solo el forecast cacheado (sin el epoch), o null. Pensado para Swift:
+     * evita desempaquetar el `Pair` (KotlinPair) desde iOS.
+     */
+    @Throws(Exception::class)
+    suspend fun cachedForecastOnly(schoolId: String): Forecast? =
+        loadCachedForecast(schoolId)?.first
+
     /** Último forecast cacheado + epoch ms en que se bajó, o null si no hay. */
     @Throws(Exception::class)
     suspend fun loadCachedForecast(schoolId: String): Pair<Forecast, Long>? {

@@ -24,6 +24,7 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var monthlyBestRange: String?
     @Published var isSaved = false          // guardada para offline
     @Published var savingOffline = false
+    @Published var offlineForecast = false  // previsión mostrada desde caché (sin red)
 
     private let savedSchools = AppDependencies.shared.container.savedSchools
     private let getBlocks = AppDependencies.shared.container.getBlocks
@@ -51,9 +52,21 @@ final class SchoolDetailViewModel: ObservableObject {
     }
 
     func load(schoolId: String, lat: Double, lon: Double, rockType: String?) async {
-        loading = true; errorText = nil
-        do { forecast = try await getForecast.invoke(schoolId: schoolId) }
-        catch { errorText = error.localizedDescription }
+        loading = true; errorText = nil; offlineForecast = false
+        do {
+            let f = try await getForecast.invoke(schoolId: schoolId)
+            forecast = f
+            // Cachea para verlo offline más tarde (stale-while-revalidate, como Android).
+            try? await savedSchools?.cacheForecast(schoolId: schoolId, forecast: f)
+        } catch {
+            // Sin red: tira de la última previsión guardada/cacheada de esta escuela.
+            if let cached = try? await savedSchools?.cachedForecastOnly(schoolId: schoolId) {
+                forecast = cached
+                offlineForecast = true
+            } else {
+                errorText = "Sin conexión. Conéctate a internet para ver la previsión (esta escuela no tiene previsión guardada)."
+            }
+        }
         loading = false
         let favs = try? await getMyFavorites.invoke()
         isFavorite = (favs ?? []).contains { $0.id == schoolId }
@@ -140,6 +153,16 @@ struct SchoolDetailView: View {
                 ContentUnavailableView("Sin previsión", systemImage: "cloud.slash", description: Text(err))
                     .padding(.top, 60)
             } else if let f = vm.forecast {
+                if vm.offlineForecast {
+                    HStack(spacing: 6) {
+                        Image(systemName: "wifi.slash").font(.system(size: 11))
+                        Text("SIN CONEXIÓN · PREVISIÓN GUARDADA").eyebrow()
+                    }
+                    .foregroundStyle(Cumbre.terra)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
+                    .background(Cumbre.terraBg)
+                }
                 ForecastBodyView(
                     forecast: f,
                     directions: (lat: school.lat, lon: school.lon, label: school.name),
