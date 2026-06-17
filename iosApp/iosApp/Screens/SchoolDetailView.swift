@@ -1026,11 +1026,11 @@ struct BlockInfoSheet: View {
             JournalDoneStore.shared.add(key)
             try? await container.dequeueJournalDelete(key: key)   // cancela borrado pendiente
             let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-            let stoneName = block.name.isEmpty ? "Piedra" : block.name
+            // No guardamos "Piedra: N" (el número se recicla/borra → quedaría obsoleto).
             let req = CreateJournalRequest(
                 schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
                 blockName: viaName, grade: line.grade,
-                notes: "Piedra: \(stoneName)", date: df.string(from: Date()))
+                notes: nil, date: df.string(from: Date()))
             let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
             if !ok { try? await container.enqueueJournal(req: req) }   // sin red → cola
         }

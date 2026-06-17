@@ -241,7 +241,8 @@ private fun EntryRow(e: JournalSession, canDelete: Boolean = true, onClick: () -
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             val eNotes = e.notes
-            if (!eNotes.isNullOrBlank()) {
+            // Ocultamos la nota auto "Piedra: N" (obsoleta: el número se recicla).
+            if (!eNotes.isNullOrBlank() && !eNotes.startsWith("Piedra: ")) {
                 Text(eNotes,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)

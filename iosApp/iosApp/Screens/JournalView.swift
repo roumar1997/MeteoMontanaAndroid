@@ -138,7 +138,10 @@ struct JournalRow: View {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                 let sub = [entry.schoolName, entry.sector].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
                 if !sub.isEmpty { Text(sub).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3) }
-                if let n = entry.notes, !n.isEmpty { Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2) }
+                // Ocultamos la nota auto "Piedra: N" (obsoleta: el número se recicla).
+                if let n = entry.notes, !n.isEmpty, !n.hasPrefix("Piedra: ") {
+                    Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
+                }
             }
         }
     }

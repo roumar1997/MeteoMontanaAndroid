@@ -204,14 +204,15 @@ class SchoolDetailViewModel @Inject constructor(
             journalDoneStore.add(key)
             // Cancela cualquier BORRADO pendiente de esta vía (la re-marcamos).
             removeOutboxByKey(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, key)
-            val stoneName = block.name.ifBlank { "Piedra" }
             val req = com.meteomontana.android.data.api.dto.CreateJournalRequest(
                 schoolId = block.schoolId,
                 schoolName = schoolName.ifBlank { null },
                 sector = sectorName,
                 blockName = viaName,
                 grade = line.grade,
-                notes = "Piedra: $stoneName",
+                // No guardamos "Piedra: N": el número se recicla/borra y quedaría
+                // obsoleto. La vía se localiza por nombre al abrir la escuela.
+                notes = null,
                 date = java.time.LocalDate.now().toString()
             )
             val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
