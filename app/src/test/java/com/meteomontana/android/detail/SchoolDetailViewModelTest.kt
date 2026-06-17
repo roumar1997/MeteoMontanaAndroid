@@ -147,7 +147,7 @@ class SchoolDetailViewModelTest {
         getMyFavorites, addFavorite, removeFavorite, getBlocks, createBlock,
         deleteBlockUC, submitContribution, getMyProfile, photoUploader, fileReader,
         monthlyStatsRepo, savedSchoolRepo, offlineTiles, ktorAdminApi, updateBlockUseCase,
-        outboxRepo, networkMonitor
+        outboxRepo, networkMonitor, mockk(relaxed = true)
     )
 
     @Test fun `load con todo OK produce Success con forecast y sin error`() = runTest {
