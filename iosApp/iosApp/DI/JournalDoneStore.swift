@@ -8,23 +8,23 @@ import Foundation
 final class JournalDoneStore {
     static let shared = JournalDoneStore()
     private let key = "journal_done_via_keys"
-    private var set: Set<String>
+    private var cached: Set<String>
 
     private init() {
-        set = Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
+        cached = Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
     }
 
-    var all: Set<String> { set }
-    func contains(_ k: String) -> Bool { set.contains(k) }
+    var all: Set<String> { cached }
+    func contains(_ k: String) -> Bool { cached.contains(k) }
 
-    func add(_ k: String) { set.insert(k); persist() }
-    func remove(_ k: String) { set.remove(k); persist() }
+    func add(_ k: String) { cached.insert(k); persist() }
+    func remove(_ k: String) { cached.remove(k); persist() }
 
     /// Sincroniza con la verdad del servidor (al cargar el diario online),
     /// conservando las marcadas offline aún sin subir (pendientes en cola).
     func sync(server: Set<String>, pending: Set<String>) {
-        set = server.union(pending); persist()
+        cached = server.union(pending); persist()
     }
 
-    private func persist() { UserDefaults.standard.set(Array(set), forKey: key) }
+    private func persist() { UserDefaults.standard.set(Array(cached), forKey: key) }
 }
