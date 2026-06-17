@@ -27,13 +27,18 @@ struct MeteoMontanaApp: App {
                 // Al arrancar, sube las vías marcadas sin red que quedaron en cola.
                 .task { try? await AppDependencies.shared.container.flushJournalOutbox() }
                 // Push (APNs/FCM): no-op hasta activarlo (PushManager.enabled).
-                .onAppear { PushManager.shared.registerIfEnabled() }
+                .onAppear {
+                    PushManager.shared.registerIfEnabled()
+                    // Fuerza el modo claro/oscuro en las ventanas (también sheets).
+                    ThemeManager.shared.applyToWindows()
+                }
         }
         .onChange(of: scenePhase) { phase in
             // Al volver a primer plano (recuperada la conexión normalmente),
             // reintenta subir la cola offline de vías hechas.
             if phase == .active {
                 Task { try? await AppDependencies.shared.container.flushJournalOutbox() }
+                ThemeManager.shared.applyToWindows()
             }
         }
     }
