@@ -947,7 +947,7 @@ struct BlockInfoSheet: View {
             tickedLines.remove(line.id)
             JournalDoneStore.shared.remove(key)
             // 1) Si solo estaba ENCOLADA (sin subir) → cancela la creación y listo.
-            let hadPending = (try? await container.dequeueJournal(key: key)) ?? false
+            let hadPending = ((try? await container.dequeueJournal(key: key))?.boolValue) ?? false
             if !hadPending {
                 // 2) Está (o estará) en el servidor: borra ya si hay red; si no,
                 //    ENCOLA el borrado para aplicarlo al volver la conexión.
