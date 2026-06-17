@@ -122,24 +122,16 @@ struct AccountView: View {
         }
     }
 
-    /// Diario inline (como Android): stats + AÑADIR BLOQUE + lista con borrar.
-    /// Sustituye al antiguo enlace "Mi diario".
+    /// Diario: stats PULSABLES (BLOQUES/ESCUELAS abren su lista) + AÑADIR BLOQUE.
+    /// El listado completo ya no se vuelca aquí: se ve entrando en BLOQUES o
+    /// ESCUELAS, y desde dentro se puede borrar.
     @ViewBuilder private var diarySection: some View {
-        if let s = vm.stats { JournalStatsRow(stats: s) }
+        AccountJournalStatsNav(vm: vm)
         Button { showAddBlock = true } label: {
             Text("+ AÑADIR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
                 .background(Cumbre.ink)
         }.buttonStyle(.plain).padding(.top, 4)
-        if vm.entries.isEmpty {
-            Text("Aún no has registrado bloques.")
-                .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.vertical, 16)
-        } else {
-            ForEach(vm.entries, id: \.id) { e in
-                JournalRow(entry: e) { vm.deleteBlock(e.id) }
-                Divider().overlay(Cumbre.rule)
-            }
-        }
     }
 
     private var avatar: some View {
@@ -257,6 +249,134 @@ struct AccountView: View {
     }
     private var email: String? {
         vm.profile?.email ?? authBridge.currentEmail()
+    }
+}
+
+// MARK: - Diario propio: stats pulsables + listas con borrar (refresco en vivo)
+
+/// Fila de stats del diario propio. BLOQUES y ESCUELAS son navegables; GRADO MÁX
+/// es solo informativo. Observa el `AccountViewModel` para reflejar borrados.
+private struct AccountJournalStatsNav: View {
+    @ObservedObject var vm: AccountViewModel
+    var body: some View {
+        if let s = vm.stats {
+            HStack(spacing: 8) {
+                NavigationLink(destination: AccountBlocksList(vm: vm)) {
+                    cell("\(s.blockCount)", "BLOQUES")
+                }.buttonStyle(.plain)
+                NavigationLink(destination: AccountSchoolsList(vm: vm)) {
+                    cell("\(s.schoolCount)", "ESCUELAS")
+                }.buttonStyle(.plain)
+                cell(s.maxGrade ?? "—", "GRADO MÁX")
+            }
+        }
+    }
+    private func cell(_ v: String, _ l: String) -> some View {
+        VStack(spacing: 3) {
+            Text(v).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+            Text(l).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Cumbre.paper)
+        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+}
+
+/// Todos los bloques del diario propio, con borrar. Observa el vm → al borrar la
+/// lista se refresca sola.
+private struct AccountBlocksList: View {
+    @ObservedObject var vm: AccountViewModel
+    var body: some View {
+        Group {
+            if vm.entries.isEmpty {
+                Text("Aún no has registrado bloques.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(vm.entries, id: \.id) { e in
+                            JournalRow(entry: e) { vm.deleteBlock(e.id) }
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle("Bloques")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Desglose por escuela del diario propio. Cada escuela abre sus bloques (con
+/// borrar). Observa el vm para reflejar borrados en los contadores.
+private struct AccountSchoolsList: View {
+    @ObservedObject var vm: AccountViewModel
+    var body: some View {
+        let schools = vm.stats?.bySchool ?? []
+        Group {
+            if schools.isEmpty {
+                Text("Aún no hay bloques en ninguna escuela.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(schools, id: \.schoolName) { s in
+                            NavigationLink(destination: AccountSchoolBlocksList(vm: vm, schoolName: s.schoolName)) {
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(s.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                                        let blocks = "\(s.blockCount) \(s.blockCount == 1 ? "bloque" : "bloques")"
+                                        let grade = s.maxGrade.map { " · máx \($0)" } ?? ""
+                                        Text(blocks + grade).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle("Escuelas")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Bloques de una escuela concreta del diario propio, con borrar.
+private struct AccountSchoolBlocksList: View {
+    @ObservedObject var vm: AccountViewModel
+    let schoolName: String
+    var body: some View {
+        let entries = vm.entries.filter { $0.schoolName?.caseInsensitiveCompare(schoolName) == .orderedSame }
+        Group {
+            if entries.isEmpty {
+                Text("Sin bloques registrados aquí.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(entries, id: \.id) { e in
+                            JournalRow(entry: e) { vm.deleteBlock(e.id) }
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle(schoolName)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
