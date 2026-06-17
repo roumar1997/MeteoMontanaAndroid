@@ -7,6 +7,19 @@ import PhotosUI
 // Block (clase Kotlin) Identifiable por su id — para .sheet(item:).
 extension Block: Identifiable {}
 
+/// "hace 3 h" / "hace 2 d" / "el 14/06/26" a partir de un epoch en ms.
+func relativeUpdated(_ millis: Int64) -> String {
+    guard millis > 0 else { return "" }
+    let date = Date(timeIntervalSince1970: Double(millis) / 1000)
+    let secs = Date().timeIntervalSince(date)
+    if secs < 90 { return "hace un momento" }
+    let mins = Int(secs / 60); if mins < 60 { return "hace \(mins) min" }
+    let hours = Int(secs / 3600); if hours < 24 { return "hace \(hours) h" }
+    let days = Int(secs / 86400); if days < 30 { return "hace \(days) d" }
+    let f = DateFormatter(); f.dateFormat = "dd/MM/yy"
+    return "el \(f.string(from: date))"
+}
+
 // Detalle de escuela — réplica fiel de ForecastBody.kt de Android:
 // veredicto SÍ/NO "¿PUEDO ESCALAR HOY?" + ÍNDICE, banda de roca, heatmap,
 // desglose de factores, tiempo actual, próximas 16 h, condiciones (8 celdas),
@@ -25,6 +38,7 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var isSaved = false          // guardada para offline
     @Published var savingOffline = false
     @Published var offlineForecast = false  // previsión mostrada desde caché (sin red)
+    @Published var offlineSince: Int64?      // epoch ms de la última actualización cacheada
 
     private let savedSchools = AppDependencies.shared.container.savedSchools
     private let getBlocks = AppDependencies.shared.container.getBlocks
@@ -51,8 +65,9 @@ final class SchoolDetailViewModel: ObservableObject {
         self.createNote = createNote
     }
 
-    func load(schoolId: String, lat: Double, lon: Double, rockType: String?) async {
-        loading = true; errorText = nil; offlineForecast = false
+    func load(school: School) async {
+        let schoolId = school.id
+        loading = true; errorText = nil; offlineForecast = false; offlineSince = nil
         do {
             let f = try await getForecast.invoke(schoolId: schoolId)
             forecast = f
@@ -60,8 +75,9 @@ final class SchoolDetailViewModel: ObservableObject {
             try? await savedSchools?.cacheForecast(schoolId: schoolId, forecast: f)
         } catch {
             // Sin red: tira de la última previsión guardada/cacheada de esta escuela.
-            if let cached = try? await savedSchools?.cachedForecastOnly(schoolId: schoolId) {
-                forecast = cached
+            if let cached = try? await savedSchools?.cachedForecast(schoolId: schoolId) {
+                forecast = cached.forecast
+                offlineSince = cached.fetchedAtMillis
                 offlineForecast = true
             } else {
                 errorText = "Sin conexión. Conéctate a internet para ver la previsión (esta escuela no tiene previsión guardada)."
@@ -71,8 +87,21 @@ final class SchoolDetailViewModel: ObservableObject {
         let favs = try? await getMyFavorites.invoke()
         isFavorite = (favs ?? []).contains { $0.id == schoolId }
         await loadNotes(schoolId: schoolId)
-        await loadMonthly(schoolId: schoolId, lat: lat, lon: lon, rockType: rockType)
+        await loadMonthly(schoolId: schoolId, lat: school.lat, lon: school.lon, rockType: school.rockType)
         await checkSaved(schoolId: schoolId)
+        // Si está guardada offline y hemos cargado CON red, refresca el snapshot
+        // (sectores + previsión + fotos) para que el offline esté lo más al día.
+        if isSaved && !offlineForecast {
+            await refreshOffline(school: school)
+        }
+    }
+
+    /// Re-guarda en silencio el snapshot offline con los datos frescos ya cargados.
+    func refreshOffline(school: School) async {
+        guard let repo = savedSchools, let f = forecast else { return }
+        let blocks = (try? await getBlocks.invoke(schoolId: school.id)) ?? []
+        try? await repo.saveOffline(school: school, blocks: blocks, forecast: f)
+        await ImageCache.prefetch(blocks.compactMap { $0.photoPath })
     }
 
     func checkSaved(schoolId: String) async {
@@ -156,7 +185,8 @@ struct SchoolDetailView: View {
                 if vm.offlineForecast {
                     HStack(spacing: 6) {
                         Image(systemName: "wifi.slash").font(.system(size: 11))
-                        Text("SIN CONEXIÓN · PREVISIÓN GUARDADA").eyebrow()
+                        Text(vm.offlineSince.map { "SIN CONEXIÓN · ACTUALIZADO \(relativeUpdated($0).uppercased())" }
+                             ?? "SIN CONEXIÓN · PREVISIÓN GUARDADA").eyebrow()
                     }
                     .foregroundStyle(Cumbre.terra)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -224,7 +254,7 @@ struct SchoolDetailView: View {
         .sheet(item: $selectedDay) { d in
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
         }
-        .task { await vm.load(schoolId: school.id, lat: school.lat, lon: school.lon, rockType: school.rockType) }
+        .task { await vm.load(school: school) }
     }
 }
 
