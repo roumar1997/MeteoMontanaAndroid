@@ -64,8 +64,14 @@ class SchoolListViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     private val savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository,
     private val cachedSchoolsRepo: com.meteomontana.android.data.saved.CachedSchoolsRepository,
-    private val etagStore: com.meteomontana.android.data.local.CatalogEtagStore
+    private val etagStore: com.meteomontana.android.data.local.CatalogEtagStore,
+    private val chatService: com.meteomontana.android.domain.port.ChatService
 ) : ViewModel() {
+
+    // Total de chats con mensajes sin leer → badge en el icono de mensajes del
+    // header (como la campana de notificaciones).
+    private val _chatUnread = MutableStateFlow(0L)
+    val chatUnread: StateFlow<Long> = _chatUnread.asStateFlow()
 
     // Catálogo completo en memoria (stale-while-revalidate): se pinta desde la
     // caché SQLDelight al instante y se refresca desde red en segundo plano.
@@ -151,6 +157,14 @@ class SchoolListViewModel @Inject constructor(
             // 3) Refrescar el catálogo desde red y actualizar caché + pantalla.
             refreshFromNetwork()
             refreshUnread()
+        }
+        // Badge de chats sin leer: suma de unread de todas mis conversaciones.
+        viewModelScope.launch {
+            runCatching {
+                chatService.observeMyConversations().collect { convs ->
+                    _chatUnread.value = convs.sumOf { it.unreadCount }
+                }
+            }
         }
     }
 

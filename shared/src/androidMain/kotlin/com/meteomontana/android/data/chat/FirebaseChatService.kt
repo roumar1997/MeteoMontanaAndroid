@@ -99,4 +99,24 @@ class FirebaseChatService(
             SetOptions.merge()
         ).await()
     }
+
+    override suspend fun markUnread(convId: String) {
+        val me = auth.currentUser?.uid ?: return
+        convsCol.document(convId).set(
+            mapOf("unread_$me" to 1),
+            SetOptions.merge()
+        ).await()
+    }
+
+    override suspend fun deleteConversation(convId: String) {
+        val ref = convsCol.document(convId)
+        // Borra los mensajes en lotes y luego el documento de la conversación.
+        val msgs = ref.collection("messages").get().await()
+        msgs.documents.chunked(400).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { batch.delete(it.reference) }
+            batch.commit().await()
+        }
+        ref.delete().await()
+    }
 }

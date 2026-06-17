@@ -56,6 +56,8 @@ interface IosChatBridge {
     fun observeMessages(convId: String, onChange: (List<IosMsgDto>) -> Unit): IosChatListener
     fun sendMessage(otherUid: String, text: String, completion: (String?) -> Unit)
     fun markRead(convId: String, completion: (String?) -> Unit)
+    fun markUnread(convId: String, completion: (String?) -> Unit)
+    fun deleteConversation(convId: String, completion: (String?) -> Unit)
 }
 
 /**
@@ -91,6 +93,22 @@ class IosChatService(
     override suspend fun markRead(convId: String): Unit =
         suspendCancellableCoroutine { cont ->
             bridge.markRead(convId) { err ->
+                if (err == null) cont.resume(Unit) else cont.resumeWithException(RuntimeException(err))
+            }
+        }
+
+    @Throws(Exception::class)
+    override suspend fun markUnread(convId: String): Unit =
+        suspendCancellableCoroutine { cont ->
+            bridge.markUnread(convId) { err ->
+                if (err == null) cont.resume(Unit) else cont.resumeWithException(RuntimeException(err))
+            }
+        }
+
+    @Throws(Exception::class)
+    override suspend fun deleteConversation(convId: String): Unit =
+        suspendCancellableCoroutine { cont ->
+            bridge.deleteConversation(convId) { err ->
                 if (err == null) cont.resume(Unit) else cont.resumeWithException(RuntimeException(err))
             }
         }

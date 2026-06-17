@@ -35,4 +35,12 @@ interface ChatService {
 
     @Throws(Exception::class)
     suspend fun markRead(convId: String)
+
+    /** Marca la conversación como NO leída para mí (badge vuelve a aparecer). */
+    @Throws(Exception::class)
+    suspend fun markUnread(convId: String)
+
+    /** Borra la conversación (mensajes + documento) para ambos. */
+    @Throws(Exception::class)
+    suspend fun deleteConversation(convId: String)
 }

@@ -33,6 +33,8 @@ final class SchoolListViewModel: ObservableObject {
     @Published var userLon: Double?
     @Published var compareSelection: Set<String> = []  // long-press para comparar (máx 3)
     @Published var unreadNotifications: Int = 0
+    @Published var unreadChats: Int = 0          // badge en el icono de mensajes
+    private var chatTask: Task<Void, Never>?
 
     // ── Selector de días (tramo) ──
     // Fechas ISO (yyyy-MM-dd) elegidas, máx 5. Vacío = modo "hoy".
@@ -149,9 +151,21 @@ final class SchoolListViewModel: ObservableObject {
         }
     }
 
+    /// Observa mis conversaciones para el badge de chats sin leer (suma de unread).
+    func startObservingChats() {
+        guard chatTask == nil, let chat = AppDependencies.shared.container.chatService else { return }
+        chatTask = Task { [weak self] in
+            for await convs in chat.observeMyConversations() {
+                guard let self else { return }
+                self.unreadChats = convs.reduce(0) { $0 + Int(truncatingIfNeeded: $1.unreadCount) }
+            }
+        }
+    }
+
     func load() async {
         errorText = nil
         startObservingSaved()
+        startObservingChats()
         // 1. Pinta desde la caché local al instante (si la hay).
         if let cached = try? await cachedSchools?.load(), !cached.isEmpty {
             schools = cached
@@ -260,6 +274,7 @@ struct SchoolListView: View {
             ScrollView {
                 LazyVStack(spacing: 0, pinnedViews: []) {
                     TopIconsRow(unreadCount: vm.unreadNotifications,
+                                chatUnread: vm.unreadChats,
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     CoffeeBanner()
@@ -361,6 +376,7 @@ private struct CompareBar: View {
 
 private struct TopIconsRow: View {
     var unreadCount: Int = 0
+    var chatUnread: Int = 0
     var onNotificationsClosed: () -> Void = {}
     @State private var showAccount = false
     @State private var showNotifications = false
@@ -372,7 +388,7 @@ private struct TopIconsRow: View {
         HStack(spacing: 4) {
             Spacer()
             iconButton("magnifyingglass") { showSearch = true }
-            iconButton("bubble.left") { showChats = true }
+            chatButton
             iconButton(theme.iconName) { theme.cycle() }
             bellButton
             iconButton("person") { showAccount = true }
@@ -392,6 +408,25 @@ private struct TopIconsRow: View {
                 .foregroundStyle(Cumbre.ink)
                 .frame(width: 40, height: 40)
                 .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Icono de mensajes con badge de chats sin leer (número o "9+").
+    private var chatButton: some View {
+        Button { showChats = true } label: {
+            Image(systemName: "bubble.left")
+                .font(.system(size: 18)).foregroundStyle(Cumbre.ink)
+                .frame(width: 40, height: 40).contentShape(Rectangle())
+                .overlay(alignment: .topTrailing) {
+                    if chatUnread > 0 {
+                        Text(chatUnread > 9 ? "9+" : "\(chatUnread)")
+                            .font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Capsule().fill(Cumbre.bad))
+                            .offset(x: -4, y: 4)
+                    }
+                }
         }
         .buttonStyle(.plain)
     }

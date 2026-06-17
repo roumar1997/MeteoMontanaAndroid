@@ -42,4 +42,15 @@ class ChatListViewModel @Inject constructor(
             }
         }
     }
+
+    /** Swipe → borrar conversación. Optimista: la quitamos ya de la lista. */
+    fun deleteConversation(convId: String) {
+        _items.value = _items.value.filterNot { it.conversation.id == convId }
+        viewModelScope.launch { runCatching { chatService.deleteConversation(convId) } }
+    }
+
+    /** Swipe → marcar como no leída (vuelve a salir el badge). */
+    fun markUnread(convId: String) {
+        viewModelScope.launch { runCatching { chatService.markUnread(convId) } }
+    }
 }
