@@ -2,9 +2,11 @@ package com.meteomontana.android.data.outbox
 
 import co.touchlab.kermit.Logger
 import com.meteomontana.android.data.api.dto.ContributionRequest
+import com.meteomontana.android.data.api.dto.CreateJournalRequest
 import com.meteomontana.android.data.api.dto.CreateNoteRequest
 import com.meteomontana.android.domain.port.NetworkMonitor
 import com.meteomontana.android.domain.usecase.contributions.SubmitContributionUseCase
+import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +27,8 @@ class OutboxFlusher @Inject constructor(
     private val outbox: OutboxRepository,
     private val networkMonitor: NetworkMonitor,
     private val submitContribution: SubmitContributionUseCase,
-    private val createNote: CreateNoteUseCase
+    private val createNote: CreateNoteUseCase,
+    private val createJournalEntry: CreateJournalEntryUseCase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val log = Logger.withTag("Outbox")
@@ -58,6 +61,10 @@ class OutboxFlusher @Inject constructor(
                     OutboxType.NOTE -> {
                         val req = json.decodeFromString<CreateNoteRequest>(row.payloadJson)
                         createNote(row.schoolId, req.text, req.photoUrl)
+                    }
+                    OutboxType.JOURNAL -> {
+                        val req = json.decodeFromString<CreateJournalRequest>(row.payloadJson)
+                        createJournalEntry(req)
                     }
                     else -> log.w("Tipo desconocido en outbox: ${row.type}")
                 }

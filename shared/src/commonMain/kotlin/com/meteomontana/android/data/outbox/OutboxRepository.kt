@@ -13,6 +13,7 @@ object OutboxType {
     const val CONTRIBUTION = "CONTRIBUTION"
     const val NOTE         = "NOTE"
     const val SUBMISSION   = "SUBMISSION"
+    const val JOURNAL      = "JOURNAL"      // vía marcada como hecha (POST /api/journal)
 }
 
 class OutboxRepository(private val db: MeteoMontanaDb) {

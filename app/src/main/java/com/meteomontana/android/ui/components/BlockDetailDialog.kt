@@ -59,6 +59,8 @@ fun BlockDetailDialog(
     onEditLine: ((com.meteomontana.android.domain.model.BlockLine) -> Unit)? = null,
     /** Marca una vía como hecha (la suma al diario). null = no mostrar el tic. */
     onTickLine: ((com.meteomontana.android.domain.model.BlockLine, Int) -> Unit)? = null,
+    /** Ids de vías ya hechas (del diario) para mostrarlas marcadas ✓ al abrir. */
+    initiallyTicked: Set<String> = emptySet(),
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     /** Sectores (ZONE) disponibles para "ASIGNAR SECTOR". null = no mostrar el botón. */
@@ -67,7 +69,7 @@ fun BlockDetailDialog(
     onDismiss: () -> Unit
 ) {
     var showLinePicker by remember { mutableStateOf(false) }
-    val tickedLines = remember { mutableStateListOf<String>() }   // vías marcadas como hechas
+    val tickedLines = remember { mutableStateListOf<String>().apply { addAll(initiallyTicked) } }   // vías hechas
     val context = LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }

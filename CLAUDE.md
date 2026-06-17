@@ -492,6 +492,21 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (3) ("vía hecha" persistente + cola offline en AMBOS)
+
+- **El tic de "vía hecha" queda marcado (✓) de forma persistente** y funciona
+  **sin conexión** en iOS y Android (decisión de Rodrigo: cola offline en ambos):
+  - Tipo nuevo `OutboxType.JOURNAL` en el outbox compartido.
+  - **Android**: `OutboxFlusher` sube las JOURNAL al recuperar red (ya observaba
+    conexión). `SchoolDetailViewModel.tickLine` POSTea si hay red, si no ENCOLA.
+    `doneViaKeys` (combine diario + cola pendiente) → `SchoolMap` pinta ✓ al abrir.
+  - **iOS**: nuevos helpers en `IosDependencyContainer` (`enqueueJournal`,
+    `pendingJournalKeys`, `flushJournalOutbox`). `BlockInfoSheet.tick` encola si
+    falla; `loadDone` marca ✓ desde diario + cola. `MeteoMontanaApp` drena la cola
+    al arrancar y al volver a primer plano (`scenePhase == .active`).
+  - Match vía por "escuela|nombreVía" (mismo nombre que se guarda al marcar).
+  - Android compila (build+tests verdes local); iOS pendiente de CI.
+
 ### Sesión 2026-06-17 (2) (offline: vínculo sector + etiqueta + "vía hecha")
 
 - **Vínculo piedra↔sector ahora se guarda offline** (era el bug gordo): la tabla

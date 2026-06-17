@@ -10,6 +10,7 @@ import Shared
 @main
 struct MeteoMontanaApp: App {
     @StateObject private var session = SessionStore()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         FirebaseApp.configure()
@@ -23,6 +24,15 @@ struct MeteoMontanaApp: App {
                 .environmentObject(session)
                 // Callback del navegador tras el login de Google.
                 .onOpenURL { url in GIDSignIn.sharedInstance.handle(url) }
+                // Al arrancar, sube las vías marcadas sin red que quedaron en cola.
+                .task { try? await AppDependencies.shared.container.flushJournalOutbox() }
+        }
+        .onChange(of: scenePhase) { phase in
+            // Al volver a primer plano (recuperada la conexión normalmente),
+            // reintenta subir la cola offline de vías hechas.
+            if phase == .active {
+                Task { try? await AppDependencies.shared.container.flushJournalOutbox() }
+            }
         }
     }
 }

@@ -30,8 +30,11 @@ import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.util.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -82,15 +85,53 @@ class SchoolDetailViewModel @Inject constructor(
     private val updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
-    private val createJournalEntry: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
+    private val createJournalEntry: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase,
+    private val getMyJournal: com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
 
+    private val journalJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
+
+    /** Diario del usuario (para marcar las vías ya hechas con ✓ persistente). */
+    private val _myJournal = MutableStateFlow<List<com.meteomontana.android.domain.model.JournalSession>>(emptyList())
+    val myJournal: StateFlow<List<com.meteomontana.android.domain.model.JournalSession>> = _myJournal.asStateFlow()
+
+    /**
+     * Claves "escuela|vía" de las vías HECHAS, combinando el diario (ya subidas)
+     * y la cola offline pendiente (marcadas sin red, aún sin subir). Así el ✓
+     * queda persistente incluso sin conexión.
+     */
+    val doneViaKeys: StateFlow<Set<String>> =
+        kotlinx.coroutines.flow.combine(_myJournal, outboxRepo.observePending()) { journal, pending ->
+            val keys = mutableSetOf<String>()
+            journal.forEach { keys.add(viaKey(it.schoolId, it.blockName)) }
+            pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }.forEach { row ->
+                runCatching {
+                    journalJson.decodeFromString(
+                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                }.getOrNull()?.let { keys.add(viaKey(it.schoolId, it.blockName)) }
+            }
+            keys
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    private fun viaKey(schoolId: String?, name: String) =
+        "${schoolId ?: ""}|${name.trim().lowercase()}"
+
+    init { refreshJournal() }
+
+    /** Recarga el diario (en silencio; ignora errores de red). */
+    fun refreshJournal() {
+        viewModelScope.launch {
+            _myJournal.value = runCatching { getMyJournal() }.getOrDefault(emptyList())
+        }
+    }
+
     /**
      * Marca una vía como hecha → crea una entrada en el diario del usuario
-     * (POST /api/journal) con escuela, sector, nombre de la vía y grado.
-     * Espejo del tic de iOS. Necesita red.
+     * (POST /api/journal). Si no hay red (o el POST falla) la ENCOLA en el outbox
+     * y se subirá sola al recuperar la conexión. El ✓ se mantiene igual gracias a
+     * [doneViaKeys] (que mira diario + cola). Espejo del tic de iOS.
      */
     suspend fun tickLine(
         block: Block,
@@ -101,17 +142,28 @@ class SchoolDetailViewModel @Inject constructor(
     ): Result<Unit> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
         val stoneName = block.name.ifBlank { "Piedra" }
-        createJournalEntry(
-            com.meteomontana.android.data.api.dto.CreateJournalRequest(
-                schoolId = block.schoolId,
-                schoolName = schoolName.ifBlank { null },
-                sector = sectorName,
-                blockName = viaName,
-                grade = line.grade,
-                notes = "Piedra: $stoneName",
-                date = java.time.LocalDate.now().toString()
-            )
+        val req = com.meteomontana.android.data.api.dto.CreateJournalRequest(
+            schoolId = block.schoolId,
+            schoolName = schoolName.ifBlank { null },
+            sector = sectorName,
+            blockName = viaName,
+            grade = line.grade,
+            notes = "Piedra: $stoneName",
+            date = java.time.LocalDate.now().toString()
         )
+        val online = networkMonitor.isOnline.value
+        val sent = online && runCatching { createJournalEntry(req) }.isSuccess
+        if (sent) {
+            refreshJournal()   // ya subida → aparece en el perfil
+        } else {
+            // Sin red o fallo: a la cola; el OutboxFlusher la sube al volver online.
+            outboxRepo.enqueue(
+                com.meteomontana.android.data.outbox.OutboxType.JOURNAL,
+                block.schoolId,
+                journalJson.encodeToString(
+                    com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), req)
+            )
+        }
         Unit
     }
 

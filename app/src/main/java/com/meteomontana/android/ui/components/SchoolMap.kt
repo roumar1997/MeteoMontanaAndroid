@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -422,8 +423,18 @@ private fun InnerMap(
     // No incluye BORRAR — esa acción vive en el panel admin (FullScreenMapDialog).
     selectedBlock?.let { block ->
         val sectors = blocks.filter { it.type == "ZONE" }
+        // Vías ya hechas (diario + cola offline pendiente) → marcadas ✓ al abrir.
+        val doneKeys by viewModel.doneViaKeys.collectAsState()
+        val doneLineIds = remember(block, doneKeys) {
+            block.lines.mapIndexedNotNull { idx, line ->
+                val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
+                val key = "${block.schoolId}|${viaName.trim().lowercase()}"
+                if (doneKeys.contains(key)) line.id else null
+            }.toSet()
+        }
         BlockDetailDialog(
             block = block,
+            initiallyTicked = doneLineIds,
             onAddLines = if (block.type == "BLOCK") ({
                 addingLinesTo = block
                 selectedBlock = null

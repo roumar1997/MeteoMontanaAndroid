@@ -240,4 +240,56 @@ class IosDependencyContainer(
     // Stats mensuales (mejores meses del año por escuela). Requiere BD para la
     // caché; el cálculo lo hace el backend. Null si no hay BD.
     val monthlyStats: MonthlyStatsRepository? = database?.let { MonthlyStatsRepository(it, schoolApi) }
+
+    // ─── Cola offline (outbox) — vías marcadas como hechas sin conexión ──────
+    // Comparte la tabla Outbox de SQLDelight. Permite marcar una vía sin red:
+    // se encola y se sube al volver internet (igual filosofía que Android).
+    private val outbox: com.meteomontana.android.data.outbox.OutboxRepository? =
+        database?.let { com.meteomontana.android.data.outbox.OutboxRepository(it) }
+    private val outboxJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
+
+    /** Encola una vía marcada como hecha (sin red) para subirla más tarde. */
+    @Throws(Exception::class)
+    suspend fun enqueueJournal(req: com.meteomontana.android.data.api.dto.CreateJournalRequest) {
+        outbox?.enqueue(
+            com.meteomontana.android.data.outbox.OutboxType.JOURNAL,
+            req.schoolId ?: "",
+            outboxJson.encodeToString(
+                com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), req)
+        )
+    }
+
+    /** Claves "escuela|vía" de las vías encoladas (para marcar ✓ sin red aún). */
+    @Throws(Exception::class)
+    suspend fun pendingJournalKeys(): Set<String> {
+        val pend = outbox?.all() ?: return emptySet()
+        return pend.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
+            .mapNotNull { row ->
+                runCatching {
+                    outboxJson.decodeFromString(
+                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                }.getOrNull()
+            }
+            .map { "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" }
+            .toSet()
+    }
+
+    /**
+     * Sube las vías encoladas (las que se marcaron sin red). Llamar al abrir o
+     * activar la app. Borra cada entrada al subirla con éxito; las que fallen se
+     * quedan en la cola para el próximo intento.
+     */
+    @Throws(Exception::class)
+    suspend fun flushJournalOutbox() {
+        val repo = outbox ?: return
+        repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
+            .forEach { row ->
+                val ok = runCatching {
+                    val req = outboxJson.decodeFromString(
+                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                    createJournalEntry(req)
+                }.isSuccess
+                if (ok) repo.delete(row.id)
+            }
+    }
 }

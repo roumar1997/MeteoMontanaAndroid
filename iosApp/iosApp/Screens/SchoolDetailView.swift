@@ -888,8 +888,31 @@ struct BlockInfoSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) }
             }
+            .task { await loadDone() }
         }
     }
+
+    /// Al abrir, marca como HECHAS (✓) las vías que ya están en tu diario, para
+    /// que el tic quede persistente entre sesiones. Match por escuela + nombre de
+    /// la vía (mismo nombre que se guardó al dar el tic).
+    private func loadDone() async {
+        let container = AppDependencies.shared.container
+        let journal = (try? await container.getMyJournal.invoke()) ?? []
+        // Claves "escuela|vía" pendientes en la cola offline (sin subir aún).
+        let pendingKeys: Set<String> = (try? await container.pendingJournalKeys()) ?? []
+        var done = Set<String>()
+        for (idx, l) in block.lines.enumerated() {
+            let viaName = l.name.isEmpty ? "Vía \(idx + 1)" : l.name
+            let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
+            let inJournal = journal.contains {
+                $0.schoolId == block.schoolId &&
+                $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
+            }
+            if inJournal || pendingKeys.contains(key) { done.insert(l.id) }
+        }
+        if !done.isEmpty { tickedLines.formUnion(done) }
+    }
+
     private var typeLabel: String {
         switch block.type.uppercased() {
         case "PARKING": return "PARKING"
@@ -909,8 +932,12 @@ struct BlockInfoSheet: View {
             schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
             blockName: viaName, grade: line.grade,
             notes: "Piedra: \(stoneName)", date: df.string(from: Date()))
-        let ok = (try? await AppDependencies.shared.container.createJournalEntry.invoke(req: req)) != nil
-        if ok { tickedLines.insert(line.id) }
+        let container = AppDependencies.shared.container
+        let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
+        // Sin red (o fallo): a la cola; se subirá al recuperar conexión.
+        if !ok { try? await container.enqueueJournal(req: req) }
+        // Marcada igualmente: el ✓ persiste vía diario + cola (loadDone).
+        tickedLines.insert(line.id)
         tickingLine = nil
     }
 }
