@@ -12,5 +12,6 @@ interface LocationProvider {
     fun hasPermission(): Boolean
 
     /** Última ubicación conocida, o null si no hay/sin permiso. */
+    @Throws(Exception::class)
     suspend fun current(): UserLocation?
 }

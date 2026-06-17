@@ -14,6 +14,7 @@ class CachedSchoolsRepository(
 ) {
     private val q get() = db.schemaQueries
 
+    @Throws(Exception::class)
     suspend fun load(): List<School> = withContext(Dispatchers.Default) {
         q.cachedSchoolsAll().executeAsList().map {
             School(
@@ -24,6 +25,7 @@ class CachedSchoolsRepository(
         }
     }
 
+    @Throws(Exception::class)
     suspend fun replaceAll(schools: List<School>) = withContext(Dispatchers.Default) {
         q.transaction {
             q.cachedSchoolsDeleteAll()

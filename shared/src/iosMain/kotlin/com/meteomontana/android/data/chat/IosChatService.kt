@@ -79,6 +79,7 @@ class IosChatService(
         awaitClose { listener.remove() }
     }
 
+    @Throws(Exception::class)
     override suspend fun sendMessage(otherUid: String, text: String): Unit =
         suspendCancellableCoroutine { cont ->
             bridge.sendMessage(otherUid, text) { err ->
@@ -86,6 +87,7 @@ class IosChatService(
             }
         }
 
+    @Throws(Exception::class)
     override suspend fun markRead(convId: String): Unit =
         suspendCancellableCoroutine { cont ->
             bridge.markRead(convId) { err ->

@@ -30,7 +30,9 @@ interface ChatService {
 
     fun observeMessages(convId: String): Flow<List<ChatMessage>>
 
+    @Throws(Exception::class)
     suspend fun sendMessage(otherUid: String, text: String)
 
+    @Throws(Exception::class)
     suspend fun markRead(convId: String)
 }

@@ -8,6 +8,7 @@ import com.meteomontana.android.domain.model.FileRef
  * Puro Kotlin — sin imports Android. Listo para commonMain en Fase 2.
  */
 interface FileReader {
+    @Throws(Exception::class)
     suspend fun readBytes(ref: FileRef): ByteArray
 
     /**
@@ -20,5 +21,6 @@ interface FileReader {
      * - Android: BitmapFactory + Bitmap.createScaledBitmap + compress(JPEG).
      * - iOS: UIImage + jpegData(compressionQuality:).
      */
+    @Throws(Exception::class)
     suspend fun readImageCompressed(ref: FileRef, maxDim: Int = 1024, quality: Int = 80): ByteArray
 }

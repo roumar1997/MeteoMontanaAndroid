@@ -9,9 +9,11 @@ import com.meteomontana.android.data.api.dto.WeekendAlertDto
  * Android), porque la pantalla mapea 1:1 ese payload.
  */
 class GetWeekendAlertUseCase(private val api: KtorProfileApi) {
+    @Throws(Exception::class)
     suspend operator fun invoke(): WeekendAlertDto = api.getWeekendAlert()
 }
 
 class UpdateWeekendAlertUseCase(private val api: KtorProfileApi) {
+    @Throws(Exception::class)
     suspend operator fun invoke(req: WeekendAlertDto): WeekendAlertDto = api.updateWeekendAlert(req)
 }

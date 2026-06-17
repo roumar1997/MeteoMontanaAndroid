@@ -8,5 +8,6 @@ import com.meteomontana.android.domain.repository.FavoritesRepository
  * etiqueta por celda. Alimenta el grid del tab Tiempo (espejo de Android).
  */
 class GetFavoritesGridUseCase(private val repository: FavoritesRepository) {
+    @Throws(Exception::class)
     suspend operator fun invoke(): FavoritesGrid = repository.getFavoritesGrid()
 }

@@ -51,6 +51,7 @@ class IosAuthService(
 
     override fun currentUid(): String? = bridge.currentUid()
 
+    @Throws(Exception::class)
     override suspend fun currentIdToken(forceRefresh: Boolean): String? =
         suspendCancellableCoroutine { cont ->
             bridge.currentIdToken(forceRefresh) { token ->
@@ -58,6 +59,7 @@ class IosAuthService(
             }
         }
 
+    @Throws(Exception::class)
     override suspend fun signOut() {
         suspendCancellableCoroutine<Unit> { cont ->
             bridge.signOut {

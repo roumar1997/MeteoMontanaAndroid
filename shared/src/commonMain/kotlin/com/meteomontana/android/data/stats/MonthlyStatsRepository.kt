@@ -18,6 +18,7 @@ class MonthlyStatsRepository(
     private val db: MeteoMontanaDb,
     private val api: KtorSchoolApi
 ) {
+    @Throws(Exception::class)
     suspend fun get(schoolId: String, lat: Double, lon: Double, rockType: String?): MonthlyStats {
         val cached = db.schemaQueries.findMonthly(schoolId).executeAsOneOrNull()
         val now = Clock.System.now().toEpochMilliseconds()

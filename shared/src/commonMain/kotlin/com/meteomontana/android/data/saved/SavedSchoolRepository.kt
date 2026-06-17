@@ -26,6 +26,7 @@ class SavedSchoolRepository(
     fun observeSaved(): Flow<List<SavedSchool>> =
         q.observeAllSchools().asFlow().mapToList(Dispatchers.Default)
 
+    @Throws(Exception::class)
     suspend fun saveOffline(school: School, blocks: List<Block>, forecast: Forecast?) {
         val now = Clock.System.now().toEpochMilliseconds()
         q.transaction {
@@ -57,6 +58,7 @@ class SavedSchoolRepository(
         }
     }
 
+    @Throws(Exception::class)
     suspend fun remove(id: String) {
         q.deleteSchool(id)
     }
@@ -66,6 +68,7 @@ class SavedSchoolRepository(
      * offline — SavedForecast no tiene FK a SavedSchool). Permite pintar el
      * último forecast conocido al instante o cuando la red falla.
      */
+    @Throws(Exception::class)
     suspend fun cacheForecast(schoolId: String, forecast: Forecast) {
         q.upsertForecast(
             schoolId = schoolId,
@@ -75,6 +78,7 @@ class SavedSchoolRepository(
     }
 
     /** Último forecast cacheado + epoch ms en que se bajó, o null si no hay. */
+    @Throws(Exception::class)
     suspend fun loadCachedForecast(schoolId: String): Pair<Forecast, Long>? {
         val row = q.findForecast(schoolId).executeAsOneOrNull() ?: return null
         val forecast = row.forecastJson.takeIf { it.isNotBlank() }
@@ -82,6 +86,7 @@ class SavedSchoolRepository(
         return forecast to row.fetchedAt
     }
 
+    @Throws(Exception::class)
     suspend fun loadOffline(id: String): OfflineSnapshot? {
         val s = q.findSchool(id).executeAsOneOrNull() ?: return null
         val blocks = q.blocksOfSchool(id).executeAsList()

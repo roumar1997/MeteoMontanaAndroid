@@ -8,6 +8,7 @@ import com.meteomontana.android.domain.repository.SchoolRepository
  * schools viene null y la pantalla sigue con su caché local.
  */
 class GetSchoolCatalogUseCase(private val repository: SchoolRepository) {
+    @Throws(Exception::class)
     suspend operator fun invoke(etag: String? = null): SchoolCatalog =
         repository.getCatalog(etag)
 }

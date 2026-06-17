@@ -21,8 +21,10 @@ interface AuthService {
     fun currentUid(): String?
 
     /** ID token de Firebase (para el AuthInterceptor). */
+    @Throws(Exception::class)
     suspend fun currentIdToken(forceRefresh: Boolean = false): String?
 
     /** Cierra sesión. */
+    @Throws(Exception::class)
     suspend fun signOut()
 }

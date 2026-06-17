@@ -12,11 +12,14 @@ interface PhotoUploader {
      * @param mimeType MIME type, p.ej. "image/jpeg".
      * @param schoolId ID de la escuela (se usa en el path de Storage).
      */
+    @Throws(Exception::class)
     suspend fun uploadBoulderPhoto(bytes: ByteArray, mimeType: String, schoolId: String): String
 
     /** Sube la foto de perfil del usuario actual y devuelve la URL pública. */
+    @Throws(Exception::class)
     suspend fun uploadProfilePhoto(bytes: ByteArray, mimeType: String): String
 
     /** Sube la foto adjunta a una nota comunitaria y devuelve la URL pública. */
+    @Throws(Exception::class)
     suspend fun uploadNotePhoto(bytes: ByteArray, mimeType: String, schoolId: String): String
 }

@@ -32,6 +32,7 @@ class IosLocationProvider(
 
     override fun hasPermission(): Boolean = bridge.hasPermission()
 
+    @Throws(Exception::class)
     override suspend fun current(): UserLocation? =
         suspendCancellableCoroutine { cont ->
             bridge.current { location ->

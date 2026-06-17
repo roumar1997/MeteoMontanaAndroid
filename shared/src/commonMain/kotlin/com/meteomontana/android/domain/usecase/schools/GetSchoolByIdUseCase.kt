@@ -4,5 +4,6 @@ import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.repository.SchoolRepository
 
 class GetSchoolByIdUseCase(private val repository: SchoolRepository) {
+    @Throws(Exception::class)
     suspend operator fun invoke(id: String): School = repository.getSchoolById(id)
 }

@@ -4,5 +4,6 @@ import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.repository.ContributionRepository
 
 class GetMyContributionsUseCase(private val repo: ContributionRepository) {
+    @Throws(Exception::class)
     suspend operator fun invoke(): List<Contribution> = repo.getMyContributions()
 }

@@ -31,6 +31,7 @@ class GetFavoritesWidgetDataUseCase(
      * Lista de favoritas lista para el widget. Vacía si el usuario no tiene
      * favoritas. Lanza si falla la red/sesión (el widget cae a su caché).
      */
+    @Throws(Exception::class)
     suspend operator fun invoke(): List<FavoriteWidgetItem> {
         val favorites = getMyFavorites().take(MAX_SCHOOLS)
         if (favorites.isEmpty()) return emptyList()

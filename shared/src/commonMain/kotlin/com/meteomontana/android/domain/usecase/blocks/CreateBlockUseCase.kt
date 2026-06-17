@@ -5,6 +5,7 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.repository.BlockRepository
 
 class CreateBlockUseCase(private val repo: BlockRepository) {
+    @Throws(Exception::class)
     suspend operator fun invoke(schoolId: String, req: CreateBlockRequest): Block =
         repo.createBlock(schoolId, req)
 }
