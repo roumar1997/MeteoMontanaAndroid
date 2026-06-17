@@ -492,6 +492,87 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (6) (perfil pulible, perfil offline, selector de días, seguridad, borrado de cuenta)
+
+Lote grande. Backend (`MeteoMontanaAPI`) en prod Railway; APK debug y `.ipa`
+apuntan a `https://api.climbingteams.com` (NO al PC), así que los cambios de
+backend afectan a ambas apps en cuanto Railway redespliega.
+
+- **Perfil iOS — stats pulsables**: en `AccountView` la fila BLOQUES/ESCUELAS ya
+  no vuelca el listado; al pulsar BLOQUES o ESCUELAS abres su lista (con borrar
+  dentro). Componentes `AccountJournalStatsNav`/`AccountBlocksList`/
+  `AccountSchoolsList`/`AccountSchoolBlocksList` (observan el VM → refresco al borrar).
+- **Borrar vía offline NO reaparece** (iOS + Android): el diario del perfil
+  descontaba solo borrados por clave; ahora también por **uid de la entrada**.
+  Nuevo `OutboxType.JOURNAL_DELETE_ID` (payload = uid). iOS `AccountViewModel`
+  encola por uid al fallar la red y filtra `pendingJournalDeleteIds`; Android
+  `JournalEntriesViewModel` filtra los `JOURNAL_DELETE` pendientes.
+- **Perfil OFFLINE (Android + iOS)**: `ProfileCache` (Android SharedPreferences /
+  iOS UserDefaults, snapshots JSON que reconstruyen los modelos Kotlin). Se
+  guarda al cargar online y se usa como fallback offline con banner
+  "SIN CONEXIÓN · datos guardados". (Resuelve el pendiente #2 de la sesión 5.)
+- **Pantalla Tiempo = paridad**: Android ya carga el grid de comparación de
+  favoritas (faltaba inyectar `GetFavoritesGridUseCase`) y lo pinta ARRIBA como
+  iOS. El grid muestra el **día de la semana** (LUN/MAR/…) en ambas (iOS ya no
+  pone la fecha numérica).
+- **Selector de días en Escuelas (Android + iOS)** — feature nueva:
+  - Backend: `GET /api/forecast/range-scores?ids=&dates=` → `GetRangeScoresUseCase`.
+    Devuelve `combinedScore` = **media de los días**, `dayScores`, qué días llueve
+    (`rainy` si mm≥1 o prob≥60), `rainDays`, `maxRainMm`. Cacheado por (ids,dates).
+  - **Clave de diseño**: NO se penaliza la lluvia aparte. El score diario YA
+    modela lluvia + **secado por tipo de roca** (`ClimbScoreCalculator` usa
+    `recentRain` en ventana de `RockDryingProfile`: arenisca 72h, granito 12h…),
+    así que un día tras lluvia ya sale bajo en arenisca y se recupera antes en
+    granito. El combinado = media de esos días (sin doble castigo).
+  - App: chips de hasta 5 días; con días elegidos la lista pasa a "modo tramo"
+    (badge = score combinado, celda por día con marca roja en días de lluvia,
+    "LLUEVE X" + máx mm). `SchoolListViewModel`/`SchoolListView` + `GetRangeScoresUseCase`
+    en shared, expuesto en ambos DI. Sin días = modo "hoy" de siempre.
+- **iOS filtros sin emojis**: `ShowMode` "Favoritos"/"Guardados" (antes ★/⬇).
+- **Revisión SOLID/seguridad/stores** (3 agentes). Notas: arquitectura 7/10,
+  seguridad 6/10, Play 6/10, App Store 3/10. **Secretos verificados: NO en git**
+  (`serviceAccountKey.json`/`.env` ignorados y sin historial).
+- **Seguridad — ALTOS arreglados (backend)**:
+  - `POST /api/schools/{id}/blocks` ahora **solo admin** (antes cualquiera creaba
+    bloques sin revisión). Los usuarios usan `/contributions`.
+  - `SearchUsersUseCase` ya no hace `findAll()` (DoS público): query LIKE Top100
+    en BD + cap `limit` a 50 en el controller.
+  - `POST /api/chat/notify` exige **relación de seguimiento** + saneo del preview.
+  - `SecurityConfig`: regla explícita `/api/admin/**` (defensa en profundidad;
+    cada endpoint admin ya llamaba a `AdminGuard.ensureAdmin`).
+- **Borrado de cuenta (requisito de tiendas)**: `DELETE /api/me` +
+  `DeleteMyAccountUseCase` (borra perfil, favoritas, follows ambos sentidos,
+  diario, notifs, alerta, propuestas, notas + Firebase Auth best-effort). Botón
+  "Eliminar cuenta" con confirmación en `ProfileScreen` (Android) y `AccountView` (iOS).
+
+> ### 📌 PENDIENTE (próxima sesión) — qué falta para publicar + deuda
+> **BLOQUEANTES de tienda:**
+> - **iOS — Sign in with Apple**: Apple lo EXIGE por ofrecer login Google. No
+>   implementado. + entitlement `com.apple.developer.applesignin`.
+> - **iOS — `PrivacyInfo.xcprivacy`** (privacy manifest, obligatorio). No existe.
+> - **iOS — cuenta Apple Developer ($99) + firma real**: `project.yml` firma
+>   ad-hoc (`CODE_SIGN_IDENTITY "-"`), el `.ipa` actual NO es subible a la store.
+> - **iOS — usage strings cámara/fotos** en `info.properties` (faltan → crash al
+>   subir foto) + crear `Info.plist`/`.entitlements` que `project.yml` referencia.
+> - **Android — generar AAB** (`bundleRelease`) firmado + confirmar `.jks`/passwords
+>   en CI; rellenar **Data Safety** y crear cuenta Play ($25).
+> - **Borrado de cuenta**: YA hecho (endpoint + UI) — declararlo en ambas consolas.
+> **SEGURIDAD pendiente (no crítica, recomendada):**
+> - **Endurecer secretos en Railway**: mover `serviceAccountKey.json` y
+>   `POSTGRES_PASSWORD` a variables de entorno (el backend debe leerlas de env, no
+>   de fichero). Requiere acción de Rodrigo en la consola de Railway.
+> - MEDIOS: validar fotos por magic bytes (no solo MIME); decidir si el diario
+>   público debe verse sin login (`/api/users/*/journal` es permitAll).
+> **REFACTOR arquitectura (deuda, no urgente):**
+> - Backend: la capa `application` importa `infrastructure` (JPA/FCM/Storage/
+>   OpenMeteo) en vez de puertos. Plan: definir puertos `WeatherProvider`/
+>   `PushSender`/`FileStorage` en `domain/port` + adaptadores; inyectar interfaces.
+> - **Tests de dominio backend casi nulos** (solo `ClimbScoreCalculatorTest`).
+>   Hacer ESTO PRIMERO (añadir tests = cero riesgo) y luego mover a puertos con red.
+> **Otros (de sesiones previas, siguen abiertos):** chat restringir por seguidores
+> (decisión de producto), limpieza iOS (`JournalView`/`JournalStatsNav` sin uso),
+> APNs (push con app cerrada).
+
 ### Sesión 2026-06-17 (5) (vías hechas robustas offline + perfil iOS con diario inline)
 
 - **"Vía hecha" robusta offline (iOS + Android)** — varias iteraciones tras feedback:
