@@ -488,7 +488,7 @@ private fun InnerMap(
                         sectorBlockId = sectorId
                     )
                     successMessage = if (r.isSuccess)
-                        "Propuesta enviada. Un admin la revisará en 24-48h."
+                        if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
                     else
                         "No se pudo enviar la propuesta: ${r.exceptionOrNull()?.message ?: "error"}"
                 }
@@ -511,7 +511,7 @@ private fun InnerMap(
             onDismiss = { addingLinesTo = null },
             onSuccess = {
                 addingLinesTo = null
-                successMessage = "Propuesta enviada. Un admin la revisará en 24-48h."
+                successMessage = if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
             }
         )
     }
@@ -525,7 +525,7 @@ private fun InnerMap(
             onDismiss = { editingLine = null },
             onSuccess = {
                 editingLine = null
-                successMessage = "Propuesta enviada. Un admin la revisará en 24-48h."
+                successMessage = if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
             }
         )
     }

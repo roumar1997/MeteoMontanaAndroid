@@ -230,13 +230,9 @@ private fun EntryRow(e: JournalSession, canDelete: Boolean = true, onClick: () -
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
             Text(
-                buildString {
-                    e.schoolName?.let { append(it) }
-                    e.sector?.let {
-                        if (this.isNotEmpty()) append(" · ")
-                        append(it)
-                    }
-                },
+                // Solo la escuela: el sector es del catálogo (la piedra) y puede
+                // borrarse/cambiar → no lo mostramos en el diario.
+                e.schoolName.orEmpty(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

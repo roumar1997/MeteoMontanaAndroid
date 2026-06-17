@@ -346,6 +346,7 @@ fun ProposeContributionFlow(
         }
 
         is ProposeStep.Success -> SuccessDialog(
+            isAdmin = isAdmin,
             onClose = onDismiss,
             onMyProposals = { onDismiss(); onMyProposals() }
         )
@@ -1048,6 +1049,7 @@ private fun BloqueRow(
 
 @Composable
 private fun SuccessDialog(
+    isAdmin: Boolean = false,
     onClose: () -> Unit,
     onMyProposals: () -> Unit
 ) {
@@ -1063,19 +1065,28 @@ private fun SuccessDialog(
                 Text("✓", style = MaterialTheme.typography.headlineLarge, color = Color.White)
             }
             Spacer(Modifier.height(Spacing.lg))
-            Text("PROPUESTA ENVIADA", style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.height(Spacing.sm))
-            Text("Un admin la revisará en ",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("24-48h.", style = MaterialTheme.typography.bodyMedium, color = Terra)
-            Spacer(Modifier.height(Spacing.xs))
-            Text(
-                "Te avisaremos por email y notificación\npush cuando haya respuesta.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (isAdmin) {
+                Text("PUBLICADO", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(Spacing.sm))
+                Text("Se ha publicado directamente en el mapa.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Text("PROPUESTA ENVIADA", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(Spacing.sm))
+                Text("Un admin la revisará en ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("24-48h.", style = MaterialTheme.typography.bodyMedium, color = Terra)
+                Spacer(Modifier.height(Spacing.xs))
+                Text(
+                    "Te avisaremos por email y notificación\npush cuando haya respuesta.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(Modifier.height(Spacing.xl))
             Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

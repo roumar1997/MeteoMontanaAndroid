@@ -136,8 +136,11 @@ struct JournalRow: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                let sub = [entry.schoolName, entry.sector].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
-                if !sub.isEmpty { Text(sub).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3) }
+                // Solo la escuela: el sector pertenece a la piedra (catálogo) y
+                // puede borrarse/cambiar → no lo mostramos en el diario.
+                if let sn = entry.schoolName, !sn.isEmpty {
+                    Text(sn).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                }
                 // Ocultamos la nota auto "Piedra: N" (obsoleta: el número se recicla).
                 if let n = entry.notes, !n.isEmpty, !n.hasPrefix("Piedra: ") {
                     Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
