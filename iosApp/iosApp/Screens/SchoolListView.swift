@@ -17,7 +17,7 @@ final class SchoolListViewModel: ObservableObject {
 
     enum SortMode: String, CaseIterable { case score = "Mejor score", distance = "Más cercanos" }
     // Filtro rápido: todas / solo favoritas / solo guardadas offline.
-    enum ShowMode: String, CaseIterable { case all = "Todas", favorites = "Favoritos ★", saved = "Guardados ⬇" }
+    enum ShowMode: String, CaseIterable { case all = "Todas", favorites = "Favoritos", saved = "Guardados" }
     static let distanceOptions: [Double?] = [nil, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
 
     @Published var query = ""

@@ -40,6 +40,7 @@ class ProfileViewModel @Inject constructor(
     private val getFollowStatus: com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase,
     private val updateMyProfile: com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase,
     private val profileCache: com.meteomontana.android.data.local.ProfileCache,
+    private val deleteMyAccount: com.meteomontana.android.domain.usecase.profile.DeleteMyAccountUseCase,
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -117,5 +118,15 @@ class ProfileViewModel @Inject constructor(
 
     fun signOut() {
         viewModelScope.launch { authManager.signOut() }
+    }
+
+    /** Borra la cuenta en el backend (datos + Firebase Auth) y cierra sesión.
+     *  [onDone] se llama al terminar (éxito o no) para volver al login. */
+    fun deleteAccount(onDone: () -> Unit = {}) {
+        viewModelScope.launch {
+            runCatching { deleteMyAccount() }
+            runCatching { authManager.signOut() }
+            onDone()
+        }
     }
 }

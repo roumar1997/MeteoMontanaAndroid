@@ -42,6 +42,7 @@ import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsU
 import com.meteomontana.android.domain.usecase.notifications.MarkAllNotificationsReadUseCase
 import com.meteomontana.android.domain.usecase.notifications.MarkNotificationReadUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
+import com.meteomontana.android.domain.usecase.profile.DeleteMyAccountUseCase
 import com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase
 import com.meteomontana.android.domain.usecase.profile.GetWeekendAlertUseCase
 import com.meteomontana.android.domain.usecase.profile.UpdateWeekendAlertUseCase
@@ -174,6 +175,7 @@ class IosDependencyContainer(
     // Perfil privado (JIT provisioning en el primer getMyProfile).
     val getMyProfile = GetMyProfileUseCase(profileRepository)
     val updateMyProfile = UpdateMyProfileUseCase(profileRepository)
+    val deleteMyAccount = DeleteMyAccountUseCase(profileRepository)
 
     // Alerta de tiempo (preferencias en /api/me/weekend-alert).
     val getWeekendAlert = GetWeekendAlertUseCase(profileApi)

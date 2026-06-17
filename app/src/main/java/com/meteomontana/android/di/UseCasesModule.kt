@@ -169,6 +169,10 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideUpdateFcmTokenUseCase(repo: ProfileRepository) = UpdateFcmTokenUseCase(repo)
 
+    @Provides @Singleton
+    fun provideDeleteMyAccountUseCase(repo: ProfileRepository) =
+        com.meteomontana.android.domain.usecase.profile.DeleteMyAccountUseCase(repo)
+
     // Notifications
     @Provides @Singleton
     fun provideGetMyNotificationsUseCase(repo: NotificationsRepository) =

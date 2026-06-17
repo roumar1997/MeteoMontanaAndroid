@@ -11,6 +11,7 @@ final class AccountViewModel: ObservableObject {
     /// true cuando los datos vienen de la caché local (sin conexión).
     @Published var offline = false
 
+    private let deleteAccount: DeleteMyAccountUseCase = AppDependencies.shared.container.deleteMyAccount
     private let getMyProfile: GetMyProfileUseCase
     private let getMyStats: GetMyJournalStatsUseCase
     private let getMyJournal: GetMyJournalUseCase
@@ -78,6 +79,13 @@ final class AccountViewModel: ObservableObject {
         await reloadJournal()
     }
 
+    /// Borra la cuenta (datos + Firebase Auth) y cierra sesión. El gate de login
+    /// (RootView) vuelve a la pantalla de acceso al desaparecer la sesión.
+    func deleteMyAccount() async {
+        _ = try? await deleteAccount.invoke()
+        authBridge.signOut {}
+    }
+
     func deleteBlock(_ id: String) {
         entries.removeAll { $0.id == id }   // optimista
         // Refresca la caché ya sin el bloque → offline no reaparece al reabrir.
@@ -132,6 +140,7 @@ struct AccountView: View {
     @StateObject private var vm = AccountViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var showAddBlock = false
+    @State private var showDeleteConfirm = false
 
     private let authBridge = AppDependencies.shared.authBridge
 
@@ -163,6 +172,7 @@ struct AccountView: View {
                     menuLinks
                     Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                     signOutButton
+                    deleteAccountButton
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 24)
@@ -175,6 +185,14 @@ struct AccountView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
+            }
+            .alert("¿Eliminar tu cuenta?", isPresented: $showDeleteConfirm) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Eliminar", role: .destructive) {
+                    Task { await vm.deleteMyAccount(); dismiss() }
+                }
+            } message: {
+                Text("Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.")
             }
             .sheet(isPresented: $showAddBlock) {
                 AddBlockSheet { block, grade, schoolId, school, sector, notes in
@@ -304,6 +322,16 @@ struct AccountView: View {
                 .foregroundStyle(Cumbre.ink)
                 .padding(.vertical, 14).frame(maxWidth: .infinity)
                 .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var deleteAccountButton: some View {
+        Button { showDeleteConfirm = true } label: {
+            Text("Eliminar cuenta")
+                .font(.system(size: 14))
+                .foregroundStyle(Cumbre.ink3)
+                .padding(.vertical, 8).frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
     }
