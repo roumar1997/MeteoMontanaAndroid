@@ -25,7 +25,9 @@ sealed interface ProfileUiState {
         val profile: PrivateProfile,
         val stats: JournalStats,
         val followers: Long = 0,
-        val following: Long = 0
+        val following: Long = 0,
+        /** true cuando los datos vienen de la caché local (sin conexión). */
+        val offline: Boolean = false
     ) : ProfileUiState
     data class Error(val message: String) : ProfileUiState
 }
@@ -37,6 +39,7 @@ class ProfileViewModel @Inject constructor(
     private val createJournalEntry: CreateJournalEntryUseCase,
     private val getFollowStatus: com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase,
     private val updateMyProfile: com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase,
+    private val profileCache: com.meteomontana.android.data.local.ProfileCache,
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -61,12 +64,24 @@ class ProfileViewModel @Inject constructor(
                     val profileDeferred = async { getMyProfile() }
                     val statsDeferred = async { getMyJournalStats() }
                     val profile = profileDeferred.await()
+                    val stats = statsDeferred.await()
                     val follow = runCatching { getFollowStatus(profile.uid) }
                         .getOrDefault(com.meteomontana.android.domain.model.FollowStatus(0, 0, false, false))
-                    ProfileUiState.Success(profile, statsDeferred.await(), follow.followers, follow.following)
+                    // Cachea para poder ver el perfil SIN conexión la próxima vez.
+                    runCatching { profileCache.save(profile, stats, follow.followers, follow.following) }
+                    ProfileUiState.Success(profile, stats, follow.followers, follow.following)
                 }
             } catch (t: Throwable) {
-                ProfileUiState.Error(t.toUserMessage())
+                // Sin conexión: cae a la última copia cacheada (si existe) en vez
+                // de dejar el perfil vacío.
+                val cached = profileCache.load()
+                if (cached != null) {
+                    ProfileUiState.Success(
+                        cached.profile, cached.stats, cached.followers, cached.following, offline = true
+                    )
+                } else {
+                    ProfileUiState.Error(t.toUserMessage())
+                }
             }
         }
     }

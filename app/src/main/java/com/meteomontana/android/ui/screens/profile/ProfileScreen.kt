@@ -92,6 +92,7 @@ fun ProfileScreen(
                 stats = s.stats,
                 followers = s.followers,
                 following = s.following,
+                offline = s.offline,
                 onAddBlock = { addBlockOpen = true },
                 onEdit = onEdit,
                 onSubmissions = onSubmissions,
@@ -144,6 +145,7 @@ private fun Content(
     stats: JournalStats,
     followers: Long,
     following: Long,
+    offline: Boolean = false,
     onAddBlock: () -> Unit,
     onEdit: () -> Unit,
     onSubmissions: () -> Unit,
@@ -160,6 +162,19 @@ private fun Content(
     onSignOut: () -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
+        if (offline) {
+            item {
+                Text(
+                    "SIN CONEXIÓN · datos guardados",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.tertiaryContainer)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+        }
         item { Header(profile, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
         item {
