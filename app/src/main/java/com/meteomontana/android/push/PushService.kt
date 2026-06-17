@@ -47,7 +47,7 @@ class PushService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-        val title = message.notification?.title ?: message.data["title"] ?: "MeteoMontana"
+        val title = message.notification?.title ?: message.data["title"] ?: "Cumbre"
         val body  = message.notification?.body  ?: message.data["body"]  ?: ""
         val targetType = message.data["targetType"]
         val targetId   = message.data["targetId"]
@@ -76,14 +76,23 @@ class PushService : FirebaseMessagingService() {
             .setContentIntent(pi)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
 
-        // Avatar del seguidor como icono grande (circular). onMessageReceived corre
-        // en un hilo de background, así que podemos descargar de forma bloqueante
-        // con un timeout corto — si falla, la notificación sale sin avatar.
-        fetchCircularBitmap(avatarUrl)?.let { builder.setLargeIcon(it) }
+        // Icono grande: el avatar del seguidor si lo hay (circular); si no, el
+        // logo de Cumbre a color (para que la notificación lleve el icono de la
+        // app, p.ej. en mensajes). onMessageReceived corre en background → la
+        // descarga del avatar puede ser bloqueante con timeout corto.
+        val largeIcon = fetchCircularBitmap(avatarUrl) ?: appLogoBitmap()
+        largeIcon?.let { builder.setLargeIcon(it) }
 
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         nm.notify(Random.nextInt(), builder.build())
     }
+
+    /** Logo de Cumbre (a color) como icono grande por defecto de las notificaciones. */
+    private fun appLogoBitmap(): android.graphics.Bitmap? = runCatching {
+        val src = android.graphics.BitmapFactory.decodeResource(resources, R.drawable.logo_cumbre)
+            ?: return null
+        toCircle(src)
+    }.getOrNull()
 
     private fun fetchCircularBitmap(url: String?): android.graphics.Bitmap? {
         if (url.isNullOrBlank()) return null
