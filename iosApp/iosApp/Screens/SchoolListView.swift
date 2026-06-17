@@ -34,8 +34,15 @@ final class SchoolListViewModel: ObservableObject {
     @Published var compareSelection: Set<String> = []  // long-press para comparar (máx 3)
     @Published var unreadNotifications: Int = 0
 
+    // ── Selector de días (tramo) ──
+    // Fechas ISO (yyyy-MM-dd) elegidas, máx 5. Vacío = modo "hoy".
+    @Published var selectedDates: Set<String> = []
+    @Published var rangeScores: [String: RangeScore] = [:]
+    var rangeMode: Bool { !selectedDates.isEmpty }
+
     private let getSchools: GetSchoolsUseCase
     private let getTodayScores: GetTodayScoresUseCase
+    private let getRangeScores: GetRangeScoresUseCase
     private let getMyFavorites: GetMyFavoritesUseCase
     private let addFavorite: AddFavoriteUseCase
     private let removeFavorite: RemoveFavoriteUseCase
@@ -48,15 +55,38 @@ final class SchoolListViewModel: ObservableObject {
     init(
         getSchools: GetSchoolsUseCase = AppDependencies.shared.container.getSchools,
         getTodayScores: GetTodayScoresUseCase = AppDependencies.shared.container.getTodayScores,
+        getRangeScores: GetRangeScoresUseCase = AppDependencies.shared.container.getRangeScores,
         getMyFavorites: GetMyFavoritesUseCase = AppDependencies.shared.container.getMyFavorites,
         addFavorite: AddFavoriteUseCase = AppDependencies.shared.container.addFavorite,
         removeFavorite: RemoveFavoriteUseCase = AppDependencies.shared.container.removeFavorite
     ) {
         self.getSchools = getSchools
         self.getTodayScores = getTodayScores
+        self.getRangeScores = getRangeScores
         self.getMyFavorites = getMyFavorites
         self.addFavorite = addFavorite
         self.removeFavorite = removeFavorite
+    }
+
+    /// Marca/desmarca una fecha (ISO yyyy-MM-dd), máximo 5. Recalcula el tramo.
+    func toggleDate(_ iso: String) {
+        if selectedDates.contains(iso) { selectedDates.remove(iso) }
+        else if selectedDates.count < 5 { selectedDates.insert(iso) }
+        rangeScores = [:]
+        Task { await loadRangeScores() }
+    }
+
+    /// Carga los scores del tramo por lotes (≤60 ids/call), para TODAS las
+    /// escuelas (así cambiar filtros no deja huecos). El backend cachea.
+    private func loadRangeScores() async {
+        guard !selectedDates.isEmpty else { return }
+        let dates = selectedDates.sorted()
+        let ids = schools.map { $0.id }
+        for chunk in stride(from: 0, to: ids.count, by: 60) {
+            let slice = Array(ids[chunk..<min(chunk + 60, ids.count)])
+            guard let batch = try? await getRangeScores.invoke(ids: slice, dates: dates) else { continue }
+            for r in batch { rangeScores[r.id] = r }
+        }
     }
 
     var styles: [String] { uniqueValues(schools.map { $0.style }) }
@@ -103,6 +133,10 @@ final class SchoolListViewModel: ObservableObject {
         // Orden.
         switch sortBy {
         case .score:
+            // Modo tramo → ordena por score combinado de los días elegidos.
+            if rangeMode {
+                return list.sorted { (rangeScores[$0.id]?.combinedScore ?? -1) > (rangeScores[$1.id]?.combinedScore ?? -1) }
+            }
             return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
         case .distance:
             guard let la = userLat, let lo = userLon else {
@@ -232,6 +266,7 @@ struct SchoolListView: View {
                     SearchField(text: $vm.query)
                     MapToggleAndPanel(vm: vm, onOpen: { navSchool = $0 })
                     FilterChips(vm: vm)
+                    DaySelectorRow(vm: vm)
                     Divider().overlay(Cumbre.rule)
 
                     if vm.loading {
@@ -256,6 +291,7 @@ struct SchoolListView: View {
                                         rank: idx + 1,
                                         school: school,
                                         score: vm.scores[school.id],
+                                        range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
                                         distanceKm: vm.distanceKm(school),
                                         isFavorite: vm.favoriteIds.contains(school.id),
                                         isSelected: vm.compareSelection.contains(school.id),
@@ -695,6 +731,111 @@ private struct FilterChips: View {
     }
 }
 
+/// Selector de días: próximos 7 días (hoy incluido) como chips "LUN 17". Toca
+/// para elegir hasta 5; con ≥1 elegido la lista pasa a modo tramo. Espejo de
+/// DaySelectorRow de Android.
+private struct DaySelectorRow: View {
+    @ObservedObject var vm: SchoolListViewModel
+
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); return f
+    }()
+    private let dayLetters = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"]  // weekday 1=domingo
+
+    private var next7: [Date] {
+        let cal = Calendar(identifier: .gregorian)
+        let today = cal.startOfDay(for: Date())
+        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: today) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(vm.selectedDates.isEmpty ? "DÍAS · elige hasta 5 para comparar el tramo"
+                 : "DÍAS · \(vm.selectedDates.count) elegido\(vm.selectedDates.count > 1 ? "s" : "")")
+                .eyebrow().padding(.horizontal, 12)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(next7, id: \.self) { d in
+                        let iso = Self.isoFmt.string(from: d)
+                        let cal = Calendar(identifier: .gregorian)
+                        let weekday = cal.component(.weekday, from: d)
+                        let dayNum = cal.component(.day, from: d)
+                        let selected = vm.selectedDates.contains(iso)
+                        Button { vm.toggleDate(iso) } label: {
+                            VStack(spacing: 1) {
+                                Text(dayLetters[weekday - 1]).font(Cumbre.mono(11, .bold)).tracking(0.6)
+                                    .foregroundStyle(selected ? .white : Cumbre.ink2)
+                                Text("\(dayNum)").font(.system(size: 10))
+                                    .foregroundStyle(selected ? .white.opacity(0.85) : Cumbre.ink3)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .background(selected ? Cumbre.terra : Cumbre.paper)
+                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 12)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+/// Fila por día del tramo: una celda por día con su score (color) y la inicial
+/// del día debajo. Los días con lluvia llevan la inicial y el borde en rojo.
+private struct DayRangeRow: View {
+    let range: RangeScore
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(Array(range.days.enumerated()), id: \.offset) { _, d in
+                let score = Int(d.score)
+                VStack(spacing: 2) {
+                    Text("\(score)")
+                        .font(Cumbre.mono(11, .bold))
+                        .foregroundStyle(Cumbre.score(score))
+                        .frame(width: 26, height: 22)
+                        .background(Cumbre.score(score).opacity(0.18))
+                        .overlay(Rectangle().stroke(d.rainy ? Cumbre.bad : Cumbre.score(score), lineWidth: 1))
+                    Text(weekdayLetter(d.date))
+                        .font(.system(size: 9))
+                        .foregroundStyle(d.rainy ? Cumbre.bad : Cumbre.ink3)
+                }
+            }
+        }
+    }
+}
+
+/// Resumen de lluvia del tramo: qué días llueve (iniciales) + máximo de mm.
+private struct RainSummaryTag: View {
+    let range: RangeScore
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            if range.rainDays == 0 {
+                Text("● SIN LLUVIA").font(.system(size: 11, weight: .semibold)).tracking(0.8)
+                    .foregroundStyle(Cumbre.ok)
+            } else {
+                let rainy = range.days.filter { $0.rainy }.map { weekdayLetter($0.date) }.joined(separator: " ")
+                Text("LLUEVE \(rainy)").font(.system(size: 11, weight: .semibold)).tracking(0.8)
+                    .foregroundStyle(Cumbre.bad)
+                if range.maxRainMm > 0 {
+                    Text(String(format: "máx %.1f mm", range.maxRainMm))
+                        .font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
+                }
+            }
+        }
+    }
+}
+
+/// "2026-06-17" → "L"/"M"/"X"/"J"/"V"/"S"/"D".
+private func weekdayLetter(_ iso: String) -> String {
+    let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
+    guard let d = f.date(from: iso) else { return String(iso.suffix(2)) }
+    let weekday = Calendar(identifier: .gregorian).component(.weekday, from: d) // 1=domingo
+    let labels = ["D", "L", "M", "X", "J", "V", "S"]
+    return labels[weekday - 1]
+}
+
 private struct OutlinedCumbreButton: View {
     let text: String
     var tint: Color = Cumbre.ink
@@ -713,6 +854,7 @@ private struct SchoolListItemView: View {
     let rank: Int
     let school: School
     let score: SchoolScore?
+    var range: RangeScore? = nil
     var distanceKm: Int? = nil
     var isFavorite: Bool = false
     var isSelected: Bool = false
@@ -720,7 +862,8 @@ private struct SchoolListItemView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            ScoreBadge(score: score.map { Int($0.todayScore) })
+            // Modo tramo → el badge muestra el score combinado de los días.
+            ScoreBadge(score: range.map { Int($0.combinedScore) } ?? score.map { Int($0.todayScore) })
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 0) {
                     Text(String(format: "%02d", rank))
@@ -748,8 +891,14 @@ private struct SchoolListItemView: View {
                     .foregroundStyle(Cumbre.ink3)
                     .padding(.top, 4)
                 HStack(alignment: .center, spacing: 8) {
-                    HeatmapBar(scores: score?.hourlyScores.map { $0.intValue })
-                    DryWetTag(dry: score?.dryRock, rainProb: score.map { Int($0.rainProb) }, rainMm: score?.rainMm)
+                    if let range {
+                        DayRangeRow(range: range)
+                        Spacer(minLength: 4)
+                        RainSummaryTag(range: range)
+                    } else {
+                        HeatmapBar(scores: score?.hourlyScores.map { $0.intValue })
+                        DryWetTag(dry: score?.dryRock, rainProb: score.map { Int($0.rainProb) }, rainMm: score?.rainMm)
+                    }
                 }
                 .padding(.top, 8)
             }

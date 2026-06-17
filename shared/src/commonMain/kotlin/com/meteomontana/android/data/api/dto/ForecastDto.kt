@@ -99,3 +99,22 @@ data class SchoolScoreDto(
     val rainMm: Double = 0.0,
     val rainProb: Int = 0
 )
+
+@Serializable
+data class RangeScoreDto(
+    val id: String,
+    val combinedScore: Int = 0,
+    val avgScore: Int = 0,
+    val days: List<RangeDayScoreDto> = emptyList(),
+    val rainDays: Int = 0,
+    val maxRainMm: Double = 0.0
+)
+
+@Serializable
+data class RangeDayScoreDto(
+    val date: String,
+    val score: Int = 0,
+    val rainMm: Double = 0.0,
+    val rainProb: Int = 0,
+    val rainy: Boolean = false
+)

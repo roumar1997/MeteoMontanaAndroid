@@ -61,6 +61,7 @@ fun SchoolListItem(
     dry: Boolean? = null,
     rainMm: Double? = null,
     rainProb: Int? = null,
+    range: com.meteomontana.android.domain.model.RangeScore? = null,
     isFavorite: Boolean = false,
     selectedForCompare: Boolean = false,
     onClick: () -> Unit,
@@ -83,7 +84,8 @@ fun SchoolListItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        ScoreBadge(score = todayScore)
+        // En modo tramo (días elegidos) el badge muestra el score combinado.
+        ScoreBadge(score = range?.combinedScore ?: todayScore)
 
         Column(modifier = Modifier.weight(1f)) {
             // Rank + nombre + estrella favorito
@@ -130,11 +132,16 @@ fun SchoolListItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                HourlyHeatmapBar(
-                    scores = hourlyScores,
-                    modifier = Modifier.weight(1f)
-                )
-                DryWetTag(dry = dry, rainProb = rainProb, rainMm = rainMm)
+                if (range != null) {
+                    DayRangeRow(range = range, modifier = Modifier.weight(1f))
+                    RainSummaryTag(range)
+                } else {
+                    HourlyHeatmapBar(
+                        scores = hourlyScores,
+                        modifier = Modifier.weight(1f)
+                    )
+                    DryWetTag(dry = dry, rainProb = rainProb, rainMm = rainMm)
+                }
             }
         }
     }
@@ -216,6 +223,94 @@ private fun DryWetTag(dry: Boolean?, rainProb: Int?, rainMm: Double?) {
         }
     }
 }
+
+/**
+ * Fila por día del tramo elegido: una celda por día con su score (color) y la
+ * inicial del día debajo. Los días con lluvia llevan la inicial en rojo.
+ */
+@Composable
+private fun DayRangeRow(
+    range: com.meteomontana.android.domain.model.RangeScore,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        range.days.forEach { d ->
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 26.dp, height = 22.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(scoreColor(d.score).copy(alpha = 0.18f))
+                        .border(
+                            1.dp,
+                            if (d.rainy) MaterialTheme.colorScheme.error else scoreColor(d.score),
+                            RoundedCornerShape(2.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = d.score.toString(),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold, fontSize = 11.sp
+                        ),
+                        color = scoreColor(d.score)
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = weekdayLetter(d.date),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    color = if (d.rainy) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** Resumen de lluvia del tramo: qué días llueve (iniciales) y máximo de mm. */
+@Composable
+private fun RainSummaryTag(range: com.meteomontana.android.domain.model.RangeScore) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        if (range.rainDays == 0) {
+            Text(
+                text = "● SIN LLUVIA",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
+                ),
+                color = MaterialTheme.colorScheme.secondary
+            )
+        } else {
+            val rainyDays = range.days.filter { it.rainy }.joinToString(" ") { weekdayLetter(it.date) }
+            Text(
+                text = "LLUEVE $rainyDays",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
+                ),
+                color = MaterialTheme.colorScheme.error
+            )
+            if (range.maxRainMm > 0.0) {
+                Text(
+                    text = "máx %.1f mm".format(range.maxRainMm),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** "2026-06-17" → "L"/"M"/"X"/"J"/"V"/"S"/"D". */
+private fun weekdayLetter(iso: String): String = try {
+    val labels = arrayOf("L", "M", "X", "J", "V", "S", "D")  // ISO 1=lunes
+    labels[java.time.LocalDate.parse(iso).dayOfWeek.value - 1]
+} catch (_: Throwable) { iso.takeLast(2) }
 
 private fun scoreLabel(score: Int?): String = when {
     score == null -> ""
