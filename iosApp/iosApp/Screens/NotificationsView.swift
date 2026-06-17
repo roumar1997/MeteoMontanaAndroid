@@ -35,12 +35,20 @@ final class NotificationsViewModel: ObservableObject {
         await load()
     }
 
+    /// Marca todas como leídas sin recargar (al cerrar la bandeja: ya las viste).
+    func markAllSilent() async {
+        guard unread > 0 else { return }
+        try? await markAllRead.invoke()
+    }
+
     /// Marca leída (si no lo estaba). Devuelve el destino de navegación según el
     /// targetType (espejo de NotificationsScreen.kt: "user"→perfil, "school"→detalle).
     func tap(_ n: Shared.Notification) -> NotifTarget? {
         if n.readAt == nil {
             Task { try? await markRead.invoke(id: n.id); await load() }
         }
+        // Solicitud de seguimiento → a la lista de solicitudes (aceptar/rechazar).
+        if n.targetType == "follow_request" { return .followRequests }
         guard let tid = n.targetId, !tid.isEmpty else { return nil }
         switch n.targetType {
         case "user": return .user(tid)
@@ -54,10 +62,12 @@ final class NotificationsViewModel: ObservableObject {
 enum NotifTarget: Identifiable, Hashable {
     case school(String)
     case user(String)
+    case followRequests
     var id: String {
         switch self {
         case .school(let s): return "school-\(s)"
         case .user(let u): return "user-\(u)"
+        case .followRequests: return "follow-requests"
         }
     }
 }
@@ -98,6 +108,7 @@ struct NotificationsView: View {
                 switch t {
                 case .school(let id): SchoolDetailLoaderView(schoolId: id)
                 case .user(let uid): PublicProfileView(uid: uid)
+                case .followRequests: FollowRequestsView()
                 }
             }
             .toolbar {
@@ -112,6 +123,8 @@ struct NotificationsView: View {
                 }
             }
             .task { await vm.load() }
+            // Al cerrar la bandeja se consideran vistas → se limpia el badge.
+            .onDisappear { Task { await vm.markAllSilent() } }
         }
     }
 }

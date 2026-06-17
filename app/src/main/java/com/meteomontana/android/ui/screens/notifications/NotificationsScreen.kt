@@ -113,6 +113,12 @@ fun NotificationsScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    // Al salir de la bandeja, marca todas como leídas (ya las has visto) → el
+    // badge de la campana desaparece al volver.
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose { viewModel.markAllRead() }
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),

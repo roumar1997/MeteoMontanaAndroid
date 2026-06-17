@@ -75,6 +75,17 @@ fun SchoolListScreen(
     val compareSelection by viewModel.compareSelection.collectAsState()
     var mapExpanded by remember { mutableStateOf(false) }
 
+    // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
+    // ver y salir de la bandeja de notificaciones) → el badge se actualiza.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.refreshUnread()
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+
     // Pide permiso de ubicación al abrir la pantalla — al concederlo el VM
     // recarga ordenado por mejor score + filtra 50 km desde la posición real.
     // En la primera apertura el permiso se pide al FINAL del onboarding,

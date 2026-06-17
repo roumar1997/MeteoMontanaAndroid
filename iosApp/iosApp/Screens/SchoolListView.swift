@@ -164,6 +164,9 @@ final class SchoolListViewModel: ObservableObject {
         }
     }
 
+    /// Recarga el contador de no leídas (al cerrar la bandeja de notificaciones).
+    func refreshUnread() async { await loadUnread() }
+
     private func loadLocation() async {
         guard locationBridge.hasPermission() else { return }
         if let loc = try? await locationProvider?.current() {
@@ -222,7 +225,8 @@ struct SchoolListView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 0, pinnedViews: []) {
-                    TopIconsRow(unreadCount: vm.unreadNotifications)
+                    TopIconsRow(unreadCount: vm.unreadNotifications,
+                                onNotificationsClosed: { Task { await vm.refreshUnread() } })
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     CoffeeBanner()
                     SearchField(text: $vm.query)
@@ -321,6 +325,7 @@ private struct CompareBar: View {
 
 private struct TopIconsRow: View {
     var unreadCount: Int = 0
+    var onNotificationsClosed: () -> Void = {}
     @State private var showAccount = false
     @State private var showNotifications = false
     @State private var showSearch = false
@@ -339,7 +344,7 @@ private struct TopIconsRow: View {
         .padding(.horizontal, 4)
         .padding(.top, 4)
         .sheet(isPresented: $showAccount) { AccountView() }
-        .sheet(isPresented: $showNotifications) { NotificationsView() }
+        .sheet(isPresented: $showNotifications, onDismiss: onNotificationsClosed) { NotificationsView() }
         .sheet(isPresented: $showSearch) { SearchUsersView() }
         .sheet(isPresented: $showChats) { NavigationStack { ChatListView() } }
     }
