@@ -38,6 +38,17 @@ targets:
       properties:
         keychain-access-groups:
           - com.meteomontana.ios
+        # Sign in with Apple: el CÓDIGO ya está (AuthBridge.signInWithApple +
+        # botón en LoginView). Para ACTIVARLO en producción hay que:
+        #  1) descomentar la línea de abajo (capability applesignin),
+        #  2) tener cuenta Apple Developer de pago + habilitar la capability,
+        #  3) habilitar Apple como proveedor en Firebase Auth (consola).
+        # OJO: con la capability puesta, AltStore con Apple ID GRATIS NO podrá
+        # firmar el .ipa (los free accounts no soportan Sign in with Apple) →
+        # se rompería el sideload de pruebas. Por eso queda comentada hasta que
+        # haya cuenta de pago.
+        # com.apple.developer.applesignin:
+        #   - Default
     info:
       path: iosApp/Info.plist
       properties:
@@ -64,6 +75,12 @@ targets:
         NSLocationWhenInUseUsageDescription: >-
           Usamos tu ubicación para ordenar las escuelas por cercanía y
           mostrar tu posición en el mapa.
+        # La app sube fotos (notas, topos de vías, foto de perfil): sin estas
+        # cadenas iOS lanza una excepción al pedir acceso a cámara/galería.
+        NSCameraUsageDescription: >-
+          Para hacer fotos de las vías, escuelas o tu perfil.
+        NSPhotoLibraryUsageDescription: >-
+          Para elegir fotos de las vías, escuelas o tu perfil.
     settings:
       base:
         PRODUCT_NAME: MeteoMontana

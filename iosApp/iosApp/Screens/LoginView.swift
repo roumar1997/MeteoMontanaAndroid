@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 /// Pantalla de login — gate obligatorio al arrancar, espejo fiel de
 /// `LoginScreen.kt` de Android: marca arriba (logo + CUMBRE + subtítulos),
@@ -40,6 +41,7 @@ struct LoginView: View {
             // Middle: estado o botón
             VStack(spacing: 16) {
                 googleButton
+                appleButton
                 if let err = errorText {
                     Text(err)
                         .font(.system(size: 14))
@@ -102,10 +104,41 @@ struct LoginView: View {
         .disabled(working)
     }
 
+    // Botón "Continuar con Apple" (requisito App Store por ofrecer Google).
+    private var appleButton: some View {
+        Button {
+            Task { await signInApple() }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "applelogo").font(.system(size: 17, weight: .medium))
+                Text("Continuar con Apple").font(.system(size: 15, weight: .medium))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity).frame(height: 52)
+            .background(Color.black)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
+        }
+        .buttonStyle(.plain)
+        .disabled(working)
+    }
+
     private func signIn() async {
         working = true; errorText = nil
         do { try await authBridge.signInWithGoogle() }
         catch { errorText = error.localizedDescription }
+        working = false
+    }
+
+    private func signInApple() async {
+        working = true; errorText = nil
+        do { try await authBridge.signInWithApple() }
+        catch {
+            // El usuario cancelando (código 1001) no es un error que mostrar.
+            let ns = error as NSError
+            if !(ns.domain == ASAuthorizationError.errorDomain && ns.code == ASAuthorizationError.canceled.rawValue) {
+                errorText = error.localizedDescription
+            }
+        }
         working = false
     }
 }
