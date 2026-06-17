@@ -16,34 +16,27 @@ final class ThemeManager: ObservableObject {
     private static let key = "cumbre_theme_mode"
 
     private init() {
-        let raw = UserDefaults.standard.string(forKey: Self.key) ?? Mode.system.rawValue
-        mode = Mode(rawValue: raw) ?? .system
+        let raw = UserDefaults.standard.string(forKey: Self.key) ?? Mode.light.rawValue
+        // Solo claro/oscuro: cualquier valor antiguo "system" pasa a claro.
+        let parsed = Mode(rawValue: raw) ?? .light
+        mode = parsed == .system ? .light : parsed
     }
 
-    /// nil = seguir al sistema.
+    /// Esquema de color forzado (siempre claro u oscuro; sin modo sistema).
     var colorScheme: ColorScheme? {
         switch mode {
-        case .system: return nil
-        case .light:  return .light
-        case .dark:   return .dark
+        case .dark: return .dark
+        default:    return .light
         }
     }
 
-    /// Icono del header según el modo actual.
+    /// Icono del header: indica a qué modo cambiarías al pulsar.
     var iconName: String {
-        switch mode {
-        case .system: return "circle.lefthalf.filled"
-        case .light:  return "sun.max"
-        case .dark:   return "moon"
-        }
+        mode == .dark ? "sun.max" : "moon"
     }
 
-    /// Cicla sistema → claro → oscuro → sistema.
+    /// Alterna claro ↔ oscuro (solo dos estados).
     func cycle() {
-        switch mode {
-        case .system: mode = .light
-        case .light:  mode = .dark
-        case .dark:   mode = .system
-        }
+        mode = (mode == .dark) ? .light : .dark
     }
 }

@@ -330,16 +330,22 @@ private struct SchoolMapSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button { withAnimation { expanded.toggle() } } label: {
-                HStack {
-                    Text("VER MAPA").eyebrow()
+                HStack(spacing: 6) {
+                    Image(systemName: "map").font(.system(size: 13))
+                    Text(expanded ? "OCULTAR MAPA" : "VER MAPA")
+                        .font(Cumbre.mono(11, .bold)).tracking(0.8)
                     if !blocks.isEmpty {
-                        Text("· \(blocks.count)").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                        Text("· \(blocks.count)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
                     }
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                        .font(.system(size: 12))
                 }
-                .padding(.horizontal, 16).padding(.vertical, 12)
+                .foregroundStyle(Cumbre.ink2)
+                .padding(.horizontal, 12).padding(.vertical, 11)
+                .background(Cumbre.paper)
+                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                .padding(.horizontal, 16).padding(.vertical, 4)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
