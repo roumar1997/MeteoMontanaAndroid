@@ -897,20 +897,28 @@ struct BlockInfoSheet: View {
     /// la vía (mismo nombre que se guardó al dar el tic).
     private func loadDone() async {
         let container = AppDependencies.shared.container
-        let journal = (try? await container.getMyJournal.invoke()) ?? []
-        // Claves "escuela|vía" pendientes en la cola offline (sin subir aún).
+        // Claves pendientes en la cola offline (sin subir aún).
         let pendingKeys: Set<String> = (try? await container.pendingJournalKeys()) ?? []
+        // Con red: sincroniza el registro local con la verdad del servidor.
+        if let journal = try? await container.getMyJournal.invoke() {
+            var serverKeys = Set<String>()
+            for j in journal {
+                if let sid = j.schoolId {
+                    serverKeys.insert("\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())")
+                }
+            }
+            JournalDoneStore.shared.sync(server: serverKeys, pending: pendingKeys)
+        }
+        // El registro local (UserDefaults) funciona también SIN conexión → evita
+        // duplicar al volver a entrar offline en la misma piedra.
+        let storeKeys = JournalDoneStore.shared.all
         var done = Set<String>()
         for (idx, l) in block.lines.enumerated() {
             let viaName = l.name.isEmpty ? "Vía \(idx + 1)" : l.name
             let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
-            let inJournal = journal.contains {
-                $0.schoolId == block.schoolId &&
-                $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
-            }
-            if inJournal || pendingKeys.contains(key) { done.insert(l.id) }
+            if storeKeys.contains(key) || pendingKeys.contains(key) { done.insert(l.id) }
         }
-        if !done.isEmpty { tickedLines.formUnion(done) }
+        tickedLines = done
     }
 
     private var typeLabel: String {
@@ -933,6 +941,7 @@ struct BlockInfoSheet: View {
         if tickedLines.contains(line.id) {
             // DESMARCAR
             tickedLines.remove(line.id)
+            JournalDoneStore.shared.remove(key)
             try? await container.dequeueJournal(key: key)   // quita la pendiente (si no se subió)
             if let j = (try? await container.getMyJournal.invoke())?.first(where: {
                 $0.schoolId == block.schoolId &&
@@ -943,6 +952,7 @@ struct BlockInfoSheet: View {
         } else {
             // MARCAR (dedup: no estaba hecha)
             tickedLines.insert(line.id)
+            JournalDoneStore.shared.add(key)
             let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
             let stoneName = block.name.isEmpty ? "Piedra" : block.name
             let req = CreateJournalRequest(

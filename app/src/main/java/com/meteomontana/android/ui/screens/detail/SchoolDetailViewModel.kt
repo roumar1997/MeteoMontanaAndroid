@@ -87,7 +87,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
     private val createJournalEntry: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase,
     private val getMyJournal: com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase,
-    private val deleteJournalEntry: com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
+    private val deleteJournalEntry: com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase,
+    private val journalDoneStore: com.meteomontana.android.data.local.JournalDoneStore
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -104,8 +105,11 @@ class SchoolDetailViewModel @Inject constructor(
      * queda persistente incluso sin conexión.
      */
     val doneViaKeys: StateFlow<Set<String>> =
-        kotlinx.coroutines.flow.combine(_myJournal, outboxRepo.observePending()) { journal, pending ->
+        kotlinx.coroutines.flow.combine(
+            _myJournal, outboxRepo.observePending(), journalDoneStore.keys
+        ) { journal, pending, local ->
             val keys = mutableSetOf<String>()
+            keys.addAll(local)   // registro local: funciona también SIN conexión
             journal.forEach { keys.add(viaKey(it.schoolId, it.blockName)) }
             pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }.forEach { row ->
                 runCatching {
@@ -121,10 +125,23 @@ class SchoolDetailViewModel @Inject constructor(
 
     init { refreshJournal() }
 
-    /** Recarga el diario (en silencio; ignora errores de red). */
+    /** Recarga el diario. Con red, sincroniza el registro local de "hechas" con
+     *  la verdad del servidor (+ las pendientes en cola). Sin red lo deja como
+     *  está (el registro local mantiene el ✓). */
     fun refreshJournal() {
         viewModelScope.launch {
-            _myJournal.value = runCatching { getMyJournal() }.getOrDefault(emptyList())
+            val net = runCatching { getMyJournal() }.getOrNull() ?: return@launch
+            _myJournal.value = net
+            val serverKeys = net.map { viaKey(it.schoolId, it.blockName) }.toSet()
+            val pendingKeys = outboxRepo.all()
+                .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
+                .mapNotNull { row ->
+                    runCatching {
+                        journalJson.decodeFromString(
+                            com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                    }.getOrNull()?.let { viaKey(it.schoolId, it.blockName) }
+                }.toSet()
+            journalDoneStore.sync(serverKeys, pendingKeys)
         }
     }
 
@@ -145,7 +162,9 @@ class SchoolDetailViewModel @Inject constructor(
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
         val key = viaKey(block.schoolId, viaName)
         if (doneViaKeys.value.contains(key)) {
-            // DESMARCAR: quitar de la cola pendiente (sin subir) y borrar la subida.
+            // DESMARCAR
+            journalDoneStore.remove(key)
+            // quitar de la cola pendiente (sin subir) y borrar la subida.
             outboxRepo.all()
                 .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
                 .forEach { row ->
@@ -161,7 +180,8 @@ class SchoolDetailViewModel @Inject constructor(
             refreshJournal()
             false
         } else {
-            // MARCAR: crear (o encolar sin red). Dedup garantizado: no estaba hecha.
+            // MARCAR: registro local primero (dedup offline), luego crear/encolar.
+            journalDoneStore.add(key)
             val stoneName = block.name.ifBlank { "Piedra" }
             val req = com.meteomontana.android.data.api.dto.CreateJournalRequest(
                 schoolId = block.schoolId,
