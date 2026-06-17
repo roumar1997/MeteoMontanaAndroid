@@ -79,16 +79,18 @@ fun WeatherScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    // Comparación de favoritas arriba (igual que iOS): ves de un
+                    // vistazo el score medio por día de tus escuelas favoritas.
+                    if (s.grid != null && s.grid.rows.isNotEmpty()) {
+                        item { FavoritesGridTable(grid = s.grid) }
+                        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
+                    }
                     forecastBody(
                         forecast = s.forecast,
                         onDayClick = { idx ->
                             onDayClick(s.selectedFavoriteId, s.forecast.lat, s.forecast.lon, idx)
                         }
                     )
-                    item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-                    if (s.grid != null && s.grid.rows.isNotEmpty()) {
-                        item { FavoritesGridTable(grid = s.grid) }
-                    }
                     item { Spacer(Modifier.height(40.dp)) }
                 }
             }

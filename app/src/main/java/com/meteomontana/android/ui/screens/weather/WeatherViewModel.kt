@@ -34,6 +34,7 @@ class WeatherViewModel @Inject constructor(
     private val getForecast: GetForecastUseCase,
     private val getForecastByLocation: GetForecastByLocationUseCase,
     private val getMyFavorites: GetMyFavoritesUseCase,
+    private val getFavoritesGrid: com.meteomontana.android.domain.usecase.favorites.GetFavoritesGridUseCase,
     private val locationProvider: LocationProvider
 ) : ViewModel() {
     private val _state = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
@@ -52,6 +53,7 @@ class WeatherViewModel @Inject constructor(
                 return@launch
             }
             favorites = runCatching { getMyFavorites() }.getOrDefault(emptyList())
+            grid = runCatching { getFavoritesGrid() }.getOrNull()
 
             val loc = locationProvider.current() ?: return@launch run {
                 _state.value = loadForecastByLatLon(40.4168, -3.7038)
