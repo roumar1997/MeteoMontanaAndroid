@@ -493,6 +493,39 @@ de Fase 2.
 
 ## Próximo paso
 
+> ### ⛰️ PENDIENTE PRIORITARIO (pedido 2026-06-17) — OFFLINE COMPLETO EN EL DETALLE
+> **Síntoma**: al entrar a una escuela **guardada SIN internet**, el detalle abre
+> el **mapa solo con el pin de la escuela** — NO cargan los **bloques/piedras**,
+> ni sus **vías**, ni las **fotos**. Rodrigo quiere que offline esté **TODO**
+> (mapa + piedras + vías + fotos), igual que con red.
+>
+> **Causa**: en `iosApp/iosApp/Screens/SchoolDetailView.swift` el mapa y las
+> piedras se cargan SIEMPRE por red con `getBlocks.invoke(schoolId:)`
+> (p.ej. líneas ~102/117/413/552 y `SchoolMapSection` en ~297). Sin red eso
+> devuelve `[]` → no hay bloques → el mapa solo pinta la escuela. Las fotos de
+> las vías se pintan con `TopoPhotoView` (~790) desde URL/red.
+>
+> **Qué ya existe para apoyarse** (NO reinventar):
+> - `SavedSchoolRepository.loadOffline(id)` → `OfflineSnapshot` con
+>   `blocks` + `lines` (vías) + `forecast`. Mapear con `repo.toBlock(entity, lines)`
+>   a `Block` del dominio (ya hay helper). `saveOffline`/`refreshOffline` ya
+>   guardan bloques+vías y **pre-descargan las fotos** a `ImageCache` (FNV hash
+>   en `Caches/photo-cache`).
+> - `OfflineSchoolView` (desde el perfil → "Escuelas guardadas") YA lee
+>   `loadOffline` y pinta piedras+fotos offline — usarlo de referencia/espejo.
+> - `TopoPhotoView` ya lee de `ImageCache` cuando no hay red.
+>
+> **Plan sugerido**: en `SchoolDetailView`/`SchoolMapSection`, cuando
+> `getBlocks` falle o no haya red (o directamente si la escuela está guardada),
+> caer a `savedSchools.loadOffline(school.id)` para obtener bloques+vías y
+> renderizar el mapa, las piedras y `TopoPhotoView` desde `ImageCache`. Así el
+> detalle offline queda idéntico al online. (Tiles del mapa siguen necesitando
+> red — eso es aparte, ver `OfflineTileManager` de Android para el futuro.)
+>
+> Contexto: los crashes por red (SIGABRT) ya están resueltos con `@Throws`
+> (commit `c489a3f`); el forecast offline + banner "actualizado hace X" ya está
+> (`188e605`/`ab68a5f`). Esto es el siguiente trozo: bloques/vías/fotos offline.
+
 **Estado tras la preparación pre-Mac (2026-06-13):** lo máximo que se podía
 hacer en Windows está hecho y verificado. El módulo `shared` se consume desde
 iOS y el andamiaje iOS está montado:
