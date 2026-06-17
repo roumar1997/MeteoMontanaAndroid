@@ -46,6 +46,7 @@ final class ChatVM: ObservableObject {
 
 struct ChatView: View {
     @StateObject private var vm: ChatVM
+    @FocusState private var inputFocused: Bool
 
     init(otherUid: String, otherName: String) {
         _vm = StateObject(wrappedValue: ChatVM(otherUid: otherUid, otherName: otherName))
@@ -65,9 +66,14 @@ struct ChatView: View {
                         }
                         .padding(16)
                     }
-                    .onChange(of: vm.messages.count) { _ in
-                        if let last = vm.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
-                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    // Baja al último mensaje cuando: llegan/cambian mensajes,
+                    // termina la carga, o aparece el teclado (para que no tape
+                    // los últimos mensajes ni lo que te acaban de escribir).
+                    .onChange(of: vm.messages.count) { _ in scrollToLast(proxy) }
+                    .onChange(of: vm.loading) { _ in scrollToLast(proxy) }
+                    .onChange(of: inputFocused) { focused in if focused { scrollToLast(proxy) } }
+                    .onAppear { scrollToLast(proxy) }
                 }
             }
             inputBar
@@ -77,6 +83,15 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { vm.start() }
         .onDisappear { vm.stop() }
+    }
+
+    /// Lleva el scroll al último mensaje. Pequeño delay para esperar al layout
+    /// del teclado / a que la lista pinte el nuevo mensaje.
+    private func scrollToLast(_ proxy: ScrollViewProxy) {
+        guard let last = vm.messages.last else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last.id, anchor: .bottom) }
+        }
     }
 
     private func bubble(_ m: ChatServiceChatMessage) -> some View {
@@ -103,6 +118,7 @@ struct ChatView: View {
         HStack(spacing: 8) {
             TextField("Mensaje…", text: $vm.draft, axis: .vertical)
                 .lineLimit(1...4).font(.system(size: 15))
+                .focused($inputFocused)
                 .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
             Button { vm.send() } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.system(size: 30)).foregroundStyle(Cumbre.terra)
