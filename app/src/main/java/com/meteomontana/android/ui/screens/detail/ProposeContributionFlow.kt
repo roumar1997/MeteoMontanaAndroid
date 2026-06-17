@@ -672,19 +672,11 @@ private fun BoulderFormDialog(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.lg))
 
-        // ── Nombre ──────────────────────────────────────────────────────────────
-        Text("NOMBRE", style = EyebrowTextStyle,
+        // La piedra NO lleva nombre: se le asigna un número automático único en
+        // la escuela al publicarse (se ve en el mapa).
+        Text("A esta piedra se le asignará un número automático al publicarse.",
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(Spacing.xs))
-        OutlinedTextField(
-            value = name, onValueChange = onNameChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Ej: Bloque del Pulpo",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            singleLine = true, shape = MaterialTheme.shapes.small, colors = fieldColors(),
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
-        )
         Spacer(Modifier.height(Spacing.md))
 
         // ── Sector (opcional) ────────────────────────────────────────────────────
