@@ -2,6 +2,7 @@ package com.meteomontana.android.ui.screens.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -135,6 +136,7 @@ class JournalEntriesViewModel @Inject constructor(
 @Composable
 fun JournalEntriesScreen(
     onBack: () -> Unit,
+    onOpenSchool: (String) -> Unit = {},
     viewModel: JournalEntriesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -166,7 +168,11 @@ fun JournalEntriesScreen(
                 } else {
                     LazyColumn {
                         items(s.entries, key = { it.id }) { e ->
-                            EntryRow(e, canDelete = s.isMine) { viewModel.delete(e.id) }
+                            EntryRow(
+                                e, canDelete = s.isMine,
+                                onClick = { e.schoolId?.let(onOpenSchool) },
+                                onDelete = { viewModel.delete(e.id) }
+                            )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         }
                     }
@@ -177,9 +183,11 @@ fun JournalEntriesScreen(
 }
 
 @Composable
-private fun EntryRow(e: JournalSession, canDelete: Boolean = true, onDelete: () -> Unit) {
+private fun EntryRow(e: JournalSession, canDelete: Boolean = true, onClick: () -> Unit = {}, onDelete: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth()
+            .then(if (e.schoolId != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {

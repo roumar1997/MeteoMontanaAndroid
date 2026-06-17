@@ -78,7 +78,7 @@ struct JournalView: View {
                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(32)
                         } else {
                             ForEach(vm.entries, id: \.id) { e in
-                                JournalRow(entry: e) { vm.delete(e.id) }
+                                JournalRow(entry: e, schoolId: e.schoolId) { vm.delete(e.id) }
                                 Divider().overlay(Cumbre.rule)
                             }
                         }
@@ -120,9 +120,12 @@ struct JournalStatsRow: View {
 
 struct JournalRow: View {
     let entry: JournalSession
+    /// Si se indica, la fila es pulsable y abre esa escuela (ver la piedra).
+    var schoolId: String? = nil
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
     var onDelete: (() -> Void)? = nil
-    var body: some View {
+
+    private var leading: some View {
         HStack(spacing: 12) {
             if let g = entry.grade, !g.isEmpty {
                 // Texto negro sobre grados claros (≤5c son blancos) para que se lea.
@@ -137,6 +140,18 @@ struct JournalRow: View {
                 if !sub.isEmpty { Text(sub).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3) }
                 if let n = entry.notes, !n.isEmpty { Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2) }
             }
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Si hay escuela, la parte izquierda navega a su detalle (ver piedra).
+            if let sid = schoolId, !sid.isEmpty {
+                NavigationLink(destination: SchoolLoaderView(schoolId: sid)) { leading }
+                    .buttonStyle(.plain)
+            } else {
+                leading
+            }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
                 Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
@@ -145,9 +160,37 @@ struct JournalRow: View {
                         Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad)
                     }.buttonStyle(.plain)
                 }
+                if schoolId != nil, !(schoolId ?? "").isEmpty {
+                    Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                }
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
+    }
+}
+
+/// Carga una escuela por id y muestra su detalle (para abrir desde el diario).
+struct SchoolLoaderView: View {
+    let schoolId: String
+    @State private var school: School?
+    @State private var failed = false
+    var body: some View {
+        Group {
+            if let school {
+                SchoolDetailView(school: school)
+            } else if failed {
+                Text("No se pudo abrir la escuela.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .task {
+            if let s = try? await AppDependencies.shared.container.getSchoolById.invoke(id: schoolId) {
+                school = s
+            } else { failed = true }
+        }
     }
 }
 
@@ -492,7 +535,7 @@ struct SchoolJournalBlocksView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(entries, id: \.id) { e in
-                            JournalRow(entry: e)   // solo lectura (sin borrar)
+                            JournalRow(entry: e, schoolId: e.schoolId)   // solo lectura (sin borrar)
                             Divider().overlay(Cumbre.rule)
                         }
                     }
@@ -519,7 +562,7 @@ struct JournalBlocksListView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(entries, id: \.id) { e in
-                            JournalRow(entry: e)
+                            JournalRow(entry: e, schoolId: e.schoolId)
                             Divider().overlay(Cumbre.rule)
                         }
                     }

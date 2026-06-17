@@ -2,6 +2,7 @@ package com.meteomontana.android.ui.screens.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,7 @@ import java.util.Locale
 @Composable
 fun ChatScreen(
     onBack: () -> Unit,
+    onOpenProfile: (String) -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -88,7 +90,8 @@ fun ChatScreen(
         ChatTopBar(
             name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: "Usuario",
             avatarUrl = state.otherProfile?.photoUrl,
-            onBack = onBack
+            onBack = onBack,
+            onOpenProfile = { onOpenProfile(state.otherUid) }
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
@@ -151,7 +154,7 @@ fun ChatScreen(
 }
 
 @Composable
-private fun ChatTopBar(name: String, avatarUrl: String?, onBack: () -> Unit) {
+private fun ChatTopBar(name: String, avatarUrl: String?, onBack: () -> Unit, onOpenProfile: () -> Unit = {}) {
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -159,21 +162,31 @@ private fun ChatTopBar(name: String, avatarUrl: String?, onBack: () -> Unit) {
             Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
                 tint = MaterialTheme.colorScheme.onBackground)
         }
-        if (avatarUrl != null) {
-            AsyncImage(model = avatarUrl, contentDescription = null,
-                modifier = Modifier.size(36.dp).clip(CircleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
-        } else {
-            androidx.compose.foundation.Image(
-                painter = androidx.compose.ui.res.painterResource(
-                    com.meteomontana.android.R.drawable.logo_cumbre),
-                contentDescription = null,
-                modifier = Modifier.size(36.dp).clip(CircleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            )
+        // Avatar + nombre → abre el perfil del otro usuario.
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onOpenProfile)
+                .padding(end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (avatarUrl != null) {
+                AsyncImage(model = avatarUrl, contentDescription = null,
+                    modifier = Modifier.size(36.dp).clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+            } else {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(
+                        com.meteomontana.android.R.drawable.logo_cumbre),
+                    contentDescription = null,
+                    modifier = Modifier.size(36.dp).clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                )
+            }
+            Text("@$name", style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground)
         }
-        Text("@$name", style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground)
     }
 }
 

@@ -392,7 +392,7 @@ private struct AccountBlocksList: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(vm.entries, id: \.id) { e in
-                            JournalRow(entry: e) { vm.deleteBlock(e.id) }
+                            JournalRow(entry: e, schoolId: e.schoolId) { vm.deleteBlock(e.id) }
                             Divider().overlay(Cumbre.rule)
                         }
                     }
@@ -462,7 +462,7 @@ private struct AccountSchoolBlocksList: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(entries, id: \.id) { e in
-                            JournalRow(entry: e) { vm.deleteBlock(e.id) }
+                            JournalRow(entry: e, schoolId: e.schoolId) { vm.deleteBlock(e.id) }
                             Divider().overlay(Cumbre.rule)
                         }
                     }
