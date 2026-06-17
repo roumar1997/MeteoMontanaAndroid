@@ -3,6 +3,7 @@ package com.meteomontana.android.ui.screens.schools
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,6 +74,8 @@ fun SchoolListScreen(
     val userLocation by viewModel.userLocation.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val compareSelection by viewModel.compareSelection.collectAsState()
+    val selectedDays by viewModel.selectedDays.collectAsState()
+    val rangeScores by viewModel.rangeScores.collectAsState()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
@@ -187,6 +190,15 @@ fun SchoolListScreen(
                 )
             }
 
+            // Selector de días: elige hasta 5 días concretos → la lista se
+            // reordena por las mejores condiciones de ESE tramo (con lluvia).
+            item {
+                DaySelectorRow(
+                    selectedDays = selectedDays,
+                    onToggleDay = viewModel::toggleDay
+                )
+            }
+
             item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
 
             when (val s = state) {
@@ -208,6 +220,7 @@ fun SchoolListScreen(
                                 dry = score?.dryRock,
                                 rainMm = score?.rainMm,
                                 rainProb = score?.rainProb,
+                                range = if (selectedDays.isNotEmpty()) rangeScores[school.id] else null,
                                 isFavorite = school.id in favoriteIds,
                                 selectedForCompare = school.id in compareSelection,
                                 onClick = {
@@ -273,6 +286,72 @@ fun SchoolListScreen(
                         modifier = Modifier
                             .clickable { onCompare(compareSelection.toList()); viewModel.clearCompare() }
                             .padding(start = Spacing.md)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Selector de días: los próximos 7 días (hoy incluido) como chips "LUN 17".
+ * Toca para elegir hasta 5; con ≥1 elegido la lista pasa a modo tramo y se
+ * ordena por las mejores condiciones de esos días. Un chip extra "Hoy" (ninguno
+ * elegido) representa el modo de siempre.
+ */
+@Composable
+private fun DaySelectorRow(
+    selectedDays: Set<Int>,           // ISO 1-7
+    onToggleDay: (Int) -> Unit
+) {
+    val today = remember { java.time.LocalDate.now() }
+    val days = remember(today) { (0..6).map { today.plusDays(it.toLong()) } }
+    val dayLetters = arrayOf("LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM")  // ISO 1=lunes
+
+    Column(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
+        Text(
+            text = if (selectedDays.isEmpty()) "DÍAS · elige hasta 5 para comparar el tramo"
+                   else "DÍAS · ${selectedDays.size} elegido${if (selectedDays.size > 1) "s" else ""}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            days.forEach { d ->
+                val iso = d.dayOfWeek.value
+                val selected = iso in selectedDays
+                Column(
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .background(
+                            if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surface
+                        )
+                        .border(
+                            1.dp,
+                            if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outline,
+                            MaterialTheme.shapes.small
+                        )
+                        .clickable { onToggleDay(iso) }
+                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = dayLetters[iso - 1],
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (selected) Color.White else MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = d.dayOfMonth.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (selected) Color.White.copy(alpha = 0.85f)
+                                else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

@@ -82,6 +82,7 @@ import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
+import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
 import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
 
 /**
@@ -156,6 +157,7 @@ class IosDependencyContainer(
     val getForecast = GetForecastUseCase(forecastRepository)
     val getForecastByLocation = GetForecastByLocationUseCase(forecastRepository)
     val getTodayScores = GetTodayScoresUseCase(forecastRepository)
+    val getRangeScores = GetRangeScoresUseCase(forecastRepository)
 
     // Favoritas (requieren sesión; el token lo aporta el authService del
     // httpClient). Estrella en lista/detalle + grid en el tab Tiempo.

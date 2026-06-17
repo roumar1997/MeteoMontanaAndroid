@@ -8,6 +8,8 @@ import com.meteomontana.android.domain.model.UserLocation
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
+import com.meteomontana.android.domain.model.RangeScore
+import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolCatalogUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,6 +56,7 @@ sealed interface SchoolListUiState {
 class SchoolListViewModel @Inject constructor(
     private val getSchoolCatalog: GetSchoolCatalogUseCase,
     private val getTodayScores: GetTodayScoresUseCase,
+    private val getRangeScores: GetRangeScoresUseCase,
     private val getMyFavorites: GetMyFavoritesUseCase,
     private val addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase,
     private val removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase,
@@ -90,6 +93,45 @@ class SchoolListViewModel @Inject constructor(
 
     private val _favoriteIds = MutableStateFlow<Set<String>>(emptySet())
     val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
+
+    // ── Selector de días (tramo) ──
+    // Días de la semana elegidos en formato ISO (1=lunes … 7=domingo), máx 5.
+    // Vacío = modo "hoy" (comportamiento de siempre con today-scores).
+    private val _selectedDays = MutableStateFlow<Set<Int>>(emptySet())
+    val selectedDays: StateFlow<Set<Int>> = _selectedDays.asStateFlow()
+
+    private val _rangeScores = MutableStateFlow<Map<String, RangeScore>>(emptyMap())
+    val rangeScores: StateFlow<Map<String, RangeScore>> = _rangeScores.asStateFlow()
+
+    /** Fechas ISO (yyyy-MM-dd) de la próxima ocurrencia de cada día elegido en
+     *  los próximos 7 días (hoy incluido), ordenadas. Vacío si no hay selección. */
+    private fun targetDates(): List<String> {
+        val sel = _selectedDays.value
+        if (sel.isEmpty()) return emptyList()
+        val today = java.time.LocalDate.now()
+        val out = mutableListOf<String>()
+        for (offset in 0..6) {
+            val d = today.plusDays(offset.toLong())
+            if (d.dayOfWeek.value in sel) out.add(d.toString())
+        }
+        return out
+    }
+
+    /** Marca/desmarca un día (ISO 1-7), máximo 5. Recalcula el tramo. */
+    fun toggleDay(isoDay: Int) {
+        _selectedDays.update {
+            when {
+                isoDay in it -> it - isoDay
+                it.size >= 5 -> it
+                else         -> it + isoDay
+            }
+        }
+        _rangeScores.value = emptyMap()   // el set de fechas cambió → recomputar
+        load()
+    }
+
+    /** true si el modo tramo está activo (hay días elegidos). */
+    val rangeMode: Boolean get() = _selectedDays.value.isNotEmpty()
 
     init {
         viewModelScope.launch {
@@ -207,10 +249,14 @@ class SchoolListViewModel @Inject constructor(
             list = filterQuery(list, f.query)
             if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
 
-            // Cargar scores en background para todas las visibles (lotes de 50)
-            loadScoresFor(list.map { it.id }) {
-                // tras cargar, re-emitimos el estado para que aplique el sort por score
-                applySort(f)
+            // Cargar scores en background para todas las visibles (lotes).
+            // Modo tramo (días elegidos) → range-scores; si no, today-scores.
+            val ids = list.map { it.id }
+            val dates = targetDates()
+            if (dates.isNotEmpty()) {
+                loadRangeScoresFor(ids, dates) { applySort(f) }
+            } else {
+                loadScoresFor(ids) { applySort(f) }
             }
 
             _uiState.value = SchoolListUiState.Success(applySortInternal(list, f, _scores.value))
@@ -229,7 +275,24 @@ class SchoolListViewModel @Inject constructor(
         scores: Map<String, com.meteomontana.android.domain.model.SchoolScore>
     ): List<School> = when (f.sortBy) {
         SortBy.Distance -> list.sortedBy { Geo.haversineKm(userLat, userLon, it.lat, it.lon) }
-        SortBy.Score    -> list.sortedByDescending { scores[it.id]?.todayScore ?: -1 }
+        SortBy.Score    ->
+            if (rangeMode) list.sortedByDescending { _rangeScores.value[it.id]?.combinedScore ?: -1 }
+            else list.sortedByDescending { scores[it.id]?.todayScore ?: -1 }
+    }
+
+    /** Carga los scores del tramo por lotes (≤60 ids/call). Van llegando y la
+     *  lista se reordena progresivamente, igual que today-scores. */
+    private fun loadRangeScoresFor(ids: List<String>, dates: List<String>, onDone: () -> Unit = {}) {
+        val missing = ids.filter { it !in _rangeScores.value }
+        if (missing.isEmpty()) { onDone(); return }
+        viewModelScope.launch {
+            missing.chunked(60).forEach { batch ->
+                runCatching { getRangeScores(batch, dates) }.onSuccess { results ->
+                    _rangeScores.update { it + results.associateBy { r -> r.id } }
+                    onDone()
+                }
+            }
+        }
     }
 
     private fun loadScoresFor(ids: List<String>, onDone: () -> Unit = {}) {
