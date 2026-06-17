@@ -21,14 +21,15 @@ CREATE TABLE SavedSchool (
 );
 
 CREATE TABLE SavedBlock (
-    id          TEXT NOT NULL PRIMARY KEY,
-    schoolId    TEXT NOT NULL,
-    type        TEXT NOT NULL,
-    name        TEXT NOT NULL,
-    lat         REAL NOT NULL,
-    lon         REAL NOT NULL,
-    photoPath   TEXT,
-    description TEXT,
+    id            TEXT NOT NULL PRIMARY KEY,
+    schoolId      TEXT NOT NULL,
+    type          TEXT NOT NULL,
+    name          TEXT NOT NULL,
+    lat           REAL NOT NULL,
+    lon           REAL NOT NULL,
+    photoPath     TEXT,
+    description   TEXT,
+    sectorBlockId TEXT,   -- BLOCK: id del sector (ZONE) al que pertenece
     FOREIGN KEY (schoolId) REFERENCES SavedSchool(id) ON DELETE CASCADE
 );
 CREATE INDEX SavedBlock_schoolId ON SavedBlock(schoolId);
@@ -85,8 +86,8 @@ deleteBlocksOfSchool:
 DELETE FROM SavedBlock WHERE schoolId = ?;
 
 insertBlock:
-INSERT OR REPLACE INTO SavedBlock(id, schoolId, type, name, lat, lon, photoPath, description)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO SavedBlock(id, schoolId, type, name, lat, lon, photoPath, description, sectorBlockId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- ─── SavedBlockLine queries ──────────────────────────────────────────────────
 linesOfBlocks:

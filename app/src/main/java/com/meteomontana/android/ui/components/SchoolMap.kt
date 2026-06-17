@@ -432,6 +432,14 @@ private fun InnerMap(
                 editingLine = block to line
                 selectedBlock = null
             }) else null,
+            onTickLine = if (block.type == "BLOCK") ({ line, idx ->
+                val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
+                viewModel.viewModelScope.launch {
+                    val r = viewModel.tickLine(block, line, idx, schoolName, sectorName)
+                    successMessage = if (r.isSuccess) "Vía sumada a tu diario."
+                    else "No se pudo guardar: ${r.exceptionOrNull()?.message ?: "error"}"
+                }
+            }) else null,
             availableSectors = sectors.takeIf { it.isNotEmpty() },
             onAssignSector = if (block.type == "BLOCK" && sectors.isNotEmpty()) ({ sectorId ->
                 selectedBlock = null

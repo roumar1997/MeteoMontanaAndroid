@@ -38,7 +38,8 @@ class SavedSchoolRepository(
             blocks.forEach { b ->
                 q.insertBlock(
                     id = b.id, schoolId = school.id, type = b.type, name = b.name,
-                    lat = b.lat, lon = b.lon, photoPath = b.photoPath, description = b.description
+                    lat = b.lat, lon = b.lon, photoPath = b.photoPath, description = b.description,
+                    sectorBlockId = b.sectorBlockId
                 )
                 b.lines.forEach { l ->
                     q.insertLine(
@@ -111,6 +112,7 @@ class SavedSchoolRepository(
             id = entity.id, schoolId = entity.schoolId, type = entity.type,
             name = entity.name, lat = entity.lat, lon = entity.lon,
             photoPath = entity.photoPath, description = entity.description,
+            sectorBlockId = entity.sectorBlockId,
             createdByUid = "", createdAt = "",
             lines = lines.filter { it.blockId == entity.id }
                 .sortedBy { it.sortOrder }

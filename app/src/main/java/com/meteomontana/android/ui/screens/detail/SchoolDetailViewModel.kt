@@ -81,10 +81,39 @@ class SchoolDetailViewModel @Inject constructor(
     private val ktorAdminApi: com.meteomontana.android.data.api.KtorAdminApi,
     private val updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
-    private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
+    private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
+    private val createJournalEntry: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
+
+    /**
+     * Marca una vía como hecha → crea una entrada en el diario del usuario
+     * (POST /api/journal) con escuela, sector, nombre de la vía y grado.
+     * Espejo del tic de iOS. Necesita red.
+     */
+    suspend fun tickLine(
+        block: Block,
+        line: com.meteomontana.android.domain.model.BlockLine,
+        index: Int,
+        schoolName: String,
+        sectorName: String?
+    ): Result<Unit> = runCatching {
+        val viaName = line.name.ifBlank { "Vía ${index + 1}" }
+        val stoneName = block.name.ifBlank { "Piedra" }
+        createJournalEntry(
+            com.meteomontana.android.data.api.dto.CreateJournalRequest(
+                schoolId = block.schoolId,
+                schoolName = schoolName.ifBlank { null },
+                sector = sectorName,
+                blockName = viaName,
+                grade = line.grade,
+                notes = "Piedra: $stoneName",
+                date = java.time.LocalDate.now().toString()
+            )
+        )
+        Unit
+    }
 
     private val _uiState = MutableStateFlow<SchoolDetailUiState>(SchoolDetailUiState.Loading)
     val uiState: StateFlow<SchoolDetailUiState> = _uiState.asStateFlow()

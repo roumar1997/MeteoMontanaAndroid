@@ -492,6 +492,25 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (2) (offline: vínculo sector + etiqueta + "vía hecha")
+
+- **Vínculo piedra↔sector ahora se guarda offline** (era el bug gordo): la tabla
+  `SavedBlock` (SQLDelight) no tenía `sectorBlockId` → offline las piedras no
+  pertenecían a su sector (tocar "La Isla" no colapsaba sus piedras, etc.).
+  Añadida la columna + en `insertBlock`, `saveOffline` y `toBlock`. BD regenerada
+  (`meteomontana_sql_v4.db` en ambas plataformas; caché regenerable, hay que
+  re-descargar las guardadas).
+- **Nombre del sector legible al hacer zoom** (online y offline) sin pulsarlo:
+  `MarkerRenderer.zone(name:)` pinta el nombre bajo el pin "Z" cuando
+  `showName`; `SchoolMapSection` y `OfflineSchoolView` activan `showName` para
+  ZONE con `mapZoom >= 13.5` (tracking vía `onZoomChange`).
+- **Marcar una vía como HECHA** (iOS + Android, paridad): tic por vía en la ficha
+  de la piedra → crea una entrada de diario (`POST /api/journal`, ya existía) con
+  escuela/sector/nombre vía/grado. iOS: tic en `BlockInfoSheet` →
+  `createJournalEntry`. Android: `onTickLine` en `BlockDetailDialog` →
+  `SchoolDetailViewModel.tickLine` (nuevo, inyecta `CreateJournalEntryUseCase`).
+  Sin cambios de backend. Android compila local; iOS pendiente de CI.
+
 ### Sesión 2026-06-17 (iOS: offline completo en el detalle)
 
 - **Detalle offline ahora carga piedras + vías + fotos** (antes solo el mapa con

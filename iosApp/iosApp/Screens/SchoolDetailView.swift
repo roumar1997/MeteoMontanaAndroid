@@ -318,6 +318,7 @@ private struct SchoolMapSection: View {
     @State private var collapsedSectors: Set<String> = []   // zonas con piedras ocultas
     @State private var editLinesBlock: Block?
     @State private var assignSectorBlock: Block?
+    @State private var mapZoom: Double = 14   // para mostrar el nombre del sector al acercar
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -350,6 +351,7 @@ private struct SchoolMapSection: View {
                         zoom: 14,
                         markers: markers,
                         style: mapStyle,
+                        onZoomChange: { mapZoom = $0 },
                         onTapMarker: { id in
                             if correctionMode && !corrActive {
                                 selectCorrectionTarget(id)
@@ -422,6 +424,7 @@ private struct SchoolMapSection: View {
             BlockInfoSheet(
                 block: b,
                 sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
+                schoolName: school.name,
                 onEditLines: { editLinesBlock = b },
                 onAssignSector: { assignSectorBlock = b })
         }
@@ -589,7 +592,9 @@ private struct SchoolMapSection: View {
                 subtitle: typeLabel(b.type),
                 kind: markerKind(for: b.type),
                 color: color(for: b.type),
-                name: collapsed && hidden > 0 ? "\(b.name) (+\(hidden))" : b.name))
+                name: collapsed && hidden > 0 ? "\(b.name) (+\(hidden))" : b.name,
+                // Nombre del sector visible al acercar (sin tener que pulsarlo).
+                showName: b.type.uppercased() == "ZONE" && !b.name.isEmpty && mapZoom >= 13.5))
         }
         // Mi ubicación (punto azul) para orientarme en el sector.
         if let u = userCoord {
@@ -778,9 +783,12 @@ private struct ContributionSuccessSheet: View {
 struct BlockInfoSheet: View {
     let block: Block
     var sectors: [Block] = []
+    var schoolName: String? = nil
     var onEditLines: (() -> Void)? = nil
     var onAssignSector: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
+    @State private var tickedLines: Set<String> = []   // vías marcadas como hechas en esta sesión
+    @State private var tickingLine: String?            // vía guardándose ahora
 
     private var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
@@ -827,6 +835,19 @@ struct BlockInfoSheet: View {
                                 if let st = l.startType, !st.isEmpty {
                                     Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 }
+                                // Tic: suma la vía a tu diario como "vía hecha".
+                                Button { Task { await tick(l, index: idx) } } label: {
+                                    if tickingLine == l.id {
+                                        ProgressView().scaleEffect(0.7).frame(width: 28, height: 28)
+                                    } else {
+                                        Image(systemName: tickedLines.contains(l.id) ? "checkmark.circle.fill" : "checkmark.circle")
+                                            .font(.system(size: 20))
+                                            .foregroundStyle(tickedLines.contains(l.id) ? Cumbre.ok : Cumbre.ink3)
+                                            .frame(width: 28, height: 28)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(tickedLines.contains(l.id) || tickingLine != nil)
                             }
                         }
                     }
@@ -875,6 +896,22 @@ struct BlockInfoSheet: View {
         case "ZONE": return "ZONA"
         default: return "PIEDRA"
         }
+    }
+
+    /// Marca la vía como hecha → crea una entrada en tu diario (POST /api/journal),
+    /// prellenando escuela, sector, nombre de la vía y grado. Necesita red.
+    private func tick(_ line: BlockLine, index: Int) async {
+        tickingLine = line.id
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
+        let stoneName = block.name.isEmpty ? "Piedra" : block.name
+        let req = CreateJournalRequest(
+            schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
+            blockName: viaName, grade: line.grade,
+            notes: "Piedra: \(stoneName)", date: df.string(from: Date()))
+        let ok = (try? await AppDependencies.shared.container.createJournalEntry.invoke(req: req)) != nil
+        if ok { tickedLines.insert(line.id) }
+        tickingLine = nil
     }
 }
 

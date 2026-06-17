@@ -67,6 +67,7 @@ struct OfflineSchoolView: View {
     @State private var selectedDay: DayForecast?
     @State private var selectedBlock: Block?
     @State private var collapsedSectors: Set<String> = []   // zonas con piedras ocultas
+    @State private var mapZoom: Double = 15   // para mostrar el nombre del sector al acercar
 
     private let repo = AppDependencies.shared.container.savedSchools
 
@@ -96,7 +97,8 @@ struct OfflineSchoolView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedDay) { d in DayDetailView(day: d, allHours: snapshot?.forecast?.hours ?? []) }
         .sheet(item: $selectedBlock) { b in
-            BlockInfoSheet(block: b, sectors: blocks.filter { $0.type.uppercased() == "ZONE" })
+            BlockInfoSheet(block: b, sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
+                           schoolName: snapshot?.school.name)
         }
         .task { await load() }
     }
@@ -117,6 +119,7 @@ struct OfflineSchoolView: View {
             MapLibreView(
                 center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
                 zoom: 15, markers: offlineMarkers(school),
+                onZoomChange: { mapZoom = $0 },
                 onTapMarker: { id in
                     // Zona CON piedras → colapsa/expande sus piedras.
                     // Zona SIN piedras (o cualquier otro marcador) → abre la ficha
@@ -163,7 +166,8 @@ struct OfflineSchoolView: View {
                 coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon),
                 title: b.name, kind: markerKindFor(b.type),
                 color: blockTypeColor(b.type),
-                name: collapsed && hidden > 0 ? "\(b.name) (+\(hidden))" : b.name))
+                name: collapsed && hidden > 0 ? "\(b.name) (+\(hidden))" : b.name,
+                showName: b.type.uppercased() == "ZONE" && !b.name.isEmpty && mapZoom >= 13.5))
         }
         return ms
     }

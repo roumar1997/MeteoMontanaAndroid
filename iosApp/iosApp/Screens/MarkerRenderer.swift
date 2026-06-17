@@ -12,7 +12,7 @@ enum MarkerRenderer {
     static func image(for m: CumbreMarker) -> UIImage {
         switch m.kind {
         case .parking: return parking()
-        case .zone:    return zone()
+        case .zone:    return zone(name: m.showName ? (m.name ?? m.title) : nil)
         case .block:   return block(name: m.name ?? m.title, color: m.color)
         case .school:  return school()
         case .user:    return userDot()
@@ -37,10 +37,18 @@ enum MarkerRenderer {
 
     // MARK: - Zona (círculo verde + triángulo, con "Z")
 
-    private static func zone() -> UIImage {
-        let size: CGFloat = 56
-        return render(size) { ctx in
-            let cx = size / 2, cy = size / 2 - 6
+    private static func zone(name: String?) -> UIImage {
+        let pin: CGFloat = 56
+        let label = name.map { truncate($0, 18) }?.uppercased()
+        let nameH: CGFloat = label != nil ? 26 : 0
+        // Ancho extra si el nombre del sector es largo (para que no se recorte).
+        let textW: CGFloat = label.map { ($0 as NSString).size(
+            withAttributes: [.font: UIFont.boldSystemFont(ofSize: 12)]).width } ?? 0
+        let w = max(pin, textW + 14)
+        let h = pin + nameH
+        let sz = CGSize(width: w, height: h)
+        return UIGraphicsImageRenderer(size: sz).image { _ in
+            let cx = w / 2, cy = pin / 2 - 6
             let r: CGFloat = 20
             let circle = UIBezierPath(arcCenter: CGPoint(x: cx, y: cy), radius: r,
                                       startAngle: 0, endAngle: .pi * 2, clockwise: true)
@@ -55,6 +63,12 @@ enum MarkerRenderer {
             UIColor.white.setStroke(); circle.lineWidth = 2; circle.stroke()
             draw(text: "Z", in: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2),
                  size: 20, color: .white)
+            // Nombre del sector debajo (con halo blanco), visible al hacer zoom.
+            if let label {
+                draw(text: label, in: CGRect(x: 0, y: pin - 2, width: w, height: nameH),
+                     size: 12, color: UIColor(hex: 0x1A1A1A),
+                     bold: true, haloColor: .white, haloWidth: 4)
+            }
         }
     }
 

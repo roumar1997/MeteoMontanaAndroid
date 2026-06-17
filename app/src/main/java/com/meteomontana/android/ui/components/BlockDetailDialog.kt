@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -56,6 +57,8 @@ fun BlockDetailDialog(
     isProposal: Boolean = false,
     onAddLines: (() -> Unit)? = null,
     onEditLine: ((com.meteomontana.android.domain.model.BlockLine) -> Unit)? = null,
+    /** Marca una vía como hecha (la suma al diario). null = no mostrar el tic. */
+    onTickLine: ((com.meteomontana.android.domain.model.BlockLine, Int) -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     /** Sectores (ZONE) disponibles para "ASIGNAR SECTOR". null = no mostrar el botón. */
@@ -64,6 +67,7 @@ fun BlockDetailDialog(
     onDismiss: () -> Unit
 ) {
     var showLinePicker by remember { mutableStateOf(false) }
+    val tickedLines = remember { mutableStateListOf<String>() }   // vías marcadas como hechas
     val context = LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }
@@ -203,6 +207,24 @@ fun BlockDetailDialog(
                                 line.name,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        // Tic: suma la vía a tu diario como "vía hecha".
+                        if (onTickLine != null && !isProposal) {
+                            Spacer(Modifier.weight(1f))
+                            val done = tickedLines.contains(line.id)
+                            Text(
+                                if (done) "✓" else "○",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (done) Color(0xFF1FA84E)
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .clickable(enabled = !done) {
+                                        tickedLines.add(line.id)
+                                        onTickLine(line, idx)
+                                    }
+                                    .padding(horizontal = 6.dp)
                             )
                         }
                     }
