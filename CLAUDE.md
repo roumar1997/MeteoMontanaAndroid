@@ -526,6 +526,13 @@ que lo pida; al servirla, reabrir también Android (ver [[feedback_ipa_then_open
   MeteoMontana para el empaquetado del `.ipa`). Notificaciones Android: icono
   grande = logo Cumbre a color cuando no hay avatar; título por defecto "Cumbre".
 - **Perfil offline** (sesión previa, ya en main): ProfileCache Android+iOS.
+- **Pulido UI**: quitado el banner "¿Te ayuda la app? Apóyanos" de Escuelas
+  (Android+iOS). **Modo oscuro iOS**: los `Cumbre.*` se resuelven por
+  `UITraitCollection` y los sheets no heredaban `.preferredColorScheme` →
+  `ThemeManager.applyToWindows()` fuerza `overrideUserInterfaceStyle` en todas
+  las ventanas (al arrancar/activar/cambiar modo). Además, OJO patrón: NO usar
+  `Cumbre.ink` como FONDO (es el color de TEXTO: se invierte a crema en oscuro y
+  deslumbra) — el botón "+ AÑADIR BLOQUE" pasó a `Cumbre.terra`.
 - **PUSH iOS — CÓDIGO LISTO, DESACTIVADO** (`PushManager.swift`, `enabled=false`):
   registra remote notifications + token FCM → `PUT /api/me/fcm-token`
   (updateFcmToken expuesto en el container). FirebaseMessaging añadido a
