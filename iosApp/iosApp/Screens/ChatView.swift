@@ -12,6 +12,8 @@ final class ChatVM: ObservableObject {
     @Published var loading = true
 
     private let chat = AppDependencies.shared.container.chatService
+    private let chatPush = AppDependencies.shared.container.chatPushApi
+    private var conversationEnsured = false
     private var task: Task<Void, Never>?
     private var convTask: Task<Void, Never>?
     private var rawMessages: [ChatServiceChatMessage] = []
@@ -56,7 +58,20 @@ final class ChatVM: ObservableObject {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let chat else { return }
         draft = ""
-        Task { try? await chat.sendMessage(otherUid: otherUid, text: text) }
+        Task { [weak self] in
+            guard let self else { return }
+            // El backend crea el documento de conversación (los clientes no pueden,
+            // por las reglas de Firestore) y autoriza según el modelo de privacidad.
+            // Si no está permitido escribir, lanza (p.ej. 403) y abortamos.
+            if !self.conversationEnsured {
+                do { try await self.chatPush.startConversation(toUid: self.otherUid) }
+                catch { return }
+                self.conversationEnsured = true
+            }
+            try? await chat.sendMessage(otherUid: self.otherUid, text: text)
+            // Dispara la push del receptor (igual que Android).
+            try? await self.chatPush.notifyMessage(toUid: self.otherUid, preview: text)
+        }
     }
 
     func stop() { task?.cancel(); task = nil; convTask?.cancel(); convTask = nil }

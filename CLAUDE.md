@@ -492,6 +492,48 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (9) (chat: notificaciones + modelo de privacidad real, seguridad Firestore)
+
+Diagnóstico de Rodrigo: al escribir a otra cuenta NO llegaban notificaciones
+push. Causa raíz: `POST /api/chat/notify` solo mandaba push si había follow en
+algún sentido → a un receptor **público** no le llegaba. Y al revisar a fondo,
+el modelo de privacidad del chat **no se cumplía en ninguna capa** (la UI
+`canWrite` era siempre true; las reglas Firestore solo miraban "eres
+participante del convId"). Modelo deseado: a un **privado** solo le escribe
+quien él aceptó como seguidor; a un **público** cualquiera; y si la
+**conversación ya existe**, ambos pueden seguir (p.ej. un público responde a un
+privado que le escribió primero).
+
+Enfoque elegido (con Rodrigo): **el backend crea la conversación** (no espejar
+follow/isPublic a Firestore → sin backfill ni desincronización).
+
+- **Backend** (`MeteoMontanaAPI`, prod Railway):
+  - `PublicProfileDto`/`UserDtoMapper` exponen `isPublic`.
+  - `FirebaseConfig`: nuevo bean `Firestore` (Admin SDK ya tenía credenciales).
+  - Puerto `ChatRepository` + `FirestoreChatRepository` (`conversationExists`,
+    `ensureConversation`; convId = uids ordenados unidos por `_`).
+  - **`POST /api/chat/start`**: puerta de autorización. Permite si
+    `receptor.isPublic || iFollow || theyFollow || conversaciónExiste`; crea el
+    doc `conversations/{convId}` vía Admin SDK.
+  - **`/chat/notify`**: misma condición (antes solo follow) → **arregla el bug**
+    de que a los públicos no les llegaba push.
+- **Firestore rules** (`Desktop/MeteoMontana/firestore.rules`): crear
+  conversación = `false` (solo backend); crear mensaje = solo si la conversación
+  **ya existe** + participante → excepción "ya hay chat" a prueba de clientes.
+- **Shared/Android**: `PublicProfile.isPublic`; `KtorChatPushApi.startConversation`;
+  `ChatViewModel.canWrite = isPublic || iFollow || theyFollow` (+ true si ya hay
+  mensajes); `send()` llama a `start` antes del primer mensaje.
+- **iOS**: `chatPushApi` expuesto en el container; `ChatView` llama a `start`
+  antes de enviar y dispara `notify` (iOS no lo hacía).
+- De paso: arreglado `SchoolListViewModelTest` (constructor desfasado desde que
+  se añadieron `getRangeScores`/`chatService` al VM). Tests Android en verde.
+
+> **OJO orden de despliegue**: backend (retrocompatible) → instalar apps
+> actualizadas en ambos dispositivos → reglas Firestore AL FINAL. Tras desplegar
+> las reglas, una app NO actualizada no puede iniciar chats nuevos (los
+> existentes siguen). El fix de NOTIFICACIONES es solo-backend: vale en cuanto
+> Railway redespliega, sin reinstalar.
+
 ### Sesión 2026-06-17 (8) (chat nav/borrar-para-mí, piedras numeradas, admin directo, deep-link, push iOS listo)
 
 Lote grande de feedback de Rodrigo probando en ambos dispositivos. Backend en

@@ -5,6 +5,7 @@ import com.meteomontana.android.data.api.KtorForecastApi
 import com.meteomontana.android.data.api.KtorNoteApi
 import com.meteomontana.android.data.api.KtorAdminApi
 import com.meteomontana.android.data.api.KtorBlockApi
+import com.meteomontana.android.data.api.KtorChatPushApi
 import com.meteomontana.android.data.api.KtorContributionApi
 import com.meteomontana.android.data.api.KtorJournalApi
 import com.meteomontana.android.data.api.KtorNotificationApi
@@ -136,6 +137,10 @@ class IosDependencyContainer(
     private val socialApi = KtorSocialApi(httpClient)
     private val submissionApi = KtorSubmissionApi(httpClient)
     private val contributionApi = KtorContributionApi(httpClient)
+
+    /** Chat: iniciar conversación (autorización + creación del doc en el backend)
+     *  y disparar la push del receptor. Expuesto a Swift para el chat iOS. */
+    val chatPushApi = KtorChatPushApi(httpClient)
 
     private val schoolRepository = KtorSchoolRepository(schoolApi)
     private val forecastRepository = KtorForecastRepository(forecastApi)

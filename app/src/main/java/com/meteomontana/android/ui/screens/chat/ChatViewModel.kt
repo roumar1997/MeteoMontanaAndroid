@@ -50,7 +50,10 @@ class ChatViewModel @Inject constructor(
             val mine = runCatching { getMyProfile() }.getOrNull()
             val follow = runCatching { getFollowStatus(otherUid) }
                 .getOrDefault(FollowStatus(0, 0, false, false))
-            val canWrite = other != null || follow.iFollowThem || follow.theyFollowMe
+            // Modelo de privacidad: puedo escribir si el receptor es público, o si
+            // hay relación de seguimiento aceptada (en cualquier sentido). Si ya hay
+            // conversación abierta, lo recalculamos a true al cargar los mensajes.
+            val canWrite = other?.isPublic == true || follow.iFollowThem || follow.theyFollowMe
             _state.value = _state.value.copy(otherProfile = other, myProfile = mine, canWrite = canWrite)
 
             // Combinamos mensajes + mis conversaciones para ocultar el historial
@@ -64,15 +67,30 @@ class ChatViewModel @Inject constructor(
                 if (cleared == null) msgs
                 else msgs.filter { (it.createdAtMillis ?: Long.MAX_VALUE) > cleared }
             }.collect { visible ->
-                _state.value = _state.value.copy(messages = visible, loading = false)
+                // Si ya hay conversación con mensajes, ambos pueden seguir hablando
+                // aunque no haya follow ni el receptor sea público (excepción del modelo).
+                val canWrite = _state.value.canWrite || visible.isNotEmpty()
+                _state.value = _state.value.copy(messages = visible, canWrite = canWrite, loading = false)
                 runCatching { chatService.markRead(convId) }
             }
         }
     }
 
+    /** Conversación asegurada en el backend esta sesión (evita pedirlo en cada mensaje). */
+    private var conversationEnsured = false
+
     fun send(text: String) {
         if (!_state.value.canWrite) return
         viewModelScope.launch {
+            // El backend crea el documento de conversación (los clientes no pueden,
+            // por las reglas de Firestore). Es la puerta de autorización: si no está
+            // permitido escribir, responde 403 y abortamos. Idempotente, así que solo
+            // hace falta la primera vez de la sesión.
+            if (!conversationEnsured) {
+                val started = runCatching { chatPushApi.startConversation(otherUid) }.isSuccess
+                if (!started) return@launch
+                conversationEnsured = true
+            }
             val ok = runCatching { chatService.sendMessage(otherUid, text) }.isSuccess
             // Si el mensaje se escribió en Firestore con éxito, pedimos al backend
             // que dispare la push notification al receptor.

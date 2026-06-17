@@ -20,7 +20,8 @@ data class PublicProfile(
     val photoUrl: String?,
     val bio: String?,
     val topGrade: String?,
-    val locked: Boolean = false
+    val locked: Boolean = false,
+    val isPublic: Boolean = false
 )
 
 data class FollowStatus(
