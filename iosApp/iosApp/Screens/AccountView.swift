@@ -13,18 +13,45 @@ final class AccountViewModel: ObservableObject {
     private let getMyStats: GetMyJournalStatsUseCase
     private let getMyJournal: GetMyJournalUseCase
     private let getFollowStatus: GetFollowStatusUseCase
+    private let createEntry: CreateJournalEntryUseCase
+    private let deleteEntry: DeleteJournalEntryUseCase
     private let authBridge = AppDependencies.shared.authBridge
 
     init(
         getMyProfile: GetMyProfileUseCase = AppDependencies.shared.container.getMyProfile,
         getMyStats: GetMyJournalStatsUseCase = AppDependencies.shared.container.getMyJournalStats,
         getMyJournal: GetMyJournalUseCase = AppDependencies.shared.container.getMyJournal,
-        getFollowStatus: GetFollowStatusUseCase = AppDependencies.shared.container.getFollowStatus
+        getFollowStatus: GetFollowStatusUseCase = AppDependencies.shared.container.getFollowStatus,
+        createEntry: CreateJournalEntryUseCase = AppDependencies.shared.container.createJournalEntry,
+        deleteEntry: DeleteJournalEntryUseCase = AppDependencies.shared.container.deleteJournalEntry
     ) {
         self.getMyProfile = getMyProfile
         self.getMyStats = getMyStats
         self.getMyJournal = getMyJournal
         self.getFollowStatus = getFollowStatus
+        self.createEntry = createEntry
+        self.deleteEntry = deleteEntry
+    }
+
+    /// Recarga solo el diario (tras añadir/borrar un bloque).
+    func reloadJournal() async {
+        entries = (try? await getMyJournal.invoke()) ?? []
+        stats = try? await getMyStats.invoke()
+    }
+
+    func addBlock(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String) async {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        let req = CreateJournalRequest(
+            schoolId: schoolId, schoolName: schoolName.nilIfBlank, sector: sector.nilIfBlank,
+            blockName: blockName.trimmingCharacters(in: .whitespaces), grade: grade.nilIfBlank,
+            notes: notes.nilIfBlank, date: df.string(from: Date()))
+        _ = try? await createEntry.invoke(req: req)
+        await reloadJournal()
+    }
+
+    func deleteBlock(_ id: String) {
+        entries.removeAll { $0.id == id }
+        Task { try? await deleteEntry.invoke(id: id); await reloadJournal() }
     }
 
     func load() async {
@@ -48,6 +75,7 @@ final class AccountViewModel: ObservableObject {
 struct AccountView: View {
     @StateObject private var vm = AccountViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var showAddBlock = false
 
     private let authBridge = AppDependencies.shared.authBridge
 
@@ -66,7 +94,7 @@ struct AccountView: View {
                     }
                     badges
                     followCounters
-                    statsRow
+                    diarySection
                     Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                     menuLinks
                     Divider().overlay(Cumbre.rule).padding(.vertical, 4)
@@ -84,7 +112,33 @@ struct AccountView: View {
                     Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
             }
+            .sheet(isPresented: $showAddBlock) {
+                AddBlockSheet { block, grade, schoolId, school, sector, notes in
+                    Task { await vm.addBlock(blockName: block, grade: grade, schoolId: schoolId,
+                                             schoolName: school, sector: sector, notes: notes) }
+                }
+            }
             .task { await vm.load() }
+        }
+    }
+
+    /// Diario inline (como Android): stats + AÑADIR BLOQUE + lista con borrar.
+    /// Sustituye al antiguo enlace "Mi diario".
+    @ViewBuilder private var diarySection: some View {
+        if let s = vm.stats { JournalStatsRow(stats: s) }
+        Button { showAddBlock = true } label: {
+            Text("+ AÑADIR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
+                .background(Cumbre.ink)
+        }.buttonStyle(.plain).padding(.top, 4)
+        if vm.entries.isEmpty {
+            Text("Aún no has registrado bloques.")
+                .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.vertical, 16)
+        } else {
+            ForEach(vm.entries, id: \.id) { e in
+                JournalRow(entry: e) { vm.deleteBlock(e.id) }
+                Divider().overlay(Cumbre.rule)
+            }
         }
     }
 
@@ -149,13 +203,6 @@ struct AccountView: View {
         }
     }
 
-    /// Stats del diario: BLOQUES / ESCUELAS / MÁXIMO, tappables para navegar.
-    @ViewBuilder private var statsRow: some View {
-        if let s = vm.stats {
-            JournalStatsNav(stats: s, entries: vm.entries)
-        }
-    }
-
     private func badge(_ t: String, _ c: Color) -> some View {
         Text(t).font(Cumbre.mono(10, .bold)).tracking(1.0)
             .foregroundStyle(c)
@@ -167,7 +214,6 @@ struct AccountView: View {
         VStack(spacing: 0) {
             menuRow("Editar perfil", "pencil", EditProfileView())
             menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
-            menuRow("Mi diario", "book.closed", JournalView())
             menuRow("Alerta de tiempo", "bell.badge", WeekendAlertView())
             menuRow("Mis propuestas", "mappin.and.ellipse", MySubmissionsView())
             menuRow("Mis contribuciones", "square.and.pencil", MyContributionsView())

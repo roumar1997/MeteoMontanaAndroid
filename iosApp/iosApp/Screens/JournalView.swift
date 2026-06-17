@@ -263,7 +263,7 @@ final class AddBlockViewModel: ObservableObject {
 
 /// Formulario para registrar un bloque escalado, con autocompletado de escuela,
 /// sector y vías reales — espejo de AddBlockSheet.kt de Android.
-private struct AddBlockSheet: View {
+struct AddBlockSheet: View {
     let onSave: (String, String, String?, String, String, String) -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = AddBlockViewModel()
