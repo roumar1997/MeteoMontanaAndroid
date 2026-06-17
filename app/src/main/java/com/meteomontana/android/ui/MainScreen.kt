@@ -211,7 +211,10 @@ fun MainScreen(
                     }
                 )
             ) {
-                JournalEntriesScreen(onBack = { navController.popBackStack() })
+                JournalEntriesScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) }
+                )
             }
             composable(
                 route = Routes.JOURNAL_SCHOOLS,
@@ -329,7 +332,10 @@ fun MainScreen(
                 route = Routes.CHAT,
                 arguments = listOf(navArgument("uid") { type = NavType.StringType })
             ) {
-                ChatScreen(onBack = { navController.popBackStack() })
+                ChatScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenProfile = { uid -> navController.navigate(Routes.publicProfile(uid)) }
+                )
             }
             composable(
                 route = Routes.TOPO_EDITOR,

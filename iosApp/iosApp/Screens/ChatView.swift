@@ -97,8 +97,16 @@ struct ChatView: View {
             inputBar
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(vm.otherName.isEmpty ? "Chat" : vm.otherName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Nombre del chat → abre el perfil del otro usuario.
+            ToolbarItem(placement: .principal) {
+                NavigationLink(destination: PublicProfileView(uid: vm.otherUid)) {
+                    Text(vm.otherName.isEmpty ? "Chat" : vm.otherName)
+                        .font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
+                }
+            }
+        }
         .onAppear { vm.start() }
         .onDisappear { vm.stop() }
     }
