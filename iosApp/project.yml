@@ -52,7 +52,7 @@ targets:
     info:
       path: iosApp/Info.plist
       properties:
-        CFBundleDisplayName: MeteoMontana
+        CFBundleDisplayName: Cumbre
         UILaunchScreen: {}
         # Fuentes bundladas (mismas familias que Android: Source Serif 4 para
         # nombres/títulos, JetBrains Mono para eyebrows/dígitos).
