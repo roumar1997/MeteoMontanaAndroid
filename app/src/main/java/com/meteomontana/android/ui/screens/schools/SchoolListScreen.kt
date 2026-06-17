@@ -76,6 +76,7 @@ fun SchoolListScreen(
     val compareSelection by viewModel.compareSelection.collectAsState()
     val selectedDays by viewModel.selectedDays.collectAsState()
     val rangeScores by viewModel.rangeScores.collectAsState()
+    val chatUnread by viewModel.chatUnread.collectAsState()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
@@ -126,6 +127,7 @@ fun SchoolListScreen(
             item {
                 TopIconsRow(
                     unread = unread,
+                    chatUnread = chatUnread,
                     onSearchUsers = onSearchUsers,
                     onChats = onChats,
                     onNotifications = onNotifications,
@@ -366,6 +368,7 @@ private fun DaySelectorRow(
 @Composable
 private fun TopIconsRow(
     unread: Long,
+    chatUnread: Long = 0,
     onSearchUsers: () -> Unit,
     onChats: () -> Unit,
     onNotifications: () -> Unit,
@@ -383,8 +386,19 @@ private fun TopIconsRow(
                 tint = MaterialTheme.colorScheme.onBackground)
         }
         IconButton(onClick = onChats) {
-            Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Chats",
-                tint = MaterialTheme.colorScheme.onBackground)
+            if (chatUnread > 0) {
+                BadgedBox(badge = {
+                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                        Text(if (chatUnread > 9) "9+" else chatUnread.toString(), color = Color.White)
+                    }
+                }) {
+                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Chats",
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
+            } else {
+                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Chats",
+                    tint = MaterialTheme.colorScheme.onBackground)
+            }
         }
         IconButton(onClick = onNotifications) {
             if (unread > 0) {

@@ -42,6 +42,19 @@ final class ChatListVM: ObservableObject {
     }
 
     func stop() { task?.cancel(); task = nil }
+
+    /// Swipe → borrar conversación (optimista: la quitamos ya de la lista).
+    func delete(_ convId: String) {
+        conversations.removeAll { $0.id == convId }
+        guard let chat else { return }
+        Task { try? await chat.deleteConversation(convId: convId) }
+    }
+
+    /// Swipe → marcar como no leída (vuelve a salir el badge).
+    func markUnread(_ convId: String) {
+        guard let chat else { return }
+        Task { try? await chat.markUnread(convId: convId) }
+    }
 }
 
 /// Hora de un mensaje/conversación (millis epoch): HH:mm si es hoy, si no dd/MM.
@@ -94,6 +107,17 @@ struct ChatListView: View {
                                 }
                             }
                         }
+                    }
+                    // Swipe estilo WhatsApp: izquierda → borrar; derecha → no leído.
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) { vm.delete(c.id) } label: {
+                            Label("Borrar", systemImage: "trash")
+                        }
+                    }
+                    .swipeActions(edge: .leading) {
+                        Button { vm.markUnread(c.id) } label: {
+                            Label("No leído", systemImage: "envelope.badge")
+                        }.tint(Cumbre.terra)
                     }
                 }
                 .listStyle(.plain)

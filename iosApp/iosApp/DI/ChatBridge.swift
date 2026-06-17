@@ -101,4 +101,24 @@ final class ChatBridge: NSObject, IosChatBridge {
             completion(err?.localizedDescription)
         }
     }
+
+    func markUnread(convId: String, completion: @escaping (String?) -> Void) {
+        guard let me = Auth.auth().currentUser?.uid else { completion(nil); return }
+        convs.document(convId).setData(["unread_\(me)": 1], merge: true) { err in
+            completion(err?.localizedDescription)
+        }
+    }
+
+    func deleteConversation(convId: String, completion: @escaping (String?) -> Void) {
+        let ref = convs.document(convId)
+        // Borra los mensajes y luego el documento de la conversación.
+        ref.collection("messages").getDocuments { snap, err in
+            if let err = err { completion(err.localizedDescription); return }
+            let batch = self.db.batch()
+            snap?.documents.forEach { batch.deleteDocument($0.reference) }
+            batch.commit { _ in
+                ref.delete { err2 in completion(err2?.localizedDescription) }
+            }
+        }
+    }
 }

@@ -16,11 +16,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,21 +63,90 @@ fun ChatListScreen(
             }
         } else {
             LazyColumn {
-                items(items) { item ->
+                items(items, key = { it.conversation.id }) { item ->
                     val other = item.otherProfile
                     val otherUid = item.conversation.participants.firstOrNull {
                         it != com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
                     } ?: return@items
-                    ConvRow(
+                    SwipeableConvRow(
                         avatarUrl = other?.photoUrl,
                         name = other?.username ?: other?.displayName ?: otherUid.take(6),
                         lastMessage = item.conversation.lastMessage ?: "",
                         unread = item.conversation.unreadCount,
-                        onClick = { onOpenChat(otherUid) }
+                        onClick = { onOpenChat(otherUid) },
+                        onDelete = { viewModel.deleteConversation(item.conversation.id) },
+                        onMarkUnread = { viewModel.markUnread(item.conversation.id) }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
             }
+        }
+    }
+}
+
+/**
+ * Fila con swipe estilo WhatsApp: arrastrar a la IZQUIERDA borra el chat;
+ * arrastrar a la DERECHA lo marca como no leído (vuelve el badge).
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableConvRow(
+    avatarUrl: String?,
+    name: String,
+    lastMessage: String,
+    unread: Long,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    onMarkUnread: () -> Unit
+) {
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.EndToStart -> { onDelete(); true }       // izquierda → borrar
+                SwipeToDismissBoxValue.StartToEnd -> { onMarkUnread(); false }  // derecha → no leído (no quita la fila)
+                else -> false
+            }
+        }
+    )
+    SwipeToDismissBox(
+        state = state,
+        backgroundContent = {
+            when (state.dismissDirection) {
+                SwipeToDismissBoxValue.EndToStart -> SwipeBg(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    icon = Icons.Outlined.Delete, label = "Borrar",
+                    alignment = Alignment.CenterEnd,
+                    tint = MaterialTheme.colorScheme.onErrorContainer)
+                SwipeToDismissBoxValue.StartToEnd -> SwipeBg(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    icon = Icons.Outlined.Email, label = "No leído",
+                    alignment = Alignment.CenterStart,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                else -> {}
+            }
+        }
+    ) {
+        ConvRow(avatarUrl = avatarUrl, name = name, lastMessage = lastMessage,
+            unread = unread, onClick = onClick)
+    }
+}
+
+@Composable
+private fun SwipeBg(
+    color: androidx.compose.ui.graphics.Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    alignment: Alignment,
+    tint: androidx.compose.ui.graphics.Color
+) {
+    Box(
+        Modifier.fillMaxSize().background(color).padding(horizontal = 20.dp),
+        contentAlignment = alignment
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(icon, contentDescription = label, tint = tint)
+            Text(label, color = tint, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
