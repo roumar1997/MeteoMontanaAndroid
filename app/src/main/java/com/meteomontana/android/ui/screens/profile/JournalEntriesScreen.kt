@@ -62,7 +62,8 @@ class JournalEntriesViewModel @Inject constructor(
     private val getMyJournalStats: GetMyJournalStatsUseCase,
     private val getUserJournal: GetUserJournalUseCase,
     private val getUserStats: GetUserStatsUseCase,
-    private val deleteJournalEntry: DeleteJournalEntryUseCase
+    private val deleteJournalEntry: DeleteJournalEntryUseCase,
+    private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
 ) : ViewModel() {
     private val filter: String? = savedStateHandle["filter"]
     private val uid: String? = savedStateHandle.get<String>("uid")?.takeIf { it.isNotBlank() }
@@ -83,7 +84,19 @@ class JournalEntriesViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _state.value = try {
-                val all = if (uid == null) getMyJournal() else getUserJournal(uid)
+                val server = if (uid == null) getMyJournal() else getUserJournal(uid)
+                // En mi propio diario, descuento las vías con BORRADO pendiente en
+                // la cola offline (desmarcadas sin red): si no, seguían apareciendo
+                // hasta sincronizar. Espejo de doneViaKeys en el detalle.
+                val all = if (isMine) {
+                    val pendingDeletes = outboxRepo.all()
+                        .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
+                        .map { it.payloadJson }.toSet()
+                    if (pendingDeletes.isEmpty()) server
+                    else server.filter {
+                        "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" !in pendingDeletes
+                    }
+                } else server
                 val filtered = when {
                     filter == null               -> all
                     filter.startsWith("school:") -> {
