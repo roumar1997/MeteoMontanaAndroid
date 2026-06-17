@@ -8,6 +8,8 @@ final class AccountViewModel: ObservableObject {
     @Published var entries: [JournalSession] = []
     @Published var follow: FollowStatus?
     @Published var loading = true
+    /// true cuando los datos vienen de la caché local (sin conexión).
+    @Published var offline = false
 
     private let getMyProfile: GetMyProfileUseCase
     private let getMyStats: GetMyJournalStatsUseCase
@@ -68,13 +70,25 @@ final class AccountViewModel: ObservableObject {
 
     func load() async {
         loading = true
-        profile = try? await getMyProfile.invoke()  // JIT provisioning en el backend
-        stats = try? await getMyStats.invoke()
-        entries = await loadEntries()
-        // Contadores de seguidores/seguidos: igual que Android (getFollowStatus
-        // del propio uid devuelve followers/following).
-        if let uid = profile?.uid ?? authBridge.currentUid() {
-            follow = try? await getFollowStatus.invoke(uid: uid)
+        if let p = try? await getMyProfile.invoke() {   // JIT provisioning en el backend
+            profile = p
+            stats = try? await getMyStats.invoke()
+            entries = await loadEntries()
+            // Contadores de seguidores/seguidos: igual que Android (getFollowStatus
+            // del propio uid devuelve followers/following).
+            follow = try? await getFollowStatus.invoke(uid: p.uid)
+            offline = false
+            // Cachea para poder ver el perfil SIN conexión la próxima vez.
+            ProfileCache.shared.save(profile: p, stats: stats, entries: entries,
+                                     followers: follow?.followers ?? 0, following: follow?.following ?? 0)
+        } else if let cached = ProfileCache.shared.load() {
+            // Sin conexión: última copia cacheada en vez de pantalla vacía.
+            profile = cached.profile
+            stats = cached.stats
+            entries = cached.entries
+            follow = FollowStatus(followers: cached.followers, following: cached.following,
+                                  iFollowThem: false, theyFollowMe: false, requestPending: false)
+            offline = true
         }
         loading = false
     }
@@ -95,6 +109,14 @@ struct AccountView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    if vm.offline {
+                        Text("SIN CONEXIÓN · datos guardados")
+                            .font(Cumbre.mono(10, .bold)).tracking(0.8)
+                            .foregroundStyle(Cumbre.ink2)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Cumbre.terraBg)
+                    }
                     avatar
                     names
                     if let p = vm.profile, let bio = p.bio, !bio.isEmpty {
