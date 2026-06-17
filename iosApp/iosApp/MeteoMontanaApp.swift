@@ -26,6 +26,8 @@ struct MeteoMontanaApp: App {
                 .onOpenURL { url in GIDSignIn.sharedInstance.handle(url) }
                 // Al arrancar, sube las vías marcadas sin red que quedaron en cola.
                 .task { try? await AppDependencies.shared.container.flushJournalOutbox() }
+                // Push (APNs/FCM): no-op hasta activarlo (PushManager.enabled).
+                .onAppear { PushManager.shared.registerIfEnabled() }
         }
         .onChange(of: scenePhase) { phase in
             // Al volver a primer plano (recuperada la conexión normalmente),

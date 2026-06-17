@@ -176,6 +176,7 @@ class IosDependencyContainer(
     val getMyProfile = GetMyProfileUseCase(profileRepository)
     val updateMyProfile = UpdateMyProfileUseCase(profileRepository)
     val deleteMyAccount = DeleteMyAccountUseCase(profileRepository)
+    val updateFcmToken = com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase(profileRepository)
 
     // Alerta de tiempo (preferencias en /api/me/weekend-alert).
     val getWeekendAlert = GetWeekendAlertUseCase(profileApi)

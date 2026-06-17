@@ -49,6 +49,9 @@ targets:
         # haya cuenta de pago.
         # com.apple.developer.applesignin:
         #   - Default
+        # Push (APNs/FCM): activar antes de publicar (ver PushManager.swift).
+        # Requiere cuenta de pago; rompería el sideload con Apple ID gratis.
+        # aps-environment: production   # (development en debug)
     info:
       path: iosApp/Info.plist
       properties:
@@ -106,6 +109,10 @@ targets:
         product: FirebaseFirestore
       - package: Firebase
         product: FirebaseStorage
+      # Push (FCM). El código (PushManager) está listo pero DESACTIVADO; activar
+      # antes de publicar (necesita APNs key + capability, ver PushManager.swift).
+      - package: Firebase
+        product: FirebaseMessaging
       - package: GoogleSignIn
         product: GoogleSignIn
       - package: MapLibre
