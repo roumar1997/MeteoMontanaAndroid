@@ -492,6 +492,60 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-17 (7) (chat WhatsApp, modo oscuro iOS, Apple sign-in, puerto PushSender + tests)
+
+Continuación de la (6). Backend en Railway; APK/`.ipa` apuntan a prod.
+**Nota de flujo: el usuario pidió NO generar `.ipa` hasta acumular cambios** —
+todo queda en `main` y se hace una sola instalación cuando lo pida.
+
+- **Chat estilo WhatsApp (Android + iOS)**:
+  - Puerto `ChatService` (shared) + `markUnread(convId)` y `deleteConversation(convId)`.
+    Impl Android (`FirebaseChatService`) e iOS (`IosChatBridge`/`IosChatService` +
+    `ChatBridge.swift`): markUnread pone `unread_<me>=1`; delete borra mensajes
+    (lote) + doc.
+  - **Badge de no-leídos en el icono de mensajes** del header (suma de unread de
+    todas las conversaciones), igual que la campana. Android: `SchoolListViewModel`
+    observa `observeMyConversations`. iOS: idem en su `SchoolListViewModel`
+    (`startObservingChats`). Se marca leído al abrir (ya existía).
+  - **Swipe**: izquierda → borrar, derecha → marcar no leído. Android
+    `SwipeToDismissBox`; iOS `.swipeActions`.
+- **iOS modo oscuro**: el toggle ahora alterna SOLO claro↔oscuro (quitado el
+  modo "sistema"); valores antiguos pasan a claro. (`ThemeManager.swift`)
+- **iOS "VER MAPA"** en el detalle: era eyebrow gris casi invisible → ahora fila
+  con icono de mapa, borde y bold. (`SchoolDetailView.swift`)
+- **iOS filtros**: "Favoritos"/"Guardados" sin emoticonos (ya en la (6)).
+- **Sign in with Apple (iOS) — CÓDIGO LISTO, capability DESACTIVADA**:
+  `AuthBridge.signInWithApple` (AuthenticationServices + nonce + CryptoKit +
+  `OAuthProvider.appleCredential`) + botón en `LoginView`. El entitlement
+  `com.apple.developer.applesignin` está **comentado** en `project.yml` porque
+  rompería el sideload con AltStore (Apple ID gratis no soporta la capability).
+  Para ACTIVAR al publicar: (1) descomentar entitlement, (2) cuenta Apple
+  Developer de pago + capability, (3) habilitar Apple en Firebase Auth. El botón
+  aparece pero fallará hasta entonces → NO probarlo aún.
+- **iOS `PrivacyInfo.xcprivacy`** (privacy manifest, obligatorio App Store):
+  tracking=false, tipos de datos (ubicación/email/nombre/fotos) y required-reason
+  APIs (UserDefaults CA92.1, FileTimestamp C617.1).
+- **iOS usage strings cámara/fotos** en `project.yml` (evita crash al subir foto).
+- **Refactor backend — puerto `PushSender`** (DIP): `domain/port/PushSender`,
+  `FcmService` lo implementa, los 5 use cases de `application` inyectan la
+  interfaz. Sin cambio de comportamiento. (Primer paso del refactor a puertos;
+  faltan `WeatherProvider` y `FileStorage` — este último filtra `MultipartFile`,
+  requiere repensar la firma.)
+- **Tests backend**: añadidos a `ClimbScoreCalculatorTest` (orden de secado por
+  roca arenisca<conglomerado<granito, dryBoost viento/calor, cap por prob alta).
+
+> ### 📌 PENDIENTE (próxima sesión)
+> **Refactor a puertos (continuar):** `WeatherProvider` (OpenMeteoClient → port;
+> ojo: requiere mapear OpenMeteoResponse a un tipo neutro) y `FileStorage`
+> (StorageService → port; cuidado: `upload` usa `MultipartFile` de Spring web →
+> cambiar la firma a bytes+contentType para no filtrar el framework). Más tests
+> de use cases una vez existan los puertos (mockear).
+> **Publicar — bloqueantes que quedan:** activar Sign in with Apple (cuenta de
+> pago + entitlement + Firebase provider); generar AAB firmado + Data Safety
+> (Play); cuenta Apple Developer + firma real + nutrition labels (App Store).
+> **Seguridad recomendada:** endurecer secretos en Railway (env vars).
+> **Otros:** APNs (push app cerrada); limpieza iOS (`JournalView`/`JournalStatsNav`).
+
 ### Sesión 2026-06-17 (6) (perfil pulible, perfil offline, selector de días, seguridad, borrado de cuenta)
 
 Lote grande. Backend (`MeteoMontanaAPI`) en prod Railway; APK debug y `.ipa`
