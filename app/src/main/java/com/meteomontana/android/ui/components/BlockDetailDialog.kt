@@ -149,88 +149,99 @@ fun BlockDetailDialog(
                 }
             }
 
-            // Foto con líneas (solo BLOCK con photoPath)
-            val photoPath = block.photoPath
-            if (block.type == "BLOCK" && !photoPath.isNullOrBlank()) {
-                Spacer(Modifier.height(Spacing.sm))
-                TopoPhotoCanvas(
-                    photoUrl = photoPath,
-                    lines = block.lines.toTopoLines()
-                )
-            }
-
-            // Lista de vías
-            if (block.type == "BLOCK" && block.lines.isNotEmpty()) {
-                Spacer(Modifier.height(Spacing.sm))
-                Text(
-                    "VÍAS (${block.lines.size})",
-                    style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(Spacing.xs))
-                block.lines.forEachIndexed { idx, line ->
-                    val lineGrade = line.grade
-                    val style = gradeStyle(lineGrade)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        modifier = Modifier.padding(vertical = 2.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(style.stroke)
-                                .padding(2.dp)
-                                .height(18.dp)
-                        ) {
+            // CARAS: una piedra grande se enseña con varias fotos. Cada cara es
+            // una foto con sus vías dibujadas y, debajo, su lista de vías
+            // marcables. Se hace scroll de cara en cara. Una piedra de una sola
+            // foto tiene una única cara (idéntico a antes).
+            if (block.type == "BLOCK") {
+                block.facesOrDerived().forEachIndexed { faceIdx, face ->
+                    val facePhoto = face.photoPath
+                    if (!facePhoto.isNullOrBlank()) {
+                        Spacer(Modifier.height(Spacing.sm))
+                        if (block.facesOrDerived().size > 1) {
                             Text(
-                                "${idx + 1}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (style.dark) Color.Black else Color.White,
-                                modifier = Modifier.padding(horizontal = 6.dp)
-                            )
-                        }
-                        if (lineGrade != null) {
-                            Text(
-                                lineGrade,
-                                style = MaterialTheme.typography.labelMedium,
-                                // Grados claros (≤5c son blancos) → texto oscuro para que se lea.
-                                color = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
-                            )
-                        }
-                        if (line.startType != null) {
-                            Text(
-                                "· ${line.startType}",
-                                style = MaterialTheme.typography.labelSmall,
+                                "FOTO ${faceIdx + 1}",
+                                style = EyebrowTextStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Spacer(Modifier.height(Spacing.xs))
                         }
-                        if (line.name.isNotBlank()) {
-                            Text(
-                                line.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        // Tic: marca/desmarca la vía en tu diario (toggle). Tocar
-                        // una hecha la quita; no se puede añadir dos veces.
-                        if (onTickLine != null && !isProposal) {
-                            Spacer(Modifier.weight(1f))
-                            val done = tickedLines.contains(line.id)
-                            Text(
-                                if (done) "✓" else "○",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (done) Color(0xFF1FA84E)
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        if (done) tickedLines.remove(line.id)
-                                        else tickedLines.add(line.id)
-                                        onTickLine(line, idx)   // el VM decide marcar/desmarcar
-                                    }
-                                    .padding(horizontal = 6.dp)
-                            )
+                        TopoPhotoCanvas(
+                            photoUrl = facePhoto,
+                            lines = face.lines.toTopoLines()
+                        )
+                    }
+                    if (face.lines.isNotEmpty()) {
+                        Spacer(Modifier.height(Spacing.sm))
+                        Text(
+                            "VÍAS (${face.lines.size})",
+                            style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(Spacing.xs))
+                        face.lines.forEachIndexed { idx, line ->
+                            val lineGrade = line.grade
+                            val style = gradeStyle(lineGrade)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(style.stroke)
+                                        .padding(2.dp)
+                                        .height(18.dp)
+                                ) {
+                                    Text(
+                                        "${idx + 1}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (style.dark) Color.Black else Color.White,
+                                        modifier = Modifier.padding(horizontal = 6.dp)
+                                    )
+                                }
+                                if (lineGrade != null) {
+                                    Text(
+                                        lineGrade,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
+                                    )
+                                }
+                                if (line.startType != null) {
+                                    Text(
+                                        "· ${line.startType}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (line.name.isNotBlank()) {
+                                    Text(
+                                        line.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                // Tic: marca/desmarca la vía en tu diario (toggle).
+                                if (onTickLine != null && !isProposal) {
+                                    Spacer(Modifier.weight(1f))
+                                    val done = tickedLines.contains(line.id)
+                                    Text(
+                                        if (done) "✓" else "○",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = if (done) Color(0xFF1FA84E)
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                if (done) tickedLines.remove(line.id)
+                                                else tickedLines.add(line.id)
+                                                onTickLine(line, idx)
+                                            }
+                                            .padding(horizontal = 6.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

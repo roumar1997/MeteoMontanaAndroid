@@ -5,6 +5,7 @@ import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.BestDay
 import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.model.BlockFace
 import com.meteomontana.android.domain.model.BlockLine
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.Current
@@ -99,11 +100,18 @@ fun RangeDayScoreDto.toDomain() = com.meteomontana.android.domain.model.RangeDay
 fun BlockDto.toDomain() = Block(
     id = id, schoolId = schoolId, type = type, name = name, lat = lat, lon = lon,
     photoPath = photoPath, description = description, createdByUid = createdByUid,
-    createdAt = createdAt, lines = lines.map { it.toDomain() },
-    sectorBlockId = sectorBlockId
+    createdAt = createdAt, lines = lines.map { it.toDomain(photoPath) },
+    sectorBlockId = sectorBlockId,
+    faces = faces.map { it.toDomain(photoPath) }
 )
 
-fun BlockLineDto.toDomain() = BlockLine(id, name, grade, startType, linePath, sortOrder)
+fun BlockLineDto.toDomain(coverPhoto: String? = null) =
+    BlockLine(id, name, grade, startType, linePath, sortOrder, photoPath ?: coverPhoto, faceOrder)
+
+fun BlockFaceDto.toDomain(coverPhoto: String? = null): BlockFace {
+    val facePhoto = photoPath ?: coverPhoto
+    return BlockFace(facePhoto, sortOrder, lines.map { it.toDomain(facePhoto) })
+}
 
 // Note
 fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount, photoUrl)

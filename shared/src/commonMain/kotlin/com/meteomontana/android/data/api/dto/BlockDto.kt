@@ -15,7 +15,9 @@ data class BlockDto(
     val createdByUid: String,
     val createdAt: String,
     val lines: List<BlockLineDto> = emptyList(),
-    val sectorBlockId: String? = null
+    val sectorBlockId: String? = null,
+    // Caras = la piedra agrupada por foto (cada cara: foto + sus vías).
+    val faces: List<BlockFaceDto> = emptyList()
 )
 
 @Serializable
@@ -25,7 +27,16 @@ data class BlockLineDto(
     val grade: String? = null,
     val startType: String? = null,
     val linePath: String? = null,
-    val sortOrder: Int
+    val sortOrder: Int,
+    val photoPath: String? = null,
+    val faceOrder: Int = 0
+)
+
+@Serializable
+data class BlockFaceDto(
+    val photoPath: String? = null,
+    val sortOrder: Int = 0,
+    val lines: List<BlockLineDto> = emptyList()
 )
 
 @Serializable
@@ -33,7 +44,9 @@ data class CreateBlockLineRequest(
     val name: String,
     val grade: String? = null,
     val startType: String? = null,
-    val linePath: String? = null
+    val linePath: String? = null,
+    val photoPath: String? = null,
+    val faceOrder: Int? = null
 )
 
 @Serializable
