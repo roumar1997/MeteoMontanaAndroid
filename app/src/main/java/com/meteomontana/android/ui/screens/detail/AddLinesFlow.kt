@@ -76,6 +76,14 @@ fun AddLinesFlow(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // Caras (fotos) de la piedra: las vías nuevas se añaden a la cara elegida y se
+    // dibujan SOBRE su foto (no se mezclan con las de otras caras).
+    val faces = remember(block) { block.facesOrDerived() }
+    var selectedFace by remember { mutableStateOf(0) }
+    val faceIdx = selectedFace.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
+    val facePhoto = faces.getOrNull(faceIdx)?.photoPath ?: block.photoPath
+    val faceLines = faces.getOrNull(faceIdx)?.lines ?: block.lines
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -101,6 +109,30 @@ fun AddLinesFlow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(Spacing.lg))
+
+            // Selector de cara (solo si la piedra tiene varias fotos).
+            if (faces.size > 1) {
+                Text("¿EN QUÉ FOTO?", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(Spacing.xs))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    items(faces.size) { i ->
+                        val on = i == faceIdx
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(if (on) Terra else MaterialTheme.colorScheme.surface)
+                                .border(1.dp, if (on) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                                .clickable { selectedFace = i }
+                                .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                        ) {
+                            Text("FOTO ${i + 1}", style = EyebrowTextStyle,
+                                color = if (on) Color.White else MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(Spacing.md))
+            }
 
             // Lista de bloques nuevos
             Text("NUEVAS VÍAS", style = EyebrowTextStyle,
@@ -134,8 +166,8 @@ fun AddLinesFlow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            // Dibujar líneas (solo si el block tiene foto)
-            if (!block.photoPath.isNullOrBlank()) {
+            // Dibujar líneas (solo si la cara elegida tiene foto)
+            if (!facePhoto.isNullOrBlank()) {
                 Spacer(Modifier.height(Spacing.sm))
                 val hasLines = bloques.any { it.linePath.isNotEmpty() }
                 Box(
@@ -198,7 +230,7 @@ fun AddLinesFlow(
                                     targetLon = block.lon,
                                     bloques = bloques.filter {
                                         it.grade != null || it.name.isNotBlank() || it.linePath.isNotEmpty()
-                                    }
+                                    }.map { it.copy(facePhoto = facePhoto) }   // van a la cara elegida
                                 )
                                 if (result.isSuccess) onSuccess()
                                 else {
@@ -218,17 +250,18 @@ fun AddLinesFlow(
         }
     }
 
-    // Editor topo precargado con la foto del bloque
-    if (showTopo && !block.photoPath.isNullOrBlank()) {
+    // Editor topo precargado con la foto de la CARA elegida y solo sus vías como
+    // referencia (no mezcla las de otras caras).
+    if (showTopo && !facePhoto.isNullOrBlank()) {
         ContributionTopoDialog(
-            photoUri = Uri.parse(block.photoPath),
+            photoUri = Uri.parse(facePhoto),
             bloques = bloques,
             onSave = { updated ->
                 bloques = updated
                 showTopo = false
             },
             onDismiss = { showTopo = false },
-            existingLines = block.lines.toTopoLines()
+            existingLines = faceLines.toTopoLines()
         )
     }
 }

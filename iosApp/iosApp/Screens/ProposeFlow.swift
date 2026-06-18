@@ -26,6 +26,9 @@ struct BoulderBlockForm: Identifiable {
     /// id de la vía existente que representa esta fila (nil = vía nueva). Usado por
     /// el editor unificado para distinguir "corregir existente" de "añadir nueva".
     var existingLineId: String? = nil
+    /// Foto (cara) a la que pertenece esta vía. Al corregir una piedra multi-foto,
+    /// mantiene cada vía en SU cara (no las mezcla todas en la portada).
+    var facePhoto: String? = nil
 }
 
 /// Serializa los bloques al formato que espera el backend (espejo de
@@ -42,7 +45,9 @@ func buildBloquesJson(_ blocks: [BoulderBlockForm]) -> String {
                 "linePath": linePath,
                 // Si la fila representa una vía existente, el backend la CORRIGE
                 // (en vez de añadir) — permite editar varias en una sola propuesta.
-                "targetLineId": b.existingLineId as Any? ?? NSNull()]
+                "targetLineId": b.existingLineId as Any? ?? NSNull(),
+                // Cara (foto) a la que pertenece → el backend la mantiene en su cara.
+                "photoUrl": b.facePhoto as Any? ?? NSNull()]
     }
     return (try? JSONSerialization.data(withJSONObject: arr))
         .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
@@ -558,46 +563,74 @@ struct EditLinesSheet: View {
     let block: Block
     let schoolId: String
     let onDone: (Bool) -> Void
+    /// Cara que se abre primero (deep-link "corregir esta vía"): la de esa vía.
+    var focusVia: String? = nil
     @Environment(\.dismiss) private var dismiss
-    @State private var blocks: [BoulderBlockForm] = []
+    // Una piedra puede tener VARIAS caras (fotos). Cada cara edita SOLO sus vías
+    // sobre SU foto (antes se mezclaban todas en la portada). `faceBlocks[i]` =
+    // vías editables de la cara i; `facePhotos[i]` = su foto.
+    @State private var faceBlocks: [[BoulderBlockForm]] = []
+    @State private var facePhotos: [String?] = []
+    @State private var selectedFace = 0
     @State private var showEditor = false
     @State private var sending = false
+    @State private var loaded = false
 
-    private var hasPhoto: Bool { !(block.photoPath ?? "").isEmpty }
+    private var faceIdx: Int { min(max(selectedFace, 0), max(0, faceBlocks.count - 1)) }
+    private var currentPhoto: String? { facePhotos.indices.contains(faceIdx) ? facePhotos[faceIdx] : nil }
+    private var hasPhoto: Bool { !(currentPhoto ?? "").isEmpty }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Edita las vías de «\(block.name)»: toca una para cambiar nombre/grado/tipo o redibujarla, añade nuevas, y envía todo junto. Un admin lo revisará.")
+                    Text("Edita las vías de «\(block.name)». Cada foto edita sus propias vías: toca una para cambiar nombre/grado/tipo o redibujarla, añade nuevas, y envía todo junto. Un admin lo revisará.")
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
 
-                    ForEach(Array(blocks.enumerated()), id: \.element.id) { idx, _ in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(blocks[idx].existingLineId != nil ? "VÍA EXISTENTE" : "NUEVA")
-                                .font(Cumbre.mono(9, .bold))
-                                .foregroundStyle(blocks[idx].existingLineId != nil ? Cumbre.ink3 : Cumbre.terra)
-                            // Las vías existentes no se borran (el backend no lo soporta);
-                            // solo las nuevas tienen botón de quitar.
-                            BoulderBlockRow(block: $blocks[idx], index: idx,
-                                            onDelete: blocks[idx].existingLineId == nil ? { blocks.remove(at: idx) } : nil)
+                    // Selector de cara (solo si hay varias fotos).
+                    if facePhotos.count > 1 {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(0..<facePhotos.count, id: \.self) { i in
+                                    let on = i == faceIdx
+                                    Button { selectedFace = i } label: {
+                                        Text("FOTO \(i + 1)").font(Cumbre.mono(11, .bold))
+                                            .foregroundStyle(on ? .white : Cumbre.ink2)
+                                            .padding(.horizontal, 10).padding(.vertical, 6)
+                                            .background(on ? Cumbre.terra : Color.clear)
+                                            .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                                    }.buttonStyle(.plain)
+                                }
+                            }
                         }
                     }
 
-                    Button { blocks.append(BoulderBlockForm()) } label: {
-                        Text("+ NUEVA VÍA").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                    if faceBlocks.indices.contains(faceIdx) {
+                        ForEach(Array(faceBlocks[faceIdx].enumerated()), id: \.element.id) { idx, _ in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(faceBlocks[faceIdx][idx].existingLineId != nil ? "VÍA EXISTENTE" : "NUEVA")
+                                    .font(Cumbre.mono(9, .bold))
+                                    .foregroundStyle(faceBlocks[faceIdx][idx].existingLineId != nil ? Cumbre.ink3 : Cumbre.terra)
+                                BoulderBlockRow(block: $faceBlocks[faceIdx][idx], index: idx,
+                                                onDelete: faceBlocks[faceIdx][idx].existingLineId == nil ? { faceBlocks[faceIdx].remove(at: idx) } : nil)
+                            }
+                        }
+                    }
+
+                    Button { faceBlocks[faceIdx].append(BoulderBlockForm(facePhoto: currentPhoto)) } label: {
+                        Text("+ NUEVA VÍA EN ESTA FOTO").font(Cumbre.mono(12, .bold)).tracking(0.6)
                             .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
                             .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
                     }.buttonStyle(.plain)
 
                     if hasPhoto {
                         Button { showEditor = true } label: {
-                            Text("✎ DIBUJAR / EDITAR SOBRE LA FOTO")
+                            Text("✎ DIBUJAR / EDITAR SOBRE ESTA FOTO")
                                 .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(.white)
                                 .frame(maxWidth: .infinity).padding(.vertical, 12).background(Cumbre.terra)
                         }.buttonStyle(.plain)
                     } else {
-                        Text("Esta piedra no tiene foto, no puedes dibujar líneas.")
+                        Text("Esta cara no tiene foto, no puedes dibujar líneas.")
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     }
 
@@ -616,32 +649,52 @@ struct EditLinesSheet: View {
                 Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
         }
         .onAppear {
-            if blocks.isEmpty {
-                blocks = block.lines.map { l in
-                    BoulderBlockForm(name: l.name, grade: l.grade,
-                                     startType: startTypeForUi(l.startType),
-                                     line: TopoParse.points(l.linePath),
-                                     existingLineId: l.id)
+            guard !loaded else { return }
+            loaded = true
+            let faces = block.facesOrDerived()
+            if faces.isEmpty {
+                // Piedra sin caras/vías → una cara con la portada y una vía nueva.
+                facePhotos = [block.photoPath]
+                faceBlocks = [[BoulderBlockForm(facePhoto: block.photoPath)]]
+            } else {
+                facePhotos = faces.map { $0.photoPath ?? block.photoPath }
+                faceBlocks = faces.map { f in
+                    f.lines.map { l in
+                        BoulderBlockForm(name: l.name, grade: l.grade,
+                                         startType: startTypeForUi(l.startType),
+                                         line: TopoParse.points(l.linePath),
+                                         existingLineId: l.id,
+                                         facePhoto: f.photoPath ?? block.photoPath)
+                    }
                 }
-                if blocks.isEmpty { blocks = [BoulderBlockForm()] }   // piedra sin vías → empieza una nueva
+                // Abre la cara que contiene la vía del deep-link, si la hay.
+                if let v = focusVia?.trimmingCharacters(in: .whitespaces), !v.isEmpty,
+                   let hit = faces.firstIndex(where: { f in
+                       f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(v) == .orderedSame }
+                   }) {
+                    selectedFace = hit
+                }
             }
         }
         .sheet(isPresented: $showEditor) {
-            // Todas las vías son editables (selector por chips dentro del editor).
-            TopoEditorView(photoUrl: block.photoPath, blocks: $blocks)
+            // Solo las vías de ESTA cara, sobre SU foto.
+            if faceBlocks.indices.contains(faceIdx) {
+                TopoEditorView(photoUrl: currentPhoto, blocks: $faceBlocks[faceIdx])
+            }
         }
     }
 
     private func send() async {
         sending = true
-        // UNA sola propuesta con todos los cambios: vías existentes modificadas
-        // (con su targetLineId → el backend las corrige) + vías nuevas (sin
-        // targetLineId → las añade). Las existentes sin cambios no se mandan.
-        let changedExisting = blocks.filter { b in
+        // Todas las caras aplanadas: vías existentes modificadas (con su
+        // targetLineId → el backend las corrige) + vías nuevas (sin targetLineId
+        // → las añade). Cada vía lleva su facePhoto → se queda en su cara.
+        let all = faceBlocks.flatMap { $0 }
+        let changedExisting = all.filter { b in
             guard let id = b.existingLineId, let orig = block.lines.first(where: { $0.id == id }) else { return false }
             return lineChanged(b, vs: orig)
         }
-        let newOnes = blocks.filter { $0.existingLineId == nil && ($0.grade != nil || !$0.name.isEmpty || !$0.line.isEmpty) }
+        let newOnes = all.filter { $0.existingLineId == nil && ($0.grade != nil || !$0.name.isEmpty || !$0.line.isEmpty) }
         let payload = changedExisting + newOnes
         guard !payload.isEmpty else { sending = false; dismiss(); onDone(false); return }
 

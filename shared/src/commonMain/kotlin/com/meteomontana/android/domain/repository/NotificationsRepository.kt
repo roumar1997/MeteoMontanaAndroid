@@ -6,4 +6,6 @@ interface NotificationsRepository {
     suspend fun getMyNotifications(limit: Int = 50): Inbox
     suspend fun markNotificationRead(id: String)
     suspend fun markAllNotificationsRead()
+    suspend fun deleteNotification(id: String)
+    suspend fun deleteAllNotifications()
 }

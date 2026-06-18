@@ -14,7 +14,10 @@ data class BoulderBloqueForm(
     val name: String = "",
     val grade: String? = null,       // "6a", "7b+", "PROY", etc.
     val startType: String? = null,   // "PIE" | "SIT" | "LANCE" | "TRAV"
-    val linePath: List<Offset> = emptyList()
+    val linePath: List<Offset> = emptyList(),
+    // Foto (cara) a la que pertenece esta vía. Al corregir/añadir en una piedra
+    // multi-foto, mantiene la vía en SU cara (no la mueve a la portada).
+    val facePhoto: String? = null
 )
 
 /**
@@ -40,7 +43,8 @@ val BOULDER_GRADES = listOf(
 fun List<BoulderBloqueForm>.toBloquesJson(): String {
     val arr = JSONArray()
     forEachIndexed { idx, b ->
-        arr.put(bloqueJson(idx, b, null))
+        // Cada vía conserva la foto (cara) a la que pertenece.
+        arr.put(bloqueJson(idx, b, b.facePhoto))
     }
     return arr.toString()
 }

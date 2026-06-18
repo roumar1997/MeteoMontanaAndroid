@@ -17,3 +17,13 @@ class MarkAllNotificationsReadUseCase(private val repository: NotificationsRepos
     @Throws(Exception::class)
     suspend operator fun invoke() = repository.markAllNotificationsRead()
 }
+
+class DeleteNotificationUseCase(private val repository: NotificationsRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(id: String) = repository.deleteNotification(id)
+}
+
+class DeleteAllNotificationsUseCase(private val repository: NotificationsRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke() = repository.deleteAllNotifications()
+}

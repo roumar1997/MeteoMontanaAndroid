@@ -60,6 +60,13 @@ fun EditLineFlow(
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
+    // Cara (foto) a la que pertenece la vía: corregimos SOBRE ESA foto y con SUS
+    // líneas como referencia, no mezclando las de otras caras de la piedra.
+    val face = remember(block, line) {
+        block.facesOrDerived().firstOrNull { f -> f.lines.any { it.id == line.id } }
+    }
+    val facePhoto = face?.photoPath ?: block.photoPath
+
     // Estado inicial con los valores actuales de la línea.
     var bloque by remember {
         mutableStateOf(
@@ -67,7 +74,8 @@ fun EditLineFlow(
                 name = line.name,
                 grade = line.grade,
                 startType = startTypeForUi(line.startType?.toString()),
-                linePath = parseLineStroke(line.linePath).points
+                linePath = parseLineStroke(line.linePath).points,
+                facePhoto = facePhoto
             )
         )
     }
@@ -113,8 +121,8 @@ fun EditLineFlow(
                 onDelete = null
             )
 
-            // Dibujar línea (solo si el block tiene foto)
-            if (!block.photoPath.isNullOrBlank()) {
+            // Dibujar línea (solo si la cara tiene foto)
+            if (!facePhoto.isNullOrBlank()) {
                 Spacer(Modifier.height(Spacing.md))
                 val hasLine = bloque.linePath.isNotEmpty()
                 Box(
@@ -197,14 +205,15 @@ fun EditLineFlow(
         }
     }
 
-    // Editor topo: muestra todas las vías existentes (incluida la elegida) como
-    // referencia, y el usuario redibuja solo la elegida.
-    if (showTopo && !block.photoPath.isNullOrBlank()) {
-        val otherLines: List<TopoLine> = block.lines
+    // Editor topo: SOBRE la foto de la cara de la vía, y solo las vías de ESA
+    // cara como referencia (las demás caras no se mezclan). El usuario redibuja
+    // solo la elegida.
+    if (showTopo && !facePhoto.isNullOrBlank()) {
+        val otherLines: List<TopoLine> = (face?.lines ?: block.lines)
             .filter { it.id != line.id }
             .toTopoLines()
         ContributionTopoDialog(
-            photoUri = Uri.parse(block.photoPath),
+            photoUri = Uri.parse(facePhoto),
             bloques = listOf(bloque),
             onSave = { updated ->
                 bloque = updated.first()

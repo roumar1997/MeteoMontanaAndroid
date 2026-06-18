@@ -58,7 +58,8 @@ sealed interface FollowRequestsUiState {
 class FollowRequestsViewModel @Inject constructor(
     private val getMyRequests: GetMyFollowRequestsUseCase,
     private val accept: AcceptFollowRequestUseCase,
-    private val reject: RejectFollowRequestUseCase
+    private val reject: RejectFollowRequestUseCase,
+    private val follow: com.meteomontana.android.domain.usecase.social.FollowUserUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow<FollowRequestsUiState>(FollowRequestsUiState.Loading)
     val state: StateFlow<FollowRequestsUiState> = _state.asStateFlow()
@@ -86,6 +87,15 @@ class FollowRequestsViewModel @Inject constructor(
     fun reject(uid: String) {
         viewModelScope.launch {
             runCatching { reject.invoke(uid) }
+            removeFromList(uid)
+        }
+    }
+
+    /** Acepta la solicitud y además sigue a esa persona de vuelta. */
+    fun acceptAndFollow(uid: String) {
+        viewModelScope.launch {
+            runCatching { accept.invoke(uid) }
+            runCatching { follow.invoke(uid) }
             removeFromList(uid)
         }
     }
@@ -137,6 +147,7 @@ fun FollowRequestsScreen(
                                 profile = p,
                                 onClick = { onUserClick(p.uid) },
                                 onAccept = { viewModel.accept(p.uid) },
+                                onAcceptAndFollow = { viewModel.acceptAndFollow(p.uid) },
                                 onReject = { viewModel.reject(p.uid) }
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -153,32 +164,38 @@ private fun RequestRow(
     profile: PublicProfile,
     onClick: () -> Unit,
     onAccept: () -> Unit,
+    onAcceptAndFollow: () -> Unit,
     onReject: () -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth()
-        .clickable(onClick = onClick)
-        .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (profile.photoUrl != null) {
-            AsyncImage(model = profile.photoUrl, contentDescription = null,
-                modifier = Modifier.size(48.dp).clip(CircleShape)
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()
+            .clickable(onClick = onClick),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (profile.photoUrl != null) {
+                AsyncImage(model = profile.photoUrl, contentDescription = null,
+                    modifier = Modifier.size(48.dp).clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+            } else {
+                Box(modifier = Modifier.size(48.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
-        } else {
-            Box(modifier = Modifier.size(48.dp).clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("@${profile.username ?: profile.displayName ?: "usuario"}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground)
+                Text("quiere seguirte · toca para ver su perfil",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Text("@${profile.username ?: profile.displayName ?: "usuario"}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground)
-            Text("quiere seguirte",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SmallButton(text = "Aceptar y seguir", filled = true, onClick = onAcceptAndFollow)
+            SmallButton(text = "Aceptar", filled = false, onClick = onAccept)
+            SmallButton(text = "Rechazar", filled = false, onClick = onReject)
         }
-        SmallButton(text = "Aceptar", filled = true, onClick = onAccept)
-        SmallButton(text = "Rechazar", filled = false, onClick = onReject)
     }
 }
 

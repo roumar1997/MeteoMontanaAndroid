@@ -13,4 +13,8 @@ class KtorNotificationsRepository(private val api: KtorNotificationApi) : Notifi
     override suspend fun markNotificationRead(id: String) = api.markNotificationRead(id)
 
     override suspend fun markAllNotificationsRead() = api.markAllNotificationsRead()
+
+    override suspend fun deleteNotification(id: String) = api.deleteNotification(id)
+
+    override suspend fun deleteAllNotifications() = api.deleteAllNotifications()
 }

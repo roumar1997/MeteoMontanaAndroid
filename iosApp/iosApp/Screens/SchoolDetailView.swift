@@ -458,7 +458,7 @@ private struct SchoolMapSection: View {
                 } : nil)
         }
         .sheet(item: $editLinesBlock) { b in
-            EditLinesSheet(block: b, schoolId: school.id) { ok in
+            EditLinesSheet(block: b, schoolId: school.id, focusVia: openVia) { ok in
                 editLinesBlock = nil
                 if ok { afterSubmit() }
             }

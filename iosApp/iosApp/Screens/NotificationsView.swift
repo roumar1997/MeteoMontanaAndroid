@@ -10,15 +10,35 @@ final class NotificationsViewModel: ObservableObject {
     private let getMyNotifications: GetMyNotificationsUseCase
     private let markRead: MarkNotificationReadUseCase
     private let markAllRead: MarkAllNotificationsReadUseCase
+    private let deleteOne: DeleteNotificationUseCase
+    private let deleteAllUC: DeleteAllNotificationsUseCase
 
     init(
         getMyNotifications: GetMyNotificationsUseCase = AppDependencies.shared.container.getMyNotifications,
         markRead: MarkNotificationReadUseCase = AppDependencies.shared.container.markNotificationRead,
-        markAllRead: MarkAllNotificationsReadUseCase = AppDependencies.shared.container.markAllNotificationsRead
+        markAllRead: MarkAllNotificationsReadUseCase = AppDependencies.shared.container.markAllNotificationsRead,
+        deleteOne: DeleteNotificationUseCase = AppDependencies.shared.container.deleteNotification,
+        deleteAllUC: DeleteAllNotificationsUseCase = AppDependencies.shared.container.deleteAllNotifications
     ) {
         self.getMyNotifications = getMyNotifications
         self.markRead = markRead
         self.markAllRead = markAllRead
+        self.deleteOne = deleteOne
+        self.deleteAllUC = deleteAllUC
+    }
+
+    /// Borra una notificación (optimista) y lo sincroniza.
+    func delete(_ n: Shared.Notification) {
+        if n.readAt == nil { unread = max(0, unread - 1) }
+        items.removeAll { $0.id == n.id }
+        Task { try? await deleteOne.invoke(id: n.id) }
+    }
+
+    /// Borra todas (optimista) y lo sincroniza.
+    func deleteAll() {
+        items.removeAll()
+        unread = 0
+        Task { try? await deleteAllUC.invoke() }
     }
 
     func load() async {
@@ -88,6 +108,7 @@ struct NotificationsView: View {
     @StateObject private var vm = NotificationsViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var target: NotifTarget?
+    @State private var showDeleteAll = false
 
     var body: some View {
         NavigationStack {
@@ -101,14 +122,23 @@ struct NotificationsView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(vm.items, id: \.id) { n in
-                                NotificationRow(n: n).onTapGesture { target = vm.tap(n) }
-                                Divider().overlay(Cumbre.rule)
-                            }
+                    List {
+                        ForEach(vm.items, id: \.id) { n in
+                            NotificationRow(n: n)
+                                .contentShape(Rectangle())
+                                .onTapGesture { target = vm.tap(n) }
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Cumbre.bg)
+                                .listRowSeparatorTint(Cumbre.rule)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) { vm.delete(n) } label: {
+                                        Label("Borrar", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
@@ -128,13 +158,23 @@ struct NotificationsView: View {
                     Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    if vm.unread > 0 {
-                        Button("Marcar leídas") { Task { await vm.markAll() } }
-                            .foregroundStyle(Cumbre.terra)
+                    Menu {
+                        if vm.unread > 0 {
+                            Button("Marcar todas leídas") { Task { await vm.markAll() } }
+                        }
+                        if !vm.items.isEmpty {
+                            Button("Borrar todas", role: .destructive) { showDeleteAll = true }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle").foregroundStyle(Cumbre.terra)
                     }
                 }
             }
             .task { await vm.load() }
+            .confirmationDialog("¿Borrar todas las notificaciones?", isPresented: $showDeleteAll, titleVisibility: .visible) {
+                Button("Borrar todas", role: .destructive) { vm.deleteAll() }
+                Button("Cancelar", role: .cancel) {}
+            }
             // Al cerrar la bandeja se consideran vistas → se limpia el badge.
             .onDisappear { Task { await vm.markAllSilent() } }
         }

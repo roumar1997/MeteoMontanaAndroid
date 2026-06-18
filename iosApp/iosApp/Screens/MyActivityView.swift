@@ -156,12 +156,14 @@ final class FollowRequestsViewModel: ObservableObject {
     private let getRequests: GetMyFollowRequestsUseCase
     private let accept: AcceptFollowRequestUseCase
     private let reject: RejectFollowRequestUseCase
+    private let follow: FollowUserUseCase
     init(
         getRequests: GetMyFollowRequestsUseCase = AppDependencies.shared.container.getMyFollowRequests,
         accept: AcceptFollowRequestUseCase = AppDependencies.shared.container.acceptFollowRequest,
-        reject: RejectFollowRequestUseCase = AppDependencies.shared.container.rejectFollowRequest
+        reject: RejectFollowRequestUseCase = AppDependencies.shared.container.rejectFollowRequest,
+        follow: FollowUserUseCase = AppDependencies.shared.container.followUser
     ) {
-        self.getRequests = getRequests; self.accept = accept; self.reject = reject
+        self.getRequests = getRequests; self.accept = accept; self.reject = reject; self.follow = follow
     }
     func load() async {
         loading = true
@@ -173,6 +175,14 @@ final class FollowRequestsViewModel: ObservableObject {
         Task {
             if doAccept { try? await accept.invoke(requesterUid: uid) }
             else { try? await reject.invoke(requesterUid: uid) }
+        }
+    }
+    /// Acepta la solicitud y sigue a esa persona de vuelta.
+    func acceptAndFollow(_ uid: String) {
+        items.removeAll { $0.uid == uid }
+        Task {
+            try? await accept.invoke(requesterUid: uid)
+            try? await follow.invoke(uid: uid)
         }
     }
 }
@@ -199,10 +209,17 @@ struct FollowRequestsView: View {
                             Spacer()
                         }
                     }.buttonStyle(.plain)
+                    // Aceptar y seguir de vuelta.
+                    Button { vm.acceptAndFollow(u.uid) } label: {
+                        Image(systemName: "person.badge.plus").foregroundStyle(Cumbre.terra)
+                            .frame(width: 36, height: 36).overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                    }.buttonStyle(.plain)
+                    // Solo aceptar.
                     Button { vm.respond(u.uid, accept: true) } label: {
                         Image(systemName: "checkmark").foregroundStyle(Cumbre.ok)
                             .frame(width: 36, height: 36).overlay(Rectangle().stroke(Cumbre.ok, lineWidth: 1))
                     }.buttonStyle(.plain)
+                    // Rechazar.
                     Button { vm.respond(u.uid, accept: false) } label: {
                         Image(systemName: "xmark").foregroundStyle(Cumbre.bad)
                             .frame(width: 36, height: 36).overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))

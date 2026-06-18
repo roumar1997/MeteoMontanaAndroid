@@ -186,6 +186,14 @@ object UseCasesModule {
     fun provideMarkAllNotificationsReadUseCase(repo: NotificationsRepository) =
         MarkAllNotificationsReadUseCase(repo)
 
+    @Provides @Singleton
+    fun provideDeleteNotificationUseCase(repo: NotificationsRepository) =
+        com.meteomontana.android.domain.usecase.notifications.DeleteNotificationUseCase(repo)
+
+    @Provides @Singleton
+    fun provideDeleteAllNotificationsUseCase(repo: NotificationsRepository) =
+        com.meteomontana.android.domain.usecase.notifications.DeleteAllNotificationsUseCase(repo)
+
     // Admin
     @Provides @Singleton
     fun provideGetAdminStatsUseCase(repo: AdminRepository) = GetAdminStatsUseCase(repo)

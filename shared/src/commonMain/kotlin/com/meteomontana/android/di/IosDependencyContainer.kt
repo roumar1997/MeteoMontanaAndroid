@@ -42,6 +42,8 @@ import com.meteomontana.android.domain.usecase.notes.GetNotesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
 import com.meteomontana.android.domain.usecase.notifications.MarkAllNotificationsReadUseCase
 import com.meteomontana.android.domain.usecase.notifications.MarkNotificationReadUseCase
+import com.meteomontana.android.domain.usecase.notifications.DeleteNotificationUseCase
+import com.meteomontana.android.domain.usecase.notifications.DeleteAllNotificationsUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.profile.DeleteMyAccountUseCase
 import com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase
@@ -191,6 +193,8 @@ class IosDependencyContainer(
     val getMyNotifications = GetMyNotificationsUseCase(notificationsRepository)
     val markNotificationRead = MarkNotificationReadUseCase(notificationsRepository)
     val markAllNotificationsRead = MarkAllNotificationsReadUseCase(notificationsRepository)
+    val deleteNotification = DeleteNotificationUseCase(notificationsRepository)
+    val deleteAllNotifications = DeleteAllNotificationsUseCase(notificationsRepository)
 
     // Social: buscar usuarios, perfil público, seguir/dejar de seguir,
     // seguidores/seguidos y solicitudes de seguimiento.
