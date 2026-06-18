@@ -296,7 +296,8 @@ fun BlockDetailDialog(
                 Text("→ CÓMO LLEGAR", style = EyebrowTextStyle, color = Color.White)
             }
 
-            // Botón "+ AÑADIR VÍAS" — solo para BLOCK y si el caller lo permite
+            // Botón editor por cara (corregir/repintar/añadir + cambiar foto) —
+            // solo para BLOCK y si el caller lo permite.
             if (onAddLines != null && block.type == "BLOCK" && !isProposal) {
                 Spacer(Modifier.height(Spacing.sm))
                 Box(
@@ -308,7 +309,8 @@ fun BlockDetailDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("+ AÑADIR VÍAS", style = EyebrowTextStyle, color = Terra)
+                    Text(if (block.lines.isEmpty()) "+ AÑADIR VÍAS" else "✎ EDITAR / CORREGIR VÍAS",
+                        style = EyebrowTextStyle, color = Terra)
                 }
             }
 

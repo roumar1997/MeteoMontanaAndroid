@@ -555,30 +555,29 @@ class SchoolDetailViewModel @Inject constructor(
         Unit
     }
 
+    /** Sube una foto de piedra (cara nueva) y devuelve su URL. */
+    suspend fun uploadBoulderPhoto(ref: FileRef): Result<String> = runCatching {
+        val bytes = fileReader.readBytes(ref)
+        photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
+    }
+
     /**
-     * Editar una CARA de una piedra: opcionalmente cambia su foto (sube la nueva)
-     * y reenvía TODAS sus vías (existentes como corrección + nuevas) con la foto
-     * resultante, para que la cara entera se mueva a la imagen nueva y se
-     * redibujen las líneas. Si `newPhotoRef` es null, conserva la foto actual.
+     * Envía correcciones/añadidos de vías de una piedra en UNA propuesta. Cada vía
+     * lleva su `existingLineId` (corrige) o no (añade) y su `facePhoto` (cara). El
+     * backend distingue por nodo. Usado por el editor por cara (repintar + añadir +
+     * cambiar foto).
      */
-    suspend fun submitEditFaceContribution(
+    suspend fun submitBoulderCorrections(
         targetBlockId: String,
         targetLat: Double,
         targetLon: Double,
-        currentFacePhoto: String?,
-        newPhotoRef: FileRef?,
         bloques: List<BoulderBloqueForm>
     ): Result<Unit> = runCatching {
-        val facePhoto = if (newPhotoRef != null) {
-            val bytes = fileReader.readBytes(newPhotoRef)
-            photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
-        } else currentFacePhoto
-        val stamped = bloques.map { it.copy(facePhoto = facePhoto) }
         val req = ContributionRequest(
             type = "BOULDER", name = null, lat = targetLat, lon = targetLon,
             notes = null, description = null, proposedLat = null, proposedLon = null,
             correctionReason = null, targetBlockId = targetBlockId, targetLineId = null,
-            photoUrl = null, bloquesJson = stamped.toBloquesJson(), topoLinesJson = null
+            photoUrl = null, bloquesJson = bloques.toBloquesJson(), topoLinesJson = null
         )
         submitContributionUseCase(schoolId, req)
         Unit

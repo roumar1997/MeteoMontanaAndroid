@@ -73,42 +73,47 @@ fun AddLinesFlow(
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
-    var bloques by remember { mutableStateOf(listOf(BoulderBloqueForm())) }
     var showTopo by remember { mutableStateOf(false) }
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Caras (fotos) de la piedra: las vías nuevas se añaden a la cara elegida y se
-    // dibujan SOBRE su foto (no se mezclan con las de otras caras).
+    // Editor POR CARA: una piedra puede tener varias fotos. Por cada cara se
+    // precargan SUS vías existentes (para repintarlas/corregirlas) y se pueden
+    // añadir nuevas; cada cara se edita sobre SU foto. `faceBloques[i]` = vías
+    // editables de la cara i (existentes con existingLineId + nuevas).
     val faces = remember(block) { block.facesOrDerived() }
+    var faceBloques by remember {
+        mutableStateOf(
+            if (faces.isEmpty()) listOf(listOf(BoulderBloqueForm()))
+            else faces.map { f ->
+                f.lines.map { l ->
+                    BoulderBloqueForm(
+                        name = l.name, grade = l.grade,
+                        startType = startTypeForBoulderUi(l.startType?.toString()),
+                        linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
+                        existingLineId = l.id
+                    )
+                }
+            }
+        )
+    }
     var selectedFace by remember { mutableStateOf(0) }
-    val faceIdx = selectedFace.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
+    val faceIdx = selectedFace.coerceIn(0, (faceBloques.size - 1).coerceAtLeast(0))
     val facePhoto = faces.getOrNull(faceIdx)?.photoPath ?: block.photoPath
     val faceLines = faces.getOrNull(faceIdx)?.lines ?: block.lines
+    val bloques = faceBloques.getOrElse(faceIdx) { listOf(BoulderBloqueForm()) }
+    fun updateFace(transform: (List<BoulderBloqueForm>) -> List<BoulderBloqueForm>) {
+        faceBloques = faceBloques.toMutableList().also { it[faceIdx] = transform(it[faceIdx]) }
+    }
 
-    // Foto NUEVA elegida para mejorar la cara seleccionada (1b). Al elegirla, se
-    // precargan las vías existentes de esa cara para redibujarlas sobre ella, y al
-    // enviar toda la cara se mueve a la imagen nueva.
-    var newPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    // Foto NUEVA por cara (1b): al cambiarla, toda esa cara se moverá a la imagen
+    // nueva al enviar; conviene redibujar sus vías sobre ella.
+    var newPhotoByFace by remember { mutableStateOf<Map<Int, Uri>>(emptyMap()) }
+    val newPhotoUri = newPhotoByFace[faceIdx]
     val photoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) {
-            newPhotoUri = uri
-            // Precarga las vías existentes de la cara (como correcciones) + deja una
-            // fila nueva por si quieren añadir.
-            val existing = faceLines.map { l ->
-                BoulderBloqueForm(
-                    name = l.name, grade = l.grade,
-                    startType = startTypeForBoulderUi(l.startType?.toString()),
-                    linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
-                    existingLineId = l.id
-                )
-            }
-            bloques = if (existing.isEmpty()) listOf(BoulderBloqueForm()) else existing
-        }
-    }
+    ) { uri -> if (uri != null) newPhotoByFace = newPhotoByFace + (faceIdx to uri) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -124,13 +129,14 @@ fun AddLinesFlow(
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.md)
         ) {
-            Text("Añadir vías a la piedra",
+            Text("Editar / corregir vías",
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                "Estás añadiendo bloques nuevos a \"${block.name}\". " +
-                "Las vías existentes no se tocan.",
+                "Edita las vías de \"${block.name}\" por foto: corrige nombre/grado/" +
+                "tipo, redibújalas, cambia la foto de la cara o añade nuevas. " +
+                "Un admin lo revisará (o se publica directo si eres admin).",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -160,20 +166,22 @@ fun AddLinesFlow(
                 Spacer(Modifier.height(Spacing.md))
             }
 
-            // Lista de bloques nuevos
-            Text("NUEVAS VÍAS", style = EyebrowTextStyle,
+            // Vías de ESTA cara (existentes para repintar/corregir + nuevas)
+            Text("VÍAS DE ESTA FOTO", style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
 
             bloques.forEachIndexed { idx, b ->
+                Text(if (b.existingLineId != null) "VÍA EXISTENTE" else "NUEVA",
+                    style = EyebrowTextStyle,
+                    color = if (b.existingLineId != null) MaterialTheme.colorScheme.onSurfaceVariant else Terra)
                 AddLineRow(
                     index = idx,
                     bloque = b,
-                    onUpdate = { upd ->
-                        bloques = bloques.toMutableList().also { it[idx] = upd }
-                    },
-                    onDelete = if (bloques.size > 1) ({
-                        bloques = bloques.toMutableList().also { it.removeAt(idx) }
+                    onUpdate = { upd -> updateFace { it.toMutableList().also { l -> l[idx] = upd } } },
+                    // Solo las nuevas se pueden quitar (el backend no borra existentes).
+                    onDelete = if (b.existingLineId == null) ({
+                        updateFace { it.toMutableList().also { l -> l.removeAt(idx) } }
                     }) else null
                 )
                 Spacer(Modifier.height(Spacing.xs))
@@ -184,11 +192,11 @@ fun AddLinesFlow(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
                     .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable { bloques = bloques + BoulderBloqueForm() }
+                    .clickable { updateFace { it + BoulderBloqueForm() } }
                     .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("+ AÑADIR BLOQUE", style = EyebrowTextStyle,
+                Text("+ AÑADIR VÍA NUEVA", style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
@@ -279,27 +287,37 @@ fun AddLinesFlow(
                             sending = true
                             error = null
                             scope.launch {
-                                val relevant = bloques.filter {
-                                    it.existingLineId != null || it.grade != null || it.name.isNotBlank() || it.linePath.isNotEmpty()
+                                // 1) Sube la foto nueva de las caras que se cambiaron.
+                                val urlByFace = HashMap<Int, String>()
+                                for ((i, uri) in newPhotoByFace) {
+                                    viewModel.uploadBoulderPhoto(FileRef(uri.toString()))
+                                        .getOrNull()?.let { urlByFace[i] = it }
                                 }
-                                val result = if (newPhotoUri != null) {
-                                    // Cambia la foto de la cara: mueve TODAS sus vías a la nueva.
-                                    viewModel.submitEditFaceContribution(
-                                        targetBlockId = block.id,
-                                        targetLat = block.lat,
-                                        targetLon = block.lon,
-                                        currentFacePhoto = facePhoto,
-                                        newPhotoRef = FileRef(newPhotoUri.toString()),
-                                        bloques = relevant
-                                    )
-                                } else {
-                                    viewModel.submitAddLinesContribution(
-                                        targetBlockId = block.id,
-                                        targetLat = block.lat,
-                                        targetLon = block.lon,
-                                        bloques = relevant.map { it.copy(facePhoto = facePhoto) }
-                                    )
+                                // 2) Aplana todas las caras: cada vía con su facePhoto
+                                //    (la nueva si la cara cambió de foto). Vías existentes
+                                //    solo si su cara cambió de foto o si las modificaste;
+                                //    nuevas siempre que tengan algo.
+                                val payload = faceBloques.flatMapIndexed { i, vias ->
+                                    val movedUrl = urlByFace[i]
+                                    val fp = movedUrl ?: (faces.getOrNull(i)?.photoPath ?: block.photoPath)
+                                    vias.mapNotNull { v ->
+                                        val stamped = v.copy(facePhoto = fp)
+                                        if (v.existingLineId != null) {
+                                            val orig = block.lines.firstOrNull { it.id == v.existingLineId }
+                                            val changed = movedUrl != null || orig == null || boulderLineChanged(v, orig)
+                                            if (changed) stamped else null
+                                        } else if (v.grade != null || v.name.isNotBlank() || v.linePath.isNotEmpty()) {
+                                            stamped
+                                        } else null
+                                    }
                                 }
+                                if (payload.isEmpty()) { sending = false; onSuccess(); return@launch }
+                                val result = viewModel.submitBoulderCorrections(
+                                    targetBlockId = block.id,
+                                    targetLat = block.lat,
+                                    targetLon = block.lon,
+                                    bloques = payload
+                                )
                                 if (result.isSuccess) onSuccess()
                                 else {
                                     sending = false
@@ -318,20 +336,20 @@ fun AddLinesFlow(
         }
     }
 
-    // Editor topo sobre la foto de la cara (la NUEVA si la cambiaste). Solo las
-    // vías de esa cara como referencia (no mezcla las de otras caras). Con foto
-    // nueva no se muestran líneas viejas de referencia (la imagen cambió).
+    // Editor topo sobre la foto de la cara (la NUEVA si la cambiaste). Las vías
+    // editables de esta cara YA se dibujan; no se pasan líneas de referencia
+    // aparte (evita duplicar) ni se mezclan las de otras caras.
     val editorPhoto = newPhotoUri ?: facePhoto?.let { Uri.parse(it) }
     if (showTopo && editorPhoto != null) {
         ContributionTopoDialog(
             photoUri = editorPhoto,
             bloques = bloques,
             onSave = { updated ->
-                bloques = updated
+                updateFace { updated }
                 showTopo = false
             },
             onDismiss = { showTopo = false },
-            existingLines = if (newPhotoUri != null) emptyList() else faceLines.toTopoLines()
+            existingLines = emptyList()
         )
     }
 }
@@ -343,6 +361,20 @@ private fun startTypeForBoulderUi(raw: String?): String? = when (raw?.uppercase(
     "JUMP", "LANCE" -> "LANCE"
     "TRAV"          -> "TRAV"
     else            -> null
+}
+
+/** ¿La vía editable difiere de la original del catálogo? */
+private fun boulderLineChanged(b: BoulderBloqueForm, orig: com.meteomontana.android.domain.model.BlockLine): Boolean {
+    if (b.name != orig.name) return true
+    if ((b.grade ?: "") != (orig.grade ?: "")) return true
+    if ((b.startType ?: "") != (startTypeForBoulderUi(orig.startType?.toString()) ?: "")) return true
+    val origPts = com.meteomontana.android.ui.screens.topo.parseLineStroke(orig.linePath).points
+    if (b.linePath.size != origPts.size) return true
+    for (i in b.linePath.indices) {
+        if (kotlin.math.abs(b.linePath[i].x - origPts[i].x) > 0.001f ||
+            kotlin.math.abs(b.linePath[i].y - origPts[i].y) > 0.001f) return true
+    }
+    return false
 }
 
 /** Fila para un bloque/vía nueva: nombre + grado + tipo de inicio + eliminar. */
