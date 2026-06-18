@@ -604,6 +604,14 @@ private struct SchoolMapSection: View {
     private func loadBlocksOnlineOrOffline() async -> [Block] {
         if let online = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id),
            !online.isEmpty {
+            // Si el sitio está guardado offline, refresca su snapshot con lo recién
+            // bajado (bloques + fotos) para que SIN conexión no se vea lo viejo tras
+            // una modificación. Forecast nil = no se toca el ya cacheado.
+            if let repo = AppDependencies.shared.container.savedSchools,
+               (try? await repo.loadOffline(id: school.id)) != nil {
+                try? await repo.saveOffline(school: school, blocks: online, forecast: nil)
+                await ImageCache.prefetch(online.compactMap { $0.photoPath })
+            }
             return online
         }
         // Sin red (o sin bloques en la respuesta): tira del snapshot offline.
