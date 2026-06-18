@@ -323,6 +323,16 @@ class SchoolDetailViewModel @Inject constructor(
                     )
                 }
                 viewModelScope.launch { loadMonthlyStats(school) }
+                // Si el sitio está guardado offline, refresca su snapshot con lo
+                // recién bajado (bloques + forecast) para que SIN conexión nunca
+                // se vean datos viejos tras una modificación. Paridad con iOS.
+                if (success.isSavedOffline && success.blocks.isNotEmpty()) {
+                    viewModelScope.launch {
+                        runCatching {
+                            savedSchoolRepo.saveOffline(success.school, success.blocks, success.forecast)
+                        }
+                    }
+                }
                 success
             } catch (t: Throwable) {
                 SchoolDetailUiState.Error(t.toUserMessage())
