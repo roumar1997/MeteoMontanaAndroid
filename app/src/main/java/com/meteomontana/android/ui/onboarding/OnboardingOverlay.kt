@@ -68,12 +68,19 @@ private val STEPS = listOf(
         "cómo llegar."),
     OnbStep("📅", "PLANIFICA EL FINDE", "La mejor ventana",
         "Ventana óptima del día, mejor día de la semana, comparador de escuelas " +
-        "y selector de días. Marca favoritas y activa la alerta para que te avise " +
-        "cuando vaya a haber buen tiempo."),
-    OnbStep("🧗", "COMUNIDAD Y DIARIO", "Suma a la guía",
-        "Propón escuelas, piedras y sectores, deja notas con foto, sigue a otros " +
-        "escaladores y chatea. Marca las vías que haces y lleva tu diario con tus " +
-        "estadísticas."),
+        "y selector de días para decidir adónde ir."),
+    OnbStep("⭐", "FAVORITAS Y ALERTAS", "No te pierdas el buen día",
+        "Marca tus escuelas favoritas, míralas de un vistazo en el widget de inicio " +
+        "y activa la alerta para que te avise cuando vaya a haber buena ventana."),
+    OnbStep("📓", "TU DIARIO", "Lleva la cuenta",
+        "Marca las vías que encadenas: la app guarda tu diario con tus estadísticas " +
+        "y tu grado máximo, escuela por escuela."),
+    OnbStep("🧗", "SUMA A LA GUÍA", "Comunidad",
+        "Propón escuelas, piedras y sectores nuevos y deja notas con foto. Un admin " +
+        "las revisa antes de publicarlas para toda la comunidad."),
+    OnbStep("💬", "PERFIL, GENTE Y CHAT", "Conecta",
+        "Crea tu perfil, busca y sigue a otros escaladores, mira sus diarios y " +
+        "chatea 1 a 1. Las notificaciones te avisan de seguidores y mensajes."),
     OnbStep("📍", "OFFLINE + UBICACIÓN", "Listo para el monte",
         "Guarda escuelas para verlas SIN cobertura. Te pediremos la ubicación solo " +
         "para ordenar por cercanía y centrar el mapa: se usa en tu móvil, nunca se " +

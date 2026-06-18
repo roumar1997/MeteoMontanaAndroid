@@ -21,9 +21,15 @@ private let onbSteps: [OnbStep] = [
     OnbStep(emoji: "🗺", eyebrow: "MAPA Y TOPOS", title: "Cada piedra, al detalle",
             body: "Abre una escuela y verás parkings, sectores y piedras en el mapa. Toca una piedra y aparece su foto con las VÍAS dibujadas, su grado y cómo llegar."),
     OnbStep(emoji: "📅", eyebrow: "PLANIFICA EL FINDE", title: "La mejor ventana",
-            body: "Ventana óptima del día, mejor día de la semana, comparador de escuelas y selector de días. Marca favoritas y activa la alerta para que te avise cuando vaya a haber buen tiempo."),
-    OnbStep(emoji: "🧗", eyebrow: "COMUNIDAD Y DIARIO", title: "Suma a la guía",
-            body: "Propón escuelas, piedras y sectores, deja notas con foto, sigue a otros escaladores y chatea. Marca las vías que haces y lleva tu diario con tus estadísticas."),
+            body: "Ventana óptima del día, mejor día de la semana, comparador de escuelas y selector de días para decidir adónde ir."),
+    OnbStep(emoji: "⭐", eyebrow: "FAVORITAS Y ALERTAS", title: "No te pierdas el buen día",
+            body: "Marca tus escuelas favoritas, míralas de un vistazo en el widget de inicio y activa la alerta para que te avise cuando vaya a haber buena ventana."),
+    OnbStep(emoji: "📓", eyebrow: "TU DIARIO", title: "Lleva la cuenta",
+            body: "Marca las vías que encadenas: la app guarda tu diario con tus estadísticas y tu grado máximo, escuela por escuela."),
+    OnbStep(emoji: "🧗", eyebrow: "SUMA A LA GUÍA", title: "Comunidad",
+            body: "Propón escuelas, piedras y sectores nuevos y deja notas con foto. Un admin las revisa antes de publicarlas para toda la comunidad."),
+    OnbStep(emoji: "💬", eyebrow: "PERFIL, GENTE Y CHAT", title: "Conecta",
+            body: "Crea tu perfil, busca y sigue a otros escaladores, mira sus diarios y chatea 1 a 1. Las notificaciones te avisan de seguidores y mensajes."),
     OnbStep(emoji: "📍", eyebrow: "OFFLINE + UBICACIÓN", title: "Listo para el monte",
             body: "Guarda escuelas para verlas SIN cobertura. Te pediremos la ubicación solo para ordenar por cercanía y centrar el mapa: se usa en tu móvil, nunca se comparte.")
 ]
