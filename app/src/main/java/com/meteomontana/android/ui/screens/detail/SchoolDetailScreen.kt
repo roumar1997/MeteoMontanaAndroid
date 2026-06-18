@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
@@ -69,6 +70,21 @@ fun SchoolDetailScreen(
             isSavedOffline = success?.isSavedOffline ?: false,
             showSaveOffline = success != null,
             onToggleSaveOffline = viewModel::toggleSaveOffline,
+            onDirections = if (success != null) {
+                {
+                    val s = success.school
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(
+                                    "https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}"
+                                )
+                            )
+                        )
+                    }
+                }
+            } else null,
             onShare = if (success != null) {
                 {
                     // Con forecast → card de imagen (más viral en WhatsApp);
@@ -143,6 +159,7 @@ private fun TopBar(
     isSavedOffline: Boolean = false,
     showSaveOffline: Boolean = false,
     onToggleSaveOffline: () -> Unit = {},
+    onDirections: (() -> Unit)? = null,
     onShare: (() -> Unit)? = null
 ) {
     Row(
@@ -156,6 +173,12 @@ private fun TopBar(
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(start = Spacing.xs).weight(1f))
+        if (onDirections != null) {
+            IconButton(onClick = onDirections) {
+                Icon(Icons.Outlined.Place, contentDescription = "Cómo llegar",
+                    tint = MaterialTheme.colorScheme.onBackground)
+            }
+        }
         if (onShare != null) {
             IconButton(onClick = onShare) {
                 Icon(Icons.Outlined.Share, contentDescription = "Compartir",

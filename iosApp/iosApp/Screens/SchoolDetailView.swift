@@ -230,6 +230,16 @@ struct SchoolDetailView: View {
                     }
                 }
             }
+            // Cómo llegar (Google Maps, cae a Apple Maps) — ruta directa a la escuela.
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!
+                    let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(school.lat),\(school.lon)")!
+                    UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
+                } label: {
+                    Image(systemName: "arrow.triangle.turn.up.right.diamond").foregroundStyle(Cumbre.ink3)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { vm.toggleFavorite(schoolId: school.id) } label: {
                     Image(systemName: vm.isFavorite ? "star.fill" : "star")
