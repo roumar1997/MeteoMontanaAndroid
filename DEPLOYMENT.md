@@ -440,6 +440,49 @@ Sin urgencia, pero conviene antes de Play Store:
   - `RESEND_API_KEY` + `RESEND_FROM` (los emails de aprobado/rechazado solo se mandan si están definidas).
   - `FIREBASE_STORAGE_BUCKET` (usa el default `climbingteams.firebasestorage.app` si no se pone).
 
+#### 🔒 Rate limiting — HACER ANTES DE PUBLICAR (no hay ninguno hoy)
+
+**Por qué:** hoy cualquiera puede martillear la API (endpoints públicos y de
+escritura) sin límite. Con el pool de Postgres en **5 conexiones**, un bot o un
+pico puede **tumbar la API o disparar el coste** (es el tipo de caída ya visto).
+El forecast está cacheado (Caffeine 90 min), el resto no.
+
+**Límites calibrados al uso real de la app** (abrir la app = ráfaga de ~30-50
+peticiones en segundos; escrituras pocas y lentas). Devolver **HTTP 429 +
+`Retry-After`** al superarlos:
+
+| Tipo de endpoint | Límite | Clave |
+|---|---|---|
+| Lecturas públicas (catálogo, blocks, forecast, perfil público) | **100 req/min** | por **IP** |
+| Autenticadas de lectura (me, journal, favoritos…) | **120 req/min** | por **uid** |
+| Escrituras (POST/PUT notas, journal, contribuciones) | **20 req/min** | por **uid** |
+| Subida de fotos / proponer piedra (caras) | **8-10 req/min** | por **uid** |
+| Push / chat notify | **30 req/min** | por **uid** |
+
+> Clave por **uid** (no IP) en lo autenticado: varios escaladores comparten IP en
+> el wifi de rocódromos/albergues. NO limitar `/actuator/health` (Railway lo usa
+> para healthchecks).
+
+**Cómo hacerlo — dos capas (empezar por la 1):**
+
+1. **Cloudflare delante de `api.climbingteams.com`** (gratis, 0 código, ~10 min de
+   DNS): proxy naranja + regla "IP > 100 req/min → bloquear 1 min". Trae **DDoS
+   gratis**. Cubre el grueso del riesgo de bots aunque el backend esté saturado.
+   Limitación: es por IP, no distingue usuarios → de ahí la capa 2.
+2. **Bucket4j en Spring** (preciso, por uid): añadir dependencia `bucket4j-core`,
+   un `Filter` que corre DESPUÉS de `FirebaseTokenFilter`, elige la clave (uid si
+   hay sesión, si no IP), aplica el bucket por tipo de ruta y responde **429 +
+   Retry-After**. Token-bucket **en memoria** (hay 1 sola instancia en Railway →
+   no hace falta Redis; si algún día se escala a varias instancias, mover el
+   contador a Redis). Añadir un test del filtro.
+
+**App (cliente):** manejar el **429 con elegancia** (reintento con backoff o aviso
+"espera un momento"), no como error genérico. Hoy lo mostraría como error feo.
+
+**Riesgo del cambio:** límites mal calibrados (demasiado bajos) molestarían a
+usuarios reales → por eso son generosos (≈2× la ráfaga normal). Vigilar que
+`/actuator/health` y los webhooks queden excluidos.
+
 ### Notas para futuras sesiones
 
 - La contraseña de Postgres en producción **NO es la del chat anterior**, fue rotada.
