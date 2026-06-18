@@ -46,7 +46,7 @@ data class CreateBlockLineRequest(
     val startType: String? = null,
     val linePath: String? = null,
     val photoPath: String? = null,
-    val faceOrder: Int? = null
+    val faceOrder: Int = 0
 )
 
 @Serializable
