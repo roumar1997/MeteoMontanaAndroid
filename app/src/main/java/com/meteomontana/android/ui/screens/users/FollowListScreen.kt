@@ -38,9 +38,12 @@ import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.meteomontana.android.domain.model.PublicProfile
+import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
+import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowersUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowingUseCase
 import com.meteomontana.android.domain.usecase.social.RemoveFollowerUseCase
+import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,7 +53,13 @@ import javax.inject.Inject
 
 sealed interface FollowListUiState {
     data object Loading : FollowListUiState
-    data class Success(val items: List<PublicProfile>) : FollowListUiState
+    data class Success(
+        val items: List<PublicProfile>,
+        // uids a los que YO sigo (aceptado) y a los que tengo solicitud pendiente,
+        // para pintar el botón Seguir/Siguiendo/Solicitado de cada fila.
+        val following: Set<String> = emptySet(),
+        val requested: Set<String> = emptySet()
+    ) : FollowListUiState
     data class Error(val message: String) : FollowListUiState
 }
 
@@ -59,10 +68,14 @@ class FollowListViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getFollowers: GetFollowersUseCase,
     private val getFollowing: GetFollowingUseCase,
-    private val removeFollowerUseCase: RemoveFollowerUseCase
+    private val removeFollowerUseCase: RemoveFollowerUseCase,
+    private val followUser: FollowUserUseCase,
+    private val unfollowUser: UnfollowUserUseCase,
+    private val getFollowStatus: GetFollowStatusUseCase
 ) : ViewModel() {
     private val uid: String = checkNotNull(savedStateHandle["uid"])
     private val mode: String = checkNotNull(savedStateHandle["mode"]) // "followers" | "following"
+    val myUid: String? = FirebaseAuth.getInstance().currentUser?.uid
 
     private val _state = MutableStateFlow<FollowListUiState>(FollowListUiState.Loading)
     val state: StateFlow<FollowListUiState> = _state.asStateFlow()
@@ -70,8 +83,7 @@ class FollowListViewModel @Inject constructor(
     val title: String = if (mode == "followers") "Seguidores" else "Siguiendo"
 
     // Solo puedo eliminar seguidores en MI propia lista de "Seguidores".
-    val canRemove: Boolean =
-        mode == "followers" && uid == FirebaseAuth.getInstance().currentUser?.uid
+    val canRemove: Boolean = mode == "followers" && uid == myUid
 
     init { load() }
 
@@ -79,17 +91,64 @@ class FollowListViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = try {
                 val list = if (mode == "followers") getFollowers(uid) else getFollowing(uid)
-                FollowListUiState.Success(list)
+                // Conjunto de a quién sigo YO, para los botones por fila. Si estoy en
+                // MI propia lista de "Siguiendo", esa lista YA es ese conjunto.
+                val following = if (uid == myUid && mode == "following") {
+                    list.map { it.uid }.toSet()
+                } else if (myUid != null) {
+                    runCatching { getFollowing(myUid).map { it.uid }.toSet() }.getOrDefault(emptySet())
+                } else emptySet()
+                FollowListUiState.Success(list, following)
             } catch (t: Throwable) {
                 FollowListUiState.Error(t.toUserMessage())
             }
         }
     }
 
+    private fun updateSuccess(block: (FollowListUiState.Success) -> FollowListUiState.Success) {
+        val cur = _state.value as? FollowListUiState.Success ?: return
+        _state.value = block(cur)
+    }
+
+    /** Sigue / deja de seguir a la persona de la fila (optimista, reconcilia con el backend). */
+    fun toggleFollow(targetUid: String) {
+        if (targetUid == myUid) return
+        val cur = _state.value as? FollowListUiState.Success ?: return
+        if (targetUid in cur.following) {
+            // Dejar de seguir.
+            updateSuccess { it.copy(following = it.following - targetUid) }
+            viewModelScope.launch {
+                runCatching { unfollowUser(targetUid) }
+                    .onFailure { updateSuccess { it.copy(following = it.following + targetUid) } }
+            }
+        } else if (targetUid in cur.requested) {
+            return // ya solicitado: no hago nada (perfil privado pendiente)
+        } else {
+            // Seguir (optimista). Tras la llamada consulto el estado real: si el
+            // perfil es privado quedará en "Solicitado" en vez de "Siguiendo".
+            updateSuccess { it.copy(following = it.following + targetUid) }
+            viewModelScope.launch {
+                runCatching {
+                    followUser(targetUid)
+                    getFollowStatus(targetUid)
+                }.onSuccess { st ->
+                    updateSuccess {
+                        when {
+                            st.iFollowThem -> it.copy(following = it.following + targetUid, requested = it.requested - targetUid)
+                            st.requestPending -> it.copy(following = it.following - targetUid, requested = it.requested + targetUid)
+                            else -> it.copy(following = it.following - targetUid)
+                        }
+                    }
+                }.onFailure {
+                    updateSuccess { it.copy(following = it.following - targetUid) }
+                }
+            }
+        }
+    }
+
     /** Elimina a un seguidor (optimista; si la red falla, recargo la lista). */
     fun removeFollower(followerUid: String) {
-        val cur = _state.value as? FollowListUiState.Success ?: return
-        _state.value = FollowListUiState.Success(cur.items.filter { it.uid != followerUid })
+        updateSuccess { it.copy(items = it.items.filter { p -> p.uid != followerUid }) }
         viewModelScope.launch {
             runCatching { removeFollowerUseCase(followerUid) }.onFailure { load() }
         }
@@ -136,6 +195,10 @@ fun FollowListScreen(
                             UserRow(
                                 u = u,
                                 onClick = { onUserClick(u.uid) },
+                                isMe = u.uid == viewModel.myUid,
+                                iFollow = u.uid in s.following,
+                                requested = u.uid in s.requested,
+                                onToggleFollow = { viewModel.toggleFollow(u.uid) },
                                 onRemove = if (viewModel.canRemove) {
                                     { viewModel.removeFollower(u.uid) }
                                 } else null
@@ -150,12 +213,20 @@ fun FollowListScreen(
 }
 
 @Composable
-private fun UserRow(u: PublicProfile, onClick: () -> Unit, onRemove: (() -> Unit)? = null) {
+private fun UserRow(
+    u: PublicProfile,
+    onClick: () -> Unit,
+    isMe: Boolean = false,
+    iFollow: Boolean = false,
+    requested: Boolean = false,
+    onToggleFollow: () -> Unit = {},
+    onRemove: (() -> Unit)? = null
+) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (u.photoUrl != null) {
             AsyncImage(model = u.photoUrl, contentDescription = null,
@@ -172,27 +243,48 @@ private fun UserRow(u: PublicProfile, onClick: () -> Unit, onRemove: (() -> Unit
             val uBio = u.bio
             if (!uBio.isNullOrBlank()) {
                 Text(uBio, style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
+        // Botón seguir/siguiendo/solicitado — en cualquier lista (también de otros),
+        // para poder seguir desde aquí sin entrar al perfil. No para mí mismo.
+        if (!isMe) {
+            val label = when {
+                iFollow   -> "Siguiendo"
+                requested -> "Solicitado"
+                else      -> "Seguir"
+            }
+            RowActionButton(
+                text = label,
+                filled = !iFollow && !requested,
+                enabled = !requested,
+                onClick = onToggleFollow
+            )
+        }
+        // "Eliminar" solo en MI lista de seguidores → fuerza que dejen de seguirme.
         if (onRemove != null) {
-            // "Eliminar" en MI lista de seguidores → fuerza que dejen de seguirme.
-            Box(modifier = Modifier
-                .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                .clickable(onClick = onRemove)
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text("Eliminar", style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onBackground)
-            }
-        } else {
-            val uTopGrade = u.topGrade
-            if (!uTopGrade.isNullOrBlank()) {
-                Text(uTopGrade, style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary)
-            }
+            RowActionButton(text = "Eliminar", filled = false, onClick = onRemove)
         }
+    }
+}
+
+@Composable
+private fun RowActionButton(
+    text: String,
+    filled: Boolean,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    val bg = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val fg = if (filled) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onBackground
+    val borderColor = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+    Box(modifier = Modifier
+        .clip(RoundedCornerShape(2.dp))
+        .background(bg, RoundedCornerShape(2.dp))
+        .border(1.dp, borderColor, RoundedCornerShape(2.dp))
+        .clickable(enabled = enabled, onClick = onClick)
+        .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(text, style = MaterialTheme.typography.labelMedium, color = fg)
     }
 }

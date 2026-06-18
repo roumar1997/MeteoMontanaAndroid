@@ -535,6 +535,24 @@ Lote de feedback de Rodrigo (5 frentes) sobre Android+iOS+backend. Todo en `main
 > cerrada en el Xiaomi requiere conceder el permiso de notificaciones + (MIUI)
 > Inicio automático activado.
 
+**Follow-up (mismo día) — botones de acción en las listas de follow** (Android+iOS):
+en `FollowListScreen`/`FollowListView`, cada fila de Seguidores/Siguiendo (de
+cualquiera) lleva botón **Seguir/Siguiendo/Solicitado** para seguir desde ahí sin
+entrar al perfil; en MI lista de Seguidores además **Eliminar**. El conjunto "a
+quién sigo" se obtiene de `getFollowing(miUid)` (1 llamada; mi propia lista de
+Siguiendo ya ES ese conjunto). Seguir es optimista y reconcilia con
+`getFollowStatus` (perfil privado → "Solicitado"). Sin cambios de backend.
+
+> **PENDIENTE DE DISEÑO — varias fotos por piedra** (idea de Rodrigo, NO implementado):
+> una piedra grande no cabe en una foto → poder añadir VARIAS caras/fotos, cada una
+> con sus líneas y sus vías marcables; al abrir la piedra se scrollea cara a cara;
+> al proponer se añade foto→vías, foto→vías; correcciones por cara (elegir qué foto
+> cambias y sus vías). Propuesta: entidad `block_faces (id, block_id, photo_url,
+> sort_order)` + `block_lines.face_id`; migración = 1 cara por bloque existente;
+> `BlockDto.faces` aditivo (mantener photoUrl/lines = primera cara para PWA/clientes
+> viejos). Fases: 1) backend+lectura, 2) viewer multi-cara, 3) editor/proponer
+> multi-cara, 4) correcciones+admin por cara. Pendiente de OK de Rodrigo.
+
 ### Sesión 2026-06-17 (9) (chat: notificaciones + modelo de privacidad real, seguridad Firestore)
 
 Diagnóstico de Rodrigo: al escribir a otra cuenta NO llegaban notificaciones

@@ -299,37 +299,85 @@ enum FollowListMode { case followers, following }
 @MainActor
 final class FollowListViewModel: ObservableObject {
     @Published var items: [PublicProfile] = []
+    // uids a los que YO sigo (aceptado) / con solicitud pendiente → botón por fila.
+    @Published var following: Set<String> = []
+    @Published var requested: Set<String> = []
     @Published var loading = true
 
     private let getFollowers: GetFollowersUseCase
     private let getFollowing: GetFollowingUseCase
     private let removeFollowerUseCase: RemoveFollowerUseCase
+    private let followUser: FollowUserUseCase
+    private let unfollowUser: UnfollowUserUseCase
+    private let getFollowStatus: GetFollowStatusUseCase
     init(
         getFollowers: GetFollowersUseCase = AppDependencies.shared.container.getFollowers,
         getFollowing: GetFollowingUseCase = AppDependencies.shared.container.getFollowing,
-        removeFollowerUseCase: RemoveFollowerUseCase = AppDependencies.shared.container.removeFollower
+        removeFollowerUseCase: RemoveFollowerUseCase = AppDependencies.shared.container.removeFollower,
+        followUser: FollowUserUseCase = AppDependencies.shared.container.followUser,
+        unfollowUser: UnfollowUserUseCase = AppDependencies.shared.container.unfollowUser,
+        getFollowStatus: GetFollowStatusUseCase = AppDependencies.shared.container.getFollowStatus
     ) {
         self.getFollowers = getFollowers
         self.getFollowing = getFollowing
         self.removeFollowerUseCase = removeFollowerUseCase
+        self.followUser = followUser
+        self.unfollowUser = unfollowUser
+        self.getFollowStatus = getFollowStatus
     }
 
     func load(uid: String, mode: FollowListMode) async {
         loading = true
+        let myUid = AppDependencies.shared.authBridge.currentUid()
         switch mode {
         case .followers: items = (try? await getFollowers.invoke(uid: uid)) ?? []
         case .following: items = (try? await getFollowing.invoke(uid: uid)) ?? []
+        }
+        // Conjunto de a quién sigo YO (para los botones). Mi propia lista de
+        // "Siguiendo" ya ES ese conjunto; si no, lo pido aparte.
+        if uid == myUid && mode == .following {
+            following = Set(items.map { $0.uid })
+        } else if let me = myUid {
+            following = Set(((try? await getFollowing.invoke(uid: me)) ?? []).map { $0.uid })
         }
         loading = false
     }
 
     /// Elimina a un seguidor (optimista; si la red falla, recargo mi lista).
-    func remove(followerUid: String, myUid: String) {
+    func remove(followerUid: String) {
         let backup = items
         items = items.filter { $0.uid != followerUid }
         Task {
             do { try await removeFollowerUseCase.invoke(uid: followerUid) }
             catch { items = backup }
+        }
+    }
+
+    /// Sigue / deja de seguir desde la fila (optimista, reconcilia con el backend).
+    func toggleFollow(_ targetUid: String) {
+        if following.contains(targetUid) {
+            following.remove(targetUid)
+            Task {
+                do { try await unfollowUser.invoke(uid: targetUid) }
+                catch { following.insert(targetUid) }
+            }
+        } else if requested.contains(targetUid) {
+            return
+        } else {
+            following.insert(targetUid)
+            Task {
+                do {
+                    try await followUser.invoke(uid: targetUid)
+                    let st = try await getFollowStatus.invoke(uid: targetUid)
+                    if st.iFollowThem {
+                        following.insert(targetUid); requested.remove(targetUid)
+                    } else if st.requestPending {
+                        following.remove(targetUid); requested.insert(targetUid)
+                    } else {
+                        following.remove(targetUid)
+                    }
+                } catch { following.remove(targetUid) }
+            }
         }
     }
 }
@@ -339,10 +387,9 @@ struct FollowListView: View {
     let mode: FollowListMode
     @StateObject private var vm = FollowListViewModel()
 
+    private var myUid: String? { AppDependencies.shared.authBridge.currentUid() }
     // Solo puedo eliminar seguidores en MI propia lista de "Seguidores".
-    private var canRemove: Bool {
-        mode == .followers && uid == AppDependencies.shared.authBridge.currentUid()
-    }
+    private var canRemove: Bool { mode == .followers && uid == myUid }
 
     var body: some View {
         Group {
@@ -356,21 +403,20 @@ struct FollowListView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(vm.items, id: \.uid) { u in
-                            HStack(spacing: 0) {
+                            HStack(spacing: 8) {
                                 NavigationLink(destination: PublicProfileView(uid: u.uid)) {
                                     UserRow(profile: u)
                                 }.buttonStyle(.plain)
+                                // Botón seguir/siguiendo/solicitado (también en listas
+                                // de otros, para seguir sin entrar al perfil).
+                                if u.uid != myUid {
+                                    followButton(u.uid)
+                                }
                                 if canRemove {
-                                    Button { vm.remove(followerUid: u.uid, myUid: uid) } label: {
-                                        Text("ELIMINAR").font(Cumbre.mono(10, .bold)).tracking(0.6)
-                                            .foregroundStyle(Cumbre.ink2)
-                                            .padding(.horizontal, 12).padding(.vertical, 6)
-                                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                                    }
-                                    .buttonStyle(.plain)
-                                    .padding(.trailing, 12)
+                                    rowButton("ELIMINAR", filled: false) { vm.remove(followerUid: u.uid) }
                                 }
                             }
+                            .padding(.trailing, 12)
                             Divider().overlay(Cumbre.rule)
                         }
                     }
@@ -381,5 +427,27 @@ struct FollowListView: View {
         .navigationTitle(mode == .followers ? "Seguidores" : "Siguiendo")
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.load(uid: uid, mode: mode) }
+    }
+
+    @ViewBuilder private func followButton(_ targetUid: String) -> some View {
+        let iFollow = vm.following.contains(targetUid)
+        let pending = vm.requested.contains(targetUid)
+        let label = iFollow ? "SIGUIENDO" : (pending ? "SOLICITADO" : "SEGUIR")
+        rowButton(label, filled: !iFollow && !pending, enabled: !pending) {
+            vm.toggleFollow(targetUid)
+        }
+    }
+
+    private func rowButton(_ text: String, filled: Bool, enabled: Bool = true,
+                           action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text).font(Cumbre.mono(10, .bold)).tracking(0.6)
+                .foregroundStyle(filled ? .white : Cumbre.ink2)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(filled ? Cumbre.terra : Color.clear)
+                .overlay(Rectangle().stroke(filled ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
     }
 }
