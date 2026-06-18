@@ -248,6 +248,8 @@ private fun InnerMap(
 
     // Bloque seleccionado (para popup) y bloque al que añadir vías
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
+    // Vía objetivo del deep-link del diario → el detalle abre por su foto/cara.
+    var highlightVia by remember { mutableStateOf<String?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
 
     // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
@@ -263,6 +265,7 @@ private fun InnerMap(
             ?: blocks.firstOrNull { it.name.equals(via, ignoreCase = true) }
         if (target != null) {
             selectedBlock = target
+            highlightVia = via   // el detalle abre por la foto que contiene esta vía
             viewModel.consumeAutoOpenVia()
         }
     }
@@ -457,6 +460,7 @@ private fun InnerMap(
         }
         BlockDetailDialog(
             block = block,
+            highlightVia = highlightVia,
             initiallyTicked = doneLineIds,
             onAddLines = if (block.type == "BLOCK") ({
                 addingLinesTo = block
@@ -499,7 +503,7 @@ private fun InnerMap(
                 selectedBlock = null
                 viewModel.deleteBlock(id) {}
             }) else null,
-            onDismiss = { selectedBlock = null }
+            onDismiss = { selectedBlock = null; highlightVia = null }
         )
     }
 

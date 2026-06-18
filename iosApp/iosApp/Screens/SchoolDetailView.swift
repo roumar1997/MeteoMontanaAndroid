@@ -446,6 +446,7 @@ private struct SchoolMapSection: View {
                 block: b,
                 sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
                 schoolName: school.name,
+                highlightVia: openVia,
                 onEditLines: { editLinesBlock = b },
                 onAssignSector: { assignSectorBlock = b },
                 onDelete: isAdmin ? {
@@ -826,11 +827,28 @@ struct BlockInfoSheet: View {
     let block: Block
     var sectors: [Block] = []
     var schoolName: String? = nil
+    /// Vía objetivo (deep-link del diario): su cara/foto se muestra la primera.
+    var highlightVia: String? = nil
     var onEditLines: (() -> Void)? = nil
     var onAssignSector: (() -> Void)? = nil
     /// Admin: borrar este bloque (piedra/zona/parking) directamente.
     var onDelete: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
+
+    /// Caras de la piedra; la que contiene la vía del deep-link va primero.
+    private var orderedFaces: [BlockFace] {
+        let faces = block.facesOrDerived()
+        guard let via = highlightVia?.trimmingCharacters(in: .whitespaces), !via.isEmpty else { return faces }
+        if let hit = faces.firstIndex(where: { f in
+            f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(via) == .orderedSame }
+        }), hit > 0 {
+            var arr = faces
+            let f = arr.remove(at: hit)
+            arr.insert(f, at: 0)
+            return arr
+        }
+        return faces
+    }
     @State private var tickedLines: Set<String> = []   // vías marcadas como hechas en esta sesión
     @State private var tickingLine: String?            // vía guardándose ahora
     @State private var showDeleteConfirm = false
@@ -854,45 +872,51 @@ struct BlockInfoSheet: View {
                             .background(Cumbre.ok)
                     }
 
-                    // Foto con las vías dibujadas encima (solo PIEDRA con foto).
-                    if block.type.uppercased() == "BLOCK",
-                       let photo = block.photoPath, !photo.isEmpty {
-                        TopoPhotoView(photoUrl: photo, lines: block.lines.map { TopoLineVM($0) })
-                            .padding(.top, 4)
-                    }
-
-                    if !block.lines.isEmpty {
-                        Text("VÍAS (\(block.lines.count))").eyebrow().padding(.top, 4)
-                        ForEach(Array(block.lines.enumerated()), id: \.element.id) { idx, l in
-                            HStack(spacing: 10) {
-                                // Número coloreado por grado (espejo del badge del topo).
-                                Text("\(idx + 1)").font(Cumbre.mono(11, .bold))
-                                    .foregroundStyle(GradeColor.style(l.grade).dark ? .black : .white)
-                                    .frame(width: 24, height: 24)
-                                    .background(Circle().fill(GradeColor.color(l.grade)))
-                                if let g = l.grade, !g.isEmpty {
-                                    Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
-                                        .frame(width: 38, alignment: .leading)
+                    // CARAS: una piedra grande se enseña con varias fotos. Cada cara
+                    // es una foto con sus vías dibujadas y, debajo, sus vías
+                    // marcables. Una piedra de una sola foto tiene una única cara.
+                    if block.type.uppercased() == "BLOCK" {
+                        ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
+                            if let photo = face.photoPath, !photo.isEmpty {
+                                if orderedFaces.count > 1 {
+                                    Text("FOTO \(faceIdx + 1)").eyebrow().padding(.top, 4)
                                 }
-                                Text(l.name.isEmpty ? "Vía \(idx + 1)" : l.name)
-                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                                Spacer()
-                                if let st = l.startType, !st.isEmpty {
-                                    Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-                                }
-                                // Tic: marca/desmarca la vía en tu diario (toggle).
-                                Button { Task { await toggle(l, index: idx) } } label: {
-                                    if tickingLine == l.id {
-                                        ProgressView().scaleEffect(0.7).frame(width: 28, height: 28)
-                                    } else {
-                                        Image(systemName: tickedLines.contains(l.id) ? "checkmark.circle.fill" : "checkmark.circle")
-                                            .font(.system(size: 20))
-                                            .foregroundStyle(tickedLines.contains(l.id) ? Cumbre.ok : Cumbre.ink3)
-                                            .frame(width: 28, height: 28)
+                                TopoPhotoView(photoUrl: photo, lines: face.lines.map { TopoLineVM($0) })
+                                    .padding(.top, 4)
+                            }
+                            if !face.lines.isEmpty {
+                                Text("VÍAS (\(face.lines.count))").eyebrow().padding(.top, 4)
+                                ForEach(Array(face.lines.enumerated()), id: \.element.id) { idx, l in
+                                    HStack(spacing: 10) {
+                                        Text("\(idx + 1)").font(Cumbre.mono(11, .bold))
+                                            .foregroundStyle(GradeColor.style(l.grade).dark ? .black : .white)
+                                            .frame(width: 24, height: 24)
+                                            .background(Circle().fill(GradeColor.color(l.grade)))
+                                        if let g = l.grade, !g.isEmpty {
+                                            Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
+                                                .frame(width: 38, alignment: .leading)
+                                        }
+                                        Text(l.name.isEmpty ? "Vía \(idx + 1)" : l.name)
+                                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                        Spacer()
+                                        if let st = l.startType, !st.isEmpty {
+                                            Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                                        }
+                                        // Tic: marca/desmarca la vía en tu diario (toggle).
+                                        Button { Task { await toggle(l, index: idx) } } label: {
+                                            if tickingLine == l.id {
+                                                ProgressView().scaleEffect(0.7).frame(width: 28, height: 28)
+                                            } else {
+                                                Image(systemName: tickedLines.contains(l.id) ? "checkmark.circle.fill" : "checkmark.circle")
+                                                    .font(.system(size: 20))
+                                                    .foregroundStyle(tickedLines.contains(l.id) ? Cumbre.ok : Cumbre.ink3)
+                                                    .frame(width: 28, height: 28)
+                                            }
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(tickingLine != nil)
                                     }
                                 }
-                                .buttonStyle(.plain)
-                                .disabled(tickingLine != nil)
                             }
                         }
                     }

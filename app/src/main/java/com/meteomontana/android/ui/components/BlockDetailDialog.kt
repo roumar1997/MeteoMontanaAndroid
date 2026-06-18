@@ -54,6 +54,8 @@ import com.meteomontana.android.ui.theme.gradeStyle
 @Composable
 fun BlockDetailDialog(
     block: Block,
+    /** Vía objetivo (deep-link del diario): su cara/foto se muestra la primera. */
+    highlightVia: String? = null,
     isProposal: Boolean = false,
     onAddLines: (() -> Unit)? = null,
     onEditLine: ((com.meteomontana.android.domain.model.BlockLine) -> Unit)? = null,
@@ -154,11 +156,23 @@ fun BlockDetailDialog(
             // marcables. Se hace scroll de cara en cara. Una piedra de una sola
             // foto tiene una única cara (idéntico a antes).
             if (block.type == "BLOCK") {
-                block.facesOrDerived().forEachIndexed { faceIdx, face ->
+                // Si venimos de pulsar una vía (deep-link del diario), su foto/cara
+                // va primero para "llevar a la foto correspondiente".
+                val orderedFaces = block.facesOrDerived().let { fs ->
+                    val viaName = highlightVia?.trim()
+                    if (viaName.isNullOrBlank()) fs
+                    else {
+                        val hit = fs.indexOfFirst { f ->
+                            f.lines.any { it.name.trim().equals(viaName, ignoreCase = true) }
+                        }
+                        if (hit > 0) listOf(fs[hit]) + fs.filterIndexed { i, _ -> i != hit } else fs
+                    }
+                }
+                orderedFaces.forEachIndexed { faceIdx, face ->
                     val facePhoto = face.photoPath
                     if (!facePhoto.isNullOrBlank()) {
                         Spacer(Modifier.height(Spacing.sm))
-                        if (block.facesOrDerived().size > 1) {
+                        if (orderedFaces.size > 1) {
                             Text(
                                 "FOTO ${faceIdx + 1}",
                                 style = EyebrowTextStyle,

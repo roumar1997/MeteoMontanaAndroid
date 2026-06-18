@@ -48,6 +48,39 @@ func buildBloquesJson(_ blocks: [BoulderBlockForm]) -> String {
         .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
 }
 
+/// Una CARA de la piedra al proponer: una foto y las vías dibujadas sobre ella.
+struct BoulderFaceForm: Identifiable {
+    let id = UUID()
+    var photo: UIImage? = nil
+    var blocks: [BoulderBlockForm] = [BoulderBlockForm()]
+}
+
+/// Serializa VARIAS caras a un único `bloquesJson` donde cada vía lleva el
+/// `photoUrl` de su cara (el backend agrupa por foto en caras). `photoByFace` =
+/// URL ya subida de cada cara (por id).
+func buildFacesBloquesJson(_ faces: [BoulderFaceForm], photoByFace: [UUID: String?]) -> String {
+    var arr: [[String: Any]] = []
+    var idx = 0
+    for face in faces {
+        let facePhoto = photoByFace[face.id] ?? nil
+        for b in face.blocks {
+            let pts = b.line.map { ["x": $0.x, "y": $0.y] }
+            let linePath = (try? JSONSerialization.data(withJSONObject: pts))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+            arr.append(["idx": idx,
+                        "name": b.name,
+                        "grade": b.grade as Any? ?? NSNull(),
+                        "startType": b.startType as Any? ?? NSNull(),
+                        "linePath": linePath,
+                        "targetLineId": b.existingLineId as Any? ?? NSNull(),
+                        "photoUrl": facePhoto as Any? ?? NSNull()])
+            idx += 1
+        }
+    }
+    return (try? JSONSerialization.data(withJSONObject: arr))
+        .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+}
+
 struct BoulderFormSheet: View {
     let schoolId: String
     let coord: CLLocationCoordinate2D
@@ -57,18 +90,19 @@ struct BoulderFormSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var sectorId: String? = nil
-    @State private var blocks: [BoulderBlockForm] = [BoulderBlockForm()]
+    // Una piedra grande no cabe en una foto → varias CARAS (foto + sus vías).
+    @State private var faces: [BoulderFaceForm] = [BoulderFaceForm()]
+    @State private var selectedFace = 0
     @State private var pickerItem: PhotosPickerItem?
-    @State private var photo: UIImage?
     @State private var showEditor = false
     @State private var sending = false
+
+    private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // La piedra NO lleva nombre: al aprobar/crear se le asigna un
-                    // número automático único en la escuela (se ve en el mapa).
                     Text("A esta piedra se le asignará un número automático al publicarse.")
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
 
@@ -96,39 +130,71 @@ struct BoulderFormSheet: View {
                             .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
                     }
 
-                    // Bloques de la piedra.
-                    Text("BLOQUES EN ESTA PIEDRA").eyebrow()
-                    ForEach(Array(blocks.enumerated()), id: \.element.id) { idx, _ in
-                        BoulderBlockRow(block: $blocks[idx], index: idx,
-                                        onDelete: blocks.count > 1 ? { blocks.remove(at: idx) } : nil)
+                    // ── Caras (fotos) ──────────────────────────────────────────────
+                    Text("FOTOS DE LA PIEDRA").eyebrow()
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(faces.enumerated()), id: \.element.id) { idx, _ in
+                                let on = idx == faceIdx
+                                Button { selectedFace = idx } label: {
+                                    Text("FOTO \(idx + 1)").font(Cumbre.mono(11, .bold))
+                                        .foregroundStyle(on ? .white : Cumbre.ink2)
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .background(on ? Cumbre.terra : Color.clear)
+                                        .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                                }.buttonStyle(.plain)
+                            }
+                            Button { faces.append(BoulderFaceForm()); selectedFace = faces.count - 1 } label: {
+                                Text("+ AÑADIR FOTO").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                    .padding(.horizontal, 10).padding(.vertical, 6)
+                                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            }.buttonStyle(.plain)
+                        }
                     }
-                    Button { blocks.append(BoulderBlockForm()) } label: {
-                        Text("+ AÑADIR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                            .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
-                            .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
-                    }.buttonStyle(.plain)
+                    if faces.count > 1 {
+                        Button {
+                            faces.remove(at: faceIdx); selectedFace = max(0, faceIdx - 1)
+                        } label: {
+                            Text("✕ QUITAR ESTA FOTO").font(Cumbre.mono(10, .bold))
+                                .foregroundStyle(Cumbre.bad)
+                        }.buttonStyle(.plain)
+                    }
 
-                    // Foto + dibujar líneas.
-                    Text("FOTO").eyebrow().padding(.top, 4)
-                    if let photo {
+                    // ── Foto de la cara seleccionada ───────────────────────────────
+                    if let photo = faces[faceIdx].photo {
                         Image(uiImage: photo).resizable().scaledToFit()
                             .frame(maxHeight: 200).clipShape(RoundedRectangle(cornerRadius: 2))
                     }
                     PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Text(photo == nil ? "SELECCIONAR FOTO" : "CAMBIAR FOTO")
+                        Text(faces[faceIdx].photo == nil ? "SELECCIONAR FOTO" : "CAMBIAR FOTO")
                             .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
                             .frame(maxWidth: .infinity).padding(.vertical, 10)
                             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                     }
+
+                    // ── Vías de esta foto ──────────────────────────────────────────
+                    Text("VÍAS EN ESTA FOTO").eyebrow().padding(.top, 4)
+                    ForEach(Array(faces[faceIdx].blocks.enumerated()), id: \.element.id) { idx, _ in
+                        BoulderBlockRow(block: $faces[faceIdx].blocks[idx], index: idx,
+                                        onDelete: faces[faceIdx].blocks.count > 1 ? { faces[faceIdx].blocks.remove(at: idx) } : nil)
+                    }
+                    Button { faces[faceIdx].blocks.append(BoulderBlockForm()) } label: {
+                        Text("+ AÑADIR VÍA").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                            .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                    }.buttonStyle(.plain)
+
+                    // ── Dibujar líneas de esta foto ────────────────────────────────
+                    let hasPhoto = faces[faceIdx].photo != nil
                     Button { showEditor = true } label: {
-                        Text(blocks.contains { !$0.line.isEmpty } ? "✎ EDITAR LÍNEAS" : "✎ DIBUJAR LÍNEAS")
+                        Text(faces[faceIdx].blocks.contains { !$0.line.isEmpty } ? "✎ EDITAR LÍNEAS" : "✎ DIBUJAR LÍNEAS")
                             .font(Cumbre.mono(12, .bold)).tracking(0.6)
-                            .foregroundStyle(photo == nil ? Cumbre.ink3 : .white)
+                            .foregroundStyle(hasPhoto ? .white : Cumbre.ink3)
                             .frame(maxWidth: .infinity).padding(.vertical, 12)
-                            .background(photo == nil ? Color.clear : Cumbre.terra)
-                            .overlay(Rectangle().stroke(photo == nil ? Cumbre.rule : Cumbre.terra, lineWidth: 1))
-                    }.buttonStyle(.plain).disabled(photo == nil)
-                    if photo == nil {
+                            .background(hasPhoto ? Cumbre.terra : Color.clear)
+                            .overlay(Rectangle().stroke(hasPhoto ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                    }.buttonStyle(.plain).disabled(!hasPhoto)
+                    if !hasPhoto {
                         Text("Añade una foto para poder dibujar las líneas.")
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     }
@@ -151,11 +217,13 @@ struct BoulderFormSheet: View {
             guard let item else { return }
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self),
-                   let img = UIImage(data: data) { photo = img }
+                   let img = UIImage(data: data) { faces[faceIdx].photo = img }
             }
         }
         .sheet(isPresented: $showEditor) {
-            if let photo { TopoEditorView(photo: photo, blocks: $blocks) }
+            if faces[faceIdx].photo != nil {
+                TopoEditorView(photo: faces[faceIdx].photo, blocks: $faces[faceIdx].blocks)
+            }
         }
     }
 
@@ -164,28 +232,26 @@ struct BoulderFormSheet: View {
         return s.name.isEmpty ? "Zona" : s.name
     }
 
-    private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label).eyebrow()
-            TextField(ph, text: text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-        }
-    }
-
     private func send() async {
         sending = true
-        var photoUrl: String? = nil
-        if let photo {
-            let path = "contribution-photos/\(schoolId)-\(Int(Date().timeIntervalSince1970)).jpg"
-            photoUrl = try? await StorageUploader.uploadJPEG(photo, path: path)
+        // Sube la foto de cada cara → URL por cara.
+        var photoByFace: [UUID: String?] = [:]
+        for face in faces {
+            if let photo = face.photo {
+                let path = "contribution-photos/\(schoolId)-\(Int(Date().timeIntervalSince1970))-\(face.id.uuidString.prefix(6)).jpg"
+                photoByFace[face.id] = try? await StorageUploader.uploadJPEG(photo, path: path)
+            } else {
+                photoByFace[face.id] = nil
+            }
         }
+        let coverPhoto = faces.compactMap { photoByFace[$0.id] ?? nil }.first
         let req = ContributionRequest(
             type: "BOULDER",
             name: nil,   // el número lo asigna el backend al materializar
             lat: coord.latitude, lon: coord.longitude,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: nil, targetLineId: nil, sectorBlockId: sectorId,
-            photoUrl: photoUrl, bloquesJson: buildBloquesJson(blocks), topoLinesJson: nil)
+            photoUrl: coverPhoto, bloquesJson: buildFacesBloquesJson(faces, photoByFace: photoByFace), topoLinesJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         dismiss()
