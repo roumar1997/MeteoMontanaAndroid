@@ -492,6 +492,34 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-18 (2) (varias fotos por piedra = CARAS + botones follow en listas)
+
+- **Botones de acción en las listas de follow** (Android+iOS): cada fila de
+  Seguidores/Siguiendo (de cualquiera) lleva **Seguir/Siguiendo/Solicitado** para
+  seguir sin entrar al perfil; en MI lista de Seguidores además **Eliminar**.
+  Sin backend (deriva de `getFollowing(miUid)` + reconcilia con `getFollowStatus`).
+- **Multi-foto por piedra (CARAS)** — una piedra grande no cabe en una foto:
+  - **Modelo**: cada vía (`block_lines`) guarda su `photo_path` + `face_order`
+    (V26, aditivo: las vías existentes heredan la foto del bloque = cara 0). Una
+    **cara** = grupo de vías con la misma foto. `BlockDto.faces` agrupa por foto;
+    shared `Block.faces`/`facesOrDerived()` + `BlockLine.photoPath`.
+  - **Contribución**: NO cambia el esquema — cada vía del `bloquesJson` lleva su
+    `photoUrl`; la materialización (`ReviewContributionUseCase`) reparte en caras
+    por orden de aparición. La portada del bloque = primera cara con foto.
+  - **Viewer** (Android `BlockDetailDialog`, iOS `BlockInfoSheet`): pinta cara a
+    cara — FOTO 1 + sus vías marcables, FOTO 2 + las suyas… en scroll.
+  - **Editor** (Android `BoulderFormDialog`/`BoulderFaceForm`, iOS
+    `BoulderFormSheet`/`BoulderFaceForm`): pestañas FOTO 1/2 + "+ AÑADIR FOTO";
+    cada cara su foto, sus vías y su editor de líneas. `submitBoulderFaces…` sube
+    la foto de cada cara y construye el `bloquesJson` con `photoUrl` por vía.
+  - **Deep-link del diario**: al pulsar una vía, su **foto/cara** se muestra la
+    primera (Android `highlightVia`, iOS `BlockInfoSheet.highlightVia`).
+  - **PENDIENTE**: que el **admin** revise propuestas multi-cara **agrupadas por
+    foto** (hoy la card del admin muestra la 1ª foto + todas las vías; al aprobar
+    SÍ se materializan bien las caras). Como Rodrigo (admin) auto-aprueba sus
+    propias propuestas, no bloquea probar el flujo. Añadir editor de "+ vías a una
+    cara concreta" / corregir eligiendo cara también queda para después.
+
 ### Sesión 2026-06-18 (eliminar seguidor + notifs/navegación + push app-cerrada + nº piedra/sector)
 
 Lote de feedback de Rodrigo (5 frentes) sobre Android+iOS+backend. Todo en `main`.
