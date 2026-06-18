@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+import android.net.Uri
 import androidx.compose.ui.geometry.Offset
 import com.meteomontana.android.ui.screens.topo.LineStroke
 import com.meteomontana.android.ui.screens.topo.toJson
@@ -16,6 +17,17 @@ data class BoulderBloqueForm(
     val linePath: List<Offset> = emptyList()
 )
 
+/**
+ * Una CARA de la piedra al proponer: una foto y las vías dibujadas sobre ella.
+ * Una piedra grande no cabe en una foto → se proponen varias caras (foto→vías,
+ * foto→vías). La foto es local (Uri); se sube al enviar.
+ */
+data class BoulderFaceForm(
+    val id: String = UUID.randomUUID().toString(),
+    val photoUri: Uri? = null,
+    val bloques: List<BoulderBloqueForm> = listOf(BoulderBloqueForm())
+)
+
 val BOULDER_GRADES = listOf(
     "3", "4", "5", "5+",
     "6a", "6a+", "6b", "6b+", "6c", "6c+",
@@ -28,13 +40,37 @@ val BOULDER_GRADES = listOf(
 fun List<BoulderBloqueForm>.toBloquesJson(): String {
     val arr = JSONArray()
     forEachIndexed { idx, b ->
-        arr.put(JSONObject().apply {
-            put("idx", idx)
-            put("name", b.name)
-            if (b.grade != null) put("grade", b.grade) else put("grade", JSONObject.NULL)
-            if (b.startType != null) put("startType", b.startType) else put("startType", JSONObject.NULL)
-            put("linePath", LineStroke(b.linePath).toJson())
-        })
+        arr.put(bloqueJson(idx, b, null))
     }
     return arr.toString()
 }
+
+/**
+ * Serializa varias CARAS (foto + sus vías) a un único `bloquesJson` donde cada vía
+ * lleva el `photoUrl` de su cara. El backend agrupa por foto en caras según el
+ * orden de aparición. `photoUrlByFace` = URL ya subida de cada cara (por id).
+ */
+fun facesToBloquesJson(
+    faces: List<BoulderFaceForm>,
+    photoUrlByFace: Map<String, String?>
+): String {
+    val arr = JSONArray()
+    var idx = 0
+    faces.forEach { face ->
+        val facePhoto = photoUrlByFace[face.id]
+        face.bloques.forEach { b ->
+            arr.put(bloqueJson(idx++, b, facePhoto))
+        }
+    }
+    return arr.toString()
+}
+
+private fun bloqueJson(idx: Int, b: BoulderBloqueForm, photoUrl: String?): JSONObject =
+    JSONObject().apply {
+        put("idx", idx)
+        put("name", b.name)
+        if (b.grade != null) put("grade", b.grade) else put("grade", JSONObject.NULL)
+        if (b.startType != null) put("startType", b.startType) else put("startType", JSONObject.NULL)
+        put("linePath", LineStroke(b.linePath).toJson())
+        if (photoUrl != null) put("photoUrl", photoUrl) else put("photoUrl", JSONObject.NULL)
+    }

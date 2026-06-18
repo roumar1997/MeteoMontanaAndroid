@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -135,11 +136,11 @@ fun ProposeContributionFlow(
     var step by remember { mutableStateOf<ProposeStep>(ProposeStep.TypePicker) }
     var boulderMode by remember { mutableStateOf(false) }
 
-    // Estado del borrador BOULDER (elevado aquí para persistir entre BoulderForm y TopoDialog)
+    // Estado del borrador BOULDER (elevado aquí para persistir entre BoulderForm y TopoDialog).
+    // Una piedra puede tener VARIAS CARAS (fotos), cada una con sus vías.
     var boulderName by remember { mutableStateOf("") }
-    var boulderBloques by remember { mutableStateOf(listOf(BoulderBloqueForm())) }
-    var boulderPhotoUri by remember { mutableStateOf<Uri?>(null) }
-    var boulderShowTopo by remember { mutableStateOf(false) }
+    var boulderFaces by remember { mutableStateOf(listOf(BoulderFaceForm())) }
+    var boulderTopoFaceIdx by remember { mutableStateOf<Int?>(null) }  // cara cuyo editor de líneas está abierto
     var boulderSectorBlockId by remember { mutableStateOf<String?>(null) }
 
     // Sectores (ZONE) existentes en la escuela — alimentan el dropdown del BoulderForm.
@@ -227,9 +228,8 @@ fun ProposeContributionFlow(
             },
             onBoulder = {
                 boulderMode = true; pickedType = "BOULDER"
-                boulderBloques = listOf(BoulderBloqueForm())
+                boulderFaces = listOf(BoulderFaceForm())
                 boulderName = ""
-                boulderPhotoUri = null
                 boulderSectorBlockId = null
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
@@ -277,24 +277,19 @@ fun ProposeContributionFlow(
             BoulderFormDialog(
                 lat = s.lat,
                 lon = s.lon,
-                name = boulderName,
-                onNameChange = { boulderName = it },
-                bloques = boulderBloques,
-                onBloquesChange = { boulderBloques = it },
-                photoUri = boulderPhotoUri,
-                onPhotoChange = { boulderPhotoUri = it },
-                onOpenTopo = { boulderShowTopo = true },
+                faces = boulderFaces,
+                onFacesChange = { boulderFaces = it },
+                onOpenTopo = { faceIdx -> boulderTopoFaceIdx = faceIdx },
                 sectorBlocks = sectorBlocks,
                 sectorBlockId = boulderSectorBlockId,
                 onSectorChange = { boulderSectorBlockId = it },
                 onCancel = onDismiss,
                 onSubmit = {
                     scope.launch {
-                        val result = viewModel.submitBoulderContribution(
+                        val result = viewModel.submitBoulderFacesContribution(
                             lat = s.lat, lon = s.lon,
                             name = boulderName,
-                            bloques = boulderBloques,
-                            photoRef = boulderPhotoUri?.let { FileRef(it.toString()) },
+                            faces = boulderFaces,
                             sectorBlockId = boulderSectorBlockId
                         )
                         if (result.isSuccess) step = ProposeStep.Success
@@ -302,16 +297,21 @@ fun ProposeContributionFlow(
                 }
             )
 
-            // Editor topo, se muestra encima del formulario
-            if (boulderShowTopo && boulderPhotoUri != null) {
+            // Editor de líneas de UNA cara (se muestra encima del formulario).
+            val topoIdx = boulderTopoFaceIdx
+            val topoFace = topoIdx?.let { boulderFaces.getOrNull(it) }
+            val topoPhoto = topoFace?.photoUri
+            if (topoIdx != null && topoFace != null && topoPhoto != null) {
                 ContributionTopoDialog(
-                    photoUri = boulderPhotoUri!!,
-                    bloques = boulderBloques,
+                    photoUri = topoPhoto,
+                    bloques = topoFace.bloques,
                     onSave = { updated ->
-                        boulderBloques = updated
-                        boulderShowTopo = false
+                        boulderFaces = boulderFaces.toMutableList().also {
+                            it[topoIdx] = topoFace.copy(bloques = updated)
+                        }
+                        boulderTopoFaceIdx = null
                     },
-                    onDismiss = { boulderShowTopo = false }
+                    onDismiss = { boulderTopoFaceIdx = null }
                 )
             }
         }
@@ -644,13 +644,9 @@ private fun ParkingFormDialog(
 private fun BoulderFormDialog(
     lat: Double,
     lon: Double,
-    name: String,
-    onNameChange: (String) -> Unit,
-    bloques: List<BoulderBloqueForm>,
-    onBloquesChange: (List<BoulderBloqueForm>) -> Unit,
-    photoUri: Uri?,
-    onPhotoChange: (Uri?) -> Unit,
-    onOpenTopo: () -> Unit,
+    faces: List<BoulderFaceForm>,
+    onFacesChange: (List<BoulderFaceForm>) -> Unit,
+    onOpenTopo: (Int) -> Unit,
     sectorBlocks: List<Block>,
     sectorBlockId: String?,
     onSectorChange: (String?) -> Unit,
@@ -659,22 +655,24 @@ private fun BoulderFormDialog(
 ) {
     var sending by remember { mutableStateOf(false) }
     var sectorExpanded by remember { mutableStateOf(false) }
+    var selectedFaceIdx by remember { mutableStateOf(0) }
+    val faceIdx = selectedFaceIdx.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
+    val face = faces.getOrNull(faceIdx) ?: BoulderFaceForm()
+
+    // Actualiza la cara seleccionada.
+    fun updateFace(transform: (BoulderFaceForm) -> BoulderFaceForm) {
+        onFacesChange(faces.toMutableList().also { it[faceIdx] = transform(it[faceIdx]) })
+    }
+
     val photoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri -> if (uri != null) onPhotoChange(uri) }
+    ) { uri -> if (uri != null) updateFace { it.copy(photoUri = uri) } }
 
     CumbreDialog(onDismiss = onCancel, scrollable = true) {
         Text("Nueva piedra",
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(Spacing.xs))
-        Text("Pulsa en el mapa para fijar la posición",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(Spacing.lg))
-
-        // La piedra NO lleva nombre: se le asigna un número automático único en
-        // la escuela al publicarse (se ve en el mapa).
         Text("A esta piedra se le asignará un número automático al publicarse.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -731,60 +729,73 @@ private fun BoulderFormDialog(
             color = MaterialTheme.colorScheme.secondary)
         Spacer(Modifier.height(Spacing.md))
 
-        // ── Bloques ──────────────────────────────────────────────────────────────
-        Text("BLOQUES EN ESTA PIEDRA", style = EyebrowTextStyle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(Spacing.sm))
-
-        bloques.forEachIndexed { idx, bloque ->
-            BloqueRow(
-                index = idx,
-                bloque = bloque,
-                onUpdate = { updated ->
-                    onBloquesChange(bloques.toMutableList().also { it[idx] = updated })
-                },
-                onDelete = if (bloques.size > 1) ({
-                    onBloquesChange(bloques.toMutableList().also { it.removeAt(idx) })
-                }) else null
-            )
-            Spacer(Modifier.height(Spacing.xs))
-        }
-
-        // Botón añadir bloque (borde discontinuo)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                .clickable {
-                    onBloquesChange(bloques + BoulderBloqueForm())
-                }
-                .padding(vertical = Spacing.md),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("+ AÑADIR BLOQUE", style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        Spacer(Modifier.height(Spacing.md))
-
-        // ── Foto ─────────────────────────────────────────────────────────────────
-        Text("FOTO (OPCIONAL)", style = EyebrowTextStyle,
+        // ── Caras (fotos) ─────────────────────────────────────────────────────────
+        // Una piedra grande no cabe en una foto: añade varias fotos, cada una con
+        // sus vías. Pestañas para cambiar de foto; "+ AÑADIR FOTO" crea otra.
+        Text("FOTOS DE LA PIEDRA", style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            itemsIndexed(faces) { idx, _ ->
+                val sel = idx == faceIdx
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .then(if (sel) Modifier.background(Terra) else Modifier)
+                        .border(1.dp, if (sel) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                        .clickable { selectedFaceIdx = idx }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                ) {
+                    Text("FOTO ${idx + 1}", style = EyebrowTextStyle,
+                        color = if (sel) Color.White else MaterialTheme.colorScheme.onSurface)
+                }
+            }
+            item {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                        .clickable {
+                            onFacesChange(faces + BoulderFaceForm())
+                            selectedFaceIdx = faces.size  // selecciona la nueva
+                        }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                ) {
+                    Text("+ AÑADIR FOTO", style = EyebrowTextStyle, color = Terra)
+                }
+            }
+        }
+        if (faces.size > 1) {
+            Spacer(Modifier.height(Spacing.xs))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(2.dp))
+                    .clickable {
+                        val newFaces = faces.toMutableList().also { it.removeAt(faceIdx) }
+                        selectedFaceIdx = (faceIdx - 1).coerceAtLeast(0)
+                        onFacesChange(newFaces)
+                    }
+                    .padding(vertical = Spacing.xs)
+            ) {
+                Text("✕ QUITAR ESTA FOTO", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.error)
+            }
+        }
+        Spacer(Modifier.height(Spacing.md))
 
+        // ── Foto de la cara seleccionada ───────────────────────────────────────────
+        val photoUri = face.photoUri
         if (photoUri != null) {
             Box {
                 AsyncImage(
                     model = photoUri,
-                    contentDescription = "Foto de la piedra",
+                    contentDescription = "Foto ${faceIdx + 1} de la piedra",
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
                         .clip(RoundedCornerShape(2.dp)),
                     contentScale = ContentScale.Crop
                 )
-                // Botón eliminar foto
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -792,12 +803,24 @@ private fun BoulderFormDialog(
                         .size(28.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.error)
-                        .clickable { onPhotoChange(null) },
+                        .clickable { updateFace { it.copy(photoUri = null) } },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✕", color = Color.White,
-                        style = MaterialTheme.typography.labelMedium)
+                    Text("✕", color = Color.White, style = MaterialTheme.typography.labelMedium)
                 }
+            }
+            Spacer(Modifier.height(Spacing.xs))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.small)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    .clickable { photoLauncher.launch("image/*") }
+                    .padding(vertical = Spacing.sm),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("CAMBIAR FOTO", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             Box(
@@ -819,36 +842,50 @@ private fun BoulderFormDialog(
             }
         }
 
-        if (photoUri != null) {
+        Spacer(Modifier.height(Spacing.md))
+
+        // ── Vías de esta foto ──────────────────────────────────────────────────────
+        Text("VÍAS EN ESTA FOTO", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.sm))
+        face.bloques.forEachIndexed { idx, bloque ->
+            BloqueRow(
+                index = idx,
+                bloque = bloque,
+                onUpdate = { updated ->
+                    updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it[idx] = updated }) }
+                },
+                onDelete = if (face.bloques.size > 1) ({
+                    updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it.removeAt(idx) }) }
+                }) else null
+            )
             Spacer(Modifier.height(Spacing.xs))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable { photoLauncher.launch("image/*") }
-                    .padding(vertical = Spacing.sm),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("CAMBIAR FOTO", style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                .clickable { updateFace { f -> f.copy(bloques = f.bloques + BoulderBloqueForm()) } }
+                .padding(vertical = Spacing.md),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("+ AÑADIR VÍA", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        // ── Dibujar líneas ────────────────────────────────────────────────────────
+        // ── Dibujar líneas de esta foto ────────────────────────────────────────────
         Spacer(Modifier.height(Spacing.sm))
-        val hasLines = bloques.any { it.linePath.isNotEmpty() }
+        val hasLines = face.bloques.any { it.linePath.isNotEmpty() }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
                 .then(
-                    if (photoUri != null)
-                        Modifier.background(Terra)
-                    else
-                        Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    if (photoUri != null) Modifier.background(Terra)
+                    else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                 )
-                .clickable(enabled = photoUri != null) { if (photoUri != null) onOpenTopo() }
+                .clickable(enabled = photoUri != null) { if (photoUri != null) onOpenTopo(faceIdx) }
                 .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center
         ) {

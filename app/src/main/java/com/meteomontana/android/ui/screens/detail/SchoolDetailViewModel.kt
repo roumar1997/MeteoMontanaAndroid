@@ -459,6 +459,42 @@ class SchoolDetailViewModel @Inject constructor(
         Unit
     }
 
+    /**
+     * Propone una piedra con VARIAS CARAS (fotos). Sube la foto de cada cara y
+     * construye un único `bloquesJson` donde cada vía lleva el `photoUrl` de su
+     * cara; el backend las agrupa en caras. La portada = primera cara con foto.
+     */
+    suspend fun submitBoulderFacesContribution(
+        lat: Double, lon: Double,
+        name: String?,
+        faces: List<BoulderFaceForm>,
+        sectorBlockId: String? = null
+    ): Result<Unit> = runCatching {
+        val photoUrlByFace = HashMap<String, String?>()
+        for (face in faces) {
+            val uri = face.photoUri
+            photoUrlByFace[face.id] = if (uri != null) {
+                val bytes = fileReader.readBytes(FileRef(uri.toString()))
+                photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
+            } else null
+        }
+        val coverPhoto = faces.firstNotNullOfOrNull { photoUrlByFace[it.id] }
+        val req = ContributionRequest(
+            type = "BOULDER",
+            name = name?.takeIf { it.isNotBlank() },
+            lat = lat, lon = lon,
+            notes = null, description = null,
+            proposedLat = null, proposedLon = null,
+            correctionReason = null, targetBlockId = null, targetLineId = null,
+            sectorBlockId = sectorBlockId,
+            photoUrl = coverPhoto,
+            bloquesJson = facesToBloquesJson(faces, photoUrlByFace),
+            topoLinesJson = null
+        )
+        submitContributionUseCase(schoolId, req)
+        Unit
+    }
+
     /** Propone asignar un sector (ZONE) existente a una piedra (BLOCK) existente. */
     suspend fun submitAssignSectorContribution(
         targetBlockId: String,
