@@ -30,7 +30,8 @@ struct RootView: View {
     @EnvironmentObject private var session: SessionStore
     @ObservedObject private var theme = ThemeManager.shared
     // Onboarding de primera apertura (persistido). Espejo de isOnboardingDone.
-    @AppStorage("onboarding_done_v1") private var onboardingDone = false
+    // v2: tour ampliado (6 pasos). Subir la versión re-muestra el tour una vez.
+    @AppStorage("onboarding_done_v2") private var onboardingDone = false
 
     var body: some View {
         Group {
