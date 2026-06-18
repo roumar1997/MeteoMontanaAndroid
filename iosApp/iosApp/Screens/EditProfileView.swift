@@ -46,10 +46,9 @@ final class EditProfileViewModel: ObservableObject {
         saving = true
         defer { saving = false }
         // Sube la foto nueva a Storage (si la hay) y usa su URL.
-        if let img = pickedImage, let id = uid ?? AppDependencies.shared.authBridge.currentUid() {
+        if let img = pickedImage {
             uploading = true
-            let path = "profile-photos/\(id)-\(Int(Date().timeIntervalSince1970)).jpg"
-            photoUrl = (try? await StorageUploader.uploadJPEG(img, path: path)) ?? photoUrl
+            photoUrl = (try? await StorageUploader.uploadProfilePhoto(img)) ?? photoUrl
             uploading = false
         }
         let req = UpdateProfileRequest(

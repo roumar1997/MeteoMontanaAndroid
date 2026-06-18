@@ -234,12 +234,13 @@ struct BoulderFormSheet: View {
 
     private func send() async {
         sending = true
-        // Sube la foto de cada cara → URL por cara.
+        // Sube la foto de cada cara → URL por cara. Ruta = la que permiten las
+        // reglas de Firebase Storage (`piedra-photos-pending/{uid}_...`); subir a
+        // otra ruta es denegado y la foto se pierde en silencio.
         var photoByFace: [UUID: String?] = [:]
-        for face in faces {
+        for (i, face) in faces.enumerated() {
             if let photo = face.photo {
-                let path = "contribution-photos/\(schoolId)-\(Int(Date().timeIntervalSince1970))-\(face.id.uuidString.prefix(6)).jpg"
-                photoByFace[face.id] = try? await StorageUploader.uploadJPEG(photo, path: path)
+                photoByFace[face.id] = try? await StorageUploader.uploadBoulderPhoto(photo, schoolId: schoolId, index: i)
             } else {
                 photoByFace[face.id] = nil
             }

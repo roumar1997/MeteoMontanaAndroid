@@ -147,8 +147,7 @@ final class SchoolDetailViewModel: ObservableObject {
         publishing = true
         var photoUrl: String?
         if let img = image {
-            let path = "note-photos/\(schoolId)-\(Int(Date().timeIntervalSince1970)).jpg"
-            photoUrl = try? await StorageUploader.uploadJPEG(img, path: path)
+            photoUrl = try? await StorageUploader.uploadNotePhoto(img, schoolId: schoolId)
         }
         _ = try? await createNote.invoke(schoolId: schoolId, text: trimmed, photoUrl: photoUrl)
         await loadNotes(schoolId: schoolId)
