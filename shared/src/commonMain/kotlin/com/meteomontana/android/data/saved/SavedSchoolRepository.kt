@@ -35,27 +35,65 @@ class SavedSchoolRepository(
                 rockType = school.rockType, lat = school.lat, lon = school.lon, savedAt = now
             )
             q.deleteBlocksOfSchool(school.id)
-            blocks.forEach { b ->
-                q.insertBlock(
-                    id = b.id, schoolId = school.id, type = b.type, name = b.name,
-                    lat = b.lat, lon = b.lon, photoPath = b.photoPath, description = b.description,
-                    sectorBlockId = b.sectorBlockId
-                )
-                b.lines.forEach { l ->
-                    q.insertLine(
-                        id = l.id, blockId = b.id, number = l.sortOrder.toLong(),
-                        grade = l.grade, startType = l.startType, name = l.name,
-                        linePath = l.linePath, sortOrder = l.sortOrder.toLong(),
-                        photoPath = l.photoPath, faceOrder = l.faceOrder.toLong()
-                    )
-                }
-            }
+            blocks.forEach { writeBlock(school.id, it) }
             if (forecast != null) {
                 q.upsertForecast(
                     schoolId = school.id,
                     forecastJson = runCatching { ForecastJson.encode(forecast) }.getOrDefault(""),
                     fetchedAt = now
                 )
+            }
+        }
+    }
+
+    /** Inserta un bloque y sus vías (caras incluidas). Debe llamarse DENTRO de
+     *  una transacción. Compartido por saveOffline y el auto-refresh. */
+    private fun writeBlock(schoolId: String, b: Block) {
+        q.insertBlock(
+            id = b.id, schoolId = schoolId, type = b.type, name = b.name,
+            lat = b.lat, lon = b.lon, photoPath = b.photoPath, description = b.description,
+            sectorBlockId = b.sectorBlockId
+        )
+        b.lines.forEach { l ->
+            q.insertLine(
+                id = l.id, blockId = b.id, number = l.sortOrder.toLong(),
+                grade = l.grade, startType = l.startType, name = l.name,
+                linePath = l.linePath, sortOrder = l.sortOrder.toLong(),
+                photoPath = l.photoPath, faceOrder = l.faceOrder.toLong()
+            )
+        }
+    }
+
+    /** ids de las escuelas guardadas offline. */
+    fun savedIds(): List<String> =
+        q.observeAllSchools().executeAsList().map { it.id }
+
+    /**
+     * Re-descarga TODAS las escuelas guardadas y reemplaza su snapshot (bloques +
+     * forecast) para que offline nunca muestre datos viejos (p.ej. piedras ya
+     * borradas). Por escuela: si la red falla se conserva lo guardado (no se
+     * borra); si la red responde (aunque sea lista vacía) se reemplaza con lo
+     * nuevo. Pensado para llamarse al recuperar conexión / abrir la app.
+     */
+    @Throws(Exception::class)
+    suspend fun syncAllSaved(
+        fetchBlocks: suspend (String) -> List<Block>,
+        fetchForecast: suspend (String) -> Forecast?
+    ) {
+        val now = Clock.System.now().toEpochMilliseconds()
+        for (id in savedIds()) {
+            val blocks = runCatching { fetchBlocks(id) }.getOrNull() ?: continue
+            val forecast = runCatching { fetchForecast(id) }.getOrNull()
+            q.transaction {
+                q.deleteBlocksOfSchool(id)
+                blocks.forEach { writeBlock(id, it) }
+                if (forecast != null) {
+                    q.upsertForecast(
+                        schoolId = id,
+                        forecastJson = runCatching { ForecastJson.encode(forecast) }.getOrDefault(""),
+                        fetchedAt = now
+                    )
+                }
             }
         }
     }

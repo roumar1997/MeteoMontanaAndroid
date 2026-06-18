@@ -493,7 +493,7 @@ private struct SchoolMapSection: View {
                 if ok { afterSubmit() }
             }
         }
-        .sheet(isPresented: $showSuccess) { ContributionSuccessSheet() }
+        .sheet(isPresented: $showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
     }
 
     private func afterSubmit() {
@@ -802,12 +802,17 @@ private struct ContributionFormSheet: View {
 
 /// Confirmación tras enviar una propuesta — espejo de SuccessDialog.kt.
 private struct ContributionSuccessSheet: View {
+    // Admin publica directo (auto-aprobado) → el mensaje lo refleja en vez de
+    // decir "la revisaremos en 24-48 h".
+    var isAdmin: Bool = false
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.seal.fill").font(.system(size: 56)).foregroundStyle(Cumbre.ok)
-            Text("¡Propuesta enviada!").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
-            Text("La revisaremos en 24-48 h. Gracias por mejorar el mapa de la comunidad.")
+            Text(isAdmin ? "¡Publicado!" : "¡Propuesta enviada!").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+            Text(isAdmin
+                 ? "Ya está en el mapa para toda la comunidad."
+                 : "La revisaremos en 24-48 h. Gracias por mejorar el mapa de la comunidad.")
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
                 .multilineTextAlignment(.center).padding(.horizontal, 24)
             Button("CERRAR") { dismiss() }

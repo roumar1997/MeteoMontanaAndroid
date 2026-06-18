@@ -69,6 +69,13 @@ class MainActivity : ComponentActivity() {
         val type = intent?.getStringExtra("targetType") ?: return
         val id = intent.getStringExtra("targetId")
         pendingDeepLink.value = DeepLinkTarget(type, id)
+        // Borramos los extras YA usados: al girar el móvil el sistema recrea la
+        // Activity y onCreate vuelve a leer este mismo intent → re-navegaría al
+        // deep-link viejo (p.ej. abría "Solicitudes" en cada rotación). Sin extras
+        // ya no se re-dispara.
+        intent.removeExtra("targetType")
+        intent.removeExtra("targetId")
+        setIntent(intent)
     }
 
     private fun requestNotificationPermissionIfNeeded() {

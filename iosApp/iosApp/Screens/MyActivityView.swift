@@ -184,15 +184,21 @@ struct FollowRequestsView: View {
                      emptyText: "Sin solicitudes de seguimiento.") {
             ForEach(vm.items, id: \.uid) { u in
                 HStack(spacing: 12) {
-                    AvatarCircle(url: u.photoUrl, size: 40)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(u.displayName ?? u.username ?? "Usuario")
-                            .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                        if let n = u.username, !n.isEmpty {
-                            Text("@\(n)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                    // Tocar el avatar/nombre abre el perfil público del solicitante
+                    // (para reconocerlo antes de aceptar/rechazar).
+                    NavigationLink(destination: PublicProfileView(uid: u.uid)) {
+                        HStack(spacing: 12) {
+                            AvatarCircle(url: u.photoUrl, size: 40)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(u.displayName ?? u.username ?? "Usuario")
+                                    .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                                if let n = u.username, !n.isEmpty {
+                                    Text("@\(n)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                                }
+                            }
+                            Spacer()
                         }
-                    }
-                    Spacer()
+                    }.buttonStyle(.plain)
                     Button { vm.respond(u.uid, accept: true) } label: {
                         Image(systemName: "checkmark").foregroundStyle(Cumbre.ok)
                             .frame(width: 36, height: 36).overlay(Rectangle().stroke(Cumbre.ok, lineWidth: 1))

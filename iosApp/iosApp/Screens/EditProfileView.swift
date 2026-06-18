@@ -65,10 +65,13 @@ final class EditProfileViewModel: ObservableObject {
 
 /// Editar perfil — espejo de EditProfileScreen.kt (campos de texto). Cambiar la
 /// foto necesita el bridge de Firebase Storage (pendiente).
+private struct CropCandidate: Identifiable { let id = UUID(); let image: UIImage }
+
 struct EditProfileView: View {
     @StateObject private var vm = EditProfileViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var pickerItem: PhotosPickerItem?
+    @State private var cropCandidate: CropCandidate?
 
     var body: some View {
         ScrollView {
@@ -120,6 +123,14 @@ struct EditProfileView: View {
             }
         }
         .task { await vm.load() }
+        // Tras elegir foto, abre el recortador para encuadrarla antes de fijarla.
+        .fullScreenCover(item: $cropCandidate) { c in
+            ImageCropView(
+                image: c.image,
+                onCancel: { cropCandidate = nil },
+                onDone: { cropped in vm.pickedImage = cropped; cropCandidate = nil }
+            )
+        }
     }
 
     private var avatarPicker: some View {
@@ -151,7 +162,7 @@ struct EditProfileView: View {
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let img = UIImage(data: data) {
-                    vm.pickedImage = img
+                    cropCandidate = CropCandidate(image: img)   // → abre el recortador
                 }
             }
         }

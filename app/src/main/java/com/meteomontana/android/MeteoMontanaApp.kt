@@ -2,6 +2,7 @@ package com.meteomontana.android
 
 import android.app.Application
 import com.meteomontana.android.data.outbox.OutboxFlusher
+import com.meteomontana.android.data.saved.SavedSchoolsSync
 import dagger.hilt.android.HiltAndroidApp
 import org.maplibre.android.MapLibre
 import javax.inject.Inject
@@ -10,10 +11,12 @@ import javax.inject.Inject
 class MeteoMontanaApp : Application() {
 
     @Inject lateinit var outboxFlusher: OutboxFlusher
+    @Inject lateinit var savedSchoolsSync: SavedSchoolsSync
 
     override fun onCreate() {
         super.onCreate()
         MapLibre.getInstance(this)
         outboxFlusher.start()
+        savedSchoolsSync.start()
     }
 }

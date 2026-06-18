@@ -390,4 +390,20 @@ class IosDependencyContainer(
             }
         }
     }
+
+    /**
+     * Refresca TODAS las escuelas guardadas offline (re-descarga bloques +
+     * forecast y reemplaza el snapshot), para que offline no muestre datos
+     * viejos. Llamar al abrir la app y al volver a primer plano. Sin red, cada
+     * escuela conserva lo guardado (no se borra).
+     */
+    suspend fun syncSavedSchools() {
+        val repo = savedSchools ?: return
+        runCatching {
+            repo.syncAllSaved(
+                fetchBlocks = { getBlocks(it) },
+                fetchForecast = { runCatching { getForecast(it) }.getOrNull() }
+            )
+        }
+    }
 }

@@ -26,6 +26,9 @@ struct MeteoMontanaApp: App {
                 .onOpenURL { url in GIDSignIn.sharedInstance.handle(url) }
                 // Al arrancar, sube las vías marcadas sin red que quedaron en cola.
                 .task { try? await AppDependencies.shared.container.flushJournalOutbox() }
+                // Refresca las escuelas guardadas offline (datos al día, sin
+                // tener que pulsar "descargar" de nuevo).
+                .task { await AppDependencies.shared.container.syncSavedSchools() }
                 // Push (APNs/FCM): no-op hasta activarlo (PushManager.enabled).
                 .onAppear {
                     PushManager.shared.registerIfEnabled()
@@ -38,6 +41,7 @@ struct MeteoMontanaApp: App {
             // reintenta subir la cola offline de vías hechas.
             if phase == .active {
                 Task { try? await AppDependencies.shared.container.flushJournalOutbox() }
+                Task { await AppDependencies.shared.container.syncSavedSchools() }
                 ThemeManager.shared.applyToWindows()
             }
         }
