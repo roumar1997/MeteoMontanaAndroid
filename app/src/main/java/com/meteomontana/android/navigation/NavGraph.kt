@@ -15,7 +15,9 @@ sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
     data object Radar    : Tab("radar",    "Radar",    Icons.Outlined.Radar)
 }
 
-val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Radar)
+// Radar (Windy) OCULTO de momento: Windy de pago no asumible hasta validar la
+// app. El código de RadarScreen sigue ahí; reactivar añadiendo Tab.Radar aquí.
+val mainTabs = listOf(Tab.Weather, Tab.Schools)
 
 object Routes {
     const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}"

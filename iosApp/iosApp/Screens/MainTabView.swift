@@ -1,9 +1,10 @@
 import SwiftUI
 
 // Barra de tabs inferior — réplica de MainScreen.kt de Android:
-// Tiempo · Escuelas · Radar. Escuelas es el tab inicial (como en Android).
+// Tiempo · Escuelas. (Radar/Windy OCULTO de momento; RadarView sigue en el
+// código, reactivar añadiendo de nuevo su .tabItem.)
 struct MainTabView: View {
-    @State private var tab = 1 // 0=Tiempo, 1=Escuelas, 2=Radar
+    @State private var tab = 1 // 0=Tiempo, 1=Escuelas
 
     init() {
         // Tab bar con estilo Cumbre: fondo papel, acento terracota.
@@ -22,9 +23,6 @@ struct MainTabView: View {
             SchoolListView()
                 .tabItem { Label("Escuelas", systemImage: "list.bullet") }
                 .tag(1)
-            RadarView()
-                .tabItem { Label("Radar", systemImage: "dot.radiowaves.left.and.right") }
-                .tag(2)
         }
         .tint(Cumbre.terra)
     }
