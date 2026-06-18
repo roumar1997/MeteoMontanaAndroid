@@ -44,6 +44,24 @@ enum TopoParse {
         return Set(arr.compactMap { $0["targetLineId"] as? String }.filter { !$0.isEmpty })
     }
 
+    /// Una vía propuesta con su cara (photoUrl) y a qué vía corrige (targetLineId).
+    struct ProposedVia { let line: TopoLineVM; let photoUrl: String?; let targetLineId: String? }
+
+    /// Parsea `bloquesJson` conservando photoUrl + targetLineId por vía (para que
+    /// el admin compare por cara: foto actual vs propuesta).
+    static func proposedVias(_ bloquesJson: String?) -> [ProposedVia] {
+        guard let bloquesJson, let data = bloquesJson.data(using: .utf8),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { return [] }
+        return arr.enumerated().map { idx, o in
+            let line = TopoLineVM(id: "b\(idx)", name: o["name"] as? String, grade: o["grade"] as? String,
+                                  startType: o["startType"] as? String, points: points(o["linePath"] as? String))
+            let photo = (o["photoUrl"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            let tId = (o["targetLineId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            return ProposedVia(line: line, photoUrl: photo, targetLineId: tId)
+        }
+    }
+
     /// Parsea `[{"x":..,"y":..}, ...]` a puntos normalizados.
     static func points(_ json: String?) -> [CGPoint] {
         guard let json, let data = json.data(using: .utf8),

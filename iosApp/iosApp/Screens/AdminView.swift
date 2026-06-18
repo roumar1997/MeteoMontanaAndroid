@@ -373,30 +373,71 @@ private struct BoulderReviewView: View {
         (targetBlock?.lines ?? []).filter { correctedIds.contains($0.id) }
     }
 
+    // Propuesta agrupada por cara (foto) para comparar ACTUAL vs PROPUESTA.
+    private var proposed: [TopoParse.ProposedVia] { TopoParse.proposedVias(contribution.bloquesJson) }
+    private var faceGroups: [(key: String, vias: [TopoParse.ProposedVia])] {
+        // Agrupa por photoUrl (clave "" si nil) preservando el orden de aparición.
+        var order: [String] = []
+        var map: [String: [TopoParse.ProposedVia]] = [:]
+        for p in proposed {
+            let k = p.photoUrl ?? ""
+            if map[k] == nil { order.append(k) }
+            map[k, default: []].append(p)
+        }
+        return order.map { (key: $0, vias: map[$0] ?? []) }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(header).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
-            if let photo, !photo.isEmpty {
-                // Existentes que no cambian → normales; las que se corrigen, su
-                // versión vieja difuminada; la propuesta/nuevas, sólidas encima.
-                TopoPhotoView(photoUrl: photo, lines: newLines,
-                              normalLines: isNewBoulder ? [] : existingNormal,
-                              referenceLines: oldEdited)
-                if !oldEdited.isEmpty {
-                    Text("- - - vía(s) actual(es) (difuminadas)   ·   ▬ correcciones / nuevas")
-                        .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+
+            if isNewBoulder {
+                // Piedra nueva: foto propuesta + sus líneas.
+                if let photo = contribution.photoUrl, !photo.isEmpty {
+                    TopoPhotoView(photoUrl: photo, lines: newLines)
                 }
-            } else if !newLines.isEmpty {
-                Text("\(newLines.count) vía(s) propuesta(s) (la piedra no tiene foto)")
-                    .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-            }
-            ForEach(Array(editedOriginals.enumerated()), id: \.offset) { _, o in
-                Text("ORIGINAL · \(lineSummary(o.name, o.grade, o.startType))")
-                    .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-            }
-            ForEach(Array(newLines.enumerated()), id: \.offset) { _, l in
-                Text("\(isEditLine ? "PROPUESTA" : "NUEVA") · \(lineSummary(l.name, l.grade, l.startType))")
-                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                ForEach(Array(newLines.enumerated()), id: \.offset) { _, l in
+                    Text("NUEVA · \(lineSummary(l.name, l.grade, l.startType))")
+                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                }
+            } else {
+                // Corrección/edición: una sección por cara con FOTO ACTUAL vs PROPUESTA.
+                let faces = targetBlock?.facesOrDerived() ?? []
+                ForEach(Array(faceGroups.enumerated()), id: \.offset) { _, group in
+                    let targetIds = Set(group.vias.compactMap { $0.targetLineId })
+                    let oldFace = faces.first { f in f.lines.contains { targetIds.contains($0.id) } }
+                        ?? faces.first { ($0.photoPath ?? "") == group.key }
+                        ?? faces.first
+                    let oldPhoto = oldFace?.photoPath ?? targetBlock?.photoPath
+                    let photoChanged = !group.key.isEmpty && group.key != (oldPhoto ?? "")
+                    let proposalPhoto = group.key.isEmpty ? oldPhoto : group.key
+
+                    Divider().overlay(Cumbre.rule)
+                    // FOTO ACTUAL
+                    if let op = oldPhoto, !op.isEmpty {
+                        Text(photoChanged ? "FOTO ACTUAL" : "ACTUAL")
+                            .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                        TopoPhotoView(photoUrl: op, lines: (oldFace?.lines ?? []).map { TopoLineVM($0) })
+                    }
+                    // PROPUESTA
+                    Text(photoChanged ? "FOTO PROPUESTA (NUEVA)" : "PROPUESTA")
+                        .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+                    if let pp = proposalPhoto, !pp.isEmpty {
+                        let keep = photoChanged ? [] :
+                            (oldFace?.lines ?? []).filter { !targetIds.contains($0.id) }.map { TopoLineVM($0) }
+                        TopoPhotoView(photoUrl: pp, lines: keep + group.vias.map { $0.line })
+                    }
+                    // Texto: original → propuesta por vía.
+                    ForEach(Array(group.vias.enumerated()), id: \.offset) { _, v in
+                        if let tid = v.targetLineId, let o = oldFace?.lines.first(where: { $0.id == tid }) {
+                            Text("• \(lineSummary(o.name, o.grade, o.startType))  →  \(lineSummary(v.line.name, v.line.grade, v.line.startType))")
+                                .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink)
+                        } else {
+                            Text("• NUEVA · \(lineSummary(v.line.name, v.line.grade, v.line.startType))")
+                                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                    }
+                }
             }
         }
     }

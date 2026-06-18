@@ -71,6 +71,7 @@ import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.Submission
 import androidx.compose.runtime.key
 import com.meteomontana.android.ui.components.FullScreenMapDialog
+import com.meteomontana.android.ui.components.TopoLine
 import com.meteomontana.android.ui.components.TopoPhotoCanvas
 import com.meteomontana.android.ui.components.parseBloquesJson
 import com.meteomontana.android.ui.components.toTopoLines
@@ -170,76 +171,83 @@ internal fun ContributionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        // ── BOULDER: foto con líneas superpuestas + bloques ─────────────────────
+        // ── BOULDER: revisión por CARA, comparando ACTUAL vs PROPUESTA ──────────
         if (c.type == "BOULDER") {
-            val isEditLine = !c.targetLineId.isNullOrBlank() && !c.targetBlockId.isNullOrBlank()
-            val isAddLines = !isEditLine && !c.targetBlockId.isNullOrBlank()
-            val targetBlock = if (isAddLines || isEditLine)
+            val targetBlock = if (!c.targetBlockId.isNullOrBlank())
                 existingBlocks.firstOrNull { it.id == c.targetBlockId } else null
-            val targetLine = if (isEditLine)
-                targetBlock?.lines?.firstOrNull { it.id == c.targetLineId } else null
+            val proposed = parseProposedVias(c.bloquesJson)
 
-            val photoForCanvas = when {
-                (isAddLines || isEditLine) && targetBlock?.photoPath != null -> targetBlock.photoPath
-                else -> c.photoUrl
-            }
+            if (targetBlock != null && proposed.isNotEmpty()) {
+                // Corrección/edición de una piedra existente: comparamos cara a cara.
+                val existingFaces = targetBlock.facesOrDerived()
+                // Agrupamos la propuesta por foto (cara).
+                val groups = proposed.groupBy { it.photoUrl }
+                groups.forEach { (facePhotoKey, vias) ->
+                    val targetIds = vias.mapNotNull { it.targetLineId }.toSet()
+                    val oldFace = existingFaces.firstOrNull { f -> f.lines.any { it.id in targetIds } }
+                        ?: existingFaces.firstOrNull { it.photoPath == facePhotoKey }
+                        ?: existingFaces.firstOrNull()
+                    val oldPhoto = oldFace?.photoPath ?: targetBlock.photoPath
+                    val photoChanged = !facePhotoKey.isNullOrBlank() && facePhotoKey != oldPhoto
 
-            if (!photoForCanvas.isNullOrBlank()) {
-                Spacer(Modifier.height(Spacing.sm))
-                when {
-                    isEditLine -> {
-                        Text("CORREGIR VÍA \"${targetLine?.name ?: "?"}\" DE \"${targetBlock?.name ?: "?"}\"",
-                            style = EyebrowTextStyle,
-                            color = MaterialTheme.colorScheme.secondary)
+                    Spacer(Modifier.height(Spacing.md))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    Spacer(Modifier.height(Spacing.sm))
+
+                    // FOTO ACTUAL (estado vigente de esa cara).
+                    if (!oldPhoto.isNullOrBlank()) {
+                        Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
+                            style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(Spacing.xs))
+                        TopoPhotoCanvas(
+                            photoUrl = oldPhoto,
+                            lines = (oldFace?.lines ?: emptyList()).toTopoLines()
+                        )
                     }
-                    isAddLines -> {
-                        Text("AÑADIR VÍAS A \"${targetBlock?.name ?: "?"}\"",
-                            style = EyebrowTextStyle,
-                            color = MaterialTheme.colorScheme.secondary)
-                        Spacer(Modifier.height(Spacing.xs))
+
+                    Spacer(Modifier.height(Spacing.sm))
+                    // PROPUESTA (foto nueva si la cambió + líneas resultantes).
+                    Text(if (photoChanged) "FOTO PROPUESTA (NUEVA)" else "PROPUESTA",
+                        style = EyebrowTextStyle, color = Terra)
+                    Spacer(Modifier.height(Spacing.xs))
+                    val proposedLines: List<TopoLine> = if (photoChanged) {
+                        // Foto nueva: el proponente repinta TODAS las vías de la cara.
+                        vias.map { it.toTopoLine() }
+                    } else {
+                        // Misma foto: vías sin tocar + las corregidas/nuevas propuestas.
+                        val keep = (oldFace?.lines ?: emptyList())
+                            .filter { it.id !in targetIds }.toTopoLines()
+                        keep + vias.map { it.toTopoLine() }
                     }
-                }
-                val existingLines = when {
-                    isEditLine -> (targetBlock?.lines ?: emptyList()).toTopoLines()
-                    isAddLines -> (targetBlock?.lines ?: emptyList()).toTopoLines()
-                    else -> emptyList()
-                }
-                val newLines = parseBloquesJson(c.bloquesJson)
-                TopoPhotoCanvas(
-                    photoUrl = photoForCanvas,
-                    lines = existingLines + newLines
-                )
-            }
-            c.bloquesJson?.takeIf { it.isNotBlank() }?.let { json ->
-                Spacer(Modifier.height(Spacing.sm))
-                when {
-                    isEditLine -> {
-                        Text("ORIGINAL", style = EyebrowTextStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(Spacing.xs))
-                        targetLine?.let {
-                            Text(
-                                listOfNotNull(it.name, it.grade,
-                                    it.startType?.toString()).joinToString(" · "),
+                    val propostaPhoto = facePhotoKey ?: oldPhoto ?: ""
+                    if (propostaPhoto.isNotEmpty()) {
+                        TopoPhotoCanvas(photoUrl = propostaPhoto, lines = proposedLines)
+                    }
+
+                    // Texto: qué cambia en cada vía (original → propuesta).
+                    Spacer(Modifier.height(Spacing.xs))
+                    vias.forEach { v ->
+                        val orig = v.targetLineId?.let { id -> oldFace?.lines?.firstOrNull { it.id == id } }
+                        val newTxt = listOfNotNull(v.name, v.grade, v.startType).joinToString(" · ")
+                        if (orig != null) {
+                            val origTxt = listOfNotNull(orig.name, orig.grade, orig.startType?.toString()).joinToString(" · ")
+                            Text("• $origTxt  →  $newTxt",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                color = MaterialTheme.colorScheme.onSurface)
+                        } else {
+                            Text("• NUEVA: $newTxt",
+                                style = MaterialTheme.typography.bodyMedium, color = Terra)
                         }
-                        Spacer(Modifier.height(Spacing.sm))
-                        Text("PROPUESTA", style = EyebrowTextStyle,
-                            color = Terra)
-                        Spacer(Modifier.height(Spacing.xs))
-                        BloquesSummary(json)
                     }
-                    isAddLines -> {
-                        Text("NUEVAS VÍAS PROPUESTAS:",
-                            style = EyebrowTextStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(Spacing.xs))
-                        BloquesSummary(json)
-                    }
-                    else -> BloquesSummary(json)
                 }
+            } else {
+                // Piedra NUEVA (sin bloque destino): foto propuesta + sus líneas.
+                val newPhoto = c.photoUrl
+                if (!newPhoto.isNullOrBlank()) {
+                    Spacer(Modifier.height(Spacing.sm))
+                    TopoPhotoCanvas(photoUrl = newPhoto, lines = parseBloquesJson(c.bloquesJson))
+                }
+                c.bloquesJson?.takeIf { it.isNotBlank() }?.let { BloquesSummary(it) }
             }
         }
 
@@ -502,6 +510,35 @@ internal fun ContributionCard(
             onDismiss = { showFullMap = false }
         )
     }
+}
+
+/** Una vía propuesta en una corrección, con su cara (photoUrl) y a qué vía
+ *  existente corrige (targetLineId, null = nueva). */
+internal data class ProposedVia(
+    val name: String?, val grade: String?, val startType: String?,
+    val points: List<androidx.compose.ui.geometry.Offset>,
+    val photoUrl: String?, val targetLineId: String?
+)
+
+internal fun ProposedVia.toTopoLine(): TopoLine = TopoLine(name, grade, startType, points)
+
+/** Parsea el `bloquesJson` conservando photoUrl y targetLineId por vía. */
+internal fun parseProposedVias(bloquesJson: String?): List<ProposedVia> {
+    if (bloquesJson.isNullOrBlank()) return emptyList()
+    return try {
+        val arr = JSONArray(bloquesJson)
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            ProposedVia(
+                name = o.optString("name").takeIf { it.isNotEmpty() && it != "null" },
+                grade = o.optString("grade").takeIf { it.isNotEmpty() && it != "null" },
+                startType = o.optString("startType").takeIf { it.isNotEmpty() && it != "null" },
+                points = com.meteomontana.android.ui.screens.topo.parseLineStroke(o.optString("linePath")).points,
+                photoUrl = o.optString("photoUrl").takeIf { it.isNotEmpty() && it != "null" },
+                targetLineId = o.optString("targetLineId").takeIf { it.isNotEmpty() && it != "null" }
+            )
+        }
+    } catch (_: Throwable) { emptyList() }
 }
 
 /**
