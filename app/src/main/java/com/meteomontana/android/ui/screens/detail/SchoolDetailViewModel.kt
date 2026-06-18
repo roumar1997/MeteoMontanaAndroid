@@ -555,6 +555,35 @@ class SchoolDetailViewModel @Inject constructor(
         Unit
     }
 
+    /**
+     * Editar una CARA de una piedra: opcionalmente cambia su foto (sube la nueva)
+     * y reenvía TODAS sus vías (existentes como corrección + nuevas) con la foto
+     * resultante, para que la cara entera se mueva a la imagen nueva y se
+     * redibujen las líneas. Si `newPhotoRef` es null, conserva la foto actual.
+     */
+    suspend fun submitEditFaceContribution(
+        targetBlockId: String,
+        targetLat: Double,
+        targetLon: Double,
+        currentFacePhoto: String?,
+        newPhotoRef: FileRef?,
+        bloques: List<BoulderBloqueForm>
+    ): Result<Unit> = runCatching {
+        val facePhoto = if (newPhotoRef != null) {
+            val bytes = fileReader.readBytes(newPhotoRef)
+            photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
+        } else currentFacePhoto
+        val stamped = bloques.map { it.copy(facePhoto = facePhoto) }
+        val req = ContributionRequest(
+            type = "BOULDER", name = null, lat = targetLat, lon = targetLon,
+            notes = null, description = null, proposedLat = null, proposedLon = null,
+            correctionReason = null, targetBlockId = targetBlockId, targetLineId = null,
+            photoUrl = null, bloquesJson = stamped.toBloquesJson(), topoLinesJson = null
+        )
+        submitContributionUseCase(schoolId, req)
+        Unit
+    }
+
     /** Corrección de una vía existente: actualiza nombre/grado/tipo/línea de targetLineId. */
     suspend fun submitEditLineContribution(
         targetBlockId: String,

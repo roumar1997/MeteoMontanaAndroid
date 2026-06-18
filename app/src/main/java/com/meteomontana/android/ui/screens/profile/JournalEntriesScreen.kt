@@ -227,7 +227,9 @@ private fun EntryRow(
                 Text(e.date,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                val eGrade = e.grade
+                // Grado ACTUAL del catálogo (refleja correcciones) o, si no se
+                // pudo resolver, el guardado al marcar la vía.
+                val eGrade = info?.grade ?: e.grade
                 if (!eGrade.isNullOrBlank()) {
                     Box(modifier = Modifier
                         .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))

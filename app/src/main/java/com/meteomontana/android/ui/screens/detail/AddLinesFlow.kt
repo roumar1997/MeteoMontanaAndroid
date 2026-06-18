@@ -2,6 +2,9 @@
 package com.meteomontana.android.ui.screens.detail
 
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.ui.components.toTopoLines
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -83,6 +86,29 @@ fun AddLinesFlow(
     val faceIdx = selectedFace.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
     val facePhoto = faces.getOrNull(faceIdx)?.photoPath ?: block.photoPath
     val faceLines = faces.getOrNull(faceIdx)?.lines ?: block.lines
+
+    // Foto NUEVA elegida para mejorar la cara seleccionada (1b). Al elegirla, se
+    // precargan las vías existentes de esa cara para redibujarlas sobre ella, y al
+    // enviar toda la cara se mueve a la imagen nueva.
+    var newPhotoUri by remember { mutableStateOf<Uri?>(null) }
+    val photoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            newPhotoUri = uri
+            // Precarga las vías existentes de la cara (como correcciones) + deja una
+            // fila nueva por si quieren añadir.
+            val existing = faceLines.map { l ->
+                BoulderBloqueForm(
+                    name = l.name, grade = l.grade,
+                    startType = startTypeForBoulderUi(l.startType?.toString()),
+                    linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
+                    existingLineId = l.id
+                )
+            }
+            bloques = if (existing.isEmpty()) listOf(BoulderBloqueForm()) else existing
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -166,8 +192,37 @@ fun AddLinesFlow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            // Dibujar líneas (solo si la cara elegida tiene foto)
-            if (!facePhoto.isNullOrBlank()) {
+            // Cambiar la foto de esta cara (mejorarla) y redibujar (1b).
+            Spacer(Modifier.height(Spacing.sm))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.small)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    .clickable {
+                        photoLauncher.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }
+                    .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    if (newPhotoUri == null) "CAMBIAR FOTO DE ESTA CARA" else "✓ FOTO NUEVA · ELEGIR OTRA",
+                    style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            if (newPhotoUri != null) {
+                Spacer(Modifier.height(Spacing.xs))
+                Text("Foto nueva: redibuja las vías de esta cara sobre ella antes de enviar.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            // Dibujar líneas (si la cara tiene foto existente o has elegido una nueva)
+            if (!facePhoto.isNullOrBlank() || newPhotoUri != null) {
                 Spacer(Modifier.height(Spacing.sm))
                 val hasLines = bloques.any { it.linePath.isNotEmpty() }
                 Box(
@@ -224,14 +279,27 @@ fun AddLinesFlow(
                             sending = true
                             error = null
                             scope.launch {
-                                val result = viewModel.submitAddLinesContribution(
-                                    targetBlockId = block.id,
-                                    targetLat = block.lat,
-                                    targetLon = block.lon,
-                                    bloques = bloques.filter {
-                                        it.grade != null || it.name.isNotBlank() || it.linePath.isNotEmpty()
-                                    }.map { it.copy(facePhoto = facePhoto) }   // van a la cara elegida
-                                )
+                                val relevant = bloques.filter {
+                                    it.existingLineId != null || it.grade != null || it.name.isNotBlank() || it.linePath.isNotEmpty()
+                                }
+                                val result = if (newPhotoUri != null) {
+                                    // Cambia la foto de la cara: mueve TODAS sus vías a la nueva.
+                                    viewModel.submitEditFaceContribution(
+                                        targetBlockId = block.id,
+                                        targetLat = block.lat,
+                                        targetLon = block.lon,
+                                        currentFacePhoto = facePhoto,
+                                        newPhotoRef = FileRef(newPhotoUri.toString()),
+                                        bloques = relevant
+                                    )
+                                } else {
+                                    viewModel.submitAddLinesContribution(
+                                        targetBlockId = block.id,
+                                        targetLat = block.lat,
+                                        targetLon = block.lon,
+                                        bloques = relevant.map { it.copy(facePhoto = facePhoto) }
+                                    )
+                                }
                                 if (result.isSuccess) onSuccess()
                                 else {
                                     sending = false
@@ -250,20 +318,31 @@ fun AddLinesFlow(
         }
     }
 
-    // Editor topo precargado con la foto de la CARA elegida y solo sus vías como
-    // referencia (no mezcla las de otras caras).
-    if (showTopo && !facePhoto.isNullOrBlank()) {
+    // Editor topo sobre la foto de la cara (la NUEVA si la cambiaste). Solo las
+    // vías de esa cara como referencia (no mezcla las de otras caras). Con foto
+    // nueva no se muestran líneas viejas de referencia (la imagen cambió).
+    val editorPhoto = newPhotoUri ?: facePhoto?.let { Uri.parse(it) }
+    if (showTopo && editorPhoto != null) {
         ContributionTopoDialog(
-            photoUri = Uri.parse(facePhoto),
+            photoUri = editorPhoto,
             bloques = bloques,
             onSave = { updated ->
                 bloques = updated
                 showTopo = false
             },
             onDismiss = { showTopo = false },
-            existingLines = faceLines.toTopoLines()
+            existingLines = if (newPhotoUri != null) emptyList() else faceLines.toTopoLines()
         )
     }
+}
+
+/** STAND/SIT/JUMP/TRAV (backend) → PIE/SIT/LANCE/TRAV (app). */
+private fun startTypeForBoulderUi(raw: String?): String? = when (raw?.uppercase()) {
+    "STAND", "PIE"  -> "PIE"
+    "SIT"           -> "SIT"
+    "JUMP", "LANCE" -> "LANCE"
+    "TRAV"          -> "TRAV"
+    else            -> null
 }
 
 /** Fila para un bloque/vía nueva: nombre + grado + tipo de inicio + eliminar. */

@@ -138,7 +138,8 @@ struct JournalRow: View {
 
     private var leading: some View {
         HStack(spacing: 12) {
-            if let g = entry.grade, !g.isEmpty {
+            // Grado ACTUAL del catálogo (refleja correcciones) o el guardado.
+            if let g = (info?.grade ?? entry.grade), !g.isEmpty {
                 // Texto negro sobre grados claros (≤5c son blancos) para que se lea.
                 Text(g).font(Cumbre.mono(12, .bold))
                     .foregroundStyle(GradeColor.style(g).dark ? .black : .white)

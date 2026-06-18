@@ -575,6 +575,10 @@ struct EditLinesSheet: View {
     @State private var showEditor = false
     @State private var sending = false
     @State private var loaded = false
+    // Foto nueva elegida para una cara (mejorar la imagen). Al cambiarla, TODAS
+    // las vías de esa cara se mueven a la foto nueva y se redibujan sobre ella.
+    @State private var facePicked: [Int: UIImage] = [:]
+    @State private var pickerItem: PhotosPickerItem?
 
     private var faceIdx: Int { min(max(selectedFace, 0), max(0, faceBlocks.count - 1)) }
     private var currentPhoto: String? { facePhotos.indices.contains(faceIdx) ? facePhotos[faceIdx] : nil }
@@ -623,7 +627,23 @@ struct EditLinesSheet: View {
                             .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
                     }.buttonStyle(.plain)
 
-                    if hasPhoto {
+                    // Cambiar la foto de esta cara (mejorarla). Si eliges una nueva,
+                    // todas las vías de la cara se moverán a ella y conviene
+                    // redibujarlas. Si no eres admin, el admin la revisará.
+                    if let img = facePicked[faceIdx] {
+                        Image(uiImage: img).resizable().scaledToFit()
+                            .frame(maxHeight: 160).clipShape(RoundedRectangle(cornerRadius: 2))
+                        Text("Foto nueva — redibuja las líneas sobre ella.")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                        Text(facePicked[faceIdx] == nil ? "CAMBIAR FOTO DE ESTA CARA" : "ELEGIR OTRA FOTO")
+                            .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
+                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+
+                    if hasPhoto || facePicked[faceIdx] != nil {
                         Button { showEditor = true } label: {
                             Text("✎ DIBUJAR / EDITAR SOBRE ESTA FOTO")
                                 .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(.white)
@@ -676,26 +696,56 @@ struct EditLinesSheet: View {
                 }
             }
         }
+        .onChange(of: pickerItem) { _, item in
+            guard let item else { return }
+            let idx = faceIdx
+            Task {
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) { facePicked[idx] = img }
+            }
+        }
         .sheet(isPresented: $showEditor) {
-            // Solo las vías de ESTA cara, sobre SU foto.
+            // Solo las vías de ESTA cara, sobre SU foto (la nueva si la cambiaste).
             if faceBlocks.indices.contains(faceIdx) {
-                TopoEditorView(photoUrl: currentPhoto, blocks: $faceBlocks[faceIdx])
+                if let img = facePicked[faceIdx] {
+                    TopoEditorView(photo: img, blocks: $faceBlocks[faceIdx])
+                } else {
+                    TopoEditorView(photoUrl: currentPhoto, blocks: $faceBlocks[faceIdx])
+                }
             }
         }
     }
 
     private func send() async {
         sending = true
-        // Todas las caras aplanadas: vías existentes modificadas (con su
-        // targetLineId → el backend las corrige) + vías nuevas (sin targetLineId
-        // → las añade). Cada vía lleva su facePhoto → se queda en su cara.
-        let all = faceBlocks.flatMap { $0 }
-        let changedExisting = all.filter { b in
-            guard let id = b.existingLineId, let orig = block.lines.first(where: { $0.id == id }) else { return false }
-            return lineChanged(b, vs: orig)
+        // 1) Sube las fotos nuevas (caras que el usuario cambió) → URL por cara, y
+        //    marca esas caras como "foto cambiada".
+        var newFacePhoto: [Int: String] = [:]
+        for (i, img) in facePicked {
+            if let url = try? await StorageUploader.uploadBoulderPhoto(img, schoolId: schoolId, index: i) {
+                newFacePhoto[i] = url
+            }
         }
-        let newOnes = all.filter { $0.existingLineId == nil && ($0.grade != nil || !$0.name.isEmpty || !$0.line.isEmpty) }
-        let payload = changedExisting + newOnes
+        // 2) Construye el payload por cara. Si la cara cambió de foto, se envían
+        //    TODAS sus vías (existentes como corrección + nuevas) con la foto nueva
+        //    → la cara entera se mueve a la imagen nueva. Si no cambió, solo las
+        //    vías modificadas + las nuevas.
+        var payload: [BoulderBlockForm] = []
+        for (i, faceVias) in faceBlocks.enumerated() {
+            let movedPhoto = newFacePhoto[i]
+            for b in faceVias {
+                var v = b
+                if let p = movedPhoto { v.facePhoto = p }   // mover a la foto nueva
+                let isExisting = v.existingLineId != nil
+                if isExisting {
+                    let orig = block.lines.first { $0.id == v.existingLineId }
+                    let changed = movedPhoto != nil || (orig.map { lineChanged(v, vs: $0) } ?? false)
+                    if changed { payload.append(v) }
+                } else if v.grade != nil || !v.name.isEmpty || !v.line.isEmpty {
+                    payload.append(v)
+                }
+            }
+        }
         guard !payload.isEmpty else { sending = false; dismiss(); onDone(false); return }
 
         let req = ContributionRequest(

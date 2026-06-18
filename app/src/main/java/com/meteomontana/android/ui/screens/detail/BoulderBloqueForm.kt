@@ -17,7 +17,11 @@ data class BoulderBloqueForm(
     val linePath: List<Offset> = emptyList(),
     // Foto (cara) a la que pertenece esta vía. Al corregir/añadir en una piedra
     // multi-foto, mantiene la vía en SU cara (no la mueve a la portada).
-    val facePhoto: String? = null
+    val facePhoto: String? = null,
+    // id de la vía existente que representa esta fila (null = vía nueva). Permite
+    // corregir VARIAS vías existentes en una sola propuesta (el backend las
+    // distingue por este targetLineId por nodo).
+    val existingLineId: String? = null
 )
 
 /**
@@ -77,4 +81,6 @@ private fun bloqueJson(idx: Int, b: BoulderBloqueForm, photoUrl: String?): JSONO
         if (b.startType != null) put("startType", b.startType) else put("startType", JSONObject.NULL)
         put("linePath", LineStroke(b.linePath).toJson())
         if (photoUrl != null) put("photoUrl", photoUrl) else put("photoUrl", JSONObject.NULL)
+        // Si la fila es una vía existente, el backend la CORRIGE (no añade).
+        if (b.existingLineId != null) put("targetLineId", b.existingLineId) else put("targetLineId", JSONObject.NULL)
     }

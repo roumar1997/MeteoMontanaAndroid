@@ -4,8 +4,9 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.JournalSession
 import com.meteomontana.android.domain.repository.BlockRepository
 
-/** Nº de piedra y sector de una vía del diario, resueltos en vivo del catálogo. */
-data class ViaCatalogInfo(val boulderNumber: String?, val sector: String?)
+/** Nº de piedra, sector y grado ACTUAL de una vía del diario, resueltos en vivo
+ *  del catálogo (el grado puede haber cambiado tras una corrección). */
+data class ViaCatalogInfo(val boulderNumber: String?, val sector: String?, val grade: String? = null)
 
 /**
  * Para cada entrada del diario resuelve el **número de piedra** y el **sector**
@@ -48,9 +49,13 @@ class GetJournalViaInfoUseCase(private val blockRepository: BlockRepository) {
                 }
             } ?: candidates.first()
             val sectorName = chosen.sectorBlockId?.let { zonesById[it]?.name }
+            val currentGrade = chosen.lines
+                .firstOrNull { it.name.trim().equals(via, ignoreCase = true) }
+                ?.grade?.takeIf { it.isNotBlank() }
             result[e.id] = ViaCatalogInfo(
                 boulderNumber = chosen.name.takeIf { it.isNotBlank() },
-                sector = sectorName?.takeIf { it.isNotBlank() }
+                sector = sectorName?.takeIf { it.isNotBlank() },
+                grade = currentGrade
             )
         }
         return result
