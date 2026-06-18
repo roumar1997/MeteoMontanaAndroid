@@ -45,7 +45,8 @@ class SavedSchoolRepository(
                     q.insertLine(
                         id = l.id, blockId = b.id, number = l.sortOrder.toLong(),
                         grade = l.grade, startType = l.startType, name = l.name,
-                        linePath = l.linePath, sortOrder = l.sortOrder.toLong()
+                        linePath = l.linePath, sortOrder = l.sortOrder.toLong(),
+                        photoPath = l.photoPath, faceOrder = l.faceOrder.toLong()
                     )
                 }
             }
@@ -120,7 +121,9 @@ class SavedSchoolRepository(
                     BlockLine(
                         id = line.id, name = line.name ?: "",
                         grade = line.grade, startType = line.startType,
-                        linePath = line.linePath, sortOrder = line.sortOrder.toInt()
+                        linePath = line.linePath, sortOrder = line.sortOrder.toInt(),
+                        photoPath = line.photoPath ?: entity.photoPath,
+                        faceOrder = line.faceOrder.toInt()
                     )
                 }
         )

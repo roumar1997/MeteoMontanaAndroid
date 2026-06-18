@@ -43,6 +43,8 @@ CREATE TABLE SavedBlockLine (
     name      TEXT,
     linePath  TEXT,
     sortOrder INTEGER NOT NULL,
+    photoPath TEXT,                      -- foto (cara) sobre la que se dibuja la vía
+    faceOrder INTEGER NOT NULL DEFAULT 0, -- orden de su cara dentro de la piedra
     FOREIGN KEY (blockId) REFERENCES SavedBlock(id) ON DELETE CASCADE
 );
 CREATE INDEX SavedBlockLine_blockId ON SavedBlockLine(blockId);
@@ -94,8 +96,8 @@ linesOfBlocks:
 SELECT * FROM SavedBlockLine WHERE blockId IN ?;
 
 insertLine:
-INSERT OR REPLACE INTO SavedBlockLine(id, blockId, number, grade, startType, name, linePath, sortOrder)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO SavedBlockLine(id, blockId, number, grade, startType, name, linePath, sortOrder, photoPath, faceOrder)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- ─── SavedForecast queries ───────────────────────────────────────────────────
 findForecast:

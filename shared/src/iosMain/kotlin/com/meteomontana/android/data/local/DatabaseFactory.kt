@@ -7,7 +7,7 @@ actual class DatabaseFactory {
     actual fun create(): MeteoMontanaDb {
         val driver = NativeSqliteDriver(
             schema = MeteoMontanaDb.Schema,
-            name = "meteomontana_sql_v4.db"   // v4: SavedBlock.sectorBlockId (vínculo piedra↔sector offline)
+            name = "meteomontana_sql_v5.db"   // v5: SavedBlockLine.photoPath+faceOrder (caras offline)
         )
         return MeteoMontanaDb(driver)
     }

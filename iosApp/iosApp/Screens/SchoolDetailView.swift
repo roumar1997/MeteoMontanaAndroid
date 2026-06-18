@@ -834,19 +834,18 @@ struct BlockInfoSheet: View {
     var onDelete: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
-    /// Caras de la piedra; la que contiene la vía del deep-link va primero.
-    private var orderedFaces: [BlockFace] {
-        let faces = block.facesOrDerived()
-        guard let via = highlightVia?.trimmingCharacters(in: .whitespaces), !via.isEmpty else { return faces }
-        if let hit = faces.firstIndex(where: { f in
+    /// Caras de la piedra, SIEMPRE en el orden en que se introdujeron (FOTO 1,
+    /// FOTO 2…). El deep-link del diario NO reordena: solo hace scroll a la cara
+    /// que contiene la vía pulsada (ver `scrollFaceIndex`).
+    private var orderedFaces: [BlockFace] { block.facesOrDerived() }
+
+    /// Índice de la cara que contiene la vía del deep-link (para hacer scroll a
+    /// ella al abrir). Nil si no hay deep-link o no se encuentra.
+    private var scrollFaceIndex: Int? {
+        guard let via = highlightVia?.trimmingCharacters(in: .whitespaces), !via.isEmpty else { return nil }
+        return orderedFaces.firstIndex { f in
             f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(via) == .orderedSame }
-        }), hit > 0 {
-            var arr = faces
-            let f = arr.remove(at: hit)
-            arr.insert(f, at: 0)
-            return arr
         }
-        return faces
     }
     @State private var tickedLines: Set<String> = []   // vías marcadas como hechas en esta sesión
     @State private var tickingLine: String?            // vía guardándose ahora
@@ -858,6 +857,7 @@ struct BlockInfoSheet: View {
     }
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(typeLabel).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
@@ -876,6 +876,7 @@ struct BlockInfoSheet: View {
                     // marcables. Una piedra de una sola foto tiene una única cara.
                     if block.type.uppercased() == "BLOCK" {
                         ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
+                          VStack(alignment: .leading, spacing: 12) {
                             if let photo = face.photoPath, !photo.isEmpty {
                                 if orderedFaces.count > 1 {
                                     Text("FOTO \(faceIdx + 1)").eyebrow().padding(.top, 4)
@@ -917,6 +918,8 @@ struct BlockInfoSheet: View {
                                     }
                                 }
                             }
+                          }
+                          .id(faceIdx)
                         }
                     }
 
@@ -972,6 +975,15 @@ struct BlockInfoSheet: View {
                 ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) }
             }
             .task { await loadDone() }
+            // Deep-link del diario: hace scroll a la cara que contiene la vía
+            // pulsada (sin reordenar las caras → FOTO 1, FOTO 2… en su orden).
+            .onAppear {
+                guard let i = scrollFaceIndex, i > 0 else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    withAnimation { proxy.scrollTo(i, anchor: .top) }
+                }
+            }
+            }
         }
     }
 

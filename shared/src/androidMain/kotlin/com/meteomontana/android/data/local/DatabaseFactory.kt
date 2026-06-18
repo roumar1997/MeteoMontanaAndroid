@@ -9,7 +9,7 @@ actual class DatabaseFactory(private val context: Context) {
         val driver = AndroidSqliteDriver(
             schema = MeteoMontanaDb.Schema,
             context = context,
-            name = "meteomontana_sql_v4.db"   // v4: SavedBlock.sectorBlockId (vínculo piedra↔sector offline)
+            name = "meteomontana_sql_v5.db"   // v5: SavedBlockLine.photoPath+faceOrder (caras offline)
         )
         return MeteoMontanaDb(driver)
     }
