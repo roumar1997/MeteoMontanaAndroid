@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -169,9 +170,16 @@ fun ContributionTopoDialog(
             // topoAspectRatio que TopoPhotoCanvas) para que las coordenadas
             // normalizadas se vean idénticas en el admin y en los visores.
             var photoRatio by remember(photoUri) { mutableStateOf(4f / 3f) }
+            // La foto ocupa el espacio disponible (weight) acotada por su alto, así
+            // los botones del footer (GUARDAR, etc.) quedan SIEMPRE visibles incluso
+            // con fotos verticales (antes la foto empujaba el footer fuera).
             Box(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+              Box(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxHeight()
                     .aspectRatio(photoRatio)
                     .background(Color.Black)
                     .onSizeChanged { canvasSize = it }
@@ -250,10 +258,8 @@ fun ContributionTopoDialog(
                         startTextPx = 20f to 7f
                     ).forEach { op -> drawOp(op, nc) }
                 }
+              }
             }
-
-            // Spacer flexible para empujar hint + footer al fondo
-            Spacer(modifier = Modifier.weight(1f))
 
             // ── Hint ────────────────────────────────────────────────────────────
             Text(

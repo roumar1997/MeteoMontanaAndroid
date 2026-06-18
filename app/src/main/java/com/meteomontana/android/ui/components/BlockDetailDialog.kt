@@ -335,23 +335,8 @@ fun BlockDetailDialog(
                     )
                 }
             }
-
-            // Botón "✎ CORREGIR VÍA" — solo si hay líneas existentes
-            if (onEditLine != null && block.type == "BLOCK" && !isProposal
-                    && block.lines.isNotEmpty()) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, Terra, RoundedCornerShape(2.dp))
-                        .clickable { showLinePicker = true }
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("✎ CORREGIR VÍA", style = EyebrowTextStyle, color = Terra)
-                }
-            }
+            // (El antiguo botón "✎ CORREGIR VÍA" por vía se quitó: el editor por
+            // cara de arriba ("EDITAR / CORREGIR VÍAS") ya corrige las existentes.)
 
             // Botón "EDITAR" — admin: mover posición, renombrar, editar líneas
             if (onEdit != null && !isProposal) {
