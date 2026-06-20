@@ -501,13 +501,23 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
   `hours.get(0)` era "ahora". Pero Open-Meteo (`forecast_days=7`, sin
   `timezone`) devuelve el array horario **desde las 00:00 GMT de hoy**, así que
   índice 0 = medianoche, no la hora actual.
-- **Fix**: nuevo helper `findNowIndex(hourly)` que localiza el índice de la hora
-  presente comparando con `LocalDateTime.now(UTC)`. Se usa ese índice en
-  `buildCurrent` (temp/hum/viento/lluvia24-72h) y en `pickOptimalWindow` (que
-  además ahora solo mira horas presentes/futuras, `i >= nowIndex`). El array
-  horario que pinta el grid NO se toca → cero regresión en "Próximas 16h".
+- **Fix (2 partes)**:
+  1. **Zona horaria**: la causa de fondo era que `OpenMeteoClient` pedía las
+     horas sin `timezone` → llegaban en **UTC** y la app pintaba el grid con
+     etiquetas UTC (1-2h de desfase con la hora real de Madrid). Ahora se pide
+     `timezone=auto` → Open-Meteo devuelve todo en **hora local del sitio** y
+     `utc_offset_seconds` (añadido a `OpenMeteoResponse`). El grid ya muestra la
+     hora real.
+  2. **Índice "ahora"**: helper `findNowIndex(hourly, utcOffsetSeconds)` que
+     localiza la hora presente comparando con la hora **local** (`now(UTC+offset)`).
+     Se usa en `buildCurrent` (temp/hum/viento/lluvia24-72h) y en
+     `pickOptimalWindow` (que solo mira horas presentes/futuras, `i >= nowIndex`).
+- Ojo: el forecast está cacheado 90 min (Caffeine) por escuela; tras el deploy
+  una escuela ya cacheada puede tardar hasta 90 min en reflejar el cambio (la
+  caché en memoria se vacía al redesplegar Railway, así que en la práctica es
+  inmediato tras el redeploy).
 - Backend compila y `ClimbScoreCalculatorTest` verde. Cambio solo en
-  `MeteoMontanaAPI`. Railway redespliega solo al pushear a `main`.
+  `MeteoMontanaAPI`. Sin tocar la app (Android/iOS) → se ve solo al redesplegar.
 
 ### Sesión 2026-06-18 (2) (varias fotos por piedra = CARAS + botones follow en listas)
 
