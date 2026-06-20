@@ -8,6 +8,26 @@ import Shared
 // (grado + tipo de inicio) + foto + editor de líneas (arrastrar sobre la foto).
 // Envía POST /contributions con photoUrl + bloquesJson.
 
+/// Selector de modalidad de la piedra: BLOQUE (BOULDER) o VÍA (ROUTE).
+/// Reutilizado al proponer/crear piedra y al editarla (admin). Espejo del de Android.
+struct DisciplineSelector: View {
+    @Binding var selected: String
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach([("BOULDER", "BLOQUE"), ("ROUTE", "VÍA")], id: \.0) { value, label in
+                let on = selected == value
+                Button { selected = value } label: {
+                    Text(label).font(Cumbre.mono(12, .bold)).tracking(0.6)
+                        .foregroundStyle(on ? .white : Cumbre.ink)
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(on ? Cumbre.terra : Color.clear)
+                        .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+}
+
 let BOULDER_GRADES = ["3", "4", "5", "5+",
                       "6a", "6a+", "6b", "6b+", "6c", "6c+",
                       "7a", "7a+", "7b", "7b+", "7c", "7c+",
@@ -95,6 +115,7 @@ struct BoulderFormSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var sectorId: String? = nil
+    @State private var discipline = "BOULDER"   // BOULDER (bloque) / ROUTE (vía)
     // Una piedra grande no cabe en una foto → varias CARAS (foto + sus vías).
     @State private var faces: [BoulderFaceForm] = [BoulderFaceForm()]
     @State private var selectedFace = 0
@@ -110,6 +131,12 @@ struct BoulderFormSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("A esta piedra se le asignará un número automático al publicarse.")
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+
+                    // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("MODALIDAD").eyebrow()
+                        DisciplineSelector(selected: $discipline)
+                    }
 
                     if !sectors.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
@@ -257,7 +284,8 @@ struct BoulderFormSheet: View {
             lat: coord.latitude, lon: coord.longitude,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: nil, targetLineId: nil, sectorBlockId: sectorId,
-            photoUrl: coverPhoto, bloquesJson: buildFacesBloquesJson(faces, photoByFace: photoByFace), topoLinesJson: nil)
+            photoUrl: coverPhoto, bloquesJson: buildFacesBloquesJson(faces, photoByFace: photoByFace), topoLinesJson: nil,
+            discipline: discipline)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         dismiss()
@@ -549,7 +577,7 @@ struct AssignSectorSheet: View {
             type: "ASSIGN_SECTOR", name: nil, lat: block.lat, lon: block.lon,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: block.id, targetLineId: nil, sectorBlockId: sectorId,
-            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil)
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false; dismiss(); onDone(ok)
     }
@@ -752,7 +780,7 @@ struct EditLinesSheet: View {
             type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
-            photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil)
+            photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false; dismiss(); onDone(ok)
     }

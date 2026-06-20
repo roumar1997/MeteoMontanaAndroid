@@ -545,17 +545,34 @@ escalada bloque y vía usan escalas distintas). `JournalStatsDto` añade
 - OJO: todas las construcciones posicionales de `Block`/`JournalStats` revisadas;
   los tests con 11 args posicionales siguen válidos (defaults).
 
-**PENDIENTE (próximas fases):**
-- **Fase 3 — Android**: selector "¿BLOQUE o VÍA?" al proponer/crear piedra
-  (`ProposeContributionFlow`/`BoulderBloqueForm`); perfil con 2 contadores
-  (BLOQUES / VÍAS) + 2 grados máx (`ProfileScreen`/`JournalEntriesScreen`);
-  pasar `discipline` al marcar vía (`SchoolDetailViewModel.tickLine` + outbox);
-  admin: editar modalidad en `EditBlockDialog`. Mostrar modalidad en la ficha de
-  piedra. (Offline `SavedBlock` sin columna discipline → de momento BOULDER
-  offline; añadir columna SQLDelight es opcional, baja prioridad.)
-- **Fase 4 — iOS**: réplica EXACTA de lo de Android (paridad). OJO: el
-  `ProfileCache.swift` y cualquier `JournalStats(...)` en Swift necesitarán los
-  nuevos parámetros (SKIE regenera el init).
+**Fase 3 — Android, HECHA (compila; solo falla `default_web_client_id`, recurso
+del google-services real del CI):**
+- `DisciplineSelector` (BLOQUE/VÍA) reutilizable en `ProposeContributionFlow`.
+  Estado `boulderDiscipline` → `submitBoulderFacesContribution(discipline=)`.
+- Perfil propio (`ProfileScreen`) y público (`PublicProfileScreen`): 2 filas de
+  stats → BLOQUES/VÍAS/ESCUELAS + MÁX BLOQUE/MÁX VÍA.
+- `toggleLine`: la entrada de diario hereda `block.discipline`.
+- `EditBlockDialog` (admin): selector MODALIDAD para piedras existentes.
+
+**Fase 4 — iOS, HECHA (pendiente de que compile el CI iOS; sin Mac):**
+- `DisciplineSelector` Swift (espejo). `BoulderFormSheet` (ProposeFlow): @State
+  `discipline` + selector → ContributionRequest. Las 5 construcciones de
+  `ContributionRequest` y las 2 de `CreateBlockRequest` llevan ya `discipline`
+  (SKIE exige todos los params; las no-piedra van `nil`).
+- `AccountView` + `JournalStatsNav` (perfil público): 2 filas BLOQUES/VÍAS/
+  ESCUELAS + MÁX BLOQUE/MÁX VÍA. `ProfileCache.swift` snapshot con los nuevos
+  campos. Tick de vía (`SchoolDetailView`) pasa `block.discipline`. Admin
+  `BlockManageSheet`: selector MODALIDAD.
+- OJO orden SKIE: los init Swift respetan el orden de declaración Kotlin (el
+  campo nuevo va al final en cada uno).
+
+**Pendientes menores (baja prioridad):**
+- Mostrar un badge BLOQUE/VÍA en la ficha de piedra (`BlockDetailDialog`/
+  `BlockInfoSheet`) y en la card del admin al revisar propuestas.
+- Offline `SavedBlock` (SQLDelight) sin columna discipline → offline una piedra
+  se ve como BOULDER hasta recargar online.
+- `JournalView.swift` (sin uso) muestra aún `blockCount` global en su
+  `JournalStatsRow` interno; no se ve (la vista no se usa).
 
 ### Sesión 2026-06-20 — fix temperatura "ahora" del forecast (backend)
 

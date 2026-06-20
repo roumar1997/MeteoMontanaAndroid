@@ -42,7 +42,8 @@ final class JournalViewModel: ObservableObject {
             blockName: blockName.trimmingCharacters(in: .whitespaces),
             grade: grade.nilIfBlank,
             notes: notes.nilIfBlank,
-            date: df.string(from: Date())
+            date: df.string(from: Date()),
+            discipline: nil
         )
         _ = try? await createEntry.invoke(req: req)
         await load()
@@ -624,14 +625,22 @@ struct JournalStatsNav: View {
     let entries: [JournalSession]
     var viaInfo: [String: ViaCatalogInfo] = [:]
     var body: some View {
-        HStack(spacing: 8) {
-            NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries, viaInfo: viaInfo)) {
-                cell("\(stats.blockCount)", "BLOQUES")
-            }.buttonStyle(.plain)
-            NavigationLink(destination: JournalSchoolsView(schools: stats.bySchool, entries: entries, viaInfo: viaInfo)) {
-                cell("\(stats.schoolCount)", "ESCUELAS")
-            }.buttonStyle(.plain)
-            cell(stats.maxGrade ?? "—", "MÁXIMO")
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries, viaInfo: viaInfo)) {
+                    cell("\(stats.boulderCount)", "BLOQUES")
+                }.buttonStyle(.plain)
+                NavigationLink(destination: JournalBlocksListView(title: "Vías", entries: entries, viaInfo: viaInfo)) {
+                    cell("\(stats.routeCount)", "VÍAS")
+                }.buttonStyle(.plain)
+                NavigationLink(destination: JournalSchoolsView(schools: stats.bySchool, entries: entries, viaInfo: viaInfo)) {
+                    cell("\(stats.schoolCount)", "ESCUELAS")
+                }.buttonStyle(.plain)
+            }
+            HStack(spacing: 8) {
+                cell(stats.maxBoulderGrade ?? "—", "MÁX BLOQUE")
+                cell(stats.maxRouteGrade ?? "—", "MÁX VÍA")
+            }
         }
     }
     private func cell(_ v: String, _ l: String) -> some View {

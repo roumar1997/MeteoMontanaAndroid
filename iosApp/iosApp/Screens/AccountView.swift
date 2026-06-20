@@ -87,7 +87,7 @@ final class AccountViewModel: ObservableObject {
         let req = CreateJournalRequest(
             schoolId: schoolId, schoolName: schoolName.nilIfBlank, sector: sector.nilIfBlank,
             blockName: blockName.trimmingCharacters(in: .whitespaces), grade: grade.nilIfBlank,
-            notes: notes.nilIfBlank, date: df.string(from: Date()))
+            notes: notes.nilIfBlank, date: df.string(from: Date()), discipline: nil)
         _ = try? await createEntry.invoke(req: req)
         await reloadJournal()
     }
@@ -368,14 +368,22 @@ private struct AccountJournalStatsNav: View {
     @ObservedObject var vm: AccountViewModel
     var body: some View {
         if let s = vm.stats {
-            HStack(spacing: 8) {
-                NavigationLink(destination: AccountBlocksList(vm: vm)) {
-                    cell("\(s.blockCount)", "BLOQUES")
-                }.buttonStyle(.plain)
-                NavigationLink(destination: AccountSchoolsList(vm: vm)) {
-                    cell("\(s.schoolCount)", "ESCUELAS")
-                }.buttonStyle(.plain)
-                cell(s.maxGrade ?? "—", "GRADO MÁX")
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    NavigationLink(destination: AccountBlocksList(vm: vm)) {
+                        cell("\(s.boulderCount)", "BLOQUES")
+                    }.buttonStyle(.plain)
+                    NavigationLink(destination: AccountBlocksList(vm: vm)) {
+                        cell("\(s.routeCount)", "VÍAS")
+                    }.buttonStyle(.plain)
+                    NavigationLink(destination: AccountSchoolsList(vm: vm)) {
+                        cell("\(s.schoolCount)", "ESCUELAS")
+                    }.buttonStyle(.plain)
+                }
+                HStack(spacing: 8) {
+                    cell(s.maxBoulderGrade ?? "—", "MÁX BLOQUE")
+                    cell(s.maxRouteGrade ?? "—", "MÁX VÍA")
+                }
             }
         }
     }

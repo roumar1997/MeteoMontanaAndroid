@@ -75,13 +75,19 @@ final class ProfileCache {
         let blockCount: Int32, schoolCount: Int32
         let maxGrade: String?
         let bySchool: [SchoolStatSnap]
+        let boulderCount: Int32, routeCount: Int32
+        let maxBoulderGrade: String?, maxRouteGrade: String?
         init(_ s: JournalStats) {
             blockCount = s.blockCount; schoolCount = s.schoolCount
             maxGrade = s.maxGrade; bySchool = s.bySchool.map { SchoolStatSnap($0) }
+            boulderCount = s.boulderCount; routeCount = s.routeCount
+            maxBoulderGrade = s.maxBoulderGrade; maxRouteGrade = s.maxRouteGrade
         }
         func toModel() -> JournalStats {
-            JournalStats(blockCount: blockCount, schoolCount: schoolCount,
-                         maxGrade: maxGrade, bySchool: bySchool.map { $0.toModel() })
+            JournalStats(blockCount: blockCount, boulderCount: boulderCount, routeCount: routeCount,
+                         schoolCount: schoolCount, maxGrade: maxGrade,
+                         maxBoulderGrade: maxBoulderGrade, maxRouteGrade: maxRouteGrade,
+                         bySchool: bySchool.map { $0.toModel() })
         }
     }
 
@@ -96,13 +102,16 @@ final class ProfileCache {
     private struct EntrySnap: Codable {
         let id: String, schoolId: String?, schoolName: String?, sector: String?
         let blockName: String, grade: String?, notes: String?, date: String, createdAt: String
+        let discipline: String
         init(_ e: JournalSession) {
             id = e.id; schoolId = e.schoolId; schoolName = e.schoolName; sector = e.sector
             blockName = e.blockName; grade = e.grade; notes = e.notes; date = e.date; createdAt = e.createdAt
+            discipline = e.discipline
         }
         func toModel() -> JournalSession {
             JournalSession(id: id, schoolId: schoolId, schoolName: schoolName, sector: sector,
-                           blockName: blockName, grade: grade, notes: notes, date: date, createdAt: createdAt)
+                           blockName: blockName, grade: grade, notes: notes, date: date, createdAt: createdAt,
+                           discipline: discipline)
         }
     }
 }

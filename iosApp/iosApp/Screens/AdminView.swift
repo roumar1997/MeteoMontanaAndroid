@@ -887,7 +887,8 @@ private struct SchoolBlocksManageSheet: View {
         let req = CreateBlockRequest(type: b.type, name: b.name,
                                      lat: coord.latitude, lon: coord.longitude,
                                      photoPath: b.photoPath, description: b.descriptionText,
-                                     lines: lines, sectorBlockId: b.sectorBlockId)
+                                     lines: lines, sectorBlockId: b.sectorBlockId,
+                                     discipline: b.discipline)
         _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: b.id, req: req)
         moving = nil
         await reload()
@@ -932,6 +933,7 @@ private struct BlockManageSheet: View {
     @State private var desc: String
     @State private var latText: String
     @State private var lonText: String
+    @State private var discipline: String
     @State private var busy = false
     @State private var confirmDelete = false
 
@@ -942,6 +944,7 @@ private struct BlockManageSheet: View {
         _desc = State(initialValue: block.descriptionText ?? "")
         _latText = State(initialValue: String(format: "%.6f", block.lat))
         _lonText = State(initialValue: String(format: "%.6f", block.lon))
+        _discipline = State(initialValue: block.discipline)
     }
 
     var body: some View {
@@ -955,6 +958,12 @@ private struct BlockManageSheet: View {
                         TextField("Descripción (opcional)", text: $desc, axis: .vertical)
                             .lineLimit(2...5).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                             .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+                    if block.type == "BLOCK" {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("MODALIDAD").eyebrow()
+                            DisciplineSelector(selected: $discipline)
+                        }
                     }
                     field("LATITUD", $latText, "lat")
                     field("LONGITUD", $lonText, "lon")
@@ -1002,7 +1011,8 @@ private struct BlockManageSheet: View {
         let req = CreateBlockRequest(type: block.type, name: name, lat: lat, lon: lon,
                                      photoPath: block.photoPath,
                                      description: trimmed.isEmpty ? nil : trimmed,
-                                     lines: lines, sectorBlockId: block.sectorBlockId)
+                                     lines: lines, sectorBlockId: block.sectorBlockId,
+                                     discipline: block.type == "BLOCK" ? discipline : nil)
         _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: block.id, req: req)
         busy = false; dismiss(); onDone()
     }
