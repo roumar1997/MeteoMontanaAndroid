@@ -492,6 +492,50 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-20 (2) — modalidad Bloque vs Vía por piedra (Fase 1: backend) ✅
+
+Feature nueva: separar en el perfil **BLOQUES** y **VÍAS** (las dos modalidades
+de escalada). Discriminador: **al crear una PIEDRA se elige su modalidad**
+(bloque/vía); todas sus vías (líneas) heredan esa modalidad. Cuando el usuario
+marca una vía hecha, su entrada de diario cuenta como bloque o vía según la
+piedra. Decidido con Rodrigo: piedras existentes = BOULDER por defecto; el admin
+puede cambiar la modalidad de una piedra ya creada (vía el editar bloque).
+
+> ⚠️ **Nomenclatura**: en el código "block/bloque" YA significa "piedra"
+> (`SchoolBlock.Type = BLOCK/PARKING/ZONE`). La modalidad nueva es un concepto
+> APARTE: `SchoolBlock.Discipline = BOULDER (bloque) | ROUTE (vía)`. NO reusar
+> "block" para la modalidad. Etiquetas UI en español: BLOQUE / VÍA.
+
+**Fase 1 — backend (`MeteoMontanaAPI`), HECHA y verificada (compila + tests):**
+- **Migración V27** (`V27__block_discipline.sql`): columna `discipline VARCHAR(16)`
+  en `school_blocks` (NOT NULL default `'BOULDER'`), y nullable en
+  `pending_contributions` y `journal_sessions`.
+- **Dominio** `SchoolBlock`: enum `Discipline {BOULDER, ROUTE}` + campo + getter
+  (constructores viejos siguen valiendo, default BOULDER).
+- **JPA** `SchoolBlockJpaEntity`: campo `discipline` con `setDiscipline` (default
+  BOULDER) → no toca los constructores. Adapter mapea en ambos sentidos.
+- **`SchoolBlockUseCase`**: `CreateBlockRequest.discipline` + `BlockDto.discipline`;
+  `create`/`update` resuelven la modalidad (`parseDiscipline`, default BOULDER).
+  Esto cubre el **admin editando piedras existentes**.
+- **Contribución**: `ContributionRequest.discipline` → `PendingContribution`
+  (nuevo constructor con discipline; el viejo delega con null) → JPA → al
+  materializar (`ReviewContributionUseCase.createBlock`) se fija en la piedra.
+- **Diario**: `JournalSession.discipline` (snapshot) + JPA + adapter;
+  `CreateJournalRequest.discipline`, `JournalSessionDto.discipline`.
+  `JournalStatsDto` ahora trae `boulderCount` + `routeCount` (+ `blockCount` =
+  total, por compat). `statsFor` cuenta ROUTE vs BOULDER.
+- **Retrocompatible**: apps ya instaladas que NO mandan `discipline` → se trata
+  como BOULDER (default en todas las capas). Se puede desplegar sin romper nada.
+
+**PENDIENTE (próximas fases):**
+- **Fase 2 — shared (KMP)**: `Block.discipline`, modelo de stats partido
+  (boulderCount/routeCount), parámetro `discipline` en crear entrada de diario y
+  en proponer piedra; exponer en ambos DI containers.
+- **Fase 3 — Android**: selector "¿BLOQUE o VÍA?" al proponer/crear piedra;
+  perfil con 2 contadores (BLOQUES / VÍAS); pasar modalidad al marcar vía;
+  admin: editar modalidad de piedra existente.
+- **Fase 4 — iOS**: réplica EXACTA de lo de Android (paridad).
+
 ### Sesión 2026-06-20 — fix temperatura "ahora" del forecast (backend)
 
 - **Bug**: en el detalle de escuela la tarjeta grande mostraba una temperatura
