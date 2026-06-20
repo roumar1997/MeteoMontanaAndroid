@@ -370,13 +370,21 @@ private fun StatsRow(
     onSchools: () -> Unit,
     onMax: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        StatCell("BLOQUES", stats.blockCount.toString(), Modifier.weight(1f).clickable(onClick = onBlocks))
-        StatCell("ESCUELAS", stats.schoolCount.toString(), Modifier.weight(1f).clickable(onClick = onSchools))
-        StatCell("MÁXIMO", stats.maxGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
+        // Fila 1: contadores BLOQUES / VÍAS / ESCUELAS.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatCell("BLOQUES", stats.boulderCount.toString(), Modifier.weight(1f).clickable(onClick = onBlocks))
+            StatCell("VÍAS", stats.routeCount.toString(), Modifier.weight(1f).clickable(onClick = onBlocks))
+            StatCell("ESCUELAS", stats.schoolCount.toString(), Modifier.weight(1f).clickable(onClick = onSchools))
+        }
+        // Fila 2: grado máximo separado por modalidad (escalas distintas).
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatCell("MÁX BLOQUE", stats.maxBoulderGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
+            StatCell("MÁX VÍA", stats.maxRouteGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
+        }
     }
 }
 

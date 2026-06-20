@@ -142,6 +142,7 @@ fun ProposeContributionFlow(
     var boulderFaces by remember { mutableStateOf(listOf(BoulderFaceForm())) }
     var boulderTopoFaceIdx by remember { mutableStateOf<Int?>(null) }  // cara cuyo editor de líneas está abierto
     var boulderSectorBlockId by remember { mutableStateOf<String?>(null) }
+    var boulderDiscipline by remember { mutableStateOf("BOULDER") }  // BOULDER (bloque) / ROUTE (vía)
 
     // Sectores (ZONE) existentes en la escuela — alimentan el dropdown del BoulderForm.
     val uiStateForSectors by viewModel.uiState.collectAsState()
@@ -231,6 +232,7 @@ fun ProposeContributionFlow(
                 boulderFaces = listOf(BoulderFaceForm())
                 boulderName = ""
                 boulderSectorBlockId = null
+                boulderDiscipline = "BOULDER"
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
             },
@@ -283,6 +285,8 @@ fun ProposeContributionFlow(
                 sectorBlocks = sectorBlocks,
                 sectorBlockId = boulderSectorBlockId,
                 onSectorChange = { boulderSectorBlockId = it },
+                discipline = boulderDiscipline,
+                onDisciplineChange = { boulderDiscipline = it },
                 onCancel = onDismiss,
                 onSubmit = {
                     scope.launch {
@@ -290,7 +294,8 @@ fun ProposeContributionFlow(
                             lat = s.lat, lon = s.lon,
                             name = boulderName,
                             faces = boulderFaces,
-                            sectorBlockId = boulderSectorBlockId
+                            sectorBlockId = boulderSectorBlockId,
+                            discipline = boulderDiscipline
                         )
                         if (result.isSuccess) step = ProposeStep.Success
                     }
@@ -650,6 +655,8 @@ private fun BoulderFormDialog(
     sectorBlocks: List<Block>,
     sectorBlockId: String?,
     onSectorChange: (String?) -> Unit,
+    discipline: String,
+    onDisciplineChange: (String) -> Unit,
     onCancel: () -> Unit,
     onSubmit: () -> Unit
 ) {
@@ -676,6 +683,13 @@ private fun BoulderFormDialog(
         Text("A esta piedra se le asignará un número automático al publicarse.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.md))
+
+        // ── Modalidad: BLOQUE o VÍA ───────────────────────────────────────────────
+        Text("MODALIDAD", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        DisciplineSelector(selected = discipline, onSelect = onDisciplineChange)
         Spacer(Modifier.height(Spacing.md))
 
         // ── Sector (opcional) ────────────────────────────────────────────────────
@@ -924,6 +938,45 @@ private fun BoulderFormDialog(
                 if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
                     color = Color.White, strokeWidth = 2.dp)
                 else Text("ENVIAR PROPUESTA", style = EyebrowTextStyle, color = Color.White)
+            }
+        }
+    }
+}
+
+// ─── DisciplineSelector (BLOQUE / VÍA) ────────────────────────────────────────
+
+/** Selector de modalidad de la piedra: BLOQUE (BOULDER) o VÍA (ROUTE).
+ *  Reutilizado al proponer/crear piedra y al editarla (admin). */
+@Composable
+fun DisciplineSelector(
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        listOf("BOULDER" to "BLOQUE", "ROUTE" to "VÍA").forEach { (value, label) ->
+            val sel = selected == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(MaterialTheme.shapes.small)
+                    .then(if (sel) Modifier.background(Terra) else Modifier)
+                    .border(
+                        1.dp,
+                        if (sel) Terra else MaterialTheme.colorScheme.outline,
+                        MaterialTheme.shapes.small
+                    )
+                    .clickable { onSelect(value) }
+                    .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    label,
+                    style = EyebrowTextStyle,
+                    color = if (sel) Color.White else MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }

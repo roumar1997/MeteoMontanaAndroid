@@ -99,6 +99,8 @@ fun EditBlockDialog(
     }
     var bloques by remember { mutableStateOf(initialBloques) }
     var showTopoEditor by remember { mutableStateOf(false) }
+    // Modalidad de la piedra (BOULDER/ROUTE), editable solo para BLOCK.
+    var discipline by remember { mutableStateOf(block.discipline) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -217,6 +219,18 @@ fun EditBlockDialog(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
             )
 
+            // Para BLOCK: modalidad (bloque/vía)
+            if (block.type == "BLOCK") {
+                Spacer(Modifier.height(Spacing.md))
+                Text("MODALIDAD", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(Spacing.xs))
+                com.meteomontana.android.ui.screens.detail.DisciplineSelector(
+                    selected = discipline,
+                    onSelect = { discipline = it }
+                )
+            }
+
             // Para BLOCK: editor de líneas
             if (block.type == "BLOCK" && !block.photoPath.isNullOrBlank()) {
                 Spacer(Modifier.height(Spacing.md))
@@ -270,7 +284,8 @@ fun EditBlockDialog(
                                     name = name.trim(),
                                     lat = latD, lon = lonD,
                                     description = description.takeIf { it.isNotBlank() },
-                                    bloques = bloques
+                                    bloques = bloques,
+                                    discipline = discipline
                                 ))
                             }
                         }
@@ -322,7 +337,8 @@ private fun buildUpdateRequest(
     name: String,
     lat: Double, lon: Double,
     description: String?,
-    bloques: List<BoulderBloqueForm>
+    bloques: List<BoulderBloqueForm>,
+    discipline: String
 ): CreateBlockRequest {
     val lines = if (block.type == "BLOCK") {
         bloques
@@ -350,6 +366,7 @@ private fun buildUpdateRequest(
         lat = lat, lon = lon,
         photoPath = block.photoPath,
         description = description,
-        lines = lines
+        lines = lines,
+        discipline = if (block.type == "BLOCK") discipline else null
     )
 }

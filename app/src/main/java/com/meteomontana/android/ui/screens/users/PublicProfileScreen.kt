@@ -292,14 +292,24 @@ private fun ActivityStatsRow(
     onSchoolsClick: () -> Unit,
     onMaxClick: () -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween) {
-        Stat("Bloques", stats.blockCount.toString(),
-            modifier = Modifier.clickable(onClick = onBlocksClick))
-        Stat("Escuelas", stats.schoolCount.toString(),
-            modifier = Modifier.clickable(onClick = onSchoolsClick))
-        Stat("Máximo", stats.maxGrade ?: "—",
-            modifier = Modifier.clickable(onClick = onMaxClick))
+    Column(modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            Stat("Bloques", stats.boulderCount.toString(),
+                modifier = Modifier.clickable(onClick = onBlocksClick))
+            Stat("Vías", stats.routeCount.toString(),
+                modifier = Modifier.clickable(onClick = onBlocksClick))
+            Stat("Escuelas", stats.schoolCount.toString(),
+                modifier = Modifier.clickable(onClick = onSchoolsClick))
+        }
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            Stat("Máx bloque", stats.maxBoulderGrade ?: "—",
+                modifier = Modifier.clickable(onClick = onMaxClick))
+            Stat("Máx vía", stats.maxRouteGrade ?: "—",
+                modifier = Modifier.clickable(onClick = onMaxClick))
+        }
     }
 }
 

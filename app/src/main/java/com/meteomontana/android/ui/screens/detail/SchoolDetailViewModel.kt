@@ -213,7 +213,10 @@ class SchoolDetailViewModel @Inject constructor(
                 // No guardamos "Piedra: N": el número se recicla/borra y quedaría
                 // obsoleto. La vía se localiza por nombre al abrir la escuela.
                 notes = null,
-                date = java.time.LocalDate.now().toString()
+                date = java.time.LocalDate.now().toString(),
+                // La modalidad la hereda la vía de su piedra: el contador del
+                // perfil sabrá si es BLOQUE o VÍA.
+                discipline = block.discipline
             )
             val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
             if (sent) {
@@ -478,7 +481,8 @@ class SchoolDetailViewModel @Inject constructor(
         lat: Double, lon: Double,
         name: String?,
         faces: List<BoulderFaceForm>,
-        sectorBlockId: String? = null
+        sectorBlockId: String? = null,
+        discipline: String = "BOULDER"
     ): Result<Unit> = runCatching {
         val photoUrlByFace = HashMap<String, String?>()
         for (face in faces) {
@@ -499,7 +503,8 @@ class SchoolDetailViewModel @Inject constructor(
             sectorBlockId = sectorBlockId,
             photoUrl = coverPhoto,
             bloquesJson = facesToBloquesJson(faces, photoUrlByFace),
-            topoLinesJson = null
+            topoLinesJson = null,
+            discipline = discipline
         )
         submitContributionUseCase(schoolId, req)
         Unit
