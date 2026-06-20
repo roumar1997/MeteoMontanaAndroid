@@ -492,6 +492,23 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-20 — fix temperatura "ahora" del forecast (backend)
+
+- **Bug**: en el detalle de escuela la tarjeta grande mostraba una temperatura
+  "ahora" que no coincidía con la fila horaria (p.ej. 17° "ahora" vs 24° a las
+  17:00), y la ventana óptima proponía franjas ya pasadas ("Óptimo 00:00–03:00").
+- **Causa**: `GetForecastUseCase` y `GetForecastByLocationUseCase` asumían que
+  `hours.get(0)` era "ahora". Pero Open-Meteo (`forecast_days=7`, sin
+  `timezone`) devuelve el array horario **desde las 00:00 GMT de hoy**, así que
+  índice 0 = medianoche, no la hora actual.
+- **Fix**: nuevo helper `findNowIndex(hourly)` que localiza el índice de la hora
+  presente comparando con `LocalDateTime.now(UTC)`. Se usa ese índice en
+  `buildCurrent` (temp/hum/viento/lluvia24-72h) y en `pickOptimalWindow` (que
+  además ahora solo mira horas presentes/futuras, `i >= nowIndex`). El array
+  horario que pinta el grid NO se toca → cero regresión en "Próximas 16h".
+- Backend compila y `ClimbScoreCalculatorTest` verde. Cambio solo en
+  `MeteoMontanaAPI`. Railway redespliega solo al pushear a `main`.
+
 ### Sesión 2026-06-18 (2) (varias fotos por piedra = CARAS + botones follow en listas)
 
 - **Botones de acción en las listas de follow** (Android+iOS): cada fila de

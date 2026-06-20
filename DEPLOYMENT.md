@@ -340,6 +340,51 @@ técnico del port.
 
 ---
 
+## 🧪 Iterar versiones en Prueba cerrada (Alpha) — flujo confirmado 2026-06-20
+
+Estado: la app está en **Prueba cerrada – Alpha** en Play Console. Versión
+`cumbre1.1` en estado **"Disponible para determinados testers"**. Lista de
+testers "cumbre testers" con **14 usuarios**. Ya se han subido 3 `versionCode`
+(el próximo build debe ser **≥ 4**).
+
+### Qué significa "Disponible para determinados testers"
+- La versión **ya pasó la revisión de políticas de Google** y está publicada
+  en el canal de prueba cerrada → los testers de la lista pueden instalarla
+  desde Play en cuanto se unan al enlace de prueba.
+- Esa revisión es de **políticas**, NO un test de calidad/bugs de la app.
+  Los bugs los encuentran los testers (y tú). Google solo comprueba que no
+  viole sus normas.
+- Si no quieres que la instalen aún, simplemente **no repartas el enlace de
+  prueba** todavía (pestaña Testers → "cómo se unen los testers").
+
+### Mejorar la app y subir una versión nueva al canal Alpha
+Puedes iterar tantas versiones como quieras antes de pasar a producción; no
+se "gasta" nada por subir builds nuevos.
+
+1. En `app/build.gradle.kts`: **subir `versionCode`** (p. ej. 3 → 4) y, si
+   quieres, `versionName` (`1.0.0` → `1.0.1`). ⚠️ **Nunca reutilizar un
+   `versionCode` ya subido** — Play lo rechaza.
+2. Generar el bundle firmado:
+   ```powershell
+   $env:KEYSTORE_PASSWORD='tu-password'
+   $env:KEY_PASSWORD='tu-password'
+   ./gradlew :app:bundleRelease
+   ```
+   → `app/build/outputs/bundle/release/app-release.aab`.
+3. Play Console → **Prueba cerrada – Alpha** → **"Crear nueva versión"** →
+   subir el `.aab` → notas de la versión → **Guardar → Revisar → Publicar**.
+4. Google la revisa otra vez (minutos a pocas horas). Al quedar "Disponible
+   para determinados testers", los testers reciben la **actualización
+   automática** desde Play.
+
+### Recordatorio para promocionar a producción
+Regla 2024 de Google: **mínimo 12 testers opted-in durante 14 días seguidos**
+en prueba cerrada antes de poder promocionar a producción. Con 14 en la lista
+ya se cumple el número; lo que corre es el reloj de los 14 días desde que
+están dentro.
+
+---
+
 ## 🔁 Pipeline de release recomendado
 
 A medio plazo, automatizar con GitHub Actions:
