@@ -13,6 +13,8 @@ data class Block(
     val createdAt: String,
     val lines: List<BlockLine>,
     val sectorBlockId: String? = null,  // BLOCK: id del sector (ZONE) al que pertenece
+    // Modalidad de la piedra: "BOULDER" (bloque) o "ROUTE" (vía). Default BOULDER.
+    val discipline: String = "BOULDER",
     // Caras de la piedra: cada cara es una foto + las vías dibujadas sobre ella.
     // Una piedra de una sola foto tiene una única cara. Si viene vacío, los
     // consumidores caen a (photoPath + lines) como cara única.

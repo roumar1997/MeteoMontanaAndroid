@@ -527,14 +527,35 @@ puede cambiar la modalidad de una piedra ya creada (vía el editar bloque).
 - **Retrocompatible**: apps ya instaladas que NO mandan `discipline` → se trata
   como BOULDER (default en todas las capas). Se puede desplegar sin romper nada.
 
+Además: **grado máximo separado por modalidad** (decisión de Rodrigo: en
+escalada bloque y vía usan escalas distintas). `JournalStatsDto` añade
+`maxBoulderGrade` + `maxRouteGrade` (+ `maxGrade` global por compat).
+
+**Fase 2 — shared (KMP), HECHA (compila shared + app, salvo el recurso
+`default_web_client_id` que necesita el google-services real del CI):**
+- `Block.discipline` ("BOULDER"/"ROUTE", default BOULDER) + `BlockDto.discipline`
+  + `CreateBlockRequest.discipline` + mapeo `toDomain`.
+- `JournalSession.discipline`; `JournalStats` con `boulderCount`/`routeCount`/
+  `maxBoulderGrade`/`maxRouteGrade` (+ `blockCount`/`maxGrade` globales por
+  compat); DTOs y mapeos al día. `CreateJournalRequest.discipline`.
+- `ContributionRequest.discipline` + `ContributionDto.discipline` (para que el
+  admin pueda ver/mostrar la modalidad propuesta).
+- Android `ProfileCache`: snapshot offline persiste los nuevos contadores y
+  grados (construcción pasada a args con nombre).
+- OJO: todas las construcciones posicionales de `Block`/`JournalStats` revisadas;
+  los tests con 11 args posicionales siguen válidos (defaults).
+
 **PENDIENTE (próximas fases):**
-- **Fase 2 — shared (KMP)**: `Block.discipline`, modelo de stats partido
-  (boulderCount/routeCount), parámetro `discipline` en crear entrada de diario y
-  en proponer piedra; exponer en ambos DI containers.
-- **Fase 3 — Android**: selector "¿BLOQUE o VÍA?" al proponer/crear piedra;
-  perfil con 2 contadores (BLOQUES / VÍAS); pasar modalidad al marcar vía;
-  admin: editar modalidad de piedra existente.
-- **Fase 4 — iOS**: réplica EXACTA de lo de Android (paridad).
+- **Fase 3 — Android**: selector "¿BLOQUE o VÍA?" al proponer/crear piedra
+  (`ProposeContributionFlow`/`BoulderBloqueForm`); perfil con 2 contadores
+  (BLOQUES / VÍAS) + 2 grados máx (`ProfileScreen`/`JournalEntriesScreen`);
+  pasar `discipline` al marcar vía (`SchoolDetailViewModel.tickLine` + outbox);
+  admin: editar modalidad en `EditBlockDialog`. Mostrar modalidad en la ficha de
+  piedra. (Offline `SavedBlock` sin columna discipline → de momento BOULDER
+  offline; añadir columna SQLDelight es opcional, baja prioridad.)
+- **Fase 4 — iOS**: réplica EXACTA de lo de Android (paridad). OJO: el
+  `ProfileCache.swift` y cualquier `JournalStats(...)` en Swift necesitarán los
+  nuevos parámetros (SKIE regenera el init).
 
 ### Sesión 2026-06-20 — fix temperatura "ahora" del forecast (backend)
 

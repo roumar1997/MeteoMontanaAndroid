@@ -18,7 +18,8 @@ data class ContributionRequest(
     val sectorBlockId: String? = null,
     val photoUrl: String? = null,
     val bloquesJson: String? = null,
-    val topoLinesJson: String? = null
+    val topoLinesJson: String? = null,
+    val discipline: String? = null   // BOULDER (bloque) / ROUTE (vía) al proponer piedra
 )
 
 @Serializable
@@ -45,5 +46,6 @@ data class ContributionDto(
     val sectorBlockId: String? = null,
     val proposedLat: Double? = null,
     val proposedLon: Double? = null,
-    val correctionReason: String? = null
+    val correctionReason: String? = null,
+    val discipline: String? = null   // BOULDER (bloque) / ROUTE (vía) si la propuesta es de piedra
 )

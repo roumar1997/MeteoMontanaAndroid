@@ -102,6 +102,7 @@ fun BlockDto.toDomain() = Block(
     photoPath = photoPath, description = description, createdByUid = createdByUid,
     createdAt = createdAt, lines = lines.map { it.toDomain(photoPath) },
     sectorBlockId = sectorBlockId,
+    discipline = discipline,
     faces = faces.map { it.toDomain(photoPath) }
 )
 
@@ -137,6 +138,6 @@ fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, prop
 fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, sectorBlockId, proposedLat, proposedLon, correctionReason)
 
 // Journal
-fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt)
-fun JournalStatsDto.toDomain() = JournalStats(blockCount, schoolCount, maxGrade, bySchool.map { it.toDomain() })
+fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline)
+fun JournalStatsDto.toDomain() = JournalStats(blockCount, boulderCount, routeCount, schoolCount, maxGrade, maxBoulderGrade, maxRouteGrade, bySchool.map { it.toDomain() })
 fun SchoolStatsDto.toDomain() = SchoolStats(schoolName, blockCount, maxGrade)

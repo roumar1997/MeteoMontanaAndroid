@@ -12,7 +12,8 @@ data class JournalSessionDto(
     val grade: String? = null,
     val notes: String? = null,
     val date: String,
-    val createdAt: String
+    val createdAt: String,
+    val discipline: String = "BOULDER"
 )
 
 @Serializable
@@ -23,14 +24,19 @@ data class CreateJournalRequest(
     val blockName: String,
     val grade: String? = null,
     val notes: String? = null,
-    val date: String
+    val date: String,
+    val discipline: String? = null   // BOULDER (bloque) / ROUTE (vía)
 )
 
 @Serializable
 data class JournalStatsDto(
     val blockCount: Int,
+    val boulderCount: Int = 0,
+    val routeCount: Int = 0,
     val schoolCount: Int,
     val maxGrade: String? = null,
+    val maxBoulderGrade: String? = null,
+    val maxRouteGrade: String? = null,
     val bySchool: List<SchoolStatsDto>
 )
 
