@@ -396,7 +396,8 @@ private struct SchoolMapSection: View {
                             } else {
                                 corrNew = coord
                             }
-                        } : nil
+                        } : nil,
+                        polylines: wallPolylines
                     )
                     .frame(height: 280)
 
@@ -631,6 +632,16 @@ private struct SchoolMapSection: View {
             return snap.blocks.map { repo.toBlock(entity: $0, lines: snap.lines) }
         }
         return []
+    }
+
+    // Muros (geometry=LINE) dibujados como polilínea terra en el mapa.
+    private var wallPolylines: [CumbrePolyline] {
+        blocks.compactMap { b in
+            guard b.geometry.uppercased() == "LINE" else { return nil }
+            let pts = parseWallPath(b.path)
+            guard pts.count >= 2 else { return nil }
+            return CumbrePolyline(id: "wall-\(b.id)", coordinates: pts, color: blockColor, width: 5)
+        }
     }
 
     private var markers: [CumbreMarker] {

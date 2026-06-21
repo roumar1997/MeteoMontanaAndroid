@@ -122,8 +122,14 @@ struct BoulderFormSheet: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var showEditor = false
     @State private var sending = false
+    // Geometría/sentido + trazado del muro (PUNTO por defecto).
+    @State private var geometry = "POINT"
+    @State private var direction = "LTR"
+    @State private var wallPath: [CLLocationCoordinate2D] = []
+    @State private var showTrace = false
 
     private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
+    private var isWall: Bool { geometry == "LINE" }
 
     var body: some View {
         NavigationStack {
@@ -136,6 +142,24 @@ struct BoulderFormSheet: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("MODALIDAD").eyebrow()
                         DisciplineSelector(selected: $discipline)
+                    }
+
+                    // ── Geometría: PUNTO o MURO ────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("GEOMETRÍA").eyebrow()
+                        WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
+                    }
+                    if isWall {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("SENTIDO DE NUMERACIÓN").eyebrow()
+                            WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
+                        }
+                        Button { showTrace = true } label: {
+                            Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✓ MURO TRAZADO (\(wallPath.count) PUNTOS) · RE-TRAZAR")
+                                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                        }.buttonStyle(.plain)
                     }
 
                     if !sectors.isEmpty {
@@ -257,6 +281,9 @@ struct BoulderFormSheet: View {
                 TopoEditorView(photo: faces[faceIdx].photo, blocks: $faces[faceIdx].blocks)
             }
         }
+        .sheet(isPresented: $showTrace) {
+            WallTraceSheet(center: coord, initial: wallPath) { wallPath = $0 }
+        }
     }
 
     private var sectorName: String {
@@ -286,7 +313,9 @@ struct BoulderFormSheet: View {
             targetBlockId: nil, targetLineId: nil, sectorBlockId: sectorId,
             photoUrl: coverPhoto, bloquesJson: buildFacesBloquesJson(faces, photoByFace: photoByFace), topoLinesJson: nil,
             discipline: discipline,
-            geometry: "POINT", path: nil, direction: "LTR")
+            geometry: geometry,
+            path: isWall && !wallPath.isEmpty ? buildPathJson(wallPath) : nil,
+            direction: direction)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         dismiss()
@@ -615,6 +644,8 @@ struct EditLinesSheet: View {
     @State private var geometry = "POINT"
     @State private var direction = "LTR"
     @State private var showReorder = false
+    @State private var showTrace = false
+    @State private var tracedPath: [CLLocationCoordinate2D] = []
 
     private var faceIdx: Int { min(max(selectedFace, 0), max(0, faceBlocks.count - 1)) }
     private var isWall: Bool { geometry == "LINE" }
@@ -662,7 +693,15 @@ struct EditLinesSheet: View {
                             Text("SENTIDO DE NUMERACIÓN").eyebrow()
                             WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
                         }
-                        Text("El trazado en el mapa se conserva; el re-trazado desde el mapa llegará pronto.")
+                        Button { showTrace = true } label: {
+                            Text(tracedPath.isEmpty
+                                 ? (parseWallPath(block.path).isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✎ RE-TRAZAR EL MURO EN EL MAPA")
+                                 : "✓ MURO TRAZADO (\(tracedPath.count) PUNTOS) · RE-TRAZAR")
+                                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                        Text(tracedPath.isEmpty ? "Se conserva el trazado actual si no lo re-trazas." : "Se enviará el trazado nuevo.")
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     }
 
@@ -816,6 +855,11 @@ struct EditLinesSheet: View {
             ReorderFacesSheet(facePhotos: $facePhotos, faceBlocks: $faceBlocks,
                               facePicked: $facePicked, isWall: isWall, direction: direction)
         }
+        .sheet(isPresented: $showTrace) {
+            let seed = tracedPath.isEmpty ? parseWallPath(block.path) : tracedPath
+            WallTraceSheet(center: CLLocationCoordinate2D(latitude: block.lat, longitude: block.lon),
+                           initial: seed) { tracedPath = $0 }
+        }
     }
 
     private func send() async {
@@ -855,9 +899,76 @@ struct EditLinesSheet: View {
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
             photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: nil,
-            geometry: geometry, path: isWall ? block.path : nil, direction: direction)
+            geometry: geometry,
+            path: isWall ? (tracedPath.isEmpty ? block.path : buildPathJson(tracedPath)) : nil,
+            direction: direction)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false; dismiss(); onDone(ok)
+    }
+}
+
+/// Parsea el `path` de un muro ("[[lat,lon],...]") a coordenadas.
+func parseWallPath(_ json: String?) -> [CLLocationCoordinate2D] {
+    guard let json, !json.isEmpty, let data = json.data(using: .utf8),
+          let arr = try? JSONSerialization.jsonObject(with: data) as? [[Double]] else { return [] }
+    return arr.compactMap { $0.count >= 2 ? CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1]) : nil }
+}
+
+/// Serializa la polilínea del muro a "[[lat,lon],...]" (formato de Block.path).
+func buildPathJson(_ pts: [CLLocationCoordinate2D]) -> String {
+    let arr = pts.map { [$0.latitude, $0.longitude] }
+    return (try? JSONSerialization.data(withJSONObject: arr))
+        .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+}
+
+/// Sheet para trazar/re-trazar el muro en su propio mapa (encima del editor, así
+/// no se pierde lo editado). Cada tap añade un punto; DESHACER/LISTO. Devuelve la
+/// polilínea por `onDone`. Espejo del modo "traza el muro" de Android.
+struct WallTraceSheet: View {
+    let center: CLLocationCoordinate2D
+    let initial: [CLLocationCoordinate2D]
+    let onDone: ([CLLocationCoordinate2D]) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var points: [CLLocationCoordinate2D] = []
+    @State private var started = false
+
+    var body: some View {
+        NavigationStack {
+            ZStack(alignment: .top) {
+                MapLibreView(
+                    center: center, zoom: 17, markers: [], style: .topo,
+                    onMapTap: { points.append($0) },
+                    polylines: points.count >= 2
+                        ? [CumbrePolyline(id: "trace", coordinates: points, color: UIColor(Cumbre.terra), width: 5)]
+                        : []
+                )
+                .ignoresSafeArea(edges: .bottom)
+
+                VStack(spacing: 8) {
+                    Text("✎ TRAZA EL MURO · \(points.count) PUNTOS · TOCA LA BASE DEL MURO")
+                        .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10).background(Cumbre.terra)
+                    HStack(spacing: 10) {
+                        Button { if !points.isEmpty { points.removeLast() } } label: {
+                            Text("↶ DESHACER").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10).background(.white)
+                        }.buttonStyle(.plain).opacity(points.isEmpty ? 0.4 : 1).disabled(points.isEmpty)
+                        Button { onDone(points); dismiss() } label: {
+                            Text("✓ LISTO").font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10).background(Cumbre.terra)
+                        }.buttonStyle(.plain).opacity(points.count < 2 ? 0.4 : 1).disabled(points.count < 2)
+                    }
+                    .padding(.horizontal, 10)
+                }
+                .padding(.top, 8)
+            }
+            .navigationTitle("Trazar muro")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) {
+                Button("Cancelar") { dismiss() }.foregroundStyle(Cumbre.ink3) } }
+        }
+        .onAppear { if !started { started = true; points = initial } }
     }
 }
 

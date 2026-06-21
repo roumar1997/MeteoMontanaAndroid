@@ -596,16 +596,22 @@ struct JournalBlocksListView: View {
     let title: String
     let entries: [JournalSession]
     var viaInfo: [String: ViaCatalogInfo] = [:]
+    /// nil = todos · false = solo bloques (BOULDER) · true = solo vías (ROUTE).
+    var routeOnly: Bool? = nil
+    private var shown: [JournalSession] {
+        guard let r = routeOnly else { return entries }
+        return entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
+    }
     var body: some View {
         Group {
-            if entries.isEmpty {
-                Text("Sin bloques registrados.")
+            if shown.isEmpty {
+                Text(routeOnly == true ? "Sin vías registradas." : "Sin bloques registrados.")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(entries, id: \.id) { e in
+                        ForEach(shown, id: \.id) { e in
                             JournalRow(entry: e, schoolId: e.schoolId, info: viaInfo[e.id])
                             Divider().overlay(Cumbre.rule)
                         }
@@ -628,10 +634,10 @@ struct JournalStatsNav: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries, viaInfo: viaInfo)) {
+                NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries, viaInfo: viaInfo, routeOnly: false)) {
                     cell("\(stats.boulderCount)", "BLOQUES")
                 }.buttonStyle(.plain)
-                NavigationLink(destination: JournalBlocksListView(title: "Vías", entries: entries, viaInfo: viaInfo)) {
+                NavigationLink(destination: JournalBlocksListView(title: "Vías", entries: entries, viaInfo: viaInfo, routeOnly: true)) {
                     cell("\(stats.routeCount)", "VÍAS")
                 }.buttonStyle(.plain)
                 NavigationLink(destination: JournalSchoolsView(schools: stats.bySchool, entries: entries, viaInfo: viaInfo)) {
