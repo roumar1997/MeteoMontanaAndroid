@@ -87,7 +87,7 @@ final class AccountViewModel: ObservableObject {
         let req = CreateJournalRequest(
             schoolId: schoolId, schoolName: schoolName.nilIfBlank, sector: sector.nilIfBlank,
             blockName: blockName.trimmingCharacters(in: .whitespaces), grade: grade.nilIfBlank,
-            notes: notes.nilIfBlank, date: df.string(from: Date()), discipline: nil)
+            notes: notes.nilIfBlank, date: df.string(from: Date()), discipline: nil, lineId: nil)
         _ = try? await createEntry.invoke(req: req)
         await reloadJournal()
     }

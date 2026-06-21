@@ -549,7 +549,8 @@ private struct SchoolMapSection: View {
             proposedLat: KotlinDouble(double: nw.latitude),
             proposedLon: KotlinDouble(double: nw.longitude), correctionReason: nil,
             targetBlockId: corrTargetId, targetLineId: nil, sectorBlockId: nil,
-            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil)
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
+            geometry: nil, path: nil, direction: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: school.id, req: req)) != nil
         cancelCorrection()
         if ok { afterSubmit() }
@@ -802,7 +803,8 @@ private struct ContributionFormSheet: View {
             notes: notes.trimmingCharacters(in: .whitespaces).isEmpty ? nil : notes,
             description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: nil, targetLineId: nil, sectorBlockId: nil,
-            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil)
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
+            geometry: nil, path: nil, direction: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         dismiss()
@@ -1089,7 +1091,8 @@ struct BlockInfoSheet: View {
                 schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
                 blockName: viaName, grade: line.grade,
                 notes: nil, date: df.string(from: Date()),
-                discipline: block.discipline)   // la vía hereda la modalidad de su piedra
+                discipline: block.discipline,   // la vía hereda la modalidad de su piedra
+                lineId: line.id)                // id estable → enganche del diario por muro
             let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
             if !ok { try? await container.enqueueJournal(req: req) }   // sin red → cola
         }

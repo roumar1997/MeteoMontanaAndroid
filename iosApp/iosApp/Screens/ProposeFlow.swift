@@ -285,7 +285,8 @@ struct BoulderFormSheet: View {
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: nil, targetLineId: nil, sectorBlockId: sectorId,
             photoUrl: coverPhoto, bloquesJson: buildFacesBloquesJson(faces, photoByFace: photoByFace), topoLinesJson: nil,
-            discipline: discipline)
+            discipline: discipline,
+            geometry: "POINT", path: nil, direction: "LTR")
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         dismiss()
@@ -577,7 +578,8 @@ struct AssignSectorSheet: View {
             type: "ASSIGN_SECTOR", name: nil, lat: block.lat, lon: block.lon,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: block.id, targetLineId: nil, sectorBlockId: sectorId,
-            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil)
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
+            geometry: nil, path: nil, direction: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false; dismiss(); onDone(ok)
     }
@@ -758,19 +760,19 @@ struct EditLinesSheet: View {
         //    TODAS sus vías (existentes como corrección + nuevas) con la foto nueva
         //    → la cara entera se mueve a la imagen nueva. Si no cambió, solo las
         //    vías modificadas + las nuevas.
+        // Estado COMPLETO: todas las vías en su orden, cada una con la foto de su
+        // cara (la nueva si la cara cambió). El backend (reconcileWall) reconcilia
+        // por lineId preservando el diario, reaplica el orden y borra las omitidas.
         var payload: [BoulderBlockForm] = []
         for (i, faceVias) in faceBlocks.enumerated() {
             let movedPhoto = newFacePhoto[i]
             for b in faceVias {
                 var v = b
                 if let p = movedPhoto { v.facePhoto = p }   // mover a la foto nueva
-                let isExisting = v.existingLineId != nil
-                if isExisting {
-                    let orig = block.lines.first { $0.id == v.existingLineId }
-                    let changed = movedPhoto != nil || (orig.map { lineChanged(v, vs: $0) } ?? false)
-                    if changed { payload.append(v) }
+                if v.existingLineId != nil {
+                    payload.append(v)                        // existentes SIEMPRE
                 } else if v.grade != nil || !v.name.isEmpty || !v.line.isEmpty {
-                    payload.append(v)
+                    payload.append(v)                        // nuevas con contenido
                 }
             }
         }
@@ -780,7 +782,8 @@ struct EditLinesSheet: View {
             type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
-            photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: nil)
+            photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: nil,
+            geometry: block.geometry, path: block.path, direction: block.direction)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false; dismiss(); onDone(ok)
     }

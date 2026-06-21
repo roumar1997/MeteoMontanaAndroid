@@ -43,7 +43,8 @@ final class JournalViewModel: ObservableObject {
             grade: grade.nilIfBlank,
             notes: notes.nilIfBlank,
             date: df.string(from: Date()),
-            discipline: nil
+            discipline: nil,
+            lineId: nil
         )
         _ = try? await createEntry.invoke(req: req)
         await load()

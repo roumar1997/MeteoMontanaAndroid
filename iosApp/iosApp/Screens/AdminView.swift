@@ -888,7 +888,8 @@ private struct SchoolBlocksManageSheet: View {
                                      lat: coord.latitude, lon: coord.longitude,
                                      photoPath: b.photoPath, description: b.descriptionText,
                                      lines: lines, sectorBlockId: b.sectorBlockId,
-                                     discipline: b.discipline)
+                                     discipline: b.discipline,
+                                     geometry: b.geometry, path: b.path, direction: b.direction)
         _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: b.id, req: req)
         moving = nil
         await reload()
@@ -1012,7 +1013,8 @@ private struct BlockManageSheet: View {
                                      photoPath: block.photoPath,
                                      description: trimmed.isEmpty ? nil : trimmed,
                                      lines: lines, sectorBlockId: block.sectorBlockId,
-                                     discipline: block.type == "BLOCK" ? discipline : nil)
+                                     discipline: block.type == "BLOCK" ? discipline : nil,
+                                     geometry: block.geometry, path: block.path, direction: block.direction)
         _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: block.id, req: req)
         busy = false; dismiss(); onDone()
     }
