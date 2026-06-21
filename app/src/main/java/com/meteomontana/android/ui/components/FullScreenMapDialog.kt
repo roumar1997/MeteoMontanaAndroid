@@ -239,7 +239,7 @@ fun FullScreenMapDialog(
                                     } else false
                                 }
                             }
-                            map.uiSettings.isRotateGesturesEnabled = false
+                            map.uiSettings.isRotateGesturesEnabled = true
                             map.uiSettings.isTiltGesturesEnabled   = false
                         }
                         onStart(); onResume()

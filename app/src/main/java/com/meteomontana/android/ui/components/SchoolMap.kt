@@ -505,7 +505,7 @@ private fun InnerMap(
                                 }
                             }
                             map.uiSettings.apply {
-                                isRotateGesturesEnabled = false
+                                isRotateGesturesEnabled = true
                                 isTiltGesturesEnabled   = false
                             }
                             map.addOnMapClickListener { point ->

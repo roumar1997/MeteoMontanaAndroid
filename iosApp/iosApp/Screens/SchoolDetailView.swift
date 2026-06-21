@@ -634,14 +634,26 @@ private struct SchoolMapSection: View {
         return []
     }
 
-    // Muros (geometry=LINE) dibujados como polilínea terra en el mapa.
+    // Muros (geometry=LINE) dibujados como polilínea terra en el mapa. Se ocultan
+    // si la piedra pertenece a un sector colapsado (igual que su marcador).
     private var wallPolylines: [CumbrePolyline] {
         blocks.compactMap { b in
             guard b.geometry.uppercased() == "LINE" else { return nil }
+            if let sid = b.sectorBlockId, collapsedSectors.contains(sid) { return nil }
             let pts = parseWallPath(b.path)
             guard pts.count >= 2 else { return nil }
             return CumbrePolyline(id: "wall-\(b.id)", coordinates: pts, color: blockColor, width: 5)
         }
+    }
+
+    /// Coordenada del marcador de una piedra: si es MURO, el centro de la
+    /// polilínea (no la esquina donde se fijó al crearla → salía en un lateral).
+    private func blockMarkerCoord(_ b: Block) -> CLLocationCoordinate2D {
+        if b.geometry.uppercased() == "LINE" {
+            let pts = parseWallPath(b.path)
+            if pts.count >= 2 { return pts[pts.count / 2] }
+        }
+        return CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
     }
 
     private var markers: [CumbreMarker] {
@@ -659,7 +671,7 @@ private struct SchoolMapSection: View {
             let hidden = collapsed ? blocks.filter { $0.sectorBlockId == b.id }.count : 0
             ms.append(CumbreMarker(
                 id: b.id,
-                coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon),
+                coordinate: blockMarkerCoord(b),
                 title: b.name.isEmpty ? b.type : b.name,
                 subtitle: typeLabel(b.type),
                 kind: markerKind(for: b.type),

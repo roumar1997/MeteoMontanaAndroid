@@ -200,7 +200,7 @@ private fun MapBody(
                             ) { tappedSchool -> selectedSchool = tappedSchool }
                         }
                         map.uiSettings.apply {
-                            isRotateGesturesEnabled = false
+                            isRotateGesturesEnabled = true
                             isTiltGesturesEnabled   = false
                         }
                         // Etiquetas de nombre solo a partir de zoom 8.5 — más
