@@ -52,6 +52,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.ui.components.TopoLine
+import com.meteomontana.android.ui.components.TopoPhotoCanvas
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
@@ -590,6 +592,7 @@ private fun ReorderFacesDialog(
     onMove: (from: Int, to: Int) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var expandedFace by remember { mutableStateOf<Int?>(null) }
     Dialog(onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Column(
@@ -615,51 +618,75 @@ private fun ReorderFacesDialog(
             Spacer(Modifier.height(Spacing.md))
 
             faces.forEachIndexed { i, f ->
-                Row(
+                val isExpanded = expandedFace == i
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = Spacing.xs)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .padding(Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        .border(1.dp, if (isExpanded) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                        .padding(Spacing.sm)
                 ) {
-                    // Posición
-                    Box(
-                        modifier = Modifier.size(28.dp).clip(CircleShape).background(Terra),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .clickable { expandedFace = if (isExpanded) null else i },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        Text("${i + 1}", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                    }
-                    // Miniatura
-                    if (f.hasPhoto) {
-                        AsyncImage(
-                            model = f.photoModel,
-                            contentDescription = "Foto ${i + 1}",
-                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(2.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
+                        // Posición
                         Box(
-                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(2.dp))
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp)),
+                            modifier = Modifier.size(28.dp).clip(CircleShape).background(Terra),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${i + 1}", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                        }
+                        // Miniatura
+                        if (f.hasPhoto) {
+                            AsyncImage(
+                                model = f.photoModel,
+                                contentDescription = "Foto ${i + 1}",
+                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(2.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(2.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("FOTO ${i + 1} · ${f.bloques.size} vías",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Text(if (isExpanded) "▾ ocultar vías" else "▸ ver vías",
+                                style = MaterialTheme.typography.bodySmall, color = Terra)
+                        }
+                        // Subir / bajar
+                        Text("▲", style = MaterialTheme.typography.titleMedium,
+                            color = if (i > 0) Terra else MaterialTheme.colorScheme.outline,
+                            modifier = if (i > 0) Modifier.clickable { onMove(i, i - 1) } else Modifier)
+                        Spacer(Modifier.width(Spacing.sm))
+                        Text("▼", style = MaterialTheme.typography.titleMedium,
+                            color = if (i < faces.size - 1) Terra else MaterialTheme.colorScheme.outline,
+                            modifier = if (i < faces.size - 1) Modifier.clickable { onMove(i, i + 1) } else Modifier)
+                    }
+                    // Vista expandida: foto con sus líneas dibujadas.
+                    if (isExpanded) {
+                        Spacer(Modifier.height(Spacing.sm))
+                        val photoUrl = f.photoModel?.toString()
+                        if (!photoUrl.isNullOrBlank()) {
+                            val topoLines = f.bloques
+                                .filter { it.linePath.isNotEmpty() }
+                                .map { TopoLine(it.name, it.grade, it.startType, it.linePath) }
+                            TopoPhotoCanvas(photoUrl = photoUrl, lines = topoLines)
+                        } else {
+                            Text("Esta foto aún no tiene imagen.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Text("FOTO ${i + 1} · ${f.bloques.size} vías",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f))
-                    // Subir / bajar
-                    Text("▲", style = MaterialTheme.typography.titleMedium,
-                        color = if (i > 0) Terra else MaterialTheme.colorScheme.outline,
-                        modifier = if (i > 0) Modifier.clickable { onMove(i, i - 1) } else Modifier)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text("▼", style = MaterialTheme.typography.titleMedium,
-                        color = if (i < faces.size - 1) Terra else MaterialTheme.colorScheme.outline,
-                        modifier = if (i < faces.size - 1) Modifier.clickable { onMove(i, i + 1) } else Modifier)
                 }
             }
 
