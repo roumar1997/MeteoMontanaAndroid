@@ -187,9 +187,32 @@ el build. Ver objetivo/ficheros de la Fase 9 abajo + el checklist de paridad.
 > actual vs el `bloquesJson`/`path` propuestos. La lógica pura `WallDiffCalculator`
 > está duplicada (Java backend = al aprobar; Kotlin shared = al revisar en la app).
 
-> **PENDIENTE PROBAR EN DISPOSITIVO (Fases 6-7)**: proponer un muro (trazar con
-> DESHACER/LISTO, reordenar ▲▼/◀▶, dirección, enviar) y, como admin, revisar la
-> propuesta viendo el mapa (gris=actual, terra=propuesto) y la lista de cambios.
+> **PENDIENTE PROBAR EN DISPOSITIVO — CHECKLIST (Fases 6-8)** — APK NUEVO instalado
+> en el Redmi (`12bf0837`) el 2026-06-21 (`adb install -r` OK, sin conflicto de
+> firma esta vez). Backend de muros ya en Railway. A probar por Rodrigo:
+>
+> **Fase 6 — proponer un muro (usuario):**
+> 1. Mapa de una escuela → **+ PROPONER → AÑADIR PIEDRA**, tocar en el mapa.
+> 2. En el form, elegir **MODALIDAD = VÍA** y **GEOMETRÍA = MURO** → aparece
+>    **SENTIDO DE NUMERACIÓN** y el botón **✎ TRAZAR EL MURO EN EL MAPA**.
+> 3. Pulsarlo → el form se cierra, banner terra **TRAZA EL MURO**. Tocar varios
+>    puntos siguiendo la pared → salen puntos numerados + polilínea. Probar
+>    **↶ DESHACER** y **✓ LISTO** (≥2 puntos).
+> 4. Volver al form (botón pasa a "✓ MURO DE N PUNTOS · RE-TRAZAR"). Añadir
+>    foto(s) + vías, reordenar vías con **▲▼** y fotos con **◀ MOVER / MOVER ▶**,
+>    cambiar la **dirección** y ver que la **numeración del círculo** se recalcula.
+> 5. **ENVIAR PROPUESTA** (una sola vez).
+>
+> **Fase 7 — revisar el muro (admin):** entrar como admin → PROPUESTAS → la card
+> del muro debe mostrar el mini-mapa con **polilínea gris (actual) + terra
+> (propuesta)** y la sección **"MURO · CAMBIOS"** con dirección + badges
+> (NUEVA/MOVIDA/etc.). Aprobar → el muro aparece en el mapa como **polilínea**
+> (no 16 pines) con su nº en el medio (Fase 5).
+>
+> **Fase 8 — diario por id:** marcar una vía del muro (tic) → aparece en el perfil;
+> tocarla debe abrir la escuela con esa **piedra** (deep-link por id). Si el admin
+> corrige el grado de esa vía, el perfil debe mostrar el **grado nuevo**. Si se
+> borra la vía, la entrada queda en gris **"VÍA ELIMINADA"** (no desaparece).
 
 ---
 
