@@ -26,6 +26,9 @@ y se conecta al backend Spring Boot.
 >   costes). **LEER ANTES DE PUBLICAR.**
 > - [`DESIGN.md`](./DESIGN.md) — sistema de diseño Cumbre (tokens, espaciado,
 >   tipografía) — espejo Android/iOS.
+> - [`WALLS_DESIGN.md`](./WALLS_DESIGN.md) — diseño (sin implementar aún) de los
+>   **muros largos** (geometría línea ⟂ modalidad) + edición colaborativa con diff
+>   de revisión + enganche del diario por `id`. LEER antes de tocar muros/vías.
 
 > ## ⚠️ SI ABRES UNA SESIÓN NUEVA, LEE ESTO PRIMERO
 >
