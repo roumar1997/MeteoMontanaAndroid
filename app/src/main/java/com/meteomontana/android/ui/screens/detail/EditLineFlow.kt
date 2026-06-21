@@ -115,7 +115,7 @@ fun EditLineFlow(
             Spacer(Modifier.height(Spacing.sm))
 
             AddLineRow(
-                index = 0,
+                displayNumber = 1,
                 bloque = bloque,
                 onUpdate = { bloque = it },
                 onDelete = null

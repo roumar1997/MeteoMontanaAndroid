@@ -603,13 +603,17 @@ class SchoolDetailViewModel @Inject constructor(
         targetBlockId: String,
         targetLat: Double,
         targetLon: Double,
-        bloques: List<BoulderBloqueForm>
+        bloques: List<BoulderBloqueForm>,
+        geometry: String = "POINT",
+        path: String? = null,
+        direction: String = "LTR"
     ): Result<Unit> = runCatching {
         val req = ContributionRequest(
             type = "BOULDER", name = null, lat = targetLat, lon = targetLon,
             notes = null, description = null, proposedLat = null, proposedLon = null,
             correctionReason = null, targetBlockId = targetBlockId, targetLineId = null,
-            photoUrl = null, bloquesJson = bloques.toBloquesJson(), topoLinesJson = null
+            photoUrl = null, bloquesJson = bloques.toBloquesJson(), topoLinesJson = null,
+            geometry = geometry, path = path, direction = direction
         )
         submitContributionUseCase(schoolId, req)
         Unit

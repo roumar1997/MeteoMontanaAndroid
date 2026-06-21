@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.meteomontana.android.domain.model.FileRef
-import com.meteomontana.android.ui.components.toTopoLines
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,10 +45,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
@@ -59,12 +61,32 @@ import com.meteomontana.android.ui.theme.gradeStyle
 import kotlinx.coroutines.launch
 
 /**
- * Flujo "+ AÑADIR VÍAS" sobre una piedra existente.
+ * Una cara editable de la piedra dentro del editor: la foto actual (remota) y/o
+ * una foto nueva elegida que la sustituye, más sus vías. Las vías existentes
+ * llevan `existingLineId`; las nuevas no.
+ */
+private data class EditFace(
+    val existingPhotoPath: String?,   // foto remota actual (null si cara nueva)
+    val newPhotoUri: Uri?,            // foto local elegida (sustituye a la anterior)
+    val bloques: List<BoulderBloqueForm>
+) {
+    /** Modelo para Coil: la nueva si la hay, si no la URL remota. */
+    val photoModel: Any? get() = newPhotoUri ?: existingPhotoPath?.takeIf { it.isNotBlank() }
+    val hasPhoto: Boolean get() = photoModel != null
+}
+
+/**
+ * Flujo "Editar / corregir vías" sobre una piedra existente — editor COMPLETO,
+ * paridad con el de creación:
  *
- * Reutiliza foto del block y solo permite añadir bloques (vías) nuevos con su
- * grado, tipo de inicio, y opcionalmente dibujar la línea sobre la foto. Al
- * enviar genera una contribución BOULDER con `targetBlockId = block.id` que
- * el admin aprueba: el backend añade las líneas al bloque existente.
+ *  - Corrige vías existentes (nombre/grado/tipo/línea) y añade nuevas.
+ *  - `+ AÑADIR FOTO`: nuevas caras a una piedra ya creada.
+ *  - Reordena vías (▲▼) y mueve caras (◀▶) — define la numeración del muro.
+ *  - Geometría PUNTO/MURO y sentido de numeración; numeración global en vivo.
+ *
+ * Al enviar manda el ESTADO COMPLETO de la piedra (todas las vías en su orden +
+ * geometry/path/direction). El backend (`reconcileWall`) reconcilia por `lineId`
+ * preservando los enganches del diario, reaplica el orden y borra las omitidas.
  */
 @Composable
 fun AddLinesFlow(
@@ -78,42 +100,49 @@ fun AddLinesFlow(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Editor POR CARA: una piedra puede tener varias fotos. Por cada cara se
-    // precargan SUS vías existentes (para repintarlas/corregirlas) y se pueden
-    // añadir nuevas; cada cara se edita sobre SU foto. `faceBloques[i]` = vías
-    // editables de la cara i (existentes con existingLineId + nuevas).
-    val faces = remember(block) { block.facesOrDerived() }
-    var faceBloques by remember {
+    // Caras editables precargadas desde las caras existentes de la piedra. Lista
+    // MUTABLE: se pueden añadir, quitar y reordenar caras (a diferencia del editor
+    // viejo, que estaba atado al nº de caras del bloque).
+    var faces by remember {
         mutableStateOf(
-            if (faces.isEmpty()) listOf(listOf(BoulderBloqueForm()))
-            else faces.map { f ->
-                f.lines.map { l ->
-                    BoulderBloqueForm(
-                        name = l.name, grade = l.grade,
-                        startType = startTypeForBoulderUi(l.startType?.toString()),
-                        linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
-                        existingLineId = l.id
+            block.facesOrDerived().let { fs ->
+                if (fs.isEmpty()) listOf(EditFace(block.photoPath, null, listOf(BoulderBloqueForm())))
+                else fs.map { f ->
+                    EditFace(
+                        existingPhotoPath = f.photoPath,
+                        newPhotoUri = null,
+                        bloques = f.lines.map { l ->
+                            BoulderBloqueForm(
+                                name = l.name, grade = l.grade,
+                                startType = startTypeForBoulderUi(l.startType?.toString()),
+                                linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
+                                existingLineId = l.id
+                            )
+                        }.ifEmpty { listOf(BoulderBloqueForm()) }
                     )
                 }
             }
         )
     }
     var selectedFace by remember { mutableStateOf(0) }
-    val faceIdx = selectedFace.coerceIn(0, (faceBloques.size - 1).coerceAtLeast(0))
-    val facePhoto = faces.getOrNull(faceIdx)?.photoPath ?: block.photoPath
-    val faceLines = faces.getOrNull(faceIdx)?.lines ?: block.lines
-    val bloques = faceBloques.getOrElse(faceIdx) { listOf(BoulderBloqueForm()) }
-    fun updateFace(transform: (List<BoulderBloqueForm>) -> List<BoulderBloqueForm>) {
-        faceBloques = faceBloques.toMutableList().also { it[faceIdx] = transform(it[faceIdx]) }
+    val faceIdx = selectedFace.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
+    val face = faces.getOrElse(faceIdx) { EditFace(null, null, listOf(BoulderBloqueForm())) }
+
+    // Geometría/sentido editables. El muro ya creado trae su geometry/direction.
+    var geometry by remember { mutableStateOf(block.geometry.ifBlank { "POINT" }) }
+    var direction by remember { mutableStateOf(block.direction.ifBlank { "LTR" }) }
+    val isWall = geometry == "LINE"
+
+    fun updateFace(transform: (EditFace) -> EditFace) {
+        faces = faces.toMutableList().also { it[faceIdx] = transform(it[faceIdx]) }
+    }
+    fun updateBloques(transform: (List<BoulderBloqueForm>) -> List<BoulderBloqueForm>) {
+        updateFace { it.copy(bloques = transform(it.bloques)) }
     }
 
-    // Foto NUEVA por cara (1b): al cambiarla, toda esa cara se moverá a la imagen
-    // nueva al enviar; conviene redibujar sus vías sobre ella.
-    var newPhotoByFace by remember { mutableStateOf<Map<Int, Uri>>(emptyMap()) }
-    val newPhotoUri = newPhotoByFace[faceIdx]
     val photoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri -> if (uri != null) newPhotoByFace = newPhotoByFace + (faceIdx to uri) }
+    ) { uri -> if (uri != null) updateFace { it.copy(newPhotoUri = uri) } }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -129,59 +158,215 @@ fun AddLinesFlow(
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.md)
         ) {
-            Text("Editar / corregir vías",
+            Text("Editar piedra / muro",
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                "Edita las vías de \"${block.name}\" por foto: corrige nombre/grado/" +
-                "tipo, redibújalas, cambia la foto de la cara o añade nuevas. " +
-                "Un admin lo revisará (o se publica directo si eres admin).",
+                "Edita \"${block.name}\": corrige o añade vías, añade más fotos, " +
+                "reordena y ajusta el muro. Un admin lo revisará (o se publica directo " +
+                "si eres admin).",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(Spacing.lg))
 
-            // Selector de cara (solo si la piedra tiene varias fotos).
-            if (faces.size > 1) {
-                Text("¿EN QUÉ FOTO?", style = EyebrowTextStyle,
+            // ── Geometría (PUNTO / MURO) ────────────────────────────────────────
+            Text("GEOMETRÍA", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.xs))
+            GeometrySelector(selected = geometry, onSelect = { geometry = it })
+            if (isWall) {
+                Spacer(Modifier.height(Spacing.md))
+                Text("SENTIDO DE NUMERACIÓN", style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    items(faces.size) { i ->
-                        val on = i == faceIdx
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(if (on) Terra else MaterialTheme.colorScheme.surface)
-                                .border(1.dp, if (on) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                                .clickable { selectedFace = i }
-                                .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                        ) {
-                            Text("FOTO ${i + 1}", style = EyebrowTextStyle,
-                                color = if (on) Color.White else MaterialTheme.colorScheme.onSurface)
-                        }
+                DirectionSelector(selected = direction, onSelect = { direction = it })
+                if (block.path.isNullOrBlank()) {
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text("Este muro aún no tiene trazado en el mapa. El re-trazado " +
+                        "se hará desde el mapa (próximamente); por ahora se mantiene " +
+                        "el trazado actual.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Spacer(Modifier.height(Spacing.lg))
+
+            // ── Fotos (caras) ───────────────────────────────────────────────────
+            Text("FOTOS DE LA PIEDRA", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.xs))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                itemsIndexed(faces) { i, _ ->
+                    val on = i == faceIdx
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .then(if (on) Modifier.background(Terra) else Modifier)
+                            .border(1.dp, if (on) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                            .clickable { selectedFace = i }
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                    ) {
+                        Text("FOTO ${i + 1}", style = EyebrowTextStyle,
+                            color = if (on) Color.White else MaterialTheme.colorScheme.onSurface)
                     }
                 }
-                Spacer(Modifier.height(Spacing.md))
+                item {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                            .clickable {
+                                faces = faces + EditFace(null, null, listOf(BoulderBloqueForm()))
+                                selectedFace = faces.size  // selecciona la nueva (índice = tamaño previo)
+                            }
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                    ) {
+                        Text("+ AÑADIR FOTO", style = EyebrowTextStyle, color = Terra)
+                    }
+                }
             }
+            if (faces.size > 1) {
+                Spacer(Modifier.height(Spacing.xs))
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    val canLeft = faceIdx > 0
+                    val canRight = faceIdx < faces.size - 1
+                    Text("◀ MOVER", style = EyebrowTextStyle,
+                        color = if (canLeft) Terra else MaterialTheme.colorScheme.outline,
+                        modifier = if (canLeft) Modifier.clickable {
+                            faces = faces.toMutableList().also {
+                                val t = it[faceIdx - 1]; it[faceIdx - 1] = it[faceIdx]; it[faceIdx] = t
+                            }
+                            selectedFace = faceIdx - 1
+                        } else Modifier)
+                    Text("MOVER ▶", style = EyebrowTextStyle,
+                        color = if (canRight) Terra else MaterialTheme.colorScheme.outline,
+                        modifier = if (canRight) Modifier.clickable {
+                            faces = faces.toMutableList().also {
+                                val t = it[faceIdx + 1]; it[faceIdx + 1] = it[faceIdx]; it[faceIdx] = t
+                            }
+                            selectedFace = faceIdx + 1
+                        } else Modifier)
+                    Spacer(Modifier.weight(1f))
+                    Text("✕ QUITAR ESTA FOTO", style = EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.clickable {
+                            faces = faces.toMutableList().also { it.removeAt(faceIdx) }
+                            selectedFace = (faceIdx - 1).coerceAtLeast(0)
+                        })
+                }
+            }
+            Spacer(Modifier.height(Spacing.md))
 
-            // Vías de ESTA cara (existentes para repintar/corregir + nuevas)
+            // ── Foto de la cara seleccionada ────────────────────────────────────
+            if (face.hasPhoto) {
+                AsyncImage(
+                    model = face.photoModel,
+                    contentDescription = "Foto ${faceIdx + 1} de la piedra",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(Modifier.height(Spacing.xs))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                        .clickable {
+                            photoLauncher.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        }
+                        .padding(vertical = Spacing.sm),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (face.newPhotoUri != null) "✓ FOTO NUEVA · ELEGIR OTRA" else "CAMBIAR FOTO DE ESTA CARA",
+                        style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (face.newPhotoUri != null) {
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text("Foto nueva: redibuja las vías de esta cara sobre ella antes de enviar.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                        .clickable {
+                            photoLauncher.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Sin foto en esta cara",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(4.dp))
+                        Text("SELECCIONAR FOTO", style = EyebrowTextStyle, color = Terra)
+                    }
+                }
+            }
+            Spacer(Modifier.height(Spacing.md))
+
+            // ── Vías de esta cara ───────────────────────────────────────────────
             Text("VÍAS DE ESTA FOTO", style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (isWall) {
+                Spacer(Modifier.height(2.dp))
+                Text("Nº = posición en el muro (${if (direction == "LTR") "izq→der" else "der→izq"}). Reordena con ▲▼.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Spacer(Modifier.height(Spacing.sm))
 
-            bloques.forEachIndexed { idx, b ->
+            val totalVias = faces.sumOf { it.bloques.size }
+            val precedingCount = faces.take(faceIdx).sumOf { it.bloques.size }
+            face.bloques.forEachIndexed { idx, b ->
+                val globalPos = precedingCount + idx
+                val number = when {
+                    !isWall -> idx + 1
+                    direction == "LTR" -> globalPos + 1
+                    else -> totalVias - globalPos
+                }
                 Text(if (b.existingLineId != null) "VÍA EXISTENTE" else "NUEVA",
                     style = EyebrowTextStyle,
                     color = if (b.existingLineId != null) MaterialTheme.colorScheme.onSurfaceVariant else Terra)
                 AddLineRow(
-                    index = idx,
+                    displayNumber = number,
                     bloque = b,
-                    onUpdate = { upd -> updateFace { it.toMutableList().also { l -> l[idx] = upd } } },
-                    // Solo las nuevas se pueden quitar (el backend no borra existentes).
+                    onUpdate = { upd -> updateBloques { it.toMutableList().also { l -> l[idx] = upd } } },
+                    // Solo las nuevas se pueden quitar; las existentes que omitas las
+                    // borraría el backend (reconcileWall), pero aquí no exponemos borrar
+                    // existentes — para quitar una vía existente, mejor desde el admin.
                     onDelete = if (b.existingLineId == null) ({
-                        updateFace { it.toMutableList().also { l -> l.removeAt(idx) } }
+                        updateBloques { it.toMutableList().also { l -> l.removeAt(idx) } }
+                    }) else null,
+                    onMoveUp = if (idx > 0) ({
+                        updateBloques { it.toMutableList().also {
+                            val t = it[idx - 1]; it[idx - 1] = it[idx]; it[idx] = t
+                        } }
+                    }) else null,
+                    onMoveDown = if (idx < face.bloques.size - 1) ({
+                        updateBloques { it.toMutableList().also {
+                            val t = it[idx + 1]; it[idx + 1] = it[idx]; it[idx] = t
+                        } }
                     }) else null
                 )
                 Spacer(Modifier.height(Spacing.xs))
@@ -192,7 +377,7 @@ fun AddLinesFlow(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
                     .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable { updateFace { it + BoulderBloqueForm() } }
+                    .clickable { updateBloques { it + BoulderBloqueForm() } }
                     .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
@@ -200,39 +385,10 @@ fun AddLinesFlow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            // Cambiar la foto de esta cara (mejorarla) y redibujar (1b).
-            Spacer(Modifier.height(Spacing.sm))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable {
-                        photoLauncher.launch(
-                            androidx.activity.result.PickVisualMediaRequest(
-                                ActivityResultContracts.PickVisualMedia.ImageOnly
-                            )
-                        )
-                    }
-                    .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    if (newPhotoUri == null) "CAMBIAR FOTO DE ESTA CARA" else "✓ FOTO NUEVA · ELEGIR OTRA",
-                    style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            if (newPhotoUri != null) {
-                Spacer(Modifier.height(Spacing.xs))
-                Text("Foto nueva: redibuja las vías de esta cara sobre ella antes de enviar.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            // Dibujar líneas (si la cara tiene foto existente o has elegido una nueva)
-            if (!facePhoto.isNullOrBlank() || newPhotoUri != null) {
+            // ── Dibujar líneas ──────────────────────────────────────────────────
+            if (face.hasPhoto) {
                 Spacer(Modifier.height(Spacing.sm))
-                val hasLines = bloques.any { it.linePath.isNotEmpty() }
+                val hasLines = face.bloques.any { it.linePath.isNotEmpty() }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -249,7 +405,7 @@ fun AddLinesFlow(
                 }
             } else {
                 Spacer(Modifier.height(Spacing.xs))
-                Text("Esta piedra no tiene foto, no puedes dibujar líneas.",
+                Text("Añade una foto a esta cara para poder dibujar las líneas.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -289,26 +445,26 @@ fun AddLinesFlow(
                             scope.launch {
                                 // 1) Sube la foto nueva de las caras que se cambiaron.
                                 val urlByFace = HashMap<Int, String>()
-                                for ((i, uri) in newPhotoByFace) {
-                                    viewModel.uploadBoulderPhoto(FileRef(uri.toString()))
-                                        .getOrNull()?.let { urlByFace[i] = it }
+                                faces.forEachIndexed { i, f ->
+                                    val uri = f.newPhotoUri
+                                    if (uri != null) {
+                                        viewModel.uploadBoulderPhoto(FileRef(uri.toString()))
+                                            .getOrNull()?.let { urlByFace[i] = it }
+                                    }
                                 }
-                                // 2) Aplana todas las caras: cada vía con su facePhoto
-                                //    (la nueva si la cara cambió de foto). Vías existentes
-                                //    solo si su cara cambió de foto o si las modificaste;
-                                //    nuevas siempre que tengan algo.
-                                val payload = faceBloques.flatMapIndexed { i, vias ->
-                                    val movedUrl = urlByFace[i]
-                                    val fp = movedUrl ?: (faces.getOrNull(i)?.photoPath ?: block.photoPath)
-                                    vias.mapNotNull { v ->
+                                // 2) Estado COMPLETO: todas las vías en su orden, cada una
+                                //    con la foto de su cara. Se omiten solo las filas NUEVAS
+                                //    vacías. Las existentes van siempre (el backend reconcilia
+                                //    por lineId y reaplica el orden).
+                                val payload = faces.flatMapIndexed { i, f ->
+                                    val fp = urlByFace[i] ?: f.existingPhotoPath
+                                    f.bloques.mapNotNull { v ->
                                         val stamped = v.copy(facePhoto = fp)
-                                        if (v.existingLineId != null) {
-                                            val orig = block.lines.firstOrNull { it.id == v.existingLineId }
-                                            val changed = movedUrl != null || orig == null || boulderLineChanged(v, orig)
-                                            if (changed) stamped else null
-                                        } else if (v.grade != null || v.name.isNotBlank() || v.linePath.isNotEmpty()) {
-                                            stamped
-                                        } else null
+                                        when {
+                                            v.existingLineId != null -> stamped
+                                            v.grade != null || v.name.isNotBlank() || v.linePath.isNotEmpty() -> stamped
+                                            else -> null
+                                        }
                                     }
                                 }
                                 if (payload.isEmpty()) { sending = false; onSuccess(); return@launch }
@@ -316,7 +472,12 @@ fun AddLinesFlow(
                                     targetBlockId = block.id,
                                     targetLat = block.lat,
                                     targetLon = block.lon,
-                                    bloques = payload
+                                    bloques = payload,
+                                    geometry = geometry,
+                                    // Re-trazado en el mapa pendiente (Fase 8.2): se preserva
+                                    // el trazado actual del muro.
+                                    path = if (isWall) block.path else null,
+                                    direction = direction
                                 )
                                 if (result.isSuccess) onSuccess()
                                 else {
@@ -339,13 +500,13 @@ fun AddLinesFlow(
     // Editor topo sobre la foto de la cara (la NUEVA si la cambiaste). Las vías
     // editables de esta cara YA se dibujan; no se pasan líneas de referencia
     // aparte (evita duplicar) ni se mezclan las de otras caras.
-    val editorPhoto = newPhotoUri ?: facePhoto?.let { Uri.parse(it) }
+    val editorPhoto = face.newPhotoUri ?: face.existingPhotoPath?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
     if (showTopo && editorPhoto != null) {
         ContributionTopoDialog(
             photoUri = editorPhoto,
-            bloques = bloques,
+            bloques = face.bloques,
             onSave = { updated ->
-                updateFace { updated }
+                updateBloques { updated }
                 showTopo = false
             },
             onDismiss = { showTopo = false },
@@ -363,27 +524,15 @@ private fun startTypeForBoulderUi(raw: String?): String? = when (raw?.uppercase(
     else            -> null
 }
 
-/** ¿La vía editable difiere de la original del catálogo? */
-private fun boulderLineChanged(b: BoulderBloqueForm, orig: com.meteomontana.android.domain.model.BlockLine): Boolean {
-    if (b.name != orig.name) return true
-    if ((b.grade ?: "") != (orig.grade ?: "")) return true
-    if ((b.startType ?: "") != (startTypeForBoulderUi(orig.startType?.toString()) ?: "")) return true
-    val origPts = com.meteomontana.android.ui.screens.topo.parseLineStroke(orig.linePath).points
-    if (b.linePath.size != origPts.size) return true
-    for (i in b.linePath.indices) {
-        if (kotlin.math.abs(b.linePath[i].x - origPts[i].x) > 0.001f ||
-            kotlin.math.abs(b.linePath[i].y - origPts[i].y) > 0.001f) return true
-    }
-    return false
-}
-
-/** Fila para un bloque/vía nueva: nombre + grado + tipo de inicio + eliminar. */
+/** Fila para una vía: número (posición) + nombre + grado + tipo + reordenar + eliminar. */
 @Composable
 internal fun AddLineRow(
-    index: Int,
+    displayNumber: Int,
     bloque: BoulderBloqueForm,
     onUpdate: (BoulderBloqueForm) -> Unit,
-    onDelete: (() -> Unit)?
+    onDelete: (() -> Unit)?,
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null
 ) {
     var gradeExpanded by remember { mutableStateOf(false) }
     val gradeColor = colorForGrade(bloque.grade)
@@ -398,11 +547,22 @@ internal fun AddLineRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            // Tirador de reordenar ▲▼
+            if (onMoveUp != null || onMoveDown != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("▲", style = MaterialTheme.typography.labelMedium,
+                        color = if (onMoveUp != null) Terra else MaterialTheme.colorScheme.outline,
+                        modifier = if (onMoveUp != null) Modifier.clickable(onClick = onMoveUp) else Modifier)
+                    Text("▼", style = MaterialTheme.typography.labelMedium,
+                        color = if (onMoveDown != null) Terra else MaterialTheme.colorScheme.outline,
+                        modifier = if (onMoveDown != null) Modifier.clickable(onClick = onMoveDown) else Modifier)
+                }
+            }
             Box(
                 modifier = Modifier.size(24.dp).clip(CircleShape).background(gradeColor),
                 contentAlignment = Alignment.Center
             ) {
-                Text("${index + 1}",
+                Text("$displayNumber",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White)
             }
