@@ -62,7 +62,8 @@ fun ProfileScreen(
     onOpenFollowing: () -> Unit = {},
     onOpenFollowRequests: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
-    onOpenAllBlocks: () -> Unit = {},
+    onOpenBoulders: () -> Unit = {},
+    onOpenRoutes: () -> Unit = {},
     onOpenAllSchools: () -> Unit = {},
     onOpenMaxGrade: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
@@ -104,7 +105,8 @@ fun ProfileScreen(
                 onOpenFollowing = onOpenFollowing,
                 onOpenFollowRequests = onOpenFollowRequests,
                 onOpenSchoolEntries = onOpenSchoolEntries,
-                onOpenAllBlocks = onOpenAllBlocks,
+                onOpenBoulders = onOpenBoulders,
+                onOpenRoutes = onOpenRoutes,
                 onOpenAllSchools = onOpenAllSchools,
                 onOpenMaxGrade = onOpenMaxGrade,
                 onSignOut = viewModel::signOut,
@@ -158,7 +160,8 @@ private fun Content(
     onOpenFollowing: () -> Unit,
     onOpenFollowRequests: () -> Unit,
     onOpenSchoolEntries: (String) -> Unit,
-    onOpenAllBlocks: () -> Unit,
+    onOpenBoulders: () -> Unit,
+    onOpenRoutes: () -> Unit,
     onOpenAllSchools: () -> Unit,
     onOpenMaxGrade: () -> Unit,
     onSignOut: () -> Unit,
@@ -201,7 +204,7 @@ private fun Content(
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         item { TogglesSection(profile) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-        item { StatsRow(stats, onOpenAllBlocks, onOpenAllSchools, onOpenMaxGrade) }
+        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade) }
         item {
             AddBlockButton(onClick = onAddBlock)
         }
@@ -366,7 +369,8 @@ private fun ToggleRow(label: String, value: Boolean, secondaryText: String? = nu
 @Composable
 private fun StatsRow(
     stats: JournalStats,
-    onBlocks: () -> Unit,
+    onBoulders: () -> Unit,
+    onRoutes: () -> Unit,
     onSchools: () -> Unit,
     onMax: () -> Unit
 ) {
@@ -376,8 +380,8 @@ private fun StatsRow(
     ) {
         // Fila 1: contadores BLOQUES / VÍAS / ESCUELAS.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCell("BLOQUES", stats.boulderCount.toString(), Modifier.weight(1f).clickable(onClick = onBlocks))
-            StatCell("VÍAS", stats.routeCount.toString(), Modifier.weight(1f).clickable(onClick = onBlocks))
+            StatCell("BLOQUES", stats.boulderCount.toString(), Modifier.weight(1f).clickable(onClick = onBoulders))
+            StatCell("VÍAS", stats.routeCount.toString(), Modifier.weight(1f).clickable(onClick = onRoutes))
             StatCell("ESCUELAS", stats.schoolCount.toString(), Modifier.weight(1f).clickable(onClick = onSchools))
         }
         // Fila 2: grado máximo separado por modalidad (escalas distintas).

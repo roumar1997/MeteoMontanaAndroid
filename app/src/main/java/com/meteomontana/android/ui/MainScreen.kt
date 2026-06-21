@@ -200,7 +200,8 @@ fun MainScreen(
                     onOpenSchoolEntries = { schoolName ->
                         navController.navigate(Routes.journalEntries("school:$schoolName"))
                     },
-                    onOpenAllBlocks = { navController.navigate(Routes.journalEntries(null)) },
+                    onOpenBoulders = { navController.navigate(Routes.journalEntries("discipline:BOULDER")) },
+                    onOpenRoutes = { navController.navigate(Routes.journalEntries("discipline:ROUTE")) },
                     onOpenAllSchools = { navController.navigate(Routes.journalSchools(null)) },
                     onOpenMaxGrade = { navController.navigate(Routes.journalEntries("grade-max")) }
                 )
@@ -299,8 +300,11 @@ fun MainScreen(
                         navController.navigate(Routes.followList(uid, "following"))
                     },
                     onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) },
-                    onOpenAllBlocks = { uid ->
-                        navController.navigate(Routes.journalEntries(filter = null, uid = uid))
+                    onOpenBoulders = { uid ->
+                        navController.navigate(Routes.journalEntries(filter = "discipline:BOULDER", uid = uid))
+                    },
+                    onOpenRoutes = { uid ->
+                        navController.navigate(Routes.journalEntries(filter = "discipline:ROUTE", uid = uid))
                     },
                     onOpenMaxGrade = { uid ->
                         navController.navigate(Routes.journalEntries(filter = "grade-max", uid = uid))

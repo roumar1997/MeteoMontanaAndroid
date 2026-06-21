@@ -128,7 +128,8 @@ fun PublicProfileScreen(
     onFollowersClick: (String) -> Unit = {},
     onFollowingClick: (String) -> Unit = {},
     onOpenChat: (String) -> Unit = {},
-    onOpenAllBlocks: (String) -> Unit = {},
+    onOpenBoulders: (String) -> Unit = {},
+    onOpenRoutes: (String) -> Unit = {},
     onOpenMaxGrade: (String) -> Unit = {},
     onOpenSchools: (String) -> Unit = {},
     onOpenSchoolEntries: (uid: String, schoolName: String) -> Unit = { _, _ -> },
@@ -160,7 +161,8 @@ fun PublicProfileScreen(
                 onFollowersClick = { onFollowersClick(s.profile.uid) },
                 onFollowingClick = { onFollowingClick(s.profile.uid) },
                 onMessage = { onOpenChat(s.profile.uid) },
-                onOpenAllBlocks = { onOpenAllBlocks(s.profile.uid) },
+                onOpenBoulders = { onOpenBoulders(s.profile.uid) },
+                onOpenRoutes = { onOpenRoutes(s.profile.uid) },
                 onOpenMaxGrade = { onOpenMaxGrade(s.profile.uid) },
                 onOpenSchools = { onOpenSchools(s.profile.uid) },
                 onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) }
@@ -176,7 +178,8 @@ private fun Body(
     onFollowersClick: () -> Unit,
     onFollowingClick: () -> Unit,
     onMessage: () -> Unit,
-    onOpenAllBlocks: () -> Unit = {},
+    onOpenBoulders: () -> Unit = {},
+    onOpenRoutes: () -> Unit = {},
     onOpenMaxGrade: () -> Unit = {},
     onOpenSchools: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {}
@@ -253,7 +256,8 @@ private fun Body(
             Spacer(Modifier.height(16.dp))
             ActivityStatsRow(
                 stats = s.stats,
-                onBlocksClick = onOpenAllBlocks,
+                onBlocksClick = onOpenBoulders,
+                onRoutesClick = onOpenRoutes,
                 onSchoolsClick = onOpenSchools,
                 onMaxClick = onOpenMaxGrade
             )
@@ -289,6 +293,7 @@ private fun Body(
 private fun ActivityStatsRow(
     stats: JournalStats,
     onBlocksClick: () -> Unit,
+    onRoutesClick: () -> Unit,
     onSchoolsClick: () -> Unit,
     onMaxClick: () -> Unit
 ) {
@@ -299,7 +304,7 @@ private fun ActivityStatsRow(
             Stat("Bloques", stats.boulderCount.toString(),
                 modifier = Modifier.clickable(onClick = onBlocksClick))
             Stat("Vías", stats.routeCount.toString(),
-                modifier = Modifier.clickable(onClick = onBlocksClick))
+                modifier = Modifier.clickable(onClick = onRoutesClick))
             Stat("Escuelas", stats.schoolCount.toString(),
                 modifier = Modifier.clickable(onClick = onSchoolsClick))
         }

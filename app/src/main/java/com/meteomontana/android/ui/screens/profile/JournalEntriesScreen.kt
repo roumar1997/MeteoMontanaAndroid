@@ -80,6 +80,8 @@ class JournalEntriesViewModel @Inject constructor(
         filter == null               -> if (isMine) "Todos mis bloques" else "Todos los bloques"
         filter.startsWith("school:") -> filter.removePrefix("school:")
         filter == "grade-max"        -> "Grado máximo"
+        filter == "discipline:BOULDER" -> if (isMine) "Mis bloques" else "Bloques"
+        filter == "discipline:ROUTE"   -> if (isMine) "Mis vías" else "Vías"
         else                         -> "Diario"
     }
 
@@ -118,6 +120,10 @@ class JournalEntriesViewModel @Inject constructor(
                                   else getUserStats(uid).maxGrade
                         if (max != null) all.filter { it.grade == max } else emptyList()
                     }
+                    // Modalidad: BOULDER (bloque) o ROUTE (vía). Entradas viejas sin
+                    // modalidad cuentan como BOULDER (default), igual que en stats.
+                    filter == "discipline:BOULDER" -> all.filter { !it.discipline.equals("ROUTE", true) }
+                    filter == "discipline:ROUTE"   -> all.filter { it.discipline.equals("ROUTE", true) }
                     else -> all
                 }
                 // Resuelvo nº de piedra + sector en vivo del catálogo (no se guardan

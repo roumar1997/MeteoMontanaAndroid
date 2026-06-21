@@ -272,6 +272,13 @@ internal fun AddLinesFlow(
             }
             if (faces.size > 1) {
                 Spacer(Modifier.height(Spacing.xs))
+                Text(
+                    if (isWall) "ORDEN DE LAS FOTOS · la numeración del muro las recorre en este orden"
+                    else "ORDEN DE LAS FOTOS",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     val canLeft = faceIdx > 0
