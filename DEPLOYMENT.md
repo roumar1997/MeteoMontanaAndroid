@@ -528,6 +528,59 @@ peticiones en segundos; escrituras pocas y lentas). Devolver **HTTP 429 +
 usuarios reales → por eso son generosos (≈2× la ráfaga normal). Vigilar que
 `/actuator/health` y los webhooks queden excluidos.
 
+### 🔑 google-services.json — cómo tenerlo en cualquier PC (Android)
+
+El módulo `app` necesita `app/google-services.json` (Firebase, proyecto
+**climbingteams**) para compilar con login/push reales. Está **gitignored** (no
+se sube). Si una sesión NO lo encuentra en `app/`, hay 3 vías para recuperarlo:
+
+1. **Copiarlo del PC donde sí está** (Rodrigo lo descargó de Firebase Console →
+   Project settings → tu app Android → `google-services.json`).
+2. **Reconstruirlo desde el APK instalado en el móvil** (lo que se hizo el
+   2026-06-21 cuando no estaba en este PC): `adb pull` del `base.apk`
+   (`adb shell pm path com.meteomontana.android`) y `aapt2 dump resources` para
+   leer `google_app_id`, `project_id`, `default_web_client_id`, etc.
+3. **Pegar el contenido de abajo** en `app/google-services.json` (son los valores
+   reales del proyecto; NO son secretos de alto riesgo: viajan dentro de cada APK
+   publicado y la API key va restringida por package+SHA-1). Sirve para COMPILAR;
+   para que el **login** funcione en un APK, además la SHA-1 de la clave que firma
+   ese APK debe estar registrada en Firebase Console.
+
+```json
+{
+  "project_info": {
+    "project_number": "977545428920",
+    "project_id": "climbingteams",
+    "storage_bucket": "climbingteams.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:977545428920:android:0b5455c96caa0411c6d94d",
+        "android_client_info": { "package_name": "com.meteomontana.android" }
+      },
+      "oauth_client": [
+        { "client_id": "977545428920-ijvn4t70oqihoj9epncib6n49aeaqigq.apps.googleusercontent.com", "client_type": 3 }
+      ],
+      "api_key": [ { "current_key": "AIzaSyA7zIqwBTtPGurizg8z97lVAyf8XtWwoco" } ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            { "client_id": "977545428920-ijvn4t70oqihoj9epncib6n49aeaqigq.apps.googleusercontent.com", "client_type": 3 }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+```
+
+> El `client_info.android_client_info` no incluye la SHA-1: el `default_web_client_id`
+> se genera del `oauth_client` tipo 3 (web), suficiente para compilar. El login
+> Google valida la SHA-1 contra las registradas en Firebase Console (no contra el
+> JSON). En el CI, este fichero lo aporta el secret **`GOOGLE_SERVICES_JSON`**.
+
 ### Notas para futuras sesiones
 
 - La contraseña de Postgres en producción **NO es la del chat anterior**, fue rotada.
