@@ -143,6 +143,7 @@ internal fun AddLinesFlow(
     onSuccess: () -> Unit
 ) {
     var showTopo by remember { mutableStateOf(false) }
+    var showReorder by remember { mutableStateOf(false) }
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -271,41 +272,34 @@ internal fun AddLinesFlow(
                 }
             }
             if (faces.size > 1) {
-                Spacer(Modifier.height(Spacing.xs))
-                Text(
-                    if (isWall) "ORDEN DE LAS FOTOS · la numeración del muro las recorre en este orden"
-                    else "ORDEN DE LAS FOTOS",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(Spacing.sm))
                 Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                    val canLeft = faceIdx > 0
-                    val canRight = faceIdx < faces.size - 1
-                    Text("◀ MOVER", style = EyebrowTextStyle,
-                        color = if (canLeft) Terra else MaterialTheme.colorScheme.outline,
-                        modifier = if (canLeft) Modifier.clickable {
-                            onFacesChange(faces.toMutableList().also {
-                                val t = it[faceIdx - 1]; it[faceIdx - 1] = it[faceIdx]; it[faceIdx] = t
-                            })
-                            onSelectedFaceChange(faceIdx - 1)
-                        } else Modifier)
-                    Text("MOVER ▶", style = EyebrowTextStyle,
-                        color = if (canRight) Terra else MaterialTheme.colorScheme.outline,
-                        modifier = if (canRight) Modifier.clickable {
-                            onFacesChange(faces.toMutableList().also {
-                                val t = it[faceIdx + 1]; it[faceIdx + 1] = it[faceIdx]; it[faceIdx] = t
-                            })
-                            onSelectedFaceChange(faceIdx + 1)
-                        } else Modifier)
-                    Spacer(Modifier.weight(1f))
-                    Text("✕ QUITAR ESTA FOTO", style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.clickable {
-                            onFacesChange(faces.toMutableList().also { it.removeAt(faceIdx) })
-                            onSelectedFaceChange((faceIdx - 1).coerceAtLeast(0))
-                        })
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(MaterialTheme.shapes.small)
+                            .border(1.dp, Terra, MaterialTheme.shapes.small)
+                            .clickable { showReorder = true }
+                            .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("↕ REORDENAR FOTOS", style = EyebrowTextStyle, color = Terra)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.small)
+                            .border(1.dp, MaterialTheme.colorScheme.error, MaterialTheme.shapes.small)
+                            .clickable {
+                                onFacesChange(faces.toMutableList().also { it.removeAt(faceIdx) })
+                                onSelectedFaceChange((faceIdx - 1).coerceAtLeast(0))
+                            }
+                            .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("✕ QUITAR FOTO ${faceIdx + 1}", style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
             Spacer(Modifier.height(Spacing.md))
@@ -561,6 +555,127 @@ internal fun AddLinesFlow(
             onDismiss = { showTopo = false },
             existingLines = emptyList()
         )
+    }
+
+    if (showReorder) {
+        ReorderFacesDialog(
+            faces = faces,
+            isWall = isWall,
+            direction = direction,
+            onMove = { from, to ->
+                if (to in faces.indices && from in faces.indices) {
+                    val list = faces.toMutableList()
+                    val item = list.removeAt(from)
+                    list.add(to, item)
+                    onFacesChange(list)
+                    // Mantén seleccionada la cara que el usuario está moviendo.
+                    if (faceIdx == from) onSelectedFaceChange(to)
+                }
+            },
+            onDismiss = { showReorder = false }
+        )
+    }
+}
+
+/**
+ * Panel para reordenar las fotos (caras) de la piedra VIÉNDOLAS todas: cada fila
+ * es una miniatura con su posición y nº de vías, y sube/baja para colocarla. En
+ * muro la posición define la numeración global de las vías.
+ */
+@Composable
+private fun ReorderFacesDialog(
+    faces: List<EditFace>,
+    isWall: Boolean,
+    direction: String,
+    onMove: (from: Int, to: Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                .verticalScroll(rememberScrollState())
+                .padding(Spacing.md)
+        ) {
+            Text("Reordenar fotos",
+                style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
+                color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                if (isWall) "Las fotos se recorren en este orden (${if (direction == "LTR") "izq→der" else "der→izq"}) para numerar las vías del muro."
+                else "Ordena las fotos de la piedra.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(Spacing.md))
+
+            faces.forEachIndexed { i, f ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Spacing.xs)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                        .padding(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    // Posición
+                    Box(
+                        modifier = Modifier.size(28.dp).clip(CircleShape).background(Terra),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("${i + 1}", style = MaterialTheme.typography.labelMedium, color = Color.White)
+                    }
+                    // Miniatura
+                    if (f.hasPhoto) {
+                        AsyncImage(
+                            model = f.photoModel,
+                            contentDescription = "Foto ${i + 1}",
+                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(2.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(2.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Text("FOTO ${i + 1} · ${f.bloques.size} vías",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f))
+                    // Subir / bajar
+                    Text("▲", style = MaterialTheme.typography.titleMedium,
+                        color = if (i > 0) Terra else MaterialTheme.colorScheme.outline,
+                        modifier = if (i > 0) Modifier.clickable { onMove(i, i - 1) } else Modifier)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text("▼", style = MaterialTheme.typography.titleMedium,
+                        color = if (i < faces.size - 1) Terra else MaterialTheme.colorScheme.outline,
+                        modifier = if (i < faces.size - 1) Modifier.clickable { onMove(i, i + 1) } else Modifier)
+                }
+            }
+
+            Spacer(Modifier.height(Spacing.md))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.small)
+                    .background(Terra)
+                    .clickable(onClick = onDismiss)
+                    .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("✓ LISTO", style = EyebrowTextStyle, color = Color.White)
+            }
+        }
     }
 }
 
