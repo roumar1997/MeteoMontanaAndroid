@@ -248,6 +248,12 @@ internal fun redrawContributionMarkers(
             .title("PROPUESTA · ${c.name ?: c.type}")
             .icon(iconFactory.fromBitmap(icon)))
     }
+    // Muro: polilínea vieja (gris) + nueva (sólida terra).
+    if (c.geometry.equals("LINE", true)) {
+        val targetBlock = if (!c.targetBlockId.isNullOrBlank())
+            existingBlocks.firstOrNull { it.id == c.targetBlockId } else null
+        drawWallDiffPolylines(map, c, targetBlock)
+    }
 }
 
 // ─────────────────────────── GESTIONAR ────────────────────────────

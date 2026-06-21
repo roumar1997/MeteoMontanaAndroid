@@ -495,6 +495,32 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-21 (2) — muros largos Fase 7: vista de diff del admin ✅
+
+Continuación. Backend + shared + Android (compila + tests verdes).
+
+- **Backend** (`MeteoMontanaAPI`, primero traje las Fases 1-3 de muros que estaban
+  en GitHub pero no en el clon local — `git pull`): `ContributionResponse` ahora
+  expone `geometry/path/direction` (ya se persistían en `PendingContribution`,
+  faltaba devolverlos). Compila + `WallDiffCalculatorTest` verde.
+- **Shared**: `ContributionDto` + `Contribution` + mapping con `geometry/path/
+  direction`. Portado el calculador de diff a Kotlin:
+  `domain/usecase/walls/WallDiff.kt` (`WallDiffCalculator`, `WallDiff`,
+  `ExistingRoute`, `ProposedRoute`, `WallRouteChange`, `WallRouteStatus`) — espejo
+  EXACTO del `WallDiffCalculator.java` del backend.
+- **Decisión**: el diff se calcula **en la app** (no hay endpoint de diff). El
+  admin compara el `Block` actual vs el `bloquesJson`/`path` propuestos.
+- **Android** (`ContributionCard.kt`): cuando `geometry==LINE` →
+  `drawWallDiffPolylines` pinta en el mini-mapa la polilínea **vieja gris** +
+  **nueva terra** (también en `redrawContributionMarkers` al cambiar estilo);
+  `WallDiffSection` muestra dirección (vieja→nueva o "muro nuevo") + aviso de
+  trazado cambiado + lista de vías con badges **NUEVA / MOVIDA #a→#b / MODIFICADA /
+  MOVIDA+MODIF / QUITADA / CONFLICTO** (vía `buildWallDiff`).
+
+> ⚠️ **DESPLIEGUE**: la sección de diff solo aparece cuando el backend devuelve
+> `geometry/path/direction` → necesita el redeploy de Railway. Degrada bien
+> (sin esos campos, no se pinta). **SIGUIENTE**: Fase 8 — diario por `lineId`.
+
 ### Sesión 2026-06-21 — muros largos Fase 6: editor de muro (Android) ✅
 
 Continuación de `WALLS_DESIGN.md`. Fase 6 completa (compila + tests verdes).

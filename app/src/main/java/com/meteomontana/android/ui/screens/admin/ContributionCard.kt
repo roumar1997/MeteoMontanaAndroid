@@ -69,6 +69,7 @@ import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.Submission
+import com.meteomontana.android.domain.usecase.walls.WallRouteStatus
 import androidx.compose.runtime.key
 import com.meteomontana.android.ui.components.FullScreenMapDialog
 import com.meteomontana.android.ui.components.TopoLine
@@ -251,6 +252,13 @@ internal fun ContributionCard(
             }
         }
 
+        // ── MURO: diff de orden/numeración/dirección/trazado ────────────────
+        if (c.geometry.equals("LINE", true)) {
+            val targetBlock = if (!c.targetBlockId.isNullOrBlank())
+                existingBlocks.firstOrNull { it.id == c.targetBlockId } else null
+            WallDiffSection(c, targetBlock)
+        }
+
         // ── ASSIGN_SECTOR: piedra X → sector Y ──────────────────────────────
         if (c.type == "ASSIGN_SECTOR") {
             val targetBlock = existingBlocks.firstOrNull { it.id == c.targetBlockId }
@@ -425,6 +433,12 @@ internal fun ContributionCard(
                                             .icon(iconFactory.fromBitmap(proposalIcon))
                                     )
                                 }
+                                // Muro: polilínea vieja (gris) + nueva (sólida terra).
+                                if (c.geometry.equals("LINE", true)) {
+                                    val targetBlock = if (!c.targetBlockId.isNullOrBlank())
+                                        existingBlocks.firstOrNull { it.id == c.targetBlockId } else null
+                                    drawWallDiffPolylines(map, c, targetBlock)
+                                }
                             }
                             map.uiSettings.apply {
                                 isScrollGesturesEnabled  = true
@@ -539,6 +553,127 @@ internal fun parseProposedVias(bloquesJson: String?): List<ProposedVia> {
             )
         }
     } catch (_: Throwable) { emptyList() }
+}
+
+// ─── Diff de muro (Fase 7) ────────────────────────────────────────────────────
+
+/** Dibuja en el mapa la polilínea ACTUAL del muro (gris) y la PROPUESTA (terra). */
+internal fun drawWallDiffPolylines(
+    map: org.maplibre.android.maps.MapLibreMap,
+    c: Contribution,
+    targetBlock: com.meteomontana.android.domain.model.Block?
+) {
+    val oldPath = com.meteomontana.android.ui.components.parseWallPath(targetBlock?.path)
+    if (oldPath.size >= 2) {
+        map.addPolyline(
+            org.maplibre.android.annotations.PolylineOptions()
+                .addAll(oldPath)
+                .color(android.graphics.Color.parseColor("#8A8478"))
+                .width(6f).alpha(0.6f)
+        )
+    }
+    val newPath = com.meteomontana.android.ui.components.parseWallPath(c.path)
+    if (newPath.size >= 2) {
+        map.addPolyline(
+            org.maplibre.android.annotations.PolylineOptions()
+                .addAll(newPath)
+                .color(android.graphics.Color.parseColor("#C2410C"))
+                .width(5f)
+        )
+    }
+}
+
+/** Construye el diff del muro: estado actual (targetBlock) vs propuesta (c). */
+internal fun buildWallDiff(
+    c: Contribution,
+    targetBlock: com.meteomontana.android.domain.model.Block?
+): com.meteomontana.android.domain.usecase.walls.WallDiff {
+    val existing = targetBlock?.lines
+        ?.sortedWith(compareBy({ it.faceOrder }, { it.sortOrder }))
+        ?.map { com.meteomontana.android.domain.usecase.walls.ExistingRoute(it.id, it.name, it.grade) }
+        ?: emptyList()
+    val proposed = parseProposedVias(c.bloquesJson)
+        .map { com.meteomontana.android.domain.usecase.walls.ProposedRoute(it.targetLineId, it.name, it.grade) }
+    val pathChanged = targetBlock != null && !c.path.isNullOrBlank() && c.path != targetBlock.path
+    return com.meteomontana.android.domain.usecase.walls.WallDiffCalculator.compute(
+        existing, proposed, pathChanged, targetBlock?.direction, c.direction
+    )
+}
+
+private fun dirLabel(d: String?): String = if (d.equals("RTL", true)) "DER→IZQ" else "IZQ→DER"
+
+@Composable
+internal fun WallDiffSection(
+    c: Contribution,
+    targetBlock: com.meteomontana.android.domain.model.Block?
+) {
+    val diff = remember(c, targetBlock) { buildWallDiff(c, targetBlock) }
+    Spacer(Modifier.height(Spacing.md))
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+    Spacer(Modifier.height(Spacing.sm))
+    Text("MURO · CAMBIOS", style = EyebrowTextStyle, color = Terra)
+    Spacer(Modifier.height(Spacing.xs))
+
+    if (targetBlock == null) {
+        Text("Muro NUEVO · numeración ${dirLabel(c.direction)}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface)
+    } else {
+        val dirChanged = (targetBlock.direction ?: "LTR") != (c.direction ?: "LTR")
+        Text(
+            if (dirChanged) "Dirección: ${dirLabel(targetBlock.direction)}  →  ${dirLabel(c.direction)}"
+            else "Dirección: ${dirLabel(c.direction)} (sin cambio)",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (dirChanged) Terra else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (diff.pathChanged) {
+            Text("⚠ El trazado/longitud del muro cambia (ver mapa: gris=actual, terra=propuesto)",
+                style = MaterialTheme.typography.bodyMedium, color = Terra)
+        }
+    }
+
+    Spacer(Modifier.height(Spacing.sm))
+    diff.proposed.forEach { WallChangeRow(it) }
+    diff.removed.forEach { WallChangeRow(it) }
+}
+
+@Composable
+private fun WallChangeRow(ch: com.meteomontana.android.domain.usecase.walls.WallRouteChange) {
+    val oldN = (ch.oldPos ?: 0) + 1
+    val newN = (ch.newPos ?: 0) + 1
+    val (label, color) = when (ch.status) {
+        WallRouteStatus.NEW -> "NUEVA #$newN" to Moss
+        WallRouteStatus.MOVED -> "MOVIDA #$oldN→#$newN" to Terra
+        WallRouteStatus.MODIFIED -> "MODIFICADA #$newN" to Terra
+        WallRouteStatus.MOVED_MODIFIED -> "MOVIDA+MODIF #$oldN→#$newN" to Terra
+        WallRouteStatus.REMOVED -> "QUITADA #$oldN" to MaterialTheme.colorScheme.error
+        WallRouteStatus.CONFLICT -> "CONFLICTO #$newN" to MaterialTheme.colorScheme.error
+        WallRouteStatus.SAME -> "= #$newN" to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(2.dp))
+                .background(color)
+                .padding(horizontal = Spacing.sm, vertical = 1.dp)
+        ) {
+            Text(label, style = EyebrowTextStyle, color = Color.White)
+        }
+        val name = ch.name?.takeIf { it.isNotBlank() } ?: "(sin nombre)"
+        val gradeTxt = when (ch.status) {
+            WallRouteStatus.MODIFIED, WallRouteStatus.MOVED_MODIFIED ->
+                if (ch.oldGrade != ch.newGrade) "  ${ch.oldGrade ?: "—"} → ${ch.newGrade ?: "—"}" else ch.newGrade?.let { "  $it" } ?: ""
+            WallRouteStatus.REMOVED -> ch.oldGrade?.let { "  $it" } ?: ""
+            else -> ch.newGrade?.let { "  $it" } ?: ""
+        }
+        Text("$name$gradeTxt",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface)
+    }
 }
 
 /**

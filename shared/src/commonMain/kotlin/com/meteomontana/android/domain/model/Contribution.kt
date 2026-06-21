@@ -23,5 +23,9 @@ data class Contribution(
     val sectorBlockId: String? = null,
     val proposedLat: Double? = null,
     val proposedLon: Double? = null,
-    val correctionReason: String? = null
+    val correctionReason: String? = null,
+    // Muro: geometría POINT/LINE, polilínea JSON, sentido de numeración LTR/RTL.
+    val geometry: String? = null,
+    val path: String? = null,
+    val direction: String? = null
 )

@@ -148,7 +148,12 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
       banner DESHACER/LISTO + preview polilínea con puntos numerados; reordenar caras
       ◀▶ y vías ▲▼ con numeración global en vivo; submit manda geometry/path/direction;
       compila + tests verdes)
-- [ ] **Fase 7 — Android: vista de diff del admin**  ← SIGUIENTE (polilínea vieja gris + nueva sólida; badges NUEVA/MOVIDA/QUITADA/MODIFICADA; usa GetWallDiffUseCase — PENDIENTE crear shared, ver Fase 4)
+- [x] **Fase 7 — Android: vista de diff del admin** ✅
+      (backend: geometry/path/direction en ContributionResponse; shared: ContributionDto
+      + Contribution + WallDiffCalculator/WallDiff portados a Kotlin; admin ContributionCard:
+      polilínea vieja gris + nueva sólida en el mini-mapa + sección "MURO · CAMBIOS" con
+      dirección y badges NUEVA/MOVIDA #a→#b/MODIFICADA/QUITADA/CONFLICTO; diff calculado
+      en la app, sin endpoint nuevo; compila + tests verdes)
 
 > ⚠️ **OJO iOS rojo hasta Fase 9**: al añadir campos a los modelos compartidos
 > (`Block.geometry/path/direction`, `JournalSession.lineId`, DTOs), los `init`
@@ -158,19 +163,24 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 > actualicen en la Fase 9. El CI de iOS estará en rojo hasta entonces (esperado).
 > Android y backend siguen verdes.
 - [x] Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez) ✅
-- [ ] Fase 7 — Android: vista de diff del admin  ← SIGUIENTE
-- [ ] Fase 8 — Android: diario por `id` + resolución en vivo + "vía eliminada"
+- [x] Fase 7 — Android: vista de diff del admin ✅
+- [ ] Fase 8 — Android: diario por `id` + resolución en vivo + "vía eliminada"  ← SIGUIENTE
 - [ ] Fase 9 — iOS: réplica EXACTA de fases 5–8 (paridad)
 
-**Próximo paso**: Fase 7 — vista de diff del admin en Android. OJO: necesita el
-modelo `WallDiff` + `GetWallDiffUseCase` en `shared` (pendiente desde Fase 4, a
-crear cuando exista el endpoint de diff del backend) — o calcular el diff en la
-app a partir del estado actual del muro vs la propuesta. Decidir al empezar.
+**Próximo paso**: Fase 8 — enganche del diario por `lineId` estable + resolución
+en vivo + "vía eliminada" en gris (ver objetivo/ficheros de la Fase 8 abajo).
 
-> **PENDIENTE PROBAR EN DISPOSITIVO (Fase 6)**: proponer un muro real — elegir
-> MURO, trazar la polilínea tocando puntos (DESHACER/LISTO), añadir fotos+vías,
-> reordenar con ▲▼ y ◀▶, cambiar la dirección y ver la numeración recalcular,
-> enviar y comprobar que el muro aparece como polilínea con la numeración correcta.
+> **OJO despliegue Fase 7**: el diff necesita que el backend exponga
+> `geometry/path/direction` en `ContributionResponse` (hecho en `MeteoMontanaAPI`).
+> Hasta que Railway redespliegue, las contribuciones de muro llegan sin esos
+> campos → la sección "MURO · CAMBIOS" no aparece (degrada bien). Decisión:
+> el diff se calcula EN LA APP (no hay endpoint de diff), comparando el `Block`
+> actual vs el `bloquesJson`/`path` propuestos. La lógica pura `WallDiffCalculator`
+> está duplicada (Java backend = al aprobar; Kotlin shared = al revisar en la app).
+
+> **PENDIENTE PROBAR EN DISPOSITIVO (Fases 6-7)**: proponer un muro (trazar con
+> DESHACER/LISTO, reordenar ▲▼/◀▶, dirección, enviar) y, como admin, revisar la
+> propuesta viendo el mapa (gris=actual, terra=propuesto) y la lista de cambios.
 
 ---
 
