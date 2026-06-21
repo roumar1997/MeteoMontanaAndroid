@@ -138,8 +138,9 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 - [x] **Fase 1 — Backend: geometría + path + dirección** ✅ (V28, compila + 13 tests verdes)
 - [x] **Fase 2 — Backend: propuesta de estado completo + diff + merge no destructivo** ✅
       (reconcileWall + WallDiffCalculator + test; 16 tests verdes)
-- [ ] **Fase 3 — Backend: enganche del diario por `lineId` + propagación de cambios**  ← SIGUIENTE
-- [ ] Fase 4 — Shared (KMP): propagar todo a las dos apps
+- [x] **Fase 3 — Backend: enganche del diario por `lineId` + propagación de cambios** ✅
+      (V29 line_id + plumbing + updateGradeByLineId; 16 tests verdes)
+- [ ] **Fase 4 — Shared (KMP): propagar todo a las dos apps**  ← SIGUIENTE
 - [ ] Fase 5 — Android: render muro (polilínea) + colapsar por sector
 - [ ] Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez)
 - [ ] Fase 7 — Android: vista de diff del admin
@@ -247,6 +248,24 @@ modalidad de una vía se reflejan en TODOS los perfiles.
 
 **Aceptación**: cambiar el grado de una vía y aprobar → `journal_sessions` con ese
 line_id quedan al nuevo grado (test).
+
+> ✅ HECHO: V29 `line_id` + `JournalSession`/JPA/adapter/DTOs/`CreateJournalRequest`
+> con `lineId`. `SpringDataJournalRepository.updateGradeByLineId` (@Modifying) +
+> `propagateGrade` llamado en `reconcileWall`/`updateExistingLine`/corrección de
+> `addLinesToExistingBlock`. 16 tests verdes.
+> ⚠️ **LIMITACIONES conocidas (anotar / resolver más adelante)**:
+> 1. `SchoolBlockUseCase.update` (editar piedra directo del admin, NO contribución)
+>    hace delete+recreate y **regenera los ids de las líneas** → rompería el
+>    enganche por `lineId` de esas vías. Los MUROS se editan por contribución
+>    (`reconcileWall`, que preserva ids), así que la feature va bien; el flujo
+>    legacy de editar líneas directo queda como deuda (idealmente que update
+>    también preserve ids por diff).
+> 2. La propagación de **modalidad** (discipline) por bloque tiene el método
+>    (`updateDisciplineByLineIds`) pero aún no se invoca al cambiar la modalidad
+>    de una piedra (se decidirá al cablear el editor de modalidad). De momento la
+>    modalidad se resuelve en vivo en cliente (Fase 8).
+> 3. El **display en vivo** (grado/foto/deep-link por id) y "vía eliminada" son
+>    Fase 8 (cliente). La propagación server es el complemento para las STATS.
 
 ## Fase 4 — Shared (KMP)
 **Objetivo**: propagar todo lo de fases 1–3 al código compartido.
