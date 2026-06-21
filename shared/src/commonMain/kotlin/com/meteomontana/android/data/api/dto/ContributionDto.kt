@@ -19,7 +19,10 @@ data class ContributionRequest(
     val photoUrl: String? = null,
     val bloquesJson: String? = null,
     val topoLinesJson: String? = null,
-    val discipline: String? = null   // BOULDER (bloque) / ROUTE (vía) al proponer piedra
+    val discipline: String? = null,  // BOULDER (bloque) / ROUTE (vía) al proponer piedra
+    val geometry: String? = null,    // POINT / LINE (muro)
+    val path: String? = null,        // polilínea JSON si LINE
+    val direction: String? = null    // "LTR"/"RTL"
 )
 
 @Serializable

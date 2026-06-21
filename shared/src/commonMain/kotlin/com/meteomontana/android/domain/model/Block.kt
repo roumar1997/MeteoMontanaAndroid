@@ -15,6 +15,12 @@ data class Block(
     val sectorBlockId: String? = null,  // BLOCK: id del sector (ZONE) al que pertenece
     // Modalidad de la piedra: "BOULDER" (bloque) o "ROUTE" (vía). Default BOULDER.
     val discipline: String = "BOULDER",
+    // Geometría en el mapa: "POINT" (marcador) o "LINE" (muro = polilínea).
+    val geometry: String = "POINT",
+    // Polilínea (base del muro) JSON "[[lat,lon],...]" si geometry=LINE; null si POINT.
+    val path: String? = null,
+    // Sentido de numeración de las vías del muro: "LTR" / "RTL".
+    val direction: String = "LTR",
     // Caras de la piedra: cada cara es una foto + las vías dibujadas sobre ella.
     // Una piedra de una sola foto tiene una única cara. Si viene vacío, los
     // consumidores caen a (photoPath + lines) como cara única.

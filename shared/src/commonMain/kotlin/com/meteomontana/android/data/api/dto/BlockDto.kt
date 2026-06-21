@@ -17,6 +17,9 @@ data class BlockDto(
     val lines: List<BlockLineDto> = emptyList(),
     val sectorBlockId: String? = null,
     val discipline: String = "BOULDER",   // BOULDER (bloque) / ROUTE (vía)
+    val geometry: String = "POINT",       // POINT / LINE (muro)
+    val path: String? = null,             // polilínea JSON si LINE
+    val direction: String = "LTR",        // "LTR"/"RTL"
     // Caras = la piedra agrupada por foto (cada cara: foto + sus vías).
     val faces: List<BlockFaceDto> = emptyList()
 )
@@ -60,5 +63,8 @@ data class CreateBlockRequest(
     val description: String? = null,
     val lines: List<CreateBlockLineRequest> = emptyList(),
     val sectorBlockId: String? = null,
-    val discipline: String? = null   // BLOCK: BOULDER (bloque) / ROUTE (vía)
+    val discipline: String? = null,  // BLOCK: BOULDER (bloque) / ROUTE (vía)
+    val geometry: String? = null,    // BLOCK: POINT / LINE (muro)
+    val path: String? = null,        // BLOCK+LINE: polilínea JSON
+    val direction: String? = null    // BLOCK+LINE: "LTR"/"RTL"
 )

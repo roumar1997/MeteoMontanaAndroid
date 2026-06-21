@@ -35,6 +35,25 @@ class GetJournalViaInfoUseCase(private val blockRepository: BlockRepository) {
             if (blocks.isEmpty()) continue
             val zonesById = blocks.filter { it.type == "ZONE" }.associateBy { it.id }
             val via = e.blockName.trim()
+
+            // 1) Enganche EXACTO por lineId estable (preferente): aguanta renombres,
+            //    nombres duplicados y reordenes. Devuelve la piedra/sector/grado EN VIVO.
+            val byId = e.lineId?.takeIf { it.isNotBlank() }?.let { lid ->
+                blocks.firstOrNull { b -> b.type == "BLOCK" && b.lines.any { it.id == lid } }
+            }
+            if (byId != null) {
+                val sectorName = byId.sectorBlockId?.let { zonesById[it]?.name }
+                val liveGrade = byId.lines.firstOrNull { it.id == e.lineId }
+                    ?.grade?.takeIf { it.isNotBlank() }
+                result[e.id] = ViaCatalogInfo(
+                    boulderNumber = byId.name.takeIf { it.isNotBlank() },
+                    sector = sectorName?.takeIf { it.isNotBlank() },
+                    grade = liveGrade
+                )
+                continue
+            }
+
+            // 2) Fallback por NOMBRE (entradas antiguas/offline sin lineId).
             // Piedras cuya lista de vías contiene esta vía por nombre.
             val candidates = blocks.filter { b ->
                 b.type == "BLOCK" && b.lines.any { it.name.trim().equals(via, ignoreCase = true) }

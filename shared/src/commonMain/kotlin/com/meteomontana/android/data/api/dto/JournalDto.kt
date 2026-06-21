@@ -13,7 +13,8 @@ data class JournalSessionDto(
     val notes: String? = null,
     val date: String,
     val createdAt: String,
-    val discipline: String = "BOULDER"
+    val discipline: String = "BOULDER",
+    val lineId: String? = null
 )
 
 @Serializable
@@ -25,7 +26,8 @@ data class CreateJournalRequest(
     val grade: String? = null,
     val notes: String? = null,
     val date: String,
-    val discipline: String? = null   // BOULDER (bloque) / ROUTE (vía)
+    val discipline: String? = null,  // BOULDER (bloque) / ROUTE (vía)
+    val lineId: String? = null       // id estable de la vía marcada
 )
 
 @Serializable

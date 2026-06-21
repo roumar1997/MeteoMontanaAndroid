@@ -140,8 +140,16 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
       (reconcileWall + WallDiffCalculator + test; 16 tests verdes)
 - [x] **Fase 3 — Backend: enganche del diario por `lineId` + propagación de cambios** ✅
       (V29 line_id + plumbing + updateGradeByLineId; 16 tests verdes)
-- [ ] **Fase 4 — Shared (KMP): propagar todo a las dos apps**  ← SIGUIENTE
-- [ ] Fase 5 — Android: render muro (polilínea) + colapsar por sector
+- [x] **Fase 4 — Shared (KMP): propagar todo a las dos apps** ✅ (shared + app compilan)
+- [ ] **Fase 5 — Android: render muro (polilínea) + colapsar por sector**  ← SIGUIENTE
+
+> ⚠️ **OJO iOS rojo hasta Fase 9**: al añadir campos a los modelos compartidos
+> (`Block.geometry/path/direction`, `JournalSession.lineId`, DTOs), los `init`
+> que genera SKIE para Swift exigen TODOS los params → las construcciones Swift
+> (`ProfileCache.swift`, `JournalStats`/`JournalSession`/`CreateJournalRequest`/
+> `ContributionRequest`/`CreateBlockRequest`, etc.) NO compilarán hasta que se
+> actualicen en la Fase 9. El CI de iOS estará en rojo hasta entonces (esperado).
+> Android y backend siguen verdes.
 - [ ] Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez)
 - [ ] Fase 7 — Android: vista de diff del admin
 - [ ] Fase 8 — Android: diario por `id` + resolución en vivo + "vía eliminada"
@@ -276,6 +284,13 @@ line_id quedan al nuevo grado (test).
 `lineId` (fallback nombre) y devuelve grado/foto/posición en vivo. Exponer lo nuevo
 en `IosDependencyContainer`.
 **Aceptación**: `shared` y `app` compilan (dummy google-services).
+
+> ✅ HECHO: `Block.geometry/path/direction`; `BlockDto`/`CreateBlockRequest` +
+> mapeo; `ContributionRequest.geometry/path/direction`; `JournalSession.lineId` +
+> `JournalSessionDto`/`CreateJournalRequest.lineId` + mapeos.
+> `GetJournalViaInfoUseCase` resuelve por `lineId` (exacto, grado en vivo) con
+> fallback por nombre. shared + app compilan. **Pendiente (Fase 7)**: modelo
+> `WallDiff` shared + use case (cuando exista el endpoint de diff del backend).
 
 ## Fase 5 — Android: render del muro
 **Objetivo**: los muros se ven como polilínea, no como marcador; colapsados por sector.
