@@ -136,8 +136,9 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 
 ## 📍 ESTADO ACTUAL
 - [x] **Fase 1 — Backend: geometría + path + dirección** ✅ (V28, compila + 13 tests verdes)
-- [ ] **Fase 2 — Backend: propuesta de estado completo + diff + merge no destructivo**  ← SIGUIENTE
-- [ ] Fase 3 — Backend: enganche del diario por `lineId` + propagación de cambios
+- [x] **Fase 2 — Backend: propuesta de estado completo + diff + merge no destructivo** ✅
+      (reconcileWall + WallDiffCalculator + test; 16 tests verdes)
+- [ ] **Fase 3 — Backend: enganche del diario por `lineId` + propagación de cambios**  ← SIGUIENTE
 - [ ] Fase 4 — Shared (KMP): propagar todo a las dos apps
 - [ ] Fase 5 — Android: render muro (polilínea) + colapsar por sector
 - [ ] Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez)
@@ -220,6 +221,15 @@ expone un **diff** para que el admin vea qué cambia.
 
 **Aceptación**: aprobar una propuesta de muro hace merge sin borrar lo no tocado;
 el endpoint de diff devuelve added/moved/removed correctos en un test.
+
+> ✅ HECHO: `reconcileWall` en `ReviewContributionUseCase` (se dispara con
+> BOULDER + targetBlockId + geometry presente; preserva ids, actualiza/añade/
+> quita por `lineId`, set sortOrder=orden, faceOrder por foto, path/dirección).
+> `WallDiffCalculator` (lógica PURA) + `WallDiffCalculatorTest` (NEW/MOVED/
+> MODIFIED/REMOVED/CONFLICT). El payload `bloquesJson` admite `lineId` por vía.
+> **PENDIENTE para Fase 7**: exponer el diff por HTTP (endpoint o en
+> `ContributionResponse`) y consumirlo en la UI del admin. La verificación
+> end-to-end del merge llega con el editor (Fase 6) + prueba en dispositivo.
 
 ## Fase 3 — Backend: enganche del diario por `lineId` + propagación
 **Objetivo**: el diario apunta a la vía por id estable; los cambios de grado/
