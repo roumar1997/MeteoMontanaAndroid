@@ -495,6 +495,47 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-21 (4) — muros: editor completo Android + Fase 9 iOS ✅
+
+Editor de edición de piedra/muro a paridad en ambas plataformas + arreglos. Todo
+en `main`. Android instalado en el Xiaomi; iOS verde en CI y `.ipa` servido.
+
+- **Android — editor de edición completo** (`AddLinesFlow.kt`, antes solo
+  corregía/añadía vías por cara): ahora es CONTROLADO (estado elevado a
+  `SchoolMap.InnerMap` para sobrevivir al ocultarse). `+ AÑADIR FOTO`, **panel
+  REORDENAR FOTOS** (miniatura + desplegar foto con sus líneas + ▲▼), selectores
+  GEOMETRÍA/SENTIDO, numeración global en vivo, y **re-trazar el muro en el mapa**
+  (reusa el banner/tap de trazado del flujo crear). Envía el ESTADO COMPLETO
+  (todas las vías en orden + geometry/path/direction) → backend `reconcileWall`
+  (ya existía) reconcilia por lineId preservando el diario.
+- **Android — sin parpadeo del mapa al abrir editar/corregir vía**: el editor
+  abre ENCIMA de la ficha (su scrim la tapa), no se cierra antes. Solo al trazar
+  el muro se oculta la ficha (necesita el mapa). Init del editor en `onAddLines`
+  (no en LaunchedEffect) → sin frame vacío.
+- **Android — perfil**: BLOQUES abre solo bloques, VÍAS solo vías (filtro de
+  diario `discipline:BOULDER/ROUTE`), perfil propio y público.
+- **Admin (Android)**: caras añadidas se muestran como "CARA NUEVA (FOTO
+  AÑADIDA)"; muros muestran MURO · CAMBIOS (MOVIDA #a→#b, dirección, trazado).
+- **iOS Fase 9 (CI verde, sin Mac)** — el CI iOS llevaba ROJO desde la Fase 4:
+  - Arreglados los init que exigía SKIE: `ContributionRequest` geometry/path/
+    direction (5 sitios), `CreateJournalRequest` lineId (3; el tick pasa line.id),
+    `CreateBlockRequest` geometry/path/direction (admin, 2), `ProfileCache`
+    `JournalSession.lineId`.
+  - `EditLinesSheet` (paridad `AddLinesFlow`): `+ AÑADIR FOTO`, `↕ REORDENAR
+    FOTOS` (`ReorderFacesSheet` con preview `TopoPhotoView`), selectores
+    `WallSeg` GEOMETRÍA/SENTIDO, numeración global, envía estado completo +
+    geometry/path/direction.
+  - **`WallTraceSheet`** (nuevo): mapa propio para trazar/re-trazar el muro
+    ENCIMA del editor (sin perder lo editado) — `MapLibreView` con `onMapTap` +
+    `polylines`. Usado por crear (`BoulderFormSheet` con geometría/trazado) y
+    editar. Helpers `parseWallPath`/`buildPathJson`.
+  - Perfil público iOS: `JournalBlocksListView` filtra BLOQUES/VÍAS.
+  - `SchoolMapSection`: muros (geometry=LINE) dibujados como polilínea terra.
+
+> ⚠️ **PENDIENTE iOS** (no bloqueante): el deep-link offline del diario por
+> `lineId` no se cachea (ProfileCache pasa lineId:nil → cae a nombre). Probar en
+> dispositivo el flujo de muros iOS completo.
+
 ### Sesión 2026-06-21 (3) — muros largos Fase 8: diario por lineId ✅
 
 Solo Android + shared (compila + tests verdes). Fases 1-7 ya en `main` (ambos repos).
