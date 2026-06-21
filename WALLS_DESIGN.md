@@ -135,8 +135,8 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 >    - **NO** se mergea a `main` sin que Rodrigo lo apruebe ("mergea a main").
 
 ## 📍 ESTADO ACTUAL
-- [ ] **Fase 1 — Backend: geometría + path + dirección**  ← SIGUIENTE
-- [ ] Fase 2 — Backend: propuesta de estado completo + diff + merge no destructivo
+- [x] **Fase 1 — Backend: geometría + path + dirección** ✅ (V28, compila + 13 tests verdes)
+- [ ] **Fase 2 — Backend: propuesta de estado completo + diff + merge no destructivo**  ← SIGUIENTE
 - [ ] Fase 3 — Backend: enganche del diario por `lineId` + propagación de cambios
 - [ ] Fase 4 — Shared (KMP): propagar todo a las dos apps
 - [ ] Fase 5 — Android: render muro (polilínea) + colapsar por sector
