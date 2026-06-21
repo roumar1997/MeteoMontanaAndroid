@@ -161,6 +161,55 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 
 ---
 
+## 🧪 Estado de prueba en dispositivo (sesión 2026-06-21)
+
+Se intentó probar en el Redmi Note 8 conectado por USB. Hallazgos:
+
+- ✅ **Backend retrocompatible verificado EN DISPOSITIVO**: la app instalada
+  **vieja** (versionCode 3, anterior a Bloque/Vía y muros) carga escuelas +
+  scores **del backend nuevo** sin romperse → los campos nuevos (discipline,
+  geometry, path, lineId) son aditivos y los clientes viejos los ignoran. Se
+  puede desplegar backend sin reinstalar apps.
+- ❌ **No se pudo instalar el build NUEVO conservando la sesión**: el APK
+  instalado está firmado con OTRA clave (no la `debug.keystore` de este PC,
+  SHA1 `9F:51:27:AE:01:37:FB:F3:0A:7F:B7:AC:B2:E7:E5:AC:15:7F:A4:13`) → `adb
+  install -r` da `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. Y esa SHA1 de este PC
+  seguramente NO está registrada en Firebase → un login nuevo aquí daría
+  `DEVELOPER_ERROR 10`. (Se reconstruyó el `google-services.json` real del
+  proyecto **climbingteams** desde el APK instalado, así que **compilar en
+  local con Firebase ya funciona** en este PC; queda en `app/` gitignored.)
+- ❌ **adb input bloqueado** por MIUI (`INJECT_EVENTS permission`): para que yo
+  (o cualquiera) pueda dar taps por adb hay que activar en Opciones de
+  desarrollador de MIUI: **"Depuración USB (ajustes de seguridad)"**.
+- ⛔ Además, **los muros aún NO se pueden crear** (el editor es la Fase 6, sin
+  hacer) → la Fase 5 (render del muro) no es testeable hasta tener Fase 6.
+
+## ✅ CHECKLIST DE PRUEBA PARA RODRIGO (cuando retome)
+
+Instalar el **APK del último build verde de CI** (Actions → run de `main` →
+Artifacts → `app-debug-apk`): tiene el código nuevo, está firmado con la clave
+registrada (login OK) y actualiza en sitio conservando la sesión.
+
+**Feature Bloque/Vía (ya implementada, fases 1–4 de esa feature):**
+- [ ] Proponer una PIEDRA → aparece el selector **MODALIDAD: BLOQUE / VÍA**.
+- [ ] Crear una piedra de cada modalidad; marcar una vía de cada una.
+- [ ] Perfil propio: 2 filas de stats → **BLOQUES / VÍAS / ESCUELAS** y
+      **MÁX BLOQUE / MÁX VÍA** (grados separados).
+- [ ] Perfil público de otro usuario: mismas stats separadas.
+- [ ] Admin: editar una piedra existente y cambiar su **MODALIDAD**; el conteo
+      del perfil se ajusta.
+- [ ] (Tras cambiar el grado de una vía y aprobar) el grado nuevo aparece en el
+      perfil de quien la tiene marcada (propagación por lineId — Fase 3 backend).
+
+**Muros (NO testeable aún)**: hasta terminar la Fase 6 (editor) no hay forma de
+crear un muro, así que el render de la Fase 5 no se ve todavía. Cuando esté la
+Fase 6: trazar un muro arrastrando, reordenar vías, ver la numeración en vivo,
+y comprobar que en el mapa se ve como **línea del mismo color que la piedra**.
+
+**iOS**: el CI de iOS estará **rojo** hasta la Fase 9 (esperado, ver aviso arriba).
+
+---
+
 ## Convenciones técnicas comunes (leer una vez)
 - **`geometry`**: `"POINT"` (default, todo lo actual) | `"LINE"` (muro).
 - **`path`**: JSON `[[lat,lon],...]` con los vértices de la polilínea (base del muro).
