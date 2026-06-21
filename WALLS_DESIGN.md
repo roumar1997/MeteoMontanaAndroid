@@ -141,7 +141,9 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 - [x] **Fase 3 — Backend: enganche del diario por `lineId` + propagación de cambios** ✅
       (V29 line_id + plumbing + updateGradeByLineId; 16 tests verdes)
 - [x] **Fase 4 — Shared (KMP): propagar todo a las dos apps** ✅ (shared + app compilan)
-- [ ] **Fase 5 — Android: render muro (polilínea) + colapsar por sector**  ← SIGUIENTE
+- [x] **Fase 5 — Android: render muro (polilínea) + colapsar por sector** ✅
+      (SchoolMap: polilínea terra = mismo color que la piedra + nº en el medio + tap; compila)
+- [ ] **Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez)**  ← SIGUIENTE (diseño cerrado: arrastrar para trazar, arrastrar para reordenar con tirador visible, dirección IZQ→DER/DER→IZQ con numeración en vivo, muro mismo color que piedra)
 
 > ⚠️ **OJO iOS rojo hasta Fase 9**: al añadir campos a los modelos compartidos
 > (`Block.geometry/path/direction`, `JournalSession.lineId`, DTOs), los `init`
@@ -155,7 +157,7 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 - [ ] Fase 8 — Android: diario por `id` + resolución en vivo + "vía eliminada"
 - [ ] Fase 9 — iOS: réplica EXACTA de fases 5–8 (paridad)
 
-**Próximo paso**: Fase 1 (abajo).
+**Próximo paso**: Fase 6 — editor de muro en Android (diseño cerrado arriba).
 
 ---
 

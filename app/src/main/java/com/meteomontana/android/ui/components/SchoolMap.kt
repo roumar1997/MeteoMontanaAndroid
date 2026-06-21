@@ -54,6 +54,8 @@ import com.meteomontana.android.ui.theme.Terra
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.annotations.Polyline
+import org.maplibre.android.annotations.PolylineOptions
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
@@ -628,6 +630,22 @@ private fun CumbreSuccessDialog(
 
 // Mapa de markers activos para poder mapear marker → Block al tocar
 private val markerBlockMap = mutableMapOf<Long, Block>()
+private val polylineBlockMap = mutableMapOf<Long, Block>()
+
+/** Parsea el `path` de un muro ("[[lat,lon],...]") a LatLng. Vacío si no es válido. */
+internal fun parseWallPath(path: String?): List<LatLng> {
+    if (path.isNullOrBlank()) return emptyList()
+    return try {
+        val arr = org.json.JSONArray(path)
+        (0 until arr.length()).mapNotNull { i ->
+            val p = arr.optJSONArray(i) ?: return@mapNotNull null
+            if (p.length() < 2) null else LatLng(p.getDouble(0), p.getDouble(1))
+        }
+    } catch (e: Exception) { emptyList() }
+}
+
+/** Color terra de las piedras: el muro usa el MISMO color (solo que como línea). */
+private const val PIEDRA_COLOR = "#C2410C"
 
 private fun placeMarkers(
     ctx: android.content.Context,
@@ -639,6 +657,7 @@ private fun placeMarkers(
 ) {
     map.clear()
     markerBlockMap.clear()
+    polylineBlockMap.clear()
 
     val iconFactory = IconFactory.getInstance(ctx)
 
@@ -658,6 +677,31 @@ private fun placeMarkers(
             (ghost.originalId == null && b.id == "__SCHOOL__") ||
             (ghost.originalId != null && b.id == ghost.originalId)
         )
+        // MURO (geometry=LINE) con polilínea válida: se pinta como LÍNEA del MISMO
+        // color que la piedra (no como marcador) → 1 muro = 1 línea, no 16 pines.
+        // El número va en un marcador en el punto medio (tappable, mismo estilo).
+        val wallPath = if (b.type.equals("BLOCK", true) && b.geometry.equals("LINE", true))
+            parseWallPath(b.path) else emptyList()
+        if (wallPath.size >= 2) {
+            val polyline = map.addPolyline(
+                PolylineOptions()
+                    .addAll(wallPath)
+                    .color(android.graphics.Color.parseColor(PIEDRA_COLOR))
+                    .alpha(if (isOriginalBeingMoved) 0.35f else 1f)
+                    .width(5f)
+            )
+            polylineBlockMap[polyline.id] = b
+            val mid = wallPath[wallPath.size / 2]
+            val midMarker = map.addMarker(
+                MarkerOptions()
+                    .position(mid)
+                    .icon(iconFactory.fromBitmap(blockBitmap(b.name).fadedIf(isOriginalBeingMoved)))
+                    .title(b.name)
+            )
+            markerBlockMap[midMarker.id] = b
+            return@forEach
+        }
+
         val icon = when (b.type.uppercase()) {
             "PARKING" -> iconFactory.fromBitmap(parkingBitmap().fadedIf(isOriginalBeingMoved))
             "ZONE"    -> iconFactory.fromBitmap(zoneBitmap().fadedIf(isOriginalBeingMoved))
@@ -686,6 +730,10 @@ private fun placeMarkers(
     map.setOnMarkerClickListener { marker ->
         markerBlockMap[marker.id]?.let { onBlockTap(it) }
         true
+    }
+    // Tocar la LÍNEA de un muro abre su ficha (igual que tocar su número).
+    map.setOnPolylineClickListener { polyline ->
+        polylineBlockMap[polyline.id]?.let { onBlockTap(it) }
     }
 }
 
