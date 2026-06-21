@@ -295,19 +295,8 @@ private fun InnerMap(
     val onEditWallTapState by androidx.compose.runtime.rememberUpdatedState<(Double, Double) -> Unit> { lat, lon ->
         editWallPreview = editWallPreview + (lat to lon)
     }
-    // Inicializa el estado del editor al abrirlo para una piedra.
-    androidx.compose.runtime.LaunchedEffect(addingLinesTo) {
-        val b = addingLinesTo
-        if (b != null) {
-            editFaces = com.meteomontana.android.ui.screens.detail.initialEditFaces(b)
-            editGeometry = b.geometry.ifBlank { "POINT" }
-            editDirection = b.direction.ifBlank { "LTR" }
-            editSelectedFace = 0
-            editTracedPath = null
-            editWallTracing = false
-            editWallPreview = emptyList()
-        }
-    }
+    // El estado del editor se inicializa al pulsar "editar" (en onAddLines), no
+    // aquí, para que el editor abra ya poblado y no haya un frame vacío.
 
     // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
     val isAdminUser = (viewModel.uiState.collectAsState().value
@@ -580,6 +569,15 @@ private fun InnerMap(
             highlightVia = highlightVia,
             initiallyTicked = doneLineIds,
             onAddLines = if (block.type == "BLOCK") ({
+                // Inicializa el estado del editor AQUÍ (no en un LaunchedEffect)
+                // para que abra ya poblado y no haya un frame vacío (el "salto").
+                editFaces = com.meteomontana.android.ui.screens.detail.initialEditFaces(block)
+                editGeometry = block.geometry.ifBlank { "POINT" }
+                editDirection = block.direction.ifBlank { "LTR" }
+                editSelectedFace = 0
+                editTracedPath = null
+                editWallTracing = false
+                editWallPreview = emptyList()
                 addingLinesTo = block
                 selectedBlock = null
             }) else null,
