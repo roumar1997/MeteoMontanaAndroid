@@ -462,12 +462,14 @@ struct TopoEditorView: View {
 struct BoulderBlockRow: View {
     @Binding var block: BoulderBlockForm
     let index: Int
+    /// Número a mostrar (numeración global del muro). nil = index+1 local.
+    var number: Int? = nil
     var onDelete: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("\(index + 1)").font(Cumbre.mono(11, .bold))
+                Text("\(number ?? index + 1)").font(Cumbre.mono(11, .bold))
                     .foregroundStyle(GradeColor.style(block.grade).dark ? .black : .white)
                     .frame(width: 24, height: 24)
                     .background(Circle().fill(GradeColor.color(block.grade)))
@@ -609,8 +611,37 @@ struct EditLinesSheet: View {
     // las vías de esa cara se mueven a la foto nueva y se redibujan sobre ella.
     @State private var facePicked: [Int: UIImage] = [:]
     @State private var pickerItem: PhotosPickerItem?
+    // Geometría/sentido del muro (editables). El bloque ya creado los trae.
+    @State private var geometry = "POINT"
+    @State private var direction = "LTR"
+    @State private var showReorder = false
 
     private var faceIdx: Int { min(max(selectedFace, 0), max(0, faceBlocks.count - 1)) }
+    private var isWall: Bool { geometry == "LINE" }
+    /// Reordena las caras (foto + sus vías + foto nueva pendiente) en bloque.
+    private func swapFaces(_ a: Int, _ b: Int) {
+        guard facePhotos.indices.contains(a), facePhotos.indices.contains(b) else { return }
+        facePhotos.swapAt(a, b); faceBlocks.swapAt(a, b)
+        let pa = facePicked[a], pb = facePicked[b]
+        facePicked[a] = pb; facePicked[b] = pa
+    }
+    /// Quita una cara y reindexa las fotos nuevas pendientes (dict por índice).
+    private func removeFace(_ idx: Int) {
+        guard facePhotos.indices.contains(idx) else { return }
+        facePhotos.remove(at: idx); faceBlocks.remove(at: idx)
+        var np: [Int: UIImage] = [:]
+        for (k, v) in facePicked { if k < idx { np[k] = v } else if k > idx { np[k - 1] = v } }
+        facePicked = np
+        selectedFace = max(0, idx - 1)
+    }
+    /// Número global de la vía en el muro (cruza todas las fotos). nil si PUNTO.
+    private func wallNumber(_ idx: Int) -> Int? {
+        guard isWall else { return nil }
+        let preceding = faceBlocks.prefix(faceIdx).reduce(0) { $0 + $1.count }
+        let total = faceBlocks.reduce(0) { $0 + $1.count }
+        let pos = preceding + idx
+        return direction == "LTR" ? pos + 1 : total - pos
+    }
     private var currentPhoto: String? { facePhotos.indices.contains(faceIdx) ? facePhotos[faceIdx] : nil }
     private var hasPhoto: Bool { !(currentPhoto ?? "").isEmpty }
 
@@ -618,24 +649,58 @@ struct EditLinesSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Edita las vías de «\(block.name)». Cada foto edita sus propias vías: toca una para cambiar nombre/grado/tipo o redibujarla, añade nuevas, y envía todo junto. Un admin lo revisará.")
+                    Text("Edita «\(block.name)»: corrige o añade vías, añade más fotos, reordénalas y ajusta el muro. Un admin lo revisará.")
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
 
-                    // Selector de cara (solo si hay varias fotos).
-                    if facePhotos.count > 1 {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(0..<facePhotos.count, id: \.self) { i in
-                                    let on = i == faceIdx
-                                    Button { selectedFace = i } label: {
-                                        Text("FOTO \(i + 1)").font(Cumbre.mono(11, .bold))
-                                            .foregroundStyle(on ? .white : Cumbre.ink2)
-                                            .padding(.horizontal, 10).padding(.vertical, 6)
-                                            .background(on ? Cumbre.terra : Color.clear)
-                                            .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                                    }.buttonStyle(.plain)
-                                }
+                    // ── Geometría / sentido ───────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("GEOMETRÍA").eyebrow()
+                        WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
+                    }
+                    if isWall {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("SENTIDO DE NUMERACIÓN").eyebrow()
+                            WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
+                        }
+                        Text("El trazado en el mapa se conserva; el re-trazado desde el mapa llegará pronto.")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+
+                    // ── Caras (fotos): pestañas + añadir ──────────────────────────
+                    Text("FOTOS DE LA PIEDRA").eyebrow()
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(0..<facePhotos.count, id: \.self) { i in
+                                let on = i == faceIdx
+                                Button { selectedFace = i } label: {
+                                    Text("FOTO \(i + 1)").font(Cumbre.mono(11, .bold))
+                                        .foregroundStyle(on ? .white : Cumbre.ink2)
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .background(on ? Cumbre.terra : Color.clear)
+                                        .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                                }.buttonStyle(.plain)
                             }
+                            Button {
+                                facePhotos.append(nil); faceBlocks.append([]); selectedFace = facePhotos.count - 1
+                            } label: {
+                                Text("+ AÑADIR FOTO").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                    .padding(.horizontal, 10).padding(.vertical, 6)
+                                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                    if facePhotos.count > 1 {
+                        HStack(spacing: 12) {
+                            Button { showReorder = true } label: {
+                                Text("↕ REORDENAR FOTOS").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                    .frame(maxWidth: .infinity).padding(.vertical, 8)
+                                    .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                            }.buttonStyle(.plain)
+                            Button { removeFace(faceIdx) } label: {
+                                Text("✕ QUITAR FOTO \(faceIdx + 1)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.bad)
+                                    .padding(.horizontal, 10).padding(.vertical, 8)
+                                    .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
+                            }.buttonStyle(.plain)
                         }
                     }
 
@@ -646,6 +711,7 @@ struct EditLinesSheet: View {
                                     .font(Cumbre.mono(9, .bold))
                                     .foregroundStyle(faceBlocks[faceIdx][idx].existingLineId != nil ? Cumbre.ink3 : Cumbre.terra)
                                 BoulderBlockRow(block: $faceBlocks[faceIdx][idx], index: idx,
+                                                number: wallNumber(idx),
                                                 onDelete: faceBlocks[faceIdx][idx].existingLineId == nil ? { faceBlocks[faceIdx].remove(at: idx) } : nil)
                             }
                         }
@@ -701,6 +767,8 @@ struct EditLinesSheet: View {
         .onAppear {
             guard !loaded else { return }
             loaded = true
+            geometry = block.geometry.isEmpty ? "POINT" : block.geometry
+            direction = block.direction.isEmpty ? "LTR" : block.direction
             let faces = block.facesOrDerived()
             if faces.isEmpty {
                 // Piedra sin caras/vías → una cara con la portada y una vía nueva.
@@ -744,6 +812,10 @@ struct EditLinesSheet: View {
                 }
             }
         }
+        .sheet(isPresented: $showReorder) {
+            ReorderFacesSheet(facePhotos: $facePhotos, faceBlocks: $faceBlocks,
+                              facePicked: $facePicked, isWall: isWall, direction: direction)
+        }
     }
 
     private func send() async {
@@ -783,20 +855,108 @@ struct EditLinesSheet: View {
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
             photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: nil,
-            geometry: block.geometry, path: block.path, direction: block.direction)
+            geometry: geometry, path: isWall ? block.path : nil, direction: direction)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false; dismiss(); onDone(ok)
     }
+}
 
-    private func lineChanged(_ b: BoulderBlockForm, vs orig: BlockLine) -> Bool {
-        if b.name != orig.name { return true }
-        if (b.grade ?? "") != (orig.grade ?? "") { return true }
-        if (b.startType ?? "") != (startTypeForUi(orig.startType) ?? "") { return true }
-        let origPts = TopoParse.points(orig.linePath)
-        if b.line.count != origPts.count { return true }
-        for (i, p) in b.line.enumerated() where abs(p.x - origPts[i].x) > 0.001 || abs(p.y - origPts[i].y) > 0.001 {
-            return true
+/// Selector segmentado genérico (dos+ opciones) — geometría PUNTO/MURO y sentido.
+struct WallSeg: View {
+    let options: [(String, String)]
+    @Binding var selected: String
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(options, id: \.0) { value, label in
+                let on = selected == value
+                Button { selected = value } label: {
+                    Text(label).font(Cumbre.mono(12, .bold)).tracking(0.6)
+                        .foregroundStyle(on ? .white : Cumbre.ink)
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(on ? Cumbre.terra : Color.clear)
+                        .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
         }
-        return false
+    }
+}
+
+/// Panel para reordenar las fotos viéndolas: cada fila = posición + nº de vías +
+/// subir/bajar; tocar despliega la foto con sus líneas. En muro el orden define
+/// la numeración global. Espejo del ReorderFacesDialog de Android.
+struct ReorderFacesSheet: View {
+    @Binding var facePhotos: [String?]
+    @Binding var faceBlocks: [[BoulderBlockForm]]
+    @Binding var facePicked: [Int: UIImage]
+    let isWall: Bool
+    let direction: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var expanded: Int? = nil
+
+    private func move(_ a: Int, _ b: Int) {
+        guard facePhotos.indices.contains(a), facePhotos.indices.contains(b) else { return }
+        facePhotos.swapAt(a, b); faceBlocks.swapAt(a, b)
+        let pa = facePicked[a], pb = facePicked[b]
+        facePicked[a] = pb; facePicked[b] = pa
+        expanded = nil
+    }
+    private func lines(_ i: Int) -> [TopoLineVM] {
+        faceBlocks[i].filter { !$0.line.isEmpty }.map {
+            TopoLineVM(id: $0.id.uuidString, name: $0.name, grade: $0.grade, startType: $0.startType, points: $0.line)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(isWall ? "Las fotos se recorren en este orden (\(direction == "LTR" ? "izq→der" : "der→izq")) para numerar las vías del muro."
+                         : "Ordena las fotos de la piedra.")
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.bottom, 4)
+                    ForEach(0..<facePhotos.count, id: \.self) { i in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 10) {
+                                Text("\(i + 1)").font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
+                                    .frame(width: 28, height: 28).background(Circle().fill(Cumbre.terra))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("FOTO \(i + 1) · \(faceBlocks[i].count) vías")
+                                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                    Text(expanded == i ? "▾ ocultar" : "▸ ver vías")
+                                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                                }
+                                Spacer()
+                                Button { move(i, i - 1) } label: {
+                                    Image(systemName: "chevron.up").foregroundStyle(i > 0 ? Cumbre.terra : Cumbre.ink3)
+                                }.buttonStyle(.plain).disabled(i == 0)
+                                Button { move(i, i + 1) } label: {
+                                    Image(systemName: "chevron.down").foregroundStyle(i < facePhotos.count - 1 ? Cumbre.terra : Cumbre.ink3)
+                                }.buttonStyle(.plain).disabled(i == facePhotos.count - 1)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture { expanded = (expanded == i) ? nil : i }
+                            if expanded == i {
+                                if let img = facePicked[i] {
+                                    Image(uiImage: img).resizable().scaledToFit()
+                                        .frame(maxHeight: 220).clipShape(RoundedRectangle(cornerRadius: 2))
+                                } else if let url = facePhotos[i], !url.isEmpty {
+                                    TopoPhotoView(photoUrl: url, lines: lines(i))
+                                } else {
+                                    Text("Esta foto aún no tiene imagen.")
+                                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                }
+                            }
+                        }
+                        .padding(10)
+                        .overlay(Rectangle().stroke(expanded == i ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                    }
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Reordenar fotos")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) {
+                Button("Listo") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+        }
     }
 }
