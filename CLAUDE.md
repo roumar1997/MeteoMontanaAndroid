@@ -495,6 +495,31 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-21 (3) — muros largos Fase 8: diario por lineId ✅
+
+Solo Android + shared (compila + tests verdes). Fases 1-7 ya en `main` (ambos repos).
+
+- **`toggleLine`** (`SchoolDetailViewModel`) ahora pasa `lineId = line.id` en el
+  `CreateJournalRequest`. Va también offline (la cola serializa la request entera),
+  así el enganche estable existe desde el primer momento (no hace falta "engancharlo
+  al sincronizar"). La clave de dedup del ✓ sigue siendo por nombre (offline).
+- **`GetJournalViaInfoUseCase`** (shared): ya resolvía nº de piedra/sector/**grado
+  EN VIVO** por `lineId` (con fallback por nombre). Añadido: si la entrada tiene un
+  `lineId` y el catálogo (cargado) ya NO lo contiene ni por id ni por nombre →
+  `ViaCatalogInfo.deleted = true`. NO se elimina la entrada (no se castiga al
+  usuario por un borrado de catálogo).
+- **`JournalEntriesScreen`**: las vías con `deleted` se pintan en **gris** con
+  etiqueta "VÍA ELIMINADA" (siguen en el perfil).
+- **Deep-link por `lineId` estable**: ruta `schools/{id}?via=&viaId=` (`NavGraph`,
+  `MainScreen` navArgument `viaId`); el diario pasa `e.lineId`; `SchoolDetailViewModel`
+  expone `autoOpenViaId`; `SchoolMap` localiza la piedra por **id** (aguanta
+  renombres/reordenes/muros) y cae a nombre si no hay id. Espejo del nombre→id.
+
+> **SIGUIENTE**: Fase 9 — iOS (paridad EXACTA de Fases 5-8). El CI iOS lleva ROJO
+> desde la Fase 4 (los init SKIE exigen los params nuevos: `Block.geometry/path/
+> direction`, `JournalSession.lineId`, DTOs). La Fase 9 actualiza el Swift y lo
+> verifica con el CI (sin Mac).
+
 ### Sesión 2026-06-21 (2) — muros largos Fase 7: vista de diff del admin ✅
 
 Continuación. Backend + shared + Android (compila + tests verdes).

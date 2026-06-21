@@ -99,7 +99,14 @@ class SchoolDetailViewModel @Inject constructor(
         savedStateHandle.get<String>("via")?.takeIf { it.isNotBlank() }
     )
     val autoOpenVia: StateFlow<String?> = _autoOpenVia.asStateFlow()
-    fun consumeAutoOpenVia() { _autoOpenVia.value = null }
+    fun consumeAutoOpenVia() { _autoOpenVia.value = null; _autoOpenViaId.value = null }
+
+    // Deep-link por id ESTABLE de la vía (Fase 8): preferente sobre el nombre —
+    // aguanta renombres, reordenes y muros. null = deep-link antiguo por nombre.
+    private val _autoOpenViaId = MutableStateFlow(
+        savedStateHandle.get<String>("viaId")?.takeIf { it.isNotBlank() }
+    )
+    val autoOpenViaId: StateFlow<String?> = _autoOpenViaId.asStateFlow()
 
     private val journalJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -216,7 +223,11 @@ class SchoolDetailViewModel @Inject constructor(
                 date = java.time.LocalDate.now().toString(),
                 // La modalidad la hereda la vía de su piedra: el contador del
                 // perfil sabrá si es BLOQUE o VÍA.
-                discipline = block.discipline
+                discipline = block.discipline,
+                // Enganche estable por id (Fase 8): el perfil resuelve grado/foto/
+                // posición EN VIVO por lineId (aguanta renombres, reordenes y muros).
+                // Va también offline (la cola serializa la request entera).
+                lineId = line.id.takeIf { it.isNotBlank() }
             )
             val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
             if (sent) {

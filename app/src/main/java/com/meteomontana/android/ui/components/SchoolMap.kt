@@ -91,10 +91,11 @@ fun SchoolMap(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // Deep-link desde el diario: si hay una vía objetivo, despliega el mapa.
+    // Deep-link desde el diario: si hay una vía objetivo (por id o nombre), despliega el mapa.
     val autoOpenVia by viewModel.autoOpenVia.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(autoOpenVia) {
-        if (!autoOpenVia.isNullOrBlank()) expanded = true
+    val autoOpenViaId by viewModel.autoOpenViaId.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(autoOpenVia, autoOpenViaId) {
+        if (!autoOpenVia.isNullOrBlank() || !autoOpenViaId.isNullOrBlank()) expanded = true
     }
 
     // Estado del flujo de propuesta
@@ -285,16 +286,26 @@ private fun InnerMap(
     val isAdminUser = (viewModel.uiState.collectAsState().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
-    // Deep-link del diario: abre la piedra que contiene la vía objetivo.
+    // Deep-link del diario: abre la piedra que contiene la vía objetivo. Preferimos
+    // el id ESTABLE de la vía (aguanta renombres/reordenes/muros); si no, por nombre.
     val autoOpenVia by viewModel.autoOpenVia.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia) {
-        val via = autoOpenVia?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+    val autoOpenViaId by viewModel.autoOpenViaId.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia, autoOpenViaId) {
+        val viaId = autoOpenViaId?.takeIf { it.isNotBlank() }
+        val via = autoOpenVia?.takeIf { it.isNotBlank() }
+        if (viaId == null && via == null) return@LaunchedEffect
         if (blocks.isEmpty()) return@LaunchedEffect
-        val target = blocks.firstOrNull { b -> b.lines.any { it.name.equals(via, ignoreCase = true) } }
-            ?: blocks.firstOrNull { it.name.equals(via, ignoreCase = true) }
+        // 1) Por id estable.
+        val byId = viaId?.let { id ->
+            blocks.firstOrNull { b -> b.lines.any { it.id == id } }
+        }
+        val target = byId
+            ?: via?.let { v -> blocks.firstOrNull { b -> b.lines.any { it.name.equals(v, ignoreCase = true) } } }
+            ?: via?.let { v -> blocks.firstOrNull { it.name.equals(v, ignoreCase = true) } }
         if (target != null) {
             selectedBlock = target
-            highlightVia = via   // el detalle abre por la foto que contiene esta vía
+            // El detalle abre por la foto que contiene esta vía (highlight por nombre).
+            highlightVia = byId?.lines?.firstOrNull { it.id == viaId }?.name ?: via
             viewModel.consumeAutoOpenVia()
         }
     }

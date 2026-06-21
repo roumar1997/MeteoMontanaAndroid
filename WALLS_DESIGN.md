@@ -148,6 +148,13 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
       banner DESHACER/LISTO + preview polilínea con puntos numerados; reordenar caras
       ◀▶ y vías ▲▼ con numeración global en vivo; submit manda geometry/path/direction;
       compila + tests verdes)
+- [x] **Fase 8 — Android: diario por `lineId` + en vivo + "vía eliminada"** ✅
+      (`toggleLine` manda `lineId=line.id` —también offline, va en la request serializada—;
+      `GetJournalViaInfoUseCase` ya resolvía grado/sector/nº EN VIVO por `lineId` y ahora
+      marca `deleted=true` si el id ya no existe en el catálogo cargado; `JournalEntriesScreen`
+      pinta "VÍA ELIMINADA" en gris (sin borrarla); deep-link por `viaId` estable
+      (ruta `schools/{id}?via=&viaId=`, `SchoolMap` localiza por id y cae a nombre);
+      compila + tests verdes)
 - [x] **Fase 7 — Android: vista de diff del admin** ✅
       (backend: geometry/path/direction en ContributionResponse; shared: ContributionDto
       + Contribution + WallDiffCalculator/WallDiff portados a Kotlin; admin ContributionCard:
@@ -164,11 +171,13 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 > Android y backend siguen verdes.
 - [x] Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez) ✅
 - [x] Fase 7 — Android: vista de diff del admin ✅
-- [ ] Fase 8 — Android: diario por `id` + resolución en vivo + "vía eliminada"  ← SIGUIENTE
-- [ ] Fase 9 — iOS: réplica EXACTA de fases 5–8 (paridad)
+- [x] Fase 8 — Android: diario por `id` + resolución en vivo + "vía eliminada" ✅
+- [ ] Fase 9 — iOS: réplica EXACTA de fases 5–8 (paridad)  ← SIGUIENTE
 
-**Próximo paso**: Fase 8 — enganche del diario por `lineId` estable + resolución
-en vivo + "vía eliminada" en gris (ver objetivo/ficheros de la Fase 8 abajo).
+**Próximo paso**: Fase 9 — replicar en iOS (Swift) las Fases 5–8 EXACTAS. El CI
+de iOS está ROJO desde la Fase 4 (los `init` SKIE exigen los nuevos params); esta
+fase los actualiza y verifica con el CI. Sin Mac → se valida pusheando y mirando
+el build. Ver objetivo/ficheros de la Fase 9 abajo + el checklist de paridad.
 
 > **OJO despliegue Fase 7**: el diff necesita que el backend exponga
 > `geometry/path/direction` en `ContributionResponse` (hecho en `MeteoMontanaAPI`).

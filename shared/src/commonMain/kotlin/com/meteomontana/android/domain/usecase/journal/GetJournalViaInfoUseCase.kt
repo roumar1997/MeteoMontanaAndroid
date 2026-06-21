@@ -6,7 +6,15 @@ import com.meteomontana.android.domain.repository.BlockRepository
 
 /** Nº de piedra, sector y grado ACTUAL de una vía del diario, resueltos en vivo
  *  del catálogo (el grado puede haber cambiado tras una corrección). */
-data class ViaCatalogInfo(val boulderNumber: String?, val sector: String?, val grade: String? = null)
+data class ViaCatalogInfo(
+    val boulderNumber: String?,
+    val sector: String?,
+    val grade: String? = null,
+    // true = la entrada tenía un lineId estable que YA NO existe en el catálogo
+    // (la vía/piedra se borró). La UI la pinta en gris como "vía eliminada", pero
+    // NO se elimina del perfil (no se castiga al usuario por un borrado de catálogo).
+    val deleted: Boolean = false
+)
 
 /**
  * Para cada entrada del diario resuelve el **número de piedra** y el **sector**
@@ -58,7 +66,16 @@ class GetJournalViaInfoUseCase(private val blockRepository: BlockRepository) {
             val candidates = blocks.filter { b ->
                 b.type == "BLOCK" && b.lines.any { it.name.trim().equals(via, ignoreCase = true) }
             }
-            if (candidates.isEmpty()) continue
+            if (candidates.isEmpty()) {
+                // Si la entrada tenía un lineId estable y el catálogo (cargado) ya
+                // no lo contiene ni por id ni por nombre → la vía se BORRÓ. La
+                // marcamos como eliminada (la UI la pinta en gris). Para entradas
+                // antiguas SIN lineId no asumimos borrado (el nombre puede variar).
+                if (!e.lineId.isNullOrBlank()) {
+                    result[e.id] = ViaCatalogInfo(null, null, deleted = true)
+                }
+                continue
+            }
             // Si la entrada recuerda su sector, prefiero la piedra de ese sector.
             val rememberedSector = e.sector?.trim()?.takeIf { it.isNotEmpty() }
             val chosen = rememberedSector?.let { sectorName ->

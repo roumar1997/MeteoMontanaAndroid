@@ -142,7 +142,7 @@ class JournalEntriesViewModel @Inject constructor(
 @Composable
 fun JournalEntriesScreen(
     onBack: () -> Unit,
-    onOpenSchool: (schoolId: String, via: String?) -> Unit = { _, _ -> },
+    onOpenSchool: (schoolId: String, via: String?, viaId: String?) -> Unit = { _, _, _ -> },
     viewModel: JournalEntriesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -180,7 +180,7 @@ fun JournalEntriesScreen(
                             item {
                                 Row(
                                     modifier = Modifier.fillMaxWidth()
-                                        .clickable { onOpenSchool(headerSchoolId, null) }
+                                        .clickable { onOpenSchool(headerSchoolId, null, null) }
                                         .padding(horizontal = 16.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -195,7 +195,7 @@ fun JournalEntriesScreen(
                             EntryRow(
                                 e, canDelete = s.isMine,
                                 info = s.viaInfo[e.id],
-                                onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName) } },
+                                onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName, e.lineId) } },
                                 onDelete = { viewModel.delete(e.id) }
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -241,9 +241,16 @@ private fun EntryRow(
                     }
                 }
             }
+            val deleted = info?.deleted == true
             Text(e.blockName,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground)
+                color = if (deleted) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onBackground)
+            if (deleted) {
+                Text("VÍA ELIMINADA",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             // Escuela + (nº de piedra · sector) resueltos del catálogo en vivo.
             // Si no se pudo resolver (sin red / vía no catalogada) solo va la escuela.
             val subtitle = buildString {
