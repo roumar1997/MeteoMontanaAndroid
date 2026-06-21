@@ -370,10 +370,10 @@ private struct AccountJournalStatsNav: View {
         if let s = vm.stats {
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
-                    NavigationLink(destination: AccountBlocksList(vm: vm)) {
+                    NavigationLink(destination: AccountBlocksList(vm: vm, routeOnly: false)) {
                         cell("\(s.boulderCount)", "BLOQUES")
                     }.buttonStyle(.plain)
-                    NavigationLink(destination: AccountBlocksList(vm: vm)) {
+                    NavigationLink(destination: AccountBlocksList(vm: vm, routeOnly: true)) {
                         cell("\(s.routeCount)", "VÍAS")
                     }.buttonStyle(.plain)
                     NavigationLink(destination: AccountSchoolsList(vm: vm)) {
@@ -403,16 +403,23 @@ private struct AccountJournalStatsNav: View {
 /// lista se refresca sola.
 private struct AccountBlocksList: View {
     @ObservedObject var vm: AccountViewModel
+    /// nil = todos · false = solo bloques (BOULDER) · true = solo vías (ROUTE).
+    /// Las entradas viejas sin modalidad cuentan como BOULDER (igual que stats).
+    var routeOnly: Bool? = nil
+    private var entries: [JournalSession] {
+        guard let r = routeOnly else { return vm.entries }
+        return vm.entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
+    }
     var body: some View {
         Group {
-            if vm.entries.isEmpty {
-                Text("Aún no has registrado bloques.")
+            if entries.isEmpty {
+                Text(routeOnly == true ? "Aún no has registrado vías." : "Aún no has registrado bloques.")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(vm.entries, id: \.id) { e in
+                        ForEach(entries, id: \.id) { e in
                             JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id]) { vm.deleteBlock(e.id) }
                             Divider().overlay(Cumbre.rule)
                         }
@@ -421,7 +428,7 @@ private struct AccountBlocksList: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle("Bloques")
+        .navigationTitle(routeOnly == true ? "Vías" : "Bloques")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

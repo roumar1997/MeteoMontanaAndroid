@@ -111,7 +111,7 @@ final class ProfileCache {
         func toModel() -> JournalSession {
             JournalSession(id: id, schoolId: schoolId, schoolName: schoolName, sector: sector,
                            blockName: blockName, grade: grade, notes: notes, date: date, createdAt: createdAt,
-                           discipline: discipline)
+                           discipline: discipline, lineId: nil)
         }
     }
 }
