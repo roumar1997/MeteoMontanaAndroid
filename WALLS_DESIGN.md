@@ -143,7 +143,12 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 - [x] **Fase 4 — Shared (KMP): propagar todo a las dos apps** ✅ (shared + app compilan)
 - [x] **Fase 5 — Android: render muro (polilínea) + colapsar por sector** ✅
       (SchoolMap: polilínea terra = mismo color que la piedra + nº en el medio + tap; compila)
-- [ ] **Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez)**  ← SIGUIENTE (diseño cerrado: arrastrar para trazar, arrastrar para reordenar con tirador visible, dirección IZQ→DER/DER→IZQ con numeración en vivo, muro mismo color que piedra)
+- [x] **Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez)** ✅
+      (selector PUNTO/MURO + DirectionSelector; modo "traza el muro" en SchoolMap con
+      banner DESHACER/LISTO + preview polilínea con puntos numerados; reordenar caras
+      ◀▶ y vías ▲▼ con numeración global en vivo; submit manda geometry/path/direction;
+      compila + tests verdes)
+- [ ] **Fase 7 — Android: vista de diff del admin**  ← SIGUIENTE (polilínea vieja gris + nueva sólida; badges NUEVA/MOVIDA/QUITADA/MODIFICADA; usa GetWallDiffUseCase — PENDIENTE crear shared, ver Fase 4)
 
 > ⚠️ **OJO iOS rojo hasta Fase 9**: al añadir campos a los modelos compartidos
 > (`Block.geometry/path/direction`, `JournalSession.lineId`, DTOs), los `init`
@@ -152,12 +157,20 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
 > `ContributionRequest`/`CreateBlockRequest`, etc.) NO compilarán hasta que se
 > actualicen en la Fase 9. El CI de iOS estará en rojo hasta entonces (esperado).
 > Android y backend siguen verdes.
-- [ ] Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez)
-- [ ] Fase 7 — Android: vista de diff del admin
+- [x] Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez) ✅
+- [ ] Fase 7 — Android: vista de diff del admin  ← SIGUIENTE
 - [ ] Fase 8 — Android: diario por `id` + resolución en vivo + "vía eliminada"
 - [ ] Fase 9 — iOS: réplica EXACTA de fases 5–8 (paridad)
 
-**Próximo paso**: Fase 6 — editor de muro en Android (diseño cerrado arriba).
+**Próximo paso**: Fase 7 — vista de diff del admin en Android. OJO: necesita el
+modelo `WallDiff` + `GetWallDiffUseCase` en `shared` (pendiente desde Fase 4, a
+crear cuando exista el endpoint de diff del backend) — o calcular el diff en la
+app a partir del estado actual del muro vs la propuesta. Decidir al empezar.
+
+> **PENDIENTE PROBAR EN DISPOSITIVO (Fase 6)**: proponer un muro real — elegir
+> MURO, trazar la polilínea tocando puntos (DESHACER/LISTO), añadir fotos+vías,
+> reordenar con ▲▼ y ◀▶, cambiar la dirección y ver la numeración recalcular,
+> enviar y comprobar que el muro aparece como polilínea con la numeración correcta.
 
 ---
 

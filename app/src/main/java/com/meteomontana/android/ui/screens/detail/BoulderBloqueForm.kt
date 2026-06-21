@@ -35,6 +35,15 @@ data class BoulderFaceForm(
     val bloques: List<BoulderBloqueForm> = listOf(BoulderBloqueForm())
 )
 
+/** Serializa la polilínea del muro a JSON "[[lat,lon],...]" (formato de `Block.path`). */
+fun List<Pair<Double, Double>>.toPathJson(): String {
+    val arr = JSONArray()
+    forEach { (lat, lon) ->
+        arr.put(JSONArray().put(lat).put(lon))
+    }
+    return arr.toString()
+}
+
 val BOULDER_GRADES = listOf(
     "3", "4", "5", "5+",
     "6a", "6a+", "6b", "6b+", "6c", "6c+",

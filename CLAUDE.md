@@ -495,6 +495,37 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-21 — muros largos Fase 6: editor de muro (Android) ✅
+
+Continuación de `WALLS_DESIGN.md`. Fase 6 completa (compila + tests verdes).
+Ficheros: `ProposeContributionFlow.kt`, `BoulderBloqueForm.kt`, `SchoolMap.kt`,
+`SchoolDetailViewModel.kt`.
+
+- **Selector GEOMETRÍA (PUNTO/MURO)** + **SENTIDO DE NUMERACIÓN (IZQ→DER/DER→IZQ)**
+  en el formulario "Nueva piedra" (`GeometrySelector`/`DirectionSelector`, ambos
+  sobre un `SegmentedSelector` genérico estilo `DisciplineSelector`).
+- **Modo "traza el muro"**: nuevo `ProposeStep.WallTracing`. Al pulsar "TRAZAR EL
+  MURO" el formulario se oculta y el mapa entra en trazado — banner terra con
+  contador + **DESHACER/LISTO**; cada tap añade un punto numerado y dibuja la
+  polilínea preview en vivo (color de la piedra). LISTO (≥2 puntos) vuelve al form.
+  Patrón espejo de la corrección de posición (flags + callbacks registrados:
+  `onWallTracingChange/onWallPreviewChange/onWallUndo/onWallDone`).
+- **Reordenar**: vías con tirador **▲▼** dentro de su foto; fotos/caras con
+  **◀ MOVER / MOVER ▶** a lo largo del muro. Elegido flechas (no drag real): el
+  diálogo es un `Column` con `verticalScroll` (no `LazyColumn`) y no hay librería
+  reorderable → el arrastre chocaría con el scroll. Fiable y sin dependencias.
+- **Numeración global en vivo**: en MURO el círculo de cada vía muestra su nº
+  cruzando todas las fotos (orden = lista de caras × vías), recalculado al
+  reordenar o cambiar dirección. El orden se manda por el orden de la lista +
+  flag `direction`; el backend (Fases 1-3) aplica la numeración.
+- **Submit**: `submitBoulderFacesContribution` ahora envía `geometry`/`path`
+  (JSON `[[lat,lon],...]` vía `List<Pair>.toPathJson()`)/`direction`.
+
+> ⚠️ **PENDIENTE PROBAR EN DISPOSITIVO**: proponer un muro end-to-end (trazar,
+> reordenar, dirección, enviar) y ver que aparece como polilínea bien numerada.
+> **SIGUIENTE**: Fase 7 — vista de diff del admin (necesita `WallDiff` +
+> `GetWallDiffUseCase` en shared, aún sin crear; ver WALLS_DESIGN.md).
+
 ### Sesión 2026-06-20 (2) — modalidad Bloque vs Vía por piedra (Fase 1: backend) ✅
 
 Feature nueva: separar en el perfil **BLOQUES** y **VÍAS** (las dos modalidades

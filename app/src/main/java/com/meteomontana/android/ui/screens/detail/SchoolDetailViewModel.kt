@@ -482,7 +482,10 @@ class SchoolDetailViewModel @Inject constructor(
         name: String?,
         faces: List<BoulderFaceForm>,
         sectorBlockId: String? = null,
-        discipline: String = "BOULDER"
+        discipline: String = "BOULDER",
+        geometry: String = "POINT",
+        path: String? = null,
+        direction: String = "LTR"
     ): Result<Unit> = runCatching {
         val photoUrlByFace = HashMap<String, String?>()
         for (face in faces) {
@@ -504,7 +507,10 @@ class SchoolDetailViewModel @Inject constructor(
             photoUrl = coverPhoto,
             bloquesJson = facesToBloquesJson(faces, photoUrlByFace),
             topoLinesJson = null,
-            discipline = discipline
+            discipline = discipline,
+            geometry = geometry,
+            path = path,
+            direction = direction
         )
         submitContributionUseCase(schoolId, req)
         Unit

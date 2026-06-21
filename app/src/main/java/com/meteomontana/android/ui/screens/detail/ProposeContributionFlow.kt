@@ -81,6 +81,7 @@ private sealed interface ProposeStep {
     data object WaitingMapTap : ProposeStep
     data class  Form(val lat: Double, val lon: Double)        : ProposeStep  // PARKING
     data class  BoulderForm(val lat: Double, val lon: Double) : ProposeStep  // BOULDER
+    data class  WallTracing(val lat: Double, val lon: Double) : ProposeStep  // trazar muro en el mapa
     data class  SectorForm(val lat: Double, val lon: Double)  : ProposeStep  // SECTOR
     data object CorrectionPickTarget : ProposeStep                          // espera tap en marker existente
     data class  CorrectionMoving(
@@ -127,6 +128,15 @@ fun ProposeContributionFlow(
     onCorrectionTargetChange: (String?) -> Unit = {},
     /** Registra callback que SchoolMap llamará cuando el usuario pulse ACEPTAR. */
     onAcceptCorrection: ((() -> Unit) -> Unit) = {},
+    /** Cuando true → el mapa entra en modo "traza el muro": cada tap añade un punto a
+     *  la polilínea y se muestra el banner con DESHACER/LISTO. */
+    onWallTracingChange: (Boolean) -> Unit = {},
+    /** Empuja a SchoolMap la polilínea en construcción (puntos [lat,lon]) para previsualizarla. */
+    onWallPreviewChange: (List<Pair<Double, Double>>) -> Unit = {},
+    /** Registra callback que SchoolMap llamará al pulsar DESHACER (quita el último punto). */
+    onWallUndo: ((() -> Unit) -> Unit) = {},
+    /** Registra callback que SchoolMap llamará al pulsar LISTO (cierra el trazado). */
+    onWallDone: ((() -> Unit) -> Unit) = {},
     /** Si true → el admin mueve directamente vía API admin sin pasar por flujo propuesta. */
     isAdmin: Boolean = false,
     onDismiss: () -> Unit,
@@ -143,6 +153,12 @@ fun ProposeContributionFlow(
     var boulderTopoFaceIdx by remember { mutableStateOf<Int?>(null) }  // cara cuyo editor de líneas está abierto
     var boulderSectorBlockId by remember { mutableStateOf<String?>(null) }
     var boulderDiscipline by remember { mutableStateOf("BOULDER") }  // BOULDER (bloque) / ROUTE (vía)
+    // Geometría en el mapa: POINT (marcador) o LINE (muro = polilínea trazada en el mapa).
+    var boulderGeometry by remember { mutableStateOf("POINT") }
+    // Sentido de numeración de las vías del muro: LTR (izq→der) / RTL (der→izq).
+    var boulderDirection by remember { mutableStateOf("LTR") }
+    // Polilínea trazada del muro: lista de puntos [lat,lon] (vacía mientras geometry=POINT).
+    var boulderPath by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
 
     // Sectores (ZONE) existentes en la escuela — alimentan el dropdown del BoulderForm.
     val uiStateForSectors by viewModel.uiState.collectAsState()
@@ -168,8 +184,24 @@ fun ProposeContributionFlow(
                 step = cur.copy(newLat = lat, newLon = lon)
                 onGhostMarkerChange(CorrectionGhost(originalId = cur.targetId, newLat = lat, newLon = lon))
             }
+            is ProposeStep.WallTracing -> {
+                // Cada tap añade un punto a la polilínea del muro. LISTO cierra el modo.
+                boulderPath = boulderPath + (lat to lon)
+                onWallPreviewChange(boulderPath)
+            }
             else -> {}
         }
+    }
+
+    // Botones DESHACER / LISTO del banner de trazado (SchoolMap los dispara).
+    onWallUndo {
+        boulderPath = boulderPath.dropLast(1)
+        onWallPreviewChange(boulderPath)
+    }
+    onWallDone {
+        val cur = step as? ProposeStep.WallTracing ?: return@onWallDone
+        onWallTracingChange(false)
+        step = ProposeStep.BoulderForm(cur.lat, cur.lon)
     }
 
     onMarkerTapForCorrection { tappedBlock ->
@@ -233,6 +265,9 @@ fun ProposeContributionFlow(
                 boulderName = ""
                 boulderSectorBlockId = null
                 boulderDiscipline = "BOULDER"
+                boulderGeometry = "POINT"
+                boulderDirection = "LTR"
+                boulderPath = emptyList()
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
             },
@@ -287,6 +322,16 @@ fun ProposeContributionFlow(
                 onSectorChange = { boulderSectorBlockId = it },
                 discipline = boulderDiscipline,
                 onDisciplineChange = { boulderDiscipline = it },
+                geometry = boulderGeometry,
+                onGeometryChange = { boulderGeometry = it },
+                direction = boulderDirection,
+                onDirectionChange = { boulderDirection = it },
+                path = boulderPath,
+                onTraceWall = {
+                    onWallPreviewChange(boulderPath)
+                    onWallTracingChange(true)
+                    step = ProposeStep.WallTracing(s.lat, s.lon)
+                },
                 onCancel = onDismiss,
                 onSubmit = {
                     scope.launch {
@@ -295,7 +340,11 @@ fun ProposeContributionFlow(
                             name = boulderName,
                             faces = boulderFaces,
                             sectorBlockId = boulderSectorBlockId,
-                            discipline = boulderDiscipline
+                            discipline = boulderDiscipline,
+                            geometry = boulderGeometry,
+                            path = if (boulderGeometry == "LINE" && boulderPath.isNotEmpty())
+                                boulderPath.toPathJson() else null,
+                            direction = boulderDirection
                         )
                         if (result.isSuccess) step = ProposeStep.Success
                     }
@@ -319,6 +368,10 @@ fun ProposeContributionFlow(
                     onDismiss = { boulderTopoFaceIdx = null }
                 )
             }
+        }
+
+        is ProposeStep.WallTracing -> {
+            // Banner "TRAZA EL MURO" + DESHACER/LISTO + preview los pinta SchoolMap.
         }
 
         is ProposeStep.SectorForm -> SectorFormDialog(
@@ -657,6 +710,12 @@ private fun BoulderFormDialog(
     onSectorChange: (String?) -> Unit,
     discipline: String,
     onDisciplineChange: (String) -> Unit,
+    geometry: String,
+    onGeometryChange: (String) -> Unit,
+    direction: String,
+    onDirectionChange: (String) -> Unit,
+    path: List<Pair<Double, Double>>,
+    onTraceWall: () -> Unit,
     onCancel: () -> Unit,
     onSubmit: () -> Unit
 ) {
@@ -690,6 +749,50 @@ private fun BoulderFormDialog(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         DisciplineSelector(selected = discipline, onSelect = onDisciplineChange)
+        Spacer(Modifier.height(Spacing.md))
+
+        // ── Geometría: PUNTO o MURO ───────────────────────────────────────────────
+        Text("GEOMETRÍA", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        GeometrySelector(selected = geometry, onSelect = onGeometryChange)
+        if (geometry == "LINE") {
+            Spacer(Modifier.height(Spacing.xs))
+            val traced = path.size >= 2
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.small)
+                    .then(
+                        if (traced) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                        else Modifier.background(Terra)
+                    )
+                    .clickable(onClick = onTraceWall)
+                    .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    when {
+                        traced -> "✓ MURO DE ${path.size} PUNTOS · RE-TRAZAR"
+                        path.size == 1 -> "TRAZAR EL MURO (1 PUNTO, FALTAN MÁS)"
+                        else -> "✎ TRAZAR EL MURO EN EL MAPA"
+                    },
+                    style = EyebrowTextStyle,
+                    color = if (traced) MaterialTheme.colorScheme.onSurface else Color.White
+                )
+            }
+            if (!traced) {
+                Spacer(Modifier.height(2.dp))
+                Text("Toca al menos 2 puntos siguiendo la base del muro.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(Spacing.md))
+            Text("SENTIDO DE NUMERACIÓN", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.xs))
+            DirectionSelector(selected = direction, onSelect = onDirectionChange)
+        }
         Spacer(Modifier.height(Spacing.md))
 
         // ── Sector (opcional) ────────────────────────────────────────────────────
@@ -781,18 +884,35 @@ private fun BoulderFormDialog(
         }
         if (faces.size > 1) {
             Spacer(Modifier.height(Spacing.xs))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(2.dp))
-                    .clickable {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                // Reordenar la foto dentro del muro (cambia el orden global de vías).
+                val canLeft = faceIdx > 0
+                val canRight = faceIdx < faces.size - 1
+                Text("◀ MOVER", style = EyebrowTextStyle,
+                    color = if (canLeft) Terra else MaterialTheme.colorScheme.outline,
+                    modifier = if (canLeft) Modifier.clickable {
+                        onFacesChange(faces.toMutableList().also {
+                            val t = it[faceIdx - 1]; it[faceIdx - 1] = it[faceIdx]; it[faceIdx] = t
+                        })
+                        selectedFaceIdx = faceIdx - 1
+                    } else Modifier)
+                Text("MOVER ▶", style = EyebrowTextStyle,
+                    color = if (canRight) Terra else MaterialTheme.colorScheme.outline,
+                    modifier = if (canRight) Modifier.clickable {
+                        onFacesChange(faces.toMutableList().also {
+                            val t = it[faceIdx + 1]; it[faceIdx + 1] = it[faceIdx]; it[faceIdx] = t
+                        })
+                        selectedFaceIdx = faceIdx + 1
+                    } else Modifier)
+                Spacer(Modifier.weight(1f))
+                Text("✕ QUITAR ESTA FOTO", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.clickable {
                         val newFaces = faces.toMutableList().also { it.removeAt(faceIdx) }
                         selectedFaceIdx = (faceIdx - 1).coerceAtLeast(0)
                         onFacesChange(newFaces)
-                    }
-                    .padding(vertical = Spacing.xs)
-            ) {
-                Text("✕ QUITAR ESTA FOTO", style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.error)
+                    })
             }
         }
         Spacer(Modifier.height(Spacing.md))
@@ -861,16 +981,42 @@ private fun BoulderFormDialog(
         // ── Vías de esta foto ──────────────────────────────────────────────────────
         Text("VÍAS EN ESTA FOTO", style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (geometry == "LINE") {
+            Spacer(Modifier.height(2.dp))
+            Text("Nº = posición en el muro (${if (direction == "LTR") "izq→der" else "der→izq"}). Reordena con ▲▼.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Spacer(Modifier.height(Spacing.sm))
+        val isWall = geometry == "LINE"
+        val totalVias = faces.sumOf { it.bloques.size }
+        val precedingCount = faces.take(faceIdx).sumOf { it.bloques.size }
         face.bloques.forEachIndexed { idx, bloque ->
+            val globalPos = precedingCount + idx
+            val number = when {
+                !isWall -> idx + 1
+                direction == "LTR" -> globalPos + 1
+                else -> totalVias - globalPos
+            }
             BloqueRow(
                 index = idx,
                 bloque = bloque,
+                displayNumber = number,
                 onUpdate = { updated ->
                     updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it[idx] = updated }) }
                 },
                 onDelete = if (face.bloques.size > 1) ({
                     updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it.removeAt(idx) }) }
+                }) else null,
+                onMoveUp = if (idx > 0) ({
+                    updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also {
+                        val t = it[idx - 1]; it[idx - 1] = it[idx]; it[idx] = t
+                    }) }
+                }) else null,
+                onMoveDown = if (idx < face.bloques.size - 1) ({
+                    updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also {
+                        val t = it[idx + 1]; it[idx + 1] = it[idx]; it[idx] = t
+                    }) }
                 }) else null
             )
             Spacer(Modifier.height(Spacing.xs))
@@ -982,6 +1128,73 @@ fun DisciplineSelector(
     }
 }
 
+// ─── GeometrySelector (PUNTO / MURO) ──────────────────────────────────────────
+
+/** Selector de geometría de la piedra: PUNTO (marcador) o MURO (polilínea). */
+@Composable
+fun GeometrySelector(
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    SegmentedSelector(
+        options = listOf("POINT" to "PUNTO", "LINE" to "MURO"),
+        selected = selected,
+        onSelect = onSelect
+    )
+}
+
+// ─── DirectionSelector (IZQ→DER / DER→IZQ) ────────────────────────────────────
+
+/** Sentido de numeración de las vías del muro. */
+@Composable
+fun DirectionSelector(
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    SegmentedSelector(
+        options = listOf("LTR" to "IZQ → DER", "RTL" to "DER → IZQ"),
+        selected = selected,
+        onSelect = onSelect
+    )
+}
+
+/** Botonera segmentada genérica (mismo estilo que DisciplineSelector). */
+@Composable
+private fun SegmentedSelector(
+    options: List<Pair<String, String>>,
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        options.forEach { (value, label) ->
+            val sel = selected == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(MaterialTheme.shapes.small)
+                    .then(if (sel) Modifier.background(Terra) else Modifier)
+                    .border(
+                        1.dp,
+                        if (sel) Terra else MaterialTheme.colorScheme.outline,
+                        MaterialTheme.shapes.small
+                    )
+                    .clickable { onSelect(value) }
+                    .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    label,
+                    style = EyebrowTextStyle,
+                    color = if (sel) Color.White else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
 // ─── BloqueRow ────────────────────────────────────────────────────────────────
 
 @Composable
@@ -989,7 +1202,12 @@ private fun BloqueRow(
     index: Int,
     bloque: BoulderBloqueForm,
     onUpdate: (BoulderBloqueForm) -> Unit,
-    onDelete: (() -> Unit)?
+    onDelete: (() -> Unit)?,
+    // Número mostrado en el círculo. En muro = nº global en vivo (orden + dirección).
+    displayNumber: Int = index + 1,
+    // Tirador para reordenar la vía (null = extremo, deshabilitado).
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null
 ) {
     var gradeExpanded by remember { mutableStateOf(false) }
     val gradeColor = colorForGrade(bloque.grade)
@@ -1002,10 +1220,23 @@ private fun BloqueRow(
             .padding(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
-        // Número + nombre + eliminar
+        // Tirador ▲▼ + número + nombre + eliminar
         Row(verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            // Número del bloque
+            // Tirador para reordenar (subir/bajar) — visible solo si hay dónde mover.
+            if (onMoveUp != null || onMoveDown != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("▲", style = MaterialTheme.typography.labelMedium,
+                        color = if (onMoveUp != null) Terra
+                                else MaterialTheme.colorScheme.outline,
+                        modifier = if (onMoveUp != null) Modifier.clickable(onClick = onMoveUp) else Modifier)
+                    Text("▼", style = MaterialTheme.typography.labelMedium,
+                        color = if (onMoveDown != null) Terra
+                                else MaterialTheme.colorScheme.outline,
+                        modifier = if (onMoveDown != null) Modifier.clickable(onClick = onMoveDown) else Modifier)
+                }
+            }
+            // Número del bloque (en muro = nº global en vivo)
             Box(
                 modifier = Modifier
                     .size(24.dp)
@@ -1013,7 +1244,7 @@ private fun BloqueRow(
                     .background(gradeColor),
                 contentAlignment = Alignment.Center
             ) {
-                Text("${index + 1}",
+                Text("$displayNumber",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White)
             }

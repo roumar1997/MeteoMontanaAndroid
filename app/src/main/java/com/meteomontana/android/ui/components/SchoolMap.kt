@@ -103,6 +103,9 @@ fun SchoolMap(
     var correctionMode by remember { mutableStateOf(false) }
     var correctionGhost by remember { mutableStateOf<com.meteomontana.android.ui.screens.detail.CorrectionGhost?>(null) }
     var correctionTargetName by remember { mutableStateOf<String?>(null) }
+    // Trazado de muro: modo activo + polilínea en construcción (preview).
+    var wallTracing by remember { mutableStateOf(false) }
+    var wallPreview by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
 
     // Callback que el flujo registra para recibir el tap en el mapa
     var mapTapCallback by remember { mutableStateOf<((Double, Double) -> Unit)?>(null) }
@@ -110,6 +113,9 @@ fun SchoolMap(
     var markerTapForCorrection by remember { mutableStateOf<((Block) -> Unit)?>(null) }
     // Callback que el flujo registra para que se dispare al pulsar ACEPTAR.
     var acceptCorrectionCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
+    // Callbacks DESHACER / LISTO del trazado de muro.
+    var wallUndoCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var wallDoneCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     Column(modifier = modifier.fillMaxWidth()) {
 
@@ -158,26 +164,34 @@ fun SchoolMap(
                 correctionMode = correctionMode,
                 correctionGhost = correctionGhost,
                 correctionTargetName = correctionTargetName,
+                wallTracing = wallTracing,
+                wallPreview = wallPreview,
                 onProposeClick = { proposeOpen = true },
                 onCancelTap   = {
                     waitingMapTap = false
                     correctionMode = false
                     correctionGhost = null
                     correctionTargetName = null
+                    wallTracing = false
+                    wallPreview = emptyList()
                     proposeOpen = false
                     mapTapCallback = null
                     markerTapForCorrection = null
                     acceptCorrectionCallback = null
+                    wallUndoCallback = null
+                    wallDoneCallback = null
                 },
                 onMapTapped   = { lat, lon ->
                     mapTapCallback?.invoke(lat, lon)
-                    // No reseteamos waitingMapTap en modo corrección (sigue activo hasta ACEPTAR).
-                    if (!correctionMode) waitingMapTap = false
+                    // No reseteamos waitingMapTap en corrección ni en trazado (siguen activos).
+                    if (!correctionMode && !wallTracing) waitingMapTap = false
                 },
                 onMarkerTappedForCorrection = { block ->
                     markerTapForCorrection?.invoke(block)
                 },
-                onAcceptCorrection = { acceptCorrectionCallback?.invoke() }
+                onAcceptCorrection = { acceptCorrectionCallback?.invoke() },
+                onWallUndo = { wallUndoCallback?.invoke() },
+                onWallDone = { wallDoneCallback?.invoke() }
             )
         }
     }
@@ -196,15 +210,23 @@ fun SchoolMap(
             onGhostMarkerChange = { correctionGhost = it },
             onCorrectionTargetChange = { correctionTargetName = it },
             onAcceptCorrection = { cb -> acceptCorrectionCallback = cb },
+            onWallTracingChange = { wallTracing = it },
+            onWallPreviewChange = { wallPreview = it },
+            onWallUndo = { cb -> wallUndoCallback = cb },
+            onWallDone = { cb -> wallDoneCallback = cb },
             onDismiss       = {
                 proposeOpen = false
                 waitingMapTap = false
                 correctionMode = false
                 correctionGhost = null
                 correctionTargetName = null
+                wallTracing = false
+                wallPreview = emptyList()
                 mapTapCallback = null
                 markerTapForCorrection = null
                 acceptCorrectionCallback = null
+                wallUndoCallback = null
+                wallDoneCallback = null
             },
             onMyProposals   = onMyProposals,
             viewModel       = viewModel
@@ -227,11 +249,15 @@ private fun InnerMap(
     correctionMode: Boolean,
     correctionGhost: com.meteomontana.android.ui.screens.detail.CorrectionGhost?,
     correctionTargetName: String?,
+    wallTracing: Boolean,
+    wallPreview: List<Pair<Double, Double>>,
     onProposeClick: () -> Unit,
     onCancelTap: () -> Unit,
     onMapTapped: (Double, Double) -> Unit,
     onMarkerTappedForCorrection: (Block) -> Unit,
-    onAcceptCorrection: () -> Unit
+    onAcceptCorrection: () -> Unit,
+    onWallUndo: () -> Unit,
+    onWallDone: () -> Unit
 ) {
     val ctx = LocalContext.current
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
@@ -242,6 +268,7 @@ private fun InnerMap(
     // Snapshots actualizados de flags y callbacks para que los listeners del factory los lean fresh.
     val waitingMapTapState by androidx.compose.runtime.rememberUpdatedState(waitingMapTap)
     val correctionModeState by androidx.compose.runtime.rememberUpdatedState(correctionMode)
+    val wallTracingState by androidx.compose.runtime.rememberUpdatedState(wallTracing)
     val onMarkerTappedForCorrectionState by androidx.compose.runtime.rememberUpdatedState(onMarkerTappedForCorrection)
     val onMapTappedState by androidx.compose.runtime.rememberUpdatedState(onMapTapped)
 
@@ -307,10 +334,10 @@ private fun InnerMap(
         }
     }
 
-    // Re-pinta markers cuando cambia el ghost o se colapsa/expande un sector.
-    androidx.compose.runtime.LaunchedEffect(correctionGhost, visibleMarkers) {
+    // Re-pinta markers cuando cambia el ghost, el preview del muro o se colapsa un sector.
+    androidx.compose.runtime.LaunchedEffect(correctionGhost, visibleMarkers, wallPreview) {
         val map = mapRef.value ?: return@LaunchedEffect
-        placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc) { tapped ->
+        placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, wallPreview) { tapped ->
             if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
             else onBlockTap(tapped)
         }
@@ -331,7 +358,7 @@ private fun InnerMap(
                         currentStyle = option
                         mapViewRef.value?.getMapAsync { map ->
                             map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
-                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc) { tapped ->
+                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, wallPreview) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
                                     else onBlockTap(tapped)
                                 }
@@ -378,6 +405,41 @@ private fun InnerMap(
             }
         }
 
+        // Banner del trazado de muro: cada tap añade un punto; DESHACER / LISTO.
+        if (wallTracing) {
+            Column(
+                modifier = Modifier.fillMaxWidth().background(Terra)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("✎ TRAZA EL MURO · ${wallPreview.size} PUNTOS · TOCA LA BASE DEL MURO",
+                        style = EyebrowTextStyle, color = Color.White,
+                        modifier = Modifier.weight(1f))
+                    Text(" ✕", color = Color.White, style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.clickable(onClick = onCancelTap))
+                }
+                Spacer(Modifier.size(Spacing.sm))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Box(modifier = Modifier.weight(1f)
+                        .background(Color.White.copy(alpha = if (wallPreview.isEmpty()) 0.4f else 1f))
+                        .clickable(enabled = wallPreview.isNotEmpty(), onClick = onWallUndo)
+                        .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("↶ DESHACER", style = EyebrowTextStyle, color = Terra)
+                    }
+                    Box(modifier = Modifier.weight(1f)
+                        .background(Color.White.copy(alpha = if (wallPreview.size >= 2) 1f else 0.4f))
+                        .clickable(enabled = wallPreview.size >= 2, onClick = onWallDone)
+                        .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("✓ LISTO", style = EyebrowTextStyle, color = Terra)
+                    }
+                }
+            }
+        }
+
         // MapView con botón "+ PROPONER" superpuesto
         Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
             AndroidView(
@@ -402,7 +464,7 @@ private fun InnerMap(
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(centerLat, centerLon))
                                     .zoom(15.0).build()
-                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc) { tapped ->
+                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, wallPreview) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
                                     else onBlockTap(tapped)
                                 }
@@ -412,7 +474,7 @@ private fun InnerMap(
                                 isTiltGesturesEnabled   = false
                             }
                             map.addOnMapClickListener { point ->
-                                if (waitingMapTapState || correctionModeState) {
+                                if (waitingMapTapState || correctionModeState || wallTracingState) {
                                     onMapTappedState(point.latitude, point.longitude)
                                     true
                                 } else {
@@ -653,6 +715,7 @@ private fun placeMarkers(
     blocks: List<Block>,
     ghost: com.meteomontana.android.ui.screens.detail.CorrectionGhost? = null,
     userLoc: com.meteomontana.android.domain.model.UserLocation? = null,
+    wallPreview: List<Pair<Double, Double>> = emptyList(),
     onBlockTap: (Block) -> Unit
 ) {
     map.clear()
@@ -717,6 +780,26 @@ private fun placeMarkers(
         markerBlockMap[marker.id] = b
     }
 
+    // Preview del muro en construcción: polilínea terra + un punto numerado por tap.
+    if (wallPreview.isNotEmpty()) {
+        val pts = wallPreview.map { (lat, lon) -> LatLng(lat, lon) }
+        if (pts.size >= 2) {
+            map.addPolyline(
+                PolylineOptions()
+                    .addAll(pts)
+                    .color(android.graphics.Color.parseColor(PIEDRA_COLOR))
+                    .width(5f)
+            )
+        }
+        pts.forEachIndexed { idx, p ->
+            map.addMarker(
+                MarkerOptions()
+                    .position(p)
+                    .icon(iconFactory.fromBitmap(wallPointBitmap(idx + 1)))
+            )
+        }
+    }
+
     // Ghost marker en la nueva posición candidata.
     if (ghost?.newLat != null && ghost.newLon != null) {
         map.addMarker(
@@ -765,6 +848,27 @@ private fun ghostBitmap(): Bitmap {
         textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
     }
     c.drawText("★", size / 2f, size / 2f + 10f, txt)
+    return bmp
+}
+
+/** Punto numerado de la polilínea del muro en construcción (preview del trazado). */
+private fun wallPointBitmap(number: Int): Bitmap {
+    val size = 56
+    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val c = Canvas(bmp)
+    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor(PIEDRA_COLOR)
+    }
+    val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 4f; color = android.graphics.Color.WHITE
+    }
+    c.drawCircle(size / 2f, size / 2f, 20f, fill)
+    c.drawCircle(size / 2f, size / 2f, 20f, border)
+    val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE; textSize = 24f
+        textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
+    }
+    c.drawText(number.toString(), size / 2f, size / 2f + 9f, txt)
     return bmp
 }
 
