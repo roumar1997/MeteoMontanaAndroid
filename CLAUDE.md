@@ -566,6 +566,12 @@ del google-services real del CI):**
 - OJO orden SKIE: los init Swift respetan el orden de declaración Kotlin (el
   campo nuevo va al final en cada uno).
 
+> ⚠️ **PENDIENTE DE PROBAR EN DISPOSITIVO** (lo hará Rodrigo y avisará): verificar
+> el flujo Bloque/Vía end-to-end en **Android** y en **iOS** — proponer/crear una
+> piedra eligiendo modalidad, marcar una vía, y comprobar que el perfil separa
+> BLOQUES/VÍAS y los grados máximos. Confirmar también que el CI de iOS compiló
+> la Fase 4.
+
 **Pendientes menores (baja prioridad):**
 - Mostrar un badge BLOQUE/VÍA en la ficha de piedra (`BlockDetailDialog`/
   `BlockInfoSheet`) y en la card del admin al revisar propuestas.
