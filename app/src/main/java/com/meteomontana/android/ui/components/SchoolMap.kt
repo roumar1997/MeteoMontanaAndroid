@@ -281,6 +281,33 @@ private fun InnerMap(
     // Vía objetivo del deep-link del diario → el detalle abre por su foto/cara.
     var highlightVia by remember { mutableStateOf<String?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
+    // Estado ELEVADO del editor de edición (AddLinesFlow controlado): sobrevive
+    // mientras el diálogo se oculta para trazar el muro en el mapa.
+    var editFaces by remember { mutableStateOf<List<com.meteomontana.android.ui.screens.detail.EditFace>>(emptyList()) }
+    var editGeometry by remember { mutableStateOf("POINT") }
+    var editDirection by remember { mutableStateOf("LTR") }
+    var editSelectedFace by remember { mutableStateOf(0) }
+    var editTracedPath by remember { mutableStateOf<List<Pair<Double, Double>>?>(null) }
+    // Trazado del muro DESDE el editor: modo activo + polilínea en construcción.
+    var editWallTracing by remember { mutableStateOf(false) }
+    var editWallPreview by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
+    val editWallTracingState by androidx.compose.runtime.rememberUpdatedState(editWallTracing)
+    val onEditWallTapState by androidx.compose.runtime.rememberUpdatedState<(Double, Double) -> Unit> { lat, lon ->
+        editWallPreview = editWallPreview + (lat to lon)
+    }
+    // Inicializa el estado del editor al abrirlo para una piedra.
+    androidx.compose.runtime.LaunchedEffect(addingLinesTo) {
+        val b = addingLinesTo
+        if (b != null) {
+            editFaces = com.meteomontana.android.ui.screens.detail.initialEditFaces(b)
+            editGeometry = b.geometry.ifBlank { "POINT" }
+            editDirection = b.direction.ifBlank { "LTR" }
+            editSelectedFace = 0
+            editTracedPath = null
+            editWallTracing = false
+            editWallPreview = emptyList()
+        }
+    }
 
     // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
     val isAdminUser = (viewModel.uiState.collectAsState().value
@@ -345,10 +372,13 @@ private fun InnerMap(
         }
     }
 
+    // Preview de muro activo: el del editor si está trazando, si no el del flujo crear.
+    val activePreview = if (editWallTracing) editWallPreview else wallPreview
+
     // Re-pinta markers cuando cambia el ghost, el preview del muro o se colapsa un sector.
-    androidx.compose.runtime.LaunchedEffect(correctionGhost, visibleMarkers, wallPreview) {
+    androidx.compose.runtime.LaunchedEffect(correctionGhost, visibleMarkers, activePreview) {
         val map = mapRef.value ?: return@LaunchedEffect
-        placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, wallPreview) { tapped ->
+        placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview) { tapped ->
             if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
             else onBlockTap(tapped)
         }
@@ -369,7 +399,7 @@ private fun InnerMap(
                         currentStyle = option
                         mapViewRef.value?.getMapAsync { map ->
                             map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
-                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, wallPreview) { tapped ->
+                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
                                     else onBlockTap(tapped)
                                 }
@@ -417,31 +447,36 @@ private fun InnerMap(
         }
 
         // Banner del trazado de muro: cada tap añade un punto; DESHACER / LISTO.
-        if (wallTracing) {
+        // Sirve para el flujo CREAR (wallTracing) y el de EDITAR (editWallTracing).
+        if (wallTracing || editWallTracing) {
+            val pv = if (editWallTracing) editWallPreview else wallPreview
+            val onUndo: () -> Unit = if (editWallTracing) ({ editWallPreview = editWallPreview.dropLast(1) }) else onWallUndo
+            val onDone: () -> Unit = if (editWallTracing) ({ editTracedPath = editWallPreview; editWallTracing = false }) else onWallDone
+            val onCancel: () -> Unit = if (editWallTracing) ({ editWallTracing = false }) else onCancelTap
             Column(
                 modifier = Modifier.fillMaxWidth().background(Terra)
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("✎ TRAZA EL MURO · ${wallPreview.size} PUNTOS · TOCA LA BASE DEL MURO",
+                    Text("✎ TRAZA EL MURO · ${pv.size} PUNTOS · TOCA LA BASE DEL MURO",
                         style = EyebrowTextStyle, color = Color.White,
                         modifier = Modifier.weight(1f))
                     Text(" ✕", color = Color.White, style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.clickable(onClick = onCancelTap))
+                        modifier = Modifier.clickable(onClick = onCancel))
                 }
                 Spacer(Modifier.size(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Box(modifier = Modifier.weight(1f)
-                        .background(Color.White.copy(alpha = if (wallPreview.isEmpty()) 0.4f else 1f))
-                        .clickable(enabled = wallPreview.isNotEmpty(), onClick = onWallUndo)
+                        .background(Color.White.copy(alpha = if (pv.isEmpty()) 0.4f else 1f))
+                        .clickable(enabled = pv.isNotEmpty(), onClick = onUndo)
                         .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("↶ DESHACER", style = EyebrowTextStyle, color = Terra)
                     }
                     Box(modifier = Modifier.weight(1f)
-                        .background(Color.White.copy(alpha = if (wallPreview.size >= 2) 1f else 0.4f))
-                        .clickable(enabled = wallPreview.size >= 2, onClick = onWallDone)
+                        .background(Color.White.copy(alpha = if (pv.size >= 2) 1f else 0.4f))
+                        .clickable(enabled = pv.size >= 2, onClick = onDone)
                         .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
@@ -475,7 +510,7 @@ private fun InnerMap(
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(centerLat, centerLon))
                                     .zoom(15.0).build()
-                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, wallPreview) { tapped ->
+                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
                                     else onBlockTap(tapped)
                                 }
@@ -485,13 +520,20 @@ private fun InnerMap(
                                 isTiltGesturesEnabled   = false
                             }
                             map.addOnMapClickListener { point ->
-                                if (waitingMapTapState || correctionModeState || wallTracingState) {
-                                    onMapTappedState(point.latitude, point.longitude)
-                                    true
-                                } else {
-                                    // Tap fuera de marker → cierra popup
-                                    selectedBlock = null
-                                    false
+                                when {
+                                    editWallTracingState -> {
+                                        onEditWallTapState(point.latitude, point.longitude)
+                                        true
+                                    }
+                                    waitingMapTapState || correctionModeState || wallTracingState -> {
+                                        onMapTappedState(point.latitude, point.longitude)
+                                        true
+                                    }
+                                    else -> {
+                                        // Tap fuera de marker → cierra popup
+                                        selectedBlock = null
+                                        false
+                                    }
                                 }
                             }
                         }
@@ -582,17 +624,30 @@ private fun InnerMap(
         )
     }
 
-    // Flujo "+ AÑADIR VÍAS" a una piedra existente
+    // Flujo "+ AÑADIR VÍAS" / editar piedra-muro. Se oculta mientras se traza el
+    // muro en el mapa (el estado vive arriba, así no se pierde lo editado).
     addingLinesTo?.let { block ->
-        AddLinesFlow(
-            block = block,
-            viewModel = viewModel,
-            onDismiss = { addingLinesTo = null },
-            onSuccess = {
-                addingLinesTo = null
-                successMessage = if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
-            }
-        )
+        if (!editWallTracing) {
+            AddLinesFlow(
+                block = block,
+                viewModel = viewModel,
+                faces = editFaces,
+                onFacesChange = { editFaces = it },
+                selectedFace = editSelectedFace,
+                onSelectedFaceChange = { editSelectedFace = it },
+                geometry = editGeometry,
+                onGeometryChange = { editGeometry = it },
+                direction = editDirection,
+                onDirectionChange = { editDirection = it },
+                tracedPath = editTracedPath,
+                onTraceWall = { editWallPreview = emptyList(); editWallTracing = true },
+                onDismiss = { addingLinesTo = null },
+                onSuccess = {
+                    addingLinesTo = null
+                    successMessage = if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                }
+            )
+        }
     }
 
     // Flujo "✎ CORREGIR VÍA" — redibuja una línea concreta

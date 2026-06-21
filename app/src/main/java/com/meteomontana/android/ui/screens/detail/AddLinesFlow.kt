@@ -65,7 +65,7 @@ import kotlinx.coroutines.launch
  * una foto nueva elegida que la sustituye, más sus vías. Las vías existentes
  * llevan `existingLineId`; las nuevas no.
  */
-private data class EditFace(
+internal data class EditFace(
     val existingPhotoPath: String?,   // foto remota actual (null si cara nueva)
     val newPhotoUri: Uri?,            // foto local elegida (sustituye a la anterior)
     val bloques: List<BoulderBloqueForm>
@@ -75,23 +75,70 @@ private data class EditFace(
     val hasPhoto: Boolean get() = photoModel != null
 }
 
+/** STAND/SIT/JUMP/TRAV (backend) → PIE/SIT/LANCE/TRAV (app). */
+private fun startTypeForBoulderUi(raw: String?): String? = when (raw?.uppercase()) {
+    "STAND", "PIE"  -> "PIE"
+    "SIT"           -> "SIT"
+    "JUMP", "LANCE" -> "LANCE"
+    "TRAV"          -> "TRAV"
+    else            -> null
+}
+
+/**
+ * Construye el estado editable inicial (caras + vías) desde una piedra existente.
+ * Lo usa el contenedor (SchoolMap) para elevar el estado del editor y que
+ * sobreviva mientras el diálogo se oculta para trazar el muro en el mapa.
+ */
+internal fun initialEditFaces(block: Block): List<EditFace> =
+    block.facesOrDerived().let { fs ->
+        if (fs.isEmpty()) listOf(EditFace(block.photoPath, null, listOf(BoulderBloqueForm())))
+        else fs.map { f ->
+            EditFace(
+                existingPhotoPath = f.photoPath,
+                newPhotoUri = null,
+                bloques = f.lines.map { l ->
+                    BoulderBloqueForm(
+                        name = l.name, grade = l.grade,
+                        startType = startTypeForBoulderUi(l.startType?.toString()),
+                        linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
+                        existingLineId = l.id
+                    )
+                }.ifEmpty { listOf(BoulderBloqueForm()) }
+            )
+        }
+    }
+
 /**
  * Flujo "Editar / corregir vías" sobre una piedra existente — editor COMPLETO,
- * paridad con el de creación:
+ * paridad con el de creación. Es un componente CONTROLADO: su estado (caras,
+ * geometría, sentido, cara seleccionada, trazado) lo posee el contenedor para
+ * que sobreviva al ocultarse mientras se traza el muro en el mapa.
  *
- *  - Corrige vías existentes (nombre/grado/tipo/línea) y añade nuevas.
+ *  - Corrige vías existentes y añade nuevas.
  *  - `+ AÑADIR FOTO`: nuevas caras a una piedra ya creada.
  *  - Reordena vías (▲▼) y mueve caras (◀▶) — define la numeración del muro.
- *  - Geometría PUNTO/MURO y sentido de numeración; numeración global en vivo.
+ *  - Geometría PUNTO/MURO + sentido; trazado del muro en el mapa (`onTraceWall`).
  *
- * Al enviar manda el ESTADO COMPLETO de la piedra (todas las vías en su orden +
- * geometry/path/direction). El backend (`reconcileWall`) reconcilia por `lineId`
- * preservando los enganches del diario, reaplica el orden y borra las omitidas.
+ * Al enviar manda el ESTADO COMPLETO (todas las vías en su orden + geometry/path/
+ * direction). El backend (`reconcileWall`) reconcilia por `lineId` preservando
+ * los enganches del diario, reaplica el orden y borra las omitidas.
  */
 @Composable
-fun AddLinesFlow(
+internal fun AddLinesFlow(
     block: Block,
     viewModel: SchoolDetailViewModel,
+    faces: List<EditFace>,
+    onFacesChange: (List<EditFace>) -> Unit,
+    selectedFace: Int,
+    onSelectedFaceChange: (Int) -> Unit,
+    geometry: String,
+    onGeometryChange: (String) -> Unit,
+    direction: String,
+    onDirectionChange: (String) -> Unit,
+    /** Polilínea ya re-trazada en el mapa (null = no se ha re-trazado → se
+     *  conserva el trazado actual del bloque). */
+    tracedPath: List<Pair<Double, Double>>?,
+    onTraceWall: () -> Unit,
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
@@ -100,41 +147,12 @@ fun AddLinesFlow(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Caras editables precargadas desde las caras existentes de la piedra. Lista
-    // MUTABLE: se pueden añadir, quitar y reordenar caras (a diferencia del editor
-    // viejo, que estaba atado al nº de caras del bloque).
-    var faces by remember {
-        mutableStateOf(
-            block.facesOrDerived().let { fs ->
-                if (fs.isEmpty()) listOf(EditFace(block.photoPath, null, listOf(BoulderBloqueForm())))
-                else fs.map { f ->
-                    EditFace(
-                        existingPhotoPath = f.photoPath,
-                        newPhotoUri = null,
-                        bloques = f.lines.map { l ->
-                            BoulderBloqueForm(
-                                name = l.name, grade = l.grade,
-                                startType = startTypeForBoulderUi(l.startType?.toString()),
-                                linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
-                                existingLineId = l.id
-                            )
-                        }.ifEmpty { listOf(BoulderBloqueForm()) }
-                    )
-                }
-            }
-        )
-    }
-    var selectedFace by remember { mutableStateOf(0) }
     val faceIdx = selectedFace.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
     val face = faces.getOrElse(faceIdx) { EditFace(null, null, listOf(BoulderBloqueForm())) }
-
-    // Geometría/sentido editables. El muro ya creado trae su geometry/direction.
-    var geometry by remember { mutableStateOf(block.geometry.ifBlank { "POINT" }) }
-    var direction by remember { mutableStateOf(block.direction.ifBlank { "LTR" }) }
     val isWall = geometry == "LINE"
 
     fun updateFace(transform: (EditFace) -> EditFace) {
-        faces = faces.toMutableList().also { it[faceIdx] = transform(it[faceIdx]) }
+        onFacesChange(faces.toMutableList().also { it[faceIdx] = transform(it[faceIdx]) })
     }
     fun updateBloques(transform: (List<BoulderBloqueForm>) -> List<BoulderBloqueForm>) {
         updateFace { it.copy(bloques = transform(it.bloques)) }
@@ -175,21 +193,46 @@ fun AddLinesFlow(
             Text("GEOMETRÍA", style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
-            GeometrySelector(selected = geometry, onSelect = { geometry = it })
+            GeometrySelector(selected = geometry, onSelect = onGeometryChange)
             if (isWall) {
                 Spacer(Modifier.height(Spacing.md))
                 Text("SENTIDO DE NUMERACIÓN", style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
-                DirectionSelector(selected = direction, onSelect = { direction = it })
-                if (block.path.isNullOrBlank()) {
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text("Este muro aún no tiene trazado en el mapa. El re-trazado " +
-                        "se hará desde el mapa (próximamente); por ahora se mantiene " +
-                        "el trazado actual.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                DirectionSelector(selected = direction, onSelect = onDirectionChange)
+
+                // Trazado del muro en el mapa.
+                Spacer(Modifier.height(Spacing.md))
+                val hasTrace = tracedPath != null && tracedPath.isNotEmpty()
+                val hasCurrent = !block.path.isNullOrBlank()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .border(1.dp, Terra, MaterialTheme.shapes.small)
+                        .clickable(onClick = onTraceWall)
+                        .padding(vertical = Spacing.md),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        when {
+                            hasTrace -> "✓ MURO TRAZADO (${tracedPath!!.size} PUNTOS) · RE-TRAZAR"
+                            hasCurrent -> "✎ RE-TRAZAR EL MURO EN EL MAPA"
+                            else -> "✎ TRAZAR EL MURO EN EL MAPA"
+                        },
+                        style = EyebrowTextStyle, color = Terra
+                    )
                 }
+                Spacer(Modifier.height(Spacing.xs))
+                Text(
+                    when {
+                        hasTrace -> "Se enviará el trazado nuevo."
+                        hasCurrent -> "Se conserva el trazado actual si no lo re-trazas."
+                        else -> "Este muro aún no tiene trazado: traza la base en el mapa."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             Spacer(Modifier.height(Spacing.lg))
 
@@ -205,7 +248,7 @@ fun AddLinesFlow(
                             .clip(RoundedCornerShape(2.dp))
                             .then(if (on) Modifier.background(Terra) else Modifier)
                             .border(1.dp, if (on) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                            .clickable { selectedFace = i }
+                            .clickable { onSelectedFaceChange(i) }
                             .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                     ) {
                         Text("FOTO ${i + 1}", style = EyebrowTextStyle,
@@ -218,8 +261,8 @@ fun AddLinesFlow(
                             .clip(RoundedCornerShape(2.dp))
                             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                             .clickable {
-                                faces = faces + EditFace(null, null, listOf(BoulderBloqueForm()))
-                                selectedFace = faces.size  // selecciona la nueva (índice = tamaño previo)
+                                onFacesChange(faces + EditFace(null, null, listOf(BoulderBloqueForm())))
+                                onSelectedFaceChange(faces.size)  // selecciona la nueva
                             }
                             .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                     ) {
@@ -236,25 +279,25 @@ fun AddLinesFlow(
                     Text("◀ MOVER", style = EyebrowTextStyle,
                         color = if (canLeft) Terra else MaterialTheme.colorScheme.outline,
                         modifier = if (canLeft) Modifier.clickable {
-                            faces = faces.toMutableList().also {
+                            onFacesChange(faces.toMutableList().also {
                                 val t = it[faceIdx - 1]; it[faceIdx - 1] = it[faceIdx]; it[faceIdx] = t
-                            }
-                            selectedFace = faceIdx - 1
+                            })
+                            onSelectedFaceChange(faceIdx - 1)
                         } else Modifier)
                     Text("MOVER ▶", style = EyebrowTextStyle,
                         color = if (canRight) Terra else MaterialTheme.colorScheme.outline,
                         modifier = if (canRight) Modifier.clickable {
-                            faces = faces.toMutableList().also {
+                            onFacesChange(faces.toMutableList().also {
                                 val t = it[faceIdx + 1]; it[faceIdx + 1] = it[faceIdx]; it[faceIdx] = t
-                            }
-                            selectedFace = faceIdx + 1
+                            })
+                            onSelectedFaceChange(faceIdx + 1)
                         } else Modifier)
                     Spacer(Modifier.weight(1f))
                     Text("✕ QUITAR ESTA FOTO", style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.clickable {
-                            faces = faces.toMutableList().also { it.removeAt(faceIdx) }
-                            selectedFace = (faceIdx - 1).coerceAtLeast(0)
+                            onFacesChange(faces.toMutableList().also { it.removeAt(faceIdx) })
+                            onSelectedFaceChange((faceIdx - 1).coerceAtLeast(0))
                         })
                 }
             }
@@ -352,9 +395,6 @@ fun AddLinesFlow(
                     displayNumber = number,
                     bloque = b,
                     onUpdate = { upd -> updateBloques { it.toMutableList().also { l -> l[idx] = upd } } },
-                    // Solo las nuevas se pueden quitar; las existentes que omitas las
-                    // borraría el backend (reconcileWall), pero aquí no exponemos borrar
-                    // existentes — para quitar una vía existente, mejor desde el admin.
                     onDelete = if (b.existingLineId == null) ({
                         updateBloques { it.toMutableList().also { l -> l.removeAt(idx) } }
                     }) else null,
@@ -468,15 +508,17 @@ fun AddLinesFlow(
                                     }
                                 }
                                 if (payload.isEmpty()) { sending = false; onSuccess(); return@launch }
+                                val pathJson = if (isWall) {
+                                    val tp = tracedPath
+                                    if (tp != null && tp.isNotEmpty()) tp.toPathJson() else block.path
+                                } else null
                                 val result = viewModel.submitBoulderCorrections(
                                     targetBlockId = block.id,
                                     targetLat = block.lat,
                                     targetLon = block.lon,
                                     bloques = payload,
                                     geometry = geometry,
-                                    // Re-trazado en el mapa pendiente (Fase 8.2): se preserva
-                                    // el trazado actual del muro.
-                                    path = if (isWall) block.path else null,
+                                    path = pathJson,
                                     direction = direction
                                 )
                                 if (result.isSuccess) onSuccess()
@@ -513,15 +555,6 @@ fun AddLinesFlow(
             existingLines = emptyList()
         )
     }
-}
-
-/** STAND/SIT/JUMP/TRAV (backend) → PIE/SIT/LANCE/TRAV (app). */
-private fun startTypeForBoulderUi(raw: String?): String? = when (raw?.uppercase()) {
-    "STAND", "PIE"  -> "PIE"
-    "SIT"           -> "SIT"
-    "JUMP", "LANCE" -> "LANCE"
-    "TRAV"          -> "TRAV"
-    else            -> null
 }
 
 /** Fila para una vía: número (posición) + nombre + grado + tipo + reordenar + eliminar. */
