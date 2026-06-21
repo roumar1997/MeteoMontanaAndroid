@@ -579,11 +579,13 @@ private fun InnerMap(
                 editWallTracing = false
                 editWallPreview = emptyList()
                 addingLinesTo = block
-                selectedBlock = null
+                // NO cerramos la ficha: el editor abre ENCIMA (su scrim tapa la
+                // ficha) → sin parpadeo del mapa entre diálogos. Solo al trazar el
+                // muro se oculta la ficha para ver el mapa (ver onTraceWall).
             }) else null,
             onEditLine = if (block.type == "BLOCK") ({ line ->
                 editingLine = block to line
-                selectedBlock = null
+                // Igual que arriba: el editor abre encima sin cerrar la ficha.
             }) else null,
             onTickLine = if (block.type == "BLOCK") ({ line, idx ->
                 val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
@@ -638,10 +640,14 @@ private fun InnerMap(
                 direction = editDirection,
                 onDirectionChange = { editDirection = it },
                 tracedPath = editTracedPath,
-                onTraceWall = { editWallPreview = emptyList(); editWallTracing = true },
-                onDismiss = { addingLinesTo = null },
+                onTraceWall = {
+                    editWallPreview = emptyList(); editWallTracing = true
+                    selectedBlock = null  // deja ver el mapa para trazar
+                },
+                onDismiss = { addingLinesTo = null; selectedBlock = null },
                 onSuccess = {
                     addingLinesTo = null
+                    selectedBlock = null
                     successMessage = if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
                 }
             )
@@ -654,9 +660,10 @@ private fun InnerMap(
             block = block,
             line = line,
             viewModel = viewModel,
-            onDismiss = { editingLine = null },
+            onDismiss = { editingLine = null; selectedBlock = null },
             onSuccess = {
                 editingLine = null
+                selectedBlock = null
                 successMessage = if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
             }
         )
