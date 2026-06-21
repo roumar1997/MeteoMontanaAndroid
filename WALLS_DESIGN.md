@@ -113,20 +113,182 @@ La entrada del diario debe reflejar la vía VIVA, no una copia congelada (grado
   El cambio es la **llave: nombre → `id`** (exacto: aguanta renombres, nombres
   duplicados, reordenes y el caso del muro). Es endurecer un patrón ya probado.
 
-## 🗺️ Plan por fases (borrador, pendiente de detallar al implementar)
-1. **Backend**: `geometry` + `path` en `school_block` (migración aditiva); exponer
-   en BlockDto; materialización de muros; contribución lleva path + estado completo
-   con ids; diff calculable. Guardar `lineId` en `journal_sessions`.
-2. **Shared (KMP)**: `Block.geometry`/`path`; modelo de propuesta-estado-completo;
-   resolución del diario por `id` + re-sync; use case de diff para el admin.
-3. **Android**: editor de muro (trazar polilínea por taps, arrastrar fotos/vías,
-   dirección, enviar una vez); render polilínea + colapsar por sector; vista de
-   diff del admin (polilínea vieja/nueva + lista NUEVA/MOVIDA/QUITADA); perfil por id.
-4. **iOS**: réplica EXACTA (paridad).
+---
 
-## ❓ Decisiones aún abiertas (para cuando se implemente)
-- ¿`POINT`/`LINE` editable después (convertir una piedra-punto en muro)? Probable sí.
-- Anclaje foto→tramo del muro: fase 2.
-- Formato exacto del `path` y límite de puntos de la polilínea.
-- UI de arrastrar para reordenar (Compose `Modifier`/`ReorderableLazyList`; iOS
-  `onMove`).
+# 🛠️ PLAN DE IMPLEMENTACIÓN
+
+> **CÓMO USAR ESTE PLAN EN UNA SESIÓN NUEVA**
+> 1. Mira **📍 ESTADO ACTUAL** justo aquí debajo: te dice qué fases están hechas
+>    `[x]` y cuál es la `← SIGUIENTE`.
+> 2. Ve a esa fase, lee su "Objetivo / Ficheros / Pasos / Aceptación".
+> 3. Implementa, compila/verifica, marca el checklist, actualiza el ESTADO ACTUAL
+>    y commitea (incluye este `.md`). Sin eso, la siguiente sesión no sabe por dónde va.
+> 4. Reglas de build recordatorio:
+>    - Backend: `JAVA_HOME` al JBR (`C:\Program Files\Android\Android Studio\jbr`),
+>      `./mvnw.cmd -q -o -DskipTests compile`; tests con `-Dtest=...` (online la 1ª vez).
+>    - Android: el módulo `app` necesita `google-services.json`; en local crear uno
+>      dummy temporal para compilar (`./gradlew :app:compileDebugKotlin`), el error
+>      `default_web_client_id` es esperado (recurso del google-services real del CI).
+>      `shared` compila sin dummy (`./gradlew :shared:compileDebugKotlin`).
+>    - iOS: NO se compila sin Mac → lo verifica el **CI de iOS** al pushear. OJO con
+>      el orden de params en los init que genera SKIE (= orden de declaración Kotlin).
+>    - **NO** se mergea a `main` sin que Rodrigo lo apruebe ("mergea a main").
+
+## 📍 ESTADO ACTUAL
+- [ ] **Fase 1 — Backend: geometría + path + dirección**  ← SIGUIENTE
+- [ ] Fase 2 — Backend: propuesta de estado completo + diff + merge no destructivo
+- [ ] Fase 3 — Backend: enganche del diario por `lineId` + propagación de cambios
+- [ ] Fase 4 — Shared (KMP): propagar todo a las dos apps
+- [ ] Fase 5 — Android: render muro (polilínea) + colapsar por sector
+- [ ] Fase 6 — Android: editor de muro (trazar/reordenar/dirección, enviar una vez)
+- [ ] Fase 7 — Android: vista de diff del admin
+- [ ] Fase 8 — Android: diario por `id` + resolución en vivo + "vía eliminada"
+- [ ] Fase 9 — iOS: réplica EXACTA de fases 5–8 (paridad)
+
+**Próximo paso**: Fase 1 (abajo).
+
+---
+
+## Convenciones técnicas comunes (leer una vez)
+- **`geometry`**: `"POINT"` (default, todo lo actual) | `"LINE"` (muro).
+- **`path`**: JSON `[[lat,lon],...]` con los vértices de la polilínea (base del muro).
+  Vacío/null si POINT. Recomendado límite ~50 puntos.
+- **`direction`**: `"LTR"` (default) | `"RTL"` → sentido de numeración de las vías.
+- **Propuesta de estado completo**: la contribución de un muro NO manda solo lo
+  nuevo, manda el **muro entero deseado**. El editor **siempre precarga el estado
+  actual** del muro y el usuario lo modifica → así nada se pierde por accidente
+  (añadir foto = el resto sigue en el payload). Omitir algo = quitarlo (se marca
+  ROJO en el diff para que el admin lo vea).
+- **`lineId` en cada vía del payload**: las vías existentes llevan su id; las nuevas
+  van con `lineId=null`. Es lo que permite el diff (movida vs nueva) y el merge no
+  destructivo (preservar ids). Reutilizamos `bloquesJson` añadiéndole `lineId`,
+  `faceOrder`, `sortOrder` por entrada.
+
+---
+
+## Fase 1 — Backend: geometría + path + dirección
+**Objetivo**: una piedra puede ser un MURO (polilínea). Crear/leer/editar muros por
+API. Sin diff todavía (eso es fase 2). Aditivo: todo lo existente = POINT.
+
+**Ficheros** (`MeteoMontanaAPI`):
+- `db/migration/V28__block_geometry.sql` (nuevo): `ALTER TABLE school_blocks ADD
+  COLUMN geometry VARCHAR(8) NOT NULL DEFAULT 'POINT'`, `ADD COLUMN path TEXT`,
+  `ADD COLUMN wall_direction VARCHAR(4) NOT NULL DEFAULT 'LTR'`.
+- `domain/model/SchoolBlock.java`: enum `Geometry {POINT, LINE}` + campos
+  `geometry`, `path` (String JSON), `direction` (String). Constructores: añadir
+  variante con los nuevos; los viejos delegan con POINT/null/LTR.
+- `persistence/jpa/SchoolBlockJpaEntity.java`: columnas + setters (patrón discipline).
+- `persistence/jpa/JpaSchoolBlockRepositoryAdapter.java`: mapear en ambos sentidos.
+- `application/blocks/SchoolBlockUseCase.java`: `CreateBlockRequest` +
+  `BlockDto` ganan `geometry`/`path`/`direction`; `create`/`update` los aplican
+  (solo para BLOCK; PARKING/ZONE = POINT).
+- `application/contribution/ContributionRequest.java` +
+  `domain/model/PendingContribution.java` + su JPA + `SubmitContributionUseCase`:
+  añadir `geometry`/`path`/`direction` (patrón discipline, constructor de compat).
+- `application/contribution/ReviewContributionUseCase.java` (`createBlock`): fijar
+  geometry/path/direction en la piedra materializada.
+
+**Pasos**: copiar el patrón EXACTO de la feature `discipline` (sesión 2026-06-20),
+es el mismo tipo de cambio aditivo en las mismas capas.
+
+**Aceptación**: compila + `ClimbScoreCalculatorTest`/`SchoolBlockRepositoryFetchTest`
+verdes. `POST /api/schools/{id}/blocks` con geometry=LINE + path se lee de vuelta
+con esos campos en `GET .../blocks`.
+
+## Fase 2 — Backend: propuesta de estado completo + diff + merge no destructivo
+**Objetivo**: una contribución de muro lleva el estado completo (path + vías con
+`lineId`/orden); al aprobar se hace **merge no destructivo** preservando ids; y se
+expone un **diff** para que el admin vea qué cambia.
+
+**Ficheros** (`MeteoMontanaAPI`):
+- `bloquesJson`: cada entrada gana `lineId` (String|null), `faceOrder`, `sortOrder`.
+- `ReviewContributionUseCase`: al aprobar un BOULDER con `targetBlockId` y muro:
+  reconciliar a estado propuesto → actualizar vías existentes por `lineId`
+  (grado/nombre/tipo/orden/foto), crear las nuevas (`lineId=null`), y las del muro
+  actual ausentes del payload = borrar (omitir = quitar). Actualizar path/direction.
+  Preservar ids (los journal por `lineId` siguen válidos).
+- **Diff** (nuevo): `GET /api/admin/contributions/{id}/wall-diff` o incluir el diff
+  en `ContributionResponse`. Estructura `WallDiff`: cambio de path (viejo/nuevo),
+  lista de vías con estado `NEW|MOVED(oldPos,newPos)|REMOVED|MODIFIED(campo)|SAME`,
+  orden de fotos viejo/nuevo, dirección. Se calcula comparando el payload con el
+  estado ACTUAL del bloque destino.
+- **Conflictos**: si el payload referencia un `lineId` que ya no existe → marcar
+  ese nodo como conflicto en el diff (no fusionar a ciegas).
+- **Propagación de grado/modalidad** (prepara fase 3): al aprobar, si una vía
+  cambia de grado/modalidad, actualizar `journal_sessions` con ese `line_id`
+  (cuando exista la columna, fase 3) — dejar el hook listo.
+
+**Aceptación**: aprobar una propuesta de muro hace merge sin borrar lo no tocado;
+el endpoint de diff devuelve added/moved/removed correctos en un test.
+
+## Fase 3 — Backend: enganche del diario por `lineId` + propagación
+**Objetivo**: el diario apunta a la vía por id estable; los cambios de grado/
+modalidad de una vía se reflejan en TODOS los perfiles.
+
+**Ficheros** (`MeteoMontanaAPI`):
+- `V29__journal_line_id.sql`: `ALTER TABLE journal_sessions ADD COLUMN line_id VARCHAR(64)`.
+- `JournalSession`/JPA/adapter + `CreateJournalRequest`/`JournalSessionDto`: campo
+  `lineId` (patrón discipline).
+- Al **aprobar** una contribución que cambia grado/modalidad de una vía: `UPDATE
+  journal_sessions SET grade=?, discipline=? WHERE line_id=?` → re-sync de TODOS.
+  (Para entradas viejas sin line_id, fallback por nombre opcional.)
+- Al **borrar** una vía: NO tocar `journal_sessions` (las entradas se quedan como
+  histórico; el cliente las pinta en gris si el id ya no resuelve).
+
+**Aceptación**: cambiar el grado de una vía y aprobar → `journal_sessions` con ese
+line_id quedan al nuevo grado (test).
+
+## Fase 4 — Shared (KMP)
+**Objetivo**: propagar todo lo de fases 1–3 al código compartido.
+**Ficheros** (`shared/`): `Block.geometry/path/direction`; `BlockDto` + mapeo;
+`ContributionRequest.geometry/path/direction`; `bloquesJson` con `lineId`/orden;
+`JournalSession.lineId` + `CreateJournalRequest.lineId` + DTOs/mapeos; modelo
+`WallDiff` + use case `GetWallDiffUseCase`; `GetJournalViaInfoUseCase` resuelve por
+`lineId` (fallback nombre) y devuelve grado/foto/posición en vivo. Exponer lo nuevo
+en `IosDependencyContainer`.
+**Aceptación**: `shared` y `app` compilan (dummy google-services).
+
+## Fase 5 — Android: render del muro
+**Objetivo**: los muros se ven como polilínea, no como marcador; colapsados por sector.
+**Ficheros**: `SchoolMap.kt` (+ `SchoolsMapPanel`, `FullScreenMapDialog`): si
+`geometry==LINE` dibujar polilínea (patrón `CumbrePolyline`/MapLibre PolylineOptions)
+con etiqueta en el midpoint; tap en la línea → `onBlockTap`. Muros de vía colapsados
+bajo su sector por defecto.
+**Aceptación**: un muro se ve como línea; al tocarlo abre su ficha; sin marcadores apelotonados.
+
+## Fase 6 — Android: editor de muro
+**Objetivo**: proponer/editar un muro: trazar la polilínea (varios taps), arrastrar
+fotos/vías para ordenar, flag de dirección, **precargar estado actual**, enviar UNA vez.
+**Ficheros**: `ProposeContributionFlow.kt` (+ `BoulderBloqueForm`, `EditBlockDialog`):
+selector geometría PUNTO/MURO; modo "traza el muro" (acumula taps en el mapa →
+`path`); reordenar fotos y vías con arrastre (Compose reorderable); toggle dirección;
+preview de numeración. El submit manda el estado completo (vías con `lineId`).
+**Aceptación**: se propone un muro con vías ordenadas; una sola propuesta; números coherentes.
+
+## Fase 7 — Android: vista de diff del admin
+**Objetivo**: el admin ve qué cambia antes de aprobar.
+**Ficheros**: `ContributionCard.kt` / `AdminScreen`: mapa con polilínea vieja (gris)
++ nueva (sólida); lista de vías con badges NUEVA/MOVIDA(#a→#b)/QUITADA/MODIFICADA;
+orden de fotos viejo→nuevo; dirección; aviso de conflicto. Usa `GetWallDiffUseCase`.
+**Aceptación**: el admin distingue claramente longitud, orden y vías cambiadas.
+
+## Fase 8 — Android: diario por id + en vivo + "vía eliminada"
+**Objetivo**: el tic se engancha por `lineId`; el perfil muestra grado/foto/posición
+en vivo; si la vía se borra, la entrada se queda en gris.
+**Ficheros**: `SchoolDetailViewModel.toggleLine` (pasa `line.id` → `CreateJournalRequest.lineId`);
+deep-link por `lineId` (no por nombre); `JournalEntriesScreen`/`ProfileScreen` pintan
+en vivo (grado actual) y "vía eliminada" si el id no resuelve; outbox engancha el
+`lineId` al sincronizar.
+**Aceptación**: cambiar grado → perfil 6b; reordenar → deep-link correcto; borrar vía
+→ entrada en gris, no desaparece.
+
+## Fase 9 — iOS: paridad
+**Objetivo**: réplica EXACTA de fases 5–8 en Swift (`MapLibreView`/`MarkerRenderer`,
+`ProposeFlow`, `AdminView`, `SchoolDetailView`/`AccountView`/`UsersView`). OJO orden
+SKIE. Verifica el CI de iOS.
+**Aceptación**: el CI de iOS compila; comportamiento idéntico a Android.
+
+## ❓ Decisiones abiertas menores (resolver al llegar)
+- Convertir una piedra-punto existente en muro (probable sí, vía editar).
+- Anclaje foto→tramo del muro (tocar el mapa abre la foto del tramo): fase posterior.
+- Formato/límite exacto de `path`; UI concreta de arrastre (Compose reorderable / iOS `onMove`).
