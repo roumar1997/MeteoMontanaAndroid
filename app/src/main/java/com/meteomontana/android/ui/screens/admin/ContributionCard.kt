@@ -185,18 +185,25 @@ internal fun ContributionCard(
                 val groups = proposed.groupBy { it.photoUrl }
                 groups.forEach { (facePhotoKey, vias) ->
                     val targetIds = vias.mapNotNull { it.targetLineId }.toSet()
+                    // Cara coincidente: por las vías que corrige, o por foto igual.
                     val oldFace = existingFaces.firstOrNull { f -> f.lines.any { it.id in targetIds } }
                         ?: existingFaces.firstOrNull { it.photoPath == facePhotoKey }
-                        ?: existingFaces.firstOrNull()
-                    val oldPhoto = oldFace?.photoPath ?: targetBlock.photoPath
-                    val photoChanged = !facePhotoKey.isNullOrBlank() && facePhotoKey != oldPhoto
+                    // CARA NUEVA: ninguna vía corrige a una existente y la foto no
+                    // coincide con ninguna cara → es una foto añadida (no la comparamos
+                    // contra una cara vieja para no confundir al admin).
+                    val isNewFace = oldFace == null
+                    val oldPhoto = oldFace?.photoPath
+                    val photoChanged = !isNewFace && !facePhotoKey.isNullOrBlank() && facePhotoKey != oldPhoto
 
                     Spacer(Modifier.height(Spacing.md))
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                     Spacer(Modifier.height(Spacing.sm))
 
-                    // FOTO ACTUAL (estado vigente de esa cara).
-                    if (!oldPhoto.isNullOrBlank()) {
+                    if (isNewFace) {
+                        Text("CARA NUEVA (FOTO AÑADIDA)", style = EyebrowTextStyle, color = Moss)
+                        Spacer(Modifier.height(Spacing.xs))
+                    } else if (!oldPhoto.isNullOrBlank()) {
+                        // FOTO ACTUAL (estado vigente de esa cara).
                         Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
                             style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(Spacing.xs))
@@ -208,7 +215,7 @@ internal fun ContributionCard(
 
                     Spacer(Modifier.height(Spacing.sm))
                     // PROPUESTA (foto nueva si la cambió + líneas resultantes).
-                    Text(if (photoChanged) "FOTO PROPUESTA (NUEVA)" else "PROPUESTA",
+                    Text(if (isNewFace) "FOTO NUEVA" else if (photoChanged) "FOTO PROPUESTA (NUEVA)" else "PROPUESTA",
                         style = EyebrowTextStyle, color = Terra)
                     Spacer(Modifier.height(Spacing.xs))
                     val proposedLines: List<TopoLine> = if (photoChanged) {
