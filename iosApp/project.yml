@@ -102,6 +102,11 @@ targets:
         # -lsqlite3: el driver nativo de SQLDelight (sqliter) en el framework
         # Shared referencia símbolos sqlite3_* del sistema.
         OTHER_LDFLAGS: $(inherited) -framework Shared -lsqlite3
+      configs:
+        # Garantiza que `#if DEBUG` funcione: los builds Debug apuntan a staging,
+        # los Release a producción (ver AppDependencies.swift).
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEBUG
     dependencies:
       - package: Firebase
         product: FirebaseAuth

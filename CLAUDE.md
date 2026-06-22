@@ -109,6 +109,45 @@ en local. Reglas para la sesión:
 
 ---
 
+## 🟢🟡 Entornos: STAGING vs PRODUCCIÓN (desde 2026-06-22) — LEER
+
+Hay **testers reales** en la prueba cerrada de Play. Para desarrollar sin
+romperles la app montamos un entorno **staging** aislado. **Regla nº1: pedir
+OK antes de cualquier commit/merge, MUY especialmente en el backend.**
+
+**Dos entornos de backend en Railway** (proyecto `zoological-wisdom`), cada uno
+con **su propia base de datos** (aisladas — verificado):
+
+| Entorno | Rama backend | URL | BD | Quién la usa |
+|---|---|---|---|---|
+| **production** | `main` | `api.climbingteams.com` | datos reales (191 escuelas) | **testers de Play en vivo** |
+| **staging** | `develop` | `meteomontanaapi-staging.up.railway.app` | copia del catálogo (sin datos personales) | tú, para desarrollar |
+
+**Split de las apps** (este repo) — NO es por rama, es por **tipo de build**:
+
+| Build | Backend | Quién |
+|---|---|---|
+| **debug** (APK/`.ipa` de GitHub Actions) | **staging** | tú, desarrollar |
+| **release** (AAB Play / `.ipa` App Store) | **producción** | testers / público |
+
+- Android: `app/build.gradle.kts` (bloques `debug{}` / `release{}`).
+- iOS: `iosApp/iosApp/DI/AppDependencies.swift` (`#if DEBUG`) + `project.yml`
+  (config `Debug` define la condición `DEBUG`).
+
+**Flujos:**
+- **App** (Android/iOS): trabajas en `main`/`claude/**` de ESTE repo. El split lo
+  hace el build. Release sigue en prod → tocar esto no afecta a los testers.
+- **Backend** (`MeteoMontanaAPI`): push a **`develop`** → se prueba en staging →
+  mergear a **`main`** SOLO tras validar (Railway redespliega prod = testers).
+
+Firebase (auth/fotos/chat) sigue **compartido** entre staging y prod; lo aislado
+es backend + BD. Sembrar/copiar staging: `psql` 16 nativo
+(`C:\Program Files\PostgreSQL\16\bin`) + `\copy` CSV con
+`SET session_replication_role=replica` (por el FK auto-ref de
+`school_blocks.sector_block_id`). Docker Desktop no arranca en este PC.
+
+---
+
 ## 📱 Probar la app iOS en el iPhone SIN MAC (flujo oficial)
 
 Validado el 2026-06-16. Este es el flujo de SIEMPRE para que Rodrigo pruebe
@@ -494,6 +533,27 @@ Dialog a pantalla completa con MapLibre (tiles topográficos OpenTopoMap).
 Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina superior.
 
 ## Bitácora reciente
+
+### Sesión 2026-06-22 — entorno STAGING aislado (no romper a los testers) ✅
+
+Con testers reales en la prueba cerrada de Play, montamos staging para
+desarrollar sin afectarlos. Ver sección **🟢🟡 Entornos** arriba.
+
+- **Railway**: nuevo entorno `staging` (duplicado de production) con **BD Postgres
+  propia** (aislada — verificado: 0 escuelas vs 191 en prod antes de sembrar).
+  URL `meteomontanaapi-staging.up.railway.app`. Rama `develop` (creada en
+  `MeteoMontanaAPI`) conectada a staging; `main`→production sigue igual.
+- **Apps — split debug/release**: `app/build.gradle.kts` (debug→staging,
+  release→prod) y `AppDependencies.swift` (`#if DEBUG`) + `project.yml` (config
+  Debug define `DEBUG`). Los CI compilan Debug → los APK/`.ipa` de Actions ahora
+  apuntan a **staging**; los builds de tienda (release) a **prod**. Los testers
+  NO se ven afectados.
+- **Sembrado staging**: copia del catálogo prod→staging (191 escuelas, 14 bloques,
+  11 vías; solo catálogo, sin datos personales) con `psql` 16 nativo + `\copy` CSV
+  y `SET session_replication_role=replica`. Acentos OK (Albarracín, Alcañiz).
+  Docker Desktop no arrancaba en el PC → se usó el Postgres 16 instalado.
+- **Regla nueva**: pedir OK antes de cualquier commit/merge, sobre todo en backend.
+- **Pendiente**: rotar contraseñas de las dos BD en Railway (quedaron en el chat).
 
 ### Sesión 2026-06-21 (4) — muros: editor completo Android + Fase 9 iOS ✅
 

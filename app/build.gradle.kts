@@ -36,10 +36,13 @@ android {
 
     buildTypes {
         debug {
+            // STAGING: los builds de desarrollo (debug) hablan con el backend de
+            // staging, NUNCA con producción → no afecta a los testers de Play/App Store.
+            // Para depurar contra el PC local, descomenta una de las dos de abajo:
             // 10.0.2.2  = emulador Android → localhost del PC
             // 192.168.0.12 = móvil físico en la misma red que el PC (Ethernet)
             // buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
-            buildConfigField("String", "API_BASE_URL", "\"https://api.climbingteams.com/api/\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://meteomontanaapi-staging.up.railway.app/api/\"")
         }
         release {
             // R8 activado: Compose sin minificar es notablemente más lento (jank).

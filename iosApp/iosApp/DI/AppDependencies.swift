@@ -2,9 +2,19 @@ import Foundation
 import Shared
 
 /// Configuración del entorno iOS.
+///
+/// Igual que en Android (debug vs release): los builds **Debug** (desarrollo,
+/// TestFlight interno) hablan con el backend de **staging**; los builds
+/// **Release** (App Store) con **producción**. Así desarrollar nunca afecta a
+/// los usuarios reales.
 enum AppConfig {
-    /// Misma URL que el Android de producción (BuildConfig.API_BASE_URL).
-    static let apiBaseUrl = "https://api.climbingteams.com/api/"
+    static let apiBaseUrl: String = {
+        #if DEBUG
+        return "https://meteomontanaapi-staging.up.railway.app/api/"
+        #else
+        return "https://api.climbingteams.com/api/"
+        #endif
+    }()
 }
 
 /// Punto único de dependencias del lado Swift. Envuelve el grafo de DI escrito
