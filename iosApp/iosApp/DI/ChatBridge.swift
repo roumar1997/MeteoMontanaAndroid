@@ -50,7 +50,9 @@ final class ChatBridge: NSObject, IosChatBridge {
                         lastFromUid: d["lastFromUid"] as? String,
                         lastAtMillis: self.millis(d["lastAt"]),
                         unreadCount: unread,
-                        clearedAtMillis: self.millis(d["cleared_\(me)"]))
+                        clearedAtMillis: self.millis(d["cleared_\(me)"]),
+                        isGroup: (d["isGroup"] as? Bool) ?? false,
+                        name: d["name"] as? String)
                 } ?? [])
                 .sorted { $0.lastAtMillis > $1.lastAtMillis }
                 onChange(list)
@@ -69,22 +71,37 @@ final class ChatBridge: NSObject, IosChatBridge {
                         id: doc.documentID,
                         fromUid: d["fromUid"] as? String ?? "",
                         text: d["text"] as? String ?? "",
-                        createdAtMillis: self.millis(d["createdAt"]))
+                        createdAtMillis: self.millis(d["createdAt"]),
+                        replyToId: d["replyToId"] as? String,
+                        replyText: d["replyText"] as? String,
+                        replyFromUid: d["replyFromUid"] as? String)
                 } ?? []
                 onChange(list)
             }
         return ChatListenerHandle(reg)
     }
 
-    func sendMessage(otherUid: String, text: String, completion: @escaping (String?) -> Void) {
+    /// Construye el doc del mensaje; añade los campos reply* solo si es respuesta.
+    private func messageData(_ me: String, _ text: String, _ now: Timestamp,
+                             _ replyToId: String?, _ replyText: String?, _ replyFromUid: String?) -> [String: Any] {
+        var data: [String: Any] = ["fromUid": me, "text": text, "createdAt": now]
+        if let rid = replyToId {
+            data["replyToId"] = rid
+            if let rt = replyText { data["replyText"] = rt }
+            if let rf = replyFromUid { data["replyFromUid"] = rf }
+        }
+        return data
+    }
+
+    func sendMessage(otherUid: String, text: String,
+                     replyToId: String?, replyText: String?, replyFromUid: String?,
+                     completion: @escaping (String?) -> Void) {
         guard let me = Auth.auth().currentUser?.uid else { completion("No hay sesión"); return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed.count <= 1000 else { completion("Mensaje vacío o muy largo"); return }
         let ref = convs.document(convIdFor(me, otherUid))
         let now = Timestamp(date: Date())
-        ref.collection("messages").addDocument(data: [
-            "fromUid": me, "text": trimmed, "createdAt": now
-        ]) { err in
+        ref.collection("messages").addDocument(data: messageData(me, trimmed, now, replyToId, replyText, replyFromUid)) { err in
             if let err = err { completion(err.localizedDescription); return }
             ref.setData([
                 "participants": [me, otherUid].sorted(),
@@ -93,6 +110,28 @@ final class ChatBridge: NSObject, IosChatBridge {
                 "lastAt": now,
                 "unread_\(otherUid)": FieldValue.increment(Int64(1))
             ], merge: true) { err2 in completion(err2?.localizedDescription) }
+        }
+    }
+
+    func sendGroupMessage(convId: String, text: String,
+                          replyToId: String?, replyText: String?, replyFromUid: String?,
+                          completion: @escaping (String?) -> Void) {
+        guard let me = Auth.auth().currentUser?.uid else { completion("No hay sesión"); return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.count <= 1000 else { completion("Mensaje vacío o muy largo"); return }
+        let ref = convs.document(convId)
+        // Necesito los participantes para subir el contador a todos menos a mí.
+        ref.getDocument { snap, _ in
+            let participants = (snap?.data()?["participants"] as? [String]) ?? []
+            let now = Timestamp(date: Date())
+            ref.collection("messages").addDocument(data: self.messageData(me, trimmed, now, replyToId, replyText, replyFromUid)) { err in
+                if let err = err { completion(err.localizedDescription); return }
+                var update: [String: Any] = ["lastMessage": trimmed, "lastFromUid": me, "lastAt": now]
+                for uid in participants where uid != me {
+                    update["unread_\(uid)"] = FieldValue.increment(Int64(1))
+                }
+                ref.setData(update, merge: true) { err2 in completion(err2?.localizedDescription) }
+            }
         }
     }
 

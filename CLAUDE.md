@@ -534,6 +534,53 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-22 (2) — lote de features (bug follow, responder chat, aviso admin, base grupos)
+
+Lote pedido por Rodrigo ("hazlas todas, mañana reviso"). App repo compila
+(tests + assembleDebug verdes); iOS pendiente de CI. Backend y reglas Firestore
+NO tocados (gated por la regla de pedir OK; Rodrigo dormía).
+
+- **#1 Bug "Solicitado" en listas (Android + iOS)** ✅: las listas de
+  seguidores/seguidos solo pintaban "Seguir" aunque hubiera solicitud pendiente
+  (el perfil sí lo pintaba bien). Causa: `load()` nunca rellenaba el set
+  `requested`. Fix: para cada usuario que NO sigo, consulto `getFollowStatus` en
+  paralelo (coroutines `async`/`awaitAll` en Android; `withTaskGroup` en iOS) y
+  marco `requested` con los `requestPending`. (`FollowListScreen.kt`,
+  `UsersView.swift`.)
+- **#3 Responder a un mensaje (chat)** ✅: modelo de chat extendido con cita
+  (`ChatService.ChatMessage.replyToId/replyText/replyFromUid`,
+  `sendMessage(... reply*)`). **Deslizar la burbuja a la derecha → responder**
+  (Compose `detectHorizontalDragGestures` + `Animatable`; SwiftUI `DragGesture`
+  en un `MessageRow`). Barra de cita sobre el input + cita renderizada en la
+  burbuja. Sin tocar backend ni reglas (Firestore acepta campos extra; la regla
+  de crear mensaje no los prohíbe). OJO smart-cast: `replyText` es de otro módulo
+  (shared) → copiar a local antes de usar tras el null-check.
+- **#2 Aviso de pendientes al admin (lado app, Android + iOS)** ✅: el acceso al
+  Panel Admin muestra "N PENDIENTES" (submissions + contributions), contado al
+  cargar el perfil solo si `isAdmin` (en paralelo). (`ProfileViewModel`/
+  `ProfileScreen.kt`; `AccountViewModel`/`AccountView.swift`.) La parte de **push
+  con la app cerrada** es backend → PENDIENTE (plan abajo).
+- **#4 Grupos de chat** 🟡 FUNDACIÓN: añadido aditivo al puerto compartido
+  (`Conversation.isGroup/name`, `sendGroupMessage`, lectura en
+  `FirebaseChatService`/`IosChatService`/`ChatBridge.swift`) sin romper el 1-a-1.
+  Falta lo gordo (ver plan).
+
+> ### 📌 PENDIENTE de estas features (necesitan TU OK / despliegue)
+> - **#2 push admin (backend)**: al crear una contribución/submission un NO-admin,
+>   notificar a los admins (in-app `NotificationService.create` + push `FcmService`
+>   a los `fcmToken` de los `is_admin`). Hook en `SubmitContributionUseCase` y el
+>   use case de submissions; falta un `findAdmins()` en el repo de usuarios.
+>   Retrocompatible. Desplegar a `develop`→staging primero.
+> - **#4 grupos (lo que falta)**: (a) backend `POST /api/chat/group {name,memberUids}`
+>   que crea el doc `conversations/{id}` con `participants/name/isGroup=true` vía
+>   Admin SDK (las reglas prohíben crear conversaciones desde el cliente) +
+>   `KtorChatPushApi.createGroup`; (b) **reglas Firestore**: permitir leer/crear
+>   mensajes si el uid está en `participants` del doc (hoy usan `convId.split('_')`,
+>   que no vale para grupos) — cambio ADITIVO (no debilita el 1-a-1); (c) UI: pantalla
+>   "nuevo grupo" (elegir miembros + nombre), render de grupos en la lista (nombre
+>   + icono), `ChatScreen` por `convId` (no por otherUid) con nombre del emisor por
+>   mensaje. Probar contra staging. Es una sesión enfocada.
+
 ### Sesión 2026-06-22 — entorno STAGING aislado (no romper a los testers) ✅
 
 Con testers reales en la prueba cerrada de Play, montamos staging para

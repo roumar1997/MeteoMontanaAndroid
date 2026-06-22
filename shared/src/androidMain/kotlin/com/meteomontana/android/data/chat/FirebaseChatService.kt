@@ -42,7 +42,9 @@ class FirebaseChatService(
                         lastFromUid = doc.getString("lastFromUid"),
                         lastAtMillis = doc.getDate("lastAt").toMillis(),
                         unreadCount = doc.getLong("unread_$me") ?: 0L,
-                        clearedAtMillis = doc.getDate("cleared_$me").toMillis()
+                        clearedAtMillis = doc.getDate("cleared_$me").toMillis(),
+                        isGroup = doc.getBoolean("isGroup") ?: false,
+                        name = doc.getString("name")
                     )
                 } ?: emptyList()
                 trySend(list)
@@ -61,7 +63,10 @@ class FirebaseChatService(
                         id = d.id,
                         fromUid = d.getString("fromUid") ?: "",
                         text = d.getString("text") ?: "",
-                        createdAtMillis = d.getDate("createdAt").toMillis()
+                        createdAtMillis = d.getDate("createdAt").toMillis(),
+                        replyToId = d.getString("replyToId"),
+                        replyText = d.getString("replyText"),
+                        replyFromUid = d.getString("replyFromUid")
                     )
                 } ?: emptyList()
                 trySend(msgs)
@@ -69,18 +74,20 @@ class FirebaseChatService(
         awaitClose { listener.remove() }
     }
 
-    override suspend fun sendMessage(otherUid: String, text: String) {
+    override suspend fun sendMessage(
+        otherUid: String,
+        text: String,
+        replyToId: String?,
+        replyText: String?,
+        replyFromUid: String?
+    ) {
         val me = auth.currentUser?.uid ?: return
         if (text.isBlank() || text.length > 1000) return
         val convId = convIdFor(me, otherUid)
         val ref = convsCol.document(convId)
         val msgRef = ref.collection("messages").document()
         val now = Date()
-        msgRef.set(mapOf(
-            "fromUid" to me,
-            "text" to text.trim(),
-            "createdAt" to now
-        )).await()
+        msgRef.set(messageData(me, text, now, replyToId, replyText, replyFromUid)).await()
         ref.set(
             mapOf(
                 "participants" to listOf(me, otherUid).sorted(),
@@ -91,6 +98,54 @@ class FirebaseChatService(
             ),
             SetOptions.merge()
         ).await()
+    }
+
+    override suspend fun sendGroupMessage(
+        convId: String,
+        text: String,
+        replyToId: String?,
+        replyText: String?,
+        replyFromUid: String?
+    ) {
+        val me = auth.currentUser?.uid ?: return
+        if (text.isBlank() || text.length > 1000) return
+        val ref = convsCol.document(convId)
+        // Necesito los participantes para subir el contador de no-leídos a todos
+        // menos a mí. El doc del grupo lo creó el backend (con participants).
+        val snap = ref.get().await()
+        val participants = (snap.get("participants") as? List<*>)
+            ?.filterIsInstance<String>() ?: emptyList()
+        val now = Date()
+        ref.collection("messages").document()
+            .set(messageData(me, text, now, replyToId, replyText, replyFromUid)).await()
+        val update = hashMapOf<String, Any>(
+            "lastMessage" to text.trim(),
+            "lastFromUid" to me,
+            "lastAt" to now
+        )
+        participants.filter { it != me }.forEach { uid ->
+            update["unread_$uid"] = FieldValue.increment(1)
+        }
+        ref.set(update, SetOptions.merge()).await()
+    }
+
+    /** Construye el documento del mensaje; añade los campos de respuesta solo si
+     *  es una respuesta (mantiene limpios los mensajes normales). */
+    private fun messageData(
+        me: String, text: String, now: Date,
+        replyToId: String?, replyText: String?, replyFromUid: String?
+    ): Map<String, Any> {
+        val data = hashMapOf<String, Any>(
+            "fromUid" to me,
+            "text" to text.trim(),
+            "createdAt" to now
+        )
+        if (replyToId != null) {
+            data["replyToId"] = replyToId
+            if (replyText != null) data["replyText"] = replyText
+            if (replyFromUid != null) data["replyFromUid"] = replyFromUid
+        }
+        return data
     }
 
     override suspend fun markRead(convId: String) {

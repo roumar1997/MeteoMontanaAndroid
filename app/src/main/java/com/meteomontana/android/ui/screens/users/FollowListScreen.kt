@@ -45,6 +45,9 @@ import com.meteomontana.android.domain.usecase.social.GetFollowingUseCase
 import com.meteomontana.android.domain.usecase.social.RemoveFollowerUseCase
 import com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -98,7 +101,26 @@ class FollowListViewModel @Inject constructor(
                 } else if (myUid != null) {
                     runCatching { getFollowing(myUid).map { it.uid }.toSet() }.getOrDefault(emptySet())
                 } else emptySet()
-                FollowListUiState.Success(list, following)
+                // Solicitudes pendientes: a un perfil privado al que ya pedí seguir
+                // hay que pintarlo "Solicitado" también en la lista (no solo en su
+                // perfil). El backend no devuelve el estado por fila, así que para
+                // cada usuario que NO sigo consulto su follow-status en paralelo.
+                val requested = if (myUid != null) {
+                    coroutineScope {
+                        list.filter { it.uid != myUid && it.uid !in following }
+                            .map { p ->
+                                async {
+                                    p.uid to runCatching { getFollowStatus(p.uid).requestPending }
+                                        .getOrDefault(false)
+                                }
+                            }
+                            .awaitAll()
+                            .filter { it.second }
+                            .map { it.first }
+                            .toSet()
+                    }
+                } else emptySet()
+                FollowListUiState.Success(list, following, requested)
             } catch (t: Throwable) {
                 FollowListUiState.Error(t.toUserMessage())
             }

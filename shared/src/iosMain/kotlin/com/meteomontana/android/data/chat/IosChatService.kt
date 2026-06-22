@@ -31,6 +31,8 @@ data class IosConvDto(
     val lastAtMillis: Long,
     val unreadCount: Long,
     val clearedAtMillis: Long = -1,   // -1 = no borrada para mí
+    val isGroup: Boolean = false,
+    val name: String? = null,
 )
 
 data class IosMsgDto(
@@ -38,6 +40,9 @@ data class IosMsgDto(
     val fromUid: String,
     val text: String,
     val createdAtMillis: Long,
+    val replyToId: String? = null,
+    val replyText: String? = null,
+    val replyFromUid: String? = null,
 )
 
 /**
@@ -55,7 +60,16 @@ data class IosMsgDto(
 interface IosChatBridge {
     fun observeConversations(onChange: (List<IosConvDto>) -> Unit): IosChatListener
     fun observeMessages(convId: String, onChange: (List<IosMsgDto>) -> Unit): IosChatListener
-    fun sendMessage(otherUid: String, text: String, completion: (String?) -> Unit)
+    fun sendMessage(
+        otherUid: String, text: String,
+        replyToId: String?, replyText: String?, replyFromUid: String?,
+        completion: (String?) -> Unit
+    )
+    fun sendGroupMessage(
+        convId: String, text: String,
+        replyToId: String?, replyText: String?, replyFromUid: String?,
+        completion: (String?) -> Unit
+    )
     fun markRead(convId: String, completion: (String?) -> Unit)
     fun markUnread(convId: String, completion: (String?) -> Unit)
     fun deleteConversation(convId: String, completion: (String?) -> Unit)
@@ -83,9 +97,23 @@ class IosChatService(
     }
 
     @Throws(Exception::class)
-    override suspend fun sendMessage(otherUid: String, text: String): Unit =
+    override suspend fun sendMessage(
+        otherUid: String, text: String,
+        replyToId: String?, replyText: String?, replyFromUid: String?
+    ): Unit =
         suspendCancellableCoroutine { cont ->
-            bridge.sendMessage(otherUid, text) { err ->
+            bridge.sendMessage(otherUid, text, replyToId, replyText, replyFromUid) { err ->
+                if (err == null) cont.resume(Unit) else cont.resumeWithException(RuntimeException(err))
+            }
+        }
+
+    @Throws(Exception::class)
+    override suspend fun sendGroupMessage(
+        convId: String, text: String,
+        replyToId: String?, replyText: String?, replyFromUid: String?
+    ): Unit =
+        suspendCancellableCoroutine { cont ->
+            bridge.sendGroupMessage(convId, text, replyToId, replyText, replyFromUid) { err ->
                 if (err == null) cont.resume(Unit) else cont.resumeWithException(RuntimeException(err))
             }
         }
@@ -122,6 +150,8 @@ class IosChatService(
         lastAtMillis = lastAtMillis.takeIf { it >= 0 },
         unreadCount = unreadCount,
         clearedAtMillis = clearedAtMillis.takeIf { it >= 0 },
+        isGroup = isGroup,
+        name = name,
     )
 
     private fun IosMsgDto.toModel() = ChatService.ChatMessage(
@@ -129,5 +159,8 @@ class IosChatService(
         fromUid = fromUid,
         text = text,
         createdAtMillis = createdAtMillis.takeIf { it >= 0 },
+        replyToId = replyToId,
+        replyText = replyText,
+        replyFromUid = replyFromUid,
     )
 }

@@ -24,7 +24,9 @@ data class ChatUiState(
     val myProfile: PrivateProfile? = null,
     val canWrite: Boolean = false,
     val messages: List<ChatService.ChatMessage> = emptyList(),
-    val loading: Boolean = true
+    val loading: Boolean = true,
+    /** Mensaje al que estoy respondiendo (cita), o null. */
+    val replyingTo: ChatService.ChatMessage? = null
 )
 
 @HiltViewModel
@@ -79,8 +81,20 @@ class ChatViewModel @Inject constructor(
     /** Conversación asegurada en el backend esta sesión (evita pedirlo en cada mensaje). */
     private var conversationEnsured = false
 
+    /** Empieza a responder a [msg] (muestra la cita sobre el campo de texto). */
+    fun startReply(msg: ChatService.ChatMessage) {
+        _state.value = _state.value.copy(replyingTo = msg)
+    }
+
+    /** Cancela la respuesta en curso. */
+    fun cancelReply() {
+        _state.value = _state.value.copy(replyingTo = null)
+    }
+
     fun send(text: String) {
         if (!_state.value.canWrite) return
+        val reply = _state.value.replyingTo
+        _state.value = _state.value.copy(replyingTo = null)
         viewModelScope.launch {
             // El backend crea el documento de conversación (los clientes no pueden,
             // por las reglas de Firestore). Es la puerta de autorización: si no está
@@ -91,7 +105,14 @@ class ChatViewModel @Inject constructor(
                 if (!started) return@launch
                 conversationEnsured = true
             }
-            val ok = runCatching { chatService.sendMessage(otherUid, text) }.isSuccess
+            val ok = runCatching {
+                chatService.sendMessage(
+                    otherUid, text,
+                    replyToId = reply?.id,
+                    replyText = reply?.text,
+                    replyFromUid = reply?.fromUid
+                )
+            }.isSuccess
             // Si el mensaje se escribió en Firestore con éxito, pedimos al backend
             // que dispare la push notification al receptor.
             if (ok) runCatching { chatPushApi.notifyMessage(otherUid, text) }

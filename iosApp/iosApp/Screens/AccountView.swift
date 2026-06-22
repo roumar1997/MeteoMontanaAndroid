@@ -11,6 +11,11 @@ final class AccountViewModel: ObservableObject {
     @Published var loading = true
     /// true cuando los datos vienen de la caché local (sin conexión).
     @Published var offline = false
+    /// Propuestas + contribuciones pendientes de revisar (solo admin).
+    @Published var pendingReview = 0
+
+    private let getPendingSubmissions = AppDependencies.shared.container.getPendingSubmissions
+    private let getPendingContributions = AppDependencies.shared.container.getPendingContributions
 
     private let deleteAccount: DeleteMyAccountUseCase = AppDependencies.shared.container.deleteMyAccount
     private let getMyProfile: GetMyProfileUseCase
@@ -128,6 +133,15 @@ final class AccountViewModel: ObservableObject {
             // Contadores de seguidores/seguidos: igual que Android (getFollowStatus
             // del propio uid devuelve followers/following).
             follow = try? await getFollowStatus.invoke(uid: p.uid)
+            // Si soy admin, cuento propuestas/contribuciones pendientes para
+            // marcar el acceso al panel con un aviso.
+            if p.isAdmin {
+                let subs = (try? await getPendingSubmissions.invoke())?.count ?? 0
+                let contribs = (try? await getPendingContributions.invoke())?.count ?? 0
+                pendingReview = subs + contribs
+            } else {
+                pendingReview = 0
+            }
             offline = false
             // Cachea para poder ver el perfil SIN conexión la próxima vez.
             ProfileCache.shared.save(profile: p, stats: stats, entries: entries,
@@ -308,9 +322,28 @@ struct AccountView: View {
             menuRow("Mis propuestas", "mappin.and.ellipse", MySubmissionsView())
             menuRow("Mis contribuciones", "square.and.pencil", MyContributionsView())
             menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
-            // Panel de admin: solo si el perfil es admin.
+            // Panel de admin: solo si el perfil es admin. Muestra un aviso con el
+            // nº de propuestas/contribuciones pendientes de revisar.
             if vm.profile?.isAdmin == true {
-                menuRow("Panel de admin", "checkmark.shield", AdminView())
+                NavigationLink(destination: AdminView()) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.shield").font(.system(size: 16))
+                            .foregroundStyle(Cumbre.terra).frame(width: 24)
+                        Text("Panel de admin").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                        Spacer()
+                        if vm.pendingReview > 0 {
+                            Text("\(vm.pendingReview) PENDIENTE\(vm.pendingReview == 1 ? "" : "S")")
+                                .font(Cumbre.mono(10, .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Cumbre.terra).clipShape(Capsule())
+                        }
+                        Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                    }
+                    .padding(.vertical, 12)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
     }

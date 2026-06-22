@@ -95,6 +95,7 @@ fun ProfileScreen(
                 followers = s.followers,
                 following = s.following,
                 offline = s.offline,
+                pendingReview = s.pendingReview,
                 onAddBlock = { addBlockOpen = true },
                 onEdit = onEdit,
                 onSubmissions = onSubmissions,
@@ -150,6 +151,7 @@ private fun Content(
     followers: Long,
     following: Long,
     offline: Boolean = false,
+    pendingReview: Int = 0,
     onAddBlock: () -> Unit,
     onEdit: () -> Unit,
     onSubmissions: () -> Unit,
@@ -233,8 +235,28 @@ private fun Content(
                     .padding(14.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("PANEL ADMIN", color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelLarge)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("PANEL ADMIN", color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge)
+                        // Aviso: nº de propuestas/contribuciones pendientes de revisar.
+                        if (pendingReview > 0) {
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    "$pendingReview PENDIENTE${if (pendingReview == 1) "" else "S"}",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -340,6 +340,25 @@ final class FollowListViewModel: ObservableObject {
         } else if let me = myUid {
             following = Set(((try? await getFollowing.invoke(uid: me)) ?? []).map { $0.uid })
         }
+        // Solicitudes pendientes: a un perfil privado al que ya pedí seguir hay que
+        // pintarlo "Solicitado" también en la lista (no solo en su perfil). El
+        // backend no devuelve el estado por fila → consulto el follow-status (en
+        // paralelo) de cada usuario que NO sigo.
+        if let me = myUid {
+            let toCheck = items.filter { $0.uid != me && !following.contains($0.uid) }
+            let getStatus = getFollowStatus
+            var pending: Set<String> = []
+            await withTaskGroup(of: (String, Bool).self) { group in
+                for p in toCheck {
+                    group.addTask {
+                        let st = try? await getStatus.invoke(uid: p.uid)
+                        return (p.uid, st?.requestPending ?? false)
+                    }
+                }
+                for await (u, isPending) in group where isPending { pending.insert(u) }
+            }
+            requested = pending
+        }
         loading = false
     }
 

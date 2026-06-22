@@ -10,6 +10,8 @@ final class ChatVM: ObservableObject {
     @Published var messages: [ChatServiceChatMessage] = []
     @Published var draft = ""
     @Published var loading = true
+    /// Mensaje al que estoy respondiendo (cita), o nil.
+    @Published var replyingTo: ChatServiceChatMessage?
 
     private let chat = AppDependencies.shared.container.chatService
     private let chatPush = AppDependencies.shared.container.chatPushApi
@@ -54,10 +56,15 @@ final class ChatVM: ObservableObject {
             : rawMessages.filter { ($0.createdAtMillis?.int64Value ?? Int64.max) > clearedAt }
     }
 
+    func startReply(_ m: ChatServiceChatMessage) { replyingTo = m }
+    func cancelReply() { replyingTo = nil }
+
     func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, let chat else { return }
         draft = ""
+        let reply = replyingTo
+        replyingTo = nil
         Task { [weak self] in
             guard let self else { return }
             // El backend crea el documento de conversación (los clientes no pueden,
@@ -68,7 +75,9 @@ final class ChatVM: ObservableObject {
                 catch { return }
                 self.conversationEnsured = true
             }
-            try? await chat.sendMessage(otherUid: self.otherUid, text: text)
+            try? await chat.sendMessage(otherUid: self.otherUid, text: text,
+                                        replyToId: reply?.id, replyText: reply?.text,
+                                        replyFromUid: reply?.fromUid)
             // Dispara la push del receptor (igual que Android).
             try? await self.chatPush.notifyMessage(toUid: self.otherUid, preview: text)
         }
@@ -94,7 +103,8 @@ struct ChatView: View {
                     ScrollView {
                         LazyVStack(spacing: 8) {
                             ForEach(vm.messages, id: \.id) { m in
-                                bubble(m).id(m.id)
+                                MessageRow(m: m, me: vm.me, otherName: vm.otherName,
+                                           onReply: { vm.startReply(m) }).id(m.id)
                             }
                         }
                         .padding(16)
@@ -109,6 +119,7 @@ struct ChatView: View {
                     .onAppear { scrollToLast(proxy) }
                 }
             }
+            replyBar
             inputBar
         }
         .background(Cumbre.bg.ignoresSafeArea())
@@ -135,23 +146,24 @@ struct ChatView: View {
         }
     }
 
-    private func bubble(_ m: ChatServiceChatMessage) -> some View {
-        let mine = m.fromUid == vm.me
-        let time = chatTime(m.createdAtMillis?.int64Value ?? -1)
-        return HStack {
-            if mine { Spacer(minLength: 40) }
-            VStack(alignment: mine ? .trailing : .leading, spacing: 2) {
-                Text(m.text)
-                    .font(.system(size: 15))
-                    .foregroundStyle(mine ? .white : Cumbre.ink)
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(mine ? Cumbre.terra : Cumbre.paper)
-                    .overlay(Rectangle().stroke(mine ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                if !time.isEmpty {
-                    Text(time).font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+    /// Cita del mensaje al que respondo (estilo WhatsApp), sobre el input.
+    @ViewBuilder private var replyBar: some View {
+        if let r = vm.replyingTo {
+            let who = r.fromUid == vm.me ? "Tú" : vm.otherName
+            HStack(spacing: 8) {
+                Rectangle().fill(Cumbre.terra).frame(width: 3, height: 34)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Respondiendo a \(who)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    Text(r.text).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(1)
+                }
+                Spacer()
+                Button { vm.cancelReply() } label: {
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 20)).foregroundStyle(Cumbre.ink3)
                 }
             }
-            if !mine { Spacer(minLength: 40) }
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(Cumbre.paper)
+            .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
         }
     }
 
@@ -169,5 +181,69 @@ struct ChatView: View {
         .padding(12)
         .background(Cumbre.bg)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
+    }
+}
+
+/// Burbuja de un mensaje con deslizar-a-la-derecha-para-responder (estilo
+/// WhatsApp) y, si el mensaje es respuesta, la cita del mensaje citado.
+private struct MessageRow: View {
+    let m: ChatServiceChatMessage
+    let me: String
+    let otherName: String
+    let onReply: () -> Void
+
+    @State private var dragX: CGFloat = 0
+    @State private var triggered = false
+
+    var body: some View {
+        let mine = m.fromUid == me
+        let time = chatTime(m.createdAtMillis?.int64Value ?? -1)
+        return ZStack(alignment: .leading) {
+            Image(systemName: "arrowshape.turn.up.left.fill")
+                .font(.system(size: 14)).foregroundStyle(Cumbre.terra)
+                .opacity(Double(min(dragX / 56, 1)))
+                .padding(.leading, 8)
+            HStack {
+                if mine { Spacer(minLength: 40) }
+                VStack(alignment: mine ? .trailing : .leading, spacing: 2) {
+                    if let rid = m.replyToId, let rtext = m.replyText, !rid.isEmpty {
+                        let who = m.replyFromUid == me ? "Tú" : otherName
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(who).font(Cumbre.mono(9, .bold))
+                                .foregroundStyle(mine ? .white.opacity(0.9) : Cumbre.ink2)
+                            Text(rtext).font(.system(size: 12))
+                                .foregroundStyle(mine ? .white.opacity(0.85) : Cumbre.ink2).lineLimit(1)
+                        }
+                        .padding(.horizontal, 6).padding(.vertical, 4)
+                        .background((mine ? Color.white : Cumbre.ink).opacity(0.12))
+                        .overlay(Rectangle().frame(width: 2)
+                            .foregroundStyle(mine ? Color.white.opacity(0.6) : Cumbre.terra), alignment: .leading)
+                    }
+                    Text(m.text)
+                        .font(.system(size: 15))
+                        .foregroundStyle(mine ? .white : Cumbre.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(mine ? Cumbre.terra : Cumbre.paper)
+                        .overlay(Rectangle().stroke(mine ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                    if !time.isEmpty {
+                        Text(time).font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                    }
+                }
+                if !mine { Spacer(minLength: 40) }
+            }
+            .offset(x: dragX)
+            .gesture(
+                DragGesture(minimumDistance: 12)
+                    .onChanged { v in
+                        let t = max(0, min(v.translation.width, 80))
+                        dragX = t
+                        if t < 56 { triggered = false }
+                    }
+                    .onEnded { _ in
+                        if dragX >= 56 && !triggered { triggered = true; onReply() }
+                        withAnimation(.easeOut(duration: 0.2)) { dragX = 0 }
+                    }
+            )
+        }
     }
 }
