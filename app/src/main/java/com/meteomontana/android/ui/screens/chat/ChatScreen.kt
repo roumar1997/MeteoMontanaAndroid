@@ -51,6 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -276,12 +277,18 @@ private fun MessageBubble(
             if (next < thresholdPx) triggered = false
         }
     }) {
-        // Icono de responder que asoma al deslizar.
-        Icon(
-            Icons.Outlined.Reply, contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 12.dp)
-        )
+        // Icono de responder que asoma SOLO al deslizar (alpha proporcional al
+        // desplazamiento; en reposo es invisible). Antes se pintaba fijo y, como
+        // mis mensajes van a la derecha, la flecha quedaba siempre visible.
+        val replyIconAlpha = (offsetX.value / thresholdPx).coerceIn(0f, 1f)
+        if (replyIconAlpha > 0f) {
+            Icon(
+                Icons.Outlined.Reply, contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterStart).padding(start = 12.dp)
+                    .alpha(replyIconAlpha)
+            )
+        }
         Row(modifier = Modifier.fillMaxWidth()
             .offset { IntOffset(offsetX.value.roundToInt(), 0) },
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {

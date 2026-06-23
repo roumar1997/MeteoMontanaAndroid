@@ -59,5 +59,6 @@ fun scoreColor(score: Int): Color = when {
     else        -> Color(0xFF5A1E08)
 }
 
-fun scoreTextColor(score: Int): Color =
-    if (score in 40..79) Color(0xFF1C1C1A) else Color.White
+// El número del score se pinta SIEMPRE en blanco (igual que iOS). Antes los
+// scores 40-79 usaban texto casi negro, que sobre el naranja (40-59) no se leía.
+fun scoreTextColor(score: Int): Color = Color.White

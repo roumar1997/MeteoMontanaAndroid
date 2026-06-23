@@ -46,6 +46,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -301,9 +302,14 @@ private fun GroupMessageBubble(
             if (next < thresholdPx) triggered = false
         }
     }) {
-        Icon(Icons.Outlined.Reply, contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 12.dp))
+        // El icono de responder asoma SOLO al deslizar (invisible en reposo).
+        val replyIconAlpha = (offsetX.value / thresholdPx).coerceIn(0f, 1f)
+        if (replyIconAlpha > 0f) {
+            Icon(Icons.Outlined.Reply, contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.CenterStart).padding(start = 12.dp)
+                    .alpha(replyIconAlpha))
+        }
         Row(modifier = Modifier.fillMaxWidth().offset { IntOffset(offsetX.value.roundToInt(), 0) },
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
             Column(modifier = Modifier

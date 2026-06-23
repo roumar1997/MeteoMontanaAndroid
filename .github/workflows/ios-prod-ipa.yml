@@ -1,0 +1,117 @@
+name: iOS PROD .ipa (manual)
+
+# Compila la app iOS en configuración RELEASE → apunta al backend de
+# PRODUCCIÓN (api.climbingteams.com), a diferencia del CI normal (ios-ci.yml)
+# que compila Debug → staging. Sirve para PROBAR EN EL IPHONE con los datos
+# reales (tus usuarios), instalando el .ipa con AltStore.
+#
+# Es MANUAL (workflow_dispatch): no se dispara en cada push para no gastar
+# minutos ni confundir el artifact de staging. Lánzalo desde
+# Actions → "iOS PROD .ipa (manual)" → Run workflow.
+#
+# Necesita el secret GOOGLE_SERVICE_INFO_PLIST (igual que ios-ci.yml) para que
+# el login de Google funcione.
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ios-prod-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-prod-ipa:
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Seleccionar Xcode más reciente
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle (con caché de dependencias)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Kotlin/Native (~/.konan)
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
+          restore-keys: konan-${{ runner.os }}-
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Write GoogleService-Info.plist
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          PLIST=iosApp/iosApp/GoogleService-Info.plist
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" > "$PLIST"
+            echo "GoogleService-Info.plist escrito desde el secret."
+          else
+            echo "::warning::Sin secret GOOGLE_SERVICE_INFO_PLIST — usando dummy. El login de Google NO funcionará en este .ipa."
+            sed 's/^[[:space:]]*//' > "$PLIST" <<'EOF'
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+            <key>API_KEY</key><string>AIzaSyDUMMY-DUMMY-DUMMY-DUMMY-DUMMY-DUMMY</string>
+            <key>GCM_SENDER_ID</key><string>000000000000</string>
+            <key>PLIST_VERSION</key><string>1</string>
+            <key>BUNDLE_ID</key><string>com.meteomontana.ios</string>
+            <key>PROJECT_ID</key><string>ci-dummy</string>
+            <key>STORAGE_BUCKET</key><string>ci-dummy.appspot.com</string>
+            <key>IS_ADS_ENABLED</key><false/>
+            <key>IS_ANALYTICS_ENABLED</key><false/>
+            <key>IS_APPINVITE_ENABLED</key><true/>
+            <key>IS_GCM_ENABLED</key><true/>
+            <key>IS_SIGNIN_ENABLED</key><true/>
+            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
+            <key>CLIENT_ID</key><string>000000000000-dummy.apps.googleusercontent.com</string>
+            <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-dummy</string>
+            </dict>
+            </plist>
+          EOF
+          fi
+
+      - name: XcodeGen generate
+        working-directory: iosApp
+        run: xcodegen generate
+
+      # Build RELEASE → AppDependencies usa la rama #else (producción).
+      - name: Build (iphoneos, RELEASE, sin firma)
+        run: |
+          chmod +x gradlew
+          xcodebuild \
+            -project iosApp/MeteoMontana.xcodeproj \
+            -scheme MeteoMontana \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Empaquetar .ipa sin firmar
+        run: |
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          echo "App: $APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qr MeteoMontana-prod-unsigned.ipa Payload
+          ls -la MeteoMontana-prod-unsigned.ipa
+
+      - name: Upload .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-prod-unsigned-ipa
+          path: MeteoMontana-prod-unsigned.ipa
