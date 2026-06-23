@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -50,7 +51,7 @@ fun AddBlockToSchoolSheet(
         sheetState = sheet,
         containerColor = MaterialTheme.colorScheme.background
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp),
+        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f).padding(16.dp),
                verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Proponer en el mapa",
                 style = MaterialTheme.typography.headlineMedium,

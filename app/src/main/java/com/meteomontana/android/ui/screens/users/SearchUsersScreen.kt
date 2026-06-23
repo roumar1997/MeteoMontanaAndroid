@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -79,19 +80,10 @@ fun SearchUsersScreen(
     val q by viewModel.query.collectAsState()
     val results by viewModel.results.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.onBackground)
-            }
-            Text("Buscar usuarios",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground)
-        }
+    Column(modifier = Modifier.fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)) {
+        com.meteomontana.android.ui.components.SheetHeader("Buscar usuarios", onClose = onBack)
+        Spacer(Modifier.padding(top = 8.dp))
         OutlinedTextField(
             value = q, onValueChange = viewModel::setQuery,
             placeholder = { Text("Username o nombre...") },

@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Chip estilo Cumbre: rectángulo casi cuadrado, hairline 1dp.
- * - Selected: fondo casi-negro + texto blanco
+ * - Selected: fondo terracota + texto blanco (paridad con iOS)
  * - No selected: fondo paper + borde rule
  */
 @Composable
@@ -29,9 +29,9 @@ fun CumbreChip(
     modifier: Modifier = Modifier
 ) {
     val shape  = RoundedCornerShape(2.dp)
-    val bg     = if (selected) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.surface
-    val fg     = if (selected) Color.White       else MaterialTheme.colorScheme.onSurface
-    val border = if (selected) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.outline
+    val bg     = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val fg     = if (selected) Color.White                       else MaterialTheme.colorScheme.onSurface
+    val border = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
 
     Box(
         modifier = modifier

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -97,16 +98,14 @@ fun ChatScreen(
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
-        .statusBarsPadding()
         .imePadding()
     ) {
-        ChatTopBar(
+        ChatSheetHeader(
             name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: "Usuario",
             avatarUrl = state.otherProfile?.photoUrl,
-            onBack = onBack,
+            onClose = onBack,
             onOpenProfile = { onOpenProfile(state.otherUid) }
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         LazyColumn(
             state = listState,
@@ -206,34 +205,28 @@ fun ChatScreen(
     }
 }
 
+/** Cabecera de sheet del chat: avatar + nombre centrados (tap → perfil) + "Cerrar". */
 @Composable
-private fun ChatTopBar(name: String, avatarUrl: String?, onBack: () -> Unit, onOpenProfile: () -> Unit = {}) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                tint = MaterialTheme.colorScheme.onBackground)
-        }
-        // Avatar + nombre → abre el perfil del otro usuario.
+private fun ChatSheetHeader(name: String, avatarUrl: String?, onClose: () -> Unit, onOpenProfile: () -> Unit = {}) {
+    com.meteomontana.android.ui.components.SheetHeader(onClose = onClose) {
         Row(
-            modifier = Modifier
+            modifier = Modifier.align(Alignment.Center)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = onOpenProfile)
-                .padding(end = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (avatarUrl != null) {
                 AsyncImage(model = avatarUrl, contentDescription = null,
-                    modifier = Modifier.size(36.dp).clip(CircleShape)
+                    modifier = Modifier.size(32.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             } else {
                 androidx.compose.foundation.Image(
                     painter = androidx.compose.ui.res.painterResource(
                         com.meteomontana.android.R.drawable.logo_cumbre),
                     contentDescription = null,
-                    modifier = Modifier.size(36.dp).clip(CircleShape)
+                    modifier = Modifier.size(32.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 )
             }

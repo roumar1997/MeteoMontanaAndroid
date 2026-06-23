@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
@@ -60,26 +61,22 @@ fun ChatListScreen(
     var showPicker by remember { mutableStateOf(false) }
     val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.onBackground)
+    Column(modifier = Modifier.fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)) {
+        com.meteomontana.android.ui.components.SheetHeader(
+            title = "Chats",
+            onClose = onBack,
+            actions = {
+                IconButton(onClick = onNewGroup) {
+                    Icon(Icons.Outlined.GroupAdd, contentDescription = "Nuevo grupo",
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton(onClick = { viewModel.loadContacts(); showPicker = true }) {
+                    Icon(Icons.Outlined.Edit, contentDescription = "Nuevo mensaje",
+                        tint = MaterialTheme.colorScheme.primary)
+                }
             }
-            Text("Chats", style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground)
-            Spacer(Modifier.weight(1f))
-            IconButton(onClick = onNewGroup) {
-                Icon(Icons.Outlined.GroupAdd, contentDescription = "Nuevo grupo",
-                    tint = MaterialTheme.colorScheme.primary)
-            }
-            IconButton(onClick = { viewModel.loadContacts(); showPicker = true }) {
-                Icon(Icons.Outlined.Edit, contentDescription = "Nuevo mensaje",
-                    tint = MaterialTheme.colorScheme.primary)
-            }
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        )
 
         if (showPicker) {
             NewChatDialog(

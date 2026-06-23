@@ -11,6 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -80,25 +84,33 @@ fun SchoolsMapPanel(
         .fillMaxWidth()
         .padding(horizontal = Spacing.lg, vertical = Spacing.xs)) {
 
-        // Toggle "VER MAPA ▾"
+        // Toggle "VER MAPA" — barra clara con icono de mapa terracota (paridad iOS).
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.onBackground)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                 .clickable(onClick = onToggle)
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
+            Icon(
+                Icons.Outlined.Map,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
             Text(
-                "VER MAPA",
+                if (expanded) "OCULTAR MAPA" else "VER MAPA",
                 style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.background,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 if (expanded) "▴" else "▾",
-                color = MaterialTheme.colorScheme.background,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.titleMedium
             )
         }

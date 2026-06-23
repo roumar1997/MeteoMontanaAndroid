@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +21,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -84,8 +91,11 @@ fun ProfileScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        TopBar("Mi Diario", onBack)
+    // Se presenta como bottom-sheet (paridad iOS) → altura acotada para que el
+    // LazyColumn interior tenga restricción vertical (si no, crashea).
+    Column(modifier = Modifier.fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)) {
+        SheetHeader("Cuenta", onBack)
         when (val s = state) {
             ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
             is ProfileUiState.Error -> CenterBox { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
@@ -125,20 +135,14 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun TopBar(title: String, onBack: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                tint = MaterialTheme.colorScheme.onBackground)
-        }
-        Column {
-            Text("PERFIL", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(title, style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground)
+private fun SheetHeader(title: String, onClose: () -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Text(title, style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.align(Alignment.Center))
+        TextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterEnd)) {
+            Text("Cerrar", color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge)
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
@@ -183,33 +187,25 @@ private fun Content(
                 )
             }
         }
-        item { Header(profile, followers = followers, following = following,
+        // Cabecera centrada (avatar grande, nombre, @usuario, email, píldoras
+        // TOPE/ADMIN y seguidores) — paridad con AccountView de iOS.
+        item { Header(profile, topGrade = stats.maxGrade, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
-        item {
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MiniButton("Editar perfil", onClick = onEdit, modifier = Modifier.weight(1f))
-                MiniButton("Mis propuestas", onClick = onSubmissions, modifier = Modifier.weight(1f))
-            }
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-                MiniButton("Escuelas guardadas (offline)", onClick = onSavedSchools, modifier = Modifier.weight(1f))
-            }
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-                MiniButton("⛰ Alerta de tiempo", onClick = onWeekendAlert, modifier = Modifier.weight(1f))
-            }
-            if (!profile.isPublic) {
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    MiniButton("Solicitudes de seguimiento", onClick = onOpenFollowRequests, modifier = Modifier.weight(1f))
-                }
-            }
-        }
-        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-        item { TogglesSection(profile) }
-        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade) }
+        item { AddBlockButton(onClick = onAddBlock) }
+        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
+        // Menú con iconos terracota (filas tipo iOS).
         item {
-            AddBlockButton(onClick = onAddBlock)
+            ProfileMenu(
+                onEdit = onEdit,
+                onSavedSchools = onSavedSchools,
+                onWeekendAlert = onWeekendAlert,
+                onSubmissions = onSubmissions,
+                showRequests = !profile.isPublic,
+                onOpenFollowRequests = onOpenFollowRequests
+            )
         }
+        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         if (stats.bySchool.isNotEmpty()) {
             items(stats.bySchool) { entry ->
                 SchoolEntryRow(entry, onClick = { onOpenSchoolEntries(entry.schoolName) })
@@ -296,15 +292,17 @@ private fun Content(
 @Composable
 private fun Header(
     p: PrivateProfile,
+    topGrade: String? = null,
     followers: Long = 0,
     following: Long = 0,
     onClickFollowers: () -> Unit = {},
     onClickFollowing: () -> Unit = {}
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Avatar centrado y grande.
         if (p.photoUrl != null) {
             androidx.compose.runtime.key(p.photoUrl) {
                 AsyncImage(
@@ -314,7 +312,7 @@ private fun Header(
                         .crossfade(200)
                         .build(),
                     contentDescription = null,
-                    modifier = Modifier.size(64.dp).clip(CircleShape)
+                    modifier = Modifier.size(96.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 )
             }
@@ -322,69 +320,112 @@ private fun Header(
             Image(
                 painter = painterResource(R.drawable.logo_cumbre),
                 contentDescription = null,
-                modifier = Modifier.size(64.dp).clip(CircleShape)
+                modifier = Modifier.size(96.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             )
         }
-        Spacer(Modifier.padding(start = 16.dp))
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                "@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "tu_username"}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                p.bio ?: "Sin biografía",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.padding(top = 4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(modifier = Modifier.clickable(onClick = onClickFollowers),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text("$followers ",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onBackground)
-                    Text("seguidores",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(modifier = Modifier.clickable(onClick = onClickFollowing),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text("$following ",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onBackground)
-                    Text("siguiendo",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        Spacer(Modifier.height(12.dp))
+        // Nombre grande serif.
+        Text(
+            p.displayName ?: p.username ?: "Tú",
+            fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            "@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "tu_username"}",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        p.email?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        // Píldoras TOPE / ADMIN.
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            topGrade?.let { ProfilePill("TOPE $it", MaterialTheme.colorScheme.primary) }
+            if (p.isAdmin) ProfilePill("ADMIN", MaterialTheme.colorScheme.onBackground)
+            if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
+        }
+
+        // Seguidores / siguiendo centrados.
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+            FollowCount(followers, "SEGUIDORES", onClickFollowers)
+            FollowCount(following, "SIGUIENDO", onClickFollowing)
         }
     }
 }
 
 @Composable
-private fun TogglesSection(p: PrivateProfile) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-        ToggleRow("Perfil público", p.isPublic)
-        Spacer(Modifier.height(8.dp))
-        ToggleRow("Email", false, secondaryText = p.email ?: "—")
+private fun ProfilePill(text: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(2.dp))
+            .border(1.dp, color, RoundedCornerShape(2.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text(text, style = MaterialTheme.typography.labelLarge, color = color)
     }
 }
 
 @Composable
-private fun ToggleRow(label: String, value: Boolean, secondaryText: String? = null) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("$value", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+            fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Menú de filas con icono terracota + chevron (estilo iOS). */
+@Composable
+private fun ProfileMenu(
+    onEdit: () -> Unit,
+    onSavedSchools: () -> Unit,
+    onWeekendAlert: () -> Unit,
+    onSubmissions: () -> Unit,
+    showRequests: Boolean,
+    onOpenFollowRequests: () -> Unit
+) {
+    Column(Modifier.fillMaxWidth()) {
+        MenuRow(Icons.Outlined.Edit, "Editar perfil", onEdit)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        MenuRow(Icons.Outlined.Download, "Escuelas guardadas (offline)", onSavedSchools)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        MenuRow(Icons.Outlined.Notifications, "Alerta de tiempo", onWeekendAlert)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        MenuRow(Icons.Outlined.Place, "Mis propuestas", onSubmissions)
+        if (showRequests) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            MenuRow(Icons.Outlined.PersonAdd, "Solicitudes de seguimiento", onOpenFollowRequests)
+        }
+    }
+}
+
+@Composable
+private fun MenuRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween) {
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Icon(icon, contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
         Text(label, style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground)
-        Text(
-            secondaryText ?: if (value) "Sí" else "No",
-            style = MaterialTheme.typography.labelLarge,
-            color = if (value) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-        )
+            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+        Icon(Icons.Outlined.ChevronRight, contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -437,7 +478,7 @@ private fun AddBlockButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .height(48.dp)
-            .background(Color(0xFF1C1C1A), RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -467,21 +508,6 @@ private fun SchoolEntryRow(entry: SchoolStats, onClick: () -> Unit) {
         }
         Text("›", style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun MiniButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onBackground)
     }
 }
 

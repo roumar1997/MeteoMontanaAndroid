@@ -22,19 +22,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.meteomontana.android.domain.util.Geo
 
+// Orden y etiquetas alineados con iOS (Todas/Bloque/Vía).
 enum class StyleFilter(val label: String, val apiValue: String?) {
-    All("Todos", null),
-    Via("Vía", "Vía"),
-    Boulder("Bloque", "Bloque")
+    All("Todas", null),
+    Boulder("Bloque", "Bloque"),
+    Via("Vía", "Vía")
 }
 
+// iOS muestra "Mejor score" primero.
 enum class SortBy(val label: String) {
-    Distance("Más cercanos"),
-    Score("Mejor score")
+    Score("Mejor score"),
+    Distance("Más cercanos")
 }
 
 val DISTANCE_OPTIONS = listOf<Double?>(null, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0, 350.0, 400.0, 450.0, 500.0)
-val ROCK_TYPES       = listOf("Granito", "Caliza", "Arenisca", "Pizarra", "Basalto", "Conglomerado")
+// Alfabético, como iOS.
+val ROCK_TYPES       = listOf("Arenisca", "Basalto", "Caliza", "Conglomerado", "Granito", "Pizarra")
 
 data class SchoolFilters(
     val style: StyleFilter = StyleFilter.All,
@@ -351,6 +354,8 @@ class SchoolListViewModel @Inject constructor(
         }
         load()
     }
+    /** Chip "Todas" de tipo de roca: limpia la selección. */
+    fun clearRocks() { _filters.update { it.copy(rockTypes = emptyList()) }; load() }
     /** Marca/desmarca favorita desde la lista. Optimista: pinta ya, revierte si falla. */
     fun toggleFavorite(schoolId: String) {
         val wasFavorite = schoolId in _favoriteIds.value

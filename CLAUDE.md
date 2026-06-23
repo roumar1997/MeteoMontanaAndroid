@@ -534,6 +534,153 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-23 (4) — navegación tipo Apple (un solo sheet) + sheets full + release v1.4
+
+Continuación de la (3). Refactor de navegación a estilo iOS y unificación de
+sheets a pantalla casi completa. Mergeado a `main`; AAB v1.4 firmado.
+
+- **Navegación tipo Apple (reescritura de `MainScreen`)**: antes cada pantalla
+  overlay (Perfil, Chats, conversación, Notificaciones, Buscar, opciones de
+  Perfil, diario…) era un `bottomSheet` independiente del navegador de
+  accompanist → saltar entre ellas y volver atrás repetía la animación
+  arriba‑abajo (cerrar+abrir), lento. Ahora hay **un solo `ModalBottomSheet`
+  (M3)** con un **NavHost interno** (`sheetNav`) que navega entre todas esas
+  pantallas **deslizando lateral** (slideIntoContainer Start/End); la tarjeta
+  sube una vez y baja al volver a la raíz. Lo que es pantalla completa (detalle
+  de escuela, admin, editor topo) vive en el NavHost externo; al abrirlo desde
+  el sheet, la tarjeta baja (`openFullScreen`).
+- **Crash modo oscuro ARREGLADO**: era `Cannot navigate ... graph has not been
+  set` — `openSheet` navegaba `sheetNav` antes de que el NavHost interno
+  (que registra el grafo) estuviera compuesto. Fix: `pendingSheetRoute` + un
+  `LaunchedEffect` DENTRO del contenido del sheet que navega cuando el grafo ya
+  existe. (Antes, además, había varios `ModalBottomSheet` apilados.)
+- **`SheetHeader` compartido** (`ui/components/SheetHeader.kt`): cabecera estilo
+  Cuenta (título/contenido centrado + acciones + "Cerrar" + divisoria). Aplicado
+  a Notificaciones, Buscar, Chats y conversación (1‑a‑1 y grupo).
+- **Sheets a pantalla casi completa (0.94)** y unificados: piedra/muro
+  (`BlockDetailDialog`), editar piedra/muro (`AddLinesFlow`), editar bloque admin
+  (`EditBlockDialog`), proponer piedra/sector/parking (`CumbreDialog` con flag
+  `fullHeight`), proponer en el mapa (`AddBlockToSchoolSheet`). "Añadir bloque"
+  del perfil se dejó como estaba (sin scroll interno).
+- **Material2 dep** añadida (`androidx.compose.material:material`, gestionada por
+  el BOM) — necesaria mientras se exploró el navigator de accompanist; el
+  `MainScreen` final usa M3, la dep queda (inocua).
+- **Release v1.4**: `versionCode 6→7`, `versionName 1.3→1.4`. AAB firmado para
+  subir al canal Closed testing de Play.
+
+> ⚠️ **SIN PROBAR a fondo en dispositivo** (compila verde + instalado): la
+> fluidez lateral, el back/Cerrar, los deep links y que el crash no vuelva.
+> Pendiente: igualar animación de entrada (los editar son `Dialog` con fade, no
+> suben deslizando como los sheets de navegación).
+
+### Sesión 2026-06-23 (3) — paridad visual Android↔iOS (SOLO EN LOCAL, sin push)
+
+A Rodrigo le gusta más cómo se ve iOS. Hicimos un **diff visual pantalla por
+pantalla** (capturas Android por adb + capturas iOS que mandó Rodrigo). Las
+pantallas están diseñadas como réplica, así que las divergencias reales eran
+piezas en NEGRO donde iOS usa TERRACOTA + un par de formas + la sensación
+"flotante" de iOS. Se implementó TODO (A→F). **Todo en el worktree local
+`claude/lucid-lederberg-0b8623`, SIN commit/push (orden de Rodrigo); compila
+verde (`assembleDebug`). Solo app (Android), nada de backend.** iOS no se toca
+(es la referencia).
+
+- **A — estado seleccionado/barras NEGRO → TERRACOTA**: `CumbreChip`
+  (`ui/components/FilterChip.kt`) seleccionado usa `colorScheme.primary` (antes
+  `0xFF1C1C1A`); barra "VER MAPA" (`SchoolsMapPanel.kt`) y "MAPA DE LA ESCUELA"
+  (`SchoolMap.kt`) pasan de barra negra maciza a barra clara (`surfaceVariant` +
+  borde) con icono `Icons.Outlined.Map` terracota; botón "+ AÑADIR BLOQUE"
+  (`ProfileScreen.AddBlockButton`) a `primary`.
+- **B — celdas grid 16h**: `HourlyScoreGrid.HourCell` ahora `clip(RoundedCorner
+  6dp)` (antes esquina viva). Los números ya iban en blanco (v1.3).
+- **C — sensación flotante (sheets)**: `CumbreDialog` (compartido por TODO el
+  flujo Proponer/Nueva piedra en `ProposeContributionFlow.kt`) y la ficha de
+  piedra `BlockDetailDialog.kt` pasan de `Dialog` centrado a `ModalBottomSheet`
+  (sube desde abajo, esquinas sup. redondeadas, drag handle, scrim) = paridad
+  con los `.sheet` de iOS. `AddBlockSheet` ya era `ModalBottomSheet`.
+- **D — Perfil (`ProfileScreen.kt`) rehecho a maqueta iOS**: cabecera CENTRADA
+  (avatar 96dp, nombre serif grande, @usuario, email), píldoras TOPE <grado> /
+  ADMIN / PREMIUM, seguidores/siguiendo centrados, stats, "+ AÑADIR BLOQUE"
+  terracota, y un MENÚ con iconos terracota (`MenuRow`: Editar perfil ✏️,
+  Escuelas guardadas ⬇️, Alerta 🔔, Mis propuestas 📍, Solicitudes si privado).
+  Eliminados `MiniButton`/`TogglesSection`/`ToggleRow`. Título "Mi Diario"→"Cuenta".
+- **E — nav inferior flotante** (`MainScreen.kt`): la `NavigationBar` plana a
+  todo el ancho pasa a **cápsula flotante** centrada (Row redondeada 30dp,
+  `surface`+borde, tab seleccionada con fondo `primaryContainer` y tinte
+  `primary`).
+- **F — filtros alineados con iOS** (`SchoolListViewModel.kt` +
+  `SchoolFiltersBar.kt`): `StyleFilter` = Todas/Bloque/Vía (label "Todas",
+  reordenado); `SortBy` = Mejor score primero; `ROCK_TYPES` alfabético + chip
+  "Todas" que limpia (nuevo `clearRocks()`/`onClearRocks`); FAVORITOS+OFFLINE
+  unificados en una sola fila tri-estado **"MOSTRAR" (Todas/Favoritos/Guardados)**.
+
+- **C+ (extra) — sheets del header del listado** (`MainScreen.kt`): **Cuenta,
+  Chat, Notificaciones y Buscar usuarios** pasan de pantalla completa navegada a
+  **bottom-sheet flotante presentado SOBRE la lista** (overlay con flag de estado
+  `showAccount/showChats/showNotifications/showSearch`, NO como destino de
+  navegación). Esto evita el "hueco en blanco" al arrastrar para cerrar (la lista
+  queda compuesta detrás). Cada pantalla se envuelve en `Box(fillMaxHeight(0.92f))`
+  para acotar el `LazyColumn`. La subnavegación (abrir un chat, un perfil…) cierra
+  el sheet y navega por el NavHost. Se quitaron las rutas
+  PROFILE/CHAT_LIST/NOTIFICATIONS/SEARCH_USERS del NavHost. Verificado en el
+  Xiaomi (debug→staging): abren con la lista oscurecida detrás, cierran sin blanco.
+
+- **C++ (en curso) — TODO sheet vía navegador de bottom-sheets** (`MainScreen.kt`):
+  se sustituyó el enfoque overlay-por-pantalla por el **navegador oficial de
+  bottom-sheets** de accompanist (`com.google.accompanist:accompanist-navigation-material:0.36.0`,
+  añadido en `libs.versions.toml` + `app/build.gradle.kts`). Así las pantallas que
+  en iOS son `.sheet` se declaran con `bottomSheet { }` en el NavHost y se
+  presentan como sheets flotantes que **empujan dentro del sheet** y **vuelven
+  atrás al sheet anterior**, con la pantalla de fondo detrás (sin hueco en blanco).
+  Montaje: `rememberBottomSheetNavigator()` + `rememberNavController(sheetNavigator)`
+  + envolver el `Scaffold` en `ModalBottomSheetLayout(sheetShape = RoundedCorner
+  top 20dp, sheetBackgroundColor = background)`. OptIn `ExperimentalMaterialNavigationApi`.
+  - **Convertidas a `bottomSheet`**: PROFILE (Cuenta), CHAT_LIST, NOTIFICATIONS,
+    SEARCH_USERS, CHAT (conversación), GROUP_CHAT, NEW_GROUP, DAY_DETAIL,
+    DAY_DETAIL_BY_LOCATION, JOURNAL_ENTRIES, JOURNAL_SCHOOLS, FOLLOW_LIST,
+    FOLLOW_REQUESTS, PUBLIC_PROFILE, EDIT_PROFILE, MY_SUBMISSIONS, SAVED_SCHOOLS,
+    WEEKEND_ALERT, SUBMIT_SCHOOL, COMPARE.
+  - **Siguen `composable` (pantalla completa)**: tabs (Weather/Schools/Radar),
+    SCHOOL_DETAIL (en iOS es push, no sheet), TOPO_EDITOR, ADMIN.
+  - Se eliminaron los flags overlay (showAccount/showChats/…) del paso anterior.
+  - **`assembleDebug` COMPILA VERDE** (APK generado 2026-06-23 20:00). 
+
+> ### 🔜 SIGUIENTE SESIÓN — qué queda (todo en LOCAL, sin commit/push)
+> 1. **PROBAR EN EL XIAOMI** el refactor de navegación de sheets (no probado en
+>    pantalla aún, solo compila): instalar el APK
+>    (`app/build/outputs/apk/debug/app-debug.apk`, ya firmado debug → staging) con
+>    `adb install -r` y verificar:
+>    - Cuenta / Chat / Notificaciones / Buscar abren como sheet sobre la lista.
+>    - Entrar en una **conversación** desde la lista de chats = sheet que empuja
+>      dentro (no pantalla completa); atrás vuelve a la lista de chats.
+>    - **Pestañas del perfil** (BLOQUES/VÍAS/ESCUELAS, seguidores, editar…) =
+>      sheets; atrás vuelve a Cuenta.
+>    - **Día del tiempo** (DayDetail) desde detalle/Tiempo = sheet.
+>    - Que el **botón atrás del sistema** y los gestos cierran/retroceden bien.
+>    - Que los **deep links** del push (chat/notifs/submissions/follow_request)
+>      siguen navegando (ahora a destinos bottomSheet).
+> 2. **Posibles ajustes tras probar**: altura de los sheets (M2
+>    `ModalBottomSheetLayout` puede abrir a media altura → si pasa, envolver el
+>    contenido o usar `skipHalfExpanded`/estado; OJO: el `ModalBottomSheetLayout`
+>    de accompanist es Material2, su estado se controla distinto al M3). El color
+>    del scrim y el shape ya van por parámetro.
+> 3. **"Borrar todas" de Notificaciones se ve raro** (cabecera apretada: título +
+>    "Marcar leído" + "Borrar todas" en una fila) — PENDIENTE de rediseñar esa
+>    cabecera (`NotificationsScreen.kt` ~líneas 170-196). NO tocado aún.
+> 4. **Revisar más pantallas** que en iOS sean `.sheet` y en Android sigan
+>    completas (DonateView, etc.) y convertirlas si procede.
+> 5. Cuando Rodrigo dé OK: **commit + push** y, si procede, nueva release.
+>    **NADA COMMITEADO AÚN** — todo en el worktree local.
+>
+> Archivos tocados en esta tanda de diseño: `ui/components/FilterChip.kt`,
+> `ui/components/HourlyScoreGrid.kt`, `ui/components/SchoolMap.kt`,
+> `ui/screens/schools/SchoolsMapPanel.kt`, `ui/screens/schools/SchoolFiltersBar.kt`,
+> `ui/screens/schools/SchoolListViewModel.kt`, `ui/screens/schools/SchoolListScreen.kt`,
+> `ui/screens/profile/ProfileScreen.kt`, `ui/screens/detail/ProposeContributionFlow.kt`,
+> `ui/components/BlockDetailDialog.kt`, `ui/screens/chat/ChatScreen.kt`,
+> `ui/screens/chat/GroupChatScreen.kt`, `ui/screens/chat/NewGroupScreen.kt`,
+> `ui/theme/Color.kt`, `ui/MainScreen.kt`, `app/build.gradle.kts`,
+> `gradle/libs.versions.toml`, `app/build.gradle.kts` (versionCode 6/1.3).
+
 ### Sesión 2026-06-23 — Open-Meteo blindado + grupos completos + features verificadas
 
 Continuación de la (2). Todo verificado (Android build + iOS CI verdes; backend

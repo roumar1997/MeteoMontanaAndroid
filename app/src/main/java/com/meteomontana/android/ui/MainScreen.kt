@@ -1,17 +1,36 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -45,34 +64,73 @@ import com.meteomontana.android.ui.screens.users.FollowRequestsScreen
 import com.meteomontana.android.ui.screens.users.PublicProfileScreen
 import com.meteomontana.android.ui.screens.users.SearchUsersScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
+import kotlinx.coroutines.launch
+
+/** Ruta raíz (vacía) del NavHost interno del sheet: el sheet se abre vacío y se
+ *  navega al destino real; al volver a ella se cierra la tarjeta. */
+private const val SHEET_ROOT = "sheet_root"
 
 @Composable
 fun MainScreen(
     deepLink: com.meteomontana.android.DeepLinkTarget? = null,
     onDeepLinkConsumed: () -> Unit = {}
 ) {
+    // Navegación principal (pantallas a pantalla completa por debajo del sheet):
+    // tabs, detalle de escuela, editor topo y admin.
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
-    // Consume el deep link entrante del push: navega al destino + marca consumido.
-    // launchSingleTop evita apilar dos veces el mismo destino si el push entra
-    // duplicado o hay recomposición (antes: dos FOLLOW_REQUESTS en la pila → al
-    // pulsar atrás solo se quitaba una copia y parecía que "atrás no funcionaba").
-    // El destino raíz (Schools) siempre queda debajo, así que atrás vuelve a él.
+    // ── Sheet único estilo Apple ──
+    // Una sola tarjeta (ModalBottomSheet) que sube una vez; dentro, un NavHost
+    // propio (sheetNav) navega entre las pantallas overlay (Perfil, Chats,
+    // conversación, Notificaciones, Buscar, etc.) DESLIZANDO LATERALMENTE, sin
+    // repetir la animación arriba-abajo en cada paso ni atrás. Al volver a la
+    // raíz, la tarjeta baja. Un solo sheet → sin apilar ModalBottomSheets.
+    val sheetNav = rememberNavController()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var sheetVisible by remember { androidx.compose.runtime.mutableStateOf(false) }
+    // Ruta pendiente de navegar en el sheet. NO podemos navegar el sheetNav aquí:
+    // su grafo lo registra el NavHost interno, que solo existe cuando el sheet es
+    // visible. Guardamos la ruta, mostramos el sheet, y un LaunchedEffect DENTRO
+    // del contenido del sheet (con el NavHost ya compuesto) hace la navegación.
+    var pendingSheetRoute by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Abre el sheet en un destino.
+    val openSheet: (String) -> Unit = { route ->
+        pendingSheetRoute = route
+        sheetVisible = true
+    }
+    // Baja la tarjeta con animación.
+    val dismissSheet: () -> Unit = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion { sheetVisible = false }
+    }
+    // Atrás dentro del sheet: si hay pila interna, desliza atrás (lateral); si
+    // estamos en el destino raíz del sheet, baja la tarjeta.
+    val popSheetOrDismiss: () -> Unit = {
+        val prev = sheetNav.previousBackStackEntry?.destination?.route
+        if (prev != null && prev != SHEET_ROOT) sheetNav.popBackStack() else dismissSheet()
+    }
+    // Cierra el sheet y abre una pantalla completa (las que viven por debajo).
+    val openFullScreen: (String) -> Unit = { route ->
+        navController.navigate(route)
+        dismissSheet()
+    }
+
+    // Consume el deep link entrante del push. Las pantallas overlay se abren en
+    // el sheet; el detalle de escuela es pantalla completa.
     androidx.compose.runtime.LaunchedEffect(deepLink) {
         if (deepLink != null) {
-            val opts: androidx.navigation.NavOptionsBuilder.() -> Unit = { launchSingleTop = true }
             when (deepLink.targetType) {
                 "school", "school_detail" ->
-                    deepLink.targetId?.let { navController.navigate(Routes.schoolDetail(it), opts) }
-                "user"        -> deepLink.targetId?.let { navController.navigate(Routes.publicProfile(it), opts) }
-                "chat", "message" -> deepLink.targetId?.let { navController.navigate(Routes.chat(it), opts) }
-                "submission", "contribution" -> navController.navigate(Routes.MY_SUBMISSIONS, opts)
-                "notifications" -> navController.navigate(Routes.NOTIFICATIONS, opts)
-                "follow_request" -> navController.navigate(Routes.FOLLOW_REQUESTS, opts)
-                // Alerta del finde: targetId = ids CSV de las escuelas comparadas
-                "compare" -> deepLink.targetId?.let { navController.navigate("compare/$it", opts) }
+                    deepLink.targetId?.let { navController.navigate(Routes.schoolDetail(it)) { launchSingleTop = true } }
+                "user"        -> deepLink.targetId?.let { openSheet(Routes.publicProfile(it)) }
+                "chat", "message" -> deepLink.targetId?.let { openSheet(Routes.chat(it)) }
+                "submission", "contribution" -> openSheet(Routes.MY_SUBMISSIONS)
+                "notifications" -> openSheet(Routes.NOTIFICATIONS)
+                "follow_request" -> openSheet(Routes.FOLLOW_REQUESTS)
+                "compare" -> deepLink.targetId?.let { openSheet("compare/$it") }
             }
             onDeepLinkConsumed()
         }
@@ -83,33 +141,50 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    tonalElevation = 0.dp
+                // Cápsula flotante (estilo iOS) en vez de la barra plana a todo el ancho.
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(bottom = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    mainTabs.forEach { tab ->
-                        val selected = currentRoute == tab.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                if (!selected) {
-                                    navController.navigate(tab.route) {
-                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(30.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(30.dp))
+                            .padding(horizontal = 6.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        mainTabs.forEach { tab ->
+                            val selected = currentRoute == tab.route
+                            val tint = if (selected) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurfaceVariant
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(
+                                        if (selected) MaterialTheme.colorScheme.primaryContainer
+                                        else androidx.compose.ui.graphics.Color.Transparent
+                                    )
+                                    .clickable {
+                                        if (!selected) {
+                                            navController.navigate(tab.route) {
+                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
                                     }
-                                }
-                            },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label, style = MaterialTheme.typography.labelMedium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor   = MaterialTheme.colorScheme.primary,
-                                selectedTextColor   = MaterialTheme.colorScheme.primary,
-                                indicatorColor      = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
+                                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(tab.icon, contentDescription = tab.label,
+                                    tint = tint, modifier = Modifier.size(20.dp))
+                                Text(tab.label, style = MaterialTheme.typography.labelMedium, color = tint)
+                            }
+                        }
                     }
                 }
             }
@@ -123,260 +198,269 @@ fun MainScreen(
                 startDestination = Tab.Schools.route,
                 modifier = Modifier.weight(1f)
             ) {
-            composable(Tab.Weather.route) {
-                WeatherScreen(
-                    onDayClick = { schoolId, lat, lon, idx ->
-                        if (schoolId != null) navController.navigate(Routes.dayDetail(schoolId, idx))
-                        else navController.navigate(Routes.dayDetailByLocation(lat, lon, idx))
-                    }
-                )
-            }
-            composable(Tab.Schools.route) {
-                SchoolListScreen(
-                    onSchoolClick = { id -> navController.navigate(Routes.schoolDetail(id)) },
-                    onProfileClick = { navController.navigate(Routes.PROFILE) },
-                    onSubmitSchool = { navController.navigate(Routes.SUBMIT_SCHOOL) },
-                    onSearchUsers = { navController.navigate(Routes.SEARCH_USERS) },
-                    onNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onChats = { navController.navigate(Routes.CHAT_LIST) },
-                    onCompare = { ids -> navController.navigate(Routes.compare(ids)) }
-                )
-            }
-            composable(Tab.Radar.route) { RadarScreen() }
-
-            composable(
-                route = Routes.SCHOOL_DETAIL,
-                arguments = listOf(
-                    navArgument("schoolId") { type = NavType.StringType },
-                    navArgument("via") { type = NavType.StringType; nullable = true; defaultValue = null },
-                    navArgument("viaId") { type = NavType.StringType; nullable = true; defaultValue = null }
-                )
-            ) {
-                val schoolId = it.arguments?.getString("schoolId") ?: ""
-                SchoolDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) },
-                    onMyProposals = { navController.navigate(Routes.MY_SUBMISSIONS) },
-                    onDayClick = { idx -> navController.navigate(Routes.dayDetail(schoolId, idx)) }
-                )
-            }
-            composable(
-                route = Routes.DAY_DETAIL,
-                arguments = listOf(
-                    navArgument("schoolId") { type = NavType.StringType },
-                    navArgument("dayIndex") { type = NavType.StringType }
-                )
-            ) {
-                DayDetailScreen(onBack = { navController.popBackStack() })
-            }
-            composable(
-                route = Routes.DAY_DETAIL_BY_LOCATION,
-                arguments = listOf(
-                    navArgument("lat") { type = NavType.StringType },
-                    navArgument("lon") { type = NavType.StringType },
-                    navArgument("dayIndex") { type = NavType.StringType }
-                )
-            ) {
-                DayDetailScreen(onBack = { navController.popBackStack() })
-            }
-
-            composable(Routes.PROFILE) {
-                ProfileScreen(
-                    onBack = { navController.popBackStack() },
-                    onEdit = { navController.navigate(Routes.EDIT_PROFILE) },
-                    onSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) },
-                    onAdmin = { navController.navigate(Routes.ADMIN) },
-                    onSavedSchools = { navController.navigate(Routes.SAVED_SCHOOLS) },
-                    onWeekendAlert = { navController.navigate(Routes.WEEKEND_ALERT) },
-                    onOpenFollowers = {
-                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-                            navController.navigate(Routes.followList(uid, "followers"))
+                composable(Tab.Weather.route) {
+                    WeatherScreen(
+                        onDayClick = { schoolId, lat, lon, idx ->
+                            if (schoolId != null) openSheet(Routes.dayDetail(schoolId, idx))
+                            else openSheet(Routes.dayDetailByLocation(lat, lon, idx))
                         }
-                    },
-                    onOpenFollowing = {
-                        com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-                            navController.navigate(Routes.followList(uid, "following"))
-                        }
-                    },
-                    onOpenFollowRequests = { navController.navigate(Routes.FOLLOW_REQUESTS) },
-                    onOpenSchoolEntries = { schoolName ->
-                        navController.navigate(Routes.journalEntries("school:$schoolName"))
-                    },
-                    onOpenBoulders = { navController.navigate(Routes.journalEntries("discipline:BOULDER")) },
-                    onOpenRoutes = { navController.navigate(Routes.journalEntries("discipline:ROUTE")) },
-                    onOpenAllSchools = { navController.navigate(Routes.journalSchools(null)) },
-                    onOpenMaxGrade = { navController.navigate(Routes.journalEntries("grade-max")) }
-                )
-            }
-            composable(
-                route = Routes.JOURNAL_ENTRIES,
-                arguments = listOf(
-                    navArgument("filter") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                    navArgument("uid") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }
-                )
-            ) {
-                JournalEntriesScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenSchool = { id, via, viaId -> navController.navigate(Routes.schoolDetail(id, via, viaId)) }
-                )
-            }
-            composable(
-                route = Routes.JOURNAL_SCHOOLS,
-                arguments = listOf(navArgument("uid") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                })
-            ) { backStack ->
-                val uid = backStack.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
-                JournalSchoolsScreen(
-                    onBack = { navController.popBackStack() },
-                    onSchoolClick = { schoolName ->
-                        navController.navigate(Routes.journalEntries(filter = "school:$schoolName", uid = uid))
-                    }
-                )
-            }
-            composable(Routes.ADMIN) {
-                AdminScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Routes.EDIT_PROFILE) {
-                EditProfileScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Routes.COMPARE) {
-                com.meteomontana.android.ui.screens.compare.CompareScreen(
-                    onBack = { navController.popBackStack() },
-                    onSchoolDetail = { id -> navController.navigate(Routes.schoolDetail(id)) }
-                )
-            }
-            composable(Routes.WEEKEND_ALERT) {
-                com.meteomontana.android.ui.screens.profile.WeekendAlertScreen(
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(Routes.SAVED_SCHOOLS) {
-                SavedSchoolsScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpen = { id -> navController.navigate(Routes.schoolDetail(id)) }
-                )
-            }
-            composable(Routes.MY_SUBMISSIONS) {
-                MySubmissionsScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Routes.SUBMIT_SCHOOL) {
-                SubmitSchoolScreen(onBack = { navController.popBackStack() })
-            }
-            composable(Routes.SEARCH_USERS) {
-                SearchUsersScreen(
-                    onBack = { navController.popBackStack() },
-                    onUserClick = { uid -> navController.navigate(Routes.publicProfile(uid)) }
-                )
-            }
-            composable(Routes.NOTIFICATIONS) {
-                NotificationsScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenUser = { uid -> navController.navigate(Routes.publicProfile(uid)) },
-                    onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) },
-                    onOpenSubmissions = { navController.navigate(Routes.MY_SUBMISSIONS) },
-                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) },
-                    onOpenFollowRequests = { navController.navigate(Routes.FOLLOW_REQUESTS) }
-                )
-            }
-            composable(
-                route = Routes.PUBLIC_PROFILE,
-                arguments = listOf(navArgument("uid") { type = NavType.StringType })
-            ) {
-                PublicProfileScreen(
-                    onBack = { navController.popBackStack() },
-                    onFollowersClick = { uid ->
-                        navController.navigate(Routes.followList(uid, "followers"))
-                    },
-                    onFollowingClick = { uid ->
-                        navController.navigate(Routes.followList(uid, "following"))
-                    },
-                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) },
-                    onOpenBoulders = { uid ->
-                        navController.navigate(Routes.journalEntries(filter = "discipline:BOULDER", uid = uid))
-                    },
-                    onOpenRoutes = { uid ->
-                        navController.navigate(Routes.journalEntries(filter = "discipline:ROUTE", uid = uid))
-                    },
-                    onOpenMaxGrade = { uid ->
-                        navController.navigate(Routes.journalEntries(filter = "grade-max", uid = uid))
-                    },
-                    onOpenSchools = { uid ->
-                        navController.navigate(Routes.journalSchools(uid))
-                    },
-                    onOpenSchoolEntries = { uid, schoolName ->
-                        navController.navigate(Routes.journalEntries(filter = "school:$schoolName", uid = uid))
-                    }
-                )
-            }
-            composable(
-                route = Routes.FOLLOW_LIST,
-                arguments = listOf(
-                    navArgument("uid") { type = NavType.StringType },
-                    navArgument("mode") { type = NavType.StringType }
-                )
-            ) {
-                FollowListScreen(
-                    onBack = { navController.popBackStack() },
-                    onUserClick = { uid -> navController.navigate(Routes.publicProfile(uid)) }
-                )
-            }
-            composable(Routes.FOLLOW_REQUESTS) {
-                FollowRequestsScreen(
-                    onBack = { navController.popBackStack() },
-                    onUserClick = { uid -> navController.navigate(Routes.publicProfile(uid)) }
-                )
-            }
-            composable(Routes.CHAT_LIST) {
-                ChatListScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) },
-                    onOpenGroup = { convId -> navController.navigate(Routes.groupChat(convId)) },
-                    onNewGroup = { navController.navigate(Routes.NEW_GROUP) }
-                )
-            }
-            composable(
-                route = Routes.CHAT,
-                arguments = listOf(navArgument("uid") { type = NavType.StringType })
-            ) {
-                ChatScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenProfile = { uid -> navController.navigate(Routes.publicProfile(uid)) }
-                )
-            }
-            composable(Routes.NEW_GROUP) {
-                NewGroupScreen(
-                    onBack = { navController.popBackStack() },
-                    onCreated = { convId ->
-                        // Reemplaza la pantalla de creación por el chat del grupo.
-                        navController.popBackStack()
-                        navController.navigate(Routes.groupChat(convId))
-                    }
-                )
-            }
-            composable(
-                route = Routes.GROUP_CHAT,
-                arguments = listOf(navArgument("convId") { type = NavType.StringType })
-            ) {
-                GroupChatScreen(onBack = { navController.popBackStack() })
-            }
-            composable(
-                route = Routes.TOPO_EDITOR,
-                arguments = listOf(navArgument("blockId") { type = NavType.StringType })
-            ) {
-                TopoEditorScreen(onBack = { navController.popBackStack() })
+                    )
+                }
+                composable(Tab.Schools.route) {
+                    SchoolListScreen(
+                        onSchoolClick = { id -> navController.navigate(Routes.schoolDetail(id)) },
+                        onProfileClick = { openSheet(Routes.PROFILE) },
+                        onSubmitSchool = { openSheet(Routes.SUBMIT_SCHOOL) },
+                        onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
+                        onNotifications = { openSheet(Routes.NOTIFICATIONS) },
+                        onChats = { openSheet(Routes.CHAT_LIST) },
+                        onCompare = { ids -> openSheet(Routes.compare(ids)) }
+                    )
+                }
+                composable(Tab.Radar.route) { RadarScreen() }
+
+                composable(
+                    route = Routes.SCHOOL_DETAIL,
+                    arguments = listOf(
+                        navArgument("schoolId") { type = NavType.StringType },
+                        navArgument("via") { type = NavType.StringType; nullable = true; defaultValue = null },
+                        navArgument("viaId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                    )
+                ) {
+                    val schoolId = it.arguments?.getString("schoolId") ?: ""
+                    SchoolDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) },
+                        onMyProposals = { openSheet(Routes.MY_SUBMISSIONS) },
+                        onDayClick = { idx -> openSheet(Routes.dayDetail(schoolId, idx)) }
+                    )
+                }
+                composable(Routes.ADMIN) {
+                    AdminScreen(onBack = { navController.popBackStack() })
+                }
+                composable(
+                    route = Routes.TOPO_EDITOR,
+                    arguments = listOf(navArgument("blockId") { type = NavType.StringType })
+                ) {
+                    TopoEditorScreen(onBack = { navController.popBackStack() })
+                }
             }
         }
+    }
+
+    // ── La tarjeta (sheet) con su NavHost interno de deslizado lateral ──
+    if (sheetVisible) {
+        ModalBottomSheet(
+            onDismissRequest = { sheetVisible = false },
+            sheetState = sheetState,
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            containerColor = MaterialTheme.colorScheme.background,
+            dragHandle = null
+        ) {
+            BackHandler(enabled = true) { popSheetOrDismiss() }
+            // Navega al destino pendiente UNA VEZ que el NavHost interno ya está
+            // compuesto (grafo registrado). Se consume poniéndolo a null.
+            androidx.compose.runtime.LaunchedEffect(pendingSheetRoute) {
+                val r = pendingSheetRoute
+                if (r != null) {
+                    sheetNav.navigate(r) {
+                        popUpTo(SHEET_ROOT) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                    pendingSheetRoute = null
+                }
+            }
+            Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f)) {
+                NavHost(
+                    navController = sheetNav,
+                    startDestination = SHEET_ROOT,
+                    modifier = Modifier.fillMaxSize(),
+                    // Deslizado lateral (push) entre pantallas del sheet, como iOS.
+                    enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(280)) },
+                    exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(280)) },
+                    popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) },
+                    popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) }
+                ) {
+                    composable(SHEET_ROOT) { Box(Modifier.fillMaxSize()) }
+
+                    composable(Routes.PROFILE) {
+                        ProfileScreen(
+                            onBack = popSheetOrDismiss,
+                            onEdit = { sheetNav.navigate(Routes.EDIT_PROFILE) },
+                            onSubmissions = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
+                            onAdmin = { openFullScreen(Routes.ADMIN) },
+                            onSavedSchools = { sheetNav.navigate(Routes.SAVED_SCHOOLS) },
+                            onWeekendAlert = { sheetNav.navigate(Routes.WEEKEND_ALERT) },
+                            onOpenFollowers = {
+                                com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                                    sheetNav.navigate(Routes.followList(uid, "followers"))
+                                }
+                            },
+                            onOpenFollowing = {
+                                com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                                    sheetNav.navigate(Routes.followList(uid, "following"))
+                                }
+                            },
+                            onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
+                            onOpenSchoolEntries = { schoolName -> sheetNav.navigate(Routes.journalEntries("school:$schoolName")) },
+                            onOpenBoulders = { sheetNav.navigate(Routes.journalEntries("discipline:BOULDER")) },
+                            onOpenRoutes = { sheetNav.navigate(Routes.journalEntries("discipline:ROUTE")) },
+                            onOpenAllSchools = { sheetNav.navigate(Routes.journalSchools(null)) },
+                            onOpenMaxGrade = { sheetNav.navigate(Routes.journalEntries("grade-max")) }
+                        )
+                    }
+                    composable(Routes.EDIT_PROFILE) {
+                        EditProfileScreen(onBack = popSheetOrDismiss)
+                    }
+                    composable(Routes.MY_SUBMISSIONS) {
+                        MySubmissionsScreen(onBack = popSheetOrDismiss)
+                    }
+                    composable(Routes.SUBMIT_SCHOOL) {
+                        SubmitSchoolScreen(onBack = popSheetOrDismiss)
+                    }
+                    composable(Routes.SAVED_SCHOOLS) {
+                        SavedSchoolsScreen(
+                            onBack = popSheetOrDismiss,
+                            onOpen = { id -> openFullScreen(Routes.schoolDetail(id)) }
+                        )
+                    }
+                    composable(Routes.WEEKEND_ALERT) {
+                        com.meteomontana.android.ui.screens.profile.WeekendAlertScreen(onBack = popSheetOrDismiss)
+                    }
+                    composable(Routes.COMPARE) {
+                        com.meteomontana.android.ui.screens.compare.CompareScreen(
+                            onBack = popSheetOrDismiss,
+                            onSchoolDetail = { id -> openFullScreen(Routes.schoolDetail(id)) }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.DAY_DETAIL,
+                        arguments = listOf(
+                            navArgument("schoolId") { type = NavType.StringType },
+                            navArgument("dayIndex") { type = NavType.StringType }
+                        )
+                    ) { DayDetailScreen(onBack = popSheetOrDismiss) }
+                    composable(
+                        route = Routes.DAY_DETAIL_BY_LOCATION,
+                        arguments = listOf(
+                            navArgument("lat") { type = NavType.StringType },
+                            navArgument("lon") { type = NavType.StringType },
+                            navArgument("dayIndex") { type = NavType.StringType }
+                        )
+                    ) { DayDetailScreen(onBack = popSheetOrDismiss) }
+
+                    composable(
+                        route = Routes.JOURNAL_ENTRIES,
+                        arguments = listOf(
+                            navArgument("filter") { type = NavType.StringType; nullable = true; defaultValue = null },
+                            navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null }
+                        )
+                    ) {
+                        JournalEntriesScreen(
+                            onBack = popSheetOrDismiss,
+                            onOpenSchool = { id, via, viaId -> openFullScreen(Routes.schoolDetail(id, via, viaId)) }
+                        )
+                    }
+                    composable(
+                        route = Routes.JOURNAL_SCHOOLS,
+                        arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
+                    ) { entry ->
+                        val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
+                        JournalSchoolsScreen(
+                            onBack = popSheetOrDismiss,
+                            onSchoolClick = { schoolName ->
+                                sheetNav.navigate(Routes.journalEntries(filter = "school:$schoolName", uid = uid))
+                            }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.PUBLIC_PROFILE,
+                        arguments = listOf(navArgument("uid") { type = NavType.StringType })
+                    ) {
+                        PublicProfileScreen(
+                            onBack = popSheetOrDismiss,
+                            onFollowersClick = { uid -> sheetNav.navigate(Routes.followList(uid, "followers")) },
+                            onFollowingClick = { uid -> sheetNav.navigate(Routes.followList(uid, "following")) },
+                            onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
+                            onOpenBoulders = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "discipline:BOULDER", uid = uid)) },
+                            onOpenRoutes = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "discipline:ROUTE", uid = uid)) },
+                            onOpenMaxGrade = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "grade-max", uid = uid)) },
+                            onOpenSchools = { uid -> sheetNav.navigate(Routes.journalSchools(uid)) },
+                            onOpenSchoolEntries = { uid, schoolName -> sheetNav.navigate(Routes.journalEntries(filter = "school:$schoolName", uid = uid)) }
+                        )
+                    }
+                    composable(
+                        route = Routes.FOLLOW_LIST,
+                        arguments = listOf(
+                            navArgument("uid") { type = NavType.StringType },
+                            navArgument("mode") { type = NavType.StringType }
+                        )
+                    ) {
+                        FollowListScreen(
+                            onBack = popSheetOrDismiss,
+                            onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
+                        )
+                    }
+                    composable(Routes.FOLLOW_REQUESTS) {
+                        FollowRequestsScreen(
+                            onBack = popSheetOrDismiss,
+                            onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
+                        )
+                    }
+
+                    composable(Routes.CHAT_LIST) {
+                        ChatListScreen(
+                            onBack = popSheetOrDismiss,
+                            onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
+                            onOpenGroup = { convId -> sheetNav.navigate(Routes.groupChat(convId)) },
+                            onNewGroup = { sheetNav.navigate(Routes.NEW_GROUP) }
+                        )
+                    }
+                    composable(
+                        route = Routes.CHAT,
+                        arguments = listOf(navArgument("uid") { type = NavType.StringType })
+                    ) {
+                        ChatScreen(
+                            onBack = popSheetOrDismiss,
+                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
+                        )
+                    }
+                    composable(Routes.NEW_GROUP) {
+                        NewGroupScreen(
+                            onBack = popSheetOrDismiss,
+                            onCreated = { convId ->
+                                sheetNav.popBackStack()
+                                sheetNav.navigate(Routes.groupChat(convId))
+                            }
+                        )
+                    }
+                    composable(
+                        route = Routes.GROUP_CHAT,
+                        arguments = listOf(navArgument("convId") { type = NavType.StringType })
+                    ) {
+                        GroupChatScreen(onBack = popSheetOrDismiss)
+                    }
+
+                    composable(Routes.NOTIFICATIONS) {
+                        NotificationsScreen(
+                            onBack = popSheetOrDismiss,
+                            onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
+                            onOpenSchool = { id -> openFullScreen(Routes.schoolDetail(id)) },
+                            onOpenSubmissions = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
+                            onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
+                            onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) }
+                        )
+                    }
+                    composable(Routes.SEARCH_USERS) {
+                        SearchUsersScreen(
+                            onBack = popSheetOrDismiss,
+                            onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
+                        )
+                    }
+                }
+            }
         }
     }
 }

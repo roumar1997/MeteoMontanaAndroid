@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -535,7 +536,7 @@ private fun SectorFormDialog(
     var notes by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
 
-    CumbreDialog(onDismiss = onCancel) {
+    CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
         Text("Nuevo sector",
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
@@ -622,7 +623,7 @@ private fun ParkingFormDialog(
     var notes by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
 
-    CumbreDialog(onDismiss = onCancel) {
+    CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
         Text("Nuevo parking",
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
@@ -734,7 +735,7 @@ private fun BoulderFormDialog(
         ActivityResultContracts.GetContent()
     ) { uri -> if (uri != null) updateFace { it.copy(photoUri = uri) } }
 
-    CumbreDialog(onDismiss = onCancel, scrollable = true) {
+    CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
         Text("Nueva piedra",
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
@@ -1436,24 +1437,25 @@ private fun SuccessDialog(
 private fun CumbreDialog(
     onDismiss: () -> Unit,
     scrollable: Boolean = false,
+    /** Tarjeta a pantalla (casi) completa (formularios), como el resto de sheets. */
+    fullHeight: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    Dialog(
+    // Bottom-sheet flotante (sube desde abajo, esquinas superiores redondeadas,
+    // scrim) — paridad con los .sheet de iOS, en vez de un diálogo centrado.
+    androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.lg)
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                .padding(Spacing.lg)
-        ) {
-            val colMod = if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
-            Column(modifier = colMod) { content() }
-        }
+        val colMod = Modifier
+            .then(if (fullHeight) Modifier.fillMaxWidth()
+                .fillMaxHeight(0.94f) else Modifier)
+            .padding(horizontal = Spacing.lg)
+            .padding(bottom = Spacing.lg)
+            .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+        Column(modifier = colMod) { content() }
     }
 }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -166,22 +167,21 @@ fun NotificationsScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
-                Text("Notificaciones",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    // ¿Hay notificaciones? Solo entonces tienen sentido las acciones
+    // "Marcar leído" / "Borrar todas" (si está vacío, se ocultan).
+    val hasItems = (state as? NotificationsUiState.Success)?.inbox?.items?.isNotEmpty() == true
+
+    Column(modifier = Modifier.fillMaxSize()
+        .background(MaterialTheme.colorScheme.background)) {
+        // Cabecera de sheet (título centrado + "Cerrar"), como Cuenta.
+        com.meteomontana.android.ui.components.SheetHeader("Notificaciones", onClose = onBack)
+        // Acciones en su propia fila a la derecha, solo si hay algo que tocar.
+        if (hasItems) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
                 TextButton(onClick = viewModel::markAllRead) {
                     Text("Marcar leído",
                         color = MaterialTheme.colorScheme.primary,
@@ -193,8 +193,8 @@ fun NotificationsScreen(
                         style = MaterialTheme.typography.labelLarge)
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
             NotificationsUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {

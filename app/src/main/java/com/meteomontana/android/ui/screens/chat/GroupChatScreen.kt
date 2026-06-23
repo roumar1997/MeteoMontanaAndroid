@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -168,17 +169,11 @@ fun GroupChatScreen(
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
-        .statusBarsPadding()
         .imePadding()
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.onBackground)
-            }
-            Column {
+        com.meteomontana.android.ui.components.SheetHeader(onClose = onBack) {
+            Column(modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(state.name, style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground)
                 Text("${state.memberNames.size + 1} miembros",
@@ -186,7 +181,6 @@ fun GroupChatScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         LazyColumn(
             state = listState,
