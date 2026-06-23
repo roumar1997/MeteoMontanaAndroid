@@ -293,6 +293,17 @@ struct NewGroupView: View {
     let onCreated: (String, String) -> Void
     @StateObject private var vm = NewGroupVM()
     @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    // Contactos visibles según la búsqueda (sobre @usuario y nombre).
+    private var shownContacts: [PublicProfile] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return vm.contacts }
+        return vm.contacts.filter {
+            ($0.username ?? "").lowercased().contains(q) ||
+            ($0.displayName ?? "").lowercased().contains(q)
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -310,7 +321,7 @@ struct NewGroupView: View {
                         .multilineTextAlignment(.center).padding(32)
                     Spacer()
                 } else {
-                    List(vm.contacts, id: \.uid) { p in
+                    List(shownContacts, id: \.uid) { p in
                         Button { vm.toggle(p.uid) } label: {
                             HStack(spacing: 12) {
                                 AvatarCircle(url: p.photoUrl, size: 40)
@@ -323,7 +334,9 @@ struct NewGroupView: View {
                                 }
                             }
                         }.buttonStyle(.plain)
-                    }.listStyle(.plain)
+                    }
+                    .listStyle(.plain)
+                    .searchable(text: $query, prompt: "Buscar contacto")
                 }
                 Button { vm.create(onCreated: onCreated) } label: {
                     Group {
