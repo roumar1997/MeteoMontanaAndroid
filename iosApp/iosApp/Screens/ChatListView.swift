@@ -95,11 +95,15 @@ func chatTime(_ millis: Int64) -> String {
 
 /// Destino de navegación al iniciar un chat nuevo desde el picker.
 private struct ChatTarget: Identifiable, Hashable { let uid: String; let name: String; var id: String { uid } }
+/// Destino de navegación a un grupo (recién creado o existente).
+struct GroupTarget: Identifiable, Hashable { let convId: String; let name: String; var id: String { convId } }
 
 struct ChatListView: View {
     @StateObject private var vm = ChatListVM()
     @State private var showPicker = false
     @State private var newChatTarget: ChatTarget?
+    @State private var showNewGroup = false
+    @State private var groupTarget: GroupTarget?
 
     var body: some View {
         Group {
@@ -114,31 +118,8 @@ struct ChatListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
             } else {
                 List(vm.conversations, id: \.id) { c in
-                    let uid = vm.other(c)
-                    let name = vm.name(uid)
-                    NavigationLink(destination: ChatView(otherUid: uid, otherName: name)) {
-                        HStack(spacing: 12) {
-                            AvatarCircle(url: vm.profiles[uid]?.photoUrl, size: 44)
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack {
-                                    Text(name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                    Spacer()
-                                    Text(chatTime(c.lastAtMillis?.int64Value ?? -1))
-                                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-                                }
-                                HStack {
-                                    if let lm = c.lastMessage, !lm.isEmpty {
-                                        Text(lm).font(.system(size: 13)).foregroundStyle(Cumbre.ink3).lineLimit(1)
-                                    }
-                                    Spacer()
-                                    if c.unreadCount > 0 {
-                                        Text("\(c.unreadCount)").font(Cumbre.mono(10, .bold)).foregroundStyle(.white)
-                                            .padding(.horizontal, 6).padding(.vertical, 2)
-                                            .background(Cumbre.terra).clipShape(Capsule())
-                                    }
-                                }
-                            }
-                        }
+                    NavigationLink(destination: convDestination(c)) {
+                        convRow(c)
                     }
                     // Swipe estilo WhatsApp: izquierda → borrar; derecha → no leído.
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -160,6 +141,11 @@ struct ChatListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                Button { showNewGroup = true } label: {
+                    Image(systemName: "person.3").foregroundStyle(Cumbre.terra)
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button { vm.loadContacts(); showPicker = true } label: {
                     Image(systemName: "square.and.pencil").foregroundStyle(Cumbre.terra)
                 }
@@ -171,11 +157,63 @@ struct ChatListView: View {
                 newChatTarget = ChatTarget(uid: uid, name: name)
             }
         }
+        .sheet(isPresented: $showNewGroup) {
+            NewGroupView { convId, name in
+                showNewGroup = false
+                groupTarget = GroupTarget(convId: convId, name: name)
+            }
+        }
         .navigationDestination(item: $newChatTarget) { t in
             ChatView(otherUid: t.uid, otherName: t.name)
         }
+        .navigationDestination(item: $groupTarget) { t in
+            GroupChatView(convId: t.convId, groupName: t.name)
+        }
         .onAppear { vm.start() }
         .onDisappear { vm.stop() }
+    }
+
+    /// Destino de cada fila: grupo o chat 1-a-1.
+    @ViewBuilder private func convDestination(_ c: ChatServiceConversation) -> some View {
+        if c.isGroup {
+            GroupChatView(convId: c.id, groupName: c.name ?? "Grupo")
+        } else {
+            ChatView(otherUid: vm.other(c), otherName: vm.name(vm.other(c)))
+        }
+    }
+
+    /// Fila de la lista: grupo (icono + nombre) o 1-a-1 (avatar + nombre).
+    @ViewBuilder private func convRow(_ c: ChatServiceConversation) -> some View {
+        HStack(spacing: 12) {
+            if c.isGroup {
+                ZStack {
+                    Circle().fill(Cumbre.paper).overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                    Image(systemName: "person.3.fill").font(.system(size: 18)).foregroundStyle(Cumbre.terra)
+                }.frame(width: 44, height: 44)
+            } else {
+                AvatarCircle(url: vm.profiles[vm.other(c)]?.photoUrl, size: 44)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text(c.isGroup ? (c.name ?? "Grupo") : vm.name(vm.other(c)))
+                        .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                    Spacer()
+                    Text(chatTime(c.lastAtMillis?.int64Value ?? -1))
+                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                }
+                HStack {
+                    if let lm = c.lastMessage, !lm.isEmpty {
+                        Text(lm).font(.system(size: 13)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                    }
+                    Spacer()
+                    if c.unreadCount > 0 {
+                        Text("\(c.unreadCount)").font(Cumbre.mono(10, .bold)).foregroundStyle(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Cumbre.terra).clipShape(Capsule())
+                    }
+                }
+            }
+        }
     }
 }
 

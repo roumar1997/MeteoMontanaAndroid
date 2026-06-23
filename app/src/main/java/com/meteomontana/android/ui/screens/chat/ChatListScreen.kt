@@ -21,6 +21,8 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,11 +51,14 @@ import coil.compose.AsyncImage
 fun ChatListScreen(
     onBack: () -> Unit,
     onOpenChat: (otherUid: String) -> Unit,
+    onOpenGroup: (convId: String) -> Unit = {},
+    onNewGroup: () -> Unit = {},
     viewModel: ChatListViewModel = hiltViewModel()
 ) {
     val items by viewModel.items.collectAsState()
     val contacts by viewModel.contacts.collectAsState()
     var showPicker by remember { mutableStateOf(false) }
+    val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -65,6 +70,10 @@ fun ChatListScreen(
             Text("Chats", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
             Spacer(Modifier.weight(1f))
+            IconButton(onClick = onNewGroup) {
+                Icon(Icons.Outlined.GroupAdd, contentDescription = "Nuevo grupo",
+                    tint = MaterialTheme.colorScheme.primary)
+            }
             IconButton(onClick = { viewModel.loadContacts(); showPicker = true }) {
                 Icon(Icons.Outlined.Edit, contentDescription = "Nuevo mensaje",
                     tint = MaterialTheme.colorScheme.primary)
@@ -88,19 +97,32 @@ fun ChatListScreen(
         } else {
             LazyColumn {
                 items(items, key = { it.conversation.id }) { item ->
-                    val other = item.otherProfile
-                    val otherUid = item.conversation.participants.firstOrNull {
-                        it != com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                    } ?: return@items
-                    SwipeableConvRow(
-                        avatarUrl = other?.photoUrl,
-                        name = other?.username ?: other?.displayName ?: otherUid.take(6),
-                        lastMessage = item.conversation.lastMessage ?: "",
-                        unread = item.conversation.unreadCount,
-                        onClick = { onOpenChat(otherUid) },
-                        onDelete = { viewModel.deleteConversation(item.conversation.id) },
-                        onMarkUnread = { viewModel.markUnread(item.conversation.id) }
-                    )
+                    val conv = item.conversation
+                    if (conv.isGroup) {
+                        SwipeableConvRow(
+                            avatarUrl = null,
+                            isGroup = true,
+                            name = conv.name ?: "Grupo",
+                            lastMessage = conv.lastMessage ?: "",
+                            unread = conv.unreadCount,
+                            onClick = { onOpenGroup(conv.id) },
+                            onDelete = { viewModel.deleteConversation(conv.id) },
+                            onMarkUnread = { viewModel.markUnread(conv.id) }
+                        )
+                    } else {
+                        val other = item.otherProfile
+                        val otherUid = conv.participants.firstOrNull { it != myUid } ?: return@items
+                        SwipeableConvRow(
+                            avatarUrl = other?.photoUrl,
+                            isGroup = false,
+                            name = other?.username ?: other?.displayName ?: otherUid.take(6),
+                            lastMessage = conv.lastMessage ?: "",
+                            unread = conv.unreadCount,
+                            onClick = { onOpenChat(otherUid) },
+                            onDelete = { viewModel.deleteConversation(conv.id) },
+                            onMarkUnread = { viewModel.markUnread(conv.id) }
+                        )
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
             }
@@ -183,7 +205,8 @@ private fun SwipeableConvRow(
     unread: Long,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    onMarkUnread: () -> Unit
+    onMarkUnread: () -> Unit,
+    isGroup: Boolean = false
 ) {
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -213,7 +236,7 @@ private fun SwipeableConvRow(
         }
     ) {
         ConvRow(avatarUrl = avatarUrl, name = name, lastMessage = lastMessage,
-            unread = unread, onClick = onClick)
+            unread = unread, onClick = onClick, isGroup = isGroup)
     }
 }
 
@@ -243,7 +266,8 @@ private fun ConvRow(
     name: String,
     lastMessage: String,
     unread: Long,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isGroup: Boolean = false
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
@@ -251,7 +275,15 @@ private fun ConvRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (avatarUrl != null) {
+        if (isGroup) {
+            Box(Modifier.size(44.dp).clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Group, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary)
+            }
+        } else if (avatarUrl != null) {
             AsyncImage(model = avatarUrl, contentDescription = null,
                 modifier = Modifier.size(44.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
@@ -265,7 +297,7 @@ private fun ConvRow(
             )
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text("@$name", style = MaterialTheme.typography.titleMedium,
+            Text(if (isGroup) name else "@$name", style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
             Text(lastMessage, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

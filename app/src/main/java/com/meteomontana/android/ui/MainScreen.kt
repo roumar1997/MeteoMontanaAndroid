@@ -25,6 +25,8 @@ import com.meteomontana.android.navigation.mainTabs
 import com.meteomontana.android.ui.screens.admin.AdminScreen
 import com.meteomontana.android.ui.screens.chat.ChatListScreen
 import com.meteomontana.android.ui.screens.chat.ChatScreen
+import com.meteomontana.android.ui.screens.chat.GroupChatScreen
+import com.meteomontana.android.ui.screens.chat.NewGroupScreen
 import com.meteomontana.android.ui.screens.day.DayDetailScreen
 import com.meteomontana.android.ui.screens.detail.SchoolDetailScreen
 import com.meteomontana.android.ui.screens.saved.SavedSchoolsScreen
@@ -338,7 +340,9 @@ fun MainScreen(
             composable(Routes.CHAT_LIST) {
                 ChatListScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) }
+                    onOpenChat = { uid -> navController.navigate(Routes.chat(uid)) },
+                    onOpenGroup = { convId -> navController.navigate(Routes.groupChat(convId)) },
+                    onNewGroup = { navController.navigate(Routes.NEW_GROUP) }
                 )
             }
             composable(
@@ -349,6 +353,22 @@ fun MainScreen(
                     onBack = { navController.popBackStack() },
                     onOpenProfile = { uid -> navController.navigate(Routes.publicProfile(uid)) }
                 )
+            }
+            composable(Routes.NEW_GROUP) {
+                NewGroupScreen(
+                    onBack = { navController.popBackStack() },
+                    onCreated = { convId ->
+                        // Reemplaza la pantalla de creación por el chat del grupo.
+                        navController.popBackStack()
+                        navController.navigate(Routes.groupChat(convId))
+                    }
+                )
+            }
+            composable(
+                route = Routes.GROUP_CHAT,
+                arguments = listOf(navArgument("convId") { type = NavType.StringType })
+            ) {
+                GroupChatScreen(onBack = { navController.popBackStack() })
             }
             composable(
                 route = Routes.TOPO_EDITOR,

@@ -1,0 +1,350 @@
+import SwiftUI
+import Shared
+
+// MARK: - Chat de grupo (por convId). Espejo de GroupChatScreen.kt.
+
+@MainActor
+final class GroupChatVM: ObservableObject {
+    let convId: String
+    @Published var groupName: String
+    @Published var messages: [ChatServiceChatMessage] = []
+    @Published var memberNames: [String: String] = [:]
+    @Published var canWrite = true
+    @Published var draft = ""
+    @Published var loading = true
+    @Published var replyingTo: ChatServiceChatMessage?
+
+    private let chat = AppDependencies.shared.container.chatService
+    private let chatPush = AppDependencies.shared.container.chatPushApi
+    private let getProfile = AppDependencies.shared.container.getPublicProfile
+    private var task: Task<Void, Never>?
+    private var convTask: Task<Void, Never>?
+    var me: String { AppDependencies.shared.authBridge.currentUid() ?? "" }
+
+    init(convId: String, groupName: String) {
+        self.convId = convId
+        self.groupName = groupName
+    }
+
+    func start() {
+        guard task == nil, let chat else { loading = false; return }
+        task = Task { [weak self] in
+            for await msgs in chat.observeMessages(convId: self?.convId ?? "") {
+                guard let self else { return }
+                await self.resolveNames(msgs.map { $0.fromUid })
+                self.messages = msgs
+                self.loading = false
+                try? await chat.markRead(convId: self.convId)
+            }
+        }
+        convTask = Task { [weak self] in
+            for await convs in chat.observeMyConversations() {
+                guard let self else { return }
+                guard let conv = convs.first(where: { $0.id == self.convId }) else { continue }
+                let parts = conv.participants.compactMap { $0 as? String }
+                await self.resolveNames(parts)
+                self.groupName = conv.name ?? self.groupName
+                self.canWrite = parts.contains(self.me)
+            }
+        }
+    }
+
+    private func resolveNames(_ uids: [String]) async {
+        for uid in Set(uids) where uid != me && memberNames[uid] == nil {
+            if let p = try? await getProfile.invoke(uid: uid) {
+                memberNames[uid] = p.username ?? p.displayName ?? String(uid.prefix(6))
+            }
+        }
+    }
+
+    func nameFor(_ uid: String) -> String {
+        uid == me ? "Tú" : (memberNames[uid] ?? "")
+    }
+
+    func startReply(_ m: ChatServiceChatMessage) { replyingTo = m }
+    func cancelReply() { replyingTo = nil }
+
+    func send() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, let chat else { return }
+        draft = ""
+        let reply = replyingTo
+        replyingTo = nil
+        Task { [weak self] in
+            guard let self else { return }
+            try? await chat.sendGroupMessage(convId: self.convId, text: text,
+                                             replyToId: reply?.id, replyText: reply?.text,
+                                             replyFromUid: reply?.fromUid)
+            try? await self.chatPush.notifyGroup(convId: self.convId, preview: text)
+        }
+    }
+
+    func stop() { task?.cancel(); task = nil; convTask?.cancel(); convTask = nil }
+}
+
+struct GroupChatView: View {
+    @StateObject private var vm: GroupChatVM
+    @FocusState private var inputFocused: Bool
+
+    init(convId: String, groupName: String) {
+        _vm = StateObject(wrappedValue: GroupChatVM(convId: convId, groupName: groupName))
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if vm.loading {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(vm.messages, id: \.id) { m in
+                                GroupMessageRow(m: m, me: vm.me,
+                                                senderName: vm.nameFor(m.fromUid),
+                                                nameFor: { vm.nameFor($0) },
+                                                onReply: { vm.startReply(m) }).id(m.id)
+                            }
+                        }
+                        .padding(16)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    .onChange(of: vm.messages.count) { _ in scrollToLast(proxy) }
+                    .onChange(of: vm.loading) { _ in scrollToLast(proxy) }
+                    .onChange(of: inputFocused) { f in if f { scrollToLast(proxy) } }
+                    .onAppear { scrollToLast(proxy) }
+                }
+            }
+            if let r = vm.replyingTo {
+                let who = vm.nameFor(r.fromUid)
+                HStack(spacing: 8) {
+                    Rectangle().fill(Cumbre.terra).frame(width: 3, height: 34)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Respondiendo a \(who)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                        Text(r.text).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(1)
+                    }
+                    Spacer()
+                    Button { vm.cancelReply() } label: {
+                        Image(systemName: "xmark.circle.fill").font(.system(size: 20)).foregroundStyle(Cumbre.ink3)
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(Cumbre.paper)
+                .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
+            }
+            if vm.canWrite {
+                inputBar
+            } else {
+                Text("Ya no eres miembro de este grupo")
+                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                    .frame(maxWidth: .infinity).padding(12)
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 0) {
+                    Text(vm.groupName).font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
+                    Text("\(vm.memberNames.count + 1) miembros").font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                }
+            }
+        }
+        .onAppear { vm.start() }
+        .onDisappear { vm.stop() }
+    }
+
+    private func scrollToLast(_ proxy: ScrollViewProxy) {
+        guard let last = vm.messages.last else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last.id, anchor: .bottom) }
+        }
+    }
+
+    private var inputBar: some View {
+        HStack(spacing: 8) {
+            TextField("Mensaje…", text: $vm.draft, axis: .vertical)
+                .lineLimit(1...4).font(.system(size: 15))
+                .focused($inputFocused)
+                .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            Button { vm.send() } label: {
+                Image(systemName: "arrow.up.circle.fill").font(.system(size: 30)).foregroundStyle(Cumbre.terra)
+            }
+            .disabled(vm.draft.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        .padding(12)
+        .background(Cumbre.bg)
+        .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
+    }
+}
+
+/// Burbuja de grupo: muestra el nombre del emisor (en mensajes de otros),
+/// deslizar-para-responder y la cita si es respuesta.
+private struct GroupMessageRow: View {
+    let m: ChatServiceChatMessage
+    let me: String
+    let senderName: String
+    let nameFor: (String) -> String
+    let onReply: () -> Void
+
+    @State private var dragX: CGFloat = 0
+    @State private var triggered = false
+
+    var body: some View {
+        let mine = m.fromUid == me
+        let time = chatTime(m.createdAtMillis?.int64Value ?? -1)
+        return ZStack(alignment: .leading) {
+            Image(systemName: "arrowshape.turn.up.left.fill")
+                .font(.system(size: 14)).foregroundStyle(Cumbre.terra)
+                .opacity(Double(min(dragX / 56, 1))).padding(.leading, 8)
+            HStack {
+                if mine { Spacer(minLength: 40) }
+                VStack(alignment: mine ? .trailing : .leading, spacing: 2) {
+                    if !mine && !senderName.isEmpty {
+                        Text(senderName).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+                    }
+                    if let rid = m.replyToId, let rtext = m.replyText, !rid.isEmpty {
+                        let who = nameFor(m.replyFromUid ?? "")
+                        VStack(alignment: .leading, spacing: 1) {
+                            if !who.isEmpty {
+                                Text(who).font(Cumbre.mono(9, .bold))
+                                    .foregroundStyle(mine ? .white.opacity(0.9) : Cumbre.ink2)
+                            }
+                            Text(rtext).font(.system(size: 12))
+                                .foregroundStyle(mine ? .white.opacity(0.85) : Cumbre.ink2).lineLimit(1)
+                        }
+                        .padding(.horizontal, 6).padding(.vertical, 4)
+                        .background((mine ? Color.white : Cumbre.ink).opacity(0.12))
+                        .overlay(Rectangle().frame(width: 2)
+                            .foregroundStyle(mine ? Color.white.opacity(0.6) : Cumbre.terra), alignment: .leading)
+                    }
+                    Text(m.text)
+                        .font(.system(size: 15))
+                        .foregroundStyle(mine ? .white : Cumbre.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(mine ? Cumbre.terra : Cumbre.paper)
+                        .overlay(Rectangle().stroke(mine ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                    if !time.isEmpty {
+                        Text(time).font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                    }
+                }
+                if !mine { Spacer(minLength: 40) }
+            }
+            .offset(x: dragX)
+            .gesture(
+                DragGesture(minimumDistance: 12)
+                    .onChanged { v in
+                        let t = max(0, min(v.translation.width, 80))
+                        dragX = t
+                        if t < 56 { triggered = false }
+                    }
+                    .onEnded { _ in
+                        if dragX >= 56 && !triggered { triggered = true; onReply() }
+                        withAnimation(.easeOut(duration: 0.2)) { dragX = 0 }
+                    }
+            )
+        }
+    }
+}
+
+// MARK: - Crear grupo (elegir miembros + nombre)
+
+@MainActor
+final class NewGroupVM: ObservableObject {
+    @Published var contacts: [PublicProfile] = []
+    @Published var selected: Set<String> = []
+    @Published var name = ""
+    @Published var creating = false
+
+    private let chatPush = AppDependencies.shared.container.chatPushApi
+
+    func load() {
+        guard contacts.isEmpty else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            let c = AppDependencies.shared.container
+            let me = AppDependencies.shared.authBridge.currentUid() ?? ""
+            let followers = (try? await c.getFollowers.invoke(uid: me)) ?? []
+            let following = (try? await c.getFollowing.invoke(uid: me)) ?? []
+            var seen = Set<String>()
+            self.contacts = (followers + following)
+                .filter { seen.insert($0.uid).inserted }
+                .sorted { ($0.displayName ?? $0.username ?? "") < ($1.displayName ?? $1.username ?? "") }
+        }
+    }
+
+    func toggle(_ uid: String) {
+        if selected.contains(uid) { selected.remove(uid) } else { selected.insert(uid) }
+    }
+
+    func create(onCreated: @escaping (String, String) -> Void) {
+        let n = name.trimmingCharacters(in: .whitespaces)
+        guard !n.isEmpty, !selected.isEmpty, !creating else { return }
+        creating = true
+        Task { [weak self] in
+            guard let self else { return }
+            let convId = try? await self.chatPush.createGroup(name: n, memberUids: Array(self.selected))
+            self.creating = false
+            if let convId { onCreated(convId, n) }
+        }
+    }
+}
+
+struct NewGroupView: View {
+    let onCreated: (String, String) -> Void
+    @StateObject private var vm = NewGroupVM()
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                TextField("Nombre del grupo", text: $vm.name)
+                    .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    .padding(16)
+                Text("ELIGE MIEMBROS (\(vm.selected.count))")
+                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16)
+                if vm.contacts.isEmpty {
+                    Spacer()
+                    Text("Sigue a alguien (o que te sigan) para añadir miembros.")
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                        .multilineTextAlignment(.center).padding(32)
+                    Spacer()
+                } else {
+                    List(vm.contacts, id: \.uid) { p in
+                        Button { vm.toggle(p.uid) } label: {
+                            HStack(spacing: 12) {
+                                AvatarCircle(url: p.photoUrl, size: 40)
+                                Text(p.displayName ?? p.username ?? "Usuario")
+                                    .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                                Spacer()
+                                if vm.selected.contains(p.uid) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(Cumbre.terra)
+                                }
+                            }
+                        }.buttonStyle(.plain)
+                    }.listStyle(.plain)
+                }
+                Button { vm.create(onCreated: onCreated) } label: {
+                    Group {
+                        if vm.creating { ProgressView().tint(.white) }
+                        else { Text("CREAR GRUPO").font(Cumbre.mono(13, .bold)).foregroundStyle(.white) }
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(canCreate ? Cumbre.terra : Cumbre.ink3)
+                }
+                .disabled(!canCreate)
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Nuevo grupo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+            .onAppear { vm.load() }
+        }
+    }
+
+    private var canCreate: Bool {
+        !vm.name.trimmingCharacters(in: .whitespaces).isEmpty && !vm.selected.isEmpty && !vm.creating
+    }
+}
