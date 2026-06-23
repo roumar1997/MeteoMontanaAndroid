@@ -1,6 +1,8 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,6 +72,7 @@ private fun HourCell(h: HourForecast) {
             modifier = Modifier
                 .padding(vertical = 4.dp)
                 .size(width = 56.dp, height = 36.dp)
+                .clip(RoundedCornerShape(6.dp))
                 .background(scoreColor(h.score)),
             contentAlignment = Alignment.Center
         ) {

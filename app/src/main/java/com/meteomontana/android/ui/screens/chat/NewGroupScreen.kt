@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -96,6 +97,7 @@ fun NewGroupScreen(
     val creating by viewModel.creating.collectAsState()
     var name by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(setOf<String>()) }
+    var query by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -121,15 +123,42 @@ fun NewGroupScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
 
+        // Buscador: filtra tus contactos (seguidores + seguidos) por nombre.
+        if (contacts.isNotEmpty()) {
+            OutlinedTextField(
+                value = query, onValueChange = { query = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                placeholder = { Text("Buscar contacto") },
+                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                singleLine = true
+            )
+        }
+
+        // Contactos visibles según la búsqueda (case-insensitive sobre @usuario y nombre).
+        val shown = remember(contacts, query) {
+            val q = query.trim().lowercase()
+            if (q.isBlank()) contacts
+            else contacts.filter {
+                (it.username ?: "").lowercase().contains(q) ||
+                    (it.displayName ?: "").lowercase().contains(q)
+            }
+        }
+
         if (contacts.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) {
                 Text("Sigue a alguien (o que te sigan) para añadir miembros.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(24.dp))
             }
+        } else if (shown.isEmpty()) {
+            Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) {
+                Text("Ningún contacto coincide con «${query.trim()}».",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(24.dp))
+            }
         } else {
             LazyColumn(Modifier.weight(1f)) {
-                items(contacts, key = { it.uid }) { p ->
+                items(shown, key = { it.uid }) { p ->
                     val isSel = p.uid in selected
                     Row(
                         Modifier.fillMaxWidth()

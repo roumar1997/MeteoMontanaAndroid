@@ -40,6 +40,9 @@ import android.graphics.Typeface
 import android.net.Uri
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -125,7 +128,8 @@ fun SchoolMap(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.onBackground, RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(2.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                 .clickable { expanded = !expanded }
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             contentAlignment = Alignment.CenterStart
@@ -139,16 +143,27 @@ fun SchoolMap(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
-                    Text(if (expanded) "▲" else "▼",
-                        color = MaterialTheme.colorScheme.background,
-                        style = MaterialTheme.typography.labelLarge)
+                    Icon(
+                        Icons.Outlined.Map,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Text("MAPA DE LA ESCUELA",
-                        color = MaterialTheme.colorScheme.background,
+                        color = MaterialTheme.colorScheme.onSurface,
                         style = EyebrowTextStyle)
                 }
-                Text("${blocks.size} elementos",
-                    color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.labelMedium)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Text("${blocks.size} elementos",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium)
+                    Text(if (expanded) "▲" else "▼",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
 

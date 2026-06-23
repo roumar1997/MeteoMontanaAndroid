@@ -28,7 +28,8 @@ fun SchoolFiltersBar(
     onRockToggle: (String) -> Unit,
     onOnlyFavorites: (Boolean) -> Unit,
     onSort: (SortBy) -> Unit,
-    onOnlySavedOffline: (Boolean) -> Unit = {}
+    onOnlySavedOffline: (Boolean) -> Unit = {},
+    onClearRocks: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -50,28 +51,55 @@ fun SchoolFiltersBar(
                 onClick = onStyle
             )
         }
+        // TIPO DE ROCA con chip "Todas" al principio (limpia la selección), como iOS.
         Section("TIPO DE ROCA") {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    CumbreChip(
+                        label = "Todas",
+                        selected = filters.rockTypes.isEmpty(),
+                        onClick = onClearRocks
+                    )
+                }
+                items(ROCK_TYPES) { rock ->
+                    CumbreChip(
+                        label = rock,
+                        selected = rock in filters.rockTypes,
+                        onClick = { onRockToggle(rock) }
+                    )
+                }
+            }
+        }
+        // MOSTRAR: una sola fila tri-estado (Todas/Favoritos/Guardados), como iOS.
+        Section("MOSTRAR") {
+            val current = when {
+                filters.onlyFavorites -> "Favoritos"
+                filters.onlySavedOffline -> "Guardados"
+                else -> "Todas"
+            }
             ChipRow(
-                items = ROCK_TYPES,
-                isSelected = { it in filters.rockTypes },
+                items = listOf("Todas", "Favoritos", "Guardados"),
+                isSelected = { it == current },
                 label = { it },
-                onClick = onRockToggle
-            )
-        }
-        Section("FAVORITOS") {
-            ChipRow(
-                items = listOf(false, true),
-                isSelected = { it == filters.onlyFavorites },
-                label = { if (it) "Solo favoritos ★" else "Todos" },
-                onClick = onOnlyFavorites
-            )
-        }
-        Section("OFFLINE") {
-            ChipRow(
-                items = listOf(false, true),
-                isSelected = { it == filters.onlySavedOffline },
-                label = { if (it) "Solo guardadas ▼" else "Todas" },
-                onClick = onOnlySavedOffline
+                onClick = { sel ->
+                    when (sel) {
+                        "Favoritos" -> {
+                            if (filters.onlySavedOffline) onOnlySavedOffline(false)
+                            onOnlyFavorites(true)
+                        }
+                        "Guardados" -> {
+                            if (filters.onlyFavorites) onOnlyFavorites(false)
+                            onOnlySavedOffline(true)
+                        }
+                        else -> {
+                            if (filters.onlyFavorites) onOnlyFavorites(false)
+                            if (filters.onlySavedOffline) onOnlySavedOffline(false)
+                        }
+                    }
+                }
             )
         }
         Section("ORDENAR POR") {

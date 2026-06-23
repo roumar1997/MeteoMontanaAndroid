@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -172,6 +173,7 @@ internal fun AddLinesFlow(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight(0.94f)   // tarjeta a pantalla (casi) completa, como el resto
                 .padding(horizontal = Spacing.md)
                 .clip(RoundedCornerShape(4.dp))
                 .background(MaterialTheme.colorScheme.surface)

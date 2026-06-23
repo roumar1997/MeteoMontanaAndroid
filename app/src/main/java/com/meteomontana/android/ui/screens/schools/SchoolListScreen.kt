@@ -185,7 +185,8 @@ fun SchoolListScreen(
                     onRockToggle    = viewModel::toggleRock,
                     onOnlyFavorites = viewModel::setOnlyFavorites,
                     onOnlySavedOffline = viewModel::setOnlySavedOffline,
-                    onSort          = viewModel::setSort
+                    onSort          = viewModel::setSort,
+                    onClearRocks    = viewModel::clearRocks
                 )
             }
 
