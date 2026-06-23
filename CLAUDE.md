@@ -534,6 +534,43 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-23 — Open-Meteo blindado + grupos completos + features verificadas
+
+Continuación de la (2). Todo verificado (Android build + iOS CI verdes; backend
+compila y desplegado).
+
+- **Open-Meteo — incendio apagado y blindado** (backend, `MeteoMontanaAPI`):
+  - **Diagnóstico**: prod daba 503 ("429 del servicio meteo"); Open-Meteo iba
+    bien (200 directo). Causa: tras un redeploy, cargar scores de ~191 escuelas
+    de golpe (caché en memoria vacía) → ~191 peticiones → superaba 600/min → 429
+    → cooldown → todo caído.
+  - **Fix 1 (en prod)**: `OpenMeteoClient` hace **batch multi-localización**
+    (lotes de 100 → ~4 calls en vez de 191).
+  - **Fix 2 (en prod, idea de Rodrigo)**: **prefetch horario + caché persistente
+    Postgres**. `ForecastPrefetchScheduler` (@Scheduled "0 5 * * * *" + @Async al
+    arrancar) refresca todas las escuelas cada hora con ~4 calls y guarda el JSON
+    crudo en tabla `forecast_cache` (V30, `ForecastStore`). `fetchForecast`:
+    memoria → tabla(<6h) → vivo → si 429 sirve dato guardado. Uso Open-Meteo
+    constante ~96/día pasen N usuarios; la tabla sobrevive a redeploys (no más
+    pico). Verificado: prod cachea 190 escuelas en <1s. Ver memoria
+    [[railway-openmeteo-ops]].
+- **Features #1/#2/#3** (de la sesión (2)): verificadas en Android + iOS CI, en
+  `main` del app. (Bug "Solicitado", responder mensajes deslizando, aviso
+  pendientes admin.)
+- **#4 Grupos de chat — COMPLETO y funcional en staging**:
+  - App (`main`): `NewGroupScreen`/`GroupChatScreen` (Android), `NewGroupView`/
+    `GroupChatView` (iOS), lista muestra grupos. Aditivo, no toca el 1-a-1.
+  - Backend (**solo en `develop`/staging**, NO en prod): `POST /api/chat/group`
+    + `/api/chat/notify-group` (Admin SDK crea el doc; autoriza miembros por
+    follow/público). `ChatRepository.createGroup/participantsOf`.
+  - **Reglas Firestore** (desplegadas a prod, compartido): mensajes de grupo
+    autorizados por `participants` del doc (el 1-a-1 sigue por `convId.split`).
+    **Verificado: 1-a-1 sigue funcionando** tras el deploy.
+  - Se prueba con un build **debug** (→ staging). Para sacarlo a los testers:
+    desplegar backend grupos a **prod** + nueva versión release de la app.
+- **Pendientes**: limpiar warning de función muerta en `firestore.rules`
+  (`isParticipantByConvId`); rotar contraseñas de las BD Railway.
+
 ### Sesión 2026-06-22 (2) — lote de features (bug follow, responder chat, aviso admin, base grupos)
 
 Lote pedido por Rodrigo ("hazlas todas, mañana reviso"). App repo compila
