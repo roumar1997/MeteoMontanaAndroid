@@ -534,6 +534,53 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-23 (2) — fix grupos (no se creaban), pulido chat, release v1.3 + .ipa prod
+
+Rodrigo probó la actu de Play (v1.2): los grupos NO se creaban y la flecha de
+responder salía fija. Diagnóstico, fix y nueva release. Todo en `main` (app + API),
+backend ya redesplegado en prod (Railway `UP`). AAB v1.3 firmado + `.ipa` de
+PRODUCCIÓN servido al iPhone.
+
+- **Bug grupos — CAUSA RAÍZ (backend), arreglado en prod**: al crear el grupo el
+  doc Firestore no llevaba `lastAt`. La query de las apps
+  (`observeMyConversations`) ordena por `lastAt` y **Firestore EXCLUYE de un
+  orderBy los documentos que no tienen ese campo** → el grupo recién creado no
+  aparecía en la lista ni en `GroupChatScreen` (salía "Grupo / 1 miembros / Ya no
+  eres miembro" y `canWrite=false`, deadlock: no podías escribir para sembrar el
+  `lastAt`). Fix: `FirestoreChatRepository.createGroup` ahora escribe
+  `lastAt`+`lastMessage`+`lastFromUid` al crear el doc. Mergeado a `main` (prod) y
+  `develop` (staging) en `MeteoMontanaAPI`. **El backend de grupos YA estaba en
+  prod** (la bitácora previa decía "solo staging" pero main ya lo tenía); el bug
+  era SOLO el `lastAt`. Las reglas Firestore ya soportaban grupos (read/update por
+  `resource.data.participants`, mensajes por `inConversation()`). Todo miembro del
+  grupo (público o con follow con el creador; el backend filtra el resto) puede
+  escribir.
+- **Chat — flecha de responder solo al deslizar** (Android): en `MessageBubble`
+  (`ChatScreen.kt`) y `GroupMessageBubble` (`GroupChatScreen.kt`) el icono `Reply`
+  se pintaba SIEMPRE en `CenterStart`; como mis mensajes van a la derecha, el
+  hueco izquierdo dejaba la flecha visible permanentemente. Fix: alpha
+  proporcional al desplazamiento (`offsetX/threshold`), invisible en reposo —
+  igual que iOS.
+- **Número del score SIEMPRE en blanco** (`scoreTextColor` en `Color.kt`): antes
+  los scores 40-79 usaban texto casi-negro, ilegible sobre el naranja de 40-59.
+  Ahora `Color.White` siempre (paridad con iOS). Afecta grid horario, grid de
+  favoritas y widget (todos sobre fondo sólido `scoreColor`).
+- **Release v1.3**: `versionCode 5→6`, `versionName 1.2→1.3`. AAB firmado en
+  `app/build/outputs/bundle/release/app-release.aab` (repo principal; el `.jks`
+  está en su raíz, NO en el worktree). Para subir al canal Closed testing "Alpha".
+- **`.ipa` de PRODUCCIÓN (nuevo flujo)**: el CI normal (`ios-ci.yml`) compila
+  Debug→staging. Añadido `.github/workflows/ios-prod-ipa.yml` MANUAL
+  (`workflow_dispatch`) que compila `-configuration Release` → backend producción
+  (artifact `ios-app-prod-unsigned-ipa`). Verificado sobre el binario: contiene
+  `api.climbingteams.com` y CERO apariciones de la URL de staging (el `#if DEBUG`
+  compila fuera staging) → el split prod/staging funciona. El `.ipa` Release pesa
+  ~16 MB (menos que el Debug de ~21 MB) porque Release hace strip de símbolos +
+  elimina código muerto; está completo (frameworks MapLibre/Firestore/grpc
+  embebidos, binario 45 MB con el framework KMP `Shared` estático dentro). Servido
+  en `http://192.168.0.12:8000/MeteoMontana.ipa` para AltStore.
+- **Pendiente**: que Google apruebe/despliegue la v1.3 en Play. Probar grupos
+  end-to-end en dispositivo (no testeado en runtime, solo análisis + builds verdes).
+
 ### Sesión 2026-06-23 — Open-Meteo blindado + grupos completos + features verificadas
 
 Continuación de la (2). Todo verificado (Android build + iOS CI verdes; backend
