@@ -2,7 +2,6 @@ package com.meteomontana.android.ui.screens.weather
 
 import android.Manifest
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,15 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,7 +33,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.meteomontana.android.domain.model.FavoriteSchool
-import com.meteomontana.android.domain.model.Place
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.components.FavoritesGridTable
 import com.meteomontana.android.ui.components.forecastBody
@@ -50,9 +44,6 @@ fun WeatherScreen(
     viewModel: WeatherViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val query by viewModel.query.collectAsState()
-    val placeResults by viewModel.placeResults.collectAsState()
-    val placeName by viewModel.selectedPlaceName.collectAsState()
     val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_COARSE_LOCATION)
 
     LaunchedEffect(locationPermission.status.isGranted) {
@@ -60,48 +51,29 @@ fun WeatherScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Cabecera única: "Tiempo" + de dónde es el dato (pueblo buscado, favorita
-        // o tu ubicación) + buscador de pueblos (siempre visible).
-        val subtitle = when (val s = state) {
-            is WeatherUiState.Success ->
-                placeName ?: (if (s.selectedFavoriteId == null) "En tu ubicación"
-                              else s.favorites.firstOrNull { it.id == s.selectedFavoriteId }?.name ?: "")
-            else -> ""
-        }
-        TopBar(title = "Tiempo", subtitle = subtitle)
-        PlaceSearchBar(
-            query = query,
-            onQueryChange = viewModel::onQueryChange,
-            results = placeResults,
-            onSelect = viewModel::selectPlace
-        )
-        if (placeName != null) {
-            Text(
-                "↩ Volver a mi ubicación",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxWidth()
-                    .clickable { viewModel.clearSearchedPlace() }
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-
         when (val s = state) {
             WeatherUiState.Loading -> {
+                TopBar(title = "Tiempo", subtitle = "")
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
             WeatherUiState.NeedPermission -> {
+                TopBar(title = "Tiempo", subtitle = "")
                 PermissionPrompt { locationPermission.launchPermissionRequest() }
             }
             is WeatherUiState.Error -> {
+                TopBar(title = "Tiempo", subtitle = "")
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
                 }
             }
             is WeatherUiState.Success -> {
+                TopBar(
+                    title = "Tiempo",
+                    subtitle = if (s.selectedFavoriteId == null) "En tu ubicación"
+                               else s.favorites.firstOrNull { it.id == s.selectedFavoriteId }?.name ?: ""
+                )
                 if (s.favorites.isNotEmpty()) {
                     FavoriteChips(s.favorites, s.selectedFavoriteId, viewModel::selectFavorite)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -137,41 +109,6 @@ private fun TopBar(title: String, subtitle: String) {
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-}
-
-@Composable
-private fun PlaceSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    results: List<Place>,
-    onSelect: (Place) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            singleLine = true,
-            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-            placeholder = { Text("Buscar pueblo o ciudad…") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (results.isNotEmpty()) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                results.take(6).forEach { place ->
-                    Text(
-                        place.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 2,
-                        modifier = Modifier.fillMaxWidth()
-                            .clickable { onSelect(place) }
-                            .padding(vertical = 10.dp, horizontal = 4.dp)
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                }
-            }
-        }
-    }
 }
 
 @Composable
