@@ -21,6 +21,12 @@ final class WeatherViewModel: ObservableObject {
     @Published var favorites: [FavoriteSchool] = []
     @Published var selectedFavoriteId: String?   // nil = ubicación
 
+    // Buscador del tiempo por pueblos.
+    @Published var query = ""
+    @Published var placeResults: [Place] = []
+    @Published var selectedPlaceName: String?
+    private var searchTask: Task<Void, Never>?
+
     private let container = AppDependencies.shared.container
     private let bridge = AppDependencies.shared.locationBridge
 
@@ -56,7 +62,46 @@ final class WeatherViewModel: ObservableObject {
     }
 
     func selectFavorite(_ id: String?) {
+        selectedPlaceName = nil
         selectedFavoriteId = id
+        Task { await load() }
+    }
+
+    /// Buscador de pueblos (con debounce).
+    func onQueryChange(_ q: String) {
+        query = q
+        searchTask?.cancel()
+        let trimmed = q.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { placeResults = []; return }
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            if Task.isCancelled { return }
+            let res = (try? await container.searchPlaces.invoke(query: trimmed)) ?? []
+            if !Task.isCancelled { placeResults = res }
+        }
+    }
+
+    /// Elige un pueblo del buscador → muestra su tiempo.
+    func selectPlace(_ p: Place) {
+        query = ""
+        placeResults = []
+        selectedFavoriteId = nil
+        selectedPlaceName = p.name.components(separatedBy: ",").first?
+            .trimmingCharacters(in: .whitespaces) ?? p.name
+        Task {
+            state = .loading
+            do {
+                let f = try await container.getForecastByLocation.invoke(lat: p.lat, lon: p.lon, schoolId: nil)
+                state = .success(f)
+            } catch { state = .error(error.localizedDescription) }
+        }
+    }
+
+    /// Vuelve a mi ubicación (limpia el pueblo buscado).
+    func clearSearchedPlace() {
+        selectedPlaceName = nil
+        query = ""
+        placeResults = []
         Task { await load() }
     }
 
@@ -77,6 +122,7 @@ struct WeatherView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            searchBar
             if !vm.favorites.isEmpty { favoriteChips }
             Divider().overlay(Cumbre.rule).padding(.top, 8)
             content
@@ -90,12 +136,52 @@ struct WeatherView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Tiempo").font(Cumbre.serif(34, .bold)).foregroundStyle(Cumbre.ink)
-                Text(vm.selectedName ?? "En tu ubicación")
+                Text(vm.selectedPlaceName ?? vm.selectedName ?? "En tu ubicación")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
         }
         .padding(.horizontal, 16).padding(.top, 8)
+    }
+
+    private var searchBar: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink3)
+                TextField("Buscar pueblo o ciudad…",
+                          text: Binding(get: { vm.query }, set: { vm.onQueryChange($0) }))
+                    .textInputAutocapitalization(.words)
+                    .foregroundStyle(Cumbre.ink)
+            }
+            .padding(10)
+            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .padding(.horizontal, 16).padding(.top, 8)
+
+            if !vm.placeResults.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(Array(vm.placeResults.prefix(6).enumerated()), id: \.offset) { _, p in
+                        Button { vm.selectPlace(p) } label: {
+                            Text(p.name).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 10)
+                        }.buttonStyle(.plain)
+                        Divider().overlay(Cumbre.rule)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+
+            if vm.selectedPlaceName != nil {
+                Button { vm.clearSearchedPlace() } label: {
+                    Text("↩ Volver a mi ubicación")
+                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16).padding(.top, 6)
+            }
+        }
     }
 
     private var favoriteChips: some View {

@@ -260,13 +260,22 @@ class SchoolListViewModel @Inject constructor(
                 return@launch
             }
             // Filtrado 100% local sobre el catálogo en memoria — cero red.
-            var list = allSchools.asSequence()
-                .filter { f.style.apiValue == null || f.style.apiValue.equals(it.style, ignoreCase = true) }
-                .filter { f.rockTypes.isEmpty() || f.rockTypes.any { r -> r.equals(it.rockType, ignoreCase = true) } }
-                .filter { f.maxDistanceKm == null || Geo.haversineKm(userLat, userLon, it.lat, it.lon) <= f.maxDistanceKm }
-                .toList()
-            list = filterQuery(list, f.query)
-            if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
+            // Si hay BÚSQUEDA por texto, manda el nombre por encima de TODO: busca
+            // en el catálogo completo ignorando distancia/estilo/roca/favoritos.
+            // (Si escribes "Albarracín" debe salir aunque esté a 50 km y tengas
+            // un radio menor; los filtros son para explorar, el texto para ir a lo
+            // que sabes que existe.)
+            var list: List<School>
+            if (f.query.isNotBlank()) {
+                list = filterQuery(allSchools, f.query)
+            } else {
+                list = allSchools.asSequence()
+                    .filter { f.style.apiValue == null || f.style.apiValue.equals(it.style, ignoreCase = true) }
+                    .filter { f.rockTypes.isEmpty() || f.rockTypes.any { r -> r.equals(it.rockType, ignoreCase = true) } }
+                    .filter { f.maxDistanceKm == null || Geo.haversineKm(userLat, userLon, it.lat, it.lon) <= f.maxDistanceKm }
+                    .toList()
+                if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
+            }
 
             // Cargar scores en background para todas las visibles (lotes).
             // Modo tramo (días elegidos) → range-scores; si no, today-scores.

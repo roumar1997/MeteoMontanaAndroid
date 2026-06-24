@@ -160,13 +160,6 @@ fun GroupChatScreen(
     val listState = rememberLazyListState()
     var text by remember { mutableStateOf("") }
 
-    LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            kotlinx.coroutines.delay(50)
-            listState.animateScrollToItem(state.messages.size - 1)
-        }
-    }
-
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
         .imePadding()
@@ -182,13 +175,16 @@ fun GroupChatScreen(
             }
         }
 
+        // reverseLayout: nuevo abajo siempre + historial hacia arriba natural
+        // (ver nota en ChatScreen). Lista en orden inverso.
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),
+            reverseLayout = true,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            items(state.messages, key = { it.id }) { msg ->
+            items(state.messages.reversed(), key = { it.id }) { msg ->
                 GroupMessageBubble(
                     msg = msg,
                     myUid = state.myUid,

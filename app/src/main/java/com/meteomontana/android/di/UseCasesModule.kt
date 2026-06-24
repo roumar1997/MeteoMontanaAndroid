@@ -102,6 +102,10 @@ object UseCasesModule {
     fun provideGetForecastByLocationUseCase(repo: ForecastRepository) =
         GetForecastByLocationUseCase(repo)
 
+    @Provides @Singleton
+    fun provideSearchPlacesUseCase(api: com.meteomontana.android.data.api.KtorGeocodeApi) =
+        com.meteomontana.android.domain.usecase.forecast.SearchPlacesUseCase(api)
+
     // Widget Favoritas — la lógica de datos vive en shared/commonMain.
     @Provides @Singleton
     fun provideGetFavoritesWidgetDataUseCase(

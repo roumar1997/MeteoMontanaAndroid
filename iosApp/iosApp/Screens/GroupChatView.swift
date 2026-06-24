@@ -155,7 +155,9 @@ struct GroupChatView: View {
 
     private func scrollToLast(_ proxy: ScrollViewProxy) {
         guard let last = vm.messages.last else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+        // Margen mayor: el mensaje recién llegado por Firestore necesita un instante
+        // para pintarse; con 0.05s a veces no se mostraba el último al abrir.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last.id, anchor: .bottom) }
         }
     }

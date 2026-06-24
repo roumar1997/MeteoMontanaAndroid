@@ -141,7 +141,10 @@ struct ChatView: View {
     /// del teclado / a que la lista pinte el nuevo mensaje.
     private func scrollToLast(_ proxy: ScrollViewProxy) {
         guard let last = vm.messages.last else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+        // Margen mayor: al abrir desde una notificación el mensaje llega por el
+        // listener de Firestore un instante después; con 0.05s a veces no daba
+        // tiempo a pintarlo y el último quedaba sin mostrarse.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(last.id, anchor: .bottom) }
         }
     }

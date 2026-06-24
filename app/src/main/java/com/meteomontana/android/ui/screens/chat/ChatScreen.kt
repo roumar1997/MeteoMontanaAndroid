@@ -78,24 +78,6 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var text by remember { mutableStateOf("") }
 
-    // Auto-scroll al último mensaje al recibir uno nuevo.
-    LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            kotlinx.coroutines.delay(50)
-            listState.animateScrollToItem(state.messages.size - 1)
-        }
-    }
-
-    // Auto-scroll al último mensaje cuando aparece el teclado (para que los
-    // últimos mensajes no queden tapados al abrir el teclado).
-    val imeVisible = WindowInsets.isImeVisible
-    LaunchedEffect(imeVisible) {
-        if (imeVisible && state.messages.isNotEmpty()) {
-            kotlinx.coroutines.delay(100)
-            listState.animateScrollToItem(state.messages.size - 1)
-        }
-    }
-
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
         .imePadding()
@@ -107,13 +89,18 @@ fun ChatScreen(
             onOpenProfile = { onOpenProfile(state.otherUid) }
         )
 
+        // reverseLayout: el mensaje más nuevo queda anclado ABAJO siempre (se ve
+        // al instante al abrir el chat, también desde una notificación, sin
+        // auto-scroll manual) y el historial se sube de forma natural, también
+        // con el teclado abierto. Por eso la lista va en orden inverso.
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),
+            reverseLayout = true,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            items(state.messages, key = { it.id }) { msg ->
+            items(state.messages.reversed(), key = { it.id }) { msg ->
                 MessageBubble(
                     msg = msg,
                     myUid = state.myProfile?.uid,

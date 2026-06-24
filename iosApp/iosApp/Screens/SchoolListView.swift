@@ -117,20 +117,28 @@ final class SchoolListViewModel: ObservableObject {
         } else {
             base = schools
         }
-        var list = base.filter { s in
-            (q.isEmpty || s.name.lowercased().contains(q) || (s.location?.lowercased().contains(q) ?? false))
-            && (style == nil || s.style?.caseInsensitiveCompare(style!) == .orderedSame)
-            && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
-        }
-        // Distancia (solo si hay ubicación y límite elegido).
-        if let max = maxDistanceKm, let la = userLat, let lo = userLon {
-            list = list.filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
-        }
-        // Solo favoritas / solo guardadas offline.
-        switch showMode {
-        case .all: break
-        case .favorites: list = list.filter { favoriteIds.contains($0.id) }
-        case .saved: break   // `base` ya está restringido a las guardadas
+        var list: [School]
+        if !q.isEmpty {
+            // BÚSQUEDA por nombre: manda sobre TODO. Ignora distancia/estilo/roca/
+            // favoritas para que "Albarracín" salga aunque esté fuera del radio.
+            list = base.filter {
+                $0.name.lowercased().contains(q) || ($0.location?.lowercased().contains(q) ?? false)
+            }
+        } else {
+            list = base.filter { s in
+                (style == nil || s.style?.caseInsensitiveCompare(style!) == .orderedSame)
+                && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
+            }
+            // Distancia (solo si hay ubicación y límite elegido).
+            if let max = maxDistanceKm, let la = userLat, let lo = userLon {
+                list = list.filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
+            }
+            // Solo favoritas / solo guardadas offline.
+            switch showMode {
+            case .all: break
+            case .favorites: list = list.filter { favoriteIds.contains($0.id) }
+            case .saved: break   // `base` ya está restringido a las guardadas
+            }
         }
         // Orden.
         switch sortBy {

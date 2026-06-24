@@ -81,8 +81,10 @@ import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
+import com.meteomontana.android.data.api.KtorGeocodeApi
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
+import com.meteomontana.android.domain.usecase.forecast.SearchPlacesUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
@@ -164,6 +166,9 @@ class IosDependencyContainer(
     val searchSchools = SearchSchoolsUseCase(schoolRepository)
     val getForecast = GetForecastUseCase(forecastRepository)
     val getForecastByLocation = GetForecastByLocationUseCase(forecastRepository)
+
+    // Buscador del tiempo por pueblos (geocoding vía backend).
+    val searchPlaces = SearchPlacesUseCase(KtorGeocodeApi(httpClient))
     val getTodayScores = GetTodayScoresUseCase(forecastRepository)
     val getRangeScores = GetRangeScoresUseCase(forecastRepository)
 
