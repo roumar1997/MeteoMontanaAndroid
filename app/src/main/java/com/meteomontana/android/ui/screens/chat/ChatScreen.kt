@@ -103,7 +103,7 @@ fun ChatScreen(
             items(state.messages.reversed(), key = { it.id }) { msg ->
                 MessageBubble(
                     msg = msg,
-                    myUid = state.myProfile?.uid,
+                    myUid = state.myUid ?: state.myProfile?.uid,
                     otherName = state.otherProfile?.username
                         ?: state.otherProfile?.displayName ?: "Usuario",
                     onReply = { viewModel.startReply(msg) }
@@ -123,7 +123,7 @@ fun ChatScreen(
         } else {
             // Cita del mensaje al que respondo (estilo WhatsApp).
             state.replyingTo?.let { reply ->
-                val who = if (reply.fromUid == state.myProfile?.uid) "Tú"
+                val who = if (reply.fromUid == (state.myUid ?: state.myProfile?.uid)) "Tú"
                           else (state.otherProfile?.username ?: state.otherProfile?.displayName ?: "")
                 Row(
                     modifier = Modifier.fillMaxWidth()

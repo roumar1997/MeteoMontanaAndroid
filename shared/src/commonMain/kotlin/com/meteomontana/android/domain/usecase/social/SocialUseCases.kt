@@ -1,12 +1,30 @@
 package com.meteomontana.android.domain.usecase.social
 
+import com.meteomontana.android.data.saved.ProfileCacheRepository
 import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.repository.SocialRepository
 
-class GetPublicProfileUseCase(private val repo: SocialRepository) {
+/**
+ * Perfil público de un usuario, con caché offline "local-first": si hay red, el
+ * perfil se resuelve online y se guarda en [cache]; si la red falla, se devuelve
+ * el último perfil cacheado (nombre/foto) en vez de fallar — así el chat muestra
+ * nombres/avatares sin conexión. Sin caché o sin dato previo, se propaga el error.
+ */
+class GetPublicProfileUseCase(
+    private val repo: SocialRepository,
+    private val cache: ProfileCacheRepository? = null
+) {
     @Throws(Exception::class)
-    suspend operator fun invoke(uid: String): PublicProfile = repo.getUserProfile(uid)
+    suspend operator fun invoke(uid: String): PublicProfile {
+        return try {
+            val fresh = repo.getUserProfile(uid)
+            runCatching { cache?.save(fresh) }
+            fresh
+        } catch (e: Exception) {
+            cache?.load(uid) ?: throw e
+        }
+    }
 }
 
 class GetFollowStatusUseCase(private val repo: SocialRepository) {
