@@ -192,13 +192,16 @@ class SchoolListViewModel @Inject constructor(
     private fun warmChatProfiles(convs: List<com.meteomontana.android.domain.port.ChatService.Conversation>) {
         val uids = convs.flatMap { it.participants }.distinct().filter { it !in warmedProfileUids }
         if (uids.isEmpty()) return
-        warmedProfileUids += uids
         uids.forEach { uid ->
             viewModelScope.launch {
                 // Cachea el perfil (nombre/usuario) y PRE-DESCARGA el avatar al
                 // disco de Coil, para que el chat se vea offline sin haber abierto
-                // Chats.
-                val photo = runCatching { getPublicProfile(uid) }.getOrNull()?.photoUrl
+                // Chats. Solo marcamos el uid como "ya cacheado" si la llamada tuvo
+                // éxito; si falla (p.ej. token aún no listo al arrancar) se reintenta
+                // en la siguiente emisión del observador.
+                val profile = runCatching { getPublicProfile(uid) }.getOrNull() ?: return@launch
+                warmedProfileUids += uid
+                val photo = profile.photoUrl
                 if (!photo.isNullOrEmpty()) {
                     coil.Coil.imageLoader(appContext).enqueue(
                         coil.request.ImageRequest.Builder(appContext).data(photo).build()

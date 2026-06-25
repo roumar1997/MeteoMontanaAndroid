@@ -186,14 +186,17 @@ final class SchoolListViewModel: ObservableObject {
         let uids = Set(convs.flatMap { $0.participants.compactMap { $0 as? String } })
             .subtracting(warmedProfileUids)
         guard !uids.isEmpty else { return }
-        warmedProfileUids.formUnion(uids)
         let getProfile = AppDependencies.shared.container.getPublicProfile
         for uid in uids {
-            Task {
+            Task { [weak self] in
                 // Cachea el perfil (nombre/usuario) y PRE-DESCARGA el avatar a
                 // disco, para que el chat se vea offline sin haber abierto Chats.
-                if let p = try? await getProfile.invoke(uid: uid),
-                   let photo = p.photoUrl, !photo.isEmpty {
+                // Solo marcamos el uid como cacheado si la llamada tuvo éxito; si
+                // falla (token aún no listo al arrancar) se reintenta en la
+                // siguiente emisión del observador.
+                guard let p = try? await getProfile.invoke(uid: uid) else { return }
+                self?.warmedProfileUids.insert(uid)
+                if let photo = p.photoUrl, !photo.isEmpty {
                     await ImageCache.prefetch([photo])
                 }
             }
