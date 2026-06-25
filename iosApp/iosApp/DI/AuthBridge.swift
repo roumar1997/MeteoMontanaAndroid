@@ -20,6 +20,8 @@ final class AuthBridge: NSObject, IosAuthBridge {
     func currentUid() -> String? { Auth.auth().currentUser?.uid }
     func currentEmail() -> String? { Auth.auth().currentUser?.email }
     func currentDisplayName() -> String? { Auth.auth().currentUser?.displayName }
+    /// Foto de la cuenta de Google (respaldo cuando el backend no tiene photoUrl).
+    func currentPhotoUrl() -> String? { Auth.auth().currentUser?.photoURL?.absoluteString }
 
     func currentIdToken(forceRefresh: Bool, callback: @escaping (String?) -> Void) {
         guard let user = Auth.auth().currentUser else { callback(nil); return }

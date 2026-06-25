@@ -81,22 +81,40 @@ class ProfileViewModel @Inject constructor(
                     } else 0
                     // Cachea para poder ver el perfil SIN conexión la próxima vez.
                     runCatching { profileCache.save(profile, stats, follow.followers, follow.following) }
-                    ProfileUiState.Success(profile, stats, follow.followers, follow.following, pendingReview = pending)
+                    ProfileUiState.Success(withPhotoFallback(profile), stats, follow.followers, follow.following, pendingReview = pending)
                 }
             } catch (t: Throwable) {
-                // Sin conexión: cae a la última copia cacheada (si existe) en vez
-                // de dejar el perfil vacío.
+                // Sin conexión: cae a la última copia cacheada (si existe). Si nunca
+                // se cacheó (p.ej. primera vez tras reinstalar), construimos un perfil
+                // MÍNIMO desde Firebase Auth (disponible offline) en vez de dar error.
                 val cached = profileCache.load()
-                if (cached != null) {
-                    ProfileUiState.Success(
-                        cached.profile, cached.stats, cached.followers, cached.following, offline = true
+                when {
+                    cached != null -> ProfileUiState.Success(
+                        withPhotoFallback(cached.profile), cached.stats, cached.followers, cached.following, offline = true
                     )
-                } else {
-                    ProfileUiState.Error(t.toUserMessage())
+                    authManager.currentUid() != null -> ProfileUiState.Success(
+                        PrivateProfile(
+                            uid = authManager.currentUid()!!,
+                            email = authManager.currentEmail(),
+                            username = null,
+                            displayName = authManager.currentDisplayName(),
+                            photoUrl = authManager.currentPhotoUrl(),
+                            bio = null, topGrade = null,
+                            isPublic = true, isAdmin = false, isPremium = false
+                        ),
+                        JournalStats(0, 0, 0, 0, null, null, null, emptyList()),
+                        offline = true
+                    )
+                    else -> ProfileUiState.Error(t.toUserMessage())
                 }
             }
         }
     }
+
+    /** Si el perfil del backend no tiene foto, usa la de la cuenta de Google
+     *  (Firebase Auth) para que el avatar propio no salga vacío. */
+    private fun withPhotoFallback(p: PrivateProfile): PrivateProfile =
+        if (p.photoUrl.isNullOrBlank()) p.copy(photoUrl = authManager.currentPhotoUrl()) else p
 
     fun addBlock(req: CreateJournalRequest, onDone: () -> Unit = {}) {
         viewModelScope.launch {
