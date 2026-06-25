@@ -534,6 +534,51 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-25 — bugs offline: score en lista + favoritas offline (Android+iOS)
+
+Lote de feedback de Rodrigo (5 puntos, vistos sobre todo en iOS). **Solo app**
+(Android + iOS + `shared`); **NO toca backend**. Mergeado a `main` (no afecta a
+los testers: la app solo cambia con una release nueva a Play, no al mergear git).
+**SIN PROBAR EN DISPOSITIVO** (no se pudo compilar en la sesión web: falta
+`google-services.json` / Mac). Probar en el iPhone/Xiaomi antes de una release.
+
+- **#1 — Score offline en la lista (HECHO)**: offline la lista pintaba "—" en
+  las escuelas guardadas aunque el detalle SÍ mostraba sus datos. Causa: el
+  badge usa `getTodayScores` (red) y no leía el forecast guardado. Fix: si la red
+  no da score, se deriva del **forecast cacheado** (`SavedForecast`). Shared
+  `IosDependencyContainer.cachedTodayScore()`; Android `loadScoresFor` con
+  fallback + la rama GUARDADOS ahora carga scores; iOS `loadScores` con fallback
+  y, en modo GUARDADOS, ignora el filtro de distancia (no ocultar guardadas
+  lejanas). OJO: solo hay score offline si la escuela tiene forecast cacheado
+  (se cachea al abrir el detalle online o al guardarla offline).
+- **#4 — Favoritas offline (HECHO)**: marcar/desmarcar sin red ya no se revierte;
+  se mantiene optimista y se **encola** para sincronizar al reconectar. Shared
+  `OutboxType.FAVORITE`/`FAVORITE_DELETE` + `OutboxRepository.enqueueFavorite`
+  (con **cancelación mutua**: marcar+desmarcar offline se anulan) +
+  `pendingFavoriteIds/DeleteIds`. Android: `toggleFavorite` encola al fallar,
+  `reconcileFavorites` fusiona pendientes al cargar, `OutboxFlusher` sincroniza
+  (+ test del VM al nuevo constructor). iOS: `toggleFavorite` encola,
+  `loadFavorites` fusiona pendientes; `flushJournalOutbox` (container) ya procesa
+  los tipos FAVORITE.
+
+> ### 🔜 PENDIENTE de este lote (próxima sesión, también solo-app)
+> - **#5 (duda, RESUELTA)**: borrar una conversación es "solo para mí"
+>   (`cleared_<uid>`), no la borra al otro; reaparece si te escriben. Ya estaba
+>   bien, no hubo que tocar nada.
+> - **#2 — Chat sin nombres/fotos offline**: los nombres/avatares (y tu propia
+>   foto) se piden a la red (`getPublicProfile`) → offline quedan vacíos. Falta
+>   un **caché en disco** (UserDefaults/SharedPreferences por uid) que se escriba
+>   al cargar online y se lea offline. No empezado.
+> - **#3 — Crash al ENVIAR chat sin internet** ("justo al pulsar enviar", iOS):
+>   revisado `ChatView`(iOS) y `ChatViewModel`(Android) y **ambos abortan limpio**
+>   (offline `startConversation` falla → se cancela el envío, sin crash en el
+>   código visto). Pendiente el **log del crash** (Xcode → Devices → `.ips`) para
+>   confirmarlo. Además, offline NO se puede enviar (el backend "abre" la
+>   conversación primero) → propuesta: si la conversación YA existe (hay
+>   mensajes), saltarse esa llamada y dejar que **Firestore encole** el mensaje
+>   offline (lo entrega al reconectar). No implementado aún.
+> - **Probar en dispositivo #1 y #4** antes de subir una release a Play.
+
 ### Sesión 2026-06-23 (2) — fix grupos (no se creaban), pulido chat, release v1.3 + .ipa prod
 
 Rodrigo probó la actu de Play (v1.2): los grupos NO se creaban y la flecha de
