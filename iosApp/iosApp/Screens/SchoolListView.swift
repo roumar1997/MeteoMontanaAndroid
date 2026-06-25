@@ -350,26 +350,26 @@ struct SchoolListView: View {
                         } else {
                             ForEach(Array(items.enumerated()), id: \.element.id) { idx, school in
                                 // Tap: si hay selección de comparar activa, togglea;
-                                // si no, navega al detalle. Long-press: entra en
-                                // modo selección. (Sin NavigationLink para que el
-                                // long-press no dispare la navegación.)
-                                Button {
+                                // si no, navega al detalle. Mantener pulsado: entra en
+                                // modo comparar. Sin Button/NavigationLink: dentro de un
+                                // ScrollView el Button se "come" el long-press (no fiable).
+                                // Usamos tap + long-press directos sobre la fila.
+                                SchoolListItemView(
+                                    rank: idx + 1,
+                                    school: school,
+                                    score: vm.scores[school.id],
+                                    range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
+                                    distanceKm: vm.distanceKm(school),
+                                    isFavorite: vm.favoriteIds.contains(school.id),
+                                    isSelected: vm.compareSelection.contains(school.id),
+                                    onToggleFavorite: { vm.toggleFavorite(school.id) }
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
                                     if vm.compareSelection.isEmpty { navSchool = school }
                                     else { vm.toggleCompare(school.id) }
-                                } label: {
-                                    SchoolListItemView(
-                                        rank: idx + 1,
-                                        school: school,
-                                        score: vm.scores[school.id],
-                                        range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
-                                        distanceKm: vm.distanceKm(school),
-                                        isFavorite: vm.favoriteIds.contains(school.id),
-                                        isSelected: vm.compareSelection.contains(school.id),
-                                        onToggleFavorite: { vm.toggleFavorite(school.id) }
-                                    )
                                 }
-                                .buttonStyle(.plain)
-                                .onLongPressGesture { vm.toggleCompare(school.id) }
+                                .onLongPressGesture(minimumDuration: 0.35) { vm.toggleCompare(school.id) }
                                 Divider().overlay(Cumbre.rule)
                             }
                         }
