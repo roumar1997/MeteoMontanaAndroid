@@ -54,6 +54,15 @@ class AuthManager @Inject constructor(
 
     private val credentialManager: CredentialManager = CredentialManager.create(context)
 
+    // Datos del usuario directos de Firebase Auth (disponibles SIN red, cacheados
+    // por el SDK). Respaldo del perfil del backend: la foto de perfil cuando el
+    // backend no tiene `photoUrl` (foto de la cuenta de Google), o un perfil mínimo
+    // offline si aún no se cacheó el del backend.
+    fun currentUid(): String? = firebaseAuth.currentUser?.uid
+    fun currentDisplayName(): String? = firebaseAuth.currentUser?.displayName
+    fun currentEmail(): String? = firebaseAuth.currentUser?.email
+    fun currentPhotoUrl(): String? = firebaseAuth.currentUser?.photoUrl?.toString()
+
     /**
      * Lanza el flujo de Google Sign-In.
      * `activityContext` debe ser el Activity actual (no el Application context).

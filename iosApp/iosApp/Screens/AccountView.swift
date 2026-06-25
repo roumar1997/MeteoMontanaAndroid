@@ -247,23 +247,10 @@ struct AccountView: View {
     }
 
     private var avatar: some View {
-        let url = vm.profile?.photoUrl.flatMap { URL(string: $0) }
-        return Group {
-            if let url {
-                AsyncImage(url: url) { img in
-                    img.resizable().scaledToFill()
-                } placeholder: {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable().foregroundStyle(Cumbre.ink3)
-                }
-            } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable().foregroundStyle(Cumbre.ink3)
-            }
-        }
-        .frame(width: 88, height: 88)
-        .clipShape(Circle())
-        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+        // Si el backend no tiene foto, usa la de la cuenta de Google (Firebase Auth).
+        // AvatarCircle cachea en disco → se ve offline (igual que el resto de avatares).
+        let photo = vm.profile?.photoUrl?.isEmpty == false ? vm.profile?.photoUrl : authBridge.currentPhotoUrl()
+        return AvatarCircle(url: photo, size: 88)
     }
 
     private var names: some View {
