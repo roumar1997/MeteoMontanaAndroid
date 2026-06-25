@@ -129,8 +129,10 @@ final class SchoolListViewModel: ObservableObject {
                 (style == nil || s.style?.caseInsensitiveCompare(style!) == .orderedSame)
                 && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
             }
-            // Distancia (solo si hay ubicación y límite elegido).
-            if let max = maxDistanceKm, let la = userLat, let lo = userLon {
+            // Distancia (solo si hay ubicación y límite elegido). En modo
+            // GUARDADOS NO se aplica: quiero ver todas mis guardadas aunque estén
+            // lejos (igual que la búsqueda por nombre ignora el radio).
+            if showMode != .saved, let max = maxDistanceKm, let la = userLat, let lo = userLon {
                 list = list.filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
             }
             // Solo favoritas / solo guardadas offline.
@@ -241,23 +243,31 @@ final class SchoolListViewModel: ObservableObject {
     }
 
     private func loadFavorites() async {
-        // Requiere sesión (el login es obligatorio al arrancar). Si falla, vacío.
-        let favs = try? await getMyFavorites.invoke()
-        favoriteIds = Set((favs ?? []).map { $0.id })
+        // Requiere sesión (el login es obligatorio al arrancar). Si falla (offline),
+        // partimos de lo que ya hay en pantalla para no perder el estado.
+        let container = AppDependencies.shared.container
+        let server = try? await getMyFavorites.invoke()
+        var base = server.map { Set($0.map { $0.id }) } ?? favoriteIds
+        // Reconciliar con la cola offline: suma marcadas y resta desmarcadas.
+        if let add = try? await container.pendingFavoriteIds() { base.formUnion(add) }
+        if let del = try? await container.pendingFavoriteDeleteIds() { base.subtract(del) }
+        favoriteIds = base
     }
 
-    /// Toggle optimista: actualiza la estrella al instante y revierte si la red
-    /// falla (mismo comportamiento que SchoolListViewModel.kt de Android).
+    /// Toggle optimista: actualiza la estrella al instante. Si la red falla
+    /// (offline), NO revierte: encola la acción para sincronizarla al reconectar
+    /// (mismo comportamiento que SchoolListViewModel.kt de Android).
     func toggleFavorite(_ schoolId: String) {
         let wasFavorite = favoriteIds.contains(schoolId)
+        let nowFavorite = !wasFavorite
         if wasFavorite { favoriteIds.remove(schoolId) } else { favoriteIds.insert(schoolId) }
         Task {
             do {
                 if wasFavorite { try await removeFavorite.invoke(schoolId: schoolId) }
                 else { try await addFavorite.invoke(schoolId: schoolId) }
             } catch {
-                // Revertir en caso de error.
-                if wasFavorite { favoriteIds.insert(schoolId) } else { favoriteIds.remove(schoolId) }
+                // Sin red: mantener el estado optimista y encolar para más tarde.
+                try? await AppDependencies.shared.container.enqueueFavorite(schoolId: schoolId, favorite: nowFavorite)
             }
         }
     }
@@ -268,6 +278,13 @@ final class SchoolListViewModel: ObservableObject {
             let slice = Array(ids[chunk..<min(chunk + 50, ids.count)])
             guard let batch = try? await getTodayScores.invoke(ids: slice) else { continue }
             for s in batch { scores[s.id] = s }
+        }
+        // Offline (o ids que la red no devolvió): rellenar con el forecast
+        // cacheado de cada escuela guardada/visitada, para que la lista pinte el
+        // score guardado en vez de "—". El detalle ya lo mostraba (imagen 2).
+        let container = AppDependencies.shared.container
+        for id in ids where scores[id] == nil {
+            if let s = try? await container.cachedTodayScore(schoolId: id) { scores[id] = s }
         }
     }
 

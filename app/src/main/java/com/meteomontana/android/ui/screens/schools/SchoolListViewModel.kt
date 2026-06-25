@@ -68,7 +68,8 @@ class SchoolListViewModel @Inject constructor(
     private val savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository,
     private val cachedSchoolsRepo: com.meteomontana.android.data.saved.CachedSchoolsRepository,
     private val etagStore: com.meteomontana.android.data.local.CatalogEtagStore,
-    private val chatService: com.meteomontana.android.domain.port.ChatService
+    private val chatService: com.meteomontana.android.domain.port.ChatService,
+    private val outbox: com.meteomontana.android.data.outbox.OutboxRepository
 ) : ViewModel() {
 
     // Total de chats con mensajes sin leer → badge en el icono de mensajes del
@@ -155,7 +156,7 @@ class SchoolListViewModel @Inject constructor(
                 _userLocation.value = loc
                 if (allSchools.isNotEmpty()) load()  // re-filtra distancias con la posición real
             }
-            _favoriteIds.value = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(emptySet())
+            reconcileFavorites(fallback = emptySet())
 
             // 3) Refrescar el catálogo desde red y actualizar caché + pantalla.
             refreshFromNetwork()
@@ -181,7 +182,7 @@ class SchoolListViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true
             _scores.value = emptyMap()   // fuerza scores frescos
-            _favoriteIds.value = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrDefault(_favoriteIds.value)
+            reconcileFavorites(fallback = _favoriteIds.value)
             refreshFromNetwork()
             refreshUnread()
             _isRefreshing.value = false
@@ -247,7 +248,11 @@ class SchoolListViewModel @Inject constructor(
                             lat = it.lat, lon = it.lon, source = null
                         )
                     }
-                    SchoolListUiState.Success(filterQuery(list, f.query))
+                    val visible = filterQuery(list, f.query)
+                    // Cargar scores (red si hay; si no, del forecast cacheado de
+                    // cada guardada) para que la lista NO muestre "—" offline.
+                    loadScoresFor(visible.map { it.id }) { applySort(f) }
+                    SchoolListUiState.Success(visible)
                 } catch (t: Throwable) {
                     SchoolListUiState.Error(t.toUserMessage())
                 }
@@ -338,7 +343,31 @@ class SchoolListViewModel @Inject constructor(
                     onDone()
                 }
             }
+            // Offline (o ids que la red no devolvió): rellenar con el forecast
+            // cacheado de cada escuela visitada/guardada, para que la lista pinte
+            // el score guardado en vez de "—". El detalle ya lo mostraba.
+            val stillMissing = ids.filter { it !in _scores.value }
+            if (stillMissing.isNotEmpty()) {
+                val fromCache = stillMissing.mapNotNull { id -> cachedScore(id)?.let { id to it } }
+                if (fromCache.isNotEmpty()) {
+                    _scores.update { it + fromCache.toMap() }
+                    onDone()
+                }
+            }
         }
+    }
+
+    /** Construye un SchoolScore desde el forecast cacheado (offline), o null. */
+    private suspend fun cachedScore(id: String): com.meteomontana.android.domain.model.SchoolScore? {
+        val forecast = runCatching { savedSchoolRepo.loadCachedForecast(id)?.first }.getOrNull() ?: return null
+        return com.meteomontana.android.domain.model.SchoolScore(
+            id = id,
+            todayScore = forecast.current.score,
+            hourlyScores = forecast.hours.map { it.score },
+            dryRock = forecast.current.dryRock,
+            rainMm = forecast.current.precip24h,
+            rainProb = forecast.current.precipitationProbability
+        )
     }
 
     /** Distancia entre el usuario y una escuela en km (Haversine). */
@@ -365,19 +394,39 @@ class SchoolListViewModel @Inject constructor(
     }
     /** Chip "Todas" de tipo de roca: limpia la selección. */
     fun clearRocks() { _filters.update { it.copy(rockTypes = emptyList()) }; load() }
-    /** Marca/desmarca favorita desde la lista. Optimista: pinta ya, revierte si falla. */
+    /**
+     * Marca/desmarca favorita desde la lista. Optimista: pinta ya. Si la red
+     * falla (offline), NO revierte: encola la acción en el outbox para
+     * sincronizarla al recuperar conexión (marcar+desmarcar offline se anulan).
+     */
     fun toggleFavorite(schoolId: String) {
         val wasFavorite = schoolId in _favoriteIds.value
+        val nowFavorite = !wasFavorite
         _favoriteIds.update { if (wasFavorite) it - schoolId else it + schoolId }
         viewModelScope.launch {
             runCatching {
                 if (wasFavorite) removeFavorite(schoolId) else addFavorite(schoolId)
             }.onFailure {
-                _favoriteIds.update { ids -> if (wasFavorite) ids + schoolId else ids - schoolId }
+                // Sin red: mantener el estado optimista y encolar para más tarde.
+                runCatching { outbox.enqueueFavorite(schoolId, nowFavorite) }
             }
             // Si el filtro "solo favoritas" está activo, la lista visible cambia.
             if (_filters.value.onlyFavorites) load()
         }
+    }
+
+    /**
+     * Recarga las favoritas del servidor y las reconcilia con el outbox: suma
+     * las marcadas offline (FAVORITE pendiente) y resta las desmarcadas offline
+     * (FAVORITE_DELETE pendiente). Si el servidor no responde (offline), parte de
+     * [fallback] para no perder el estado en pantalla.
+     */
+    private suspend fun reconcileFavorites(fallback: Set<String>) {
+        val server = runCatching { getMyFavorites().map { it.id }.toSet() }.getOrNull()
+        val base = server ?: fallback
+        val pendingAdd = runCatching { outbox.pendingFavoriteIds() }.getOrDefault(emptySet())
+        val pendingDel = runCatching { outbox.pendingFavoriteDeleteIds() }.getOrDefault(emptySet())
+        _favoriteIds.value = (base + pendingAdd) - pendingDel
     }
 
     fun setOnlyFavorites(v: Boolean) {

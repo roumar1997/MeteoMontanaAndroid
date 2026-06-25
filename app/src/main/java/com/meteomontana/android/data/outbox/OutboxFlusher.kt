@@ -32,7 +32,9 @@ class OutboxFlusher @Inject constructor(
     private val createNote: CreateNoteUseCase,
     private val createJournalEntry: CreateJournalEntryUseCase,
     private val getMyJournal: GetMyJournalUseCase,
-    private val deleteJournalEntry: DeleteJournalEntryUseCase
+    private val deleteJournalEntry: DeleteJournalEntryUseCase,
+    private val addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase,
+    private val removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val log = Logger.withTag("Outbox")
@@ -86,6 +88,8 @@ class OutboxFlusher @Inject constructor(
                         if (entry != null) deleteJournalEntry(entry.id)
                         // Si no existe, ya estaba borrada → se considera hecho.
                     }
+                    OutboxType.FAVORITE -> addFavorite(row.schoolId)
+                    OutboxType.FAVORITE_DELETE -> removeFavorite(row.schoolId)
                     else -> log.w("Tipo desconocido en outbox: ${row.type}")
                 }
             }

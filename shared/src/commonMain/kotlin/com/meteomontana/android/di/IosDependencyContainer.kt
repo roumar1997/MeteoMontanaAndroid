@@ -351,6 +351,43 @@ class IosDependencyContainer(
      * activar la app. Borra cada entrada al subirla con éxito; las que fallen se
      * quedan en la cola para el próximo intento.
      */
+    /**
+     * Encola marcar/desmarcar una favorita sin red (anula la opuesta pendiente).
+     * Lo llama la app iOS cuando la llamada de red de favoritas falla.
+     */
+    @Throws(Exception::class)
+    suspend fun enqueueFavorite(schoolId: String, favorite: Boolean) {
+        outbox?.enqueueFavorite(schoolId, favorite)
+    }
+
+    /**
+     * SchoolScore derivado del forecast cacheado de una escuela (offline), o null.
+     * Lo usa la lista iOS para pintar el score de las guardadas/visitadas sin red
+     * (en vez de "—"). Se construye en Kotlin para no armar listas desde Swift.
+     */
+    @Throws(Exception::class)
+    suspend fun cachedTodayScore(schoolId: String): com.meteomontana.android.domain.model.SchoolScore? {
+        val forecast = savedSchools?.loadCachedForecast(schoolId)?.first ?: return null
+        return com.meteomontana.android.domain.model.SchoolScore(
+            id = schoolId,
+            todayScore = forecast.current.score,
+            hourlyScores = forecast.hours.map { it.score },
+            dryRock = forecast.current.dryRock,
+            rainMm = forecast.current.precip24h,
+            rainProb = forecast.current.precipitationProbability
+        )
+    }
+
+    /** ids con FAVORITE pendiente (reflejar la estrella offline). */
+    @Throws(Exception::class)
+    suspend fun pendingFavoriteIds(): Set<String> =
+        outbox?.pendingFavoriteIds() ?: emptySet()
+
+    /** ids con FAVORITE_DELETE pendiente (quitar la estrella offline). */
+    @Throws(Exception::class)
+    suspend fun pendingFavoriteDeleteIds(): Set<String> =
+        outbox?.pendingFavoriteDeleteIds() ?: emptySet()
+
     @Throws(Exception::class)
     suspend fun flushJournalOutbox() {
         val repo = outbox ?: return
@@ -388,6 +425,14 @@ class IosDependencyContainer(
                         if (exists) deleteJournalEntry(row.payloadJson)
                         true   // si ya no está, también hecho
                     }.isSuccess
+                    if (ok) repo.delete(row.id)
+                }
+                com.meteomontana.android.data.outbox.OutboxType.FAVORITE -> {
+                    val ok = runCatching { addFavorite(row.schoolId); true }.isSuccess
+                    if (ok) repo.delete(row.id)
+                }
+                com.meteomontana.android.data.outbox.OutboxType.FAVORITE_DELETE -> {
+                    val ok = runCatching { removeFavorite(row.schoolId); true }.isSuccess
                     if (ok) repo.delete(row.id)
                 }
                 else -> {}
