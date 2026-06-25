@@ -110,12 +110,12 @@ struct ChatListView: View {
             if vm.loading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if vm.conversations.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "bubble.left.and.bubble.right").font(.system(size: 36)).foregroundStyle(Cumbre.ink3)
-                    Text("Aún no tienes conversaciones.").font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                    Text("Escribe a alguien desde su perfil.").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
+                EmptyStateView(
+                    icon: "bubble.left.and.bubble.right",
+                    title: "Aún no tienes conversaciones",
+                    message: "Toca el lápiz para escribir a alguien a quien sigues o que te sigue, o crea un grupo con el icono de personas."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(vm.conversations, id: \.id) { c in
                     NavigationLink(destination: convDestination(c)) {

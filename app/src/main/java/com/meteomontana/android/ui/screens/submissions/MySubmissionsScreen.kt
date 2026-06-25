@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddLocationAlt
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -60,10 +61,11 @@ fun MySubmissionsScreen(
             }
             is MySubmissionsUiState.Success -> {
                 if (s.submissions.isEmpty() && s.contributions.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("Aún no has hecho propuestas",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    com.meteomontana.android.ui.components.EmptyState(
+                        icon = Icons.Outlined.AddLocationAlt,
+                        title = "Sin propuestas todavía",
+                        message = "Desde el mapa de una escuela (+ PROPONER) o con \"+ Enviar escuela\" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado."
+                    )
                 } else {
                     LazyColumn {
                         if (s.contributions.isNotEmpty()) {

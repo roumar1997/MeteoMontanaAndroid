@@ -339,6 +339,11 @@ struct SchoolListView: View {
                     DaySelectorRow(vm: vm)
                     Divider().overlay(Cumbre.rule)
 
+                    FirstTimeHint(
+                        hintKey: "schools_gestures",
+                        text: "Truco: mantén pulsada una escuela para compararla con otras, y toca los días de arriba para comparar un tramo."
+                    )
+
                     if vm.loading {
                         ForEach(0..<6, id: \.self) { _ in SkeletonRow(); Divider().overlay(Cumbre.rule) }
                     } else if let err = vm.errorText {

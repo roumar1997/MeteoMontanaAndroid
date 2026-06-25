@@ -116,10 +116,11 @@ struct NotificationsView: View {
                 if vm.loading {
                     ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if vm.items.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "bell.slash").font(.system(size: 40)).foregroundStyle(Cumbre.ink3)
-                        Text("Sin notificaciones").font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
-                    }
+                    EmptyStateView(
+                        icon: "bell",
+                        title: "Sin notificaciones",
+                        message: "Aquí te avisaremos de nuevos seguidores, solicitudes, mensajes y novedades de tus propuestas."
+                    )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List {

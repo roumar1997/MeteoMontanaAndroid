@@ -26,14 +26,12 @@ struct SavedSchoolsView: View {
     var body: some View {
         Group {
             if vm.schools.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "arrow.down.circle").font(.system(size: 36)).foregroundStyle(Cumbre.ink3)
-                    Text("No tienes escuelas guardadas.").font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                    Text("Abre una escuela y pulsa el icono de descarga para verla sin conexión.")
-                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                        .multilineTextAlignment(.center).padding(.horizontal, 32)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
+                EmptyStateView(
+                    icon: "arrow.down.circle",
+                    title: "No tienes escuelas guardadas",
+                    message: "Abre una escuela y pulsa el icono de descarga para verla sin conexión (previsión, mapa y piedras)."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(vm.schools, id: \.id) { s in
                     NavigationLink(destination: OfflineSchoolView(schoolId: s.id)) {
