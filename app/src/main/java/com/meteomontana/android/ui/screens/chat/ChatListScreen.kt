@@ -66,8 +66,10 @@ fun ChatListScreen(
         com.meteomontana.android.ui.components.SheetHeader(
             title = "Chats",
             onClose = onBack,
-            actions = {
+            leading = {
                 com.meteomontana.android.ui.components.HelpButton(topicKey = "chat")
+            },
+            actions = {
                 IconButton(onClick = onNewGroup) {
                     Icon(Icons.Outlined.GroupAdd, contentDescription = "Nuevo grupo",
                         tint = MaterialTheme.colorScheme.primary)

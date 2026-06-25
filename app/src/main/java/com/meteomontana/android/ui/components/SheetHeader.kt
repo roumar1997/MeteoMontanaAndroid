@@ -29,11 +29,16 @@ import androidx.compose.ui.unit.dp
 fun SheetHeader(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    leading: @Composable RowScope.() -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     center: @Composable BoxScope.() -> Unit
 ) {
     Box(modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
         center()
+        Row(
+            modifier = Modifier.align(Alignment.CenterStart),
+            verticalAlignment = Alignment.CenterVertically
+        ) { leading() }
         Row(
             modifier = Modifier.align(Alignment.CenterEnd),
             verticalAlignment = Alignment.CenterVertically
@@ -54,9 +59,10 @@ fun SheetHeader(
     title: String,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    leading: @Composable RowScope.() -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    SheetHeader(onClose = onClose, modifier = modifier, actions = actions) {
+    SheetHeader(onClose = onClose, modifier = modifier, leading = leading, actions = actions) {
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center))
