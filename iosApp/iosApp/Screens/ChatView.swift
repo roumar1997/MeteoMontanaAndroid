@@ -49,11 +49,17 @@ final class ChatVM: ObservableObject {
         convTask = Task { [weak self] in
             for await convs in chat.observeMyConversations() {
                 guard let self else { return }
+                // ¿Existe la conversación? (está en mi lista). Decide si saltarse
+                // startConversation — NO depende de que los mensajes estén cargados,
+                // que offline pueden no estarlo aunque la conversación exista.
+                self.conversationExists = convs.contains { $0.id == cid }
                 self.clearedAt = convs.first { $0.id == cid }?.clearedAtMillis?.int64Value ?? 0
                 self.recompute()
             }
         }
     }
+
+    private var conversationExists = false
 
     private func recompute() {
         let server = clearedAt <= 0 ? rawMessages
@@ -94,11 +100,11 @@ final class ChatVM: ObservableObject {
             // por las reglas de Firestore) y autoriza según el modelo de privacidad.
             // Si no está permitido escribir, lanza (p.ej. 403) y abortamos.
             if !self.conversationEnsured {
-                if !self.rawMessages.isEmpty {
-                    // La conversación YA existe (hay mensajes EN EL SERVIDOR): no hace
-                    // falta que el backend la cree. Saltamos startConversation y
-                    // escribimos directo en Firestore, que encola el mensaje offline y
-                    // lo entrega al reconectar. Así enviar sin red ya no aborta.
+                if self.conversationExists {
+                    // La conversación YA existe (está en mi lista): no hace falta que
+                    // el backend la cree. Saltamos startConversation y escribimos
+                    // directo en Firestore, que encola el mensaje offline y lo entrega
+                    // al reconectar. Así enviar sin red ya no aborta.
                     self.conversationEnsured = true
                 } else {
                     // Conversación nueva: el backend debe crearla y autorizar
