@@ -71,9 +71,21 @@ final class ChatVM: ObservableObject {
             // por las reglas de Firestore) y autoriza según el modelo de privacidad.
             // Si no está permitido escribir, lanza (p.ej. 403) y abortamos.
             if !self.conversationEnsured {
-                do { try await self.chatPush.startConversation(toUid: self.otherUid) }
-                catch { return }
-                self.conversationEnsured = true
+                if !self.messages.isEmpty {
+                    // La conversación YA existe (hay mensajes): no hace falta que
+                    // el backend la cree. Saltamos startConversation y escribimos
+                    // directo en Firestore, que encola el mensaje offline y lo
+                    // entrega al reconectar. Así enviar sin red ya no aborta.
+                    self.conversationEnsured = true
+                } else {
+                    // Conversación nueva: el backend debe crearla y autorizar
+                    // primero (las reglas de Firestore no dejan crearla al cliente).
+                    // Offline esto falla → abortamos limpio (no se puede iniciar
+                    // una conversación nueva sin red).
+                    do { try await self.chatPush.startConversation(toUid: self.otherUid) }
+                    catch { return }
+                    self.conversationEnsured = true
+                }
             }
             try? await chat.sendMessage(otherUid: self.otherUid, text: text,
                                         replyToId: reply?.id, replyText: reply?.text,

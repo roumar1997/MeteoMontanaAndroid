@@ -198,8 +198,12 @@ class IosDependencyContainer(
 
     // Social: buscar usuarios, perfil público, seguir/dejar de seguir,
     // seguidores/seguidos y solicitudes de seguimiento.
+    // Caché de perfiles públicos (nombre/foto offline en el chat). Null si no hay BD.
+    private val profileCache: com.meteomontana.android.data.saved.ProfileCacheRepository? =
+        database?.let { com.meteomontana.android.data.saved.ProfileCacheRepository(it) }
+
     val searchUsers = SearchUsersUseCase(socialRepository)
-    val getPublicProfile = GetPublicProfileUseCase(socialRepository)
+    val getPublicProfile = GetPublicProfileUseCase(socialRepository, profileCache)
     val getFollowStatus = GetFollowStatusUseCase(socialRepository)
     val followUser = FollowUserUseCase(socialRepository)
     val unfollowUser = UnfollowUserUseCase(socialRepository)

@@ -258,7 +258,13 @@ object UseCasesModule {
 
     // Social
     @Provides @Singleton
-    fun provideGetPublicProfileUseCase(repo: SocialRepository) = GetPublicProfileUseCase(repo)
+    fun provideGetPublicProfileUseCase(
+        repo: SocialRepository,
+        db: com.meteomontana.db.MeteoMontanaDb
+    ) = GetPublicProfileUseCase(
+        repo,
+        com.meteomontana.android.data.saved.ProfileCacheRepository(db)
+    )
 
     @Provides @Singleton
     fun provideGetFollowStatusUseCase(repo: SocialRepository) = GetFollowStatusUseCase(repo)

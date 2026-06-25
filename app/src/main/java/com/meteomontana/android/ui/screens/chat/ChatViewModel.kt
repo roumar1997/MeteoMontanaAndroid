@@ -20,6 +20,8 @@ import javax.inject.Inject
 
 data class ChatUiState(
     val otherUid: String,
+    /** Mi uid (de Firebase Auth, disponible offline). Para alinear mis burbujas. */
+    val myUid: String? = null,
     val otherProfile: PublicProfile? = null,
     val myProfile: PrivateProfile? = null,
     val canWrite: Boolean = false,
@@ -43,7 +45,7 @@ class ChatViewModel @Inject constructor(
     private val me: String = authService.currentUid() ?: ""
     private val convId: String = chatService.convIdFor(me, otherUid)
 
-    private val _state = MutableStateFlow(ChatUiState(otherUid = otherUid))
+    private val _state = MutableStateFlow(ChatUiState(otherUid = otherUid, myUid = me.ifEmpty { null }))
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
 
     init {
@@ -101,9 +103,20 @@ class ChatViewModel @Inject constructor(
             // permitido escribir, responde 403 y abortamos. Idempotente, así que solo
             // hace falta la primera vez de la sesión.
             if (!conversationEnsured) {
-                val started = runCatching { chatPushApi.startConversation(otherUid) }.isSuccess
-                if (!started) return@launch
-                conversationEnsured = true
+                if (_state.value.messages.isNotEmpty()) {
+                    // La conversación YA existe (hay mensajes): no hace falta que el
+                    // backend la cree. Saltamos startConversation y escribimos directo
+                    // en Firestore, que encola el mensaje offline y lo entrega al
+                    // reconectar. Así enviar sin red ya no se cancela.
+                    conversationEnsured = true
+                } else {
+                    // Conversación nueva: el backend debe crearla y autorizar primero
+                    // (las reglas de Firestore no dejan crearla al cliente). Offline
+                    // esto falla → abortamos (no se puede iniciar una nueva sin red).
+                    val started = runCatching { chatPushApi.startConversation(otherUid) }.isSuccess
+                    if (!started) return@launch
+                    conversationEnsured = true
+                }
             }
             val ok = runCatching {
                 chatService.sendMessage(
