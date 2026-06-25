@@ -69,8 +69,14 @@ class SchoolListViewModel @Inject constructor(
     private val cachedSchoolsRepo: com.meteomontana.android.data.saved.CachedSchoolsRepository,
     private val etagStore: com.meteomontana.android.data.local.CatalogEtagStore,
     private val chatService: com.meteomontana.android.domain.port.ChatService,
-    private val outbox: com.meteomontana.android.data.outbox.OutboxRepository
+    private val outbox: com.meteomontana.android.data.outbox.OutboxRepository,
+    private val getPublicProfile: com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
+
+    // Perfiles ya cacheados esta sesión (para no repetir la llamada en cada
+    // emisión del observador de conversaciones). Ver warmChatProfiles().
+    private val warmedProfileUids = mutableSetOf<String>()
 
     // Total de chats con mensajes sin leer → badge en el icono de mensajes del
     // header (como la campana de notificaciones).
@@ -169,6 +175,34 @@ class SchoolListViewModel @Inject constructor(
                     _chatUnread.value = convs
                         .filterNot { com.meteomontana.android.ui.screens.chat.isHiddenForMe(it) }
                         .sumOf { it.unreadCount }
+                    warmChatProfiles(convs)
+                }
+            }
+        }
+    }
+
+    /**
+     * Pre-cachea (en disco) los perfiles de todos los participantes de mis
+     * conversaciones, en segundo plano, con solo tener la app abierta online —
+     * sin que entres a Chats. Así offline el chat ya muestra nombres/avatares
+     * (estilo Instagram). Solo una vez por uid y sesión; getPublicProfile escribe
+     * el caché y, al pintarse luego, Coil guarda el avatar en disco. Cachea
+     * también mi propio uid (cubre "tu propia foto" offline).
+     */
+    private fun warmChatProfiles(convs: List<com.meteomontana.android.domain.port.ChatService.Conversation>) {
+        val uids = convs.flatMap { it.participants }.distinct().filter { it !in warmedProfileUids }
+        if (uids.isEmpty()) return
+        warmedProfileUids += uids
+        uids.forEach { uid ->
+            viewModelScope.launch {
+                // Cachea el perfil (nombre/usuario) y PRE-DESCARGA el avatar al
+                // disco de Coil, para que el chat se vea offline sin haber abierto
+                // Chats.
+                val photo = runCatching { getPublicProfile(uid) }.getOrNull()?.photoUrl
+                if (!photo.isNullOrEmpty()) {
+                    coil.Coil.imageLoader(appContext).enqueue(
+                        coil.request.ImageRequest.Builder(appContext).data(photo).build()
+                    )
                 }
             }
         }

@@ -277,11 +277,11 @@ struct PublicProfileView: View {
 struct AvatarCircle: View {
     let url: String?
     let size: CGFloat
+    @State private var image: UIImage?
     var body: some View {
         Group {
-            if let s = url, let u = URL(string: s) {
-                AsyncImage(url: u) { img in img.resizable().scaledToFill() }
-                placeholder: { Image(systemName: "person.crop.circle.fill").resizable().foregroundStyle(Cumbre.ink3) }
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
             } else {
                 Image(systemName: "person.crop.circle.fill").resizable().foregroundStyle(Cumbre.ink3)
             }
@@ -289,6 +289,14 @@ struct AvatarCircle: View {
         .frame(width: size, height: size)
         .clipShape(Circle())
         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+        // Caché en disco (igual que las fotos de piedras): el avatar se ve SIN
+        // conexión una vez descargado. AsyncImage no persistía en disco → offline
+        // quedaba en el placeholder aunque tuviéramos la URL cacheada.
+        .task(id: url) {
+            image = nil
+            guard let url, !url.isEmpty else { return }
+            if let img = await ImageCache.image(url) { image = img }
+        }
     }
 }
 

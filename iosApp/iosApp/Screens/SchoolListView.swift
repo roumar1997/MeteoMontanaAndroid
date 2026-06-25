@@ -170,6 +170,32 @@ final class SchoolListViewModel: ObservableObject {
                 self.unreadChats = convs
                     .filter { !chatIsHiddenForMe($0) }
                     .reduce(0) { $0 + Int(truncatingIfNeeded: $1.unreadCount) }
+                self.warmChatProfiles(convs)
+            }
+        }
+    }
+
+    /// uids cuyo perfil ya cacheé esta sesión (no repetir la llamada).
+    private var warmedProfileUids = Set<String>()
+
+    /// Pre-cachea (en disco) los perfiles de todos los participantes de mis
+    /// conversaciones con solo tener la app abierta online — sin entrar a Chats.
+    /// Así offline el chat ya muestra nombres/avatares (estilo Instagram).
+    /// getPublicProfile escribe el caché; AvatarCircle persiste el avatar en disco.
+    private func warmChatProfiles(_ convs: [ChatServiceConversation]) {
+        let uids = Set(convs.flatMap { $0.participants.compactMap { $0 as? String } })
+            .subtracting(warmedProfileUids)
+        guard !uids.isEmpty else { return }
+        warmedProfileUids.formUnion(uids)
+        let getProfile = AppDependencies.shared.container.getPublicProfile
+        for uid in uids {
+            Task {
+                // Cachea el perfil (nombre/usuario) y PRE-DESCARGA el avatar a
+                // disco, para que el chat se vea offline sin haber abierto Chats.
+                if let p = try? await getProfile.invoke(uid: uid),
+                   let photo = p.photoUrl, !photo.isEmpty {
+                    await ImageCache.prefetch([photo])
+                }
             }
         }
     }
