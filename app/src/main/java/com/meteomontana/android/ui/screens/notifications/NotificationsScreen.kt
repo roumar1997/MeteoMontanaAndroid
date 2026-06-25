@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -205,10 +206,11 @@ fun NotificationsScreen(
             }
             is NotificationsUiState.Success -> {
                 if (s.inbox.items.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("No tienes notificaciones",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    com.meteomontana.android.ui.components.EmptyState(
+                        icon = Icons.Outlined.Notifications,
+                        title = "Sin notificaciones",
+                        message = "Aquí te avisaremos de nuevos seguidores, solicitudes, mensajes y novedades de tus propuestas."
+                    )
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(s.inbox.items, key = { it.id }) { n ->

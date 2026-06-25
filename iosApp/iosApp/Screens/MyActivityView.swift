@@ -56,7 +56,8 @@ struct MySubmissionsView: View {
     @StateObject private var vm = MySubmissionsViewModel()
     var body: some View {
         listScaffold(title: "Mis propuestas", loading: vm.loading, empty: vm.items.isEmpty,
-                     emptyText: "No has propuesto escuelas todavía.") {
+                     emptyText: "Sin propuestas todavía", emptyIcon: "mappin.and.ellipse",
+                     emptyHint: "Con \"+ Enviar escuela\" o + PROPONER en el mapa de una escuela puedes proponer cosas. Aquí verás su estado.") {
             ForEach(vm.items, id: \.id) { s in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -111,7 +112,8 @@ struct MyContributionsView: View {
     @StateObject private var vm = MyContributionsViewModel()
     var body: some View {
         listScaffold(title: "Mis contribuciones", loading: vm.loading, empty: vm.items.isEmpty,
-                     emptyText: "No has enviado mejoras todavía.") {
+                     emptyText: "Sin mejoras todavía", emptyIcon: "mappin.and.ellipse",
+                     emptyHint: "Desde el mapa de una escuela (+ PROPONER) puedes añadir parkings, piedras, vías o sectores.") {
             ForEach(vm.items, id: \.id) { c in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -191,7 +193,8 @@ struct FollowRequestsView: View {
     @StateObject private var vm = FollowRequestsViewModel()
     var body: some View {
         listScaffold(title: "Solicitudes", loading: vm.loading, empty: vm.items.isEmpty,
-                     emptyText: "Sin solicitudes de seguimiento.") {
+                     emptyText: "Sin solicitudes", emptyIcon: "person.crop.circle.badge.questionmark",
+                     emptyHint: "Cuando alguien pida seguirte (perfil privado), aparecerá aquí para aceptar o rechazar.") {
             ForEach(vm.items, id: \.uid) { u in
                 HStack(spacing: 12) {
                     // Tocar el avatar/nombre abre el perfil público del solicitante
@@ -238,18 +241,16 @@ struct FollowRequestsView: View {
 @ViewBuilder
 private func listScaffold<Content: View>(
     title: String, loading: Bool, empty: Bool, emptyText: String,
+    emptyIcon: String = "tray", emptyHint: String = "",
     @ViewBuilder content: () -> Content
 ) -> some View {
     Group {
         if loading {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if empty {
-            VStack(spacing: 8) {
-                Image(systemName: "tray").font(.system(size: 36)).foregroundStyle(Cumbre.ink3)
-                Text(emptyText).font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
+            EmptyStateView(icon: emptyIcon, title: emptyText,
+                           message: emptyHint.isEmpty ? " " : emptyHint)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView { LazyVStack(spacing: 0) { content() } }
         }

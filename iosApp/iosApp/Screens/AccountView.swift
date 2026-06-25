@@ -434,9 +434,12 @@ private struct AccountBlocksList: View {
     var body: some View {
         Group {
             if entries.isEmpty {
-                Text(routeOnly == true ? "Aún no has registrado vías." : "Aún no has registrado bloques.")
-                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyStateView(
+                    icon: "book",
+                    title: routeOnly == true ? "Aún no has registrado vías" : "Aún no has registrado bloques",
+                    message: "Marca el ✓ de una vía dentro de su piedra (en el detalle de una escuela) y aparecerá aquí."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {

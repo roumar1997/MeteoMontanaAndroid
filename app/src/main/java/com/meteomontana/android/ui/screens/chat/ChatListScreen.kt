@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -90,10 +91,11 @@ fun ChatListScreen(
         }
 
         if (items.isEmpty()) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text("Aún no tienes conversaciones",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            com.meteomontana.android.ui.components.EmptyState(
+                icon = Icons.Outlined.ChatBubbleOutline,
+                title = "Aún no tienes conversaciones",
+                message = "Toca el lápiz para escribir a alguien a quien sigues o que te sigue, o crea un grupo con el icono de personas."
+            )
         } else {
             LazyColumn {
                 items(items, key = { it.conversation.id }) { item ->

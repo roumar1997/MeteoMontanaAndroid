@@ -201,6 +201,14 @@ fun SchoolListScreen(
 
             item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
 
+            item {
+                com.meteomontana.android.ui.components.FirstTimeHint(
+                    hintKey = "schools_gestures",
+                    text = "Truco: mantén pulsada una escuela para compararla con otras, y toca los días de arriba para comparar un tramo.",
+                    modifier = Modifier.padding(top = Spacing.sm)
+                )
+            }
+
             when (val s = state) {
                 is SchoolListUiState.Loading -> items(6) { SkeletonRow() }
                 is SchoolListUiState.Error   -> item { ErrorRow(s.message, onRetry = viewModel::refresh) }

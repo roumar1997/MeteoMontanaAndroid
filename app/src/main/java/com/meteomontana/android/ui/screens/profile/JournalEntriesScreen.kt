@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.CircularProgressIndicator
@@ -174,9 +175,11 @@ fun JournalEntriesScreen(
             }
             is JournalEntriesUiState.Success -> {
                 if (s.entries.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("Vacío", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    com.meteomontana.android.ui.components.EmptyState(
+                        icon = Icons.AutoMirrored.Outlined.MenuBook,
+                        title = "Tu diario está vacío",
+                        message = "Marca el ✓ de una vía dentro de su piedra (en el detalle de una escuela) y aparecerá aquí, con su grado y sector."
+                    )
                 } else {
                     LazyColumn {
                         // Si estamos viendo una escuela concreta, fila para abrir
