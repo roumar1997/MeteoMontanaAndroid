@@ -49,10 +49,28 @@ class ChatViewModel @Inject constructor(
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
 
     // Eco optimista: mensajes que acabo de enviar, mostrados YA (estilo WhatsApp)
-    // sin esperar a que el listener de Firestore los emita. Offline el listener no
-    // siempre refresca en vivo el mensaje local; con esto aparece al instante. Se
-    // reconcilian (quitan) cuando el mensaje real con el mismo contenido llega.
-    private val pendingOutgoing = MutableStateFlow<List<ChatService.ChatMessage>>(emptyList())
+    // sin esperar a que el listener de Firestore los emita (offline ese listener no
+    // refresca en vivo el mensaje local). Se reconcilian (quitan) cuando el mensaje
+    // real con el mismo contenido llega del servidor.
+    private val pending = mutableListOf<ChatService.ChatMessage>()
+    private var lastServer: List<ChatService.ChatMessage> = emptyList()
+
+    /** ¿Existe ya la conversación (está en mi lista de chats)? Decide si saltarse
+     *  startConversation. OJO: NO se basa en que haya mensajes cargados — offline
+     *  los mensajes pueden no estar cacheados aunque la conversación exista. */
+    private var conversationExists = false
+
+    /** Recalcula los mensajes visibles = servidor + pendientes (reconciliados),
+     *  ordenados por fecha. Actualiza el estado directamente (no depende de que el
+     *  combine reaccione, que offline no siempre ocurre). */
+    private fun rebuildMessages() {
+        pending.removeAll { p ->
+            lastServer.any { it.fromUid == p.fromUid && it.text == p.text && it.replyToId == p.replyToId }
+        }
+        val merged = (lastServer + pending).sortedBy { it.createdAtMillis ?: Long.MAX_VALUE }
+        val canWrite = _state.value.canWrite || lastServer.isNotEmpty() || conversationExists
+        _state.value = _state.value.copy(messages = merged, canWrite = canWrite, loading = false)
+    }
 
     init {
         viewModelScope.launch {
@@ -61,42 +79,28 @@ class ChatViewModel @Inject constructor(
             val follow = runCatching { getFollowStatus(otherUid) }
                 .getOrDefault(FollowStatus(0, 0, false, false))
             // Modelo de privacidad: puedo escribir si el receptor es público, o si
-            // hay relación de seguimiento aceptada (en cualquier sentido). Si ya hay
-            // conversación abierta, lo recalculamos a true al cargar los mensajes.
+            // hay relación de seguimiento aceptada (en cualquier sentido). Si ya
+            // existe conversación, lo recalculamos a true.
             val canWrite = other?.isPublic == true || follow.iFollowThem || follow.theyFollowMe
             _state.value = _state.value.copy(otherProfile = other, myProfile = mine, canWrite = canWrite)
 
-            // Combinamos mensajes del servidor + mis conversaciones (para ocultar el
-            // historial anterior a un "borrado para mí") + los pendientes optimistas.
+            // Mensajes del servidor + mis conversaciones (para el cleared_<me> y para
+            // saber si la conversación existe).
             kotlinx.coroutines.flow.combine(
                 chatService.observeMessages(convId),
-                chatService.observeMyConversations(),
-                pendingOutgoing
-            ) { msgs, convs, pend ->
+                chatService.observeMyConversations()
+            ) { msgs, convs ->
+                conversationExists = convs.any { it.id == convId }
                 val cleared = convs.firstOrNull { it.id == convId }?.clearedAtMillis
-                val server = if (cleared == null) msgs
-                    else msgs.filter { (it.createdAtMillis ?: Long.MAX_VALUE) > cleared }
-                // Un pendiente se considera "confirmado" (y se descarta) cuando el
-                // servidor ya tiene un mensaje mío con el mismo texto/cita.
-                val stillPending = pend.filter { p ->
-                    server.none { it.fromUid == p.fromUid && it.text == p.text && it.replyToId == p.replyToId }
-                }
-                if (stillPending.size != pend.size) pendingOutgoing.value = stillPending
-                Pair(server, (server + stillPending).sortedBy { it.createdAtMillis ?: Long.MAX_VALUE })
-            }.collect { (server, merged) ->
-                // Si ya hay conversación con mensajes, ambos pueden seguir hablando
-                // aunque no haya follow ni el receptor sea público (excepción del modelo).
-                hasServerMessages = server.isNotEmpty()
-                val canWrite = _state.value.canWrite || hasServerMessages
-                _state.value = _state.value.copy(messages = merged, canWrite = canWrite, loading = false)
+                if (cleared == null) msgs
+                else msgs.filter { (it.createdAtMillis ?: Long.MAX_VALUE) > cleared }
+            }.collect { server ->
+                lastServer = server
+                rebuildMessages()
                 runCatching { chatService.markRead(convId) }
             }
         }
     }
-
-    /** ¿La conversación ya tiene mensajes EN EL SERVIDOR? (no cuenta los ecos
-     *  optimistas). Decide si saltarse startConversation al enviar. */
-    private var hasServerMessages = false
 
     /** Conversación asegurada en el backend esta sesión (evita pedirlo en cada mensaje). */
     private var conversationEnsured = false
@@ -126,27 +130,27 @@ class ChatViewModel @Inject constructor(
             replyText = reply?.text,
             replyFromUid = reply?.fromUid
         )
-        pendingOutgoing.value = pendingOutgoing.value + optimistic
+        pending.add(optimistic)
+        rebuildMessages()
         viewModelScope.launch {
             // El backend crea el documento de conversación (los clientes no pueden,
-            // por las reglas de Firestore). Es la puerta de autorización: si no está
-            // permitido escribir, responde 403 y abortamos. Idempotente, así que solo
-            // hace falta la primera vez de la sesión.
+            // por las reglas de Firestore). Es la puerta de autorización. Solo hace
+            // falta la primera vez de la sesión.
             if (!conversationEnsured) {
-                if (hasServerMessages) {
-                    // La conversación YA existe (hay mensajes en el servidor): no hace
-                    // falta que el backend la cree. Saltamos startConversation y
-                    // escribimos directo en Firestore, que encola el mensaje offline y
-                    // lo entrega al reconectar. Así enviar sin red ya no se cancela.
+                if (conversationExists) {
+                    // La conversación YA existe (está en mi lista): no hace falta que el
+                    // backend la cree. Saltamos startConversation y escribimos directo en
+                    // Firestore, que encola el mensaje offline y lo entrega al reconectar.
                     conversationEnsured = true
                 } else {
                     // Conversación nueva: el backend debe crearla y autorizar primero
-                    // (las reglas de Firestore no dejan crearla al cliente). Offline
-                    // esto falla → quitamos el eco y abortamos (no se puede iniciar una
-                    // nueva conversación sin red).
+                    // (las reglas de Firestore no dejan crearla al cliente). Offline esto
+                    // falla → quitamos el eco y abortamos (no se puede iniciar una nueva
+                    // conversación sin red).
                     val started = runCatching { chatPushApi.startConversation(otherUid) }.isSuccess
                     if (!started) {
-                        pendingOutgoing.value = pendingOutgoing.value - optimistic
+                        pending.remove(optimistic)
+                        rebuildMessages()
                         return@launch
                     }
                     conversationEnsured = true
