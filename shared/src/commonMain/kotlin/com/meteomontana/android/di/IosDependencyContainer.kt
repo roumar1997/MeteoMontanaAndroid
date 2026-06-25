@@ -202,6 +202,10 @@ class IosDependencyContainer(
     private val profileCache: com.meteomontana.android.data.saved.ProfileCacheRepository? =
         database?.let { com.meteomontana.android.data.saved.ProfileCacheRepository(it) }
 
+    /** Catálogo de ayuda contextual (mismo copy que Android). iOS lo lee por clave. */
+    fun helpTopic(key: String): com.meteomontana.android.help.HelpTopic? =
+        com.meteomontana.android.help.HelpCatalog.byKey(key)
+
     val searchUsers = SearchUsersUseCase(socialRepository)
     val getPublicProfile = GetPublicProfileUseCase(socialRepository, profileCache)
     val getFollowStatus = GetFollowStatusUseCase(socialRepository)

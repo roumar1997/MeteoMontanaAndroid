@@ -379,6 +379,7 @@ private fun TopIconsRow(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        com.meteomontana.android.ui.components.HelpButton(topicKey = "schools")
         IconButton(onClick = onSearchUsers) {
             Icon(Icons.Outlined.Search, contentDescription = "Buscar usuarios",
                 tint = MaterialTheme.colorScheme.onBackground)

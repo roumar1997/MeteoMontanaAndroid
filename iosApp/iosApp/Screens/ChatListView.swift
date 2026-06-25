@@ -140,6 +140,7 @@ struct ChatListView: View {
         .navigationTitle("Mensajes")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) { HelpButton(topicKey: "chat") }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { showNewGroup = true } label: {
                     Image(systemName: "person.3").foregroundStyle(Cumbre.terra)

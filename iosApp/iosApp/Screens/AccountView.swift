@@ -211,6 +211,7 @@ struct AccountView: View {
             .navigationTitle("Cuenta")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) { HelpButton(topicKey: "profile") }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
                 }

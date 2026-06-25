@@ -442,6 +442,7 @@ private struct TopIconsRow: View {
     var body: some View {
         HStack(spacing: 4) {
             Spacer()
+            HelpButton(topicKey: "schools")
             iconButton("magnifyingglass") { showSearch = true }
             chatButton
             iconButton(theme.iconName) { theme.cycle() }

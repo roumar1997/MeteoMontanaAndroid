@@ -173,6 +173,7 @@ private fun TopBar(
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(start = Spacing.xs).weight(1f))
+        com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
         if (onDirections != null) {
             IconButton(onClick = onDirections) {
                 Icon(Icons.Outlined.Place, contentDescription = "Cómo llegar",

@@ -94,6 +94,7 @@ struct WeatherView: View {
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
+            HelpButton(topicKey: "weather")
         }
         .padding(.horizontal, 16).padding(.top, 8)
     }
