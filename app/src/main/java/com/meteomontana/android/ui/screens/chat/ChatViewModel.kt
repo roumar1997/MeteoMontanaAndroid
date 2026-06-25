@@ -48,6 +48,12 @@ class ChatViewModel @Inject constructor(
     private val _state = MutableStateFlow(ChatUiState(otherUid = otherUid, myUid = me.ifEmpty { null }))
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
 
+    // Eco optimista: mensajes que acabo de enviar, mostrados YA (estilo WhatsApp)
+    // sin esperar a que el listener de Firestore los emita. Offline el listener no
+    // siempre refresca en vivo el mensaje local; con esto aparece al instante. Se
+    // reconcilian (quitan) cuando el mensaje real con el mismo contenido llega.
+    private val pendingOutgoing = MutableStateFlow<List<ChatService.ChatMessage>>(emptyList())
+
     init {
         viewModelScope.launch {
             val other = runCatching { getPublicProfile(otherUid) }.getOrNull()
@@ -60,25 +66,37 @@ class ChatViewModel @Inject constructor(
             val canWrite = other?.isPublic == true || follow.iFollowThem || follow.theyFollowMe
             _state.value = _state.value.copy(otherProfile = other, myProfile = mine, canWrite = canWrite)
 
-            // Combinamos mensajes + mis conversaciones para ocultar el historial
-            // anterior a un "borrado para mí" (cleared_<me>). Si me escriben de
-            // nuevo, los mensajes nuevos (posteriores a cleared) sí se ven.
+            // Combinamos mensajes del servidor + mis conversaciones (para ocultar el
+            // historial anterior a un "borrado para mí") + los pendientes optimistas.
             kotlinx.coroutines.flow.combine(
                 chatService.observeMessages(convId),
-                chatService.observeMyConversations()
-            ) { msgs, convs ->
+                chatService.observeMyConversations(),
+                pendingOutgoing
+            ) { msgs, convs, pend ->
                 val cleared = convs.firstOrNull { it.id == convId }?.clearedAtMillis
-                if (cleared == null) msgs
-                else msgs.filter { (it.createdAtMillis ?: Long.MAX_VALUE) > cleared }
-            }.collect { visible ->
+                val server = if (cleared == null) msgs
+                    else msgs.filter { (it.createdAtMillis ?: Long.MAX_VALUE) > cleared }
+                // Un pendiente se considera "confirmado" (y se descarta) cuando el
+                // servidor ya tiene un mensaje mío con el mismo texto/cita.
+                val stillPending = pend.filter { p ->
+                    server.none { it.fromUid == p.fromUid && it.text == p.text && it.replyToId == p.replyToId }
+                }
+                if (stillPending.size != pend.size) pendingOutgoing.value = stillPending
+                Pair(server, (server + stillPending).sortedBy { it.createdAtMillis ?: Long.MAX_VALUE })
+            }.collect { (server, merged) ->
                 // Si ya hay conversación con mensajes, ambos pueden seguir hablando
                 // aunque no haya follow ni el receptor sea público (excepción del modelo).
-                val canWrite = _state.value.canWrite || visible.isNotEmpty()
-                _state.value = _state.value.copy(messages = visible, canWrite = canWrite, loading = false)
+                hasServerMessages = server.isNotEmpty()
+                val canWrite = _state.value.canWrite || hasServerMessages
+                _state.value = _state.value.copy(messages = merged, canWrite = canWrite, loading = false)
                 runCatching { chatService.markRead(convId) }
             }
         }
     }
+
+    /** ¿La conversación ya tiene mensajes EN EL SERVIDOR? (no cuenta los ecos
+     *  optimistas). Decide si saltarse startConversation al enviar. */
+    private var hasServerMessages = false
 
     /** Conversación asegurada en el backend esta sesión (evita pedirlo en cada mensaje). */
     private var conversationEnsured = false
@@ -97,24 +115,40 @@ class ChatViewModel @Inject constructor(
         if (!_state.value.canWrite) return
         val reply = _state.value.replyingTo
         _state.value = _state.value.copy(replyingTo = null)
+        // Eco optimista: muestra el mensaje YA (estilo WhatsApp), antes de tocar la
+        // red. Se reconcilia cuando llega el mensaje real del servidor.
+        val optimistic = ChatService.ChatMessage(
+            id = "pending_${System.nanoTime()}",
+            fromUid = me,
+            text = text,
+            createdAtMillis = System.currentTimeMillis(),
+            replyToId = reply?.id,
+            replyText = reply?.text,
+            replyFromUid = reply?.fromUid
+        )
+        pendingOutgoing.value = pendingOutgoing.value + optimistic
         viewModelScope.launch {
             // El backend crea el documento de conversación (los clientes no pueden,
             // por las reglas de Firestore). Es la puerta de autorización: si no está
             // permitido escribir, responde 403 y abortamos. Idempotente, así que solo
             // hace falta la primera vez de la sesión.
             if (!conversationEnsured) {
-                if (_state.value.messages.isNotEmpty()) {
-                    // La conversación YA existe (hay mensajes): no hace falta que el
-                    // backend la cree. Saltamos startConversation y escribimos directo
-                    // en Firestore, que encola el mensaje offline y lo entrega al
-                    // reconectar. Así enviar sin red ya no se cancela.
+                if (hasServerMessages) {
+                    // La conversación YA existe (hay mensajes en el servidor): no hace
+                    // falta que el backend la cree. Saltamos startConversation y
+                    // escribimos directo en Firestore, que encola el mensaje offline y
+                    // lo entrega al reconectar. Así enviar sin red ya no se cancela.
                     conversationEnsured = true
                 } else {
                     // Conversación nueva: el backend debe crearla y autorizar primero
                     // (las reglas de Firestore no dejan crearla al cliente). Offline
-                    // esto falla → abortamos (no se puede iniciar una nueva sin red).
+                    // esto falla → quitamos el eco y abortamos (no se puede iniciar una
+                    // nueva conversación sin red).
                     val started = runCatching { chatPushApi.startConversation(otherUid) }.isSuccess
-                    if (!started) return@launch
+                    if (!started) {
+                        pendingOutgoing.value = pendingOutgoing.value - optimistic
+                        return@launch
+                    }
                     conversationEnsured = true
                 }
             }

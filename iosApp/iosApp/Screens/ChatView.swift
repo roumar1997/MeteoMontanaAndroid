@@ -19,6 +19,10 @@ final class ChatVM: ObservableObject {
     private var task: Task<Void, Never>?
     private var convTask: Task<Void, Never>?
     private var rawMessages: [ChatServiceChatMessage] = []
+    // Eco optimista: mensajes recién enviados, mostrados YA (estilo WhatsApp) sin
+    // esperar al listener de Firestore. Se reconcilian (quitan) cuando llega el
+    // mensaje real del servidor con el mismo contenido.
+    private var pendingOutgoing: [ChatServiceChatMessage] = []
     private var clearedAt: Int64 = 0   // mi cleared_<me> en millis (0 = no borrada)
     var me: String { AppDependencies.shared.authBridge.currentUid() ?? "" }
     private var convId: String { chat?.convIdFor(uidA: me, uidB: otherUid) ?? "" }
@@ -52,8 +56,17 @@ final class ChatVM: ObservableObject {
     }
 
     private func recompute() {
-        messages = clearedAt <= 0 ? rawMessages
+        let server = clearedAt <= 0 ? rawMessages
             : rawMessages.filter { ($0.createdAtMillis?.int64Value ?? Int64.max) > clearedAt }
+        // Un pendiente se descarta cuando el servidor ya tiene un mensaje mío con el
+        // mismo texto/cita (evita duplicar al reconciliar).
+        let stillPending = pendingOutgoing.filter { p in
+            !server.contains { $0.fromUid == p.fromUid && $0.text == p.text && $0.replyToId == p.replyToId }
+        }
+        if stillPending.count != pendingOutgoing.count { pendingOutgoing = stillPending }
+        messages = (server + stillPending).sorted {
+            ($0.createdAtMillis?.int64Value ?? Int64.max) < ($1.createdAtMillis?.int64Value ?? Int64.max)
+        }
     }
 
     func startReply(_ m: ChatServiceChatMessage) { replyingTo = m }
@@ -65,25 +78,39 @@ final class ChatVM: ObservableObject {
         draft = ""
         let reply = replyingTo
         replyingTo = nil
+        // Eco optimista: muestra el mensaje YA (estilo WhatsApp) antes de tocar la
+        // red. Se reconcilia cuando llega el mensaje real del servidor.
+        let optimistic = ChatServiceChatMessage(
+            id: "pending_\(UUID().uuidString)",
+            fromUid: me,
+            text: text,
+            createdAtMillis: KotlinLong(value: Int64(Date().timeIntervalSince1970 * 1000)),
+            replyToId: reply?.id, replyText: reply?.text, replyFromUid: reply?.fromUid)
+        pendingOutgoing.append(optimistic)
+        recompute()
         Task { [weak self] in
             guard let self else { return }
             // El backend crea el documento de conversación (los clientes no pueden,
             // por las reglas de Firestore) y autoriza según el modelo de privacidad.
             // Si no está permitido escribir, lanza (p.ej. 403) y abortamos.
             if !self.conversationEnsured {
-                if !self.messages.isEmpty {
-                    // La conversación YA existe (hay mensajes): no hace falta que
-                    // el backend la cree. Saltamos startConversation y escribimos
-                    // directo en Firestore, que encola el mensaje offline y lo
-                    // entrega al reconectar. Así enviar sin red ya no aborta.
+                if !self.rawMessages.isEmpty {
+                    // La conversación YA existe (hay mensajes EN EL SERVIDOR): no hace
+                    // falta que el backend la cree. Saltamos startConversation y
+                    // escribimos directo en Firestore, que encola el mensaje offline y
+                    // lo entrega al reconectar. Así enviar sin red ya no aborta.
                     self.conversationEnsured = true
                 } else {
                     // Conversación nueva: el backend debe crearla y autorizar
                     // primero (las reglas de Firestore no dejan crearla al cliente).
-                    // Offline esto falla → abortamos limpio (no se puede iniciar
-                    // una conversación nueva sin red).
+                    // Offline esto falla → quitamos el eco y abortamos (no se puede
+                    // iniciar una conversación nueva sin red).
                     do { try await self.chatPush.startConversation(toUid: self.otherUid) }
-                    catch { return }
+                    catch {
+                        self.pendingOutgoing.removeAll { $0.id == optimistic.id }
+                        self.recompute()
+                        return
+                    }
                     self.conversationEnsured = true
                 }
             }
