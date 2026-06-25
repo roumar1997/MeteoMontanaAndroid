@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -100,13 +101,19 @@ fun WeatherScreen(
 
 @Composable
 private fun TopBar(title: String, subtitle: String) {
-    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground)
-        if (subtitle.isNotEmpty()) {
-            Text(subtitle, style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 16.dp, bottom = 16.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground)
+            if (subtitle.isNotEmpty()) {
+                Text(subtitle, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
+        com.meteomontana.android.ui.components.HelpButton(topicKey = "weather")
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }

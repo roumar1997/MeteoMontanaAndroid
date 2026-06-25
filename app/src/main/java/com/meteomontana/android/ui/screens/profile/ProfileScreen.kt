@@ -140,6 +140,10 @@ private fun SheetHeader(title: String, onClose: () -> Unit) {
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center))
+        com.meteomontana.android.ui.components.HelpButton(
+            topicKey = "profile",
+            modifier = Modifier.align(Alignment.CenterStart)
+        )
         TextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterEnd)) {
             Text("Cerrar", color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge)

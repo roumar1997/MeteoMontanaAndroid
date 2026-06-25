@@ -221,6 +221,7 @@ struct SchoolDetailView: View {
         .navigationTitle(school.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { HelpButton(topicKey: "detail") }
             // Compartir (icono, mismo estilo que la estrella) — solo si hay
             // forecast cargado para resumir las condiciones.
             ToolbarItem(placement: .topBarTrailing) {
