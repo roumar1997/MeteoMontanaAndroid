@@ -106,11 +106,20 @@ fun MainScreen(
     val dismissSheet: () -> Unit = {
         scope.launch { sheetState.hide() }.invokeOnCompletion { sheetVisible = false }
     }
-    // Atrás dentro del sheet: si hay pila interna, desliza atrás (lateral); si
-    // estamos en el destino raíz del sheet, baja la tarjeta.
+    // Atrás dentro del sheet: si hay más de una pantalla en la pila interna,
+    // desliza atrás (lateral); si solo queda la raíz, baja la tarjeta.
+    // Clave: tras popBackStack comprobamos si caímos en SHEET_ROOT (el Box vacío)
+    // y si es así cerramos el sheet para no mostrar una pantalla en blanco.
     val popSheetOrDismiss: () -> Unit = {
         val prev = sheetNav.previousBackStackEntry?.destination?.route
-        if (prev != null && prev != SHEET_ROOT) sheetNav.popBackStack() else dismissSheet()
+        if (prev != null && prev != SHEET_ROOT) {
+            sheetNav.popBackStack()
+            // Si tras el pop caemos en SHEET_ROOT, cerrar el sheet
+            val current = sheetNav.currentBackStackEntry?.destination?.route
+            if (current == SHEET_ROOT) dismissSheet()
+        } else {
+            dismissSheet()
+        }
     }
     // Cierra el sheet y abre una pantalla completa (las que viven por debajo).
     val openFullScreen: (String) -> Unit = { route ->
