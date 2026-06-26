@@ -2,6 +2,7 @@ package com.meteomontana.android.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -12,12 +13,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
     data object Weather  : Tab("weather",  "Tiempo",   Icons.Outlined.Cloud)
     data object Schools  : Tab("schools",  "Escuelas", Icons.Outlined.List)
+    data object Meetups  : Tab("meetups",  "Quedadas", Icons.Outlined.Groups)
     data object Radar    : Tab("radar",    "Radar",    Icons.Outlined.Radar)
 }
 
 // Radar (Windy) OCULTO de momento: Windy de pago no asumible hasta validar la
 // app. El código de RadarScreen sigue ahí; reactivar añadiendo Tab.Radar aquí.
-val mainTabs = listOf(Tab.Weather, Tab.Schools)
+val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Meetups)
 
 object Routes {
     const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}&viaId={viaId}"
@@ -67,4 +69,8 @@ object Routes {
     const val WEEKEND_ALERT = "weekend-alert"
     const val COMPARE = "compare/{ids}"
     fun compare(ids: List<String>) = "compare/${ids.joinToString(",")}"
+
+    const val MEETUP_DETAIL = "meetups/{meetupId}"
+    fun meetupDetail(id: String) = "meetups/$id"
+    const val CREATE_MEETUP = "meetups/new"
 }

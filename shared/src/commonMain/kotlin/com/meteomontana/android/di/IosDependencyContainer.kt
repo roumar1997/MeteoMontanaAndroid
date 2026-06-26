@@ -88,6 +88,14 @@ import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
 import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
+import com.meteomontana.android.data.api.KtorMeetupApi
+import com.meteomontana.android.data.saved.MeetupCacheRepository
+import com.meteomontana.android.domain.usecase.meetups.GetMeetupsUseCase
+import com.meteomontana.android.domain.usecase.meetups.GetMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
 
 /**
  * Grafo de dependencias para iOS, construido en Kotlin (commonMain).
@@ -156,6 +164,8 @@ class IosDependencyContainer(
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
     private val blockRepository = KtorBlockRepository(KtorBlockApi(httpClient))
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
+    private val meetupApi = KtorMeetupApi(httpClient)
+    private val meetupCache: MeetupCacheRepository? = database?.let { MeetupCacheRepository(it) }
 
     // Use cases públicos del MVP (sin auth). Se irán añadiendo más a medida
     // que las pantallas iOS los necesiten.
@@ -266,6 +276,15 @@ class IosDependencyContainer(
     // Stats mensuales (mejores meses del año por escuela). Requiere BD para la
     // caché; el cálculo lo hace el backend. Null si no hay BD.
     val monthlyStats: MonthlyStatsRepository? = database?.let { MonthlyStatsRepository(it, schoolApi) }
+
+    // Quedadas (meetups): lista, detalle, crear, unirse, salir, expulsar.
+    // La caché local (SQLDelight) permite ver la lista offline.
+    val getMeetups: GetMeetupsUseCase? = meetupCache?.let { GetMeetupsUseCase(meetupApi, it) }
+    val getMeetup: GetMeetupUseCase? = meetupCache?.let { GetMeetupUseCase(meetupApi, it) }
+    val createMeetup: CreateMeetupUseCase? = meetupCache?.let { CreateMeetupUseCase(meetupApi, it) }
+    val joinMeetup: JoinMeetupUseCase? = meetupCache?.let { JoinMeetupUseCase(meetupApi, it) }
+    val leaveMeetup: LeaveMeetupUseCase? = meetupCache?.let { LeaveMeetupUseCase(meetupApi, it) }
+    val kickMeetupMember = KickMeetupMemberUseCase(meetupApi)
 
     // ─── Cola offline (outbox) — vías marcadas como hechas sin conexión ──────
     // Comparte la tabla Outbox de SQLDelight. Permite marcar una vía sin red:

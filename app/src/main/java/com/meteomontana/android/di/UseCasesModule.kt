@@ -63,6 +63,12 @@ import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
+import com.meteomontana.android.domain.usecase.meetups.GetMeetupsUseCase
+import com.meteomontana.android.domain.usecase.meetups.GetMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -296,4 +302,40 @@ object UseCasesModule {
 
     @Provides @Singleton
     fun provideRejectFollowRequestUseCase(repo: SocialRepository) = RejectFollowRequestUseCase(repo)
+
+    // Meetups (quedadas)
+    @Provides @Singleton
+    fun provideGetMeetupsUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi,
+        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
+    ) = GetMeetupsUseCase(api, cache)
+
+    @Provides @Singleton
+    fun provideGetMeetupUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi,
+        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
+    ) = GetMeetupUseCase(api, cache)
+
+    @Provides @Singleton
+    fun provideCreateMeetupUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi,
+        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
+    ) = CreateMeetupUseCase(api, cache)
+
+    @Provides @Singleton
+    fun provideJoinMeetupUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi,
+        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
+    ) = JoinMeetupUseCase(api, cache)
+
+    @Provides @Singleton
+    fun provideLeaveMeetupUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi,
+        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
+    ) = LeaveMeetupUseCase(api, cache)
+
+    @Provides @Singleton
+    fun provideKickMeetupMemberUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi
+    ) = KickMeetupMemberUseCase(api)
 }

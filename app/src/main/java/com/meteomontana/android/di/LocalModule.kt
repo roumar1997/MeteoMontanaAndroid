@@ -61,6 +61,11 @@ object LocalModule {
         com.meteomontana.android.data.local.ProfileCache =
         com.meteomontana.android.data.local.ProfileCache(ctx)
 
+    @Provides @Singleton
+    fun provideMeetupCacheRepository(db: MeteoMontanaDb):
+        com.meteomontana.android.data.saved.MeetupCacheRepository =
+        com.meteomontana.android.data.saved.MeetupCacheRepository(db)
+
     // LocationProvider: interfaz en shared/commonMain, impl Android (FusedLocation).
     @Provides @Singleton
     fun provideLocationProvider(
