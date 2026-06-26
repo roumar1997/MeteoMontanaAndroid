@@ -53,7 +53,6 @@ struct HelpSheet: View {
                                 Spacer(minLength: 0)
                             }
                         }
-                    }
                         // Botón "Volver a ver las pistas"
                         Button {
                             FirstTimeHint.resetAll()
