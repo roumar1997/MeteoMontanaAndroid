@@ -35,6 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
@@ -189,36 +192,51 @@ private fun Body(
     Column(modifier = Modifier.fillMaxSize()
         .verticalScroll(rememberScrollState())
         .padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Cabecera centrada, igual que el perfil propio.
+        Column(modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally) {
             if (p.photoUrl != null) {
                 AsyncImage(model = p.photoUrl, contentDescription = null,
-                    modifier = Modifier.size(72.dp).clip(CircleShape)
+                    modifier = Modifier.size(96.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             } else {
                 Image(painter = painterResource(R.drawable.logo_cumbre), contentDescription = null,
-                    modifier = Modifier.size(72.dp).clip(CircleShape)
+                    modifier = Modifier.size(96.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             }
-            Spacer(Modifier.padding(start = 16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("@${p.username ?: p.displayName ?: "usuario"}",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground)
-                if (!locked) {
-                    p.bio?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+            Spacer(Modifier.height(12.dp))
+            Text(p.displayName ?: p.username ?: "Usuario",
+                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text("@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "usuario"}",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!locked) {
+                p.bio?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(Modifier.height(4.dp))
+                    Text(it, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Stat("Seguidores", s.status.followers.toString(),
-                modifier = if (locked) Modifier else Modifier.clickable(onClick = onFollowersClick))
-            Stat("Siguiendo", s.status.following.toString(),
-                modifier = if (locked) Modifier else Modifier.clickable(onClick = onFollowingClick))
-            Stat("Grado máx", if (locked) "—" else (p.topGrade ?: "—"))
+            if (!locked && !p.topGrade.isNullOrBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Box(modifier = Modifier
+                    .clip(RoundedCornerShape(2.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)) {
+                    Text("TOPE ${p.topGrade}", style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                FollowCount(s.status.followers, "SEGUIDORES",
+                    if (locked) ({}) else onFollowersClick)
+                FollowCount(s.status.following, "SIGUIENDO",
+                    if (locked) ({}) else onFollowingClick)
+            }
         }
         Spacer(Modifier.height(24.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -315,18 +333,31 @@ private fun ActivityStatsRow(
 
 @Composable
 private fun StatBox(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    // Mismo estilo que el StatCell del perfil propio (fondo surface + borde + serif).
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 14.dp),
+            .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(value, style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground)
-        Spacer(Modifier.height(2.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall,
+        Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+            fontSize = 28.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("$value", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+            fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
