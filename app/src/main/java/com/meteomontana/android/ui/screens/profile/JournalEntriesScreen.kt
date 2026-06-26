@@ -240,13 +240,16 @@ private fun EntryRow(
                 // pudo resolver, el guardado al marcar la vía.
                 val eGrade = info?.grade ?: e.grade
                 if (!eGrade.isNullOrBlank()) {
+                    val gs = com.meteomontana.android.ui.theme.gradeStyle(eGrade)
                     Box(modifier = Modifier
-                        .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .background(gs.stroke, RoundedCornerShape(3.dp))
+                        .padding(horizontal = 7.dp, vertical = 3.dp)
                     ) {
                         Text(eGrade,
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary)
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = if (gs.dark) androidx.compose.ui.graphics.Color.Black
+                                    else androidx.compose.ui.graphics.Color.White)
                     }
                 }
             }
