@@ -114,7 +114,8 @@ struct CompareView: View {
                         NavigationLink(destination: SchoolDetailView(school: it.school)) {
                             VStack(spacing: 4) {
                                 Text(it.name).font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(Cumbre.ink).multilineTextAlignment(.center).lineLimit(2)
+                                    .foregroundStyle(Cumbre.ink).multilineTextAlignment(.center)
+                                    .lineLimit(2).minimumScaleFactor(0.75)
                                 Text("\(it.score)").font(Cumbre.mono(13, .bold)).foregroundStyle(.white)
                                     .padding(.horizontal, 8).padding(.vertical, 2)
                                     .background(Cumbre.score(it.score), in: RoundedRectangle(cornerRadius: 3))
