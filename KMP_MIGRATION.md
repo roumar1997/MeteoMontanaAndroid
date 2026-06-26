@@ -12,7 +12,23 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-15 (PRIMERA SESIÓN EN MAC — Fase E arrancada).
+**Última actualización:** 2026-06-26 — Feature Quedadas: Fases 1 (backend), 3 (shared KMP) y 4 (Android UI) completadas. Backend en `develop`, Android en `main`.
+
+---
+### Feature: Quedadas para escalar (MEETUPS_DESIGN.md)
+
+- ✅ **Fase 1 — Backend** (`develop`): V31__meetups.sql, entidades JPA, use cases (Get/Create/Join/Leave/Kick + Expiry scheduler), MeetupController, gender field en User. Tests verdes (13 nuevos).
+- ✅ **Fase 3 — Shared KMP** (`main`): MeetupModels, DTOs, KtorMeetupApi, MeetupCacheRepository (SQLDelight offline), 6 use cases, IosDependencyContainer actualizado.
+- ✅ **Fase 4 — Android UI** (`main`): Tab "Quedadas" (3ª pestaña, icono Groups), MeetupsScreen (lista + filtros), MeetupDetailScreen (info + miembros + join/leave/kick + chat), CreateMeetupScreen (formulario completo). Build y tests verdes.
+- ⬜ **Fase 5 — Moderación** (backend): `POST /api/reports`, cola de denuncias en admin.
+- ⬜ **Fase 6 — Notificaciones "quedada nueva"** (backend + shared): meetup_alerts opt-in + push al crear.
+- ⬜ **Fase 7 — iOS UI**: paridad exacta con Android (SwiftUI) — MeetupsView, MeetupDetailView, CreateMeetupView.
+
+**Próximo paso**: Fase 7 iOS (si se trabaja en Mac/CI) o Fase 5 Moderación (si se trabaja backend). El backend de Fase 1 está en `develop` — pide OK antes de mergear a `main` de Railway.
+
+---
+
+**Última actualización anterior:** 2026-06-15 (PRIMERA SESIÓN EN MAC — Fase E arrancada).
 🎉 **Hito: la app iOS COMPILA, INSTALA y ARRANCA en el simulador mostrando las
 191 escuelas reales del backend de Railway.** Validación end-to-end de toda la
 arquitectura KMP (Ktor desde iOS + SKIE async/await + DI Kotlin + SQLDelight
