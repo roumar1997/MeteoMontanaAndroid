@@ -300,21 +300,34 @@ private fun ActivityStatsRow(
     Column(modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween) {
-            Stat("Bloques", stats.boulderCount.toString(),
-                modifier = Modifier.clickable(onClick = onBlocksClick))
-            Stat("Vías", stats.routeCount.toString(),
-                modifier = Modifier.clickable(onClick = onRoutesClick))
-            Stat("Escuelas", stats.schoolCount.toString(),
-                modifier = Modifier.clickable(onClick = onSchoolsClick))
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatBox("BLOQUES", stats.boulderCount.toString(), Modifier.weight(1f), onBlocksClick)
+            StatBox("VÍAS", stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick)
+            StatBox("ESCUELAS", stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick)
         }
         Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween) {
-            Stat("Máx bloque", stats.maxBoulderGrade ?: "—",
-                modifier = Modifier.clickable(onClick = onMaxClick))
-            Stat("Máx vía", stats.maxRouteGrade ?: "—",
-                modifier = Modifier.clickable(onClick = onMaxClick))
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatBox("MÁX BLOQUE", stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick)
+            StatBox("MÁX VÍA", stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick)
         }
+    }
+}
+
+@Composable
+private fun StatBox(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(value, style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground)
+        Spacer(Modifier.height(2.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
