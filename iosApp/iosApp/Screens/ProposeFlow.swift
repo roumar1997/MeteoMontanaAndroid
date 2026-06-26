@@ -135,18 +135,27 @@ struct BoulderFormSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("A esta piedra se le asignará un número automático al publicarse.")
-                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    Text("Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada vía sobre ellas.")
+                        .font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
+
+                    FirstTimeHint(
+                        hintKey: "boulder_form_guide",
+                        text: "Pasos: 1) Elige modalidad y geometría, 2) Añade una foto de la piedra, 3) Dibuja las líneas de las vías sobre la foto, 4) Envía."
+                    )
 
                     // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────
                     VStack(alignment: .leading, spacing: 6) {
                         Text("MODALIDAD").eyebrow()
+                        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                         DisciplineSelector(selected: $discipline)
                     }
 
                     // ── Geometría: PUNTO o MURO ────────────────────────────────────
                     VStack(alignment: .leading, spacing: 6) {
                         Text("GEOMETRÍA").eyebrow()
+                        Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                         WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
                     }
                     if isWall {

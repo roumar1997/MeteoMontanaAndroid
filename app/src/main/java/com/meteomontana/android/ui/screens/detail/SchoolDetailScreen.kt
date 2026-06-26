@@ -227,8 +227,20 @@ private fun Content(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             com.meteomontana.android.ui.components.FirstTimeHint(
-                hintKey = "detail_actions",
-                text = "Arriba: guarda la escuela (↓) para verla sin conexión. Abajo, en el mapa, con + PROPONER añades piedras o parkings."
+                hintKey = "detail_offline",
+                text = "Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras."
+            )
+        }
+        item {
+            com.meteomontana.android.ui.components.FirstTimeHint(
+                hintKey = "detail_propose",
+                text = "Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa."
+            )
+        }
+        item {
+            com.meteomontana.android.ui.components.FirstTimeHint(
+                hintKey = "detail_tick",
+                text = "Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario."
             )
         }
         if (forecast != null) {

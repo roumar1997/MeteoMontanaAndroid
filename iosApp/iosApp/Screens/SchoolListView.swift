@@ -340,8 +340,16 @@ struct SchoolListView: View {
                     Divider().overlay(Cumbre.rule)
 
                     FirstTimeHint(
-                        hintKey: "schools_gestures",
-                        text: "Truco: mantén pulsada una escuela para compararla con otras, y toca los días de arriba para comparar un tramo."
+                        hintKey: "schools_filters",
+                        text: "Usa los filtros de arriba para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía)."
+                    )
+                    FirstTimeHint(
+                        hintKey: "schools_map",
+                        text: "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
+                    )
+                    FirstTimeHint(
+                        hintKey: "schools_compare",
+                        text: "Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes tocar los días de arriba para ver un tramo de varios días."
                     )
 
                     if vm.loading {

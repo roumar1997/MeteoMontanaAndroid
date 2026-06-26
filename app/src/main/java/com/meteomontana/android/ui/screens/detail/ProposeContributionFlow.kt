@@ -430,16 +430,33 @@ private fun TypePickerDialog(
         )
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            "El admin revisará tu propuesta antes de publicarla.",
+            "¿Falta algo en esta escuela? Propón una mejora y un admin la revisará (24-48 h).",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(Modifier.height(Spacing.sm))
+        // Mini-guía del flujo
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    androidx.compose.foundation.shape.RoundedCornerShape(10.dp)
+                )
+                .padding(Spacing.md)
+        ) {
+            Text(
+                "Cómo funciona: elige qué añadir → toca el mapa para fijar la posición → rellena los datos → enviar. ¡Así de fácil!",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
         Spacer(Modifier.height(Spacing.lg))
 
         TypeOption(
             icon = "◆",
             label = "AÑADIR PIEDRA",
-            description = "Una roca con uno o más bloques/vías",
+            description = "Una roca con sus vías de escalada. Podrás añadir fotos y dibujar las líneas de cada vía.",
             enabled = true,
             onClick = onBoulder
         )
@@ -447,7 +464,7 @@ private fun TypePickerDialog(
         TypeOption(
             icon = "+",
             label = "AÑADIR SECTOR",
-            description = "Zona con varios bloques (ej: La Isla, Vertedero…)",
+            description = "Una zona que agrupa varias piedras (ej: \"La Isla\", \"Vertedero\"). Luego podrás asignar piedras al sector.",
             enabled = true,
             onClick = onSector
         )
@@ -455,7 +472,7 @@ private fun TypePickerDialog(
         TypeOption(
             icon = "■",
             label = "AÑADIR PARKING",
-            description = "Punto de aparcamiento para acceder a la escuela",
+            description = "El punto donde se aparca para llegar a la escuela. Otros escaladores verán \"Cómo llegar\" con indicaciones.",
             enabled = true,
             onClick = onParking
         )
@@ -463,7 +480,7 @@ private fun TypePickerDialog(
         TypeOption(
             icon = "↔",
             label = "CORREGIR POSICIÓN",
-            description = "Mover una piedra, parking o sector existente",
+            description = "¿Algo está mal colocado en el mapa? Toca el elemento y muévelo al sitio correcto.",
             enabled = true,
             onClick = onCorrection
         )
@@ -541,7 +558,7 @@ private fun SectorFormDialog(
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(Spacing.xs))
-        Text("Una zona con varios bloques. Se ubicará en el punto que pulsaste.",
+        Text("Un sector agrupa varias piedras bajo un nombre (ej: \"La Isla\"). Después podrás asignar piedras a este sector.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.lg))
@@ -628,7 +645,7 @@ private fun ParkingFormDialog(
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(Spacing.xs))
-        Text("Pulsa en el mapa para fijar la posición",
+        Text("Añade un punto de aparcamiento para que otros escaladores sepan dónde aparcar y cómo llegar.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.lg))
@@ -740,13 +757,22 @@ private fun BoulderFormDialog(
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(Spacing.xs))
-        Text("A esta piedra se le asignará un número automático al publicarse.",
+        Text("Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada vía sobre ellas.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.sm))
+        com.meteomontana.android.ui.components.FirstTimeHint(
+            hintKey = "boulder_form_guide",
+            text = "Pasos: 1) Elige modalidad y geometría, 2) Añade una foto de la piedra, 3) Dibuja las líneas de las vías sobre la foto, 4) Envía."
+        )
         Spacer(Modifier.height(Spacing.md))
 
         // ── Modalidad: BLOQUE o VÍA ───────────────────────────────────────────────
         Text("MODALIDAD", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?",
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         DisciplineSelector(selected = discipline, onSelect = onDisciplineChange)
@@ -754,6 +780,10 @@ private fun BoulderFormDialog(
 
         // ── Geometría: PUNTO o MURO ───────────────────────────────────────────────
         Text("GEOMETRÍA", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.",
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         GeometrySelector(selected = geometry, onSelect = onGeometryChange)

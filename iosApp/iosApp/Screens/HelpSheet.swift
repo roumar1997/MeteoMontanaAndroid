@@ -54,6 +54,20 @@ struct HelpSheet: View {
                             }
                         }
                     }
+                        // Botón "Volver a ver las pistas"
+                        Button {
+                            FirstTimeHint.resetAll()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle").font(.system(size: 16))
+                                Text("Volver a ver todas las pistas").font(.system(size: 15))
+                            }
+                            .foregroundStyle(Cumbre.terra)
+                            .frame(maxWidth: .infinity)
+                            .padding(12)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
+                        }
+                    }
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

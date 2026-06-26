@@ -16,7 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -182,6 +185,12 @@ fun JournalEntriesScreen(
                     )
                 } else {
                     LazyColumn {
+                        item {
+                            com.meteomontana.android.ui.components.FirstTimeHint(
+                                hintKey = "journal_tap_via",
+                                text = "Toca una vía para ir directamente a su piedra en la escuela."
+                            )
+                        }
                         // Si estamos viendo una escuela concreta, fila para abrir
                         // la escuela (sin piedra).
                         val headerSchoolId = s.entries.firstOrNull { !it.schoolId.isNullOrBlank() }?.schoolId
@@ -282,6 +291,15 @@ private fun EntryRow(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
             }
+        }
+        // Flecha que indica que la fila es pulsable → abre la piedra
+        if (e.schoolId != null) {
+            Icon(
+                Icons.Outlined.ChevronRight,
+                contentDescription = "Ver piedra",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
         }
         if (canDelete) {
             IconButton(onClick = onDelete) {

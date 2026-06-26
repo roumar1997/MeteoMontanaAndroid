@@ -185,8 +185,16 @@ struct SchoolDetailView: View {
                     .padding(.top, 60)
             } else if let f = vm.forecast {
                 FirstTimeHint(
-                    hintKey: "detail_actions",
-                    text: "Arriba: guarda la escuela (↓) para verla sin conexión. Más abajo, en el mapa, con + PROPONER añades piedras o parkings."
+                    hintKey: "detail_offline",
+                    text: "Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras."
+                )
+                FirstTimeHint(
+                    hintKey: "detail_propose",
+                    text: "Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa."
+                )
+                FirstTimeHint(
+                    hintKey: "detail_tick",
+                    text: "Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario."
                 )
                 if vm.offlineForecast {
                     HStack(spacing: 6) {
@@ -751,10 +759,21 @@ private struct ContributionTypePicker: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 12) {
-                row("PIEDRA", "Añadir un bloque y sus vías", "mountain.2.fill", enabled: true) { onPick("BOULDER") }
-                row("SECTOR", "Añadir una zona", "square.dashed", enabled: true) { onPick("SECTOR") }
-                row("PARKING", "Añadir un aparcamiento", "car.fill", enabled: true) { onPick("PARKING") }
-                row("CORREGIR", "Mover una posición existente", "mappin.and.ellipse", enabled: true) { onPick("CORRECTION") }
+                Text("¿Falta algo en esta escuela? Propón una mejora y un admin la revisará (24-48 h).")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Mini-guía del flujo
+                Text("Cómo funciona: elige qué añadir → toca el mapa para fijar la posición → rellena los datos → enviar. ¡Así de fácil!")
+                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(Cumbre.terra.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+
+                row("PIEDRA", "Una roca con sus vías. Podrás añadir fotos y dibujar las líneas.", "mountain.2.fill", enabled: true) { onPick("BOULDER") }
+                row("SECTOR", "Una zona que agrupa piedras (ej: \"La Isla\"). Después asignarás piedras al sector.", "square.dashed", enabled: true) { onPick("SECTOR") }
+                row("PARKING", "El punto de aparcamiento. Otros escaladores verán \"Cómo llegar\".", "car.fill", enabled: true) { onPick("PARKING") }
+                row("CORREGIR", "¿Algo está mal colocado en el mapa? Tócalo y muévelo al sitio correcto.", "mappin.and.ellipse", enabled: true) { onPick("CORRECTION") }
                 Spacer()
             }
             .padding(16)

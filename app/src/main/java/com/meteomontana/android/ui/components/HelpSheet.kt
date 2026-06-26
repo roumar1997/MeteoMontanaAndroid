@@ -54,6 +54,9 @@ import com.meteomontana.android.help.HelpCatalog
 import com.meteomontana.android.help.HelpTopic
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Botón "?" reutilizable que abre la hoja de ayuda contextual de una pantalla.
@@ -166,6 +169,40 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+            }
+            // Botón "Volver a ver las pistas" — accesible desde cualquier hoja de ayuda
+            val ctx = LocalContext.current
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    .clickable {
+                        resetAllHints(ctx)
+                        android.widget.Toast.makeText(
+                            ctx,
+                            "Pistas reactivadas — vuelve a cada pantalla para verlas",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    .padding(Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        "Volver a ver todas las pistas",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
             Spacer(Modifier.padding(bottom = Spacing.lg))

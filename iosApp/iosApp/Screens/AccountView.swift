@@ -462,6 +462,10 @@ private struct AccountBlocksList: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
+                        FirstTimeHint(
+                            hintKey: "journal_tap_via",
+                            text: "Toca una vía para ir directamente a su piedra en la escuela."
+                        )
                         ForEach(entries, id: \.id) { e in
                             JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id]) { vm.deleteBlock(e.id) }
                             Divider().overlay(Cumbre.rule)
