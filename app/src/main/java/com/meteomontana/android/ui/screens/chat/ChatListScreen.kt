@@ -98,6 +98,12 @@ fun ChatListScreen(
             )
         } else {
             LazyColumn {
+                item {
+                    com.meteomontana.android.ui.components.FirstTimeHint(
+                        hintKey = "chat_swipe",
+                        text = "Desliza una conversación: a la izquierda para borrarla, a la derecha para marcarla como no leída."
+                    )
+                }
                 items(items, key = { it.conversation.id }) { item ->
                     val conv = item.conversation
                     if (conv.isGroup) {

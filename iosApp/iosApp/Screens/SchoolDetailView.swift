@@ -184,6 +184,10 @@ struct SchoolDetailView: View {
                 ContentUnavailableView("Sin previsión", systemImage: "cloud.slash", description: Text(err))
                     .padding(.top, 60)
             } else if let f = vm.forecast {
+                FirstTimeHint(
+                    hintKey: "detail_actions",
+                    text: "Arriba: guarda la escuela (↓) para verla sin conexión. Más abajo, en el mapa, con + PROPONER añades piedras o parkings."
+                )
                 if vm.offlineForecast {
                     HStack(spacing: 6) {
                         Image(systemName: "wifi.slash").font(.system(size: 11))
@@ -924,6 +928,12 @@ struct BlockInfoSheet: View {
                     // es una foto con sus vías dibujadas y, debajo, sus vías
                     // marcables. Una piedra de una sola foto tiene una única cara.
                     if block.type.uppercased() == "BLOCK" {
+                        if !block.lines.isEmpty {
+                            FirstTimeHint(
+                                hintKey: "via_tick",
+                                text: "Toca el círculo de una vía para apuntarla como hecha en tu diario."
+                            )
+                        }
                         ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
                           VStack(alignment: .leading, spacing: 12) {
                             if let photo = face.photoPath, !photo.isEmpty {

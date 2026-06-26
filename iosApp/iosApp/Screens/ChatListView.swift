@@ -117,20 +117,27 @@ struct ChatListView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(vm.conversations, id: \.id) { c in
-                    NavigationLink(destination: convDestination(c)) {
-                        convRow(c)
-                    }
-                    // Swipe estilo WhatsApp: izquierda → borrar; derecha → no leído.
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) { vm.delete(c.id) } label: {
-                            Label("Borrar", systemImage: "trash")
+                List {
+                    FirstTimeHint(
+                        hintKey: "chat_swipe",
+                        text: "Desliza una conversación: a la izquierda para borrarla, a la derecha para marcarla como no leída."
+                    )
+                    .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
+                    ForEach(vm.conversations, id: \.id) { c in
+                        NavigationLink(destination: convDestination(c)) {
+                            convRow(c)
                         }
-                    }
-                    .swipeActions(edge: .leading) {
-                        Button { vm.markUnread(c.id) } label: {
-                            Label("No leído", systemImage: "envelope.badge")
-                        }.tint(Cumbre.terra)
+                        // Swipe estilo WhatsApp: izquierda → borrar; derecha → no leído.
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) { vm.delete(c.id) } label: {
+                                Label("Borrar", systemImage: "trash")
+                            }
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button { vm.markUnread(c.id) } label: {
+                                Label("No leído", systemImage: "envelope.badge")
+                            }.tint(Cumbre.terra)
+                        }
                     }
                 }
                 .listStyle(.plain)

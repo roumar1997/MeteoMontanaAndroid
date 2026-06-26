@@ -158,6 +158,12 @@ fun BlockDetailDialog(
             // marcables. Se hace scroll de cara en cara. Una piedra de una sola
             // foto tiene una única cara (idéntico a antes).
             if (block.type == "BLOCK") {
+                if (onTickLine != null && !isProposal && block.lines.isNotEmpty()) {
+                    com.meteomontana.android.ui.components.FirstTimeHint(
+                        hintKey = "via_tick",
+                        text = "Toca el círculo de una vía para apuntarla como hecha en tu diario."
+                    )
+                }
                 // Si venimos de pulsar una vía (deep-link del diario), su foto/cara
                 // va primero para "llevar a la foto correspondiente".
                 val orderedFaces = block.facesOrDerived().let { fs ->

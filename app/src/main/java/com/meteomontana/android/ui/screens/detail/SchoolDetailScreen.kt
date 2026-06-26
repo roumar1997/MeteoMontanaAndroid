@@ -225,6 +225,12 @@ private fun Content(
     onDayClick: (Int) -> Unit = {}
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
+        item {
+            com.meteomontana.android.ui.components.FirstTimeHint(
+                hintKey = "detail_actions",
+                text = "Arriba: guarda la escuela (↓) para verla sin conexión. Abajo, en el mapa, con + PROPONER añades piedras o parkings."
+            )
+        }
         if (forecast != null) {
             forecastBody(
                 forecast = forecast,
