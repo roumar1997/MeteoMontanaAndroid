@@ -266,19 +266,6 @@ fun MainScreen(
             containerColor = MaterialTheme.colorScheme.background,
             dragHandle = null
         ) {
-            // Intercepta el botón atrás del sistema SOLO cuando hay pila
-            // interna (ej: Perfil → Seguidores): pop lateral. Cuando solo hay
-            // una pantalla, NO interceptamos → el ModalBottomSheet se cierra
-            // él solo vía onDismissRequest.
-            val sheetBackStack by sheetNav.currentBackStackEntryAsState()
-            val hasInternalStack = remember(sheetBackStack) {
-                sheetNav.currentBackStack.value.count {
-                    it.destination.route != null && it.destination.route != SHEET_ROOT
-                } > 1
-            }
-            BackHandler(enabled = hasInternalStack) {
-                sheetNav.popBackStack()
-            }
             // Navega al destino pendiente UNA VEZ que el NavHost interno ya está
             // compuesto (grafo registrado). Se consume poniéndolo a null.
             androidx.compose.runtime.LaunchedEffect(pendingSheetRoute) {
@@ -302,7 +289,12 @@ fun MainScreen(
                     popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) },
                     popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) }
                 ) {
-                    composable(SHEET_ROOT) { Box(Modifier.fillMaxSize()) }
+                    composable(SHEET_ROOT) {
+                        // Si el NavHost vuelve aquí (por back del sistema o pop
+                        // interno), cerramos el sheet automáticamente — nunca se
+                        // queda en blanco.
+                        androidx.compose.runtime.LaunchedEffect(Unit) { dismissSheet() }
+                    }
 
                     composable(Routes.PROFILE) {
                         ProfileScreen(
