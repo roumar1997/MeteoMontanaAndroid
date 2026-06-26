@@ -334,19 +334,24 @@ struct SchoolListView: View {
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     SearchField(text: $vm.query)
-                    MapToggleAndPanel(vm: vm, onOpen: { navSchool = $0 })
-                    FilterChips(vm: vm)
-                    DaySelectorRow(vm: vm)
-                    Divider().overlay(Cumbre.rule)
 
-                    FirstTimeHint(
-                        hintKey: "schools_filters",
-                        text: "Usa los filtros de arriba para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía)."
-                    )
+                    // Hint del mapa — justo antes del toggle "VER MAPA"
                     FirstTimeHint(
                         hintKey: "schools_map",
                         text: "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
                     )
+                    MapToggleAndPanel(vm: vm, onOpen: { navSchool = $0 })
+
+                    // Hint de filtros — justo antes de la barra de filtros
+                    FirstTimeHint(
+                        hintKey: "schools_filters",
+                        text: "Usa los filtros de abajo para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía)."
+                    )
+                    FilterChips(vm: vm)
+                    DaySelectorRow(vm: vm)
+                    Divider().overlay(Cumbre.rule)
+
+                    // Hint de comparar — justo antes de la lista
                     FirstTimeHint(
                         hintKey: "schools_compare",
                         text: "Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes tocar los días de arriba para ver un tramo de varios días."

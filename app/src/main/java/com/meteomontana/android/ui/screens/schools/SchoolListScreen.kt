@@ -162,6 +162,14 @@ fun SchoolListScreen(
                 }
             }
 
+            // Hint del mapa — justo antes del toggle "VER MAPA"
+            item {
+                com.meteomontana.android.ui.components.FirstTimeHint(
+                    hintKey = "schools_map",
+                    text = "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
+                )
+            }
+
             // Mapa global "VER MAPA" — colapsable con markers de las escuelas
             // visibles (mismas que la lista de abajo: usa los filtros del VM).
             item {
@@ -174,6 +182,14 @@ fun SchoolListScreen(
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
                     onSchoolDetail = onSchoolClick
+                )
+            }
+
+            // Hint de filtros — justo antes de la barra de filtros
+            item {
+                com.meteomontana.android.ui.components.FirstTimeHint(
+                    hintKey = "schools_filters",
+                    text = "Usa los filtros de abajo para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía)."
                 )
             }
 
@@ -202,23 +218,12 @@ fun SchoolListScreen(
 
             item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
 
-            item {
-                com.meteomontana.android.ui.components.FirstTimeHint(
-                    hintKey = "schools_filters",
-                    text = "Usa los filtros de arriba para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía).",
-                    modifier = Modifier.padding(top = Spacing.sm)
-                )
-            }
-            item {
-                com.meteomontana.android.ui.components.FirstTimeHint(
-                    hintKey = "schools_map",
-                    text = "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
-                )
-            }
+            // Hint de comparar — justo antes de la lista de escuelas
             item {
                 com.meteomontana.android.ui.components.FirstTimeHint(
                     hintKey = "schools_compare",
-                    text = "Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes tocar los días de arriba para ver un tramo de varios días."
+                    text = "Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes tocar los días de arriba para ver un tramo de varios días.",
+                    modifier = Modifier.padding(top = Spacing.sm)
                 )
             }
 
