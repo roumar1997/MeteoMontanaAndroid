@@ -102,22 +102,25 @@ fun MainScreen(
         pendingSheetRoute = route
         sheetVisible = true
     }
-    // Baja la tarjeta con animación.
+    // Baja la tarjeta con animación y limpia el backstack del sheetNav para
+    // que no queden restos de pantallas viejas al reabrir.
     val dismissSheet: () -> Unit = {
-        scope.launch { sheetState.hide() }.invokeOnCompletion { sheetVisible = false }
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            sheetVisible = false
+            sheetNav.popBackStack(SHEET_ROOT, inclusive = false)
+        }
     }
     // Atrás dentro del sheet: si hay más de una pantalla en la pila interna,
-    // desliza atrás (lateral); si solo queda la raíz, baja la tarjeta.
-    // Clave: tras popBackStack comprobamos si caímos en SHEET_ROOT (el Box vacío)
-    // y si es así cerramos el sheet para no mostrar una pantalla en blanco.
+    // desliza atrás (lateral); si solo queda la raíz (o ya estamos en ella),
+    // baja la tarjeta. NUNCA se queda en SHEET_ROOT visible.
     val popSheetOrDismiss: () -> Unit = {
-        val prev = sheetNav.previousBackStackEntry?.destination?.route
-        if (prev != null && prev != SHEET_ROOT) {
+        val canPop = sheetNav.previousBackStackEntry?.destination?.route.let { it != null && it != SHEET_ROOT }
+        if (canPop) {
             sheetNav.popBackStack()
-            // Si tras el pop caemos en SHEET_ROOT, cerrar el sheet
-            val current = sheetNav.currentBackStackEntry?.destination?.route
-            if (current == SHEET_ROOT) dismissSheet()
-        } else {
+        }
+        // Tras el pop (o si no había pila), si estamos en SHEET_ROOT → cerrar
+        val current = sheetNav.currentBackStackEntry?.destination?.route
+        if (!canPop || current == null || current == SHEET_ROOT) {
             dismissSheet()
         }
     }
@@ -260,7 +263,10 @@ fun MainScreen(
     // ── La tarjeta (sheet) con su NavHost interno de deslizado lateral ──
     if (sheetVisible) {
         ModalBottomSheet(
-            onDismissRequest = { sheetVisible = false },
+            onDismissRequest = {
+                sheetVisible = false
+                sheetNav.popBackStack(SHEET_ROOT, inclusive = false)
+            },
             sheetState = sheetState,
             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
             containerColor = MaterialTheme.colorScheme.background,

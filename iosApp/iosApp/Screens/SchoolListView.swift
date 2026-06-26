@@ -405,7 +405,7 @@ struct SchoolListView: View {
                                onCompare: { showCompare = true })
                 }
             }
-            .sheet(isPresented: $showCompare) {
+            .sheet(isPresented: $showCompare, onDismiss: { vm.clearCompare() }) {
                 CompareView(schools: vm.filtered.filter { vm.compareSelection.contains($0.id) })
             }
             .task { await vm.load() }
