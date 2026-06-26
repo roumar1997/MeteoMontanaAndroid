@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -271,29 +272,44 @@ fun SchoolListScreen(
                     .padding(Spacing.md)
                     .clip(MaterialTheme.shapes.small)
                     .background(MaterialTheme.colorScheme.onBackground)
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    .padding(start = Spacing.xs, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = viewModel::clearCompare) {
+                    Icon(
+                        Icons.Outlined.Close,
+                        contentDescription = "Quitar selección",
+                        tint = MaterialTheme.colorScheme.background
+                    )
+                }
                 Text(
-                    "${compareSelection.size} SELECCIONADA${if (compareSelection.size > 1) "S" else ""}",
-                    style = MaterialTheme.typography.labelLarge,
+                    "${compareSelection.size} seleccionada${if (compareSelection.size > 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.background,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    "✕  ",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.background,
-                    modifier = Modifier.clickable(onClick = viewModel::clearCompare)
-                )
+                // Botón Comparar grande (a partir de 2). Con 1, pista de qué falta.
                 if (compareSelection.size >= 2) {
-                    Text(
-                        "COMPARAR ▸",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Terra,
+                    Box(
                         modifier = Modifier
+                            .clip(MaterialTheme.shapes.small)
+                            .background(Terra)
                             .clickable { onCompare(compareSelection.toList()); viewModel.clearCompare() }
-                            .padding(start = Spacing.md)
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "COMPARAR ▸",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                    }
+                } else {
+                    Text(
+                        "Elige otra para comparar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(end = Spacing.sm)
                     )
                 }
             }

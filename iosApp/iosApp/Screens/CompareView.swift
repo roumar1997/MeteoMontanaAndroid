@@ -50,16 +50,17 @@ final class CompareViewModel: ObservableObject {
                 score: Int(c.score), rockType: s.rockType, distanceKm: dist,
                 temp: Int(c.temperature), wind: Int(c.windSpeed), humidity: Int(c.humidity),
                 rainProb: Int(c.precipitationProbability), dryRock: c.dryRock,
-                optimal: f.bestWindow.map { "\(hm($0.start))–\(hm($0.end))" },
+                optimal: f.bestWindow.map { "\(shortHour($0.start))–\(shortHour($0.end))h" },
                 bestDay: f.bestDay?.label, school: s))
         }
         items = result
         loading = false
     }
 
-    private func hm(_ t: String) -> String {
-        if let r = t.range(of: "T") { return String(t[r.upperBound...].prefix(5)) }
-        return String(t.suffix(5))
+    private func shortHour(_ t: String) -> String {
+        let hhmm = t.contains("T") ? String(t.split(separator: "T").last ?? "") : t
+        let hh = String(hhmm.prefix(2))
+        return Int(hh).map(String.init) ?? hhmm
     }
 }
 
@@ -121,18 +122,24 @@ struct CompareView: View {
                         }.buttonStyle(.plain)
                     }
                 }
-                Divider().overlay(Cumbre.rule)
-
-                metricRow("ROCA", items.map { $0.rockType?.capitalized ?? "—" },
-                          best: Set(items.indices.filter { items[$0].dryRock }))
-                metricRow("DISTANCIA", items.map { $0.distanceKm.map { "\(Int($0)) km" } ?? "—" },
-                          best: minIdx(items.map { $0.distanceKm }))
-                metricRow("TEMP", items.map { "\($0.temp)°" }, best: [])
-                metricRow("VIENTO", items.map { "\($0.wind) km/h" }, best: minIdx(items.map { Double($0.wind) }))
-                metricRow("HUMEDAD", items.map { "\($0.humidity)%" }, best: minIdx(items.map { Double($0.humidity) }))
-                metricRow("PROB. LLUVIA", items.map { "\($0.rainProb)%" }, best: minIdx(items.map { Double($0.rainProb) }))
-                metricRow("ÓPTIMO", items.map { $0.optimal ?? "—" }, best: [])
-                metricRow("MEJOR DÍA", items.map { $0.bestDay ?? "—" }, best: [])
+                let rows: [(String, [String], Set<Int>)] = [
+                    ("ROCA", items.map { $0.rockType?.capitalized ?? "—" },
+                        Set(items.indices.filter { items[$0].dryRock })),
+                    ("DISTANCIA", items.map { $0.distanceKm.map { "\(Int($0)) km" } ?? "—" },
+                        minIdx(items.map { $0.distanceKm })),
+                    ("TEMP", items.map { "\($0.temp)°" }, []),
+                    ("VIENTO", items.map { "\($0.wind) km/h" }, minIdx(items.map { Double($0.wind) })),
+                    ("HUMEDAD", items.map { "\($0.humidity)%" }, minIdx(items.map { Double($0.humidity) })),
+                    ("PROB. LLUVIA", items.map { "\($0.rainProb)%" }, minIdx(items.map { Double($0.rainProb) })),
+                    ("ÓPTIMO", items.map { $0.optimal ?? "—" }, []),
+                    ("MEJOR DÍA", items.map { $0.bestDay ?? "—" }, [])
+                ]
+                VStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { idx, r in
+                        metricRow(r.0, r.1, best: r.2, zebra: idx % 2 == 1)
+                    }
+                }
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
             }
             .padding(16)
         }
@@ -140,19 +147,21 @@ struct CompareView: View {
 
     private let labelW: CGFloat = 90
 
-    private func metricRow(_ label: String, _ values: [String], best: Set<Int>) -> some View {
+    private func metricRow(_ label: String, _ values: [String], best: Set<Int>, zebra: Bool) -> some View {
         VStack(spacing: 0) {
-            HStack(spacing: 4) {
+            HStack(spacing: 0) {
                 Text(label).font(Cumbre.mono(10, .bold)).tracking(0.6).foregroundStyle(Cumbre.ink3)
-                    .frame(width: labelW, alignment: .leading)
+                    .frame(width: labelW, alignment: .leading).padding(.leading, 10)
                 ForEach(Array(values.enumerated()), id: \.offset) { i, v in
+                    Rectangle().fill(Cumbre.rule.opacity(0.5)).frame(width: 1, height: 22)
                     Text(v).font(.system(size: 13, weight: best.contains(i) ? .semibold : .regular))
                         .foregroundStyle(best.contains(i) ? Cumbre.terra : Cumbre.ink)
                         .frame(maxWidth: .infinity).multilineTextAlignment(.center).lineLimit(1)
                 }
             }
-            .padding(.vertical, 9)
-            Divider().overlay(Cumbre.rule.opacity(0.6))
+            .padding(.vertical, 11)
+            .background(zebra ? Cumbre.ink.opacity(0.035) : Color.clear)
+            Divider().overlay(Cumbre.rule.opacity(0.5))
         }
     }
 

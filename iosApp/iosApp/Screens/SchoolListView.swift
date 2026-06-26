@@ -413,20 +413,27 @@ private struct CompareBar: View {
     let onClear: () -> Void
     let onCompare: () -> Void
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Button(action: onClear) {
-                Image(systemName: "xmark").foregroundStyle(.white).frame(width: 32, height: 32)
+                Image(systemName: "xmark").font(.system(size: 16)).foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
             }
-            Text("\(count) SELECCIONADA\(count == 1 ? "" : "S")")
-                .font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(.white)
+            Text("\(count) seleccionada\(count == 1 ? "" : "s")")
+                .font(.system(size: 14)).foregroundStyle(.white)
             Spacer()
-            Button(action: onCompare) {
-                Text("COMPARAR ▸").font(Cumbre.mono(12, .bold)).tracking(0.8)
-                    .foregroundStyle(canCompare ? .white : .white.opacity(0.4))
+            if canCompare {
+                Button(action: onCompare) {
+                    Text("COMPARAR ▸").font(Cumbre.mono(13, .bold)).tracking(0.8)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18).padding(.vertical, 10)
+                        .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: 6))
+                }
+            } else {
+                Text("Elige otra para comparar")
+                    .font(.system(size: 13)).foregroundStyle(.white.opacity(0.7))
             }
-            .disabled(!canCompare)
         }
-        .padding(.horizontal, 16).padding(.vertical, 14)
+        .padding(.horizontal, 10).padding(.vertical, 8)
         .background(Cumbre.ink)
         .padding(.horizontal, 12).padding(.bottom, 8)
     }

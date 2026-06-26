@@ -118,7 +118,7 @@ class CompareViewModel @Inject constructor(
                                 humidity = fc.current.humidity.toInt(),
                                 rainProb = fc.current.precipitationProbability,
                                 dryRock = fc.current.dryRock,
-                                optimal = fc.bestWindow?.let { "${it.start}–${it.end}" },
+                                optimal = fc.bestWindow?.let { "${shortHour(it.start)}–${shortHour(it.end)}h" },
                                 bestDay = fc.bestDay?.label
                             )
                         }
@@ -232,55 +232,80 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
             }
         }
         Spacer(Modifier.height(Spacing.sm))
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-        // Filas de métricas. best = índice de la escuela "ganadora" de esa fila.
-        CompareRow("ROCA", items.map { it.rockType?.uppercase() ?: "—" },
-            bestIdx = items.indices.filter { items[it].dryRock })
-        CompareRow("DISTANCIA",
-            items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
-            bestIdx = minIndices(items.map { it.distanceKm }))
-        CompareRow("TEMP", items.map { "${it.temp}°" })
-        CompareRow("VIENTO", items.map { "${it.wind} km/h" },
-            bestIdx = minIndices(items.map { it.wind.toDouble() }))
-        CompareRow("HUMEDAD", items.map { "${it.humidity}%" },
-            bestIdx = minIndices(items.map { it.humidity.toDouble() }))
-        CompareRow("PROB. LLUVIA", items.map { "${it.rainProb}%" },
-            bestIdx = minIndices(items.map { it.rainProb.toDouble() }))
-        CompareRow("ÓPTIMO", items.map { it.optimal ?: "—" })
-        CompareRow("MEJOR DÍA", items.map { it.bestDay?.uppercase() ?: "—" })
+        // Tabla de métricas, en una tarjeta con borde. Filas en bandas alternas y
+        // columnas separadas por divisorias verticales para que se lea bien.
+        val rows = listOf(
+            CompareMetric("ROCA", items.map { it.rockType?.uppercase() ?: "—" },
+                items.indices.filter { items[it].dryRock }.toSet()),
+            CompareMetric("DISTANCIA", items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
+                minIndices(items.map { it.distanceKm })),
+            CompareMetric("TEMP", items.map { "${it.temp}°" }, emptySet()),
+            CompareMetric("VIENTO", items.map { "${it.wind} km/h" },
+                minIndices(items.map { it.wind.toDouble() })),
+            CompareMetric("HUMEDAD", items.map { "${it.humidity}%" },
+                minIndices(items.map { it.humidity.toDouble() })),
+            CompareMetric("PROB. LLUVIA", items.map { "${it.rainProb}%" },
+                minIndices(items.map { it.rainProb.toDouble() })),
+            CompareMetric("ÓPTIMO", items.map { it.optimal ?: "—" }, emptySet()),
+            CompareMetric("MEJOR DÍA", items.map { it.bestDay?.uppercase() ?: "—" }, emptySet())
+        )
+        Column(
+            Modifier.fillMaxWidth()
+                .clip(MaterialTheme.shapes.small)
+                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+        ) {
+            rows.forEachIndexed { idx, m ->
+                CompareRow(m, zebra = idx % 2 == 1)
+            }
+        }
     }
 }
 
 private val LABEL_W = 96.dp
 
+private data class CompareMetric(val label: String, val values: List<String>, val best: Set<Int>)
+
 /** Índices con el valor mínimo (los "mejores") de una lista de valores nullable. */
-private fun minIndices(values: List<Double?>): List<Int> {
+private fun minIndices(values: List<Double?>): Set<Int> {
     val present = values.mapIndexedNotNull { i, v -> v?.let { i to it } }
-    if (present.isEmpty()) return emptyList()
+    if (present.isEmpty()) return emptySet()
     val min = present.minOf { it.second }
-    return present.filter { it.second == min }.map { it.first }
+    return present.filter { it.second == min }.map { it.first }.toSet()
+}
+
+/** "2026-..T08:00" o "08:00" → "8" (hora sin cero ni minutos, para que quepa). */
+private fun shortHour(t: String): String {
+    val hhmm = if (t.contains("T")) t.substringAfter("T") else t
+    val hh = hhmm.take(2).toIntOrNull() ?: return hhmm.take(5)
+    return hh.toString()
 }
 
 @Composable
-private fun CompareRow(label: String, values: List<String>, bestIdx: List<Int> = emptyList()) {
+private fun CompareRow(metric: CompareMetric, zebra: Boolean) {
+    val bg = if (zebra) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+             else androidx.compose.ui.graphics.Color.Transparent
     Row(
-        Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+        Modifier.fillMaxWidth().background(bg).height(androidx.compose.foundation.layout.IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, style = EyebrowTextStyle,
+        Text(metric.label, style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(LABEL_W))
-        values.forEachIndexed { i, v ->
-            val best = i in bestIdx
+            modifier = Modifier.width(LABEL_W).padding(start = Spacing.sm, top = Spacing.md, bottom = Spacing.md))
+        metric.values.forEachIndexed { i, v ->
+            androidx.compose.material3.VerticalDivider(
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+            )
+            val best = i in metric.best
             Text(
                 v,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (best) androidx.compose.ui.text.font.FontWeight.SemiBold else null,
                 color = if (best) com.meteomontana.android.ui.theme.Terra
                         else MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).padding(vertical = Spacing.md, horizontal = 2.dp)
             )
         }
     }
