@@ -216,9 +216,10 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
                         .padding(Spacing.xs),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(it.name, style = MaterialTheme.typography.labelLarge,
+                    Text(it.name, style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center, maxLines = 2)
+                        textAlign = TextAlign.Center, maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Spacer(Modifier.height(Spacing.xs))
                     Box(
                         modifier = Modifier.clip(MaterialTheme.shapes.small)
