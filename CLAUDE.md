@@ -534,6 +534,57 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-26 — chat offline #2/#3, ayuda/onboarding, comparador, pulido perfil (Android+iOS)
+
+Sesión larga, **SOLO app** (`MeteoMontanaAndroid`: app Android + `shared` + `iosApp`).
+**NO se tocó el backend** (`MeteoMontanaAPI`) en absoluto. Todo mergeado a `main`.
+Android verificado/instalado en el Xiaomi (release firmada, login OK); iOS validado por CI.
+**Versión:** app subida a `versionCode 9 / versionName 1.6` (Android) + iOS `1.6/9`.
+⚠️ El AAB/`.ipa` 1.6 generados a media sesión NO incluyen lo posterior (ayuda, comparador,
+pulido perfil) → para release con TODO hay que **regenerar AAB+`.ipa` y subir a 1.7/10**.
+
+- **#2 — Perfiles offline en el chat**: caché local-first `CachedProfile` (tabla SQLDelight
+  nueva, DB v5→v6) escrita por `GetPublicProfileUseCase` (shared) → nombres/avatares se ven
+  sin red. **Warm-up** en el observador global de conversaciones (SchoolListViewModel /
+  SchoolListView): con solo abrir la app online se pre-cachean perfiles + avatares (Coil /
+  ImageCache) de TODAS tus conversaciones, sin entrar a Chats. iOS `AvatarCircle` pasa a
+  caché de disco (`ImageCache`). Marcar uid como cacheado SOLO tras éxito (reintenta).
+  Foto propia: respaldo a la **foto de Google** (Firebase Auth) cuando el backend tiene
+  `photoUrl=null`; perfil Android offline robusto (cae a Auth si el caché está vacío).
+- **#3 — Enviar chat sin red**: el mensaje aparece **al instante** (eco optimista en el VM)
+  y, si la conversación YA existe (está en tu lista), se salta `startConversation` y deja
+  que Firestore lo entregue al reconectar. Causa raíz que estaba rota: se basaba en
+  "hay mensajes" (offline no cacheados) → ahora en "la conversación existe". Verificado en
+  dispositivo. iOS: fix `mantener pulsado para comparar` (quitar el `Button` que se comía
+  el long-press).
+- **Ayuda / onboarding (3 fases)** — ver `PLAN_AYUDA.md` y `AYUDA_INVENTARIO.md`:
+  - **Fase 1**: hojas **"?"** contextuales por pantalla (catálogo ÚNICO `shared/help/
+    HelpCatalog.kt`, mismo copy Android/iOS) en Escuelas, Detalle, Perfil, Chats, Tiempo.
+    Diseño con icono+título+descripción + intro en caja.
+  - **Fase 2**: estados vacíos que enseñan (EmptyState/EmptyStateView) en Diario, Guardadas,
+    Chats, Notificaciones, Mis propuestas/contribuciones/solicitudes. Solo salen si la
+    sección está vacía.
+  - **Fase 3**: coach-marks de primera vez (FirstTimeHint, SharedPreferences/UserDefaults,
+    1 vez por dispositivo) en Escuelas (comparar/días), Detalle (offline/proponer), Piedra
+    (marcar vía ✓), Chats (deslizar). + opción en Perfil **"Volver a ver las pistas"**
+    (resetAllHints / FirstTimeHint.resetAll).
+- **Comparador rediseñado** (CompareScreen / CompareView): cabecera **"HOY MEJOR"** + tabla
+  **por filas** (Índice, Roca, Distancia, Temp, Viento, Humedad, Prob. lluvia, Óptimo,
+  Mejor día) con bandas alternas y columnas separadas; mejor de cada fila en terracota;
+  columnas/cabecera **pulsables → detalle**. Botón **Comparar** grande en la barra de
+  selección. Nombres largos a 2 líneas con "…". Filas nuevas: roca (carga School), distancia
+  (ubicación+haversine), prob. lluvia.
+- **Pulido perfil Android** (paridad con iOS): grado del diario con **color por dificultad**
+  (gradeStyle, relleno); **perfil público** = igual que el propio (cabecera centrada + cajas
+  StatCell), antes se veía "seco".
+
+> ### 🔜 PENDIENTE
+> - Probar en iPhone (AltStore) todo lo de iOS (CI verde, sin Mac).
+> - Cuando se quiera publicar: **regenerar AAB + `.ipa` a versión 1.7/10** (los 1.6 no
+>   llevan ayuda/comparador/pulido).
+> - Continuar mejorando el onboarding/guiaje (sesión aparte; ver prompt al final de esta
+>   bitácora si se dejó).
+
 ### Sesión 2026-06-25 — bugs offline: score en lista + favoritas offline (Android+iOS)
 
 Lote de feedback de Rodrigo (5 puntos, vistos sobre todo en iOS). **Solo app**
