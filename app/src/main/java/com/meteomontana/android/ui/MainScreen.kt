@@ -278,6 +278,15 @@ fun MainScreen(
                     pendingSheetRoute = null
                 }
             }
+            // Auto-cierre: si el NavHost interno vuelve a SHEET_ROOT (por back
+            // del sistema u otro pop) y NO hay ruta pendiente, cerramos el sheet.
+            // Esto evita la pantalla en blanco sin interferir con la apertura.
+            val sheetEntry by sheetNav.currentBackStackEntryAsState()
+            androidx.compose.runtime.LaunchedEffect(sheetEntry) {
+                if (sheetEntry?.destination?.route == SHEET_ROOT && pendingSheetRoute == null) {
+                    dismissSheet()
+                }
+            }
             Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f)) {
                 NavHost(
                     navController = sheetNav,
@@ -289,12 +298,7 @@ fun MainScreen(
                     popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) },
                     popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) }
                 ) {
-                    composable(SHEET_ROOT) {
-                        // Si el NavHost vuelve aquí (por back del sistema o pop
-                        // interno), cerramos el sheet automáticamente — nunca se
-                        // queda en blanco.
-                        androidx.compose.runtime.LaunchedEffect(Unit) { dismissSheet() }
-                    }
+                    composable(SHEET_ROOT) { Box(Modifier.fillMaxSize()) }
 
                     composable(Routes.PROFILE) {
                         ProfileScreen(
