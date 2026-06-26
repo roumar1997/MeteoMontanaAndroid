@@ -102,25 +102,22 @@ fun MainScreen(
         pendingSheetRoute = route
         sheetVisible = true
     }
-    // Baja la tarjeta con animación y limpia el backstack del sheetNav para
-    // que no queden restos de pantallas viejas al reabrir.
+    // Baja la tarjeta y limpia el backstack del sheetNav.
     val dismissSheet: () -> Unit = {
+        sheetNav.popBackStack(SHEET_ROOT, inclusive = false)
         scope.launch { sheetState.hide() }.invokeOnCompletion {
             sheetVisible = false
-            sheetNav.popBackStack(SHEET_ROOT, inclusive = false)
         }
     }
-    // Atrás dentro del sheet: si hay más de una pantalla en la pila interna,
-    // desliza atrás (lateral); si solo queda la raíz (o ya estamos en ella),
-    // baja la tarjeta. NUNCA se queda en SHEET_ROOT visible.
+    // Atrás dentro del sheet: si hay pila interna por encima de la primera
+    // pantalla, desliza atrás (lateral); si no, baja la tarjeta.
     val popSheetOrDismiss: () -> Unit = {
-        val canPop = sheetNav.previousBackStackEntry?.destination?.route.let { it != null && it != SHEET_ROOT }
-        if (canPop) {
+        // Contamos cuántas entradas hay por encima de SHEET_ROOT
+        val entries = sheetNav.currentBackStack.value
+        val aboveRoot = entries.count { it.destination.route != null && it.destination.route != SHEET_ROOT }
+        if (aboveRoot > 1) {
             sheetNav.popBackStack()
-        }
-        // Tras el pop (o si no había pila), si estamos en SHEET_ROOT → cerrar
-        val current = sheetNav.currentBackStackEntry?.destination?.route
-        if (!canPop || current == null || current == SHEET_ROOT) {
+        } else {
             dismissSheet()
         }
     }
@@ -263,16 +260,25 @@ fun MainScreen(
     // ── La tarjeta (sheet) con su NavHost interno de deslizado lateral ──
     if (sheetVisible) {
         ModalBottomSheet(
-            onDismissRequest = {
-                sheetVisible = false
-                sheetNav.popBackStack(SHEET_ROOT, inclusive = false)
-            },
+            onDismissRequest = dismissSheet,
             sheetState = sheetState,
             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
             containerColor = MaterialTheme.colorScheme.background,
             dragHandle = null
         ) {
-            BackHandler(enabled = true) { popSheetOrDismiss() }
+            // Intercepta el botón atrás del sistema SOLO cuando hay pila
+            // interna (ej: Perfil → Seguidores): pop lateral. Cuando solo hay
+            // una pantalla, NO interceptamos → el ModalBottomSheet se cierra
+            // él solo vía onDismissRequest.
+            val sheetBackStack by sheetNav.currentBackStackEntryAsState()
+            val hasInternalStack = remember(sheetBackStack) {
+                sheetNav.currentBackStack.value.count {
+                    it.destination.route != null && it.destination.route != SHEET_ROOT
+                } > 1
+            }
+            BackHandler(enabled = hasInternalStack) {
+                sheetNav.popBackStack()
+            }
             // Navega al destino pendiente UNA VEZ que el NavHost interno ya está
             // compuesto (grafo registrado). Se consume poniéndolo a null.
             androidx.compose.runtime.LaunchedEffect(pendingSheetRoute) {
