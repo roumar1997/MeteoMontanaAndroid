@@ -29,6 +29,10 @@ y se conecta al backend Spring Boot.
 > - [`WALLS_DESIGN.md`](./WALLS_DESIGN.md) — diseño (sin implementar aún) de los
 >   **muros largos** (geometría línea ⟂ modalidad) + edición colaborativa con diff
 >   de revisión + enganche del diario por `id`. LEER antes de tocar muros/vías.
+> - [`MEETUPS_DESIGN.md`](./MEETUPS_DESIGN.md) — diseño (sin implementar aún) de la
+>   **3ª pestaña "Quedadas"** (quedar a escalar: escuela + días + chat de grupo +
+>   privacidad abierta/seguidores/mujeres + caducidad + moderación). Bocetos en
+>   `meetups-mockups.html`. LEER antes de tocar quedadas.
 
 > ## ⚠️ SI ABRES UNA SESIÓN NUEVA, LEE ESTO PRIMERO
 >
