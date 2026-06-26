@@ -270,4 +270,36 @@ Cumbre (papel/tinta/terracota):
 - ¿Tope máximo de miembros aunque sea "Abierto"? (p. ej. cap a 50 por sanidad.)
 - ¿"Solo mujeres" requiere también que el **creador** sea mujer SIEMPRE? (Sí,
   decidido: no puedes crear "solo mujeres" si no eres mujer.)
+
+---
+
+## 12. Cómo empezar en una sesión nueva (PROMPT)
+
+> Crea la sesión **con los DOS repos** (`MeteoMontanaAndroid` + `MeteoMontanaAPI`)
+> y pega esto:
+
+```
+Vamos a implementar la 3ª pestaña "Quedadas" (quedar a escalar). Lee primero
+MEETUPS_DESIGN.md en la raíz del repo Android (diseño completo y cerrado) y abre
+meetups-mockups.html para ver los bocetos en estilo Cumbre.
+
+Contexto importante:
+- Backend en vivo con testers (Railway prod = main, staging = develop). PIDE OK
+  antes de cualquier commit/merge, sobre todo en el backend. Trabaja primero
+  contra staging.
+- Reutiliza lo que ya existe: grupos de chat (Firestore conversations), el grafo
+  de seguidores, FcmService/NotificationService para push, y el patrón admin
+  (submissions/contributions).
+- El gate de "solo mujeres" y la visibilidad (solo seguidores) se resuelven en el
+  BACKEND, no en el cliente. El género es un dato PRIVADO (Postgres, nunca en
+  PublicProfileDto).
+
+Empieza por la Fase 0 (foto de perfil siempre visible — transversal y pequeña) y
+la Fase 1 (backend core: migración Postgres + GET/POST /api/meetups + join/leave +
+creación del grupo de chat vía Admin SDK + @Scheduled de caducidad + tests). Sigue
+el orden de fases del documento. NO empieces a programar hasta confirmar conmigo el
+plan de la Fase 1.
+
+Modelo: Sonnet para el grueso (CRUD, migraciones, UI mecánica); Opus solo si hay
+una decisión de arquitectura ambigua.
 ```

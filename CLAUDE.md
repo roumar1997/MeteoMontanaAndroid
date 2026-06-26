@@ -538,6 +538,50 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-26 (2) — ayuda v2, fix nav pantalla en blanco, release 1.7, revisión de seguridad, diseño Quedadas
+
+App + repos. Todo en `main`. Release **1.7 / versionCode 10** subida a Play
+(prueba cerrada) — el AAB de las 11:58 SÍ lleva los fixes. `.ipa` de **producción**
+servido para AltStore.
+
+- **Ayuda/onboarding v2** (Android+iOS): coach-marks `FirstTimeHint` desplegados
+  y **colocados junto a lo que explican** (hint de mapa antes de "VER MAPA", de
+  filtros antes de los filtros, de comparar antes de la lista; en Detalle:
+  offline/proponer/marcar vía; en Diario: "toca una vía"; en BoulderForm: pasos
+  1-4). TypePicker de proponer con mini-guía + descripciones por resultado.
+  Tooltips bajo MODALIDAD/GEOMETRÍA. Vías del diario con flecha `›` (pulsables).
+  Botón "Volver a ver todas las pistas" al final de cada hoja de ayuda "?".
+- **Fix Android — pantalla en blanco al dar atrás desde sheets** (Perfil/Chats/
+  Notificaciones/Comparador): el `NavHost` interno del `ModalBottomSheet` hacía
+  pop a `SHEET_ROOT` (Box vacío) → blanco. Fix final: observador de
+  `sheetNav.currentBackStackEntry` → si vuelve a `SHEET_ROOT` y no hay
+  `pendingSheetRoute`, cierra el sheet; `SHEET_ROOT` con transición None para que
+  el cierre sea hacia abajo (no lateral). Solo Android (iOS usa `.sheet` nativo).
+  Comparador iOS: limpia selección al cerrar (`onDismiss`).
+- **Revisión de seguridad (alta)**: backend limpio (todo env vars, `serviceAccountKey`/
+  `.env` nunca commiteados), app sin secretos hardcodeados, reglas Firestore
+  excelentes. **Acciones hechas**: API keys Firebase Android/iOS restringidas
+  (Paso A), Gemini API key borrada, keystore **`.OLD` purgado del repo** +
+  `.gitignore` reforzado (`*.jks.*`). **Backup de firma** en
+  `Desktop\CUMBRE-FIRMA-BACKUP\`. **Pendiente (acción de Rodrigo)**: App Check (la
+  app aún NO tiene el SDK → NO hacer enforce o bloquea testers), rotar contraseñas
+  BD Railway. El `google-services.json` quedó en el historial git pero la
+  exposición está neutralizada por las restricciones + reglas (la key viaja en el
+  APK igual).
+- **🆕 Diseño Quedadas** (NO implementado): ver **`MEETUPS_DESIGN.md`** + bocetos
+  `meetups-mockups.html`. 3ª pestaña para quedar a escalar (escuela + días + chat
+  de grupo + privacidad abierta/seguidores/**solo mujeres** con gate de género en
+  backend + límite + foto + caducidad TTL + notif opt-in + moderación expulsar/
+  denunciar→admin). **El prompt para arrancarlo está en la sección 12 del propio
+  doc.** Crear la sesión con LOS DOS repos.
+
+> ### 🔜 PENDIENTE
+> - **Siguiente feature grande: Quedadas** → leer `MEETUPS_DESIGN.md` (lleva el
+>   prompt de arranque dentro). Empezar por Fase 0 (foto perfil siempre visible) +
+>   Fase 1 (backend). Sesión con los dos repos.
+> - Seguridad (acción de Rodrigo): rotar contraseñas BD Railway; valorar App Check
+>   (requiere integrar el SDK + release + adopción antes de enforce).
+
 ### Sesión 2026-06-26 — chat offline #2/#3, ayuda/onboarding, comparador, pulido perfil (Android+iOS)
 
 Sesión larga, **SOLO app** (`MeteoMontanaAndroid`: app Android + `shared` + `iosApp`).
