@@ -22,9 +22,12 @@ Thumbs.db
 # Ficheros temporales (p. ej. mensajes de commit COMMIT_MSG.tmp)
 *.tmp
 
-# Keystore (firmas de release)
+# Keystore (firmas de release) — con *.* para atrapar también sufijos
+# como meteomontana-release.jks.OLD-... (NUNCA debe ir a git)
 *.jks
+*.jks.*
 *.keystore
+*.keystore.*
 keystore.properties
 
 # Reportes
