@@ -2,12 +2,31 @@ import SwiftUI
 import UIKit
 import Shared
 
-// Comparador de escuelas — espejo de CompareScreen.kt. Columnas lado a lado
-// con score, condiciones, ventana óptima, mejor día, mini-heatmap y CÓMO LLEGAR.
+// Comparador de escuelas — espejo de CompareScreen.kt. Cabecera "HOY MEJOR" +
+// tabla por filas (métricas en filas, escuelas en columnas), mejor de cada fila
+// en terracota, y columnas pulsables → detalle de esa escuela.
+
+struct CompareItem: Identifiable {
+    let id: String
+    let name: String
+    let lat: Double
+    let lon: Double
+    let score: Int
+    let rockType: String?
+    let distanceKm: Double?
+    let temp: Int
+    let wind: Int
+    let humidity: Int
+    let rainProb: Int
+    let dryRock: Bool
+    let optimal: String?
+    let bestDay: String?
+    let school: School
+}
 
 @MainActor
 final class CompareViewModel: ObservableObject {
-    @Published var forecasts: [Forecast] = []
+    @Published var items: [CompareItem] = []
     @Published var loading = true
 
     private let getForecast: GetForecastUseCase
@@ -15,14 +34,32 @@ final class CompareViewModel: ObservableObject {
         self.getForecast = getForecast
     }
 
-    func load(schoolIds: [String]) async {
+    func load(schools: [School]) async {
         loading = true
-        var result: [Forecast] = []
-        for id in schoolIds {
-            if let f = try? await getForecast.invoke(schoolId: id) { result.append(f) }
+        let loc = try? await AppDependencies.shared.container.locationProvider?.current()
+        var result: [CompareItem] = []
+        for s in schools {
+            guard let f = try? await getForecast.invoke(schoolId: s.id) else { continue }
+            let c = f.current
+            var dist: Double? = nil
+            if let loc {
+                dist = Geo.shared.haversineKm(lat1: loc.lat, lon1: loc.lon, lat2: f.lat, lon2: f.lon)
+            }
+            result.append(CompareItem(
+                id: f.schoolId, name: f.schoolName, lat: f.lat, lon: f.lon,
+                score: Int(c.score), rockType: s.rockType, distanceKm: dist,
+                temp: Int(c.temperature), wind: Int(c.windSpeed), humidity: Int(c.humidity),
+                rainProb: Int(c.precipitationProbability), dryRock: c.dryRock,
+                optimal: f.bestWindow.map { "\(hm($0.start))–\(hm($0.end))" },
+                bestDay: f.bestDay?.label, school: s))
         }
-        forecasts = result
+        items = result
         loading = false
+    }
+
+    private func hm(_ t: String) -> String {
+        if let r = t.range(of: "T") { return String(t[r.upperBound...].prefix(5)) }
+        return String(t.suffix(5))
     }
 }
 
@@ -37,16 +74,7 @@ struct CompareView: View {
                 if vm.loading {
                     ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
-                        HStack(alignment: .top, spacing: 0) {
-                            ForEach(vm.forecasts, id: \.schoolId) { f in
-                                CompareColumn(forecast: f)
-                                    .frame(width: 220)
-                                Divider().overlay(Cumbre.rule)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
+                    ScrollView { table }
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
@@ -57,76 +85,81 @@ struct CompareView: View {
                     Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
             }
-            .task { await vm.load(schoolIds: schools.map { $0.id }) }
+            .task { await vm.load(schools: schools) }
         }
     }
-}
 
-private struct CompareColumn: View {
-    let forecast: Forecast
+    @ViewBuilder private var table: some View {
+        let items = vm.items
+        if let winner = items.max(by: { $0.score < $1.score }) {
+            VStack(spacing: 14) {
+                // Cabecera: mejor de hoy (pulsable).
+                NavigationLink(destination: SchoolDetailView(school: winner.school)) {
+                    VStack(spacing: 2) {
+                        Text("HOY MEJOR").font(Cumbre.mono(11, .bold)).tracking(1.6).foregroundStyle(Cumbre.ink3)
+                        HStack(spacing: 6) {
+                            Text(winner.name).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+                            Text("\(winner.score)").font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.score(winner.score))
+                        }
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Cumbre.score(winner.score).opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+                }.buttonStyle(.plain)
 
-    var body: some View {
-        let c = forecast.current
-        let score = Int(c.score)
-        VStack(alignment: .leading, spacing: 10) {
-            Text(forecast.schoolName)
-                .font(Cumbre.serif(18, .bold)).foregroundStyle(Cumbre.ink)
-                .lineLimit(2).frame(height: 48, alignment: .top)
+                // Cabecera de columnas (pulsable → detalle).
+                HStack(alignment: .top, spacing: 4) {
+                    Spacer().frame(width: labelW)
+                    ForEach(items) { it in
+                        NavigationLink(destination: SchoolDetailView(school: it.school)) {
+                            VStack(spacing: 4) {
+                                Text(it.name).font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Cumbre.ink).multilineTextAlignment(.center).lineLimit(2)
+                                Text("\(it.score)").font(Cumbre.mono(13, .bold)).foregroundStyle(.white)
+                                    .padding(.horizontal, 8).padding(.vertical, 2)
+                                    .background(Cumbre.score(it.score), in: RoundedRectangle(cornerRadius: 3))
+                            }.frame(maxWidth: .infinity)
+                        }.buttonStyle(.plain)
+                    }
+                }
+                Divider().overlay(Cumbre.rule)
 
-            // Score
-            HStack(alignment: .bottom, spacing: 2) {
-                Text("\(score)").font(Cumbre.serif(40, .bold)).foregroundStyle(Cumbre.score(score))
-                Text("/100").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3).padding(.bottom, 6)
+                metricRow("ROCA", items.map { $0.rockType?.capitalized ?? "—" },
+                          best: Set(items.indices.filter { items[$0].dryRock }))
+                metricRow("DISTANCIA", items.map { $0.distanceKm.map { "\(Int($0)) km" } ?? "—" },
+                          best: minIdx(items.map { $0.distanceKm }))
+                metricRow("TEMP", items.map { "\($0.temp)°" }, best: [])
+                metricRow("VIENTO", items.map { "\($0.wind) km/h" }, best: minIdx(items.map { Double($0.wind) }))
+                metricRow("HUMEDAD", items.map { "\($0.humidity)%" }, best: minIdx(items.map { Double($0.humidity) }))
+                metricRow("PROB. LLUVIA", items.map { "\($0.rainProb)%" }, best: minIdx(items.map { Double($0.rainProb) }))
+                metricRow("ÓPTIMO", items.map { $0.optimal ?? "—" }, best: [])
+                metricRow("MEJOR DÍA", items.map { $0.bestDay ?? "—" }, best: [])
             }
-            Text(Cumbre.scoreLabel(score)).font(Cumbre.mono(10, .bold)).tracking(0.8)
-                .foregroundStyle(Cumbre.score(score))
+            .padding(16)
+        }
+    }
 
-            Divider().overlay(Cumbre.rule)
-            row("TEMP", "\(Int(c.temperature))°")
-            row("HUM", "\(Int(c.humidity))%")
-            row("VIENTO", "\(Int(c.windSpeed)) km/h")
-            row("ROCA", c.dryRock ? "Seca" : "Mojada", c.dryRock ? Cumbre.ok : Cumbre.bad)
+    private let labelW: CGFloat = 90
 
-            Divider().overlay(Cumbre.rule)
-            if let w = forecast.bestWindow {
-                labeled("ÓPTIMO", "\(hm(w.start))–\(hm(w.end))")
-            }
-            if let b = forecast.bestDay {
-                labeled("MEJOR DÍA", "\(b.label) (\(b.score))")
-            }
-
-            // Mini heatmap próximas horas
-            HStack(spacing: 0) {
-                ForEach(Array(forecast.hours.prefix(12).enumerated()), id: \.offset) { _, h in
-                    Rectangle().fill(Cumbre.score(Int(h.score))).frame(height: 14)
+    private func metricRow(_ label: String, _ values: [String], best: Set<Int>) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 4) {
+                Text(label).font(Cumbre.mono(10, .bold)).tracking(0.6).foregroundStyle(Cumbre.ink3)
+                    .frame(width: labelW, alignment: .leading)
+                ForEach(Array(values.enumerated()), id: \.offset) { i, v in
+                    Text(v).font(.system(size: 13, weight: best.contains(i) ? .semibold : .regular))
+                        .foregroundStyle(best.contains(i) ? Cumbre.terra : Cumbre.ink)
+                        .frame(maxWidth: .infinity).multilineTextAlignment(.center).lineLimit(1)
                 }
             }
-            .padding(.top, 4)
-
-            DirectionsLink(lat: forecast.lat, lon: forecast.lon, label: forecast.schoolName)
-        }
-        .padding(12)
-    }
-
-    private func row(_ k: String, _ v: String, _ color: Color = Cumbre.ink) -> some View {
-        HStack {
-            Text(k).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-            Spacer()
-            Text(v).font(.system(size: 13, weight: .semibold)).foregroundStyle(color)
+            .padding(.vertical, 9)
+            Divider().overlay(Cumbre.rule.opacity(0.6))
         }
     }
 
-    private func labeled(_ k: String, _ v: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(k).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
-            Text(v).font(.system(size: 13)).foregroundStyle(Cumbre.ink)
-        }
-    }
-
-    // "2026-06-16T07:00" -> "07:00"
-    private func hm(_ t: String) -> String {
-        if let r = t.range(of: "T") { return String(t[r.upperBound...].prefix(5)) }
-        return String(t.suffix(5))
+    private func minIdx(_ values: [Double?]) -> Set<Int> {
+        let present = values.enumerated().compactMap { (i, v) in v.map { (i, $0) } }
+        guard let m = present.map({ $0.1 }).min() else { return [] }
+        return Set(present.filter { $0.1 == m }.map { $0.0 })
     }
 }
 

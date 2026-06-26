@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -52,16 +53,37 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Datos de una escuela ya listos para la tabla de comparación. */
+data class CompareItem(
+    val schoolId: String,
+    val name: String,
+    val lat: Double,
+    val lon: Double,
+    val score: Int,
+    val scoreLabel: String,
+    val rockType: String?,
+    val distanceKm: Double?,
+    val temp: Int,
+    val wind: Int,
+    val humidity: Int,
+    val rainProb: Int,
+    val dryRock: Boolean,
+    val optimal: String?,
+    val bestDay: String?
+)
+
 sealed interface CompareUiState {
     data object Loading : CompareUiState
-    data class Success(val forecasts: List<Forecast>) : CompareUiState
+    data class Success(val items: List<CompareItem>) : CompareUiState
     data class Error(val message: String) : CompareUiState
 }
 
 @HiltViewModel
 class CompareViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val getForecast: GetForecastUseCase
+    private val getForecast: GetForecastUseCase,
+    private val getSchoolById: com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase,
+    private val locationProvider: com.meteomontana.android.domain.port.LocationProvider
 ) : ViewModel() {
 
     private val ids: List<String> =
@@ -73,11 +95,36 @@ class CompareViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _state.value = try {
-                // Los 2-3 forecasts en paralelo.
-                val forecasts = coroutineScope {
-                    ids.map { id -> async { getForecast(id) } }.map { it.await() }
+                val loc = runCatching { locationProvider.current() }.getOrNull()
+                // Forecast + escuela (para tipo de roca) de cada id, en paralelo.
+                val items = coroutineScope {
+                    ids.map { id ->
+                        async {
+                            val fc = getForecast(id)
+                            val school = runCatching { getSchoolById(id) }.getOrNull()
+                            val dist = loc?.let {
+                                com.meteomontana.android.domain.util.Geo.haversineKm(it.lat, it.lon, fc.lat, fc.lon)
+                            }
+                            CompareItem(
+                                schoolId = fc.schoolId,
+                                name = fc.schoolName,
+                                lat = fc.lat, lon = fc.lon,
+                                score = fc.current.score,
+                                scoreLabel = fc.current.scoreLabel,
+                                rockType = school?.rockType,
+                                distanceKm = dist,
+                                temp = fc.current.temperature.toInt(),
+                                wind = fc.current.windSpeed.toInt(),
+                                humidity = fc.current.humidity.toInt(),
+                                rainProb = fc.current.precipitationProbability,
+                                dryRock = fc.current.dryRock,
+                                optimal = fc.bestWindow?.let { "${it.start}–${it.end}" },
+                                bestDay = fc.bestDay?.label
+                            )
+                        }
+                    }.map { it.await() }
                 }
-                CompareUiState.Success(forecasts)
+                CompareUiState.Success(items)
             } catch (t: Throwable) {
                 CompareUiState.Error(t.toUserMessage())
             }
@@ -115,124 +162,127 @@ fun CompareScreen(
             is CompareUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
             }
-            is CompareUiState.Success -> Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(Spacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                s.forecasts.forEach { fc ->
-                    CompareColumn(
-                        forecast = fc,
-                        modifier = Modifier.weight(1f),
-                        onDetail = { onSchoolDetail(fc.schoolId) }
-                    )
-                }
-            }
+            is CompareUiState.Success -> CompareTable(
+                items = s.items,
+                onSchoolDetail = onSchoolDetail
+            )
         }
     }
 }
 
 @Composable
-private fun CompareColumn(forecast: Forecast, modifier: Modifier, onDetail: () -> Unit) {
-    val ctx = LocalContext.current
-    val cur = forecast.current
-    val color = scoreColor(cur.score)
+private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> Unit) {
+    if (items.isEmpty()) return
+    val winner = items.maxByOrNull { it.score }!!
 
     Column(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(Spacing.sm),
-        horizontalAlignment = Alignment.CenterHorizontally
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.md)
     ) {
-        // Nombre (clicable → detalle)
-        Text(
-            forecast.schoolName,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.clickable(onClick = onDetail).padding(vertical = Spacing.xs)
-        )
-
-        // Score hero
-        Box(
-            modifier = Modifier
-                .clip(MaterialTheme.shapes.small)
-                .background(color)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-        ) {
-            Text("${cur.score}", style = MaterialTheme.typography.displaySmall,
-                color = androidx.compose.ui.graphics.Color.White)
-        }
-        Text(cur.scoreLabel.uppercase(), style = EyebrowTextStyle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Spacing.xs))
-
-        Spacer(Modifier.height(Spacing.sm))
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        Spacer(Modifier.height(Spacing.sm))
-
-        StatRow("TEMP", "${cur.temperature.toInt()}°C")
-        StatRow("HUM", "${cur.humidity.toInt()}%")
-        StatRow("VIENTO", "${cur.windSpeed.toInt()} km/h")
-        StatRow("ROCA", if (cur.dryRock) "SECA" else "MOJADA",
-            valueColor = if (cur.dryRock) MaterialTheme.colorScheme.secondary
-                         else MaterialTheme.colorScheme.error)
-        forecast.bestWindow?.let {
-            StatRow("ÓPTIMO", "${it.start}–${it.end}")
-        }
-        forecast.bestDay?.let {
-            StatRow("MEJOR DÍA", it.label.uppercase())
-        }
-
-        Spacer(Modifier.height(Spacing.sm))
-
-        // Mini heatmap 16h
-        Row(Modifier.fillMaxWidth().height(10.dp)) {
-            forecast.hours.take(16).forEach { h ->
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(10.dp)
-                        .padding(horizontal = 0.5.dp)
-                        .background(scoreColor(h.score))
-                )
-            }
-        }
-
-        Spacer(Modifier.height(Spacing.sm))
+        // Cabecera: la mejor de hoy.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
-                .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
-                .clickable {
-                    val intent = Intent(Intent.ACTION_VIEW,
-                        Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${forecast.lat},${forecast.lon}"))
-                    runCatching { ctx.startActivity(intent) }
-                }
-                .padding(vertical = Spacing.sm),
+                .background(scoreColor(winner.score).copy(alpha = 0.14f))
+                .clickable { onSchoolDetail(winner.schoolId) }
+                .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center
         ) {
-            Text("CÓMO LLEGAR", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onBackground)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("HOY MEJOR", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(winner.name, style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Text("  ${winner.score}", style = MaterialTheme.typography.titleLarge,
+                        color = scoreColor(winner.score))
+                }
+            }
         }
+        Spacer(Modifier.height(Spacing.md))
+
+        // Cabecera de columnas: nombre + badge de score, pulsable → detalle.
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Spacer(Modifier.width(LABEL_W))
+            items.forEach { it ->
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable { onSchoolDetail(it.schoolId) }
+                        .padding(Spacing.xs),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(it.name, style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center, maxLines = 2)
+                    Spacer(Modifier.height(Spacing.xs))
+                    Box(
+                        modifier = Modifier.clip(MaterialTheme.shapes.small)
+                            .background(scoreColor(it.score))
+                            .padding(horizontal = Spacing.sm, vertical = 2.dp)
+                    ) {
+                        Text("${it.score}", style = MaterialTheme.typography.titleMedium,
+                            color = androidx.compose.ui.graphics.Color.White)
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+
+        // Filas de métricas. best = índice de la escuela "ganadora" de esa fila.
+        CompareRow("ROCA", items.map { it.rockType?.uppercase() ?: "—" },
+            bestIdx = items.indices.filter { items[it].dryRock })
+        CompareRow("DISTANCIA",
+            items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
+            bestIdx = minIndices(items.map { it.distanceKm }))
+        CompareRow("TEMP", items.map { "${it.temp}°" })
+        CompareRow("VIENTO", items.map { "${it.wind} km/h" },
+            bestIdx = minIndices(items.map { it.wind.toDouble() }))
+        CompareRow("HUMEDAD", items.map { "${it.humidity}%" },
+            bestIdx = minIndices(items.map { it.humidity.toDouble() }))
+        CompareRow("PROB. LLUVIA", items.map { "${it.rainProb}%" },
+            bestIdx = minIndices(items.map { it.rainProb.toDouble() }))
+        CompareRow("ÓPTIMO", items.map { it.optimal ?: "—" })
+        CompareRow("MEJOR DÍA", items.map { it.bestDay?.uppercase() ?: "—" })
     }
 }
 
+private val LABEL_W = 96.dp
+
+/** Índices con el valor mínimo (los "mejores") de una lista de valores nullable. */
+private fun minIndices(values: List<Double?>): List<Int> {
+    val present = values.mapIndexedNotNull { i, v -> v?.let { i to it } }
+    if (present.isEmpty()) return emptyList()
+    val min = present.minOf { it.second }
+    return present.filter { it.second == min }.map { it.first }
+}
+
 @Composable
-private fun StatRow(
-    label: String,
-    value: String,
-    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
-) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+private fun CompareRow(label: String, values: List<String>, bestIdx: List<Int> = emptyList()) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(label, style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.labelLarge, color = valueColor)
+            modifier = Modifier.width(LABEL_W))
+        values.forEachIndexed { i, v ->
+            val best = i in bestIdx
+            Text(
+                v,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (best) com.meteomontana.android.ui.theme.Terra
+                        else MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
 }
