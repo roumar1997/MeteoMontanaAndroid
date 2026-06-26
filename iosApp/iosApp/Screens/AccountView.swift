@@ -170,6 +170,7 @@ struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAddBlock = false
     @State private var showDeleteConfirm = false
+    @State private var showHintsReset = false
 
     private let authBridge = AppDependencies.shared.authBridge
 
@@ -332,6 +333,24 @@ struct AccountView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+            }
+            Button {
+                FirstTimeHint.resetAll()
+                showHintsReset = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "questionmark.circle").font(.system(size: 16))
+                        .foregroundStyle(Cumbre.terra).frame(width: 24)
+                    Text("Volver a ver las pistas").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                    Spacer()
+                }
+                .padding(.vertical, 12).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .alert("Pistas reactivadas", isPresented: $showHintsReset) {
+                Button("Vale", role: .cancel) {}
+            } message: {
+                Text("Entra de nuevo en cada pantalla para volver a ver las pistas.")
             }
         }
     }

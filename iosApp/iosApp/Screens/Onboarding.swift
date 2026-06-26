@@ -40,6 +40,15 @@ struct FirstTimeHint: View {
     let text: String
     @State private var visible: Bool
 
+    /// Reinicia TODAS las pistas → vuelven a salir una vez. Lo usa "Volver a ver
+    /// las pistas" del perfil.
+    static func resetAll() {
+        let d = UserDefaults.standard
+        for k in d.dictionaryRepresentation().keys where k.hasPrefix("hint_") {
+            d.removeObject(forKey: k)
+        }
+    }
+
     init(hintKey: String, text: String) {
         self.hintKey = hintKey
         self.text = text

@@ -25,6 +25,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.ui.theme.Spacing
 
+/** Reinicia TODAS las pistas (coach-marks) → volverán a salir una vez. Lo usa
+ *  el "Volver a ver las pistas" del perfil. */
+fun resetAllHints(context: Context) {
+    context.getSharedPreferences("hints", Context.MODE_PRIVATE).edit().clear().apply()
+}
+
 /**
  * Pista de primera vez (coach-mark ligero): un aviso tintado y descartable que
  * sale UNA sola vez por [hintKey] (persistido en SharedPreferences). Para enseñar

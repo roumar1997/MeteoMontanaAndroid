@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PersonAdd
@@ -397,6 +398,7 @@ private fun ProfileMenu(
     showRequests: Boolean,
     onOpenFollowRequests: () -> Unit
 ) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     Column(Modifier.fillMaxWidth()) {
         MenuRow(Icons.Outlined.Edit, "Editar perfil", onEdit)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -408,6 +410,11 @@ private fun ProfileMenu(
         if (showRequests) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             MenuRow(Icons.Outlined.PersonAdd, "Solicitudes de seguimiento", onOpenFollowRequests)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, "Volver a ver las pistas") {
+            com.meteomontana.android.ui.components.resetAllHints(ctx)
+            android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 }
