@@ -22,11 +22,12 @@
 - ✅ **Fase 4 — Android UI** (`main`): Tab "Quedadas" (3ª pestaña, icono Groups), MeetupsScreen (lista + filtros), MeetupDetailScreen (info + miembros + join/leave/kick + chat), CreateMeetupScreen (formulario completo). Build y tests verdes.
 - ✅ **Fase 7 — iOS UI** (`main`): MeetupsView (lista + filtros TODAS/SIGUIENDO + badge UNIDO/LLENO), MeetupDetailView (foto + días + privacidad/disciplina + unirse/salir/expulsar + chat), CreateMeetupView (nombre, escuela, días picker 14 días, privacidad, disciplina, límite). Pestaña "Quedadas" en MainTabView. CI iOS verificará al compilar.
 - ✅ **Fase 5 — Moderación** (`main`): Backend (`develop`): V32__meetup_reports.sql, `MeetupReport` domain + JPA + repo + `SubmitReportUseCase`/`ListReportsUseCase`/`ResolveReportUseCase`, `POST /meetups/{id}/report`, `GET /admin/reports`, `POST /admin/reports/{id}/resolve`. App: botón 🚩 Denunciar en MeetupDetailScreen/View (dialog/confirmationDialog con 4 razones), MeetupReport model en shared, KtorAdminApi/AdminRepository extendidos, tab "DENUNCIAS" en AdminScreen con DenunciasTab + botones RESOLVER/DESESTIMAR. Build Android verde. iOS verificará en CI.
-- ⬜ **Fase 6 — Notificaciones "quedada nueva"** (backend + shared): `meetup_alerts` opt-in + push al crear una quedada que coincida con las preferencias del usuario.
+- ✅ **Fase 6 — Notificaciones "quedada nueva"** (`develop` backend, `main` app): V33__meetup_alerts.sql + `MeetupAlert` domain + JPA + repo + `GetMeetupAlertUseCase`/`SetMeetupAlertUseCase` + hook en `CreateMeetupUseCase` (push + in-app a suscritos). App: shared `MeetupAlertDto`/`SetAlertRequestDto` + `GetMeetupAlertUseCase`/`SetMeetupAlertUseCase`. Android: campana 🔔 en header de Quedadas (activa=terra/NotificationsActive, apagada/NotificationsOff). iOS: `bell.fill`/`bell.slash`. Build Android verde.
+- ✅ **"No mixto"**: etiqueta WOMEN → "No mixto" en Android + iOS (código WOMEN en BD sin cambios).
 
-**Próximo paso**: Fase 6 Notificaciones, o esperar a que Rodrigo dé OK para mergear el backend (`develop`→`main`) para que staging/prod tenga las quedadas activas.
+**Próximo paso**: Fase 8 — Foto de quedada (subir foto al crear/editar; ya existe `photoUrl` en el modelo), o pedir OK a Rodrigo para mergear `develop`→`main` del backend (Fases 1+5+6 listas en staging).
 
-**Backend Fase 1 + Fase 5 en `develop`** — no mergeados a `main` aún. Pedir OK explícito a Rodrigo antes de mergear (Railway prod = testers en vivo).
+**Backend Fases 1+5+6 en `develop`** — no mergeados a `main` aún. Pedir OK explícito a Rodrigo antes de mergear (Railway prod = testers en vivo).
 
 ---
 
@@ -510,6 +511,12 @@ de Fase 2.
 ---
 
 ## Próximo paso
+
+> ### ✅ HECHO (2026-06-27) — FASE 6 NOTIFICACIONES "QUEDADA NUEVA"
+> Backend (`develop`): V33__meetup_alerts.sql + dominio/JPA/repo + GetMeetupAlertUseCase/SetMeetupAlertUseCase + hook en CreateMeetupUseCase. App (`main`): shared DTOs + use cases + DI; Android campana 🔔 en header Quedadas; iOS bell en header. Build Android verde.
+> **Pendiente**: mergear `develop`→`main` del backend tras OK de Rodrigo.
+>
+> **Siguiente fase sugerida**: Fase 8 — Foto de quedada (subir foto al crear; el modelo ya tiene `photoUrl`), o mergear el backend y hacer prueba real de la notificación.
 
 > ### ✅ HECHO (2026-06-17) — OFFLINE COMPLETO EN EL DETALLE
 > Resuelto: `SchoolMapSection` (en `SchoolDetailView.swift`) ya no depende solo
