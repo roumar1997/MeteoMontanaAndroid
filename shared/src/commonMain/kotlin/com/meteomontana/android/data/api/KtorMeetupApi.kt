@@ -2,6 +2,7 @@ package com.meteomontana.android.data.api
 
 import com.meteomontana.android.data.api.dto.CreateMeetupRequestDto
 import com.meteomontana.android.data.api.dto.MeetupDto
+import com.meteomontana.android.data.api.dto.ReportRequestDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -39,6 +40,13 @@ class KtorMeetupApi(private val client: HttpClient) {
         client.post("meetups/$meetupId/kick") {
             contentType(ContentType.Application.Json)
             setBody(mapOf("uid" to targetUid))
+        }
+    }
+
+    suspend fun reportMeetup(meetupId: String, req: ReportRequestDto) {
+        client.post("meetups/$meetupId/report") {
+            contentType(ContentType.Application.Json)
+            setBody(req)
         }
     }
 }

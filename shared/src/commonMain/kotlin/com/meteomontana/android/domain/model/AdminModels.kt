@@ -22,6 +22,18 @@ data class AdminLog(
 
 data class AdminPushResult(val sent: Int, val recipients: Int)
 
+data class MeetupReport(
+    val id: String,
+    val meetupId: String,
+    val reporterUid: String,
+    val reportedUid: String?,
+    val reason: String,
+    val context: String?,
+    val status: String,        // PENDING | RESOLVED | DISMISSED
+    val resolvedBy: String?,
+    val createdAt: String
+)
+
 data class Submission(
     val id: String,
     val proposedName: String,

@@ -94,6 +94,7 @@ import org.maplibre.android.maps.Style
 private enum class AdminTab(val label: String) {
     Propuestas("PROPUESTAS"),
     Gestionar("GESTIONAR"),
+    Denuncias("DENUNCIAS"),
     Stats("STATS"),
     Activity("ACTIVIDAD"),
     Push("PUSH")
@@ -164,6 +165,11 @@ fun AdminScreen(
                 onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
                 onDeleteBlock = viewModel::deleteBlock,
                 onUpdateBlock = viewModel::updateBlock
+            )
+            AdminTab.Denuncias -> DenunciasTab(
+                reports = state.reports,
+                onResolve = { id -> viewModel.resolveReport(id, "resolve") },
+                onDismiss = { id -> viewModel.resolveReport(id, "dismiss") }
             )
             AdminTab.Stats -> StatsTab(state.stats)
             AdminTab.Activity -> ActivityTab(state.logs)

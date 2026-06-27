@@ -77,6 +77,8 @@ import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.GetAdminStatsUseCase
 import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
+import com.meteomontana.android.domain.usecase.admin.GetPendingReportsUseCase
+import com.meteomontana.android.domain.usecase.admin.ResolveReportUseCase
 import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
@@ -96,6 +98,7 @@ import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
+import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 
 /**
  * Grafo de dependencias para iOS, construido en Kotlin (commonMain).
@@ -251,6 +254,8 @@ class IosDependencyContainer(
     val getAdminStats = GetAdminStatsUseCase(adminRepository)
     val getAdminLogs = GetAdminLogsUseCase(adminRepository)
     val sendPush = SendPushUseCase(adminRepository)
+    val getPendingReports = GetPendingReportsUseCase(adminRepository)
+    val resolveReport = ResolveReportUseCase(adminRepository)
     val updateBlock = UpdateBlockUseCase(blockRepository)
     val deleteBlock = DeleteBlockUseCase(blockRepository)
 
@@ -285,6 +290,7 @@ class IosDependencyContainer(
     val joinMeetup: JoinMeetupUseCase? = meetupCache?.let { JoinMeetupUseCase(meetupApi, it) }
     val leaveMeetup: LeaveMeetupUseCase? = meetupCache?.let { LeaveMeetupUseCase(meetupApi, it) }
     val kickMeetupMember = KickMeetupMemberUseCase(meetupApi)
+    val reportMeetup     = ReportMeetupUseCase(meetupApi)
 
     // ─── Cola offline (outbox) — vías marcadas como hechas sin conexión ──────
     // Comparte la tabla Outbox de SQLDelight. Permite marcar una vía sin red:

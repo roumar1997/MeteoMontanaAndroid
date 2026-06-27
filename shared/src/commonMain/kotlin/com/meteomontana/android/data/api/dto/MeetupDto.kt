@@ -3,6 +3,13 @@ package com.meteomontana.android.data.api.dto
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class ReportRequestDto(
+    val reportedUid: String? = null,
+    val reason: String = "OTHER",    // SPAM | INAPPROPRIATE | HARASSMENT | OTHER
+    val context: String? = null
+)
+
+@Serializable
 data class MeetupDto(
     val id: String,
     val schoolId: String,

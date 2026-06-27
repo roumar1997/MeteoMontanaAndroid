@@ -4,6 +4,7 @@ import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
+import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Submission
 import com.meteomontana.android.domain.repository.AdminRepository
 
@@ -53,4 +54,15 @@ class SendPushUseCase(private val repository: AdminRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(targetUid: String?, title: String, body: String): AdminPushResult =
         repository.sendPush(targetUid, title, body)
+}
+
+class GetPendingReportsUseCase(private val repository: AdminRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(): List<MeetupReport> = repository.getPendingReports()
+}
+
+class ResolveReportUseCase(private val repository: AdminRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(id: String, action: String): MeetupReport =
+        repository.resolveReport(id, action)
 }

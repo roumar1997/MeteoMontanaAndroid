@@ -14,6 +14,8 @@ import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 
 class KtorAdminApi(private val client: HttpClient) {
@@ -48,7 +50,32 @@ class KtorAdminApi(private val client: HttpClient) {
             setBody(MoveSchoolRequest(lat, lon))
         }
     }
+
+    suspend fun getPendingReports(): List<MeetupReportDto> =
+        client.get("admin/reports").body()
+
+    suspend fun resolveReport(id: String, action: String): MeetupReportDto =
+        client.post("admin/reports/$id/resolve") {
+            contentType(ContentType.Application.Json)
+            setBody(ResolveReportRequest(action))
+        }.body()
 }
 
 @Serializable
 data class MoveSchoolRequest(val lat: Double, val lon: Double)
+
+@Serializable
+data class MeetupReportDto(
+    val id: String,
+    val meetupId: String,
+    val reporterUid: String,
+    val reportedUid: String? = null,
+    val reason: String,
+    val context: String? = null,
+    val status: String,           // PENDING | RESOLVED | DISMISSED
+    val resolvedBy: String? = null,
+    val createdAt: String
+)
+
+@Serializable
+data class ResolveReportRequest(val action: String)  // "resolve" | "dismiss"

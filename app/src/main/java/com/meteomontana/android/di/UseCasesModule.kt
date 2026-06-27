@@ -69,6 +69,7 @@ import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
+import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -232,6 +233,14 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideSendPushUseCase(repo: AdminRepository) = SendPushUseCase(repo)
 
+    @Provides @Singleton
+    fun provideGetPendingReportsUseCase(repo: AdminRepository) =
+        com.meteomontana.android.domain.usecase.admin.GetPendingReportsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideResolveReportUseCase(repo: AdminRepository) =
+        com.meteomontana.android.domain.usecase.admin.ResolveReportUseCase(repo)
+
     // Journal
     @Provides @Singleton
     fun provideGetMyJournalUseCase(repo: JournalRepository) = GetMyJournalUseCase(repo)
@@ -338,4 +347,9 @@ object UseCasesModule {
     fun provideKickMeetupMemberUseCase(
         api: com.meteomontana.android.data.api.KtorMeetupApi
     ) = KickMeetupMemberUseCase(api)
+
+    @Provides @Singleton
+    fun provideReportMeetupUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi
+    ) = ReportMeetupUseCase(api)
 }

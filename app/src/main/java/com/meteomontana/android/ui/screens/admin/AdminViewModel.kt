@@ -8,6 +8,7 @@ import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Contribution
+import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.Submission
 import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
@@ -17,8 +18,10 @@ import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
 import com.meteomontana.android.domain.usecase.admin.GetAdminStatsUseCase
 import com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase
 import com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase
+import com.meteomontana.android.domain.usecase.admin.GetPendingReportsUseCase
 import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
+import com.meteomontana.android.domain.usecase.admin.ResolveReportUseCase
 import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
@@ -44,7 +47,8 @@ data class AdminUiState(
     val pushResult: String? = null,
     val schoolBlocks: Map<String, List<Block>> = emptyMap(),
     val allSchools: List<School> = emptyList(),
-    val schoolsLoading: Boolean = false
+    val schoolsLoading: Boolean = false,
+    val reports: List<MeetupReport> = emptyList()
 )
 
 @HiltViewModel
@@ -58,6 +62,8 @@ class AdminViewModel @Inject constructor(
     private val approveContributionUseCase: ApproveContributionUseCase,
     private val rejectContributionUseCase: RejectContributionUseCase,
     private val sendPushUseCase: SendPushUseCase,
+    private val getPendingReportsUseCase: GetPendingReportsUseCase,
+    private val resolveReportUseCase: ResolveReportUseCase,
     private val getBlocks: GetBlocksUseCase,
     private val updateBlockUseCase: UpdateBlockUseCase,
     private val deleteBlockUseCase: DeleteBlockUseCase,
@@ -78,8 +84,10 @@ class AdminViewModel @Inject constructor(
                     val pendingD = async { runCatching { getPendingSubmissions() }.getOrDefault(emptyList()) }
                     val contributionsD = async { runCatching { getPendingContributions() }.getOrDefault(emptyList()) }
                     val logsD = async { runCatching { getLogs() }.getOrDefault(emptyList()) }
+                    val reportsD = async { runCatching { getPendingReportsUseCase() }.getOrDefault(emptyList()) }
                     _state.update { it.copy(loading = false, stats = statsD.await(), pending = pendingD.await(),
-                        contributions = contributionsD.await(), logs = logsD.await()) }
+                        contributions = contributionsD.await(), logs = logsD.await(),
+                        reports = reportsD.await()) }
                 }
             } catch (t: Throwable) {
                 _state.update { it.copy(loading = false, error = t.toUserMessage()) }
@@ -161,6 +169,13 @@ class AdminViewModel @Inject constructor(
                 _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }
             } catch (_: Throwable) {}
             onDone(ok)
+        }
+    }
+
+    fun resolveReport(id: String, action: String) {
+        viewModelScope.launch {
+            runCatching { resolveReportUseCase(id, action) }
+            load()
         }
     }
 

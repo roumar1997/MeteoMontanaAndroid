@@ -66,6 +66,7 @@ import coil.compose.AsyncImage
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminStats
+import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.Submission
@@ -207,4 +208,105 @@ internal fun PushTab(
                 color = MaterialTheme.colorScheme.onSurface)
         }
     }
+}
+
+// ─────────────────────────── DENUNCIAS ────────────────────────────
+@Composable
+internal fun DenunciasTab(
+    reports: List<MeetupReport>,
+    onResolve: (String) -> Unit,
+    onDismiss: (String) -> Unit
+) {
+    if (reports.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Sin denuncias pendientes",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+    LazyColumn(contentPadding = PaddingValues(Spacing.md)) {
+        items(reports, key = { it.id }) { report ->
+            ReportCard(report = report, onResolve = { onResolve(report.id) },
+                onDismiss = { onDismiss(report.id) })
+            Spacer(Modifier.height(Spacing.sm))
+        }
+    }
+}
+
+@Composable
+private fun ReportCard(
+    report: MeetupReport,
+    onResolve: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(4.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+            .padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        // Razón + estado
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                reasonLabel(report.reason),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                report.status,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        // IDs
+        Text("Quedada: ${report.meetupId.take(8)}…",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Denunciante: ${report.reporterUid.take(8)}…",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        report.reportedUid?.let {
+            Text("Denunciado: ${it.take(8)}…",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        report.context?.let {
+            Text("Contexto: $it",
+                style = MaterialTheme.typography.bodySmall)
+        }
+        Text(report.createdAt.take(10),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        // Botones
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Button(
+                onClick = onResolve,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
+                modifier = Modifier.weight(1f)
+            ) { Text("RESOLVER") }
+            androidx.compose.material3.OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f)
+            ) { Text("DESESTIMAR") }
+        }
+    }
+}
+
+private fun reasonLabel(reason: String) = when (reason) {
+    "SPAM" -> "Spam"
+    "INAPPROPRIATE" -> "Contenido inapropiado"
+    "HARASSMENT" -> "Acoso"
+    else -> "Otro"
 }

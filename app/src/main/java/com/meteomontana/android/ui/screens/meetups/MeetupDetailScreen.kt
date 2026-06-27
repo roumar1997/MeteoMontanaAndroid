@@ -24,8 +24,11 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,6 +70,8 @@ fun MeetupDetailScreen(
 ) {
     val state by viewModel.detailState.collectAsState()
     val myUid = FirebaseAuth.getInstance().currentUser?.uid
+    var showReportDialog by remember { mutableStateOf(false) }
+    var reportDone by remember { mutableStateOf(false) }
 
     LaunchedEffect(meetupId) { viewModel.loadMeetup(meetupId) }
 
@@ -96,8 +101,47 @@ fun MeetupDetailScreen(
                     }
                 }
             }
+            // Botón denunciar (solo para no-creadores)
+            if (state.meetup != null && state.meetup?.creatorUid != myUid) {
+                IconButton(onClick = { showReportDialog = true }) {
+                    Icon(Icons.Outlined.Flag, contentDescription = "Denunciar",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
         HorizontalDivider()
+
+        // Diálogo de denuncia
+        if (showReportDialog) {
+            ReportMeetupDialog(
+                onDismiss = { showReportDialog = false },
+                onReport = { reason ->
+                    viewModel.report(
+                        meetupId = meetupId,
+                        reportedUid = state.meetup?.creatorUid,
+                        reason = reason,
+                        context = null,
+                        onSuccess = { reportDone = true }
+                    )
+                    showReportDialog = false
+                }
+            )
+        }
+        if (reportDone) {
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(3000)
+                reportDone = false
+            }
+            Box(
+                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondaryContainer)
+                    .padding(Spacing.sm),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Denuncia enviada. La revisaremos pronto.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+        }
 
         when {
             state.isLoading && state.meetup == null -> {
@@ -399,4 +443,36 @@ private fun InfoChip(
 
 private fun androidx.compose.foundation.lazy.LazyListScope.HorizontalDividerItem() {
     item { HorizontalDivider() }
+}
+
+@Composable
+private fun ReportMeetupDialog(onDismiss: () -> Unit, onReport: (String) -> Unit) {
+    val reasons = listOf(
+        "SPAM" to "Spam o publicidad",
+        "INAPPROPRIATE" to "Contenido inapropiado",
+        "HARASSMENT" to "Acoso o comportamiento ofensivo",
+        "OTHER" to "Otro motivo"
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Denunciar quedada") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text("Selecciona el motivo:",
+                    style = MaterialTheme.typography.bodyMedium)
+                reasons.forEach { (code, label) ->
+                    TextButton(
+                        onClick = { onReport(code) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(label, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("CANCELAR") }
+        }
+    )
 }

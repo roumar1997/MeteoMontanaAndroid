@@ -9,6 +9,7 @@ import com.meteomontana.android.domain.usecase.meetups.GetMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupsUseCase
 import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
+import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +43,7 @@ class MeetupsViewModel @Inject constructor(
     private val joinMeetup: JoinMeetupUseCase,
     private val leaveMeetup: LeaveMeetupUseCase,
     private val kickMeetupMember: KickMeetupMemberUseCase,
+    private val reportMeetup: ReportMeetupUseCase,
 ) : ViewModel() {
 
     private val _list = MutableStateFlow(MeetupsUiState())
@@ -148,6 +150,18 @@ class MeetupsViewModel @Inject constructor(
                         "Solo puedes crear quedadas SOLO MUJERES si tienes género Mujer en tu perfil."
                     else -> e.message ?: "Error al crear la quedada"
                 }
+            }
+        }
+    }
+
+    fun report(meetupId: String, reportedUid: String?, reason: String, context: String?,
+               onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                reportMeetup.execute(meetupId, reportedUid, reason, context)
+                onSuccess()
+            } catch (e: Exception) {
+                _detail.update { it.copy(error = e.message) }
             }
         }
     }

@@ -4,6 +4,7 @@ import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
+import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Submission
 
 interface AdminRepository {
@@ -16,4 +17,6 @@ interface AdminRepository {
     suspend fun approveContribution(id: String): Contribution
     suspend fun rejectContribution(id: String, reason: String?): Contribution
     suspend fun sendPush(targetUid: String?, title: String, body: String): AdminPushResult
+    suspend fun getPendingReports(): List<MeetupReport>
+    suspend fun resolveReport(id: String, action: String): MeetupReport
 }

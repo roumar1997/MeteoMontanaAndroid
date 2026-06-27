@@ -98,3 +98,13 @@ class KickMeetupMemberUseCase(
         api.kickMember(meetupId, targetUid)
     }
 }
+
+class ReportMeetupUseCase(private val api: KtorMeetupApi) {
+    /** reason: SPAM | INAPPROPRIATE | HARASSMENT | OTHER */
+    suspend fun execute(meetupId: String, reportedUid: String?,
+                        reason: String, context: String?) {
+        api.reportMeetup(meetupId,
+            com.meteomontana.android.data.api.dto.ReportRequestDto(
+                reportedUid = reportedUid, reason = reason, context = context))
+    }
+}

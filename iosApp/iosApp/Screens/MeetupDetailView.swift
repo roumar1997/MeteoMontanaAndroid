@@ -15,6 +15,7 @@ final class MeetupDetailViewModel: ObservableObject {
     private let joinMeetup   = AppDependencies.shared.container.joinMeetup
     private let leaveMeetup  = AppDependencies.shared.container.leaveMeetup
     private let kickMember   = AppDependencies.shared.container.kickMeetupMember
+    private let reportMeetup = AppDependencies.shared.container.reportMeetup
 
     func load(id: String) async {
         loading = true; error = nil
@@ -50,6 +51,20 @@ final class MeetupDetailViewModel: ObservableObject {
             await load(id: meetupId)
         } catch { self.error = error.localizedDescription }
     }
+
+    func report(meetupId: String, reportedUid: String?, reason: String) async {
+        do {
+            try await reportMeetup.execute(
+                meetupId: meetupId,
+                reportedUid: reportedUid,
+                reason: reason,
+                context: nil
+            )
+            reportDone = true
+        } catch { self.error = error.localizedDescription }
+    }
+
+    @Published var reportDone = false
 }
 
 // ── Detail view ─────────────────────────────────────────────────────────────
@@ -61,6 +76,7 @@ struct MeetupDetailView: View {
     @State private var kickTarget: MeetupMember?
     @State private var showKickConfirm = false
     @State private var showChat = false
+    @State private var showReportSheet = false
 
     private var myUid: String? {
         AppDependencies.shared.authBridge.currentUid()
@@ -82,6 +98,11 @@ struct MeetupDetailView: View {
                     NavigationLink(destination: GroupChatView(convId: convId, groupName: m.name)) {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .foregroundColor(Cumbre.ink)
+                    }
+                }
+                if let m = vm.meetup, m.creatorUid != myUid {
+                    Button { showReportSheet = true } label: {
+                        Image(systemName: "flag").foregroundColor(Cumbre.ink.opacity(0.6))
                     }
                 }
             }
@@ -235,6 +256,19 @@ struct MeetupDetailView: View {
                 }
             }
 
+            // Denuncia enviada banner
+            if vm.reportDone {
+                Text("Denuncia enviada. La revisaremos pronto.")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity)
+                    .padding(8)
+                    .background(Color.green.opacity(0.12))
+                    .foregroundColor(.green)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { vm.reportDone = false }
+                    }
+            }
+
             // Error banner
             if let err = vm.error {
                 Text(err)
@@ -250,6 +284,25 @@ struct MeetupDetailView: View {
         }
         .navigationBarHidden(true)
         .task { await vm.load(id: meetupId) }
+        .confirmationDialog(
+            "Denunciar quedada",
+            isPresented: $showReportSheet,
+            titleVisibility: .visible
+        ) {
+            Button("Spam o publicidad") {
+                Task { await vm.report(meetupId: meetupId, reportedUid: vm.meetup?.creatorUid, reason: "SPAM") }
+            }
+            Button("Contenido inapropiado") {
+                Task { await vm.report(meetupId: meetupId, reportedUid: vm.meetup?.creatorUid, reason: "INAPPROPRIATE") }
+            }
+            Button("Acoso o comportamiento ofensivo") {
+                Task { await vm.report(meetupId: meetupId, reportedUid: vm.meetup?.creatorUid, reason: "HARASSMENT") }
+            }
+            Button("Otro motivo") {
+                Task { await vm.report(meetupId: meetupId, reportedUid: vm.meetup?.creatorUid, reason: "OTHER") }
+            }
+            Button("Cancelar", role: .cancel) {}
+        }
         .confirmationDialog(
             "¿Expulsar a \(kickTarget?.displayName ?? kickTarget?.username ?? "este participante")?",
             isPresented: $showKickConfirm,
