@@ -12,7 +12,7 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-26 — Feature Quedadas: Fases 1 (backend), 3 (shared KMP) y 4 (Android UI) completadas. Backend en `develop`, Android en `main`.
+**Última actualización:** 2026-06-27 — Feature Quedadas: Fases 1/3/4/7 completadas.
 
 ---
 ### Feature: Quedadas para escalar (MEETUPS_DESIGN.md)
@@ -20,11 +20,13 @@
 - ✅ **Fase 1 — Backend** (`develop`): V31__meetups.sql, entidades JPA, use cases (Get/Create/Join/Leave/Kick + Expiry scheduler), MeetupController, gender field en User. Tests verdes (13 nuevos).
 - ✅ **Fase 3 — Shared KMP** (`main`): MeetupModels, DTOs, KtorMeetupApi, MeetupCacheRepository (SQLDelight offline), 6 use cases, IosDependencyContainer actualizado.
 - ✅ **Fase 4 — Android UI** (`main`): Tab "Quedadas" (3ª pestaña, icono Groups), MeetupsScreen (lista + filtros), MeetupDetailScreen (info + miembros + join/leave/kick + chat), CreateMeetupScreen (formulario completo). Build y tests verdes.
-- ⬜ **Fase 5 — Moderación** (backend): `POST /api/reports`, cola de denuncias en admin.
-- ⬜ **Fase 6 — Notificaciones "quedada nueva"** (backend + shared): meetup_alerts opt-in + push al crear.
-- ⬜ **Fase 7 — iOS UI**: paridad exacta con Android (SwiftUI) — MeetupsView, MeetupDetailView, CreateMeetupView.
+- ✅ **Fase 7 — iOS UI** (`main`): MeetupsView (lista + filtros TODAS/SIGUIENDO + badge UNIDO/LLENO), MeetupDetailView (foto + días + privacidad/disciplina + unirse/salir/expulsar + chat), CreateMeetupView (nombre, escuela, días picker 14 días, privacidad, disciplina, límite). Pestaña "Quedadas" en MainTabView. CI iOS verificará al compilar.
+- ⬜ **Fase 5 — Moderación** (backend `develop`): `POST /api/reports` + tabla `reports` (V32) + cola de denuncias en AdminScreen.
+- ⬜ **Fase 6 — Notificaciones "quedada nueva"** (backend + shared): `meetup_alerts` opt-in + push al crear una quedada que coincida con las preferencias del usuario.
 
-**Próximo paso**: Fase 7 iOS (si se trabaja en Mac/CI) o Fase 5 Moderación (si se trabaja backend). El backend de Fase 1 está en `develop` — pide OK antes de mergear a `main` de Railway.
+**Próximo paso**: Fase 5 Moderación (backend `develop`, pide OK antes de mergear a main) o esperar a mergear Fase 1 backend cuando Rodrigo dé OK.
+
+**Backend Fase 1 en `develop`** — no mergeado a `main` aún. Pedir OK explícito a Rodrigo antes de mergear (Railway prod = testers en vivo).
 
 ---
 
