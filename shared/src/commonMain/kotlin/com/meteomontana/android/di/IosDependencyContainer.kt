@@ -167,7 +167,8 @@ class IosDependencyContainer(
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
-    private val blockRepository = KtorBlockRepository(KtorBlockApi(httpClient))
+    private val blockApi = KtorBlockApi(httpClient)
+    private val blockRepository = KtorBlockRepository(blockApi)
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
     private val meetupApi = KtorMeetupApi(httpClient)
     private val meetupCache: MeetupCacheRepository? = database?.let { MeetupCacheRepository(it) }
@@ -260,6 +261,7 @@ class IosDependencyContainer(
     val resolveReport = ResolveReportUseCase(adminRepository)
     val updateBlock = UpdateBlockUseCase(blockRepository)
     val deleteBlock = DeleteBlockUseCase(blockRepository)
+    val rateLine = com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(blockApi)
 
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)

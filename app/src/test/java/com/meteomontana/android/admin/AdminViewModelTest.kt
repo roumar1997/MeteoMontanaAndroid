@@ -90,7 +90,10 @@ class AdminViewModelTest {
     private fun newVm() = AdminViewModel(
         getStats, getPendingSubmissions, getPendingContributions, getLogs,
         approveSubmission, rejectSubmission, approveContribution, rejectContribution,
-        sendPush, getBlocks, updateBlockUC, deleteBlockUC, getSchoolsUseCase
+        sendPush,
+        mockk(relaxed = true),  // getPendingReportsUseCase
+        mockk(relaxed = true),  // resolveReportUseCase
+        getBlocks, updateBlockUC, deleteBlockUC, getSchoolsUseCase
     )
 
     @Test fun `load llena stats y baja loading a false`() = runTest {

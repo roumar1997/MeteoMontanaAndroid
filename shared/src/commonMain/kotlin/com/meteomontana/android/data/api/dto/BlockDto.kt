@@ -33,7 +33,9 @@ data class BlockLineDto(
     val linePath: String? = null,
     val sortOrder: Int,
     val photoPath: String? = null,
-    val faceOrder: Int = 0
+    val faceOrder: Int = 0,
+    val avgStars: Float? = null,
+    val myStars: Int? = null
 )
 
 @Serializable

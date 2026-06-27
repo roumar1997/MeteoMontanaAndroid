@@ -9,6 +9,9 @@ import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import kotlinx.serialization.Serializable
 
 class KtorBlockApi(private val client: HttpClient) {
 
@@ -27,4 +30,19 @@ class KtorBlockApi(private val client: HttpClient) {
     suspend fun deleteBlock(blockId: String) {
         client.delete("blocks/$blockId")
     }
+
+    @Serializable
+    data class RatingResult(val avgStars: Float, val ratingCount: Long, val myStars: Int)
+
+    @Serializable
+    private data class RateRequest(val stars: Int)
+
+    suspend fun rateLine(blockId: String, lineId: String, stars: Int): RatingResult =
+        client.post("blocks/$blockId/lines/$lineId/rate") {
+            contentType(ContentType.Application.Json)
+            setBody(RateRequest(stars))
+        }.body()
+
+    suspend fun unrateLine(blockId: String, lineId: String): RatingResult =
+        client.delete("blocks/$blockId/lines/$lineId/rate").body()
 }

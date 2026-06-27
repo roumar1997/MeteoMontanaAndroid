@@ -602,6 +602,12 @@ private fun InnerMap(
                 editingLine = block to line
                 // Igual que arriba: el editor abre encima sin cerrar la ficha.
             }) else null,
+            onRateLine = if (block.type == "BLOCK") ({ lineId, stars ->
+                viewModel.viewModelScope.launch {
+                    if (stars > 0) viewModel.rateLine(block.id, lineId, stars)
+                    else viewModel.unrateLine(block.id, lineId)
+                }
+            }) else null,
             onTickLine = if (block.type == "BLOCK") ({ line, idx ->
                 val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
                 // Toggle: marca/desmarca en el diario. SIN diálogo de "propuesta"

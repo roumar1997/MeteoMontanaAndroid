@@ -479,7 +479,18 @@ private struct SchoolMapSection: View {
                         try? await AppDependencies.shared.container.deleteBlock.invoke(blockId: id)
                         await reloadBlocks()
                     }
-                } : nil)
+                } : nil,
+                onRateLine: { lineId, stars in
+                    Task {
+                        let rateLine = AppDependencies.shared.container.rateLine
+                        if stars > 0 {
+                            _ = try? await rateLine.rate(blockId: b.id, lineId: lineId, stars: Int32(stars))
+                        } else {
+                            _ = try? await rateLine.unrate(blockId: b.id, lineId: lineId)
+                        }
+                        await reloadBlocks()
+                    }
+                })
         }
         .sheet(item: $editLinesBlock) { b in
             EditLinesSheet(block: b, schoolId: school.id, focusVia: openVia) { ok in
@@ -908,6 +919,8 @@ struct BlockInfoSheet: View {
     var onAssignSector: (() -> Void)? = nil
     /// Admin: borrar este bloque (piedra/zona/parking) directamente.
     var onDelete: (() -> Void)? = nil
+    /// Valorar una vía. nil = no mostrar estrellas.
+    var onRateLine: ((String, Int) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     /// Caras de la piedra, SIEMPRE en el orden en que se introdujeron (FOTO 1,
@@ -969,6 +982,7 @@ struct BlockInfoSheet: View {
                             if !face.lines.isEmpty {
                                 Text("VÍAS (\(face.lines.count))").eyebrow().padding(.top, 4)
                                 ForEach(Array(face.lines.enumerated()), id: \.element.id) { idx, l in
+                                    VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 10) {
                                         Text("\(idx + 1)").font(Cumbre.mono(11, .bold))
                                             .foregroundStyle(GradeColor.style(l.grade).dark ? .black : .white)
@@ -998,6 +1012,15 @@ struct BlockInfoSheet: View {
                                         .buttonStyle(.plain)
                                         .disabled(tickingLine != nil)
                                     }
+                                    // Estrellas de valoración
+                                    if onRateLine != nil {
+                                        LineStarsRow(
+                                            lineId: l.id,
+                                            avgStars: l.avgStars.map { Float($0) },
+                                            myStars: Int(l.myStars?.int32Value ?? 0)
+                                        ) { stars in onRateLine?(l.id, stars) }
+                                    }
+                                    } // VStack
                                 }
                             }
                           }
@@ -1738,6 +1761,47 @@ private struct NotePhotoSheet: View {
                 }
             }
         }
+    }
+}
+
+/// Fila de 5 estrellas tocables para valorar una vía.
+struct LineStarsRow: View {
+    let lineId: String
+    let avgStars: Float?
+    let myStars: Int
+    let onRate: (Int) -> Void
+
+    @State private var localMy: Int
+
+    init(lineId: String, avgStars: Float?, myStars: Int, onRate: @escaping (Int) -> Void) {
+        self.lineId = lineId
+        self.avgStars = avgStars
+        self.myStars = myStars
+        self.onRate = onRate
+        _localMy = State(initialValue: myStars)
+    }
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(1...5, id: \.self) { i in
+                Button {
+                    let newStars = localMy == i ? 0 : i
+                    localMy = newStars
+                    onRate(newStars)
+                } label: {
+                    Image(systemName: i <= localMy ? "star.fill" : "star")
+                        .font(.system(size: 13))
+                        .foregroundStyle(i <= localMy ? Color(red: 0.96, green: 0.62, blue: 0.04) : Cumbre.ink3)
+                }
+                .buttonStyle(.plain)
+            }
+            if let avg = avgStars, avg > 0 {
+                Text(String(format: "%.1f", avg))
+                    .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                    .padding(.leading, 4)
+            }
+        }
+        .padding(.leading, 34)
     }
 }
 

@@ -136,6 +136,10 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideDeleteBlockUseCase(repo: BlockRepository) = DeleteBlockUseCase(repo)
 
+    @Provides @Singleton
+    fun provideRateLineUseCase(api: com.meteomontana.android.data.api.KtorBlockApi) =
+        com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(api)
+
     // Contributions
     @Provides @Singleton
     fun provideSubmitContributionUseCase(repo: ContributionRepository) =

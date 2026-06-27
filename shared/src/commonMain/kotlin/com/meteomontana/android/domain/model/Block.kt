@@ -62,7 +62,9 @@ data class BlockLine(
     val linePath: String?,
     val sortOrder: Int,
     val photoPath: String? = null,  // foto (cara) sobre la que está dibujada
-    val faceOrder: Int = 0          // orden de su cara dentro de la piedra
+    val faceOrder: Int = 0,         // orden de su cara dentro de la piedra
+    val avgStars: Float? = null,    // media de valoraciones (null = sin votos)
+    val myStars: Int? = null        // valoración del usuario actual (null = no ha votado)
 )
 
 /** Una cara de la piedra: una foto y las vías dibujadas sobre ella. */

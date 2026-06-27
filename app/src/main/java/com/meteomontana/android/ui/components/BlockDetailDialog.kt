@@ -65,6 +65,8 @@ fun BlockDetailDialog(
     onTickLine: ((com.meteomontana.android.domain.model.BlockLine, Int) -> Unit)? = null,
     /** Ids de vías ya hechas (del diario) para mostrarlas marcadas ✓ al abrir. */
     initiallyTicked: Set<String> = emptySet(),
+    /** Valorar una vía (1-5 estrellas). null = no mostrar estrellas. */
+    onRateLine: ((lineId: String, stars: Int) -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     /** Sectores (ZONE) disponibles para "ASIGNAR SECTOR". null = no mostrar el botón. */
@@ -263,6 +265,15 @@ fun BlockDetailDialog(
                                             .padding(horizontal = 6.dp)
                                     )
                                 }
+                            }
+                            // Estrellas: valoración media + votar (si está habilitado)
+                            if (onRateLine != null && !isProposal && block.type == "BLOCK") {
+                                LineStarsRow(
+                                    lineId = line.id,
+                                    avgStars = line.avgStars,
+                                    myStars = line.myStars ?: 0,
+                                    onRate = { stars -> onRateLine(line.id, stars) }
+                                )
                             }
                         }
                     }
@@ -512,5 +523,49 @@ fun BlockDetailDialog(
                 }
             }
         )
+    }
+}
+
+/**
+ * Fila de 5 estrellas tocables para valorar una vía.
+ * Muestra la media de votos y permite al usuario dar/cambiar su valoración.
+ */
+@Composable
+private fun LineStarsRow(
+    lineId: String,
+    avgStars: Float?,
+    myStars: Int,
+    onRate: (Int) -> Unit
+) {
+    var localMy by remember(lineId, myStars) { mutableStateOf(myStars) }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.padding(start = 26.dp, top = 2.dp, bottom = 4.dp)
+    ) {
+        for (i in 1..5) {
+            val filled = i <= localMy
+            Text(
+                if (filled) "★" else "☆",
+                style = MaterialTheme.typography.labelMedium,
+                color = if (filled) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable {
+                        val newStars = if (localMy == i) 0 else i  // tap mismo → borrar voto
+                        localMy = newStars
+                        onRate(newStars)
+                    }
+            )
+        }
+        if (avgStars != null && avgStars > 0f) {
+            Text(
+                "%.1f".format(avgStars),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
     }
 }

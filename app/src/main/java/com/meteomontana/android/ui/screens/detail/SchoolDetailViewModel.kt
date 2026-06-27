@@ -88,7 +88,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val createJournalEntry: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase,
     private val getMyJournal: com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase,
     private val deleteJournalEntry: com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase,
-    private val journalDoneStore: com.meteomontana.android.data.local.JournalDoneStore
+    private val journalDoneStore: com.meteomontana.android.data.local.JournalDoneStore,
+    private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -667,5 +668,15 @@ class SchoolDetailViewModel @Inject constructor(
             }
             onDone(ok)
         }
+    }
+
+    /** Valora una vía (1-5 estrellas). Devuelve el resultado actualizado o null si falla. */
+    suspend fun rateLine(blockId: String, lineId: String, stars: Int) = runCatching {
+        rateLineUseCase.rate(blockId, lineId, stars)
+    }
+
+    /** Borra la valoración de una vía. */
+    suspend fun unrateLine(blockId: String, lineId: String) = runCatching {
+        rateLineUseCase.unrate(blockId, lineId)
     }
 }
