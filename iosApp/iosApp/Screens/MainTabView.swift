@@ -4,7 +4,7 @@ import SwiftUI
 // Tiempo · Escuelas. (Radar/Windy OCULTO de momento; RadarView sigue en el
 // código, reactivar añadiendo de nuevo su .tabItem.)
 struct MainTabView: View {
-    @State private var tab = 1 // 0=Tiempo, 1=Escuelas
+    @State private var tab = 1 // 0=Tiempo, 1=Escuelas, 2=Quedadas
 
     init() {
         // Tab bar con estilo Cumbre: fondo papel, acento terracota.
@@ -23,6 +23,9 @@ struct MainTabView: View {
             SchoolListView()
                 .tabItem { Label("Escuelas", systemImage: "list.bullet") }
                 .tag(1)
+            MeetupsView()
+                .tabItem { Label("Quedadas", systemImage: "person.3") }
+                .tag(2)
         }
         .tint(Cumbre.terra)
     }
