@@ -8,8 +8,11 @@ import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupsUseCase
 import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.GetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
+import com.meteomontana.android.domain.usecase.meetups.MeetupAlertState
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +47,8 @@ class MeetupsViewModel @Inject constructor(
     private val leaveMeetup: LeaveMeetupUseCase,
     private val kickMeetupMember: KickMeetupMemberUseCase,
     private val reportMeetup: ReportMeetupUseCase,
+    private val getMeetupAlert: GetMeetupAlertUseCase,
+    private val setMeetupAlert: SetMeetupAlertUseCase,
 ) : ViewModel() {
 
     private val _list = MutableStateFlow(MeetupsUiState())
@@ -163,6 +168,25 @@ class MeetupsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _detail.update { it.copy(error = e.message) }
             }
+        }
+    }
+
+    // ── Alerta de quedada nueva ──────────────────────────────────────────────
+
+    private val _alertState = MutableStateFlow<MeetupAlertState?>(null)
+    val alertState = _alertState.asStateFlow()
+
+    fun loadAlertState() {
+        viewModelScope.launch {
+            try { _alertState.value = getMeetupAlert.execute() }
+            catch (_: Exception) {}
+        }
+    }
+
+    fun toggleAlert(enabled: Boolean, daysCsv: String? = null) {
+        viewModelScope.launch {
+            try { _alertState.value = setMeetupAlert.execute(enabled, daysCsv) }
+            catch (e: Exception) { _list.update { it.copy(error = e.message) } }
         }
     }
 

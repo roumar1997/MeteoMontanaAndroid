@@ -97,8 +97,10 @@ import com.meteomontana.android.domain.usecase.meetups.GetMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.GetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 
 /**
  * Grafo de dependencias para iOS, construido en Kotlin (commonMain).
@@ -289,8 +291,10 @@ class IosDependencyContainer(
     val createMeetup: CreateMeetupUseCase? = meetupCache?.let { CreateMeetupUseCase(meetupApi, it) }
     val joinMeetup: JoinMeetupUseCase? = meetupCache?.let { JoinMeetupUseCase(meetupApi, it) }
     val leaveMeetup: LeaveMeetupUseCase? = meetupCache?.let { LeaveMeetupUseCase(meetupApi, it) }
-    val kickMeetupMember = KickMeetupMemberUseCase(meetupApi)
-    val reportMeetup     = ReportMeetupUseCase(meetupApi)
+    val kickMeetupMember  = KickMeetupMemberUseCase(meetupApi)
+    val reportMeetup      = ReportMeetupUseCase(meetupApi)
+    val getMeetupAlert    = GetMeetupAlertUseCase(meetupApi)
+    val setMeetupAlert    = SetMeetupAlertUseCase(meetupApi)
 
     // ─── Cola offline (outbox) — vías marcadas como hechas sin conexión ──────
     // Comparte la tabla Outbox de SQLDelight. Permite marcar una vía sin red:

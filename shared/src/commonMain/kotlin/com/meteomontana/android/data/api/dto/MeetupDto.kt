@@ -10,6 +10,18 @@ data class ReportRequestDto(
 )
 
 @Serializable
+data class MeetupAlertDto(
+    val schoolId: String? = null,   // null = cualquier escuela
+    val daysCsv: String? = null     // null = cualquier día
+)
+
+@Serializable
+data class SetAlertRequestDto(
+    val enabled: Boolean,
+    val daysCsv: String? = null
+)
+
+@Serializable
 data class MeetupDto(
     val id: String,
     val schoolId: String,

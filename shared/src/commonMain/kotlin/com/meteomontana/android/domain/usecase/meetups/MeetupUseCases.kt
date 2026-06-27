@@ -108,3 +108,20 @@ class ReportMeetupUseCase(private val api: KtorMeetupApi) {
                 reportedUid = reportedUid, reason = reason, context = context))
     }
 }
+
+/** Devuelve si la alerta está activa (enabled=true) y los días configurados. */
+data class MeetupAlertState(val enabled: Boolean, val daysCsv: String?)
+
+class GetMeetupAlertUseCase(private val api: KtorMeetupApi) {
+    suspend fun execute(): MeetupAlertState {
+        val dto = api.getMeetupAlert()
+        return MeetupAlertState(enabled = dto != null, daysCsv = dto?.daysCsv)
+    }
+}
+
+class SetMeetupAlertUseCase(private val api: KtorMeetupApi) {
+    suspend fun execute(enabled: Boolean, daysCsv: String?): MeetupAlertState {
+        val dto = api.setMeetupAlert(enabled, daysCsv)
+        return MeetupAlertState(enabled = enabled, daysCsv = dto.daysCsv)
+    }
+}

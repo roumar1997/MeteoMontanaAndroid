@@ -25,6 +25,8 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -55,6 +58,9 @@ fun MeetupsScreen(
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
     val state by viewModel.listState.collectAsState()
+    val alertState by viewModel.alertState.collectAsState()
+
+    LaunchedEffect(Unit) { viewModel.loadAlertState() }
 
     Column(Modifier.fillMaxSize()) {
         // ── Header ──
@@ -83,6 +89,17 @@ fun MeetupsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { viewModel.loadMeetups() }) {
                     Icon(Icons.Outlined.Refresh, contentDescription = "Recargar")
+                }
+                // Botón alerta: campana activa (terra) o apagada
+                val alertEnabled = alertState?.enabled == true
+                IconButton(onClick = { viewModel.toggleAlert(!alertEnabled) }) {
+                    Icon(
+                        if (alertEnabled) Icons.Outlined.NotificationsActive
+                        else Icons.Outlined.NotificationsOff,
+                        contentDescription = if (alertEnabled) "Alerta activa" else "Activar alerta",
+                        tint = if (alertEnabled) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 IconButton(onClick = onCreateMeetup) {
                     Icon(Icons.Outlined.Add, contentDescription = "Crear quedada",

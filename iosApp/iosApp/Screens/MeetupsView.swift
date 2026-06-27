@@ -9,10 +9,16 @@ final class MeetupsViewModel: ObservableObject {
     @Published var loading = false
     @Published var error: String?
     @Published var filterRelation: String? = nil   // nil = todas, "following"
+    @Published var alertEnabled: Bool = false
 
     private let getMeetups = AppDependencies.shared.container.getMeetups
+    private let getMeetupAlert = AppDependencies.shared.container.getMeetupAlert
+    private let setMeetupAlert = AppDependencies.shared.container.setMeetupAlert
 
-    init() { Task { await load() } }
+    init() {
+        Task { await load() }
+        Task { await loadAlert() }
+    }
 
     func load(relation: String? = nil) async {
         loading = true
@@ -32,6 +38,26 @@ final class MeetupsViewModel: ObservableObject {
     func setFilter(_ relation: String?) {
         filterRelation = relation
         Task { await load(relation: relation) }
+    }
+
+    func loadAlert() async {
+        do {
+            let state = try await getMeetupAlert.execute()
+            alertEnabled = state.enabled
+        } catch {}
+    }
+
+    func toggleAlert() {
+        let newEnabled = !alertEnabled
+        alertEnabled = newEnabled   // optimista
+        Task {
+            do {
+                let state = try await setMeetupAlert.execute(enabled: newEnabled, daysCsv: nil)
+                alertEnabled = state.enabled
+            } catch {
+                alertEnabled = !newEnabled  // revertir
+            }
+        }
     }
 }
 
@@ -60,6 +86,10 @@ struct MeetupsView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                     .foregroundColor(Cumbre.ink)
+                    Button { vm.toggleAlert() } label: {
+                        Image(systemName: vm.alertEnabled ? "bell.fill" : "bell.slash")
+                            .foregroundColor(vm.alertEnabled ? Cumbre.terra : Cumbre.ink.opacity(0.5))
+                    }
                     Button { showCreate = true } label: {
                         Image(systemName: "plus")
                             .foregroundColor(Cumbre.terra)
