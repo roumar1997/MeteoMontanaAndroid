@@ -620,6 +620,10 @@ private struct SchoolMapSection: View {
 
     private func reloadBlocks() async {
         blocks = await loadBlocksOnlineOrOffline()
+        // Si hay una ficha de bloque abierta, refresca sus datos (p.ej. nueva foto)
+        if let sel = selectedBlock, let fresh = blocks.first(where: { $0.id == sel.id }) {
+            selectedBlock = fresh
+        }
     }
 
     /// Carga los bloques (piedras/parkings/zonas) por red; si la red falla o no
