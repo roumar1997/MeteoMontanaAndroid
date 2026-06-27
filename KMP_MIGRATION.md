@@ -21,12 +21,12 @@
 - ✅ **Fase 3 — Shared KMP** (`main`): MeetupModels, DTOs, KtorMeetupApi, MeetupCacheRepository (SQLDelight offline), 6 use cases, IosDependencyContainer actualizado.
 - ✅ **Fase 4 — Android UI** (`main`): Tab "Quedadas" (3ª pestaña, icono Groups), MeetupsScreen (lista + filtros), MeetupDetailScreen (info + miembros + join/leave/kick + chat), CreateMeetupScreen (formulario completo). Build y tests verdes.
 - ✅ **Fase 7 — iOS UI** (`main`): MeetupsView (lista + filtros TODAS/SIGUIENDO + badge UNIDO/LLENO), MeetupDetailView (foto + días + privacidad/disciplina + unirse/salir/expulsar + chat), CreateMeetupView (nombre, escuela, días picker 14 días, privacidad, disciplina, límite). Pestaña "Quedadas" en MainTabView. CI iOS verificará al compilar.
-- ⬜ **Fase 5 — Moderación** (backend `develop`): `POST /api/reports` + tabla `reports` (V32) + cola de denuncias en AdminScreen.
+- ✅ **Fase 5 — Moderación** (`main`): Backend (`develop`): V32__meetup_reports.sql, `MeetupReport` domain + JPA + repo + `SubmitReportUseCase`/`ListReportsUseCase`/`ResolveReportUseCase`, `POST /meetups/{id}/report`, `GET /admin/reports`, `POST /admin/reports/{id}/resolve`. App: botón 🚩 Denunciar en MeetupDetailScreen/View (dialog/confirmationDialog con 4 razones), MeetupReport model en shared, KtorAdminApi/AdminRepository extendidos, tab "DENUNCIAS" en AdminScreen con DenunciasTab + botones RESOLVER/DESESTIMAR. Build Android verde. iOS verificará en CI.
 - ⬜ **Fase 6 — Notificaciones "quedada nueva"** (backend + shared): `meetup_alerts` opt-in + push al crear una quedada que coincida con las preferencias del usuario.
 
-**Próximo paso**: Fase 5 Moderación (backend `develop`, pide OK antes de mergear a main) o esperar a mergear Fase 1 backend cuando Rodrigo dé OK.
+**Próximo paso**: Fase 6 Notificaciones, o esperar a que Rodrigo dé OK para mergear el backend (`develop`→`main`) para que staging/prod tenga las quedadas activas.
 
-**Backend Fase 1 en `develop`** — no mergeado a `main` aún. Pedir OK explícito a Rodrigo antes de mergear (Railway prod = testers en vivo).
+**Backend Fase 1 + Fase 5 en `develop`** — no mergeados a `main` aún. Pedir OK explícito a Rodrigo antes de mergear (Railway prod = testers en vivo).
 
 ---
 
