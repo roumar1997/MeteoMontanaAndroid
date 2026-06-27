@@ -14,6 +14,7 @@ import com.meteomontana.android.domain.usecase.meetups.MeetupAlertState
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
+import com.meteomontana.android.domain.port.PhotoUploader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,6 +50,7 @@ class MeetupsViewModel @Inject constructor(
     private val reportMeetup: ReportMeetupUseCase,
     private val getMeetupAlert: GetMeetupAlertUseCase,
     private val setMeetupAlert: SetMeetupAlertUseCase,
+    private val photoUploader: PhotoUploader,
 ) : ViewModel() {
 
     private val _list = MutableStateFlow(MeetupsUiState())
@@ -187,6 +189,24 @@ class MeetupsViewModel @Inject constructor(
         viewModelScope.launch {
             try { _alertState.value = setMeetupAlert.execute(enabled, daysCsv) }
             catch (e: Exception) { _list.update { it.copy(error = e.message) } }
+        }
+    }
+
+    private val _uploadingPhoto = MutableStateFlow(false)
+    val uploadingPhoto = _uploadingPhoto.asStateFlow()
+
+    /** Sube una foto para la quedada (temporal: usa "new" como ID; el backend usará la URL tal cual). */
+    fun uploadMeetupPhoto(bytes: ByteArray, mimeType: String, onResult: (String?) -> Unit) {
+        _uploadingPhoto.value = true
+        viewModelScope.launch {
+            try {
+                val url = photoUploader.uploadMeetupPhoto(bytes, mimeType, "new_${System.currentTimeMillis()}")
+                onResult(url)
+            } catch (_: Exception) {
+                onResult(null)
+            } finally {
+                _uploadingPhoto.value = false
+            }
         }
     }
 

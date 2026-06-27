@@ -10,7 +10,8 @@ data class PrivateProfile(
     val topGrade: String?,
     val isPublic: Boolean,
     val isAdmin: Boolean,
-    val isPremium: Boolean
+    val isPremium: Boolean,
+    val gender: String? = null  // WOMAN | MAN | UNSPECIFIED — privado, nunca en perfiles públicos
 )
 
 data class PublicProfile(

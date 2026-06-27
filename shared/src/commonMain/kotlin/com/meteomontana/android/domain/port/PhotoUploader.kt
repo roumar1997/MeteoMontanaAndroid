@@ -22,4 +22,8 @@ interface PhotoUploader {
     /** Sube la foto adjunta a una nota comunitaria y devuelve la URL pública. */
     @Throws(Exception::class)
     suspend fun uploadNotePhoto(bytes: ByteArray, mimeType: String, schoolId: String): String
+
+    /** Sube la foto de una quedada y devuelve la URL pública. */
+    @Throws(Exception::class)
+    suspend fun uploadMeetupPhoto(bytes: ByteArray, mimeType: String, meetupId: String): String
 }

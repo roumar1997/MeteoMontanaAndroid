@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Button
@@ -37,17 +42,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.meteomontana.android.domain.model.CreateMeetupRequest
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
+import kotlinx.coroutines.launch
 
 /** Pantalla de creación de quedada. Campos: nombre, escuela, días, privacidad,
  *  disciplina y límite de participantes. */
@@ -58,6 +68,7 @@ fun CreateMeetupScreen(
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
     val createError by viewModel.createError.collectAsState()
+    val uploadingPhoto by viewModel.uploadingPhoto.collectAsState()
 
     var name by remember { mutableStateOf("") }
     var schoolId by remember { mutableStateOf("") }
@@ -67,6 +78,18 @@ fun CreateMeetupScreen(
     var limitText by remember { mutableStateOf("") }
     val selectedDays = remember { mutableStateOf<Set<String>>(emptySet()) }
     var submitting by remember { mutableStateOf(false) }
+    var photoUrl by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@launch
+            val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+            viewModel.uploadMeetupPhoto(bytes, mime) { url -> photoUrl = url }
+        }
+    }
 
     // Para el selector de escuela, reusamos búsqueda simple (cadena schoolId manual por ahora)
     // Se mejoraría con un picker de escuelas en próximas iteraciones.
@@ -95,6 +118,42 @@ fun CreateMeetupScreen(
                 .padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
+            // Foto del grupo
+            FieldLabel("FOTO DEL GRUPO (opcional)")
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(4.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { photoPicker.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (photoUrl != null) {
+                    AsyncImage(
+                        model = photoUrl,
+                        contentDescription = "Foto de la quedada",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Outlined.AddAPhoto, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text("AÑADIR FOTO", style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                if (uploadingPhoto) {
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                        contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.size(28.dp))
+                    }
+                }
+            }
+
             // Nombre
             FieldLabel("NOMBRE")
             OutlinedTextField(
@@ -168,7 +227,7 @@ fun CreateMeetupScreen(
                         discipline = discipline,
                         privacy = privacy,
                         memberLimit = limitText.toIntOrNull(),
-                        photoUrl = null,
+                        photoUrl = photoUrl,
                         days = selectedDays.value.sorted()
                     )
                     viewModel.create(req) { meetup ->

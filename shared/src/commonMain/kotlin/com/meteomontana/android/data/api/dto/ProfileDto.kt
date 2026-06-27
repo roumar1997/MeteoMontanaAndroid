@@ -13,7 +13,8 @@ data class PrivateProfileDto(
     val topGrade: String? = null,
     val isPublic: Boolean,
     val isAdmin: Boolean,
-    val isPremium: Boolean
+    val isPremium: Boolean,
+    val gender: String? = null
 )
 
 @Serializable
@@ -23,7 +24,8 @@ data class UpdateProfileRequest(
     val bio: String? = null,
     val topGrade: String? = null,
     val isPublic: Boolean? = null,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    val gender: String? = null
 )
 
 @Serializable

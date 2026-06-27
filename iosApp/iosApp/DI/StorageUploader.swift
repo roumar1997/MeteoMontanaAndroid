@@ -60,4 +60,11 @@ enum StorageUploader {
         let uid = try requireUid()
         return try await uploadJPEG(image, path: "profile-photos/\(uid).jpg")
     }
+
+    /// Foto de una quedada. Ruta: `meetup-photos/{tempId}_{uid}_{ts}.jpg`.
+    static func uploadMeetupPhoto(_ image: UIImage, tempId: String) async throws -> String {
+        let uid = try requireUid()
+        let ts = Int(Date().timeIntervalSince1970)
+        return try await uploadJPEG(image, path: "meetup-photos/\(tempId)_\(uid)_\(ts).jpg")
+    }
 }

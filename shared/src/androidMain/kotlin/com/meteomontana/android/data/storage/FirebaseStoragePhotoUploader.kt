@@ -25,6 +25,14 @@ class FirebaseStoragePhotoUploader(
         return ref.downloadUrl.await().toString()
     }
 
+    override suspend fun uploadMeetupPhoto(bytes: ByteArray, mimeType: String, meetupId: String): String {
+        val uid = auth.currentUser?.uid ?: error("Usuario no autenticado")
+        val ts = System.currentTimeMillis()
+        val ref = storage.reference.child("meetup-photos/${meetupId}_${uid}_${ts}.jpg")
+        ref.putBytes(bytes).await()
+        return ref.downloadUrl.await().toString()
+    }
+
     override suspend fun uploadProfilePhoto(bytes: ByteArray, mimeType: String): String {
         val uid = auth.currentUser?.uid ?: error("Usuario no autenticado")
         val ext = when (mimeType) {

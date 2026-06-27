@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import PhotosUI
 
 struct CreateMeetupView: View {
     let onCreated: (String) -> Void   // meetupId
@@ -13,6 +14,10 @@ struct CreateMeetupView: View {
     @State private var limitText = ""
     @State private var submitting = false
     @State private var createError: String?
+    @State private var photoItem: PhotosPickerItem? = nil
+    @State private var photoImage: UIImage? = nil
+    @State private var photoUrl: String? = nil
+    @State private var uploadingPhoto = false
 
     private let createMeetup = AppDependencies.shared.container.createMeetup
 
@@ -39,6 +44,56 @@ struct CreateMeetupView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
+                        // Foto del grupo
+                        VStack(alignment: .leading, spacing: 6) {
+                            FieldLabel("FOTO DEL GRUPO (opcional)")
+                            PhotosPicker(selection: $photoItem, matching: .images) {
+                                ZStack {
+                                    if let img = photoImage {
+                                        Image(uiImage: img)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 140)
+                                            .clipped()
+                                            .cornerRadius(4)
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(Cumbre.bg)
+                                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2)))
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 140)
+                                    }
+                                    if uploadingPhoto {
+                                        ProgressView().tint(Cumbre.terra)
+                                    } else if photoImage == nil {
+                                        VStack(spacing: 4) {
+                                            Image(systemName: "camera.fill").font(.title2).foregroundColor(Cumbre.ink.opacity(0.4))
+                                            Text("AÑADIR FOTO").font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                .tracking(1.8).foregroundColor(Cumbre.ink.opacity(0.4))
+                                        }
+                                    }
+                                }
+                            }
+                            .onChange(of: photoItem) { item in
+                                guard let item else { return }
+                                Task {
+                                    guard let data = try? await item.loadTransferable(type: Data.self),
+                                          let uiImg = UIImage(data: data) else { return }
+                                    photoImage = uiImg
+                                    uploadingPhoto = true
+                                    do {
+                                        let url = try await StorageUploader.uploadMeetupPhoto(
+                                            uiImg,
+                                            tempId: "new_\(Int(Date().timeIntervalSince1970))"
+                                        )
+                                        photoUrl = url
+                                    } catch { photoUrl = nil }
+                                    uploadingPhoto = false
+                                }
+                            }
+                        }
+
                         // Nombre
                         VStack(alignment: .leading, spacing: 6) {
                             FieldLabel("NOMBRE")
@@ -103,7 +158,7 @@ struct CreateMeetupView: View {
                             guard !limitText.isEmpty, let n = Int32(limitText) else { return nil }
                             return KotlinInt(int: n)
                         }(),
-                        photoUrl: nil,
+                        photoUrl: photoUrl,
                         days: selectedDays.sorted()
                     )
                     Task {

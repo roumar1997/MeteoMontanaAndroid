@@ -125,7 +125,7 @@ fun FavoriteRowDto.toDomain() = FavoriteRow(schoolId, schoolName, cells.map { it
 fun DayCellDto.toDomain() = DayCell(date, avgScore, label)
 
 // Profile & Social
-fun PrivateProfileDto.toDomain() = PrivateProfile(uid, email, username, displayName, photoUrl, bio, topGrade, isPublic, isAdmin, isPremium)
+fun PrivateProfileDto.toDomain() = PrivateProfile(uid, email, username, displayName, photoUrl, bio, topGrade, isPublic, isAdmin, isPremium, gender)
 fun PublicProfileDto.toDomain() = PublicProfile(uid, username, displayName, photoUrl, bio, topGrade, locked, isPublic)
 fun FollowStatusDto.toDomain() = FollowStatus(followers, following, iFollowThem, theyFollowMe, requestPending)
 fun NotificationDto.toDomain() = Notification(id, type, title, body, targetType, targetId, readAt, createdAt)

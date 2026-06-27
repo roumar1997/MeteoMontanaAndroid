@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -107,6 +108,7 @@ private fun EditForm(
     var bio by remember { mutableStateOf(s.profile.bio ?: "") }
     var topGrade by remember { mutableStateOf(s.profile.topGrade ?: "") }
     var isPublic by remember { mutableStateOf(s.profile.isPublic) }
+    var gender by remember { mutableStateOf(s.profile.gender ?: "") }
 
     val context = LocalContext.current
 
@@ -218,6 +220,8 @@ private fun EditForm(
             Switch(checked = isPublic, onCheckedChange = { isPublic = it })
         }
 
+        GenderSelector(selected = gender, onSelect = { gender = it })
+
         Spacer(Modifier.height(8.dp))
 
         Button(
@@ -227,7 +231,8 @@ private fun EditForm(
                     displayName = displayName.takeIf { it.isNotBlank() },
                     bio = bio,  // permite vaciar
                     topGrade = topGrade.takeIf { it.isNotBlank() },
-                    isPublic = isPublic
+                    isPublic = isPublic,
+                    gender = gender.takeIf { it.isNotBlank() }
                 ))
             },
             modifier = Modifier.fillMaxWidth(),
@@ -237,6 +242,26 @@ private fun EditForm(
             ),
             shape = MaterialTheme.shapes.small
         ) { Text("GUARDAR") }
+    }
+}
+
+@Composable
+private fun GenderSelector(selected: String, onSelect: (String) -> Unit) {
+    val options = listOf("" to "No indicar", "WOMAN" to "Mujer", "MAN" to "Hombre")
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("GÉNERO (privado — solo para quedadas no mixtas)",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { (value, label) ->
+                FilterChip(
+                    selected = selected == value,
+                    onClick = { onSelect(value) },
+                    label = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+        }
     }
 }
 
