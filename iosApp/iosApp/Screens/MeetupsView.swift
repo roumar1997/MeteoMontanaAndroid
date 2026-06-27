@@ -232,7 +232,7 @@ private struct FilterPill: View {
 func privacyLabel(_ privacy: String) -> String {
     switch privacy {
     case "FOLLOWERS": return "Solo seguidores"
-    case "WOMEN":     return "Solo mujeres"
+    case "WOMEN":     return "No mixto"
     default:          return "Abierta"
     }
 }

@@ -113,7 +113,7 @@ struct CreateMeetupView: View {
                         } catch {
                             let msg = error.localizedDescription
                             if msg.contains("GENDER_REQUIRED") {
-                                createError = "Solo puedes crear quedadas SOLO MUJERES si tienes género Mujer en tu perfil."
+                                createError = "Solo puedes crear quedadas NO MIXTO si tienes género Mujer en tu perfil."
                             } else {
                                 createError = msg
                             }
@@ -179,7 +179,7 @@ private struct DayPickerView: View {
 
 private struct PrivacyPickerView: View {
     @Binding var selected: String
-    let options: [(String, String)] = [("OPEN","Abierta"),("FOLLOWERS","Solo seguidores"),("WOMEN","Solo mujeres")]
+    let options: [(String, String)] = [("OPEN","Abierta"),("FOLLOWERS","Solo seguidores"),("WOMEN","No mixto")]
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {

@@ -306,7 +306,7 @@ fun MeetupListItem(meetup: Meetup, onClick: () -> Unit) {
 
 internal fun privacyLabel(privacy: String) = when (privacy) {
     "FOLLOWERS" -> "Solo seguidores"
-    "WOMEN"     -> "Solo mujeres"
+    "WOMEN"     -> "No mixto"
     else        -> "Abierta"
 }
 

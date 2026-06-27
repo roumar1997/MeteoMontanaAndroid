@@ -247,7 +247,7 @@ private fun PrivacySelector(selected: String, onSelected: (String) -> Unit) {
     val options = listOf(
         "OPEN" to "Abierta",
         "FOLLOWERS" to "Solo seguidores",
-        "WOMEN" to "Solo mujeres"
+        "WOMEN" to "No mixto"
     )
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         options.forEach { (key, label) ->

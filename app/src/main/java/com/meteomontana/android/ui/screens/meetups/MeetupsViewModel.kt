@@ -147,7 +147,7 @@ class MeetupsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _createError.value = when {
                     e.message?.contains("GENDER_REQUIRED") == true ->
-                        "Solo puedes crear quedadas SOLO MUJERES si tienes género Mujer en tu perfil."
+                        "Solo puedes crear quedadas NO MIXTO si tienes género Mujer en tu perfil."
                     else -> e.message ?: "Error al crear la quedada"
                 }
             }
