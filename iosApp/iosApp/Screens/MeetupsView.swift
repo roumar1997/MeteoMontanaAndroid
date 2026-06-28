@@ -11,6 +11,7 @@ final class MeetupsViewModel: ObservableObject {
     @Published var loading = false
     @Published var error: String?
     @Published var alertEnabled: Bool = false
+    @Published var alertDaysCsv: String?
 
     // Filters (persisted in UserDefaults)
     @Published var filterRelation: String?    // nil = todas, "following"
@@ -105,19 +106,19 @@ final class MeetupsViewModel: ObservableObject {
         do {
             let state = try await getMeetupAlert.execute()
             alertEnabled = state.enabled
+            alertDaysCsv = state.daysCsv
         } catch {}
     }
 
-    func toggleAlert() {
-        let newEnabled = !alertEnabled
-        alertEnabled = newEnabled
-        Task {
-            do {
-                let state = try await setMeetupAlert.execute(enabled: newEnabled, daysCsv: nil)
-                alertEnabled = state.enabled
-            } catch {
-                alertEnabled = !newEnabled
-            }
+    /// Guarda la alerta (el backend solo persiste enabled + daysCsv; el resto de
+    /// filtros son sugerencia de UI, igual que en Android).
+    func saveAlert(enabled: Bool, daysCsv: String?) async {
+        do {
+            let state = try await setMeetupAlert.execute(enabled: enabled, daysCsv: daysCsv)
+            alertEnabled = state.enabled
+            alertDaysCsv = state.daysCsv
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 
@@ -184,6 +185,7 @@ struct MeetupsView: View {
     @State private var selectedMeetupId: SheetId?
     @State private var selectedChatConvId: SheetId?
     @State private var selectedChatName: String?
+    @State private var showAlertConfig = false
 
     // Filters applied locally
     private var displayedMeetups: [Meetup] {
@@ -240,8 +242,8 @@ struct MeetupsView: View {
                     Button { Task { await vm.load() } } label: {
                         Image(systemName: "arrow.clockwise").foregroundColor(Cumbre.ink)
                     }
-                    Button { vm.toggleAlert() } label: {
-                        Image(systemName: vm.alertEnabled ? "bell.fill" : "bell.slash")
+                    Button { showAlertConfig = true } label: {
+                        Image(systemName: vm.alertEnabled ? "bell.fill" : "bell")
                             .foregroundColor(vm.alertEnabled ? Cumbre.terra : Cumbre.ink.opacity(0.5))
                     }
                     Button { showCreate = true } label: {
@@ -279,23 +281,27 @@ struct MeetupsView: View {
                 VStack(spacing: 0) {
                     // Toggle bar
                     HStack(spacing: 6) {
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .font(.system(size: 13)).foregroundColor(Cumbre.terra)
                         Text("FILTROS")
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
                             .tracking(1.5)
-                            .foregroundColor(Cumbre.ink.opacity(0.6))
+                            .foregroundColor(Cumbre.terra)
                         if activeFilterCount > 0 {
                             Text("\(activeFilterCount)")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 5).padding(.vertical, 1)
+                                .padding(.horizontal, 6).padding(.vertical, 1)
                                 .background(Cumbre.terra)
                                 .clipShape(Capsule())
                         }
                         Spacer()
                         Image(systemName: filtersExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption).foregroundColor(Cumbre.ink.opacity(0.5))
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(Cumbre.terra)
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .padding(.horizontal, 16).padding(.vertical, 11)
+                    .background(Cumbre.ink.opacity(0.05))
+                    .overlay(Divider(), alignment: .bottom)
                     .contentShape(Rectangle())
                     .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { filtersExpanded.toggle() } }
 
@@ -435,6 +441,11 @@ struct MeetupsView: View {
             .sheet(item: $selectedChatConvId) { sid in
                 NavigationStack {
                     GroupChatView(convId: sid.value, groupName: selectedChatName ?? "Grupo")
+                }
+            }
+            .sheet(isPresented: $showAlertConfig) {
+                NavigationStack {
+                    MeetupAlertView(vm: vm)
                 }
             }
             .alert("Quedadas No Mixto", isPresented: $showWomenGateDialog) {
@@ -588,11 +599,11 @@ private struct FilterPill: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 11, weight: .bold))
-                .padding(.horizontal, 10).padding(.vertical, 4)
-                .background(selected ? Cumbre.terra.opacity(0.15) : Cumbre.bg)
-                .foregroundColor(selected ? Cumbre.terra : Cumbre.ink.opacity(0.6))
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(selected ? Cumbre.terra : Cumbre.ink.opacity(0.2), lineWidth: 1))
+                .font(.system(size: 12, weight: .bold))
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(selected ? Cumbre.terra : Cumbre.bg)
+                .foregroundColor(selected ? .white : Cumbre.ink.opacity(0.7))
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(selected ? Cumbre.terra : Cumbre.ink.opacity(0.25), lineWidth: 1))
                 .cornerRadius(4)
         }
     }
@@ -743,16 +754,17 @@ struct MeetupsMapPanel: View {
         var ms: [CumbreMarker] = []
         if let lat = userLat, let lon = userLon {
             ms.append(CumbreMarker(
-                id: "user", coordinate: .init(latitude: lat, longitude: lon),
+                id: "__USER__", coordinate: .init(latitude: lat, longitude: lon),
                 title: "Tu ubicacion", kind: .user
             ))
         }
         for g in groups {
+            // Diamante terracota con el nº de quedadas dentro + nombre de escuela debajo.
             ms.append(CumbreMarker(
                 id: g.schoolId, coordinate: .init(latitude: g.lat, longitude: g.lon),
-                title: "\(g.schoolName) · \(g.count)",
-                kind: .score, color: UIColor(red: 0.78, green: 0.40, blue: 0.13, alpha: 1),
-                score: nil, name: "\(g.schoolName) · \(g.count)", showName: true
+                title: g.schoolName,
+                kind: .score, color: UIColor(red: 0.76, green: 0.33, blue: 0.18, alpha: 1),
+                score: g.count, name: g.schoolName, showName: true
             ))
         }
         return ms
@@ -842,6 +854,164 @@ struct MeetupsMapPanel: View {
         if km <= 200 { return 7 }
         if km <= 500 { return 6 }
         return 5
+    }
+}
+
+// ── Configuración de alertas (espejo de MeetupAlertScreen.kt) ───────────────
+
+struct MeetupAlertView: View {
+    @ObservedObject var vm: MeetupsViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var enabled = false
+    @State private var selectedDays: Set<String> = []
+    @State private var selectedPrivacy: String?
+    @State private var selectedDiscipline: String?
+    @State private var radiusKm: Int?
+    @State private var schoolName: String?
+    @State private var schoolId: String?
+    @State private var showSchoolPicker = false
+
+    private let next10 = generateNextDays(10)
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Activar/desactivar
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Activar alertas").font(.body).fontWeight(.medium)
+                            Text("Recibe una notificacion cuando se cree una quedada que te interese")
+                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                        }
+                        Spacer()
+                        Toggle("", isOn: $enabled).labelsHidden().tint(Cumbre.terra)
+                    }
+
+                    if enabled {
+                        Divider()
+
+                        // Días
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "DIAS")
+                            Text("Avisame si la quedada incluye alguno de estos dias (vacio = cualquier dia)")
+                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                            FlowLayoutView(spacing: 6) {
+                                ForEach(next10) { d in
+                                    FilterPill(label: d.label, selected: selectedDays.contains(d.iso)) {
+                                        if selectedDays.contains(d.iso) { selectedDays.remove(d.iso) }
+                                        else { selectedDays.insert(d.iso) }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Escuela
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "ESCUELA")
+                            Text("Solo quedadas en esta escuela (vacio = cualquier escuela)")
+                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                            HStack {
+                                Image(systemName: "magnifyingglass").font(.system(size: 14))
+                                    .foregroundColor(Cumbre.ink.opacity(0.5))
+                                Text(schoolName ?? "Cualquier escuela")
+                                    .font(.subheadline)
+                                    .foregroundColor(schoolName != nil ? Cumbre.ink : Cumbre.ink.opacity(0.5))
+                                Spacer()
+                                if schoolName != nil {
+                                    Button { schoolId = nil; schoolName = nil } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(Cumbre.ink.opacity(0.3))
+                                    }
+                                }
+                            }
+                            .padding(12)
+                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
+                            .contentShape(Rectangle())
+                            .onTapGesture { showSchoolPicker = true }
+                        }
+
+                        // Distancia
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "DISTANCIA")
+                            Text("Solo quedadas en escuelas cerca de ti")
+                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                            let distances: [(Int?, String)] = [(nil, "Cualquiera"), (25, "< 25 km"),
+                                (50, "< 50 km"), (100, "< 100 km"), (200, "< 200 km")]
+                            FlowLayoutView(spacing: 6) {
+                                ForEach(distances, id: \.1) { km, label in
+                                    FilterPill(label: label, selected: radiusKm == km) { radiusKm = km }
+                                }
+                            }
+                        }
+
+                        // Tipo de grupo
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "TIPO DE GRUPO")
+                            let privacies: [(String?, String)] = [(nil, "Cualquiera"), ("OPEN", "Abierta"),
+                                ("FOLLOWERS", "Seguidos/Seguidores"), ("WOMEN", "No mixto")]
+                            FlowLayoutView(spacing: 6) {
+                                ForEach(privacies, id: \.1) { key, label in
+                                    FilterPill(label: label, selected: selectedPrivacy == key) { selectedPrivacy = key }
+                                }
+                            }
+                        }
+
+                        // Disciplina
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "DISCIPLINA")
+                            let disciplines: [(String?, String)] = [(nil, "Cualquiera"), ("BOULDER", "Bloque"),
+                                ("ROUTE", "Via"), ("BOTH", "Ambas")]
+                            FlowLayoutView(spacing: 6) {
+                                ForEach(disciplines, id: \.1) { key, label in
+                                    FilterPill(label: label, selected: selectedDiscipline == key) { selectedDiscipline = key }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+            }
+
+            Divider()
+            Button {
+                let daysCsv = selectedDays.isEmpty ? nil : selectedDays.sorted().joined(separator: ",")
+                Task {
+                    await vm.saveAlert(enabled: enabled, daysCsv: daysCsv)
+                    dismiss()
+                }
+            } label: {
+                Text(enabled ? "GUARDAR ALERTA" : "DESACTIVAR ALERTA")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Cumbre.terra)
+                    .cornerRadius(6)
+            }
+            .padding(16)
+        }
+        .navigationTitle("Alertas de quedadas")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cerrar") { dismiss() }.foregroundColor(Cumbre.terra)
+            }
+        }
+        .sheet(isPresented: $showSchoolPicker) {
+            MeetupSchoolFilterSheet { school in
+                schoolId = school.id
+                schoolName = school.name
+                showSchoolPicker = false
+            }
+        }
+        .onAppear {
+            enabled = vm.alertEnabled
+            selectedDays = Set(vm.alertDaysCsv?
+                .split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty } ?? [])
+        }
     }
 }
 
