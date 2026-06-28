@@ -1,5 +1,7 @@
 import SwiftUI
 import Shared
+import CoreLocation
+import MapLibre
 
 // ── ViewModel ──────────────────────────────────────────────────────────────
 
