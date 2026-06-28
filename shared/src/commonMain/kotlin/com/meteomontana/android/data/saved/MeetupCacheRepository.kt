@@ -166,6 +166,9 @@ class MeetupCacheRepository(private val db: MeteoMontanaDb) {
         val day = (b - d - (30.6001 * e).toLong()).toInt()
         val month = if (e < 14) (e - 1).toInt() else (e - 13).toInt()
         val year = if (month > 2) (c - 4716).toInt() else (c - 4715).toInt()
-        return "%04d-%02d-%02dT00:00:00".format(year, month, day)
+        val yy = year.toString().padStart(4, '0')
+        val mm = month.toString().padStart(2, '0')
+        val dd = day.toString().padStart(2, '0')
+        return "${yy}-${mm}-${dd}T00:00:00"
     }
 }
