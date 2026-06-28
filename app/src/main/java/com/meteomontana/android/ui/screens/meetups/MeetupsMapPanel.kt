@@ -128,17 +128,33 @@ fun MeetupsMapPanel(
         }
 
         AnimatedVisibility(
-            visible = expanded && groups.isNotEmpty(),
+            visible = expanded,
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
-            MeetupsMapView(
-                groups = groups,
-                userLat = userLat,
-                userLon = userLon,
-                maxDistanceKm = maxDistanceKm,
-                onSchoolSelected = onSchoolSelected
-            )
+            if (groups.isNotEmpty() || (userLat != null && userLon != null)) {
+                MeetupsMapView(
+                    groups = groups,
+                    userLat = userLat,
+                    userLon = userLon,
+                    maxDistanceKm = maxDistanceKm,
+                    onSchoolSelected = onSchoolSelected
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(Spacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "No hay quedadas con ubicación para mostrar en el mapa",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
