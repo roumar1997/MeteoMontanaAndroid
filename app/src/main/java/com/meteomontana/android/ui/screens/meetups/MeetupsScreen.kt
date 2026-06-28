@@ -431,7 +431,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            val photo = meetup.photoUrl ?: meetup.creatorPhotoUrl
+            val photo = meetup.photoUrl  // solo la foto de la quedada, no la del creador
             if (photo != null) {
                 AsyncImage(model = photo, contentDescription = meetup.name,
                     modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)

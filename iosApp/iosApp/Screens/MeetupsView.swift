@@ -250,6 +250,11 @@ struct MeetupsView: View {
                 .background(Cumbre.bg)
                 .overlay(Divider(), alignment: .bottom)
 
+                // ── TODO en un ScrollView: coach marks + mapa + filtros + lista
+                // (asi el mapa scrollea con el resto, como en la pantalla de escuelas).
+                ScrollView {
+                    LazyVStack(spacing: 0, pinnedViews: []) {
+
                 // ── Coach marks ──
                 FirstTimeHint(
                     hintKey: "meetups_intro",
@@ -260,7 +265,7 @@ struct MeetupsView: View {
                     text: "🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los dias, escuela o distancia que te interesan."
                 )
 
-                // ── Mapa desplegable (fuera del scroll para estabilidad) ──
+                // ── Mapa desplegable (dentro del scroll) ──
                 MeetupsMapPanel(
                     meetups: displayedMeetups,
                     userLat: vm.userLat,
@@ -271,10 +276,6 @@ struct MeetupsView: View {
                         vm.setFilterSchool(id: schoolId, name: name)
                     }
                 )
-
-                // ── Filtros + lista en ScrollView ──
-                ScrollView {
-                    LazyVStack(spacing: 0, pinnedViews: []) {
 
                 // ── Filters accordion ──
                 VStack(spacing: 0) {
@@ -479,7 +480,7 @@ struct MeetupRowView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             // Photo/avatar
-            let photo = meetup.photoUrl ?? meetup.creatorPhotoUrl
+            let photo = meetup.photoUrl  // solo la foto de la quedada, no la del creador
             ZStack {
                 RoundedRectangle(cornerRadius: 2).fill(Cumbre.ink.opacity(0.06))
                 if let url = photo.flatMap({ URL(string: $0) }) {
@@ -828,6 +829,9 @@ struct MeetupsMapPanel: View {
                         }
                     )
                     .frame(height: 240)
+                    // Recrear (y re-centrar en mi ubicacion al zoom del radio) cuando
+                    // cambia el filtro de distancia, aunque no haya quedadas alli.
+                    .id(maxDistanceKm ?? -1)
                     MapStyleChips(selection: $mapStyle)
                 }
                 .overlay(Divider(), alignment: .bottom)
@@ -1044,31 +1048,58 @@ private struct MeetupSchoolFilterSheet: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                TextField("Buscar escuela...", text: $query)
-                    .padding(10)
-                    .overlay(Rectangle().stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
-                    .padding(16)
-                    .onChange(of: query) { q in
-                        let trimmed = q.trimmingCharacters(in: .whitespaces)
-                        guard trimmed.count >= 2 else { results = []; return }
-                        Task {
-                            if let res = try? await searchSchools.invoke(query: trimmed, limit: 8) {
-                                results = res
+                // Buscador con icono + fondo claro (mas visible)
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(Cumbre.ink.opacity(0.5))
+                    TextField("Ej. Zarzalejo, Pedriza…", text: $query)
+                        .autocorrectionDisabled()
+                    if !query.isEmpty {
+                        Button { query = ""; results = [] } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(Cumbre.ink.opacity(0.3))
+                        }
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 11)
+                .background(Cumbre.ink.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.ink.opacity(0.15), lineWidth: 1))
+                .padding(16)
+                .onChange(of: query) { q in
+                    let trimmed = q.trimmingCharacters(in: .whitespaces)
+                    guard trimmed.count >= 2 else { results = []; return }
+                    Task {
+                        if let res = try? await searchSchools.invoke(query: trimmed, limit: 8) {
+                            results = res
+                        }
+                    }
+                }
+
+                if results.isEmpty && query.count >= 2 {
+                    Text("Sin resultados")
+                        .font(.subheadline).foregroundColor(Cumbre.ink.opacity(0.5))
+                        .padding(.top, 20)
+                    Spacer()
+                } else {
+                    List(results, id: \.id) { school in
+                        Button { onSelect(school) } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(school.name).foregroundColor(Cumbre.ink)
+                                if let loc = school.location {
+                                    Text(loc).font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                                }
                             }
                         }
                     }
-                List(results, id: \.id) { school in
-                    Button { onSelect(school) } label: {
-                        Text(school.name).foregroundColor(Cumbre.ink)
-                    }
+                    .listStyle(.plain)
                 }
-                .listStyle(.plain)
             }
-            .navigationTitle("Escuela")
+            .navigationTitle("Buscar escuela")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { dismiss() }
+                    Button("Cerrar") { dismiss() }.foregroundColor(Cumbre.terra)
                 }
             }
         }

@@ -267,10 +267,14 @@ private fun MeetupsMapView(
         }
         groups.forEach { boundsBuilder.include(LatLng(it.lat, it.lon)) }
         try {
-            if (groups.isEmpty() && userLat != null && userLon != null) {
-                val zoom = if (maxDistanceKm != null) zoomForKm(maxDistanceKm.toDouble()) else 8.0
+            if (maxDistanceKm != null && userLat != null && userLon != null) {
+                // Filtro de distancia: centrar SIEMPRE en mi ubicación al zoom del
+                // radio (25km→cerca, 200km→lejos), haya o no quedadas alli.
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                    LatLng(userLat, userLon), zoom))
+                    LatLng(userLat, userLon), zoomForKm(maxDistanceKm.toDouble())))
+            } else if (groups.isEmpty() && userLat != null && userLon != null) {
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                    LatLng(userLat, userLon), 8.0))
             } else if (groups.size == 1 && userLat == null) {
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(
                     LatLng(groups[0].lat, groups[0].lon), 10.0))
