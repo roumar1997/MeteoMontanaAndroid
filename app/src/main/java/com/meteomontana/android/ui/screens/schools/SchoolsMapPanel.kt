@@ -151,8 +151,22 @@ private fun MapBody(
     val lastFittedIds = remember { mutableStateOf<Set<String>>(emptySet()) }
     // Etiquetas de nombre solo con zoom cercano (si no, se solapan).
     val labelsVisible = remember { mutableStateOf(false) }
+    var isSatellite by remember { mutableStateOf(false) }
 
     com.meteomontana.android.ui.components.MapViewLifecycleEffect(mapViewRef) { mapRef.value = null }
+
+    // Cambiar estilo topo/satélite
+    LaunchedEffect(isSatellite, mapRef.value) {
+        val map = mapRef.value ?: return@LaunchedEffect
+        val pos = map.cameraPosition
+        val style = when {
+            isSatellite -> SATELLITE_RASTER_STYLE
+            isDarkTheme -> DARK_RASTER_STYLE
+            else -> OSM_RASTER_STYLE
+        }
+        map.setStyle(Style.Builder().fromJson(style))
+        map.moveCamera(CameraUpdateFactory.newCameraPosition(pos))
+    }
 
     // Re-sincronizar markers cuando cambian los filtros (= cambia `schools`)
     // o cuando el mapa ya está listo. Fit-bounds SOLO si cambió la lista de
@@ -227,6 +241,19 @@ private fun MapBody(
                 }
             }
         )
+
+        // Toggle topo/satélite
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            MapStyleChip(label = "TOPO", selected = !isSatellite,
+                onClick = { isSatellite = false })
+            MapStyleChip(label = "SATÉLITE", selected = isSatellite,
+                onClick = { isSatellite = true })
+        }
 
         // Tarjeta inferior con el detalle del marker seleccionado.
         selectedSchool?.let { sel ->
@@ -540,6 +567,30 @@ private val OSM_RASTER_STYLE = """
 private val DARK_RASTER_STYLE = """
 {"version":8,"sources":{"carto":{"type":"raster","tiles":["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap © CARTO"}},"layers":[{"id":"carto","type":"raster","source":"carto"}]}
 """.trimIndent()
+
+private val SATELLITE_RASTER_STYLE = """
+{"version":8,"sources":{"esri":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"© Esri"}},"layers":[{"id":"esri","type":"raster","source":"esri"}]}
+""".trimIndent()
+
+@Composable
+private fun MapStyleChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary
+             else MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary
+             else MaterialTheme.colorScheme.onSurface
+    Box(
+        modifier = Modifier
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+            .background(bg)
+            .border(1.dp, MaterialTheme.colorScheme.outline,
+                androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = fg,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+    }
+}
 
 /** Distancia aproximada en km. Null si no tenemos ubicación del usuario. */
 private fun haversineKm(lat1: Double?, lon1: Double?, lat2: Double, lon2: Double): Double? {

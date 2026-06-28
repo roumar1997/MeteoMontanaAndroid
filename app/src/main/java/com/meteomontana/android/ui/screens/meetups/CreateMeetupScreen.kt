@@ -223,8 +223,9 @@ fun CreateMeetupScreen(
             PrivacySelector(selected = privacy, onSelected = { privacy = it })
             if (privacy == "WOMEN") {
                 Text(
-                    "Solo mujeres. Asegúrate de tener género = Mujer en tu perfil (Perfil → Editar perfil). " +
-                    "El servidor rechazará la creación si no.",
+                    "Quedada No Mixto: solo pueden participar personas con género " +
+                    "Mujer en su perfil. Si no lo tienes configurado, ve a " +
+                    "Perfil → Editar perfil → Género.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

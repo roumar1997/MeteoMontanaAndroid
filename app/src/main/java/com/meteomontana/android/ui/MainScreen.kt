@@ -65,6 +65,7 @@ import com.meteomontana.android.ui.screens.users.FollowRequestsScreen
 import com.meteomontana.android.ui.screens.users.PublicProfileScreen
 import com.meteomontana.android.ui.screens.users.SearchUsersScreen
 import com.meteomontana.android.ui.screens.meetups.CreateMeetupScreen
+import com.meteomontana.android.ui.screens.meetups.MeetupAlertScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupDetailScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupsScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
@@ -235,31 +236,10 @@ fun MainScreen(
 
                 composable(Tab.Meetups.route) {
                     MeetupsScreen(
-                        onMeetupClick = { id -> navController.navigate(Routes.meetupDetail(id)) },
+                        onMeetupClick = { id -> openSheet(Routes.meetupDetail(id)) },
                         onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
-                        onCreateMeetup = { navController.navigate(Routes.CREATE_MEETUP) { launchSingleTop = true } }
-                    )
-                }
-                composable(
-                    route = Routes.MEETUP_DETAIL,
-                    arguments = listOf(navArgument("meetupId") { type = NavType.StringType })
-                ) { entry ->
-                    val meetupId = entry.arguments?.getString("meetupId") ?: ""
-                    MeetupDetailScreen(
-                        meetupId = meetupId,
-                        onBack = { navController.popBackStack() },
-                        onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
-                        onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) },
-                        onOpenProfile = { uid -> openSheet(Routes.publicProfile(uid)) }
-                    )
-                }
-                composable(Routes.CREATE_MEETUP) {
-                    CreateMeetupScreen(
-                        onBack = { navController.popBackStack() },
-                        onCreated = { id ->
-                            navController.popBackStack()
-                            navController.navigate(Routes.meetupDetail(id))
-                        }
+                        onCreateMeetup = { openSheet(Routes.CREATE_MEETUP) },
+                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) }
                     )
                 }
 
@@ -500,7 +480,7 @@ fun MainScreen(
                     ) {
                         GroupChatScreen(
                             onBack = popSheetOrDismiss,
-                            onOpenMeetup = { meetupId -> openFullScreen(Routes.meetupDetail(meetupId)) }
+                            onOpenMeetup = { meetupId -> sheetNav.navigate(Routes.meetupDetail(meetupId)) }
                         )
                     }
 
@@ -519,6 +499,33 @@ fun MainScreen(
                             onBack = popSheetOrDismiss,
                             onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
                         )
+                    }
+
+                    // ── Quedadas (sheets) ──
+                    composable(
+                        route = Routes.MEETUP_DETAIL,
+                        arguments = listOf(navArgument("meetupId") { type = NavType.StringType })
+                    ) { entry ->
+                        val meetupId = entry.arguments?.getString("meetupId") ?: ""
+                        MeetupDetailScreen(
+                            meetupId = meetupId,
+                            onBack = popSheetOrDismiss,
+                            onOpenChat = { convId -> sheetNav.navigate(Routes.groupChat(convId)) },
+                            onOpenSchool = { id -> openFullScreen(Routes.schoolDetail(id)) },
+                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
+                        )
+                    }
+                    composable(Routes.CREATE_MEETUP) {
+                        CreateMeetupScreen(
+                            onBack = popSheetOrDismiss,
+                            onCreated = { id ->
+                                sheetNav.popBackStack()
+                                sheetNav.navigate(Routes.meetupDetail(id))
+                            }
+                        )
+                    }
+                    composable(Routes.MEETUP_ALERT) {
+                        MeetupAlertScreen(onBack = popSheetOrDismiss)
                     }
                 }
             }

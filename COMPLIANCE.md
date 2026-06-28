@@ -57,6 +57,10 @@
 | Mensajes de chat (1‑a‑1 y grupo) | Firestore `conversations/*/messages` | Mensajería | **No automático** (manual) |
 | Ubicación puntual (tab Tiempo, orden por cercanía) | Solo en memoria/petición; no se almacena | Tiempo y orden | N/A (no se guarda) |
 | Diagnósticos/crashes | Firebase Crashlytics | Estabilidad | Lo gestiona Google (≈90 d) |
+| Género (WOMAN/MAN/UNSPECIFIED) | Postgres `users` | Acceso a quedadas No Mixto; no visible públicamente | Sí |
+| Quedadas (escuela, días, nombre, descripción, foto, participantes) | Postgres `meetups`+`meetup_members`+`meetup_days` | Organizar salidas en grupo | Sí (caducan tras último día) |
+| Denuncias de quedadas | Postgres `meetup_reports` | Moderación | Sí |
+| Alertas de quedadas (filtros: días, escuela, distancia) | Postgres `meetup_alerts` | Notificar quedadas nuevas | Sí |
 | Caché local (SharedPreferences, SQLDelight, Coil) | Dispositivo | Offline/rendimiento | Se borra al desinstalar |
 
 **Terceros / encargados:** Google Firebase (Auth, Firestore, Storage, Cloud
@@ -95,7 +99,7 @@ Railway actúan como encargados/proveedores, no como terceros independientes). M
 | Información personal | Nombre | Sí | Opcional | Funcionalidad; función social |
 | Información personal | Dirección de correo | Sí | Obligatorio | Funcionalidad de la app (cuenta) |
 | Información personal | ID de usuario | Sí | Obligatorio | Funcionalidad de la app |
-| Información personal | Otra info (bio, grado) | Sí | Opcional | Funcionalidad; función social |
+| Información personal | Otra info (bio, grado, género) | Sí | Opcional | Funcionalidad (género: acceso a quedadas No Mixto; no visible públicamente) |
 | Fotos y vídeos | Fotos | Sí | Opcional | Funcionalidad; función social |
 | Mensajes | Otros mensajes (in‑app) | Sí | Opcional | Funcionalidad de la app |
 | Actividad en la app | Otro contenido generado por el usuario (diario, notas, propuestas) | Sí | Opcional | Funcionalidad de la app |

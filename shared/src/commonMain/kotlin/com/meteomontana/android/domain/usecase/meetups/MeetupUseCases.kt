@@ -125,6 +125,10 @@ class KickMeetupMemberUseCase(
     }
 }
 
+class DeleteMeetupUseCase(private val api: KtorMeetupApi) {
+    suspend fun execute(meetupId: String) { api.deleteMeetup(meetupId) }
+}
+
 class ReportMeetupUseCase(private val api: KtorMeetupApi) {
     /** reason: SPAM | INAPPROPRIATE | HARASSMENT | OTHER */
     suspend fun execute(meetupId: String, reportedUid: String?,

@@ -109,7 +109,35 @@ object HelpCatalog {
         )
     )
 
-    private val all = listOf(SCHOOLS, DETAIL, PROPOSE, PROFILE, JOURNAL, CHAT, WEATHER)
+    val MEETUPS = HelpTopic(
+        key = "meetups",
+        title = "Quedadas",
+        intro = "Organiza salidas a escalar con la comunidad. Crea una quedada, elige escuela y días, y la gente se une.",
+        items = listOf(
+            HelpItem("Crear una quedada", "Pulsa + para crear: elige escuela, días, privacidad (abierta, seguidos/seguidores o no mixto) y límite de plazas.", icon = "plus"),
+            HelpItem("Mapa de quedadas", "Toca \"VER MAPA DE QUEDADAS\" para ver en qué escuelas hay quedadas activas. Toca una para filtrar.", icon = "map"),
+            HelpItem("Filtrar por días", "Usa los chips de día para ver solo quedadas de los días que te interesan (puedes elegir varios).", icon = "calendar"),
+            HelpItem("Filtrar por distancia", "Con los chips de distancia ves solo quedadas de escuelas cerca de ti.", icon = "filter"),
+            HelpItem("Chat directo", "Si ya estás unido a una quedada, al tocarla entras directo al chat del grupo (no al detalle).", icon = "chat"),
+            HelpItem("Alertas", "La campanita abre la configuración de alertas: elige días, escuela, distancia y tipo de grupo para que te avisemos cuando se cree una quedada que te interese.", icon = "bell"),
+            HelpItem("Filtros guardados", "Los filtros que elijas (tipo de grupo, distancia) se guardan y se aplican la próxima vez que abras Quedadas. Así no tienes que configurarlos cada vez.", icon = "star")
+        )
+    )
+
+    val MEETUP_DETAIL = HelpTopic(
+        key = "meetup_detail",
+        title = "Detalle de quedada",
+        intro = "Toda la información de la quedada: escuela, días con su índice meteo, participantes y chat.",
+        items = listOf(
+            HelpItem("Índice por día", "Cada día muestra un badge de color con el índice para escalar (verde = bueno, rojo = malo).", icon = "info"),
+            HelpItem("Cómo llegar", "Toca CÓMO LLEGAR para abrir la ruta en Google Maps hasta la escuela.", icon = "map"),
+            HelpItem("Descripción", "Si eres el organizador puedes añadir detalles (material, nivel, punto de encuentro) con el lápiz.", icon = "edit"),
+            HelpItem("Unirse / salir", "Con UNIRSE entras a la quedada y al chat. Puedes salir en cualquier momento.", icon = "person"),
+            HelpItem("Chat del grupo", "Toca el icono de chat arriba a la derecha para ir al chat.", icon = "chat")
+        )
+    )
+
+    private val all = listOf(SCHOOLS, DETAIL, PROPOSE, PROFILE, JOURNAL, CHAT, WEATHER, MEETUPS, MEETUP_DETAIL)
 
     fun byKey(key: String): HelpTopic? = all.firstOrNull { it.key == key }
 }

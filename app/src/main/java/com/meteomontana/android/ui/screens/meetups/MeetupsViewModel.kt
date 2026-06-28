@@ -2,9 +2,11 @@ package com.meteomontana.android.ui.screens.meetups
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.meteomontana.android.domain.util.Geo
 import com.meteomontana.android.domain.model.Meetup
 import com.meteomontana.android.domain.model.CreateMeetupRequest
 import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.DeleteMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupsUseCase
 import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
@@ -18,8 +20,13 @@ import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.UpdateMeetupUseCase
 import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
 import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
+import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
+import android.content.Context
+import android.content.SharedPreferences
+import com.meteomontana.android.domain.port.LocationProvider
 import com.meteomontana.android.domain.port.PhotoUploader
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -34,7 +41,11 @@ data class MeetupsUiState(
     val filterSchoolName: String? = null,
     val filterDate: String? = null,
     val filterRelation: String? = null,   // "following" | null (all)
-    val filterPrivacy: String? = null     // "OPEN" | "FOLLOWERS" | "WOMEN" | null
+    val filterPrivacy: String? = null,    // "OPEN" | "FOLLOWERS" | "WOMEN" | null
+    val maxDistanceKm: Int? = null,       // null = sin límite de distancia
+    val filterDays: Set<String> = emptySet(),  // ISO dates, empty = any day
+    val filterDiscipline: String? = null  // BOULDER | ROUTE | BOTH | null
+
 )
 
 data class MeetupDetailUiState(
@@ -52,6 +63,7 @@ class MeetupsViewModel @Inject constructor(
     private val createMeetup: CreateMeetupUseCase,
     private val joinMeetup: JoinMeetupUseCase,
     private val leaveMeetup: LeaveMeetupUseCase,
+    private val deleteMeetupUseCase: DeleteMeetupUseCase,
     private val updateMeetup: UpdateMeetupUseCase,
     private val kickMeetupMember: KickMeetupMemberUseCase,
     private val reportMeetup: ReportMeetupUseCase,
@@ -59,10 +71,20 @@ class MeetupsViewModel @Inject constructor(
     private val setMeetupAlert: SetMeetupAlertUseCase,
     private val searchSchoolsUseCase: SearchSchoolsUseCase,
     private val getRangeScores: GetRangeScoresUseCase,
+    private val getMyProfile: GetMyProfileUseCase,
+    private val locationProvider: LocationProvider,
     private val photoUploader: PhotoUploader,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
-    private val _list = MutableStateFlow(MeetupsUiState())
+    private val prefs: SharedPreferences =
+        appContext.getSharedPreferences("meetup_filters", Context.MODE_PRIVATE)
+
+    private val _list = MutableStateFlow(loadSavedFilters())
+    private val _userLat = MutableStateFlow<Double?>(null)
+    private val _userLon = MutableStateFlow<Double?>(null)
+    val userLat = _userLat.asStateFlow()
+    val userLon = _userLon.asStateFlow()
     val listState = _list.asStateFlow()
 
     private val _detail = MutableStateFlow(MeetupDetailUiState())
@@ -71,8 +93,21 @@ class MeetupsViewModel @Inject constructor(
     private val _createError = MutableStateFlow<String?>(null)
     val createError = _createError.asStateFlow()
 
+    private val _myGender = MutableStateFlow<String?>(null)
+    val myGender = _myGender.asStateFlow()
+
     init {
-        loadMeetups()
+        loadMeetups(relation = _list.value.filterRelation)
+        viewModelScope.launch {
+            try { _myGender.value = getMyProfile().gender }
+            catch (_: Exception) {}
+        }
+        viewModelScope.launch {
+            try {
+                val loc = locationProvider.current()
+                if (loc != null) { _userLat.value = loc.lat; _userLon.value = loc.lon }
+            } catch (_: Exception) {}
+        }
     }
 
     fun loadMeetups(
@@ -176,6 +211,18 @@ class MeetupsViewModel @Inject constructor(
         }
     }
 
+    fun deleteMeetup(meetupId: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                deleteMeetupUseCase.execute(meetupId)
+                _list.update { s -> s.copy(meetups = s.meetups.filter { it.id != meetupId }) }
+                onSuccess()
+            } catch (e: Exception) {
+                _detail.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
     fun create(req: CreateMeetupRequest, onSuccess: (Meetup) -> Unit, onError: () -> Unit = {}) {
         _createError.value = null
         viewModelScope.launch {
@@ -186,7 +233,8 @@ class MeetupsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _createError.value = when {
                     e.message?.contains("GENDER_REQUIRED") == true ->
-                        "Solo puedes crear quedadas NO MIXTO si tienes género Mujer en tu perfil."
+                        "Para crear o unirte a quedadas No Mixto necesitas indicar tu género " +
+                        "como Mujer en tu perfil. Ve a Perfil → Editar perfil → Género."
                     else -> e.message ?: "Error al crear la quedada"
                 }
                 onError()
@@ -219,6 +267,14 @@ class MeetupsViewModel @Inject constructor(
     }
 
     fun toggleAlert(enabled: Boolean, daysCsv: String? = null) {
+        viewModelScope.launch {
+            try { _alertState.value = setMeetupAlert.execute(enabled, daysCsv) }
+            catch (e: Exception) { _list.update { it.copy(error = e.message) } }
+        }
+    }
+
+    fun saveAlert(enabled: Boolean, daysCsv: String?, schoolId: String?,
+                  privacy: String?, discipline: String?, radiusKm: Int?) {
         viewModelScope.launch {
             try { _alertState.value = setMeetupAlert.execute(enabled, daysCsv) }
             catch (e: Exception) { _list.update { it.copy(error = e.message) } }
@@ -264,6 +320,7 @@ class MeetupsViewModel @Inject constructor(
 
     fun setFilterRelation(relation: String?) {
         loadMeetups(relation = relation)
+        saveFilters()
     }
 
     fun setFilterDate(date: String?) {
@@ -276,6 +333,40 @@ class MeetupsViewModel @Inject constructor(
 
     fun setFilterPrivacy(privacy: String?) {
         _list.update { it.copy(filterPrivacy = privacy) }
+        saveFilters()
+    }
+
+    fun setMaxDistance(km: Int?) {
+        _list.update { it.copy(maxDistanceKm = km) }
+        saveFilters()
+    }
+
+    fun toggleFilterDay(day: String) {
+        _list.update { s ->
+            val new = if (s.filterDays.contains(day)) s.filterDays - day else s.filterDays + day
+            s.copy(filterDays = new)
+        }
+        // Los días NO se persisten (cambian cada día)
+    }
+
+    fun clearFilterDays() {
+        _list.update { it.copy(filterDays = emptySet()) }
+    }
+
+    fun setFilterDiscipline(discipline: String?) {
+        _list.update { it.copy(filterDiscipline = discipline) }
+        saveFilters()
+    }
+
+    fun getUserLat(): Double? = _userLat.value
+    fun getUserLon(): Double? = _userLon.value
+
+    fun distanceToMeetup(meetup: Meetup): Double? {
+        val uLat = _userLat.value ?: return null
+        val uLon = _userLon.value ?: return null
+        val sLat = meetup.schoolLat ?: return null
+        val sLon = meetup.schoolLon ?: return null
+        return Geo.haversineKm(uLat, uLon, sLat, sLon)
     }
 
     // ── Scores de días para el formulario de crear quedada ─────────────────
@@ -288,11 +379,52 @@ class MeetupsViewModel @Inject constructor(
             try {
                 val results = getRangeScores(listOf(schoolId), days.toList())
                 val school = results.firstOrNull() ?: return@launch
-                // Construir mapa fecha→score
                 _dayScores.value = school.days.associate { it.date to it.score }
-            } catch (_: Exception) { /* sin scores: no critical */ }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun loadAllDayScores(schoolIds: List<String>, days: List<String>) {
+        if (schoolIds.isEmpty() || days.isEmpty()) { _dayScores.value = emptyMap(); return }
+        viewModelScope.launch {
+            try {
+                val results = getRangeScores(schoolIds, days)
+                val map = mutableMapOf<String, Int>()
+                results.forEach { school ->
+                    school.days.forEach { day ->
+                        map["${school.id}_${day.date}"] = day.score
+                    }
+                }
+                _dayScores.value = map
+            } catch (_: Exception) {}
         }
     }
 
     fun clearDayScores() { _dayScores.value = emptyMap() }
+
+    // ── Persistir filtros ────────────────────────────────────────────────────
+
+    private fun saveFilters() {
+        val s = _list.value
+        prefs.edit()
+            .putString("relation", s.filterRelation)
+            .putString("privacy", s.filterPrivacy)
+            .putInt("maxDistanceKm", s.maxDistanceKm ?: -1)
+            .putString("discipline", s.filterDiscipline)
+            .apply()
+    }
+
+    private fun loadSavedFilters(): MeetupsUiState {
+        val relation = prefs.getString("relation", null)
+        val privacy = prefs.getString("privacy", null)
+        val distRaw = prefs.getInt("maxDistanceKm", -1)
+        val dist = if (distRaw > 0) distRaw else null
+        val discipline = prefs.getString("discipline", null)
+        return MeetupsUiState(
+            filterRelation = relation,
+            filterPrivacy = privacy,
+            maxDistanceKm = dist,
+            filterDiscipline = discipline
+        )
+    }
 }

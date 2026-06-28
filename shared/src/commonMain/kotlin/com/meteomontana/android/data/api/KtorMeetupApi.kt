@@ -50,6 +50,8 @@ class KtorMeetupApi(private val client: HttpClient) {
 
     suspend fun leaveMeetup(id: String) { client.post("meetups/$id/leave") }
 
+    suspend fun deleteMeetup(id: String) { client.delete("meetups/$id") }
+
     suspend fun kickMember(meetupId: String, targetUid: String) {
         client.post("meetups/$meetupId/kick") {
             contentType(ContentType.Application.Json)

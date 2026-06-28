@@ -73,4 +73,5 @@ object Routes {
     const val MEETUP_DETAIL = "meetups/{meetupId}"
     fun meetupDetail(id: String) = "meetups/$id"
     const val CREATE_MEETUP = "meetups/new"
+    const val MEETUP_ALERT = "meetups/alert"
 }

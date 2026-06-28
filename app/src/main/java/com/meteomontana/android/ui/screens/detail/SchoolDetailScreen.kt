@@ -380,7 +380,9 @@ private fun shareSchool(
         }
     }
 
-    sb.append('\n').append("Descarga MeteoMontana para ver el detalle.")
+    sb.append("\nDescarga Cumbre:\n")
+    sb.append("Android: https://play.google.com/store/apps/details?id=com.meteomontana.android\n")
+    sb.append("iOS: https://apps.apple.com/app/cumbre/id0000000000")
 
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"

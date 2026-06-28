@@ -364,6 +364,11 @@ object UseCasesModule {
     ) = KickMeetupMemberUseCase(api)
 
     @Provides @Singleton
+    fun provideDeleteMeetupUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi
+    ) = com.meteomontana.android.domain.usecase.meetups.DeleteMeetupUseCase(api)
+
+    @Provides @Singleton
     fun provideReportMeetupUseCase(
         api: com.meteomontana.android.data.api.KtorMeetupApi
     ) = ReportMeetupUseCase(api)

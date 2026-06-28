@@ -26,17 +26,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Directions
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Reply
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.foundation.clickable
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -203,58 +203,64 @@ fun GroupChatScreen(
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
     var text by remember { mutableStateOf("") }
-    var showMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
         .imePadding()
     ) {
-        com.meteomontana.android.ui.components.SheetHeader(
-            onClose = onBack,
-            actions = {
-                // Menú: silenciar + cómo llegar (si la conversación es de una quedada).
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = "Opciones",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(if (state.muted) "Activar notificaciones" else "Silenciar grupo") },
-                            leadingIcon = {
-                                Icon(if (state.muted) Icons.Outlined.NotificationsActive
-                                     else Icons.Outlined.NotificationsOff, contentDescription = null)
-                            },
-                            onClick = { viewModel.toggleMute(); showMenu = false }
-                        )
-                        if (state.schoolLat != null && state.schoolLon != null) {
-                            DropdownMenuItem(
-                                text = { Text("Cómo llegar") },
-                                leadingIcon = { Icon(Icons.Outlined.Directions, contentDescription = null) },
-                                onClick = {
-                                    showMenu = false
-                                    openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+        // ── Toolbar del chat (sin SheetHeader para evitar solapamiento) ──
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline,
+                    androidx.compose.foundation.shape.RoundedCornerShape(0.dp))
+                .padding(horizontal = com.meteomontana.android.ui.theme.Spacing.xs,
+                    vertical = com.meteomontana.android.ui.theme.Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Outlined.ArrowBack, "Volver")
+            }
+            // Nombre + subtítulo (pulsable si es quedada)
             Column(
-                modifier = Modifier.align(Alignment.Center)
-                    .let { m -> state.meetupId?.let { id -> m.clickable { onOpenMeetup(id) } } ?: m },
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.weight(1f)
+                    .let { m -> state.meetupId?.let { id -> m.clickable { onOpenMeetup(id) } } ?: m }
+                    .padding(horizontal = com.meteomontana.android.ui.theme.Spacing.xs)
             ) {
-                Text(state.name, style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground)
+                Text(state.name, style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text(
-                    if (state.meetupId != null) "Ver detalles de la quedada ›"
+                    if (state.meetupId != null) "Ver detalles ›"
                     else "${state.memberNames.size + 1} miembros",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = if (state.meetupId != null) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // Cómo llegar
+            if (state.schoolLat != null && state.schoolLon != null) {
+                IconButton(onClick = {
+                    openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName)
+                }) {
+                    Icon(Icons.Outlined.Directions, "Cómo llegar",
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+            // Silenciar
+            IconButton(onClick = { viewModel.toggleMute() }) {
+                Icon(
+                    if (state.muted) Icons.Outlined.NotificationsOff
+                    else Icons.Outlined.NotificationsActive,
+                    contentDescription = if (state.muted) "Activar" else "Silenciar",
+                    tint = if (state.muted) MaterialTheme.colorScheme.onSurfaceVariant
+                           else MaterialTheme.colorScheme.primary
+                )
+            }
+            // Cerrar
+            TextButton(onClick = onBack) {
+                Text("Cerrar", color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold)
             }
         }
 
