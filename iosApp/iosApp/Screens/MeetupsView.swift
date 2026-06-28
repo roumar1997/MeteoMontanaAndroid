@@ -255,10 +255,14 @@ struct MeetupsView: View {
                 .background(Cumbre.bg)
                 .overlay(Divider(), alignment: .bottom)
 
-                // ── Coach mark ──
+                // ── Coach marks ──
                 FirstTimeHint(
                     hintKey: "meetups_intro",
                     text: "Crea quedadas, filtra por dia o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estas unido."
+                )
+                FirstTimeHint(
+                    hintKey: "meetups_alert_v2",
+                    text: "🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los dias, escuela o distancia que te interesan."
                 )
 
                 // ── Mapa desplegable (fuera del scroll para estabilidad) ──

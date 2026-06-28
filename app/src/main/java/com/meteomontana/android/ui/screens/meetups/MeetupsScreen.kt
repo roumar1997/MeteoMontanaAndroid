@@ -181,10 +181,14 @@ fun MeetupsScreen(
             }
         }
 
-        // ── Coach mark ──
+        // ── Coach marks ──
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "meetups_intro",
             text = "Crea quedadas, filtra por día o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estás unido."
+        )
+        com.meteomontana.android.ui.components.FirstTimeHint(
+            hintKey = "meetups_alert_v2",
+            text = "🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los días, escuela o distancia que te interesan."
         )
 
         // ── Mapa (fuera del LazyColumn para que el MapView sea estable) ──
