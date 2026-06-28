@@ -8,12 +8,14 @@ import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupsUseCase
 import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
+import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
 import com.meteomontana.android.domain.usecase.meetups.MeetupAlertState
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
+import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
 import com.meteomontana.android.domain.port.PhotoUploader
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +52,7 @@ class MeetupsViewModel @Inject constructor(
     private val reportMeetup: ReportMeetupUseCase,
     private val getMeetupAlert: GetMeetupAlertUseCase,
     private val setMeetupAlert: SetMeetupAlertUseCase,
+    private val searchSchoolsUseCase: SearchSchoolsUseCase,
     private val photoUploader: PhotoUploader,
 ) : ViewModel() {
 
@@ -144,7 +147,7 @@ class MeetupsViewModel @Inject constructor(
         }
     }
 
-    fun create(req: CreateMeetupRequest, onSuccess: (Meetup) -> Unit) {
+    fun create(req: CreateMeetupRequest, onSuccess: (Meetup) -> Unit, onError: () -> Unit = {}) {
         _createError.value = null
         viewModelScope.launch {
             try {
@@ -157,6 +160,7 @@ class MeetupsViewModel @Inject constructor(
                         "Solo puedes crear quedadas NO MIXTO si tienes género Mujer en tu perfil."
                     else -> e.message ?: "Error al crear la quedada"
                 }
+                onError()
             }
         }
     }
@@ -191,6 +195,19 @@ class MeetupsViewModel @Inject constructor(
             catch (e: Exception) { _list.update { it.copy(error = e.message) } }
         }
     }
+
+    private val _schoolResults = MutableStateFlow<List<School>>(emptyList())
+    val schoolResults = _schoolResults.asStateFlow()
+
+    fun searchSchools(query: String) {
+        if (query.length < 2) { _schoolResults.value = emptyList(); return }
+        viewModelScope.launch {
+            try { _schoolResults.value = searchSchoolsUseCase(query, 8) }
+            catch (_: Exception) {}
+        }
+    }
+
+    fun clearSchoolSearch() { _schoolResults.value = emptyList() }
 
     private val _uploadingPhoto = MutableStateFlow(false)
     val uploadingPhoto = _uploadingPhoto.asStateFlow()

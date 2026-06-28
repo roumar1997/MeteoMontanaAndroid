@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,6 +30,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,8 +41,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.meteomontana.android.domain.model.CreateMeetupRequest
+import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import kotlinx.coroutines.launch
@@ -79,6 +87,8 @@ fun CreateMeetupScreen(
     val selectedDays = remember { mutableStateOf<Set<String>>(emptySet()) }
     var submitting by remember { mutableStateOf(false) }
     var photoUrl by remember { mutableStateOf<String?>(null) }
+    var showSchoolPicker by remember { mutableStateOf(false) }
+    val schoolResults by viewModel.schoolResults.collectAsState()
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -165,16 +175,28 @@ fun CreateMeetupScreen(
                 colors = outlinedColors()
             )
 
-            // Escuela (ID por ahora; en siguiente iteración picker de búsqueda)
-            FieldLabel("ID DE ESCUELA")
-            OutlinedTextField(
-                value = schoolId, onValueChange = { schoolId = it },
-                placeholder = { Text("ID de la escuela del backend") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(4.dp),
-                colors = outlinedColors()
-            )
+            // Escuela — buscador
+            FieldLabel("ESCUELA")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(4.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable { showSchoolPicker = true }
+                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Outlined.School, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                Text(
+                    text = if (schoolName.isNotBlank()) schoolName else "Buscar escuela…",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (schoolName.isNotBlank()) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             // Días (picker de próximos 14 días)
             FieldLabel("DÍAS (elige uno o varios)")
@@ -189,6 +211,14 @@ fun CreateMeetupScreen(
             // Privacidad
             FieldLabel("PRIVACIDAD")
             PrivacySelector(selected = privacy, onSelected = { privacy = it })
+            if (privacy == "WOMEN") {
+                Text(
+                    "Solo mujeres. Asegúrate de tener género = Mujer en tu perfil (Perfil → Editar perfil). " +
+                    "El servidor rechazará la creación si no.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             // Disciplina
             FieldLabel("DISCIPLINA (opcional)")
@@ -213,6 +243,20 @@ fun CreateMeetupScreen(
             }
         }
 
+        if (showSchoolPicker) {
+            SchoolPickerDialog(
+                results = schoolResults,
+                onQueryChange = { viewModel.searchSchools(it) },
+                onSelect = { school ->
+                    schoolId = school.id
+                    schoolName = school.name
+                    showSchoolPicker = false
+                    viewModel.clearSchoolSearch()
+                },
+                onDismiss = { showSchoolPicker = false; viewModel.clearSchoolSearch() }
+            )
+        }
+
         // Botón crear
         HorizontalDivider()
         Box(Modifier.fillMaxWidth().navigationBarsPadding()
@@ -230,10 +274,10 @@ fun CreateMeetupScreen(
                         photoUrl = photoUrl,
                         days = selectedDays.value.sorted()
                     )
-                    viewModel.create(req) { meetup ->
-                        submitting = false
-                        onCreated(meetup.id)
-                    }
+                    viewModel.create(req,
+                        onSuccess = { meetup -> submitting = false; onCreated(meetup.id) },
+                        onError = { submitting = false }
+                    )
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !submitting && name.isNotBlank() && schoolId.isNotBlank() && selectedDays.value.isNotEmpty(),
@@ -357,4 +401,57 @@ private fun outlinedColors() = TextFieldDefaults.colors(
     focusedContainerColor = MaterialTheme.colorScheme.surface,
     unfocusedContainerColor = MaterialTheme.colorScheme.surface
 )
+
+@Composable
+private fun SchoolPickerDialog(
+    results: List<School>,
+    onQueryChange: (String) -> Unit,
+    onSelect: (School) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Buscar escuela", style = MaterialTheme.typography.titleMedium) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it; onQueryChange(it) },
+                    placeholder = { Text("Ej. Zarzalejo, Pedriza…") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(4.dp),
+                    colors = outlinedColors()
+                )
+                if (results.isNotEmpty()) {
+                    LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
+                        items(results) { school ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(school) }
+                                    .padding(vertical = 10.dp, horizontal = 4.dp)
+                            ) {
+                                Text(school.name, style = MaterialTheme.typography.bodyMedium)
+                                school.location?.let {
+                                    Text(it, style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            HorizontalDivider()
+                        }
+                    }
+                } else if (query.length >= 2) {
+                    Text("Sin resultados", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
+}
 

@@ -18,6 +18,10 @@ struct CreateMeetupView: View {
     @State private var photoImage: UIImage? = nil
     @State private var photoUrl: String? = nil
     @State private var uploadingPhoto = false
+    @State private var showSchoolPicker = false
+    @State private var schoolPickerQuery = ""
+    @State private var schoolPickerResults: [School] = []
+    @State private var schoolName = ""
 
     private let createMeetup = AppDependencies.shared.container.createMeetup
 
@@ -103,10 +107,20 @@ struct CreateMeetupView: View {
 
                         // Escuela
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("ID DE ESCUELA")
-                            TextField("ID de la escuela del backend", text: $schoolId)
-                                .textFieldStyle(CumbreFieldStyle())
-                                .autocapitalization(.none)
+                            FieldLabel("ESCUELA")
+                            Button { showSchoolPicker = true } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "building.2").foregroundColor(Cumbre.ink.opacity(0.5))
+                                    Text(schoolName.isEmpty ? "Buscar escuela…" : schoolName)
+                                        .foregroundStyle(schoolName.isEmpty ? Cumbre.ink.opacity(0.4) : Cumbre.ink)
+                                        .font(.system(size: 15))
+                                    Spacer()
+                                    Image(systemName: "chevron.right").foregroundColor(Cumbre.ink.opacity(0.3))
+                                }
+                                .padding(10)
+                                .background(Cumbre.bg)
+                                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
+                            }
                         }
 
                         // Días
@@ -119,6 +133,11 @@ struct CreateMeetupView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             FieldLabel("PRIVACIDAD")
                             PrivacyPickerView(selected: $privacy)
+                        }
+                        if privacy == "WOMEN" {
+                            Text("Solo mujeres. Asegúrate de tener género = Mujer en tu perfil (Perfil → Editar perfil).")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Cumbre.ink.opacity(0.5))
                         }
 
                         // Disciplina
@@ -164,6 +183,7 @@ struct CreateMeetupView: View {
                     Task {
                         do {
                             let meetup = try await uc.execute(req: req)
+                            submitting = false
                             onCreated(meetup.id)
                         } catch {
                             let msg = error.localizedDescription
@@ -189,6 +209,28 @@ struct CreateMeetupView: View {
                 .background(Cumbre.bg)
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $showSchoolPicker) {
+                SchoolPickerSheet(
+                    query: $schoolPickerQuery,
+                    results: $schoolPickerResults,
+                    onQueryChange: { q in
+                        guard q.count >= 2,
+                              let uc = AppDependencies.shared.container.searchSchools else { return }
+                        Task {
+                            if let results = try? await uc.invoke(query: q, limit: 8) {
+                                schoolPickerResults = results
+                            }
+                        }
+                    },
+                    onSelect: { school in
+                        schoolId = school.id
+                        schoolName = school.name
+                        showSchoolPicker = false
+                        schoolPickerQuery = ""
+                        schoolPickerResults = []
+                    }
+                )
+            }
         }
     }
 }
@@ -309,4 +351,45 @@ private func nextNDays(_ n: Int) -> [DayInfo] {
         result.append(DayInfo(dow: dowNames[wd], short: short, iso: iso))
     }
     return result
+}
+
+private struct SchoolPickerSheet: View {
+    @Binding var query: String
+    @Binding var results: [School]
+    let onQueryChange: (String) -> Void
+    let onSelect: (School) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                TextField("Ej. Zarzalejo, Pedriza…", text: $query)
+                    .padding(10)
+                    .background(Cumbre.paper)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    .padding(12)
+                    .onChange(of: query) { _, q in onQueryChange(q) }
+                List(results, id: \.id) { school in
+                    Button {
+                        onSelect(school)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(school.name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                            if let loc = school.location {
+                                Text(loc).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            }
+                        }
+                    }
+                }
+                .listStyle(.plain)
+            }
+            .navigationTitle("Buscar escuela")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancelar") { dismiss() }
+                }
+            }
+        }
+    }
 }
