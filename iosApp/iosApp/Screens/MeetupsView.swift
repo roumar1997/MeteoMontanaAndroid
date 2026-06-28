@@ -181,6 +181,9 @@ struct MeetupsView: View {
     @State private var filtersExpanded = false
     @State private var showSchoolFilter = false
     @State private var showWomenGateDialog = false
+    @State private var selectedMeetupId: SheetId?
+    @State private var selectedChatConvId: SheetId?
+    @State private var selectedChatName: String?
 
     // Filters applied locally
     private var displayedMeetups: [Meetup] {
@@ -398,13 +401,14 @@ struct MeetupsView: View {
                     .frame(maxWidth: .infinity).padding(.vertical, 60)
                 } else {
                     ForEach(displayedMeetups, id: \.id) { meetup in
-                        NavigationLink(destination: Group {
+                        Button {
                             if meetup.joined {
-                                GroupChatView(convId: meetup.conversationId, groupName: meetup.name)
+                                selectedChatConvId = SheetId(meetup.conversationId)
+                                selectedChatName = meetup.name
                             } else {
-                                MeetupDetailView(meetupId: meetup.id)
+                                selectedMeetupId = SheetId(meetup.id)
                             }
-                        }) {
+                        } label: {
                             MeetupRowView(meetup: meetup, dayScoresMap: vm.dayScores, distanceKm: distanceFor(meetup))
                         }
                         .buttonStyle(.plain)
@@ -416,9 +420,21 @@ struct MeetupsView: View {
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showCreate) {
-                CreateMeetupView { _ in
-                    showCreate = false
-                    Task { await vm.load() }
+                NavigationStack {
+                    CreateMeetupView { _ in
+                        showCreate = false
+                        Task { await vm.load() }
+                    }
+                }
+            }
+            .sheet(item: $selectedMeetupId) { sid in
+                NavigationStack {
+                    MeetupDetailView(meetupId: sid.value)
+                }
+            }
+            .sheet(item: $selectedChatConvId) { sid in
+                NavigationStack {
+                    GroupChatView(convId: sid.value, groupName: selectedChatName ?? "Grupo")
                 }
             }
             .alert("Quedadas No Mixto", isPresented: $showWomenGateDialog) {
@@ -616,6 +632,12 @@ struct FlowLayoutView: Layout {
             x += s.width + spacing; rowH = max(rowH, s.height)
         }
     }
+}
+
+private struct SheetId: Identifiable {
+    let value: String
+    var id: String { value }
+    init(_ v: String) { value = v }
 }
 
 func privacyLabel(_ privacy: String) -> String {
