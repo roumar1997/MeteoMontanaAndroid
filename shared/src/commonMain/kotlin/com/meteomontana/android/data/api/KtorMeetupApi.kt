@@ -66,8 +66,14 @@ class KtorMeetupApi(private val client: HttpClient) {
         }
     }
 
+    // OJO: si el usuario NO tiene alerta configurada, el backend devuelve un
+    // body vacío y Ktor lanza NoTransformationFoundException al deserializar.
+    // En Kotlin/Native una excepción no declarada @Throws CRASHEA la app (no
+    // se propaga al catch de Swift). Por eso la capturamos aquí y devolvemos
+    // null = "sin alerta" (el use case ya lo interpreta como enabled=false).
     suspend fun getMeetupAlert(): MeetupAlertDto? =
-        client.get("meetups/alerts/me").body()
+        try { client.get("meetups/alerts/me").body() }
+        catch (e: Exception) { null }
 
     suspend fun setMeetupAlert(enabled: Boolean, daysCsv: String?): MeetupAlertDto =
         client.put("meetups/alerts/me") {
