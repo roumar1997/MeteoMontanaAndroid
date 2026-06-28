@@ -215,8 +215,8 @@ struct CreateMeetupView: View {
                     query: $schoolPickerQuery,
                     results: $schoolPickerResults,
                     onQueryChange: { q in
-                        guard q.count >= 2,
-                              let uc = AppDependencies.shared.container.searchSchools else { return }
+                        guard q.count >= 2 else { return }
+                        let uc = AppDependencies.shared.container.searchSchools
                         Task {
                             if let results = try? await uc.invoke(query: q, limit: 8) {
                                 schoolPickerResults = results
