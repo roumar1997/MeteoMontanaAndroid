@@ -15,6 +15,7 @@ import com.meteomontana.android.domain.usecase.meetups.MeetupAlertState
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
+import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
 import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
 import com.meteomontana.android.domain.port.PhotoUploader
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,8 +30,10 @@ data class MeetupsUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val filterSchoolId: String? = null,
+    val filterSchoolName: String? = null,
     val filterDate: String? = null,
-    val filterRelation: String? = null    // "following" | null (all)
+    val filterRelation: String? = null,   // "following" | null (all)
+    val filterPrivacy: String? = null     // "OPEN" | "FOLLOWERS" | "WOMEN" | null
 )
 
 data class MeetupDetailUiState(
@@ -53,6 +56,7 @@ class MeetupsViewModel @Inject constructor(
     private val getMeetupAlert: GetMeetupAlertUseCase,
     private val setMeetupAlert: SetMeetupAlertUseCase,
     private val searchSchoolsUseCase: SearchSchoolsUseCase,
+    private val getRangeScores: GetRangeScoresUseCase,
     private val photoUploader: PhotoUploader,
 ) : ViewModel() {
 
@@ -71,10 +75,12 @@ class MeetupsViewModel @Inject constructor(
 
     fun loadMeetups(
         schoolId: String? = _list.value.filterSchoolId,
+        schoolName: String? = _list.value.filterSchoolName,
         date: String? = _list.value.filterDate,
         relation: String? = _list.value.filterRelation
     ) {
-        _list.update { it.copy(isLoading = true, error = null, filterSchoolId = schoolId, filterDate = date, filterRelation = relation) }
+        _list.update { it.copy(isLoading = true, error = null, filterSchoolId = schoolId,
+            filterSchoolName = schoolName, filterDate = date, filterRelation = relation) }
         viewModelScope.launch {
             try {
                 val result = getMeetups.execute(schoolId, date, relation)
@@ -240,4 +246,30 @@ class MeetupsViewModel @Inject constructor(
     fun setFilterDate(date: String?) {
         loadMeetups(date = date)
     }
+
+    fun setFilterSchool(schoolId: String?, schoolName: String?) {
+        loadMeetups(schoolId = schoolId, schoolName = schoolName)
+    }
+
+    fun setFilterPrivacy(privacy: String?) {
+        _list.update { it.copy(filterPrivacy = privacy) }
+    }
+
+    // ── Scores de días para el formulario de crear quedada ─────────────────
+    private val _dayScores = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val dayScores = _dayScores.asStateFlow()
+
+    fun loadMeetupDayScores(schoolId: String, days: Collection<String>) {
+        if (schoolId.isBlank() || days.isEmpty()) { _dayScores.value = emptyMap(); return }
+        viewModelScope.launch {
+            try {
+                val results = getRangeScores(listOf(schoolId), days.toList())
+                val school = results.firstOrNull() ?: return@launch
+                // Construir mapa fecha→score
+                _dayScores.value = school.days.associate { it.date to it.score }
+            } catch (_: Exception) { /* sin scores: no critical */ }
+        }
+    }
+
+    fun clearDayScores() { _dayScores.value = emptyMap() }
 }

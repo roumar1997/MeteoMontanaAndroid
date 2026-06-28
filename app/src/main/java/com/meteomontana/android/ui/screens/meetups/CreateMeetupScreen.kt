@@ -77,6 +77,7 @@ fun CreateMeetupScreen(
 ) {
     val createError by viewModel.createError.collectAsState()
     val uploadingPhoto by viewModel.uploadingPhoto.collectAsState()
+    val dayScores by viewModel.dayScores.collectAsState()
 
     var name by remember { mutableStateOf("") }
     var schoolId by remember { mutableStateOf("") }
@@ -89,6 +90,14 @@ fun CreateMeetupScreen(
     var photoUrl by remember { mutableStateOf<String?>(null) }
     var showSchoolPicker by remember { mutableStateOf(false) }
     val schoolResults by viewModel.schoolResults.collectAsState()
+
+    // Cargar scores de los días seleccionados cuando hay escuela
+    LaunchedEffect(schoolId, selectedDays.value) {
+        if (schoolId.isNotBlank() && selectedDays.value.isNotEmpty())
+            viewModel.loadMeetupDayScores(schoolId, selectedDays.value)
+        else
+            viewModel.clearDayScores()
+    }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -202,6 +211,7 @@ fun CreateMeetupScreen(
             FieldLabel("DÍAS (elige uno o varios)")
             DayPickerRow(
                 selected = selectedDays.value,
+                scores = dayScores,
                 onToggle = { day ->
                     selectedDays.value = if (selectedDays.value.contains(day))
                         selectedDays.value - day else selectedDays.value + day
@@ -296,7 +306,11 @@ private fun FieldLabel(text: String) {
 }
 
 @Composable
-private fun DayPickerRow(selected: Set<String>, onToggle: (String) -> Unit) {
+private fun DayPickerRow(
+    selected: Set<String>,
+    scores: Map<String, Int> = emptyMap(),
+    onToggle: (String) -> Unit
+) {
     val days = nextNDays(14)
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -304,6 +318,7 @@ private fun DayPickerRow(selected: Set<String>, onToggle: (String) -> Unit) {
     ) {
         days.forEach { (label, iso) ->
             val on = selected.contains(iso)
+            val score = scores[iso]
             val bg = if (on) MaterialTheme.colorScheme.primaryContainer
                      else MaterialTheme.colorScheme.surface
             val fg = if (on) MaterialTheme.colorScheme.onPrimaryContainer
@@ -320,9 +335,32 @@ private fun DayPickerRow(selected: Set<String>, onToggle: (String) -> Unit) {
                 Text(label.first, style = MaterialTheme.typography.labelSmall, color = fg,
                     fontWeight = FontWeight.Bold)
                 Text(label.second, style = MaterialTheme.typography.labelSmall, color = fg)
+                if (score != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(scoreColor(score))
+                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = "$score",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = androidx.compose.ui.graphics.Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }
+}
+
+private fun scoreColor(score: Int): androidx.compose.ui.graphics.Color = when {
+    score >= 80 -> androidx.compose.ui.graphics.Color(0xFF22C55E)  // verde
+    score >= 60 -> androidx.compose.ui.graphics.Color(0xFFF59E0B)  // ámbar
+    score >= 40 -> androidx.compose.ui.graphics.Color(0xFFEF4444)  // rojo suave
+    else        -> androidx.compose.ui.graphics.Color(0xFF6B7280)  // gris
 }
 
 private fun nextNDays(n: Int): List<Pair<Pair<String, String>, String>> {
