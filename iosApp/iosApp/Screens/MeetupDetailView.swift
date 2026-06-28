@@ -222,7 +222,7 @@ struct MeetupDetailView: View {
 
                                 // Creator
                                 HStack(spacing: 8) {
-                                    AvatarCircle(url: meetup.creatorPhotoUrl, size: 24)
+                                    MeetupAvatarCircle(url: meetup.creatorPhotoUrl, size: 24)
                                     Text("Organiza: \(meetup.creatorUsername ?? meetup.creatorUid)")
                                         .font(.footnote).foregroundColor(Cumbre.ink.opacity(0.6))
                                 }
@@ -431,7 +431,7 @@ private struct MeetupMemberRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AvatarCircle(url: member.photoUrl, size: 36)
+            MeetupAvatarCircle(url: member.photoUrl, size: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(member.displayName ?? member.username ?? member.uid)
                     .font(.subheadline).fontWeight(.medium)
@@ -464,7 +464,7 @@ private struct InfoBadge: View {
     }
 }
 
-private struct AvatarCircle: View {
+private struct MeetupAvatarCircle: View {
     let url: String?
     let size: CGFloat
     var body: some View {
