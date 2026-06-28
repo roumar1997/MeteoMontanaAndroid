@@ -173,33 +173,31 @@ struct GroupChatView: View {
                     NavigationLink(destination: MeetupDetailView(meetupId: mid)) {
                         VStack(spacing: 0) {
                             Text(vm.groupName).font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
-                            Text("Ver detalles de la quedada ›").font(Cumbre.mono(9)).foregroundStyle(Cumbre.terra)
+                                .lineLimit(1)
+                            Text("Ver detalles ›").font(Cumbre.mono(9)).foregroundStyle(Cumbre.terra)
                         }
                     }
                 } else {
                     VStack(spacing: 0) {
                         Text(vm.groupName).font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
+                            .lineLimit(1)
                         Text("\(vm.memberNames.count + 1) miembros").font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
                     }
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if let lat = vm.schoolLat, let lon = vm.schoolLon {
                     Button {
-                        vm.toggleMute()
+                        openDirections(lat: lat, lon: lon)
                     } label: {
-                        Label(vm.muted ? "Activar notificaciones" : "Silenciar grupo",
-                              systemImage: vm.muted ? "bell" : "bell.slash")
+                        Image(systemName: "location.fill").foregroundStyle(Cumbre.terra)
                     }
-                    if let lat = vm.schoolLat, let lon = vm.schoolLon {
-                        Button {
-                            openDirections(lat: lat, lon: lon)
-                        } label: {
-                            Label("Cómo llegar", systemImage: "location.fill")
-                        }
-                    }
+                }
+                Button {
+                    vm.toggleMute()
                 } label: {
-                    Image(systemName: "ellipsis.circle").foregroundStyle(Cumbre.ink)
+                    Image(systemName: vm.muted ? "bell.slash" : "bell")
+                        .foregroundStyle(vm.muted ? Cumbre.ink3 : Cumbre.terra)
                 }
             }
         }

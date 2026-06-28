@@ -10,6 +10,7 @@ final class MeetupDetailViewModel: ObservableObject {
     @Published var error: String?
     @Published var joining = false
     @Published var leaving = false
+    @Published var dayScores: [String: Int] = [:]
 
     private let getMeetup    = AppDependencies.shared.container.getMeetup
     private let joinMeetup   = AppDependencies.shared.container.joinMeetup
@@ -17,6 +18,7 @@ final class MeetupDetailViewModel: ObservableObject {
     private let updateMeetup = AppDependencies.shared.container.updateMeetup
     private let kickMember   = AppDependencies.shared.container.kickMeetupMember
     private let reportMeetup = AppDependencies.shared.container.reportMeetup
+    private let getRangeScores = AppDependencies.shared.container.getRangeScores
 
     @Published var savingDescription = false
 
@@ -34,6 +36,10 @@ final class MeetupDetailViewModel: ObservableObject {
             if let uc = getMeetup { meetup = try await uc.execute(id: id) }
         } catch { self.error = error.localizedDescription }
         loading = false
+        // Load day scores
+        if let m = meetup, !m.schoolId.isEmpty, !m.days.isEmpty {
+            await loadDayScores(schoolId: m.schoolId, days: Array(m.days))
+        }
     }
 
     func join(id: String) async {
@@ -49,7 +55,6 @@ final class MeetupDetailViewModel: ObservableObject {
         do {
             if let uc = leaveMeetup {
                 try await uc.execute(id: id)
-                // Recargar para reflejar el nuevo estado (no reconstruimos Meetup manualmente)
                 await load(id: id)
             }
         } catch { self.error = error.localizedDescription }
@@ -75,7 +80,42 @@ final class MeetupDetailViewModel: ObservableObject {
         } catch { self.error = error.localizedDescription }
     }
 
+    func deleteMeetup(id: String) async -> Bool {
+        // Direct HTTP DELETE since DeleteMeetupUseCase isn't exposed in iOS container
+        guard let url = URL(string: "\(AppConfig.apiBaseUrl)meetups/\(id)") else { return false }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        // Get auth token
+        if let token = await withCheckedContinuation({ cont in
+            AppDependencies.shared.authBridge.currentIdToken(forceRefresh: false) { t in cont.resume(returning: t) }
+        }) {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, http.statusCode < 300 {
+                return true
+            }
+            self.error = "Error al eliminar"
+            return false
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+
     @Published var reportDone = false
+
+    private func loadDayScores(schoolId: String, days: [String]) async {
+        do {
+            let results = try await getRangeScores.invoke(ids: [schoolId], dates: days)
+            if let school = results.first {
+                var map: [String: Int] = [:]
+                for day in school.days { map[day.date] = Int(day.score) }
+                dayScores = map
+            }
+        } catch {}
+    }
 }
 
 // ── Detail view ─────────────────────────────────────────────────────────────
@@ -90,6 +130,7 @@ struct MeetupDetailView: View {
     @State private var showReportSheet = false
     @State private var showEditDescription = false
     @State private var descriptionDraft = ""
+    @State private var showDeleteConfirm = false
 
     private var myUid: String? {
         AppDependencies.shared.authBridge.currentUid()
@@ -97,20 +138,25 @@ struct MeetupDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Toolbar
+            // ── Toolbar ──
             HStack {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left").foregroundColor(Cumbre.ink)
                 }
-                Text(vm.meetup?.name ?? "Quedada")
-                    .font(.headline).lineLimit(1)
+                Text("Quedada").font(.headline).lineLimit(1)
                 Spacer()
+                HelpButton(topicKey: "meetup_detail")
+                // Share
+                if let m = vm.meetup {
+                    Button { shareMeetup(m) } label: {
+                        Image(systemName: "square.and.arrow.up").foregroundColor(Cumbre.ink.opacity(0.7))
+                    }
+                }
                 if let convId = vm.meetup?.conversationId,
                    let m = vm.meetup,
                    (m.joined || m.creatorUid == myUid) {
                     NavigationLink(destination: GroupChatView(convId: convId, groupName: m.name)) {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .foregroundColor(Cumbre.ink)
+                        Image(systemName: "bubble.left.and.bubble.right").foregroundColor(Cumbre.terra)
                     }
                 }
                 if let m = vm.meetup, m.creatorUid != myUid {
@@ -139,7 +185,7 @@ struct MeetupDetailView: View {
 
                     ScrollView {
                         VStack(alignment: .leading, spacing: 0) {
-                            // Header photo
+                            // ── Photo ──
                             if let urlStr = meetup.photoUrl, let url = URL(string: urlStr) {
                                 AsyncImage(url: url) { img in
                                     img.resizable().scaledToFill()
@@ -148,95 +194,161 @@ struct MeetupDetailView: View {
                                 .clipped()
                             }
 
-                            VStack(alignment: .leading, spacing: 12) {
-                                // School link
-                                if let school = meetup.schoolName {
-                                    NavigationLink(destination: EmptyView()) {
-                                        HStack(spacing: 6) {
-                                            Text("VER ESCUELA: \(school)")
-                                                .font(.system(size: 11, weight: .bold))
-                                                .foregroundColor(Cumbre.terra)
-                                        }
-                                        .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
-                                    }
-                                }
+                            // ── Hero section (sand background) ──
+                            VStack(alignment: .leading, spacing: 10) {
+                                // Name in large serif
+                                Text(meetup.name)
+                                    .font(Cumbre.serif(22, .semibold))
 
-                                // Cómo llegar (Google Maps)
-                                if let lat = meetup.schoolLat?.doubleValue, let lon = meetup.schoolLon?.doubleValue {
-                                    Button {
-                                        openDirections(lat: lat, lon: lon)
-                                    } label: {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "location.fill").font(.caption2)
-                                            Text("CÓMO LLEGAR").font(.system(size: 11, weight: .bold))
-                                        }
-                                        .foregroundColor(Cumbre.terra)
-                                        .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
-                                    }
-                                }
-
-                                // Descripción (detalles del organizador)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack(spacing: 6) {
-                                        Text("DETALLES")
-                                            .font(.system(size: 11, weight: .bold))
+                                // Organizer with ORGANIZA eyebrow
+                                let creatorName = meetup.members.first(where: { $0.uid == meetup.creatorUid })
+                                    .flatMap { $0.displayName ?? $0.username }
+                                    ?? meetup.creatorUsername ?? "Organizador"
+                                HStack(spacing: 8) {
+                                    MeetupAvatarCircle(url: meetup.creatorPhotoUrl, size: 28)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("ORGANIZA")
+                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                            .tracking(1.8)
                                             .foregroundColor(Cumbre.ink.opacity(0.6))
-                                        if isCreator {
-                                            Button {
-                                                descriptionDraft = meetup.descriptionText ?? ""
-                                                showEditDescription = true
-                                            } label: {
-                                                Image(systemName: "pencil").font(.caption).foregroundColor(Cumbre.terra)
+                                        Text(creatorName)
+                                            .font(.subheadline).fontWeight(.medium)
+                                    }
+                                }
+
+                                // Action buttons
+                                HStack(spacing: 8) {
+                                    if let lat = meetup.schoolLat?.doubleValue, let lon = meetup.schoolLon?.doubleValue {
+                                        Button {
+                                            openDirections(lat: lat, lon: lon)
+                                        } label: {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "location.fill").font(.caption2)
+                                                Text("Como llegar").font(.system(size: 13, weight: .medium))
                                             }
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 8)
+                                            .background(Cumbre.terra)
+                                            .clipShape(RoundedRectangle(cornerRadius: 2))
                                         }
                                     }
-                                    if let desc = meetup.descriptionText, !desc.isEmpty {
-                                        Text(desc).font(.subheadline)
-                                    } else {
-                                        Text(isCreator
-                                             ? "Añade detalles (material, nivel, punto de encuentro…)"
-                                             : "Sin detalles")
-                                            .font(.caption).foregroundColor(Cumbre.ink.opacity(0.5))
+                                    if meetup.schoolName != nil {
+                                        NavigationLink(destination: EmptyView()) {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "mountain.2").font(.caption2)
+                                                Text("Ver escuela").font(.system(size: 13, weight: .medium))
+                                            }
+                                            .foregroundColor(Cumbre.ink)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 8)
+                                            .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.ink.opacity(0.3), lineWidth: 1))
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(16)
+                            .background(Cumbre.ink.opacity(0.04))
+
+                            // ── Info rows with icons ──
+                            VStack(alignment: .leading, spacing: 14) {
+                                // School
+                                if let school = meetup.schoolName {
+                                    DetailInfoRow(icon: "mountain.2") {
+                                        Text(school).font(.subheadline).fontWeight(.medium)
                                     }
                                 }
 
-                                // Dates
-                                let days = meetup.days
-                                HStack(spacing: 6) {
-                                    Image(systemName: "calendar").font(.footnote).foregroundColor(Cumbre.ink.opacity(0.5))
-                                    Text(days.joined(separator: "  ·  "))
-                                        .font(.subheadline).foregroundColor(Cumbre.ink.opacity(0.7))
+                                // Days with scores
+                                DetailInfoRow(icon: "calendar") {
+                                    FlowLayoutView {
+                                        ForEach(meetup.days, id: \.self) { day in
+                                            let score = vm.dayScores[day]
+                                            HStack(spacing: 4) {
+                                                Text(detailFormatDayMonth(day))
+                                                    .font(.system(size: 12, weight: .medium))
+                                                if let s = score {
+                                                    Text("\(s)")
+                                                        .font(.system(size: 10, weight: .bold))
+                                                        .foregroundColor(.white)
+                                                        .padding(.horizontal, 4).padding(.vertical, 1)
+                                                        .background(detailScoreColor(s))
+                                                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                                                }
+                                            }
+                                            .padding(.horizontal, 6).padding(.vertical, 3)
+                                            .background(Cumbre.ink.opacity(0.05))
+                                            .clipShape(RoundedRectangle(cornerRadius: 2))
+                                        }
+                                    }
                                 }
 
-                                // Privacy + Discipline chips
+                                // Privacy + discipline
                                 HStack(spacing: 8) {
                                     if meetup.privacy != "OPEN" {
-                                        InfoBadge(icon: "lock", label: privacyLabel(meetup.privacy))
+                                        DetailInfoRow(icon: "lock") {
+                                            Text(privacyLabel(meetup.privacy)).font(.caption)
+                                                .foregroundColor(Cumbre.ink.opacity(0.6))
+                                        }
                                     }
                                     if let disc = meetup.discipline {
-                                        InfoBadge(label: disciplineLabel(disc))
+                                        Text("\u{00B7} \(disciplineLabel(disc))").font(.caption)
+                                            .foregroundColor(Cumbre.ink.opacity(0.6))
                                     }
-                                }
-
-                                // Creator
-                                HStack(spacing: 8) {
-                                    MeetupAvatarCircle(url: meetup.creatorPhotoUrl, size: 24)
-                                    Text("Organiza: \(meetup.creatorUsername ?? meetup.creatorUid)")
-                                        .font(.footnote).foregroundColor(Cumbre.ink.opacity(0.6))
                                 }
                             }
                             .padding(16)
 
                             Divider()
 
-                            // Join/leave/full
+                            // ── Description ──
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 6) {
+                                    Text("DETALLES")
+                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                        .tracking(1.8)
+                                        .foregroundColor(Cumbre.ink.opacity(0.6))
+                                    if isCreator {
+                                        Button {
+                                            descriptionDraft = meetup.descriptionText ?? ""
+                                            showEditDescription = true
+                                        } label: {
+                                            Image(systemName: "pencil").font(.caption).foregroundColor(Cumbre.terra)
+                                        }
+                                    }
+                                }
+                                if let desc = meetup.descriptionText, !desc.isEmpty {
+                                    Text(desc).font(.subheadline)
+                                } else {
+                                    Text(isCreator
+                                         ? "Anade detalles (material, nivel, punto de encuentro...)"
+                                         : "Sin detalles")
+                                        .font(.caption).italic().foregroundColor(Cumbre.ink.opacity(0.5))
+                                }
+                            }
+                            .padding(16)
+
+                            Divider()
+
+                            // ── Join/leave/delete ──
                             Group {
                                 if isCreator {
-                                    Text("Eres el organizador")
-                                        .font(.footnote).foregroundColor(Cumbre.ink.opacity(0.5))
-                                        .padding(16)
+                                    VStack(spacing: 8) {
+                                        Text("Eres el organizador")
+                                            .font(.footnote).foregroundColor(Cumbre.ink.opacity(0.5))
+                                        Button {
+                                            showDeleteConfirm = true
+                                        } label: {
+                                            Text("ELIMINAR QUEDADA")
+                                                .font(.system(size: 13, weight: .bold))
+                                                .foregroundColor(.red)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 10)
+                                                .overlay(RoundedRectangle(cornerRadius: 2)
+                                                    .stroke(Color.red, lineWidth: 1))
+                                        }
+                                    }
+                                    .padding(16)
                                 } else if meetup.joined {
                                     Button {
                                         Task { await vm.leave(id: meetupId) }
@@ -252,12 +364,13 @@ struct MeetupDetailView: View {
                                     .padding(16)
                                 } else if meetup.isFull {
                                     Text("AFORO COMPLETO")
-                                        .font(.footnote).fontWeight(.bold)
+                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                        .tracking(1.8)
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 10)
                                         .background(Cumbre.ink.opacity(0.06))
                                         .foregroundColor(Cumbre.ink.opacity(0.5))
-                                        .cornerRadius(4)
+                                        .clipShape(RoundedRectangle(cornerRadius: 2))
                                         .padding(16)
                                 } else {
                                     Button {
@@ -265,12 +378,17 @@ struct MeetupDetailView: View {
                                     } label: {
                                         HStack {
                                             if vm.joining { ProgressView().scaleEffect(0.7).tint(.white) }
-                                            else { Text("UNIRSE A LA QUEDADA") }
+                                            else {
+                                                Text("UNIRSE A LA QUEDADA")
+                                                    .font(.system(size: 13, weight: .bold))
+                                            }
                                         }
+                                        .foregroundColor(.white)
                                         .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(Cumbre.terra)
+                                        .clipShape(RoundedRectangle(cornerRadius: 2))
                                     }
-                                    .buttonStyle(.borderedProminent)
-                                    .tint(Cumbre.terra)
                                     .disabled(vm.joining)
                                     .padding(16)
                                 }
@@ -278,21 +396,21 @@ struct MeetupDetailView: View {
 
                             Divider()
 
-                            // Members header
-                            let members = meetup.members
+                            // ── Members ──
                             let limitText: String = {
                                 if let lim = meetup.memberLimit { return "\(meetup.memberCount)/\(lim.int32Value)" }
                                 return "\(meetup.memberCount)"
                             }()
                             HStack(spacing: 6) {
-                                Image(systemName: "person").foregroundColor(Cumbre.ink.opacity(0.5))
-                                Text("\(limitText) participantes")
-                                    .font(.system(size: 11, weight: .bold))
+                                Image(systemName: "person").font(.caption).foregroundColor(Cumbre.ink.opacity(0.5))
+                                Text("\(limitText) PARTICIPANTES")
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .tracking(1.5)
+                                    .foregroundColor(Cumbre.ink.opacity(0.6))
                             }
                             .padding(.horizontal, 16).padding(.vertical, 10)
 
-                            // Member list
-                            ForEach(members, id: \.uid) { member in
+                            ForEach(meetup.members, id: \.uid) { member in
                                 MeetupMemberRow(
                                     member: member,
                                     canKick: isCreator && member.uid != myUid
@@ -309,7 +427,7 @@ struct MeetupDetailView: View {
                 }
             }
 
-            // Denuncia enviada banner
+            // Report done banner
             if vm.reportDone {
                 Text("Denuncia enviada. La revisaremos pronto.")
                     .font(.footnote)
@@ -368,8 +486,19 @@ struct MeetupDetailView: View {
             }
             Button("Cancelar", role: .cancel) {}
         }
+        .alert("Eliminar quedada", isPresented: $showDeleteConfirm) {
+            Button("ELIMINAR", role: .destructive) {
+                Task {
+                    let ok = await vm.deleteMeetup(id: meetupId)
+                    if ok { dismiss() }
+                }
+            }
+            Button("CANCELAR", role: .cancel) {}
+        } message: {
+            Text("Se eliminara la quedada y su chat de grupo. Esta accion no se puede deshacer.")
+        }
         .confirmationDialog(
-            "¿Expulsar a \(kickTarget?.displayName ?? kickTarget?.username ?? "este participante")?",
+            "Expulsar a \(kickTarget?.displayName ?? kickTarget?.username ?? "este participante")?",
             isPresented: $showKickConfirm,
             titleVisibility: .visible
         ) {
@@ -392,7 +521,50 @@ func openDirections(lat: Double, lon: Double) {
     }
 }
 
+private func shareMeetup(_ meetup: Meetup) {
+    let days = meetup.days.map { detailFormatDayMonth($0) }.joined(separator: ", ")
+    let plazas: String = {
+        if let lim = meetup.memberLimit {
+            return "\(meetup.memberCount)/\(lim.int32Value) plazas"
+        }
+        return "\(meetup.memberCount) participantes"
+    }()
+    var text = "Quedada: \(meetup.name)\n"
+    if let s = meetup.schoolName { text += "Escuela: \(s)\n" }
+    text += "\(days) \u{00B7} \(plazas)\n\nDescarga Cumbre:\nAndroid: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000"
+    let av = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+    UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }.first?.present(av, animated: true)
+}
+
+private func detailFormatDayMonth(_ iso: String) -> String {
+    let months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"]
+    let parts = iso.split(separator: "-")
+    guard parts.count == 3, let mo = Int(parts[1]), let d = Int(parts[2]) else { return iso }
+    return "\(d) \(months[mo - 1])"
+}
+
+private func detailScoreColor(_ score: Int) -> Color {
+    if score >= 80 { return Color(red: 0.13, green: 0.77, blue: 0.37) }
+    if score >= 60 { return Color(red: 0.96, green: 0.62, blue: 0.04) }
+    if score >= 40 { return Color(red: 0.93, green: 0.27, blue: 0.27) }
+    return Color(red: 0.42, green: 0.44, blue: 0.50)
+}
+
 // ── Sub-views ────────────────────────────────────────────────────────────────
+
+private struct DetailInfoRow<Content: View>: View {
+    let icon: String
+    @ViewBuilder let content: Content
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(Cumbre.terra)
+                .frame(width: 18)
+            content
+        }
+    }
+}
 
 private struct EditDescriptionSheet: View {
     @Binding var text: String
@@ -447,20 +619,6 @@ private struct MeetupMemberRow: View {
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
-    }
-}
-
-private struct InfoBadge: View {
-    var icon: String? = nil
-    let label: String
-    var body: some View {
-        HStack(spacing: 4) {
-            if let i = icon { Image(systemName: i).font(.caption2) }
-            Text(label).font(.caption)
-        }
-        .foregroundColor(Cumbre.ink.opacity(0.6))
-        .padding(.horizontal, 8).padding(.vertical, 3)
-        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
     }
 }
 
