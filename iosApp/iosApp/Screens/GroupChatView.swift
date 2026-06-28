@@ -172,17 +172,19 @@ struct GroupChatView: View {
                 if let mid = vm.meetupId {
                     NavigationLink(destination: MeetupDetailView(meetupId: mid)) {
                         VStack(spacing: 0) {
-                            Text(vm.groupName).font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
-                                .lineLimit(1)
+                            Text(vm.groupName).font(Cumbre.serif(15, .semibold)).foregroundStyle(Cumbre.ink)
+                                .lineLimit(1).truncationMode(.tail)
                             Text("Ver detalles ›").font(Cumbre.mono(9)).foregroundStyle(Cumbre.terra)
                         }
+                        .frame(maxWidth: 180)
                     }
                 } else {
                     VStack(spacing: 0) {
-                        Text(vm.groupName).font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
-                            .lineLimit(1)
+                        Text(vm.groupName).font(Cumbre.serif(15, .semibold)).foregroundStyle(Cumbre.ink)
+                            .lineLimit(1).truncationMode(.tail)
                         Text("\(vm.memberNames.count + 1) miembros").font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
                     }
+                    .frame(maxWidth: 180)
                 }
             }
             ToolbarItemGroup(placement: .topBarTrailing) {

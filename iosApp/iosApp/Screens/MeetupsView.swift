@@ -256,7 +256,7 @@ struct MeetupsView: View {
                     text: "Crea quedadas, filtra por dia o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estas unido."
                 )
 
-                // ── Mapa desplegable ──
+                // ── Mapa desplegable (fuera del scroll para estabilidad) ──
                 MeetupsMapPanel(
                     meetups: displayedMeetups,
                     userLat: vm.userLat,
@@ -267,6 +267,10 @@ struct MeetupsView: View {
                         vm.setFilterSchool(id: schoolId, name: name)
                     }
                 )
+
+                // ── Filtros + lista en ScrollView ──
+                ScrollView {
+                    LazyVStack(spacing: 0, pinnedViews: []) {
 
                 // ── Filters accordion ──
                 VStack(spacing: 0) {
@@ -374,44 +378,41 @@ struct MeetupsView: View {
                 }
 
                 // ── Content ──
-                Group {
-                    if vm.loading && vm.meetups.isEmpty {
-                        ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if let err = vm.error, vm.meetups.isEmpty {
-                        VStack(spacing: 12) {
-                            Text("No se pudo cargar").foregroundColor(Cumbre.ink.opacity(0.6))
-                            Button("REINTENTAR") { Task { await vm.load() } }
-                                .foregroundColor(Cumbre.terra)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else if displayedMeetups.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "person.3").font(.system(size: 40))
-                                .foregroundColor(Cumbre.ink.opacity(0.4))
-                            Text("Sin quedadas activas").foregroundColor(Cumbre.ink.opacity(0.6))
-                            Text("Crea una para quedar a escalar")
-                                .font(.footnote).foregroundColor(Cumbre.ink.opacity(0.5))
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        List {
-                            ForEach(displayedMeetups, id: \.id) { meetup in
-                                NavigationLink(destination: Group {
-                                    if meetup.joined {
-                                        GroupChatView(convId: meetup.conversationId, groupName: meetup.name)
-                                    } else {
-                                        MeetupDetailView(meetupId: meetup.id)
-                                    }
-                                }) {
-                                    MeetupRowView(meetup: meetup, dayScoresMap: vm.dayScores, distanceKm: distanceFor(meetup))
-                                }
-                                .listRowInsets(EdgeInsets())
-                                .listRowSeparator(.hidden)
+                if vm.loading && vm.meetups.isEmpty {
+                    ProgressView().frame(maxWidth: .infinity).padding(.vertical, 60)
+                } else if vm.error != nil && vm.meetups.isEmpty {
+                    VStack(spacing: 12) {
+                        Text("No se pudo cargar").foregroundColor(Cumbre.ink.opacity(0.6))
+                        Button("REINTENTAR") { Task { await vm.load() } }
+                            .foregroundColor(Cumbre.terra)
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 60)
+                } else if displayedMeetups.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.3").font(.system(size: 40))
+                            .foregroundColor(Cumbre.ink.opacity(0.4))
+                        Text("Sin quedadas activas").foregroundColor(Cumbre.ink.opacity(0.6))
+                        Text("Crea una para quedar a escalar")
+                            .font(.footnote).foregroundColor(Cumbre.ink.opacity(0.5))
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 60)
+                } else {
+                    ForEach(displayedMeetups, id: \.id) { meetup in
+                        NavigationLink(destination: Group {
+                            if meetup.joined {
+                                GroupChatView(convId: meetup.conversationId, groupName: meetup.name)
+                            } else {
+                                MeetupDetailView(meetupId: meetup.id)
                             }
+                        }) {
+                            MeetupRowView(meetup: meetup, dayScoresMap: vm.dayScores, distanceKm: distanceFor(meetup))
                         }
-                        .listStyle(.plain)
+                        .buttonStyle(.plain)
                     }
                 }
+
+                    } // LazyVStack
+                } // ScrollView
             }
             .navigationBarHidden(true)
             .sheet(isPresented: $showCreate) {
