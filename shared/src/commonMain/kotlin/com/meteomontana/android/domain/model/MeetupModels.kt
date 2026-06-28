@@ -4,7 +4,10 @@ data class Meetup(
     val id: String,
     val schoolId: String,
     val schoolName: String?,
+    val schoolLat: Double?,
+    val schoolLon: Double?,
     val name: String,
+    val description: String?,   // detalles del organizador
     val discipline: String?,    // BOULDER | ROUTE | BOTH | null
     val privacy: String,        // OPEN | FOLLOWERS | WOMEN
     val memberLimit: Int?,
@@ -22,6 +25,9 @@ data class Meetup(
     val joined: Boolean
 ) {
     val isFull: Boolean get() = memberLimit != null && memberCount >= memberLimit
+
+    // Alias para Swift: `description` choca con NSObject.description vía SKIE.
+    val descriptionText: String? get() = description
 }
 
 data class MeetupMember(
@@ -34,6 +40,7 @@ data class MeetupMember(
 data class CreateMeetupRequest(
     val schoolId: String,
     val name: String,
+    val description: String? = null,
     val discipline: String?,    // BOULDER | ROUTE | BOTH | null
     val privacy: String,
     val memberLimit: Int?,

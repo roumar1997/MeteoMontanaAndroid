@@ -13,21 +13,47 @@ final class GroupChatVM: ObservableObject {
     @Published var draft = ""
     @Published var loading = true
     @Published var replyingTo: ChatServiceChatMessage?
+    // Quedada asociada (si la conversación es de una quedada).
+    @Published var meetupId: String?
+    @Published var schoolLat: Double?
+    @Published var schoolLon: Double?
+    @Published var muted: Bool
 
     private let chat = AppDependencies.shared.container.chatService
     private let chatPush = AppDependencies.shared.container.chatPushApi
     private let getProfile = AppDependencies.shared.container.getPublicProfile
+    private let getMeetupByConv = AppDependencies.shared.container.getMeetupByConversation
     private var task: Task<Void, Never>?
     private var convTask: Task<Void, Never>?
     var me: String { AppDependencies.shared.authBridge.currentUid() ?? "" }
 
+    private static let mutedKey = "muted_conv_ids"
+
     init(convId: String, groupName: String) {
         self.convId = convId
         self.groupName = groupName
+        let mutedSet = Set(UserDefaults.standard.stringArray(forKey: Self.mutedKey) ?? [])
+        self.muted = mutedSet.contains(convId)
+    }
+
+    func toggleMute() {
+        muted.toggle()
+        var s = Set(UserDefaults.standard.stringArray(forKey: Self.mutedKey) ?? [])
+        if muted { s.insert(convId) } else { s.remove(convId) }
+        UserDefaults.standard.set(Array(s), forKey: Self.mutedKey)
     }
 
     func start() {
         guard task == nil, let chat else { loading = false; return }
+        // Quedada asociada (para el título → detalle y el botón "Cómo llegar").
+        Task { [weak self] in
+            guard let self else { return }
+            if let m = try? await self.getMeetupByConv.execute(conversationId: self.convId) {
+                self.meetupId = m.id
+                self.schoolLat = m.schoolLat?.doubleValue
+                self.schoolLon = m.schoolLon?.doubleValue
+            }
+        }
         task = Task { [weak self] in
             for await msgs in chat.observeMessages(convId: self?.convId ?? "") {
                 guard let self else { return }
@@ -143,9 +169,37 @@ struct GroupChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                VStack(spacing: 0) {
-                    Text(vm.groupName).font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
-                    Text("\(vm.memberNames.count + 1) miembros").font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                if let mid = vm.meetupId {
+                    NavigationLink(destination: MeetupDetailView(meetupId: mid)) {
+                        VStack(spacing: 0) {
+                            Text(vm.groupName).font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
+                            Text("Ver detalles de la quedada ›").font(Cumbre.mono(9)).foregroundStyle(Cumbre.terra)
+                        }
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        Text(vm.groupName).font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
+                        Text("\(vm.memberNames.count + 1) miembros").font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                    }
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        vm.toggleMute()
+                    } label: {
+                        Label(vm.muted ? "Activar notificaciones" : "Silenciar grupo",
+                              systemImage: vm.muted ? "bell" : "bell.slash")
+                    }
+                    if let lat = vm.schoolLat, let lon = vm.schoolLon {
+                        Button {
+                            openDirections(lat: lat, lon: lon)
+                        } label: {
+                            Label("Cómo llegar", systemImage: "location.fill")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle").foregroundStyle(Cumbre.ink)
                 }
             }
         }

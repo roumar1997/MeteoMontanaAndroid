@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Flag
@@ -37,8 +39,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,6 +61,7 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.meteomontana.android.domain.model.Meetup
 import com.meteomontana.android.domain.model.MeetupMember
+import com.meteomontana.android.ui.screens.chat.openDirections
 import com.meteomontana.android.ui.theme.Spacing
 
 @Composable
@@ -69,9 +74,12 @@ fun MeetupDetailScreen(
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
     val state by viewModel.detailState.collectAsState()
+    val savingDescription by viewModel.savingDescription.collectAsState()
     val myUid = FirebaseAuth.getInstance().currentUser?.uid
     var showReportDialog by remember { mutableStateOf(false) }
     var reportDone by remember { mutableStateOf(false) }
+    var showEditDescription by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(meetupId) { viewModel.loadMeetup(meetupId) }
 
@@ -110,6 +118,19 @@ fun MeetupDetailScreen(
             }
         }
         HorizontalDivider()
+
+        // Diálogo de editar descripción
+        if (showEditDescription) {
+            EditDescriptionDialog(
+                initial = state.meetup?.description ?: "",
+                saving = savingDescription,
+                onDismiss = { showEditDescription = false },
+                onSave = { text ->
+                    viewModel.updateDescription(meetupId, text.ifBlank { null })
+                    showEditDescription = false
+                }
+            )
+        }
 
         // Diálogo de denuncia
         if (showReportDialog) {
@@ -198,6 +219,37 @@ fun MeetupDetailScreen(
                                         color = MaterialTheme.colorScheme.primary)
                                 }
                             }
+
+                            // Cómo llegar (Google Maps)
+                            if (meetup.schoolLat != null && meetup.schoolLon != null) {
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                                        .clickable {
+                                            openDirections(context, meetup.schoolLat!!, meetup.schoolLon!!,
+                                                meetup.schoolName)
+                                        }
+                                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                                ) {
+                                    Icon(Icons.Outlined.Directions, contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary)
+                                    Text("CÓMO LLEGAR",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+
+                            // Descripción (detalles del organizador)
+                            DescriptionSection(
+                                description = meetup.description,
+                                isCreator = isCreator,
+                                onEdit = { showEditDescription = true }
+                            )
 
                             // Fechas
                             Row(
@@ -348,6 +400,75 @@ fun MeetupDetailScreen(
             }
         }
     }
+}
+
+@Composable
+private fun DescriptionSection(
+    description: String?,
+    isCreator: Boolean,
+    onEdit: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text("DETALLES",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (isCreator) {
+                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Outlined.Edit, contentDescription = "Editar descripción",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+        if (!description.isNullOrBlank()) {
+            Text(description, style = MaterialTheme.typography.bodyMedium)
+        } else {
+            Text(
+                if (isCreator) "Añade detalles para tu quedada (material, nivel, punto de encuentro…)"
+                else "Sin detalles",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditDescriptionDialog(
+    initial: String,
+    saving: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Detalles de la quedada") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Material, nivel, punto de encuentro, hora…") },
+                minLines = 3,
+                maxLines = 8
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(text) }, enabled = !saving) {
+                if (saving) CircularProgressIndicator(Modifier.size(16.dp))
+                else Text("GUARDAR")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("CANCELAR") }
+        }
+    )
 }
 
 @Composable

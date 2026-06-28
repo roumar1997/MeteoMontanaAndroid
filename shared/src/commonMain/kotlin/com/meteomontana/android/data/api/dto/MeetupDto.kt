@@ -26,7 +26,10 @@ data class MeetupDto(
     val id: String,
     val schoolId: String,
     val schoolName: String? = null,
+    val schoolLat: Double? = null,
+    val schoolLon: Double? = null,
     val name: String,
+    val description: String? = null,
     val discipline: String? = null,
     val privacy: String,
     val memberLimit: Int? = null,
@@ -53,9 +56,15 @@ data class MeetupMemberDto(
 )
 
 @Serializable
+data class UpdateMeetupRequestDto(
+    val description: String? = null
+)
+
+@Serializable
 data class CreateMeetupRequestDto(
     val schoolId: String,
     val name: String,
+    val description: String? = null,
     val discipline: String? = null,
     val privacy: String,
     val memberLimit: Int? = null,

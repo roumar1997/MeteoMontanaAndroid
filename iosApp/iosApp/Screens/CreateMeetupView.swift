@@ -171,6 +171,7 @@ struct CreateMeetupView: View {
                     let req = CreateMeetupRequest(
                         schoolId: schoolId.trimmingCharacters(in: .whitespaces),
                         name: name.trimmingCharacters(in: .whitespaces),
+                        description: nil,
                         discipline: discipline,
                         privacy: privacy,
                         memberLimit: {

@@ -54,6 +54,7 @@ class CreateMeetupUseCase(
             CreateMeetupRequestDto(
                 schoolId = req.schoolId,
                 name = req.name,
+                description = req.description,
                 discipline = req.discipline,
                 privacy = req.privacy,
                 memberLimit = req.memberLimit,
@@ -63,6 +64,31 @@ class CreateMeetupUseCase(
         )
         cache.saveAll(listOf(dto))
         return dto.toDomain()
+    }
+}
+
+/** Editar la descripción de una quedada (solo el organizador). */
+class UpdateMeetupUseCase(
+    private val api: KtorMeetupApi,
+    private val cache: MeetupCacheRepository
+) {
+    suspend fun execute(meetupId: String, description: String?): Meetup {
+        val dto = api.updateMeetup(meetupId, description)
+        cache.saveAll(listOf(dto))
+        return dto.toDomain()
+    }
+}
+
+/** Resolver la quedada por su conversación de chat (para abrir el detalle desde el chat). */
+class GetMeetupByConversationUseCase(
+    private val api: KtorMeetupApi
+) {
+    suspend fun execute(conversationId: String): Meetup? {
+        return try {
+            api.getMeetupByConversation(conversationId)?.toDomain()
+        } catch (e: Exception) {
+            null
+        }
     }
 }
 

@@ -15,6 +15,7 @@ import com.meteomontana.android.domain.usecase.meetups.MeetupAlertState
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.UpdateMeetupUseCase
 import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
 import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
 import com.meteomontana.android.domain.port.PhotoUploader
@@ -51,6 +52,7 @@ class MeetupsViewModel @Inject constructor(
     private val createMeetup: CreateMeetupUseCase,
     private val joinMeetup: JoinMeetupUseCase,
     private val leaveMeetup: LeaveMeetupUseCase,
+    private val updateMeetup: UpdateMeetupUseCase,
     private val kickMeetupMember: KickMeetupMemberUseCase,
     private val reportMeetup: ReportMeetupUseCase,
     private val getMeetupAlert: GetMeetupAlertUseCase,
@@ -137,6 +139,27 @@ class MeetupsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _detail.update { it.copy(leaving = false, error = e.message) }
+            }
+        }
+    }
+
+    private val _savingDescription = MutableStateFlow(false)
+    val savingDescription = _savingDescription.asStateFlow()
+
+    /** Editar la descripción (solo el organizador). Actualiza el detalle al volver. */
+    fun updateDescription(meetupId: String, description: String?) {
+        _savingDescription.value = true
+        viewModelScope.launch {
+            try {
+                val updated = updateMeetup.execute(meetupId, description)
+                _detail.update { it.copy(meetup = updated) }
+                _list.update { s ->
+                    s.copy(meetups = s.meetups.map { m -> if (m.id == meetupId) updated else m })
+                }
+            } catch (e: Exception) {
+                _detail.update { it.copy(error = e.message) }
+            } finally {
+                _savingDescription.value = false
             }
         }
     }

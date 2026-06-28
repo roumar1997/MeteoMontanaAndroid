@@ -63,6 +63,7 @@ import com.meteomontana.android.ui.theme.Spacing
 @Composable
 fun MeetupsScreen(
     onMeetupClick: (String) -> Unit = {},
+    onOpenChat: (String) -> Unit = {},
     onCreateMeetup: () -> Unit = {},
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
@@ -178,7 +179,12 @@ fun MeetupsScreen(
                 else -> {
                     LazyColumn(contentPadding = PaddingValues(bottom = Spacing.xxl)) {
                         items(displayedMeetups, key = { it.id }) { meetup ->
-                            MeetupListItem(meetup = meetup, onClick = { onMeetupClick(meetup.id) })
+                            MeetupListItem(meetup = meetup, onClick = {
+                                // Si ya estás dentro, entras directo al chat del grupo;
+                                // si no, ves el detalle para decidir si unirte.
+                                if (meetup.joined) onOpenChat(meetup.conversationId)
+                                else onMeetupClick(meetup.id)
+                            })
                             HorizontalDivider()
                         }
                     }

@@ -28,13 +28,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Reply
 import androidx.compose.material.icons.outlined.Send
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -58,11 +66,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import com.meteomontana.android.data.api.KtorChatPushApi
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
+import com.meteomontana.android.domain.usecase.meetups.GetMeetupByConversationUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
+import com.meteomontana.android.push.MutedChatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -81,26 +93,50 @@ data class GroupChatUiState(
     val myUid: String = "",
     val canWrite: Boolean = false,
     val loading: Boolean = true,
-    val replyingTo: ChatService.ChatMessage? = null
+    val replyingTo: ChatService.ChatMessage? = null,
+    // Datos de la quedada asociada (si esta conversación es de una quedada).
+    val meetupId: String? = null,
+    val schoolLat: Double? = null,
+    val schoolLon: Double? = null,
+    val schoolName: String? = null,
+    val muted: Boolean = false
 )
 
 @HiltViewModel
 class GroupChatViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    @ApplicationContext private val appContext: Context,
     private val chatService: ChatService,
     private val authService: AuthService,
     private val getPublicProfile: GetPublicProfileUseCase,
+    private val getMeetupByConversation: GetMeetupByConversationUseCase,
     private val chatPushApi: KtorChatPushApi
 ) : ViewModel() {
     private val convId: String = checkNotNull(savedStateHandle["convId"])
     private val me: String = authService.currentUid() ?: ""
 
-    private val _state = MutableStateFlow(GroupChatUiState(convId = convId, myUid = me))
+    private val _state = MutableStateFlow(
+        GroupChatUiState(convId = convId, myUid = me,
+            muted = MutedChatsStore.isMuted(appContext, convId))
+    )
     val state: StateFlow<GroupChatUiState> = _state.asStateFlow()
 
     private val nameCache = mutableMapOf<String, String>()
 
     init {
+        // Quedada asociada a esta conversación (para abrir su detalle desde el
+        // título y para el botón "Cómo llegar"). Si no es de una quedada, no pasa nada.
+        viewModelScope.launch {
+            val meetup = getMeetupByConversation.execute(convId)
+            if (meetup != null) {
+                _state.value = _state.value.copy(
+                    meetupId = meetup.id,
+                    schoolLat = meetup.schoolLat,
+                    schoolLon = meetup.schoolLon,
+                    schoolName = meetup.schoolName
+                )
+            }
+        }
         // Datos del grupo (nombre, participantes) + si "borré para mí".
         viewModelScope.launch {
             chatService.observeMyConversations().collect { convs ->
@@ -135,6 +171,13 @@ class GroupChatViewModel @Inject constructor(
     fun startReply(msg: ChatService.ChatMessage) { _state.value = _state.value.copy(replyingTo = msg) }
     fun cancelReply() { _state.value = _state.value.copy(replyingTo = null) }
 
+    /** Silenciar / reactivar notificaciones de este grupo (solo en este móvil). */
+    fun toggleMute() {
+        val newMuted = !_state.value.muted
+        MutedChatsStore.setMuted(appContext, convId, newMuted)
+        _state.value = _state.value.copy(muted = newMuted)
+    }
+
     fun send(text: String) {
         if (!_state.value.canWrite || text.isBlank()) return
         val reply = _state.value.replyingTo
@@ -154,24 +197,64 @@ class GroupChatViewModel @Inject constructor(
 @Composable
 fun GroupChatScreen(
     onBack: () -> Unit,
+    onOpenMeetup: (String) -> Unit = {},
     viewModel: GroupChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
     var text by remember { mutableStateOf("") }
+    var showMenu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
         .imePadding()
     ) {
-        com.meteomontana.android.ui.components.SheetHeader(onClose = onBack) {
-            Column(modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally) {
+        com.meteomontana.android.ui.components.SheetHeader(
+            onClose = onBack,
+            actions = {
+                // Menú: silenciar + cómo llegar (si la conversación es de una quedada).
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = "Opciones",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(if (state.muted) "Activar notificaciones" else "Silenciar grupo") },
+                            leadingIcon = {
+                                Icon(if (state.muted) Icons.Outlined.NotificationsActive
+                                     else Icons.Outlined.NotificationsOff, contentDescription = null)
+                            },
+                            onClick = { viewModel.toggleMute(); showMenu = false }
+                        )
+                        if (state.schoolLat != null && state.schoolLon != null) {
+                            DropdownMenuItem(
+                                text = { Text("Cómo llegar") },
+                                leadingIcon = { Icon(Icons.Outlined.Directions, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        ) {
+            Column(
+                modifier = Modifier.align(Alignment.Center)
+                    .let { m -> state.meetupId?.let { id -> m.clickable { onOpenMeetup(id) } } ?: m },
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(state.name, style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground)
-                Text("${state.memberNames.size + 1} miembros",
+                Text(
+                    if (state.meetupId != null) "Ver detalles de la quedada ›"
+                    else "${state.memberNames.size + 1} miembros",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = if (state.meetupId != null) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -259,6 +342,18 @@ fun GroupChatScreen(
             }
         }
     }
+}
+
+/** Abre Google Maps con indicaciones a las coordenadas de la escuela. */
+internal fun openDirections(
+    context: android.content.Context,
+    lat: Double, lon: Double, label: String?
+) {
+    val uri = android.net.Uri.parse(
+        "https://www.google.com/maps/dir/?api=1&destination=$lat,$lon"
+    )
+    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+    runCatching { context.startActivity(intent) }
 }
 
 @Composable

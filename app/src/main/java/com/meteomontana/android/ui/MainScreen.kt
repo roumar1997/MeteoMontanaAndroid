@@ -140,6 +140,7 @@ fun MainScreen(
                     deepLink.targetId?.let { navController.navigate(Routes.schoolDetail(it)) { launchSingleTop = true } }
                 "user"        -> deepLink.targetId?.let { openSheet(Routes.publicProfile(it)) }
                 "chat", "message" -> deepLink.targetId?.let { openSheet(Routes.chat(it)) }
+                "group" -> deepLink.targetId?.let { openSheet(Routes.groupChat(it)) }
                 "submission", "contribution" -> openSheet(Routes.MY_SUBMISSIONS)
                 "notifications" -> openSheet(Routes.NOTIFICATIONS)
                 "follow_request" -> openSheet(Routes.FOLLOW_REQUESTS)
@@ -235,6 +236,7 @@ fun MainScreen(
                 composable(Tab.Meetups.route) {
                     MeetupsScreen(
                         onMeetupClick = { id -> navController.navigate(Routes.meetupDetail(id)) },
+                        onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
                         onCreateMeetup = { navController.navigate(Routes.CREATE_MEETUP) { launchSingleTop = true } }
                     )
                 }
@@ -496,7 +498,10 @@ fun MainScreen(
                         route = Routes.GROUP_CHAT,
                         arguments = listOf(navArgument("convId") { type = NavType.StringType })
                     ) {
-                        GroupChatScreen(onBack = popSheetOrDismiss)
+                        GroupChatScreen(
+                            onBack = popSheetOrDismiss,
+                            onOpenMeetup = { meetupId -> openFullScreen(Routes.meetupDetail(meetupId)) }
+                        )
                     }
 
                     composable(Routes.NOTIFICATIONS) {

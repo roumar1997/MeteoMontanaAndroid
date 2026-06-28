@@ -134,7 +134,14 @@ struct MeetupsView: View {
                     } else {
                         List {
                             ForEach(vm.meetups, id: \.id) { meetup in
-                                NavigationLink(destination: MeetupDetailView(meetupId: meetup.id)) {
+                                // Si ya estás dentro, entras directo al chat; si no, ves el detalle.
+                                NavigationLink(destination: Group {
+                                    if meetup.joined {
+                                        GroupChatView(convId: meetup.conversationId, groupName: meetup.name)
+                                    } else {
+                                        MeetupDetailView(meetupId: meetup.id)
+                                    }
+                                }) {
                                     MeetupRowView(meetup: meetup)
                                 }
                                 .listRowInsets(EdgeInsets())

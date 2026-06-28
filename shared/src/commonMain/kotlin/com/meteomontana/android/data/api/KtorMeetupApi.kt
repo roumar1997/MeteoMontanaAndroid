@@ -5,11 +5,13 @@ import com.meteomontana.android.data.api.dto.MeetupAlertDto
 import com.meteomontana.android.data.api.dto.MeetupDto
 import com.meteomontana.android.data.api.dto.ReportRequestDto
 import com.meteomontana.android.data.api.dto.SetAlertRequestDto
+import com.meteomontana.android.data.api.dto.UpdateMeetupRequestDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -27,6 +29,15 @@ class KtorMeetupApi(private val client: HttpClient) {
         }.body()
 
     suspend fun getMeetup(id: String): MeetupDto = client.get("meetups/$id").body()
+
+    suspend fun getMeetupByConversation(conversationId: String): MeetupDto? =
+        client.get("meetups/by-conversation/$conversationId").body()
+
+    suspend fun updateMeetup(id: String, description: String?): MeetupDto =
+        client.patch("meetups/$id") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateMeetupRequestDto(description))
+        }.body()
 
     suspend fun createMeetup(req: CreateMeetupRequestDto): MeetupDto =
         client.post("meetups") {

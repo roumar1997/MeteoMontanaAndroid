@@ -53,6 +53,11 @@ class PushService : FirebaseMessagingService() {
         val targetId   = message.data["targetId"]
         val avatarUrl  = message.data["avatarUrl"]
 
+        // Grupo silenciado en este dispositivo → no mostrar notificación.
+        if (targetType == "group" && targetId != null && MutedChatsStore.isMuted(this, targetId)) {
+            return
+        }
+
         // PendingIntent que abre MainActivity con extras → MainActivity los lee y navega.
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

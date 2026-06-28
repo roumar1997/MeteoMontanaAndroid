@@ -336,6 +336,17 @@ object UseCasesModule {
     ) = CreateMeetupUseCase(api, cache)
 
     @Provides @Singleton
+    fun provideUpdateMeetupUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi,
+        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
+    ) = com.meteomontana.android.domain.usecase.meetups.UpdateMeetupUseCase(api, cache)
+
+    @Provides @Singleton
+    fun provideGetMeetupByConversationUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi
+    ) = com.meteomontana.android.domain.usecase.meetups.GetMeetupByConversationUseCase(api)
+
+    @Provides @Singleton
     fun provideJoinMeetupUseCase(
         api: com.meteomontana.android.data.api.KtorMeetupApi,
         cache: com.meteomontana.android.data.saved.MeetupCacheRepository

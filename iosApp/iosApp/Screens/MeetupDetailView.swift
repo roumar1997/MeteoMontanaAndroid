@@ -14,8 +14,19 @@ final class MeetupDetailViewModel: ObservableObject {
     private let getMeetup    = AppDependencies.shared.container.getMeetup
     private let joinMeetup   = AppDependencies.shared.container.joinMeetup
     private let leaveMeetup  = AppDependencies.shared.container.leaveMeetup
+    private let updateMeetup = AppDependencies.shared.container.updateMeetup
     private let kickMember   = AppDependencies.shared.container.kickMeetupMember
     private let reportMeetup = AppDependencies.shared.container.reportMeetup
+
+    @Published var savingDescription = false
+
+    func updateDescription(id: String, text: String?) async {
+        savingDescription = true
+        do {
+            if let uc = updateMeetup { meetup = try await uc.execute(meetupId: id, description: text) }
+        } catch { self.error = error.localizedDescription }
+        savingDescription = false
+    }
 
     func load(id: String) async {
         loading = true; error = nil
@@ -77,6 +88,8 @@ struct MeetupDetailView: View {
     @State private var showKickConfirm = false
     @State private var showChat = false
     @State private var showReportSheet = false
+    @State private var showEditDescription = false
+    @State private var descriptionDraft = ""
 
     private var myUid: String? {
         AppDependencies.shared.authBridge.currentUid()
@@ -146,6 +159,46 @@ struct MeetupDetailView: View {
                                         }
                                         .padding(.horizontal, 10).padding(.vertical, 6)
                                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
+                                    }
+                                }
+
+                                // Cómo llegar (Google Maps)
+                                if let lat = meetup.schoolLat?.doubleValue, let lon = meetup.schoolLon?.doubleValue {
+                                    Button {
+                                        openDirections(lat: lat, lon: lon)
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "location.fill").font(.caption2)
+                                            Text("CÓMO LLEGAR").font(.system(size: 11, weight: .bold))
+                                        }
+                                        .foregroundColor(Cumbre.terra)
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
+                                    }
+                                }
+
+                                // Descripción (detalles del organizador)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 6) {
+                                        Text("DETALLES")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundColor(Cumbre.ink.opacity(0.6))
+                                        if isCreator {
+                                            Button {
+                                                descriptionDraft = meetup.descriptionText ?? ""
+                                                showEditDescription = true
+                                            } label: {
+                                                Image(systemName: "pencil").font(.caption).foregroundColor(Cumbre.terra)
+                                            }
+                                        }
+                                    }
+                                    if let desc = meetup.descriptionText, !desc.isEmpty {
+                                        Text(desc).font(.subheadline)
+                                    } else {
+                                        Text(isCreator
+                                             ? "Añade detalles (material, nivel, punto de encuentro…)"
+                                             : "Sin detalles")
+                                            .font(.caption).foregroundColor(Cumbre.ink.opacity(0.5))
                                     }
                                 }
 
@@ -284,6 +337,18 @@ struct MeetupDetailView: View {
         }
         .navigationBarHidden(true)
         .task { await vm.load(id: meetupId) }
+        .sheet(isPresented: $showEditDescription) {
+            EditDescriptionSheet(
+                text: $descriptionDraft,
+                saving: vm.savingDescription
+            ) {
+                let trimmed = descriptionDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                Task { await vm.updateDescription(id: meetupId, text: trimmed.isEmpty ? nil : trimmed) }
+                showEditDescription = false
+            } onCancel: {
+                showEditDescription = false
+            }
+        }
         .confirmationDialog(
             "Denunciar quedada",
             isPresented: $showReportSheet,
@@ -318,7 +383,46 @@ struct MeetupDetailView: View {
     }
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/// Abre Google Maps (o Apple Maps) con indicaciones a las coordenadas de la escuela.
+func openDirections(lat: Double, lon: Double) {
+    if let url = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(lat),\(lon)") {
+        UIApplication.shared.open(url)
+    }
+}
+
 // ── Sub-views ────────────────────────────────────────────────────────────────
+
+private struct EditDescriptionSheet: View {
+    @Binding var text: String
+    let saving: Bool
+    let onSave: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                TextEditor(text: $text)
+                    .frame(minHeight: 140)
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
+                    .padding()
+                Spacer()
+            }
+            .navigationTitle("Detalles de la quedada")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") { onCancel() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if saving { ProgressView() }
+                    else { Button("Guardar") { onSave() } }
+                }
+            }
+        }
+    }
+}
 
 private struct MeetupMemberRow: View {
     let member: MeetupMember
