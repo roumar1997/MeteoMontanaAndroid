@@ -123,9 +123,10 @@ final class MeetupsViewModel: ObservableObject {
 
     func loadLocation() async {
         do {
-            let loc = try await AppDependencies.shared.container.locationProvider.current()
-            userLat = loc.lat
-            userLon = loc.lon
+            guard let lp = AppDependencies.shared.container.locationProvider else { return }
+            let loc = try await lp.current()
+            userLat = loc?.lat
+            userLon = loc?.lon
         } catch {}
     }
 
@@ -839,7 +840,7 @@ private struct MeetupSchoolFilterSheet: View {
                         let trimmed = q.trimmingCharacters(in: .whitespaces)
                         guard trimmed.count >= 2 else { results = []; return }
                         Task {
-                            if let res = try? await searchSchools.invoke(query: trimmed) {
+                            if let res = try? await searchSchools.invoke(query: trimmed, limit: 8) {
                                 results = res
                             }
                         }
