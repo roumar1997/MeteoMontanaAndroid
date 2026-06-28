@@ -309,7 +309,7 @@ struct MeetupsView: View {
                             // TIPO DE GRUPO
                             FilterGroupLabel(text: "TIPO DE GRUPO")
                             FlowLayoutView {
-                                FilterPill(label: "Todas", selected: vm.filterRelation == nil && vm.filterPrivacy == nil) {
+                                FilterPill(label: "Todos", selected: vm.filterRelation == nil && vm.filterPrivacy == nil) {
                                     vm.setFilter(nil); vm.setFilterPrivacy(nil)
                                 }
                                 FilterPill(label: "Siguiendo", selected: vm.filterRelation == "following") {
@@ -816,7 +816,7 @@ struct MeetupsMapPanel: View {
             .buttonStyle(.plain)
             .overlay(Divider(), alignment: .bottom)
 
-            if show && !groups.isEmpty {
+            if show {
                 ZStack(alignment: .topTrailing) {
                     MapLibreView(
                         center: center,
@@ -831,6 +831,11 @@ struct MeetupsMapPanel: View {
                     MapStyleChips(selection: $mapStyle)
                 }
                 .overlay(Divider(), alignment: .bottom)
+                if groups.isEmpty {
+                    Text("No hay quedadas con ubicacion para mostrar en el mapa")
+                        .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                        .padding(.horizontal, 16).padding(.vertical, 8)
+                }
 
                 if let g = popup {
                     Button {
@@ -902,9 +907,8 @@ struct MeetupAlertView: View {
                         Toggle("", isOn: $enabled).labelsHidden().tint(Cumbre.terra)
                     }
 
-                    if enabled {
-                        Divider()
-
+                    Divider()
+                    Group {
                         // Días
                         VStack(alignment: .leading, spacing: 6) {
                             FilterGroupLabel(text: "DIAS")
@@ -983,6 +987,8 @@ struct MeetupAlertView: View {
                             }
                         }
                     }
+                    .opacity(enabled ? 1 : 0.45)
+                    .disabled(!enabled)
                 }
                 .padding(16)
             }

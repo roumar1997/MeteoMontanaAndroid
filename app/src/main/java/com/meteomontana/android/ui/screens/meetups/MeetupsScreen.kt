@@ -273,7 +273,7 @@ fun MeetupsScreen(
                                 FilterGroupLabel("TIPO DE GRUPO")
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FilterChip("Todas", state.filterRelation == null && state.filterPrivacy == null) {
+                                    FilterChip("Todos", state.filterRelation == null && state.filterPrivacy == null) {
                                         viewModel.setFilterRelation(null); viewModel.setFilterPrivacy(null)
                                     }
                                     FilterChip("Siguiendo", state.filterRelation == "following") {
