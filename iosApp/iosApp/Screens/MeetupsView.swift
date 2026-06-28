@@ -178,14 +178,9 @@ final class MeetupsViewModel: ObservableObject {
 
 struct MeetupsView: View {
     @StateObject private var vm = MeetupsViewModel()
-    @State private var showCreate = false
     @State private var filtersExpanded = false
-    @State private var showSchoolFilter = false
     @State private var showWomenGateDialog = false
-    @State private var selectedMeetupId: SheetId?
-    @State private var selectedChatConvId: SheetId?
-    @State private var selectedChatName: String?
-    @State private var showAlertConfig = false
+    @State private var activeSheet: MeetupSheet?
 
     // Filters applied locally
     private var displayedMeetups: [Meetup] {
@@ -242,11 +237,11 @@ struct MeetupsView: View {
                     Button { Task { await vm.load() } } label: {
                         Image(systemName: "arrow.clockwise").foregroundColor(Cumbre.ink)
                     }
-                    Button { showAlertConfig = true } label: {
+                    Button { activeSheet = .alert } label: {
                         Image(systemName: vm.alertEnabled ? "bell.fill" : "bell")
                             .foregroundColor(vm.alertEnabled ? Cumbre.terra : Cumbre.ink.opacity(0.5))
                     }
-                    Button { showCreate = true } label: {
+                    Button { activeSheet = .create } label: {
                         Image(systemName: "plus").foregroundColor(Cumbre.terra)
                     }
                 }
@@ -374,7 +369,7 @@ struct MeetupsView: View {
                                 Text(vm.filterSchoolName ?? "Buscar escuela...")
                                     .font(.system(size: 13))
                                     .foregroundColor(vm.filterSchoolName != nil ? Cumbre.ink : Cumbre.ink.opacity(0.5))
-                                    .onTapGesture { showSchoolFilter = true }
+                                    .onTapGesture { activeSheet = .schoolFilter }
                                 if vm.filterSchoolName != nil {
                                     Button {
                                         vm.setFilterSchool(id: nil, name: nil)
@@ -413,10 +408,9 @@ struct MeetupsView: View {
                     ForEach(displayedMeetups, id: \.id) { meetup in
                         Button {
                             if meetup.joined {
-                                selectedChatConvId = SheetId(meetup.conversationId)
-                                selectedChatName = meetup.name
+                                activeSheet = .chat(meetup.conversationId, meetup.name)
                             } else {
-                                selectedMeetupId = SheetId(meetup.id)
+                                activeSheet = .detail(meetup.id)
                             }
                         } label: {
                             MeetupRowView(meetup: meetup, dayScoresMap: vm.dayScores, distanceKm: distanceFor(meetup))
@@ -429,39 +423,32 @@ struct MeetupsView: View {
                 } // ScrollView
             }
             .navigationBarHidden(true)
-            .sheet(isPresented: $showCreate) {
-                NavigationStack {
-                    CreateMeetupView { _ in
-                        showCreate = false
-                        Task { await vm.load() }
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .create:
+                    NavigationStack {
+                        CreateMeetupView { _ in
+                            activeSheet = nil
+                            Task { await vm.load() }
+                        }
                     }
-                }
-            }
-            .sheet(item: $selectedMeetupId) { sid in
-                NavigationStack {
-                    MeetupDetailView(meetupId: sid.value)
-                }
-            }
-            .sheet(item: $selectedChatConvId) { sid in
-                NavigationStack {
-                    GroupChatView(convId: sid.value, groupName: selectedChatName ?? "Grupo")
-                }
-            }
-            .sheet(isPresented: $showAlertConfig) {
-                NavigationStack {
-                    MeetupAlertView(vm: vm)
+                case .detail(let id):
+                    NavigationStack { MeetupDetailView(meetupId: id) }
+                case .chat(let convId, let name):
+                    NavigationStack { GroupChatView(convId: convId, groupName: name) }
+                case .alert:
+                    NavigationStack { MeetupAlertView(vm: vm) }
+                case .schoolFilter:
+                    MeetupSchoolFilterSheet { school in
+                        vm.setFilterSchool(id: school.id, name: school.name)
+                        activeSheet = nil
+                    }
                 }
             }
             .alert("Quedadas No Mixto", isPresented: $showWomenGateDialog) {
                 Button("ENTENDIDO", role: .cancel) {}
             } message: {
                 Text("Para ver y participar en quedadas No Mixto necesitas indicar tu genero como Mujer en tu perfil.\n\nVe a Perfil -> Editar perfil -> Genero.")
-            }
-            .sheet(isPresented: $showSchoolFilter) {
-                MeetupSchoolFilterSheet { school in
-                    vm.setFilterSchool(id: school.id, name: school.name)
-                    showSchoolFilter = false
-                }
             }
             .onChange(of: displayedMeetups.count) { _ in
                 let schoolIds = displayedMeetups.map { $0.schoolId }
@@ -660,10 +647,21 @@ struct FlowLayoutView: Layout {
     }
 }
 
-private struct SheetId: Identifiable {
-    let value: String
-    var id: String { value }
-    init(_ v: String) { value = v }
+enum MeetupSheet: Identifiable {
+    case create
+    case detail(String)
+    case chat(String, String)   // convId, groupName
+    case alert
+    case schoolFilter
+    var id: String {
+        switch self {
+        case .create: return "create"
+        case .detail(let mid): return "detail_\(mid)"
+        case .chat(let cid, _): return "chat_\(cid)"
+        case .alert: return "alert"
+        case .schoolFilter: return "schoolFilter"
+        }
+    }
 }
 
 func privacyLabel(_ privacy: String) -> String {
