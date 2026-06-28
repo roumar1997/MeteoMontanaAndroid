@@ -253,6 +253,18 @@ struct MeetupsView: View {
                     text: "Crea quedadas, filtra por dia o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estas unido."
                 )
 
+                // ── Mapa desplegable ──
+                MeetupsMapPanel(
+                    meetups: displayedMeetups,
+                    userLat: vm.userLat,
+                    userLon: vm.userLon,
+                    maxDistanceKm: vm.filterMaxDistanceKm,
+                    onSchoolSelected: { schoolId in
+                        let name = displayedMeetups.first(where: { $0.schoolId == schoolId })?.schoolName
+                        vm.setFilterSchool(id: schoolId, name: name)
+                    }
+                )
+
                 // ── Filters accordion ──
                 VStack(spacing: 0) {
                     // Toggle bar
@@ -663,6 +675,149 @@ private func generateNextDays(_ count: Int) -> [DayInfo] {
 }
 
 // ── School filter sheet ────────────────────────────────────────────────────
+
+// ── Mapa de quedadas ──────────────────────────────────────────────────────
+
+private struct SchoolMeetupGroup: Identifiable {
+    let schoolId: String
+    let schoolName: String
+    let lat: Double
+    let lon: Double
+    let count: Int
+    var id: String { schoolId }
+}
+
+struct MeetupsMapPanel: View {
+    let meetups: [Meetup]
+    let userLat: Double?
+    let userLon: Double?
+    let maxDistanceKm: Double?
+    let onSchoolSelected: (String) -> Void
+
+    @State private var show = false
+    @State private var mapStyle: MapStyleKind = .topo
+    @State private var popup: SchoolMeetupGroup?
+
+    private var groups: [SchoolMeetupGroup] {
+        let grouped = Dictionary(grouping: meetups.filter {
+            $0.schoolLat?.doubleValue != nil && $0.schoolLon?.doubleValue != nil
+        }, by: { $0.schoolId })
+        return grouped.map { (id, list) in
+            SchoolMeetupGroup(
+                schoolId: id,
+                schoolName: list.first?.schoolName ?? id,
+                lat: list.first!.schoolLat!.doubleValue,
+                lon: list.first!.schoolLon!.doubleValue,
+                count: list.count
+            )
+        }
+    }
+
+    private var markers: [CumbreMarker] {
+        var ms: [CumbreMarker] = []
+        if let lat = userLat, let lon = userLon {
+            ms.append(CumbreMarker(
+                id: "user", coordinate: .init(latitude: lat, longitude: lon),
+                title: "Tu ubicacion", kind: .user
+            ))
+        }
+        for g in groups {
+            ms.append(CumbreMarker(
+                id: g.schoolId, coordinate: .init(latitude: g.lat, longitude: g.lon),
+                title: "\(g.schoolName) · \(g.count)",
+                kind: .score, color: UIColor(red: 0.78, green: 0.40, blue: 0.13, alpha: 1),
+                score: nil, name: "\(g.schoolName) · \(g.count)", showName: true
+            ))
+        }
+        return ms
+    }
+
+    private var center: CLLocationCoordinate2D {
+        if let lat = userLat, let lon = userLon {
+            return .init(latitude: lat, longitude: lon)
+        }
+        if let first = groups.first {
+            return .init(latitude: first.lat, longitude: first.lon)
+        }
+        return .init(latitude: 40.4, longitude: -3.7)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button { withAnimation { show.toggle() } } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "map").font(.system(size: 13)).foregroundColor(Cumbre.terra)
+                    Text(show ? "OCULTAR MAPA" : "VER MAPA DE QUEDADAS")
+                        .font(Cumbre.mono(11, .bold)).tracking(0.8)
+                        .foregroundColor(Cumbre.terra)
+                    Spacer()
+                    if !groups.isEmpty {
+                        Text("\(groups.count) escuela\(groups.count == 1 ? "" : "s")")
+                            .font(.caption).foregroundColor(Cumbre.ink.opacity(0.5))
+                    }
+                    Image(systemName: show ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11)).foregroundColor(Cumbre.terra)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Cumbre.ink.opacity(0.04))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .overlay(Divider(), alignment: .bottom)
+
+            if show && !groups.isEmpty {
+                ZStack(alignment: .topTrailing) {
+                    MapLibreView(
+                        center: center,
+                        zoom: maxDistanceKm != nil ? zoomForKm(maxDistanceKm!) : (userLat != nil ? 8 : 6),
+                        markers: markers, style: mapStyle,
+                        autoFitToMarkers: maxDistanceKm == nil,
+                        onTapMarker: { id in
+                            popup = groups.first(where: { $0.schoolId == id })
+                        }
+                    )
+                    .frame(height: 240)
+                    MapStyleChips(selection: $mapStyle)
+                }
+                .overlay(Divider(), alignment: .bottom)
+
+                if let g = popup {
+                    Button {
+                        onSchoolSelected(g.schoolId)
+                        popup = nil
+                        withAnimation { show = false }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(g.schoolName).font(.body).fontWeight(.medium)
+                                    .foregroundColor(Cumbre.ink)
+                                Text("\(g.count) quedada\(g.count == 1 ? "" : "s") activa\(g.count == 1 ? "" : "s")")
+                                    .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                            }
+                            Spacer()
+                            Text("VER ▸").font(.system(size: 11, weight: .bold))
+                                .foregroundColor(Cumbre.terra)
+                        }
+                        .padding(12)
+                        .background(Cumbre.bg)
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func zoomForKm(_ km: Double) -> Double {
+        if km <= 25 { return 10 }
+        if km <= 50 { return 9 }
+        if km <= 100 { return 8 }
+        if km <= 200 { return 7 }
+        if km <= 500 { return 6 }
+        return 5
+    }
+}
 
 private struct MeetupSchoolFilterSheet: View {
     let onSelect: (School) -> Void
