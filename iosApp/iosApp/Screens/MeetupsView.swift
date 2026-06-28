@@ -628,14 +628,25 @@ struct FlowLayoutView: Layout {
     var spacing: CGFloat = 6
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxW = proposal.width ?? .infinity
+        // OJO: si el ancho propuesto es nil/infinito (SwiftUI mide la talla
+        // intrínseca dentro de un ScrollView/LazyVStack), NO devolver un ancho
+        // infinito → SwiftUI crashea. Caemos a una sola fila y devolvemos el
+        // ancho REAL del contenido, nunca maxW infinito.
+        let maxW: CGFloat = proposal.width.map { $0.isFinite ? $0 : .greatestFiniteMagnitude }
+            ?? .greatestFiniteMagnitude
         var x: CGFloat = 0; var y: CGFloat = 0; var rowH: CGFloat = 0
+        var widestRow: CGFloat = 0
         for sv in subviews {
             let s = sv.sizeThatFits(.unspecified)
-            if x + s.width > maxW && x > 0 { x = 0; y += rowH + spacing; rowH = 0 }
+            if x + s.width > maxW && x > 0 {
+                widestRow = max(widestRow, x - spacing)
+                x = 0; y += rowH + spacing; rowH = 0
+            }
             x += s.width + spacing; rowH = max(rowH, s.height)
         }
-        return CGSize(width: maxW, height: y + rowH)
+        widestRow = max(widestRow, x - spacing)
+        let finalW = (proposal.width.map { $0.isFinite } ?? false) ? maxW : max(0, widestRow)
+        return CGSize(width: finalW, height: y + rowH)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
