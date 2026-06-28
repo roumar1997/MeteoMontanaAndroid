@@ -63,11 +63,14 @@ final class ProfileCache {
             uid = p.uid; email = p.email; username = p.username; displayName = p.displayName
             photoUrl = p.photoUrl; bio = p.bio; topGrade = p.topGrade
             isPublic = p.isPublic; isAdmin = p.isAdmin; isPremium = p.isPremium
+            gender = p.gender
         }
+        var gender: String?
         func toModel() -> PrivateProfile {
             PrivateProfile(uid: uid, email: email, username: username, displayName: displayName,
                            photoUrl: photoUrl, bio: bio, topGrade: topGrade,
-                           isPublic: isPublic, isAdmin: isAdmin, isPremium: isPremium)
+                           isPublic: isPublic, isAdmin: isAdmin, isPremium: isPremium,
+                           gender: gender)
         }
     }
 
