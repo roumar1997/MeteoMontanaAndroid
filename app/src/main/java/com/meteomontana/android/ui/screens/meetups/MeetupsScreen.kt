@@ -381,7 +381,6 @@ fun MeetupsScreen(
                                     else onMeetupClick(meetup.id)
                                 }
                             )
-                            HorizontalDivider()
                         }
                     }
                 }

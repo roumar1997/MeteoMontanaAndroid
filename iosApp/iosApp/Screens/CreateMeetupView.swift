@@ -18,6 +18,7 @@ struct CreateMeetupView: View {
     @State private var photoImage: UIImage? = nil
     @State private var photoUrl: String? = nil
     @State private var uploadingPhoto = false
+    @State private var photoUploadError: String?
     @State private var showSchoolPicker = false
     @State private var schoolPickerQuery = ""
     @State private var schoolPickerResults: [School] = []
@@ -94,10 +95,16 @@ struct CreateMeetupView: View {
                                             tempId: "new_\(Int(Date().timeIntervalSince1970))"
                                         )
                                         photoUrl = url
-                                    } catch { photoUrl = nil }
+                                    } catch {
+                                        photoUrl = nil
+                                        photoUploadError = "No se pudo subir la foto. Inténtalo de nuevo."
+                                    }
                                     uploadingPhoto = false
                                 }
                             }
+                        }
+                        if let err = photoUploadError {
+                            Text(err).font(.caption).foregroundColor(.red)
                         }
 
                         // Nombre
