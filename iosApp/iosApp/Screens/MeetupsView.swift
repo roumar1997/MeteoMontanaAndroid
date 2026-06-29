@@ -162,6 +162,8 @@ final class MeetupsViewModel: ObservableObject {
         if let p = filterPrivacy { d["privacy"] = p }
         if let km = filterMaxDistanceKm { d["maxDistanceKm"] = km }
         if let disc = filterDiscipline { d["discipline"] = disc }
+        if let sid = filterSchoolId { d["schoolId"] = sid }
+        if let sn = filterSchoolName { d["schoolName"] = sn }
         UserDefaults.standard.set(d, forKey: Self.prefsKey)
     }
 
@@ -171,6 +173,8 @@ final class MeetupsViewModel: ObservableObject {
         filterPrivacy = d["privacy"] as? String
         filterMaxDistanceKm = d["maxDistanceKm"] as? Double
         filterDiscipline = d["discipline"] as? String
+        filterSchoolId = d["schoolId"] as? String
+        filterSchoolName = d["schoolName"] as? String
     }
 }
 
@@ -794,16 +798,6 @@ struct MeetupsMapPanel: View {
         return .init(latitude: 40.4, longitude: -3.7)
     }
 
-    // Coords a encuadrar al abrir: tu ubicacion + las quedadas visibles (>=2).
-    // Asi el mapa muestra las quedadas como el mapa de escuelas. Si solo hay 1
-    // coord (sin quedadas, o sin ubicacion) cae a center+zoom.
-    private var fitCoords: [CLLocationCoordinate2D] {
-        var coords: [CLLocationCoordinate2D] = []
-        if let lat = userLat, let lon = userLon { coords.append(.init(latitude: lat, longitude: lon)) }
-        coords.append(contentsOf: groups.map { .init(latitude: $0.lat, longitude: $0.lon) })
-        return coords.count >= 2 ? coords : []
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             Button { withAnimation { show.toggle() } } label: {
@@ -831,17 +825,14 @@ struct MeetupsMapPanel: View {
                 ZStack(alignment: .topTrailing) {
                     MapLibreView(
                         center: center,
-                        zoom: maxDistanceKm != nil ? zoomForKm(maxDistanceKm!) : (userLat != nil ? 8 : 6),
+                        zoom: groups.isEmpty && maxDistanceKm != nil ? zoomForKm(maxDistanceKm!) : (userLat != nil ? 8 : 6),
                         markers: markers, style: mapStyle,
-                        autoFitToMarkers: false,
+                        autoFitToMarkers: !groups.isEmpty,
                         onTapMarker: { id in
                             popup = groups.first(where: { $0.schoolId == id })
-                        },
-                        fitToCoordinatesOnLoad: fitCoords
+                        }
                     )
                     .frame(height: 240)
-                    // Recrear (y re-encuadrar) cuando cambia el filtro de distancia
-                    // o el conjunto de quedadas visibles.
                     .id("\(maxDistanceKm ?? -1)|\(groups.map { $0.schoolId }.sorted().joined())")
                     MapStyleChips(selection: $mapStyle)
                 }

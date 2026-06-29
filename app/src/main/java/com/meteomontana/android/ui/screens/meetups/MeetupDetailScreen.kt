@@ -87,6 +87,7 @@ fun MeetupDetailScreen(
     var reportDone by remember { mutableStateOf(false) }
     var showEditDescription by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showLeaveConfirm by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     LaunchedEffect(meetupId) { viewModel.loadMeetup(meetupId) }
@@ -166,6 +167,19 @@ fun MeetupDetailScreen(
                     }) { Text("ELIMINAR", color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("CANCELAR") } }
+            )
+        }
+        if (showLeaveConfirm) {
+            AlertDialog(
+                onDismissRequest = { showLeaveConfirm = false },
+                title = { Text("Salir de la quedada") },
+                text = { Text("¿Seguro que quieres salir? Puede que no puedas volver a unirte.") },
+                confirmButton = {
+                    TextButton(onClick = { showLeaveConfirm = false; viewModel.leave(meetupId) }) {
+                        Text("SALIR", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = { TextButton(onClick = { showLeaveConfirm = false }) { Text("CANCELAR") } }
             )
         }
         if (reportDone) {
@@ -366,7 +380,7 @@ fun MeetupDetailScreen(
                                         shape = RoundedCornerShape(2.dp)
                                     ) { Text("ELIMINAR QUEDADA") }
                                 }
-                                meetup.joined -> OutlinedButton(onClick = { viewModel.leave(meetupId) },
+                                meetup.joined -> OutlinedButton(onClick = { showLeaveConfirm = true },
                                     enabled = !state.leaving, modifier = Modifier.fillMaxWidth()) {
                                     if (state.leaving) CircularProgressIndicator(Modifier.size(16.dp))
                                     else Text("SALIR DE LA QUEDADA")

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Lock
@@ -240,6 +241,10 @@ fun MeetupsScreen(
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Icon(Icons.Outlined.FilterList, null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.size(6.dp))
                             Text("FILTROS", style = EyebrowTextStyle,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f))

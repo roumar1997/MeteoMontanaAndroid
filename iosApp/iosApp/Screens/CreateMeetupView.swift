@@ -22,8 +22,10 @@ struct CreateMeetupView: View {
     @State private var schoolPickerQuery = ""
     @State private var schoolPickerResults: [School] = []
     @State private var schoolName = ""
+    @State private var dayScores: [String: Int] = [:]
 
     private let createMeetup = AppDependencies.shared.container.createMeetup
+    private let getRangeScores = AppDependencies.shared.container.getRangeScores
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -126,7 +128,7 @@ struct CreateMeetupView: View {
                         // Días
                         VStack(alignment: .leading, spacing: 6) {
                             FieldLabel("DÍAS (elige uno o varios)")
-                            DayPickerView(selected: $selectedDays)
+                            DayPickerView(selected: $selectedDays, schoolId: schoolId, dayScores: dayScores)
                         }
 
                         // Privacidad
@@ -232,6 +234,23 @@ struct CreateMeetupView: View {
                     }
                 )
             }
+            .onChange(of: selectedDays) { _ in loadDayScores() }
+            .onChange(of: schoolId) { _ in loadDayScores() }
+        }
+    }
+
+    private func loadDayScores() {
+        let sid = schoolId.trimmingCharacters(in: .whitespaces)
+        guard !sid.isEmpty, !selectedDays.isEmpty else { dayScores = [:]; return }
+        Task {
+            do {
+                let results = try await getRangeScores.invoke(ids: [sid], dates: selectedDays.sorted())
+                var map: [String: Int] = [:]
+                if let school = results.first {
+                    for day in school.days { map[day.date] = Int(day.score) }
+                }
+                dayScores = map
+            } catch { dayScores = [:] }
         }
     }
 }
@@ -251,21 +270,32 @@ private struct FieldLabel: View {
 
 private struct DayPickerView: View {
     @Binding var selected: Set<String>
+    var schoolId: String = ""
+    var dayScores: [String: Int] = [:]
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(nextNDays(14), id: \.iso) { day in
                     let on = selected.contains(day.iso)
+                    let score = dayScores[day.iso]
                     Button {
                         if on { selected.remove(day.iso) } else { selected.insert(day.iso) }
                     } label: {
                         VStack(spacing: 2) {
                             Text(day.dow).font(.system(size: 10, weight: .bold))
                             Text(day.short).font(.system(size: 10))
+                            if let s = score {
+                                Text("\(s)")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 4).padding(.vertical, 1)
+                                    .background(createScoreColor(s))
+                                    .clipShape(RoundedRectangle(cornerRadius: 2))
+                            }
                         }
                         .padding(.horizontal, 8).padding(.vertical, 5)
-                        .background(on ? Cumbre.terra.opacity(0.15) : Cumbre.bg)
-                        .foregroundColor(on ? Cumbre.terra : Cumbre.ink.opacity(0.6))
+                        .background(on ? Cumbre.terra : Cumbre.bg)
+                        .foregroundColor(on ? .white : Cumbre.ink.opacity(0.6))
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(on ? Cumbre.terra : Cumbre.ink.opacity(0.2), lineWidth: 1))
                         .cornerRadius(4)
                     }
@@ -273,6 +303,13 @@ private struct DayPickerView: View {
             }
         }
     }
+}
+
+private func createScoreColor(_ score: Int) -> Color {
+    if score >= 80 { return Color(red: 0.13, green: 0.77, blue: 0.37) }
+    if score >= 60 { return Color(red: 0.96, green: 0.62, blue: 0.04) }
+    if score >= 40 { return Color(red: 0.93, green: 0.27, blue: 0.27) }
+    return Color(red: 0.42, green: 0.44, blue: 0.50)
 }
 
 private struct PrivacyPickerView: View {
@@ -310,11 +347,11 @@ private struct ToggleChipView: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 if selected { Image(systemName: "checkmark").font(.caption2) }
-                Text(label).font(.system(size: 11))
+                Text(label).font(.system(size: 11, weight: .bold))
             }
             .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(selected ? Cumbre.terra.opacity(0.15) : Cumbre.bg)
-            .foregroundColor(selected ? Cumbre.terra : Cumbre.ink.opacity(0.6))
+            .background(selected ? Cumbre.terra : Cumbre.bg)
+            .foregroundColor(selected ? .white : Cumbre.ink.opacity(0.6))
             .overlay(RoundedRectangle(cornerRadius: 4).stroke(selected ? Cumbre.terra : Cumbre.ink.opacity(0.2), lineWidth: 1))
             .cornerRadius(4)
         }

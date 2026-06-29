@@ -206,17 +206,21 @@ struct MeetupDetailView: View {
                                 let creatorName = meetup.members.first(where: { $0.uid == meetup.creatorUid })
                                     .flatMap { $0.displayName ?? $0.username }
                                     ?? meetup.creatorUsername ?? "Organizador"
-                                HStack(spacing: 8) {
-                                    MeetupAvatarCircle(url: meetup.creatorPhotoUrl, size: 28)
-                                    VStack(alignment: .leading, spacing: 1) {
-                                        Text("ORGANIZA")
-                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                            .tracking(1.8)
-                                            .foregroundColor(Cumbre.ink.opacity(0.6))
-                                        Text(creatorName)
-                                            .font(.subheadline).fontWeight(.medium)
+                                NavigationLink(destination: PublicProfileView(uid: meetup.creatorUid)) {
+                                    HStack(spacing: 8) {
+                                        MeetupAvatarCircle(url: meetup.creatorPhotoUrl, size: 28)
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text("ORGANIZA")
+                                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                .tracking(1.8)
+                                                .foregroundColor(Cumbre.ink.opacity(0.6))
+                                            Text(creatorName)
+                                                .font(.subheadline).fontWeight(.medium)
+                                                .foregroundColor(Cumbre.ink)
+                                        }
                                     }
                                 }
+                                .buttonStyle(.plain)
 
                                 // Action buttons
                                 HStack(spacing: 8) {
@@ -424,13 +428,16 @@ struct MeetupDetailView: View {
                             .padding(.horizontal, 16).padding(.vertical, 10)
 
                             ForEach(meetup.members, id: \.uid) { member in
-                                MeetupMemberRow(
-                                    member: member,
-                                    canKick: isCreator && member.uid != myUid
-                                ) {
-                                    kickTarget = member
-                                    showKickConfirm = true
+                                NavigationLink(destination: PublicProfileView(uid: member.uid)) {
+                                    MeetupMemberRow(
+                                        member: member,
+                                        canKick: isCreator && member.uid != myUid
+                                    ) {
+                                        kickTarget = member
+                                        showKickConfirm = true
+                                    }
                                 }
+                                .buttonStyle(.plain)
                                 Divider()
                             }
 
