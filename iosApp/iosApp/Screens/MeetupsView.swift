@@ -794,6 +794,16 @@ struct MeetupsMapPanel: View {
         return .init(latitude: 40.4, longitude: -3.7)
     }
 
+    // Coords a encuadrar al abrir: tu ubicacion + las quedadas visibles (>=2).
+    // Asi el mapa muestra las quedadas como el mapa de escuelas. Si solo hay 1
+    // coord (sin quedadas, o sin ubicacion) cae a center+zoom.
+    private var fitCoords: [CLLocationCoordinate2D] {
+        var coords: [CLLocationCoordinate2D] = []
+        if let lat = userLat, let lon = userLon { coords.append(.init(latitude: lat, longitude: lon)) }
+        coords.append(contentsOf: groups.map { .init(latitude: $0.lat, longitude: $0.lon) })
+        return coords.count >= 2 ? coords : []
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Button { withAnimation { show.toggle() } } label: {
@@ -823,15 +833,16 @@ struct MeetupsMapPanel: View {
                         center: center,
                         zoom: maxDistanceKm != nil ? zoomForKm(maxDistanceKm!) : (userLat != nil ? 8 : 6),
                         markers: markers, style: mapStyle,
-                        autoFitToMarkers: maxDistanceKm == nil,
+                        autoFitToMarkers: false,
                         onTapMarker: { id in
                             popup = groups.first(where: { $0.schoolId == id })
-                        }
+                        },
+                        fitToCoordinatesOnLoad: fitCoords
                     )
                     .frame(height: 240)
-                    // Recrear (y re-centrar en mi ubicacion al zoom del radio) cuando
-                    // cambia el filtro de distancia, aunque no haya quedadas alli.
-                    .id(maxDistanceKm ?? -1)
+                    // Recrear (y re-encuadrar) cuando cambia el filtro de distancia
+                    // o el conjunto de quedadas visibles.
+                    .id("\(maxDistanceKm ?? -1)|\(groups.map { $0.schoolId }.sorted().joined())")
                     MapStyleChips(selection: $mapStyle)
                 }
                 .overlay(Divider(), alignment: .bottom)
