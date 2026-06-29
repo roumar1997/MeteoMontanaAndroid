@@ -1,4 +1,339 @@
 <resources>
     <string name="app_name">Cumbre</string>
     <string name="widget_favorites_description">Score de hoy de tus escuelas favoritas</string>
+
+    <!-- Common -->
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_save">Guardar</string>
+    <string name="common_delete">Eliminar</string>
+    <string name="common_close">Cerrar</string>
+    <string name="common_back">Volver</string>
+    <string name="common_retry">REINTENTAR</string>
+    <string name="common_search">Buscar</string>
+    <string name="common_share">Compartir</string>
+    <string name="common_report">Denunciar</string>
+    <string name="common_loading">Cargando…</string>
+    <string name="common_error">Error</string>
+    <string name="common_ok">Aceptar</string>
+    <string name="common_yes">Sí</string>
+    <string name="common_no">No</string>
+    <string name="common_confirm">Confirmar</string>
+    <string name="common_send">Enviar</string>
+    <string name="common_done">Hecho</string>
+    <string name="common_edit">Editar</string>
+    <string name="common_all">Todos</string>
+    <string name="common_none">Ninguno</string>
+    <string name="common_offline">SIN CONEXIÓN</string>
+    <string name="common_offline_data">SIN CONEXIÓN · datos guardados</string>
+    <string name="common_no_connection">Sin conexión a internet</string>
+    <string name="common_directions">CÓMO LLEGAR</string>
+    <string name="common_view_school">Ver escuela</string>
+    <string name="common_filters">FILTROS</string>
+
+    <!-- Tabs -->
+    <string name="tab_weather">Tiempo</string>
+    <string name="tab_schools">Escuelas</string>
+    <string name="tab_meetups">Quedadas</string>
+
+    <!-- Login -->
+    <string name="login_title">CUMBRE</string>
+    <string name="login_subtitle">MeteoMontana</string>
+    <string name="login_tagline">Tiempo para escalar</string>
+    <string name="login_google">Continuar con Google</string>
+    <string name="login_apple">Continuar con Apple</string>
+    <string name="login_terms">TÉRMINOS</string>
+    <string name="login_privacy">PRIVACIDAD</string>
+
+    <!-- Schools list -->
+    <string name="schools_title">Escuelas</string>
+    <string name="schools_count">%d escuelas</string>
+    <string name="schools_submit">+ Enviar escuela</string>
+    <string name="schools_view_map">VER MAPA</string>
+    <string name="schools_hide_map">OCULTAR MAPA</string>
+    <string name="schools_filter_all">Todas</string>
+    <string name="schools_filter_boulder">Bloque</string>
+    <string name="schools_filter_route">Vía</string>
+    <string name="schools_filter_favorites">Favoritos</string>
+    <string name="schools_filter_saved">Guardados</string>
+    <string name="schools_filter_distance">Distancia</string>
+    <string name="schools_sort_score">Mejor score</string>
+    <string name="schools_sort_distance">Más cercanas</string>
+    <string name="schools_empty">No hay escuelas con estos filtros</string>
+    <string name="schools_clear_filters">QUITAR FILTROS</string>
+    <string name="schools_compare">COMPARAR</string>
+    <string name="schools_selected">%d SELECCIONADAS</string>
+    <string name="schools_rock_dry">SECA</string>
+    <string name="schools_rock_wet">MOJADA</string>
+    <string name="schools_km">%s km</string>
+
+    <!-- School detail -->
+    <string name="detail_title">Detalle</string>
+    <string name="detail_yes">SÍ</string>
+    <string name="detail_no">NO</string>
+    <string name="detail_index">ÍNDICE</string>
+    <string name="detail_why_index">¿POR QUÉ ESTE ÍNDICE?</string>
+    <string name="detail_factors">FACTORES</string>
+    <string name="detail_next_hours">Próximas 16 horas</string>
+    <string name="detail_conditions">Condiciones</string>
+    <string name="detail_temperature">Temperatura</string>
+    <string name="detail_humidity">Humedad</string>
+    <string name="detail_wind">Viento</string>
+    <string name="detail_rain_prob">Prob. lluvia</string>
+    <string name="detail_rain_24h">Lluvia 24h</string>
+    <string name="detail_rain_72h">Lluvia 72h</string>
+    <string name="detail_rock_drying">Secado de roca</string>
+    <string name="detail_optimal_window">Óptimo entre</string>
+    <string name="detail_best_day">★ MEJOR DÍA</string>
+    <string name="detail_next_days">Próximos 7 días</string>
+    <string name="detail_notes">NOTAS</string>
+    <string name="detail_write_note">Escribe una nota…</string>
+    <string name="detail_school_map">MAPA DE LA ESCUELA</string>
+    <string name="detail_propose">+ PROPONER</string>
+    <string name="detail_save_offline">Guardar offline</string>
+    <string name="detail_saved_offline">Guardada offline</string>
+    <string name="detail_stale_forecast">PREVISIÓN DE HACE %s</string>
+
+    <!-- Propose contribution -->
+    <string name="propose_title">+ PROPONER</string>
+    <string name="propose_parking">PARKING</string>
+    <string name="propose_boulder">NUEVA PIEDRA</string>
+    <string name="propose_sector">NUEVO SECTOR</string>
+    <string name="propose_correct">CORREGIR POSICIÓN</string>
+    <string name="propose_tap_map">PULSA EN EL MAPA</string>
+    <string name="propose_name">Nombre</string>
+    <string name="propose_description">Descripción</string>
+    <string name="propose_notes">Notas</string>
+    <string name="propose_submit">ENVIAR PROPUESTA</string>
+    <string name="propose_success">PROPUESTA ENVIADA</string>
+    <string name="propose_success_detail">La revisamos en 24-48h</string>
+    <string name="propose_success_admin">PUBLICADO</string>
+    <string name="propose_view_my">VER MIS PROPUESTAS</string>
+    <string name="propose_geometry">GEOMETRÍA</string>
+    <string name="propose_geometry_point">PUNTO</string>
+    <string name="propose_geometry_wall">MURO</string>
+    <string name="propose_direction">SENTIDO DE NUMERACIÓN</string>
+    <string name="propose_direction_ltr">IZQ → DER</string>
+    <string name="propose_direction_rtl">DER → IZQ</string>
+    <string name="propose_discipline">MODALIDAD</string>
+    <string name="propose_discipline_boulder">BLOQUE</string>
+    <string name="propose_discipline_route">VÍA</string>
+    <string name="propose_add_photo">+ AÑADIR FOTO</string>
+    <string name="propose_reorder_photos">↕ REORDENAR FOTOS</string>
+    <string name="propose_trace_wall">TRAZAR EL MURO</string>
+    <string name="propose_draw_lines">DIBUJAR LÍNEAS</string>
+    <string name="propose_save_lines">GUARDAR LÍNEAS</string>
+    <string name="propose_undo">DESHACER</string>
+    <string name="propose_ready">LISTO</string>
+    <string name="propose_assign_sector">+ ASIGNAR SECTOR</string>
+    <string name="propose_change_sector">CAMBIAR SECTOR</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Cuenta</string>
+    <string name="profile_blocks">BLOQUES</string>
+    <string name="profile_routes">VÍAS</string>
+    <string name="profile_schools">ESCUELAS</string>
+    <string name="profile_max_boulder">MÁX BLOQUE</string>
+    <string name="profile_max_route">MÁX VÍA</string>
+    <string name="profile_followers">Seguidores</string>
+    <string name="profile_following">Siguiendo</string>
+    <string name="profile_follow">Seguir</string>
+    <string name="profile_unfollow">Siguiendo</string>
+    <string name="profile_requested">Solicitado</string>
+    <string name="profile_edit">Editar perfil</string>
+    <string name="profile_saved_schools">Escuelas guardadas</string>
+    <string name="profile_weather_alert">Alerta de tiempo</string>
+    <string name="profile_my_proposals">Mis propuestas</string>
+    <string name="profile_my_contributions">Mis contribuciones</string>
+    <string name="profile_follow_requests">Solicitudes</string>
+    <string name="profile_add_block">+ AÑADIR BLOQUE</string>
+    <string name="profile_logout">Cerrar sesión</string>
+    <string name="profile_delete_account">Eliminar cuenta</string>
+    <string name="profile_delete_confirm">¿Seguro que quieres eliminar tu cuenta? Se borrarán todos tus datos. Esta acción no se puede deshacer.</string>
+    <string name="profile_show_hints">Volver a ver las pistas</string>
+    <string name="profile_admin_panel">Panel Admin</string>
+    <string name="profile_admin_pending">%d PENDIENTES</string>
+    <string name="profile_public">Público</string>
+    <string name="profile_private">Privado</string>
+
+    <!-- Chat -->
+    <string name="chat_title">Mensajes</string>
+    <string name="chat_new">Nuevo mensaje</string>
+    <string name="chat_new_group">Nuevo grupo</string>
+    <string name="chat_write">Escribe un mensaje</string>
+    <string name="chat_delete_confirm">¿Borrar esta conversación? Solo se borra para ti.</string>
+    <string name="chat_mark_unread">Marcar no leído</string>
+    <string name="chat_empty">Sin mensajes todavía</string>
+    <string name="chat_message">MENSAJE</string>
+
+    <!-- Notifications -->
+    <string name="notifications_title">Notificaciones</string>
+    <string name="notifications_mark_read">Marcar leído</string>
+    <string name="notifications_delete_all">Borrar todas</string>
+    <string name="notifications_empty">Sin notificaciones</string>
+    <string name="notifications_delete_confirm">¿Borrar todas las notificaciones?</string>
+
+    <!-- Weather -->
+    <string name="weather_title">Tiempo</string>
+    <string name="weather_your_location">Tu ubicación</string>
+    <string name="weather_enable_location">ACTIVAR UBICACIÓN</string>
+    <string name="weather_favorites_grid">Comparar favoritas</string>
+
+    <!-- Meetups -->
+    <string name="meetups_title">Quedadas</string>
+    <string name="meetups_create">Crear quedada</string>
+    <string name="meetups_empty">Sin quedadas activas</string>
+    <string name="meetups_empty_filters">Sin quedadas con estos filtros</string>
+    <string name="meetups_view_map">VER MAPA DE QUEDADAS</string>
+    <string name="meetups_hide_map">OCULTAR MAPA</string>
+    <string name="meetups_filter_all">Todos</string>
+    <string name="meetups_filter_following">Seguidos</string>
+    <string name="meetups_filter_women">No mixto</string>
+    <string name="meetups_filter_open">Abierto</string>
+    <string name="meetups_filter_school">Escuela</string>
+    <string name="meetups_filter_clear">Quitar filtro</string>
+    <string name="meetups_alert">Alertas de quedadas</string>
+    <string name="meetups_joined">Unido</string>
+    <string name="meetups_full">Completa</string>
+    <string name="meetups_members">%d miembros</string>
+    <string name="meetups_spots_left">%d plazas libres</string>
+
+    <!-- Meetup detail -->
+    <string name="meetup_detail_title">Quedada</string>
+    <string name="meetup_detail_organized_by">ORGANIZA</string>
+    <string name="meetup_detail_details">DETALLES</string>
+    <string name="meetup_detail_description_hint">Añade detalles: material, nivel, punto de encuentro…</string>
+    <string name="meetup_detail_material">MATERIAL</string>
+    <string name="meetup_detail_no_material">Nadie ha indicado material todavía. Pulsa abajo para añadir el tuyo.</string>
+    <string name="meetup_detail_no_material_chat">Sin material indicado</string>
+    <string name="meetup_detail_edit_gear">Editar mi material</string>
+    <string name="meetup_detail_add_gear">+ Añadir</string>
+    <string name="meetup_detail_my_gear">Mi material</string>
+    <string name="meetup_detail_no_gear">sin material</string>
+    <string name="meetup_detail_participants">PARTICIPANTES</string>
+    <string name="meetup_detail_join">UNIRSE A LA QUEDADA</string>
+    <string name="meetup_detail_leave">SALIR DE LA QUEDADA</string>
+    <string name="meetup_detail_leave_confirm">¿Seguro que quieres salir de esta quedada?</string>
+    <string name="meetup_detail_delete">Eliminar quedada</string>
+    <string name="meetup_detail_delete_confirm">Se eliminará la quedada y su chat de grupo. ¿Continuar?</string>
+    <string name="meetup_detail_women_gate">Solo pueden unirse personas con género Mujer. Ve a Perfil → Editar perfil → Género.</string>
+    <string name="meetup_detail_follow_gate">Solo puedes unirte si sigues al organizador o te sigue.</string>
+    <string name="meetup_detail_full">La quedada está completa.</string>
+    <string name="meetup_detail_kick">Expulsar</string>
+    <string name="meetup_detail_report_reason_spam">Spam</string>
+    <string name="meetup_detail_report_reason_inappropriate">Contenido inapropiado</string>
+    <string name="meetup_detail_report_reason_harassment">Acoso</string>
+    <string name="meetup_detail_report_reason_other">Otro</string>
+    <string name="meetup_detail_report_done">Denuncia enviada</string>
+
+    <!-- Create meetup -->
+    <string name="create_meetup_title">Crear quedada</string>
+    <string name="create_meetup_name">Nombre de la quedada</string>
+    <string name="create_meetup_school">Escuela</string>
+    <string name="create_meetup_school_search">Buscar escuela…</string>
+    <string name="create_meetup_days">Días</string>
+    <string name="create_meetup_privacy">Privacidad</string>
+    <string name="create_meetup_privacy_open">Abierta</string>
+    <string name="create_meetup_privacy_followers">Seguidos/Seguidores</string>
+    <string name="create_meetup_privacy_women">No mixto</string>
+    <string name="create_meetup_limit">Límite de plazas</string>
+    <string name="create_meetup_no_limit">Sin límite</string>
+    <string name="create_meetup_photo">Foto de la quedada</string>
+    <string name="create_meetup_create">CREAR QUEDADA</string>
+
+    <!-- Meetup alert -->
+    <string name="meetup_alert_title">Alertas de quedadas</string>
+    <string name="meetup_alert_enabled">Alertas activadas</string>
+    <string name="meetup_alert_days">Te avisamos cuando alguien cree una quedada estos días:</string>
+
+    <!-- Gear items -->
+    <string name="gear_crashpads">Crashpads</string>
+    <string name="gear_cintas">Cintas</string>
+    <string name="gear_cuerda">Cuerdas</string>
+    <string name="gear_grigri">Gri-gri</string>
+
+    <!-- Submit school -->
+    <string name="submit_school_title">Enviar escuela</string>
+    <string name="submit_school_name">Nombre de la escuela</string>
+    <string name="submit_school_location">Ubicación</string>
+    <string name="submit_school_region">Región</string>
+    <string name="submit_school_style">Estilo</string>
+    <string name="submit_school_rock_type">Tipo de roca</string>
+    <string name="submit_school_reason">¿Por qué debería incluirse?</string>
+    <string name="submit_school_coords">Pegar coordenadas (Google Maps)</string>
+
+    <!-- Admin -->
+    <string name="admin_title">Panel Admin</string>
+    <string name="admin_proposals">PROPUESTAS</string>
+    <string name="admin_manage">GESTIONAR</string>
+    <string name="admin_stats">STATS</string>
+    <string name="admin_activity">ACTIVIDAD</string>
+    <string name="admin_push">PUSH</string>
+    <string name="admin_approve">APROBAR</string>
+    <string name="admin_reject">RECHAZAR</string>
+    <string name="admin_view_map">VER EN MAPA</string>
+    <string name="admin_all">TODAS</string>
+    <string name="admin_boulders">PIEDRAS</string>
+    <string name="admin_sectors">SECTORES</string>
+    <string name="admin_parkings">PARKINGS</string>
+    <string name="admin_move">MOVER ESCUELA</string>
+
+    <!-- Compare -->
+    <string name="compare_title">Comparar</string>
+    <string name="compare_best_today">HOY MEJOR</string>
+    <string name="compare_index">Índice</string>
+    <string name="compare_rock">Roca</string>
+    <string name="compare_distance">Distancia</string>
+    <string name="compare_temp">Temp</string>
+    <string name="compare_wind">Viento</string>
+    <string name="compare_humidity">Humedad</string>
+    <string name="compare_rain">Prob. lluvia</string>
+    <string name="compare_optimal">Óptimo</string>
+    <string name="compare_best_day">Mejor día</string>
+
+    <!-- Days of week -->
+    <string name="day_mon">LUN</string>
+    <string name="day_tue">MAR</string>
+    <string name="day_wed">MIÉ</string>
+    <string name="day_thu">JUE</string>
+    <string name="day_fri">VIE</string>
+    <string name="day_sat">SÁB</string>
+    <string name="day_sun">DOM</string>
+
+    <!-- Onboarding hints -->
+    <string name="hint_compare">Mantén pulsada una escuela para compararla con otras</string>
+    <string name="hint_days">Toca los días para ver la previsión de varios días</string>
+    <string name="hint_offline">Guarda escuelas para verlas sin conexión</string>
+    <string name="hint_propose">Puedes proponer piedras, parkings o sectores nuevos</string>
+    <string name="hint_tick">Toca una vía para apuntarla en tu diario</string>
+    <string name="hint_swipe_chat">Desliza para borrar o marcar no leído</string>
+
+    <!-- Map -->
+    <string name="map_topo">Topo</string>
+    <string name="map_satellite">Satélite</string>
+
+    <!-- Block detail -->
+    <string name="block_routes">VÍAS</string>
+    <string name="block_add_routes">+ AÑADIR VÍAS</string>
+    <string name="block_edit_routes">✎ EDITAR / AÑADIR VÍAS</string>
+    <string name="block_delete_confirm">¿Eliminar este bloque? Se borrarán sus vías.</string>
+
+    <!-- Donate -->
+    <string name="donate_title">¿Te ayuda la app?</string>
+    <string name="donate_body">Cumbre es gratis y sin anuncios. Si te resulta útil, puedes invitarme a un café.</string>
+    <string name="donate_button">☕ INVÍTAME A UN CAFÉ</string>
+
+    <!-- Search users -->
+    <string name="search_users_title">Buscar usuarios</string>
+    <string name="search_users_hint">Nombre o @usuario…</string>
+
+    <!-- Empty states -->
+    <string name="empty_journal">Marca vías como hechas en el detalle de una escuela y aparecerán aquí.</string>
+    <string name="empty_saved">Guarda escuelas para verlas sin conexión.</string>
+    <string name="empty_chat">Busca a alguien para empezar a hablar.</string>
+    <string name="empty_proposals">Todavía no has propuesto nada.</string>
+
+    <!-- Share -->
+    <string name="share_school_prefix">Mira esta escuela de escalada en Cumbre:</string>
+    <string name="share_meetup_prefix">¡Quedada para escalar!</string>
+    <string name="share_download">Descarga la app:</string>
 </resources>

@@ -69,6 +69,8 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.meteomontana.android.domain.model.MeetupMember
 import com.meteomontana.android.ui.screens.chat.openDirections
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.SourceSerif4Family
 import com.meteomontana.android.ui.theme.Spacing
@@ -114,7 +116,7 @@ fun MeetupDetailScreen(
             IconButton(onClick = onBack) {
                 Icon(Icons.Outlined.ArrowBack, "Volver")
             }
-            Text("Quedada", modifier = Modifier.weight(1f),
+            Text(stringResource(R.string.meetup_detail_title), modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             com.meteomontana.android.ui.components.HelpButton(topicKey = "meetup_detail")
             // Compartir
@@ -177,14 +179,14 @@ fun MeetupDetailScreen(
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
                 title = { Text("Eliminar quedada") },
-                text = { Text("Se eliminará la quedada y su chat de grupo. Esta acción no se puede deshacer.") },
+                text = { Text("Se eliminará la quedada y su chat de grupo. ¿Continuar?") },
                 confirmButton = {
                     TextButton(onClick = {
                         showDeleteConfirm = false
                         viewModel.deleteMeetup(meetupId) { onBack() }
-                    }) { Text("ELIMINAR", color = MaterialTheme.colorScheme.error) }
+                    }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
                 },
-                dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("CANCELAR") } }
+                dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.common_cancel)) } }
             )
         }
         if (showLeaveConfirm) {
