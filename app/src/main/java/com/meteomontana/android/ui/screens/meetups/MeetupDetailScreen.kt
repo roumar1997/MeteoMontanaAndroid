@@ -377,6 +377,11 @@ fun MeetupDetailScreen(
                                     Text("AFORO COMPLETO", style = EyebrowTextStyle,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
+                                meetup.privacy == "WOMEN" && viewModel.myGender.collectAsState().value != "WOMAN" -> {
+                                    Text("Solo pueden unirse personas con género Mujer en su perfil.\nVe a Perfil → Editar perfil → Género.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 else -> Button(onClick = { viewModel.join(meetupId) }, enabled = !state.joining,
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

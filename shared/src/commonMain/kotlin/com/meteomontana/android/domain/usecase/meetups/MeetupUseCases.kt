@@ -19,9 +19,10 @@ class GetMeetupsUseCase(
             cache.saveAll(dtos)
             dtos.map { it.toDomain() }
         } catch (e: Exception) {
-            // Offline: devolver caché local
+            // Offline: devolver caché local, filtrando caducadas
+            val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
             cache.getAll().let { cached ->
-                var result = cached
+                var result = cached.filter { it.expiresAt > now }
                 if (schoolId != null) result = result.filter { it.schoolId == schoolId }
                 if (date != null) result = result.filter { it.days.contains(date) }
                 result

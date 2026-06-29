@@ -68,12 +68,6 @@ fun MeetupAlertScreen(
         mutableStateOf(alertState?.daysCsv?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.toSet()
             ?: emptySet())
     }
-    var selectedPrivacy by remember { mutableStateOf<String?>(null) }
-    var selectedDiscipline by remember { mutableStateOf<String?>(null) }
-    var radiusKm by remember { mutableStateOf<Int?>(null) }
-    var filterSchoolName by remember { mutableStateOf<String?>(null) }
-    var filterSchoolId by remember { mutableStateOf<String?>(null) }
-    var showSchoolPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.loadAlertState() }
 
@@ -123,100 +117,22 @@ fun MeetupAlertScreen(
             if (enabled) {
                 HorizontalDivider()
 
-                // Días concretos (próximos 10)
+                // Días concretos (próximos 14, mismo rango que crear)
                 SectionLabel("DÍAS")
                 Text("Avísame si la quedada incluye alguno de estos días (vacío = cualquier día)",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                val next10 = remember { nextNDaysAlert(10) }
+                val nextDays = remember { nextNDaysAlert(14) }
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
-                    next10.forEach { (iso, label) ->
+                    nextDays.forEach { (iso, label) ->
                         AlertChip(label = label, selected = selectedDays.contains(iso),
                             onClick = {
                                 selectedDays = if (selectedDays.contains(iso))
                                     selectedDays - iso else selectedDays + iso
                             })
-                    }
-                }
-
-                // Escuela
-                SectionLabel("ESCUELA")
-                Text("Solo quedadas en esta escuela (vacío = cualquier escuela)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(4.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .clickable { showSchoolPicker = true }
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(Icons.Outlined.Search, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                    Text(
-                        text = filterSchoolName ?: "Cualquier escuela",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (filterSchoolName != null) MaterialTheme.colorScheme.onSurface
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (filterSchoolName != null) {
-                        IconButton(onClick = { filterSchoolId = null; filterSchoolName = null },
-                            modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Outlined.Close, null, Modifier.size(14.dp))
-                        }
-                    }
-                }
-
-                // Distancia
-                SectionLabel("DISTANCIA")
-                Text("Solo quedadas en escuelas cerca de ti",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    val distances = listOf(null to "Cualquiera", 25 to "< 25 km", 50 to "< 50 km",
-                        100 to "< 100 km", 200 to "< 200 km")
-                    distances.forEach { (km, label) ->
-                        AlertChip(label = label, selected = radiusKm == km,
-                            onClick = { radiusKm = km })
-                    }
-                }
-
-                // Tipo de grupo
-                SectionLabel("TIPO DE GRUPO")
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    val privacies = listOf(null to "Cualquiera", "OPEN" to "Abierta",
-                        "FOLLOWERS" to "Seguidos/Seguidores", "WOMEN" to "No mixto")
-                    privacies.forEach { (key, label) ->
-                        AlertChip(label = label, selected = selectedPrivacy == key,
-                            onClick = { selectedPrivacy = key })
-                    }
-                }
-
-                // Disciplina
-                SectionLabel("DISCIPLINA")
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    val disciplines = listOf(null to "Cualquiera", "BOULDER" to "Bloque",
-                        "ROUTE" to "Vía", "BOTH" to "Ambas")
-                    disciplines.forEach { (key, label) ->
-                        AlertChip(label = label, selected = selectedDiscipline == key,
-                            onClick = { selectedDiscipline = key })
                     }
                 }
             }
@@ -229,14 +145,7 @@ fun MeetupAlertScreen(
                 onClick = {
                     val daysCsv = if (selectedDays.isEmpty()) null
                                   else selectedDays.sorted().joinToString(",")
-                    viewModel.saveAlert(
-                        enabled = enabled,
-                        daysCsv = daysCsv,
-                        schoolId = filterSchoolId,
-                        privacy = selectedPrivacy,
-                        discipline = selectedDiscipline,
-                        radiusKm = radiusKm
-                    )
+                    viewModel.toggleAlert(enabled, daysCsv)
                     onBack()
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -247,19 +156,6 @@ fun MeetupAlertScreen(
         }
     }
 
-    if (showSchoolPicker) {
-        AlertSchoolPickerDialog(
-            results = schoolResults,
-            onQueryChange = { viewModel.searchSchools(it) },
-            onSelect = { school ->
-                filterSchoolId = school.id
-                filterSchoolName = school.name
-                showSchoolPicker = false
-                viewModel.clearSchoolSearch()
-            },
-            onDismiss = { showSchoolPicker = false; viewModel.clearSchoolSearch() }
-        )
-    }
 }
 
 private fun nextNDaysAlert(n: Int): List<Pair<String, String>> {

@@ -352,7 +352,7 @@ struct MeetupsView: View {
 
                             // DIAS
                             FilterGroupLabel(text: "DIAS")
-                            let nextDays = generateNextDays(10)
+                            let nextDays = generateNextDays(14)
                             FlowLayoutView {
                                 FilterPill(label: "Cualquier dia", selected: vm.filterDays.isEmpty) {
                                     vm.clearFilterDays()
@@ -446,12 +446,15 @@ struct MeetupsView: View {
                     }
                 }
             }
+            .onChange(of: activeSheet) { s in
+                if s == nil { Task { await vm.load() } }
+            }
             .alert("Quedadas No Mixto", isPresented: $showWomenGateDialog) {
                 Button("ENTENDIDO", role: .cancel) {}
             } message: {
                 Text("Para ver y participar en quedadas No Mixto necesitas indicar tu genero como Mujer en tu perfil.\n\nVe a Perfil -> Editar perfil -> Genero.")
             }
-            .onChange(of: displayedMeetups.count) { _ in
+            .onChange(of: displayedMeetups.map { $0.id }.joined()) { _ in
                 let schoolIds = displayedMeetups.map { $0.schoolId }
                 let allDays = displayedMeetups.flatMap { $0.days }
                 if !schoolIds.isEmpty, !allDays.isEmpty {
@@ -753,14 +756,11 @@ struct MeetupsMapPanel: View {
         let grouped = Dictionary(grouping: meetups.filter {
             $0.schoolLat?.doubleValue != nil && $0.schoolLon?.doubleValue != nil
         }, by: { $0.schoolId })
-        return grouped.map { (id, list) in
-            SchoolMeetupGroup(
-                schoolId: id,
-                schoolName: list.first?.schoolName ?? id,
-                lat: list.first!.schoolLat!.doubleValue,
-                lon: list.first!.schoolLon!.doubleValue,
-                count: list.count
-            )
+        return grouped.compactMap { (id, list) -> SchoolMeetupGroup? in
+            guard let first = list.first,
+                  let lat = first.schoolLat?.doubleValue,
+                  let lon = first.schoolLon?.doubleValue else { return nil }
+            return SchoolMeetupGroup(schoolId: id, schoolName: first.schoolName ?? id, lat: lat, lon: lon, count: list.count)
         }
     }
 
@@ -898,14 +898,7 @@ struct MeetupAlertView: View {
 
     @State private var enabled = false
     @State private var selectedDays: Set<String> = []
-    @State private var selectedPrivacy: String?
-    @State private var selectedDiscipline: String?
-    @State private var radiusKm: Int?
-    @State private var schoolName: String?
-    @State private var schoolId: String?
-    @State private var showSchoolPicker = false
-
-    private let next10 = generateNextDays(10)
+    private let next14 = generateNextDays(14)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -923,81 +916,16 @@ struct MeetupAlertView: View {
                     }
 
                     Divider()
-                    Group {
-                        // Días
-                        VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "DIAS")
-                            Text("Avisame si la quedada incluye alguno de estos dias (vacio = cualquier dia)")
-                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
-                            FlowLayoutView(spacing: 6) {
-                                ForEach(next10) { d in
-                                    FilterPill(label: d.label, selected: selectedDays.contains(d.iso)) {
-                                        if selectedDays.contains(d.iso) { selectedDays.remove(d.iso) }
-                                        else { selectedDays.insert(d.iso) }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Escuela
-                        VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "ESCUELA")
-                            Text("Solo quedadas en esta escuela (vacio = cualquier escuela)")
-                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
-                            HStack {
-                                Image(systemName: "magnifyingglass").font(.system(size: 14))
-                                    .foregroundColor(Cumbre.ink.opacity(0.5))
-                                Text(schoolName ?? "Cualquier escuela")
-                                    .font(.subheadline)
-                                    .foregroundColor(schoolName != nil ? Cumbre.ink : Cumbre.ink.opacity(0.5))
-                                Spacer()
-                                if schoolName != nil {
-                                    Button { schoolId = nil; schoolName = nil } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(Cumbre.ink.opacity(0.3))
-                                    }
-                                }
-                            }
-                            .padding(12)
-                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
-                            .contentShape(Rectangle())
-                            .onTapGesture { showSchoolPicker = true }
-                        }
-
-                        // Distancia
-                        VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "DISTANCIA")
-                            Text("Solo quedadas en escuelas cerca de ti")
-                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
-                            let distances: [(Int?, String)] = [(nil, "Cualquiera"), (25, "< 25 km"),
-                                (50, "< 50 km"), (100, "< 100 km"), (200, "< 200 km")]
-                            FlowLayoutView(spacing: 6) {
-                                ForEach(distances, id: \.1) { km, label in
-                                    FilterPill(label: label, selected: radiusKm == km) { radiusKm = km }
-                                }
-                            }
-                        }
-
-                        // Tipo de grupo
-                        VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "TIPO DE GRUPO")
-                            let privacies: [(String?, String)] = [(nil, "Cualquiera"), ("OPEN", "Abierta"),
-                                ("FOLLOWERS", "Seguidos/Seguidores"), ("WOMEN", "No mixto")]
-                            FlowLayoutView(spacing: 6) {
-                                ForEach(privacies, id: \.1) { key, label in
-                                    FilterPill(label: label, selected: selectedPrivacy == key) { selectedPrivacy = key }
-                                }
-                            }
-                        }
-
-                        // Disciplina
-                        VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "DISCIPLINA")
-                            let disciplines: [(String?, String)] = [(nil, "Cualquiera"), ("BOULDER", "Bloque"),
-                                ("ROUTE", "Via"), ("BOTH", "Ambas")]
-                            FlowLayoutView(spacing: 6) {
-                                ForEach(disciplines, id: \.1) { key, label in
-                                    FilterPill(label: label, selected: selectedDiscipline == key) { selectedDiscipline = key }
+                    // Días
+                    VStack(alignment: .leading, spacing: 6) {
+                        FilterGroupLabel(text: "DIAS")
+                        Text("Avisame si la quedada incluye alguno de estos dias (vacio = cualquier dia)")
+                            .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                        FlowLayoutView(spacing: 6) {
+                            ForEach(next14) { d in
+                                FilterPill(label: d.label, selected: selectedDays.contains(d.iso)) {
+                                    if selectedDays.contains(d.iso) { selectedDays.remove(d.iso) }
+                                    else { selectedDays.insert(d.iso) }
                                 }
                             }
                         }
@@ -1031,13 +959,6 @@ struct MeetupAlertView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cerrar") { dismiss() }.foregroundColor(Cumbre.terra)
-            }
-        }
-        .sheet(isPresented: $showSchoolPicker) {
-            MeetupSchoolFilterSheet { school in
-                schoolId = school.id
-                schoolName = school.name
-                showSchoolPicker = false
             }
         }
         .onAppear {

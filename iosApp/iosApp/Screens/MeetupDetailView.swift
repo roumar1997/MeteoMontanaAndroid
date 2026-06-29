@@ -131,6 +131,8 @@ struct MeetupDetailView: View {
     @State private var showEditDescription = false
     @State private var descriptionDraft = ""
     @State private var showDeleteConfirm = false
+    @State private var showLeaveConfirm = false
+    @State private var myGender: String?
 
     private var myUid: String? {
         AppDependencies.shared.authBridge.currentUid()
@@ -234,7 +236,7 @@ struct MeetupDetailView: View {
                                         }
                                     }
                                     if meetup.schoolName != nil {
-                                        NavigationLink(destination: EmptyView()) {
+                                        NavigationLink(destination: SchoolLoaderView(schoolId: meetup.schoolId)) {
                                             HStack(spacing: 4) {
                                                 Image(systemName: "mountain.2").font(.caption2)
                                                 Text("Ver escuela").font(.system(size: 13, weight: .medium))
@@ -351,7 +353,7 @@ struct MeetupDetailView: View {
                                     .padding(16)
                                 } else if meetup.joined {
                                     Button {
-                                        Task { await vm.leave(id: meetupId) }
+                                        showLeaveConfirm = true
                                     } label: {
                                         HStack {
                                             if vm.leaving { ProgressView().scaleEffect(0.7) }
@@ -372,6 +374,17 @@ struct MeetupDetailView: View {
                                         .foregroundColor(Cumbre.ink.opacity(0.5))
                                         .clipShape(RoundedRectangle(cornerRadius: 2))
                                         .padding(16)
+                                } else if meetup.privacy == "WOMEN" && myGender != "WOMAN" {
+                                    VStack(spacing: 6) {
+                                        Image(systemName: "lock.fill").foregroundColor(Cumbre.ink.opacity(0.4))
+                                        Text("Esta quedada es No Mixto")
+                                            .font(.subheadline).fontWeight(.medium)
+                                        Text("Para unirte necesitas indicar tu genero como Mujer en tu perfil (Perfil > Editar perfil > Genero).")
+                                            .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(16)
                                 } else {
                                     Button {
                                         Task { await vm.join(id: meetupId) }
@@ -454,7 +467,12 @@ struct MeetupDetailView: View {
             }
         }
         .navigationBarHidden(true)
-        .task { await vm.load(id: meetupId) }
+        .task {
+            await vm.load(id: meetupId)
+            if let p = try? await AppDependencies.shared.container.getMyProfile.invoke() {
+                myGender = p.gender
+            }
+        }
         .sheet(isPresented: $showEditDescription) {
             EditDescriptionSheet(
                 text: $descriptionDraft,
@@ -509,6 +527,14 @@ struct MeetupDetailView: View {
             }
             Button("Cancelar", role: .cancel) {}
         }
+        .alert("Salir de la quedada", isPresented: $showLeaveConfirm) {
+            Button("SALIR", role: .destructive) {
+                Task { await vm.leave(id: meetupId) }
+            }
+            Button("CANCELAR", role: .cancel) {}
+        } message: {
+            Text("Dejaras de participar en esta quedada y no podras ver el chat de grupo.")
+        }
     }
 }
 
@@ -537,9 +563,17 @@ private func shareMeetup(_ meetup: Meetup) {
 }
 
 private func detailFormatDayMonth(_ iso: String) -> String {
+    let weekdays = ["dom","lun","mar","mie","jue","vie","sab"]
     let months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"]
     let parts = iso.split(separator: "-")
-    guard parts.count == 3, let mo = Int(parts[1]), let d = Int(parts[2]) else { return iso }
+    guard parts.count == 3,
+          let y = Int(parts[0]), let mo = Int(parts[1]), let d = Int(parts[2]) else { return iso }
+    var comps = DateComponents()
+    comps.year = y; comps.month = mo; comps.day = d
+    if let date = Calendar.current.date(from: comps) {
+        let wd = Calendar.current.component(.weekday, from: date)
+        return "\(weekdays[wd - 1]) \(d) \(months[mo - 1])"
+    }
     return "\(d) \(months[mo - 1])"
 }
 

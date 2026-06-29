@@ -119,7 +119,7 @@ object HelpCatalog {
             HelpItem("Filtrar por días", "Usa los chips de día para ver solo quedadas de los días que te interesan (puedes elegir varios).", icon = "calendar"),
             HelpItem("Filtrar por distancia", "Con los chips de distancia ves solo quedadas de escuelas cerca de ti.", icon = "filter"),
             HelpItem("Chat directo", "Si ya estás unido a una quedada, al tocarla entras directo al chat del grupo (no al detalle).", icon = "chat"),
-            HelpItem("Alertas", "La campanita abre la configuración de alertas: elige días, escuela, distancia y tipo de grupo para que te avisemos cuando se cree una quedada que te interese.", icon = "bell"),
+            HelpItem("Alertas", "La campanita activa las alertas: elige los días que te interesan y te avisamos cuando alguien cree una quedada.", icon = "bell"),
             HelpItem("Filtros guardados", "Los filtros que elijas (tipo de grupo, distancia) se guardan y se aplican la próxima vez que abras Quedadas. Así no tienes que configurarlos cada vez.", icon = "star")
         )
     )

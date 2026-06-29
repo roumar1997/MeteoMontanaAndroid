@@ -309,7 +309,7 @@ fun MeetupsScreen(
                                     }
                                 }
                                 FilterGroupLabel("DÍAS")
-                                val next10 = remember { nextNDaysFilter(10) }
+                                val next10 = remember { nextNDaysFilter(14) }
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     FilterChip("Cualquier día", state.filterDays.isEmpty()) { viewModel.clearFilterDays() }

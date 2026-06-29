@@ -4,7 +4,8 @@ import android.content.Context
 import android.content.Intent
 
 private const val PLAY_URL = "https://play.google.com/store/apps/details?id=com.meteomontana.android"
-private const val APPSTORE_URL = "https://apps.apple.com/app/cumbre/id0000000000"
+// TODO: reemplazar con el ID real cuando la app esté en App Store
+private const val APPSTORE_URL = "https://apps.apple.com/app/cumbre"
 
 fun shareMeetup(
     context: Context,

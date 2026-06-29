@@ -151,21 +151,28 @@ class MeetupsViewModel @Inject constructor(
                     s.copy(meetups = s.meetups.map { m -> if (m.id == id) updated else m })
                 }
             } catch (e: Exception) {
-                _detail.update { it.copy(joining = false, error = e.message) }
+                val msg = when {
+                    e.message?.contains("GENDER_REQUIRED") == true ->
+                        "Para unirte a quedadas No Mixto necesitas indicar tu género como Mujer. Ve a Perfil → Editar perfil → Género."
+                    e.message?.contains("FOLLOW_REQUIRED") == true ->
+                        "Solo puedes unirte si sigues al organizador o te sigue."
+                    e.message?.contains("MEETUP_FULL") == true ->
+                        "La quedada está completa."
+                    else -> e.message
+                }
+                _detail.update { it.copy(joining = false, error = msg) }
             }
         }
     }
 
     fun leave(id: String) {
+        val prev = _detail.value.meetup
         _detail.update { it.copy(leaving = true) }
         viewModelScope.launch {
             try {
                 leaveMeetup.execute(id)
-                // Actualizar estado joined en local (optimista)
-                val updated = _detail.value.meetup?.copy(
-                    joined = false,
-                    memberCount = maxOf(0, (_detail.value.meetup?.memberCount ?: 1) - 1)
-                )
+                val updated = prev?.copy(joined = false,
+                    memberCount = maxOf(0, (prev.memberCount) - 1))
                 _detail.update { it.copy(meetup = updated, leaving = false) }
                 _list.update { s ->
                     s.copy(meetups = s.meetups.map { m ->
@@ -173,7 +180,7 @@ class MeetupsViewModel @Inject constructor(
                     })
                 }
             } catch (e: Exception) {
-                _detail.update { it.copy(leaving = false, error = e.message) }
+                _detail.update { it.copy(meetup = prev, leaving = false, error = e.message) }
             }
         }
     }
