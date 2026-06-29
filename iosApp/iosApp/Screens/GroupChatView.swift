@@ -18,6 +18,9 @@ final class GroupChatVM: ObservableObject {
     @Published var schoolLat: Double?
     @Published var schoolLon: Double?
     @Published var gearSummary: String?
+    @Published var members: [MeetupMember] = []
+    @Published var discipline: String?
+    @Published var myGearJson: String?
     @Published var muted: Bool
 
     private let chat = AppDependencies.shared.container.chatService
@@ -50,10 +53,14 @@ final class GroupChatVM: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
             if let m = try? await self.getMeetupByConv.execute(conversationId: self.convId) {
+                let mems = Array(m.members)
                 self.meetupId = m.id
                 self.schoolLat = m.schoolLat?.doubleValue
                 self.schoolLon = m.schoolLon?.doubleValue
-                let gear = totalGearSummary(Array(m.members))
+                self.members = mems
+                self.discipline = m.discipline
+                self.myGearJson = mems.first(where: { $0.uid == self.me })?.gearJson
+                let gear = totalGearSummary(mems)
                 self.gearSummary = gear.isEmpty ? nil : gear
             }
         }
@@ -108,6 +115,23 @@ final class GroupChatVM: ObservableObject {
         }
     }
 
+    private let updateMyGearUC = AppDependencies.shared.container.updateMyGear
+
+    func updateMyGear(_ gearJson: String) {
+        guard let meetupId else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            if let updated = try? await self.updateMyGearUC.execute(meetupId: meetupId, gearJson: gearJson) {
+                let mems = Array(updated.members)
+                self.members = mems
+                self.discipline = updated.discipline
+                self.myGearJson = mems.first(where: { $0.uid == self.me })?.gearJson
+                let gear = totalGearSummary(mems)
+                self.gearSummary = gear.isEmpty ? nil : gear
+            }
+        }
+    }
+
     func stop() { task?.cancel(); task = nil; convTask?.cancel(); convTask = nil }
 }
 
@@ -119,20 +143,93 @@ struct GroupChatView: View {
         _vm = StateObject(wrappedValue: GroupChatVM(convId: convId, groupName: groupName))
     }
 
+    @State private var gearExpanded = false
+    @State private var showEditGear = false
+
     var body: some View {
         VStack(spacing: 0) {
-            // Gear banner
-            if let gear = vm.gearSummary {
-                HStack(spacing: 6) {
-                    Image(systemName: "bag").font(.system(size: 11))
-                        .foregroundStyle(Cumbre.ink3)
-                    Text(gear).font(.system(size: 11))
-                        .foregroundStyle(Cumbre.ink3)
-                        .lineLimit(1)
+            // Expandable gear banner
+            if vm.meetupId != nil {
+                let hasSomeGear = vm.gearSummary != nil
+                VStack(spacing: 0) {
+                    // Header row
+                    HStack(spacing: 6) {
+                        Image(systemName: "bag").font(.system(size: 13))
+                            .foregroundStyle(Cumbre.terra)
+                        if hasSomeGear {
+                            Text(vm.gearSummary!)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Cumbre.ink)
+                                .lineLimit(1)
+                        } else {
+                            Text("Sin material indicado")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Cumbre.ink.opacity(0.5))
+                        }
+                        Spacer()
+                        if !hasSomeGear {
+                            Button {
+                                showEditGear = true
+                            } label: {
+                                Text("+ Anadir")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(Cumbre.terra)
+                                    .padding(.horizontal, 8).padding(.vertical, 3)
+                                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.terra, lineWidth: 1))
+                            }
+                        }
+                        if hasSomeGear {
+                            Image(systemName: gearExpanded ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 10))
+                                .foregroundStyle(Cumbre.ink.opacity(0.4))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                    .onTapGesture { gearExpanded.toggle() }
+
+                    // Expanded content
+                    if gearExpanded && hasSomeGear {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(vm.members, id: \.uid) { member in
+                                let gear = parseGear(member.gearJson)
+                                let summary = gear.isEmpty ? "" : gear.map { "\($0.value) \(gearLabel($0.key))" }.joined(separator: " \u{00B7} ")
+                                HStack(spacing: 8) {
+                                    MeetupAvatarCircle(url: member.photoUrl, size: 24)
+                                    Text(member.displayName ?? member.username ?? String(member.uid.prefix(6)))
+                                        .font(.system(size: 12, weight: .medium))
+                                    Spacer()
+                                    if !summary.isEmpty {
+                                        Text(summary)
+                                            .font(.system(size: 12))
+                                            .foregroundColor(Cumbre.ink.opacity(0.6))
+                                    } else {
+                                        Text("sin material")
+                                            .font(.system(size: 12)).italic()
+                                            .foregroundColor(Cumbre.ink.opacity(0.35))
+                                    }
+                                }
+                            }
+                            Button {
+                                showEditGear = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "pencil").font(.system(size: 10))
+                                    Text("Editar mi material").font(.system(size: 12, weight: .bold))
+                                }
+                                .foregroundColor(Cumbre.terra)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 7)
+                                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.terra, lineWidth: 1))
+                            }
+                            .padding(.top, 4)
+                        }
+                        .padding(.horizontal, 12).padding(.bottom, 8)
+                    }
+
+                    Divider()
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12).padding(.vertical, 5)
-                .background(Cumbre.ink.opacity(0.04))
             }
 
             if vm.loading {
@@ -222,6 +319,17 @@ struct GroupChatView: View {
         }
         .onAppear { vm.start() }
         .onDisappear { vm.stop() }
+        .sheet(isPresented: $showEditGear) {
+            EditGearSheet(
+                discipline: vm.discipline,
+                currentGearJson: vm.myGearJson
+            ) { json in
+                vm.updateMyGear(json)
+                showEditGear = false
+            } onCancel: {
+                showEditGear = false
+            }
+        }
     }
 
     private func scrollToLast(_ proxy: ScrollViewProxy) {

@@ -71,8 +71,21 @@ import com.meteomontana.android.data.api.KtorChatPushApi
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupByConversationUseCase
+import com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase
+import com.meteomontana.android.domain.model.MeetupMember
 import androidx.compose.material.icons.outlined.Luggage
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.foundation.shape.CircleShape
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.meteomontana.android.ui.screens.meetups.totalGearSummary
+import com.meteomontana.android.ui.screens.meetups.gearSummaryText
+import com.meteomontana.android.ui.screens.meetups.MemberAvatar
+import com.meteomontana.android.ui.screens.meetups.EditGearDialog
+import com.meteomontana.android.ui.screens.meetups.gearItemsForDiscipline
+import com.meteomontana.android.ui.screens.meetups.parseGear
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.push.MutedChatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -102,7 +115,10 @@ data class GroupChatUiState(
     val schoolLon: Double? = null,
     val schoolName: String? = null,
     val muted: Boolean = false,
-    val gearSummary: String? = null
+    val gearSummary: String? = null,
+    val members: List<MeetupMember> = emptyList(),
+    val discipline: String? = null,
+    val myGearJson: String? = null
 )
 
 @HiltViewModel
@@ -113,7 +129,8 @@ class GroupChatViewModel @Inject constructor(
     private val authService: AuthService,
     private val getPublicProfile: GetPublicProfileUseCase,
     private val getMeetupByConversation: GetMeetupByConversationUseCase,
-    private val chatPushApi: KtorChatPushApi
+    private val chatPushApi: KtorChatPushApi,
+    private val updateMyGearUseCase: UpdateMyGearUseCase
 ) : ViewModel() {
     private val convId: String = checkNotNull(savedStateHandle["convId"])
     private val me: String = authService.currentUid() ?: ""
@@ -132,13 +149,18 @@ class GroupChatViewModel @Inject constructor(
         viewModelScope.launch {
             val meetup = getMeetupByConversation.execute(convId)
             if (meetup != null) {
-                val gear = totalGearSummary(meetup.members)
+                val members = meetup.members
+                val gear = totalGearSummary(members)
+                val myGear = members.firstOrNull { it.uid == me }?.gearJson
                 _state.value = _state.value.copy(
                     meetupId = meetup.id,
                     schoolLat = meetup.schoolLat,
                     schoolLon = meetup.schoolLon,
                     schoolName = meetup.schoolName,
-                    gearSummary = gear.ifEmpty { null }
+                    gearSummary = gear.ifEmpty { null },
+                    members = members,
+                    discipline = meetup.discipline,
+                    myGearJson = myGear
                 )
             }
         }
@@ -181,6 +203,23 @@ class GroupChatViewModel @Inject constructor(
         val newMuted = !_state.value.muted
         MutedChatsStore.setMuted(appContext, convId, newMuted)
         _state.value = _state.value.copy(muted = newMuted)
+    }
+
+    fun updateMyGear(gearJson: String) {
+        val meetupId = _state.value.meetupId ?: return
+        viewModelScope.launch {
+            try {
+                val updated = updateMyGearUseCase.execute(meetupId, gearJson)
+                val members = updated.members
+                val gear = totalGearSummary(members)
+                val myGear = members.firstOrNull { it.uid == me }?.gearJson
+                _state.value = _state.value.copy(
+                    gearSummary = gear.ifEmpty { null },
+                    members = members,
+                    myGearJson = myGear
+                )
+            } catch (_: Exception) { }
+        }
     }
 
     fun send(text: String) {
@@ -269,20 +308,105 @@ fun GroupChatScreen(
             }
         }
 
-        // ── Gear banner (si hay material registrado) ──
-        state.gearSummary?.let { summary ->
-            Row(
-                modifier = Modifier.fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(Icons.Outlined.Luggage, null,
-                    modifier = Modifier.height(14.dp).width(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(summary, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        // ── Expandable gear banner ──
+        if (state.meetupId != null) {
+            var gearExpanded by remember { mutableStateOf(false) }
+            var showEditGear by remember { mutableStateOf(false) }
+            val hasSomeGear = state.gearSummary != null
+
+            Column(Modifier.fillMaxWidth()) {
+                // Header row (always visible)
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable { gearExpanded = !gearExpanded }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Outlined.Luggage, null,
+                        modifier = Modifier.height(16.dp).width(16.dp),
+                        tint = MaterialTheme.colorScheme.primary)
+                    if (hasSomeGear) {
+                        Text(state.gearSummary!!, style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Medium, fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp)),
+                            color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
+                            modifier = Modifier.weight(1f))
+                    } else {
+                        Text("Sin material indicado", style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp)),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.weight(1f))
+                        // Small inline add button for empty state
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = { showEditGear = true },
+                            shape = RoundedCornerShape(2.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(26.dp)
+                        ) {
+                            Text("+ Anadir", style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold, fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp)),
+                                color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    if (hasSomeGear) {
+                        Icon(
+                            if (gearExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                            null, modifier = Modifier.height(12.dp).width(12.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                    }
+                }
+
+                // Expanded content
+                if (gearExpanded && hasSomeGear) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        state.members.forEach { member ->
+                            val gear = gearSummaryText(member.gearJson)
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                MemberAvatar(member.photoUrl, 24.dp)
+                                Text(member.displayName ?: member.username ?: member.uid.take(6),
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)),
+                                    modifier = Modifier.weight(1f, fill = false))
+                                if (gear.isNotEmpty()) {
+                                    Text(gear, style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                } else {
+                                    Text("sin material", style = MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp),
+                                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = { showEditGear = true },
+                            shape = RoundedCornerShape(2.dp),
+                            modifier = Modifier.fillMaxWidth().height(32.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                        ) {
+                            Icon(Icons.Outlined.Edit, null, Modifier.height(14.dp).width(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Editar mi material", style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold, fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)))
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            }
+
+            if (showEditGear) {
+                EditGearDialog(
+                    discipline = state.discipline,
+                    currentGearJson = state.myGearJson,
+                    onDismiss = { showEditGear = false },
+                    onSave = { json -> showEditGear = false; viewModel.updateMyGear(json) }
+                )
             }
         }
 

@@ -694,7 +694,7 @@ private struct MeetupMemberRow: View {
     }
 }
 
-private struct MeetupAvatarCircle: View {
+struct MeetupAvatarCircle: View {
     let url: String?
     let size: CGFloat
     var body: some View {
@@ -857,7 +857,7 @@ private struct GearSectionView: View {
 
 // MARK: - Edit gear sheet
 
-private struct EditGearSheet: View {
+struct EditGearSheet: View {
     let discipline: String?
     let currentGearJson: String?
     let onSave: (String) -> Void

@@ -516,7 +516,7 @@ private fun MemberRow(member: MeetupMember, canKick: Boolean,
 }
 
 @Composable
-private fun MemberAvatar(photoUrl: String?, size: androidx.compose.ui.unit.Dp) {
+internal fun MemberAvatar(photoUrl: String?, size: androidx.compose.ui.unit.Dp) {
     Box(Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center) {
         if (photoUrl != null) {
@@ -599,7 +599,7 @@ internal fun gearLabel(key: String): String = when (key) {
 }
 
 /** Suma el material de todos los miembros. */
-private fun totalGear(members: List<MeetupMember>): Map<String, Int> {
+internal fun totalGear(members: List<MeetupMember>): Map<String, Int> {
     val totals = mutableMapOf<String, Int>()
     members.forEach { m ->
         parseGear(m.gearJson).forEach { (k, v) ->
@@ -610,7 +610,7 @@ private fun totalGear(members: List<MeetupMember>): Map<String, Int> {
 }
 
 /** Texto compacto del material de un miembro (e.g. "2 crashpads, 12 cintas"). */
-private fun gearSummaryText(gearJson: String?): String {
+internal fun gearSummaryText(gearJson: String?): String {
     val gear = parseGear(gearJson)
     if (gear.isEmpty()) return ""
     return gear.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key)}" }
@@ -709,7 +709,7 @@ private fun GearSection(
 // ── Edit gear dialog ────────────────────────────────────────────────────────
 
 @Composable
-private fun EditGearDialog(
+internal fun EditGearDialog(
     discipline: String?,
     currentGearJson: String?,
     onDismiss: () -> Unit,
@@ -763,7 +763,7 @@ private fun EditGearDialog(
 }
 
 @Composable
-private fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus: () -> Unit) {
+internal fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
