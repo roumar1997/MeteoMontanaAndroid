@@ -665,7 +665,7 @@ private fun GearSection(
                 }
             }
         } else {
-            Text("Nadie ha indicado material aun",
+            Text("Nadie ha indicado material todavía. Pulsa abajo para añadir el tuyo.",
                 style = MaterialTheme.typography.bodySmall,
                 fontStyle = FontStyle.Italic,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

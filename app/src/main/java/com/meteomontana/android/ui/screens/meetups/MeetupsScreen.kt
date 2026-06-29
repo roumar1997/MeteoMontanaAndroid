@@ -182,33 +182,7 @@ fun MeetupsScreen(
             }
         }
 
-        // ── Coach marks ──
-        com.meteomontana.android.ui.components.FirstTimeHint(
-            hintKey = "meetups_intro",
-            text = "Crea quedadas, filtra por día o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estás unido."
-        )
-        com.meteomontana.android.ui.components.FirstTimeHint(
-            hintKey = "meetups_alert_v2",
-            text = "🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los días, escuela o distancia que te interesan."
-        )
-
-        // ── Mapa (fuera del LazyColumn para que el MapView sea estable) ──
-        MeetupsMapPanel(
-            meetups = displayedMeetups,
-            expanded = mapExpanded,
-            onToggle = { mapExpanded = !mapExpanded },
-            onSchoolSelected = { schoolId ->
-                val name = displayedMeetups.firstOrNull { it.schoolId == schoolId }?.schoolName
-                    ?: state.meetups.firstOrNull { it.schoolId == schoolId }?.schoolName
-                viewModel.setFilterSchool(schoolId, name)
-                mapExpanded = false
-            },
-            userLat = uLat,
-            userLon = uLon,
-            maxDistanceKm = state.maxDistanceKm
-        )
-
-        // ── Filtros + lista en LazyColumn scrollable ──
+        // ── Todo en LazyColumn scrollable (mapa scrollea con el resto) ──
         when {
             state.isLoading && displayedMeetups.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -231,6 +205,38 @@ fun MeetupsScreen(
                     contentPadding = PaddingValues(bottom = Spacing.xxl)
                 ) {
                     // Toggle filtros
+                    // Coach marks
+                    item(key = "hints") {
+                        Column {
+                            com.meteomontana.android.ui.components.FirstTimeHint(
+                                hintKey = "meetups_intro",
+                                text = "Crea quedadas, filtra por día o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estás unido."
+                            )
+                            com.meteomontana.android.ui.components.FirstTimeHint(
+                                hintKey = "meetups_alert_v2",
+                                text = "🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los días, escuela o distancia que te interesan."
+                            )
+                        }
+                    }
+
+                    // Mapa (dentro del scroll)
+                    item(key = "map") {
+                        MeetupsMapPanel(
+                            meetups = displayedMeetups,
+                            expanded = mapExpanded,
+                            onToggle = { mapExpanded = !mapExpanded },
+                            onSchoolSelected = { schoolId ->
+                                val name = displayedMeetups.firstOrNull { it.schoolId == schoolId }?.schoolName
+                                    ?: state.meetups.firstOrNull { it.schoolId == schoolId }?.schoolName
+                                viewModel.setFilterSchool(schoolId, name)
+                                mapExpanded = false
+                            },
+                            userLat = uLat,
+                            userLon = uLon,
+                            maxDistanceKm = state.maxDistanceKm
+                        )
+                    }
+
                     item(key = "filter_toggle") {
                         Row(
                             modifier = Modifier

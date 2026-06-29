@@ -812,7 +812,7 @@ private struct GearSectionView: View {
                     }
                 }
             } else {
-                Text("Nadie ha indicado material aun")
+                Text("Nadie ha indicado material todavia. Pulsa abajo para añadir el tuyo.")
                     .font(.caption).italic().foregroundColor(Cumbre.ink.opacity(0.5))
             }
 
