@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -96,7 +97,7 @@ fun ProfileScreen(
     // LazyColumn interior tenga restricción vertical (si no, crashea).
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)) {
-        SheetHeader("Cuenta", onBack)
+        SheetHeader(stringResource(R.string.profile_title), onBack)
         when (val s = state) {
             ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
             is ProfileUiState.Error -> CenterBox { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
@@ -146,7 +147,7 @@ private fun SheetHeader(title: String, onClose: () -> Unit) {
             modifier = Modifier.align(Alignment.CenterStart)
         )
         TextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterEnd)) {
-            Text("Cerrar", color = MaterialTheme.colorScheme.primary,
+            Text(stringResource(R.string.common_close), color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge)
         }
     }
@@ -182,7 +183,7 @@ private fun Content(
         if (offline) {
             item {
                 Text(
-                    "SIN CONEXIÓN · datos guardados",
+                    stringResource(R.string.common_offline_data),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier
@@ -240,7 +241,7 @@ private fun Content(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("PANEL ADMIN", color = MaterialTheme.colorScheme.primary,
+                        Text(stringResource(R.string.profile_admin_panel).uppercase(), color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.labelLarge)
                         // Aviso: nº de propuestas/contribuciones pendientes de revisar.
                         if (pendingReview > 0) {
@@ -263,7 +264,7 @@ private fun Content(
         }
         item {
             TextButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
-                Text("CERRAR SESIÓN", color = MaterialTheme.colorScheme.error,
+                Text(stringResource(R.string.profile_logout).uppercase(), color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelLarge)
             }
         }
@@ -271,7 +272,7 @@ private fun Content(
             var showDelete by remember { mutableStateOf(false) }
             TextButton(onClick = { showDelete = true },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-                Text("Eliminar cuenta",
+                Text(stringResource(R.string.profile_delete_account),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium)
             }
@@ -286,7 +287,7 @@ private fun Content(
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showDelete = false }) { Text("Cancelar") }
+                        TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.common_cancel)) }
                     }
                 )
             }
@@ -357,8 +358,8 @@ private fun Header(
         // Seguidores / siguiendo centrados.
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-            FollowCount(followers, "SEGUIDORES", onClickFollowers)
-            FollowCount(following, "SIGUIENDO", onClickFollowing)
+            FollowCount(followers, stringResource(R.string.profile_followers).uppercase(), onClickFollowers)
+            FollowCount(following, stringResource(R.string.profile_following).uppercase(), onClickFollowing)
         }
     }
 }
@@ -400,19 +401,19 @@ private fun ProfileMenu(
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     Column(Modifier.fillMaxWidth()) {
-        MenuRow(Icons.Outlined.Edit, "Editar perfil", onEdit)
+        MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        MenuRow(Icons.Outlined.Download, "Escuelas guardadas (offline)", onSavedSchools)
+        MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        MenuRow(Icons.Outlined.Notifications, "Alerta de tiempo", onWeekendAlert)
+        MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        MenuRow(Icons.Outlined.Place, "Mis propuestas", onSubmissions)
+        MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_proposals), onSubmissions)
         if (showRequests) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-            MenuRow(Icons.Outlined.PersonAdd, "Solicitudes de seguimiento", onOpenFollowRequests)
+            MenuRow(Icons.Outlined.PersonAdd, stringResource(R.string.profile_follow_requests), onOpenFollowRequests)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, "Volver a ver las pistas") {
+        MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
             com.meteomontana.android.ui.components.resetAllHints(ctx)
             android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
         }
@@ -454,14 +455,14 @@ private fun StatsRow(
     ) {
         // Fila 1: contadores BLOQUES / VÍAS / ESCUELAS.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCell("BLOQUES", stats.boulderCount.toString(), Modifier.weight(1f).clickable(onClick = onBoulders))
-            StatCell("VÍAS", stats.routeCount.toString(), Modifier.weight(1f).clickable(onClick = onRoutes))
-            StatCell("ESCUELAS", stats.schoolCount.toString(), Modifier.weight(1f).clickable(onClick = onSchools))
+            StatCell(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f).clickable(onClick = onBoulders))
+            StatCell(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f).clickable(onClick = onRoutes))
+            StatCell(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f).clickable(onClick = onSchools))
         }
         // Fila 2: grado máximo separado por modalidad (escalas distintas).
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCell("MÁX BLOQUE", stats.maxBoulderGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
-            StatCell("MÁX VÍA", stats.maxRouteGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
+            StatCell(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
+            StatCell(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
         }
     }
 }
@@ -493,7 +494,7 @@ private fun AddBlockButton(onClick: () -> Unit) {
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Text("+ AÑADIR BLOQUE", color = Color.White,
+        Text(stringResource(R.string.profile_add_block), color = Color.White,
             style = MaterialTheme.typography.labelLarge)
     }
 }

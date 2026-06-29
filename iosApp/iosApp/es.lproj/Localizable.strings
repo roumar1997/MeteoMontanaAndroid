@@ -1,0 +1,241 @@
+/* Common */
+"common_cancel" = "Cancelar";
+"common_save" = "Guardar";
+"common_delete" = "Eliminar";
+"common_close" = "Cerrar";
+"common_back" = "Volver";
+"common_retry" = "REINTENTAR";
+"common_search" = "Buscar";
+"common_share" = "Compartir";
+"common_report" = "Denunciar";
+"common_loading" = "Cargando…";
+"common_error" = "Error";
+"common_ok" = "Aceptar";
+"common_yes" = "Sí";
+"common_no" = "No";
+"common_confirm" = "Confirmar";
+"common_send" = "Enviar";
+"common_done" = "Hecho";
+"common_edit" = "Editar";
+"common_all" = "Todos";
+"common_offline" = "SIN CONEXIÓN";
+"common_offline_data" = "SIN CONEXIÓN · datos guardados";
+"common_no_connection" = "Sin conexión a internet";
+"common_directions" = "CÓMO LLEGAR";
+"common_view_school" = "Ver escuela";
+"common_filters" = "FILTROS";
+
+/* Tabs */
+"tab_weather" = "Tiempo";
+"tab_schools" = "Escuelas";
+"tab_meetups" = "Quedadas";
+
+/* Login */
+"login_tagline" = "Tiempo para escalar";
+"login_google" = "Continuar con Google";
+"login_apple" = "Continuar con Apple";
+"login_terms" = "TÉRMINOS";
+"login_privacy" = "PRIVACIDAD";
+
+/* Schools */
+"schools_title" = "Escuelas";
+"schools_submit" = "+ Enviar escuela";
+"schools_view_map" = "VER MAPA";
+"schools_hide_map" = "OCULTAR MAPA";
+"schools_filter_all" = "Todas";
+"schools_filter_boulder" = "Bloque";
+"schools_filter_route" = "Vía";
+"schools_filter_favorites" = "Favoritos";
+"schools_filter_saved" = "Guardados";
+"schools_sort_score" = "Mejor score";
+"schools_sort_distance" = "Más cercanas";
+"schools_empty" = "No hay escuelas con estos filtros";
+"schools_clear_filters" = "QUITAR FILTROS";
+"schools_compare" = "COMPARAR";
+"schools_rock_dry" = "SECA";
+"schools_rock_wet" = "MOJADA";
+
+/* Detail */
+"detail_yes" = "SÍ";
+"detail_no" = "NO";
+"detail_index" = "ÍNDICE";
+"detail_why_index" = "¿POR QUÉ ESTE ÍNDICE?";
+"detail_factors" = "FACTORES";
+"detail_next_hours" = "Próximas 16 horas";
+"detail_temperature" = "Temperatura";
+"detail_humidity" = "Humedad";
+"detail_wind" = "Viento";
+"detail_rain_prob" = "Prob. lluvia";
+"detail_optimal_window" = "Óptimo entre";
+"detail_best_day" = "★ MEJOR DÍA";
+"detail_next_days" = "Próximos 7 días";
+"detail_notes" = "NOTAS";
+"detail_write_note" = "Escribe una nota…";
+"detail_school_map" = "MAPA DE LA ESCUELA";
+"detail_propose" = "+ PROPONER";
+"detail_save_offline" = "Guardar offline";
+"detail_saved_offline" = "Guardada offline";
+
+/* Propose */
+"propose_parking" = "PARKING";
+"propose_boulder" = "NUEVA PIEDRA";
+"propose_sector" = "NUEVO SECTOR";
+"propose_correct" = "CORREGIR POSICIÓN";
+"propose_tap_map" = "PULSA EN EL MAPA";
+"propose_name" = "Nombre";
+"propose_description" = "Descripción";
+"propose_submit" = "ENVIAR PROPUESTA";
+"propose_success" = "PROPUESTA ENVIADA";
+"propose_success_detail" = "La revisamos en 24-48h";
+"propose_success_admin" = "PUBLICADO";
+"propose_geometry" = "GEOMETRÍA";
+"propose_geometry_point" = "PUNTO";
+"propose_geometry_wall" = "MURO";
+"propose_direction_ltr" = "IZQ → DER";
+"propose_direction_rtl" = "DER → IZQ";
+"propose_discipline_boulder" = "BLOQUE";
+"propose_discipline_route" = "VÍA";
+"propose_add_photo" = "+ AÑADIR FOTO";
+"propose_draw_lines" = "DIBUJAR LÍNEAS";
+"propose_save_lines" = "GUARDAR LÍNEAS";
+"propose_undo" = "DESHACER";
+"propose_ready" = "LISTO";
+"propose_assign_sector" = "+ ASIGNAR SECTOR";
+"propose_change_sector" = "CAMBIAR SECTOR";
+
+/* Profile */
+"profile_title" = "Cuenta";
+"profile_blocks" = "BLOQUES";
+"profile_routes" = "VÍAS";
+"profile_schools" = "ESCUELAS";
+"profile_max_boulder" = "MÁX BLOQUE";
+"profile_max_route" = "MÁX VÍA";
+"profile_followers" = "Seguidores";
+"profile_following" = "Siguiendo";
+"profile_follow" = "Seguir";
+"profile_unfollow" = "Siguiendo";
+"profile_requested" = "Solicitado";
+"profile_edit" = "Editar perfil";
+"profile_saved_schools" = "Escuelas guardadas";
+"profile_weather_alert" = "Alerta de tiempo";
+"profile_my_proposals" = "Mis propuestas";
+"profile_follow_requests" = "Solicitudes";
+"profile_add_block" = "+ AÑADIR BLOQUE";
+"profile_logout" = "Cerrar sesión";
+"profile_delete_account" = "Eliminar cuenta";
+"profile_delete_confirm" = "¿Seguro que quieres eliminar tu cuenta? Se borrarán todos tus datos. Esta acción no se puede deshacer.";
+"profile_show_hints" = "Volver a ver las pistas";
+"profile_admin_panel" = "Panel Admin";
+
+/* Chat */
+"chat_title" = "Mensajes";
+"chat_new" = "Nuevo mensaje";
+"chat_new_group" = "Nuevo grupo";
+"chat_write" = "Escribe un mensaje";
+"chat_delete_confirm" = "¿Borrar esta conversación? Solo se borra para ti.";
+"chat_empty" = "Sin mensajes todavía";
+"chat_message" = "MENSAJE";
+
+/* Notifications */
+"notifications_title" = "Notificaciones";
+"notifications_mark_read" = "Marcar leído";
+"notifications_delete_all" = "Borrar todas";
+"notifications_empty" = "Sin notificaciones";
+
+/* Weather */
+"weather_title" = "Tiempo";
+"weather_your_location" = "Tu ubicación";
+"weather_enable_location" = "ACTIVAR UBICACIÓN";
+
+/* Meetups */
+"meetups_title" = "Quedadas";
+"meetups_create" = "Crear quedada";
+"meetups_empty" = "Sin quedadas activas";
+"meetups_view_map" = "VER MAPA DE QUEDADAS";
+"meetups_filter_all" = "Todos";
+"meetups_filter_following" = "Seguidos";
+"meetups_filter_women" = "No mixto";
+"meetups_filter_open" = "Abierto";
+"meetups_alert" = "Alertas de quedadas";
+"meetups_joined" = "Unido";
+"meetups_full" = "Completa";
+
+/* Meetup detail */
+"meetup_detail_title" = "Quedada";
+"meetup_detail_organized_by" = "ORGANIZA";
+"meetup_detail_details" = "DETALLES";
+"meetup_detail_material" = "MATERIAL";
+"meetup_detail_no_material" = "Nadie ha indicado material todavía. Pulsa abajo para añadir el tuyo.";
+"meetup_detail_edit_gear" = "Editar mi material";
+"meetup_detail_add_gear" = "+ Añadir";
+"meetup_detail_my_gear" = "Mi material";
+"meetup_detail_no_gear" = "sin material";
+"meetup_detail_participants" = "PARTICIPANTES";
+"meetup_detail_join" = "UNIRSE A LA QUEDADA";
+"meetup_detail_leave" = "SALIR DE LA QUEDADA";
+"meetup_detail_leave_confirm" = "¿Seguro que quieres salir de esta quedada?";
+"meetup_detail_delete" = "Eliminar quedada";
+"meetup_detail_delete_confirm" = "Se eliminará la quedada y su chat de grupo. ¿Continuar?";
+
+/* Create meetup */
+"create_meetup_title" = "Crear quedada";
+"create_meetup_name" = "Nombre de la quedada";
+"create_meetup_school" = "Escuela";
+"create_meetup_school_search" = "Buscar escuela…";
+"create_meetup_days" = "Días";
+"create_meetup_privacy_open" = "Abierta";
+"create_meetup_privacy_followers" = "Seguidos/Seguidores";
+"create_meetup_privacy_women" = "No mixto";
+"create_meetup_no_limit" = "Sin límite";
+"create_meetup_create" = "CREAR QUEDADA";
+
+/* Gear */
+"gear_crashpads" = "Crashpads";
+"gear_cintas" = "Cintas";
+"gear_cuerda" = "Cuerdas";
+"gear_grigri" = "Gri-gri";
+
+/* Admin */
+"admin_title" = "Panel Admin";
+"admin_proposals" = "PROPUESTAS";
+"admin_manage" = "GESTIONAR";
+"admin_stats" = "STATS";
+"admin_activity" = "ACTIVIDAD";
+"admin_push" = "PUSH";
+"admin_approve" = "APROBAR";
+"admin_reject" = "RECHAZAR";
+"admin_view_map" = "VER EN MAPA";
+
+/* Compare */
+"compare_title" = "Comparar";
+"compare_best_today" = "HOY MEJOR";
+
+/* Map */
+"map_topo" = "Topo";
+"map_satellite" = "Satélite";
+
+/* Block */
+"block_add_routes" = "+ AÑADIR VÍAS";
+"block_edit_routes" = "✎ EDITAR / AÑADIR VÍAS";
+
+/* Donate */
+"donate_title" = "¿Te ayuda la app?";
+"donate_body" = "Cumbre es gratis y sin anuncios. Si te resulta útil, puedes invitarme a un café.";
+"donate_button" = "☕ INVÍTAME A UN CAFÉ";
+
+/* Search */
+"search_users_title" = "Buscar usuarios";
+"search_users_hint" = "Nombre o @usuario…";
+
+/* Empty states */
+"empty_journal" = "Marca vías como hechas en el detalle de una escuela y aparecerán aquí.";
+"empty_saved" = "Guarda escuelas para verlas sin conexión.";
+"empty_chat" = "Busca a alguien para empezar a hablar.";
+
+/* Share */
+"share_school_prefix" = "Mira esta escuela de escalada en Cumbre:";
+"share_meetup_prefix" = "¡Quedada para escalar!";
+"share_download" = "Descarga la app:";
+
+/* Submit school */
+"submit_school_title" = "Enviar escuela";

@@ -60,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -86,6 +87,7 @@ import com.meteomontana.android.ui.screens.meetups.MemberAvatar
 import com.meteomontana.android.ui.screens.meetups.EditGearDialog
 import com.meteomontana.android.ui.screens.meetups.gearItemsForDiscipline
 import com.meteomontana.android.ui.screens.meetups.parseGear
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.push.MutedChatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -264,7 +266,7 @@ fun GroupChatScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, "Volver")
+                Icon(Icons.Outlined.ArrowBack, stringResource(R.string.common_back))
             }
             // Nombre + subtítulo (pulsable si es quedada)
             Column(
@@ -303,7 +305,7 @@ fun GroupChatScreen(
             }
             // Cerrar
             TextButton(onClick = onBack) {
-                Text("Cerrar", color = MaterialTheme.colorScheme.primary,
+                Text(stringResource(R.string.common_close), color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold)
             }
         }
@@ -470,7 +472,7 @@ fun GroupChatScreen(
                     value = text,
                     onValueChange = { text = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Escribe un mensaje",
+                    placeholder = { Text(stringResource(R.string.chat_write),
                         style = MaterialTheme.typography.bodyMedium) },
                     maxLines = 4,
                     shape = RoundedCornerShape(24.dp),
@@ -487,7 +489,7 @@ fun GroupChatScreen(
                     onClick = { if (text.isNotBlank()) { viewModel.send(text); text = "" } },
                     enabled = text.isNotBlank()
                 ) {
-                    Icon(Icons.Outlined.Send, contentDescription = "Enviar",
+                    Icon(Icons.Outlined.Send, contentDescription = stringResource(R.string.common_send),
                         tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurfaceVariant)
                 }

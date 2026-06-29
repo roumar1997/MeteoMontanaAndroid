@@ -114,7 +114,7 @@ fun MeetupDetailScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, "Volver")
+                Icon(Icons.Outlined.ArrowBack, stringResource(R.string.common_back))
             }
             Text(stringResource(R.string.meetup_detail_title), modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

@@ -32,7 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Current
 import com.meteomontana.android.domain.model.Forecast
 
@@ -67,7 +69,7 @@ fun LazyListScope.forecastBody(
     item { CurrentWeather(forecast.current) }
     afterCurrentWeather?.invoke(this)
     item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-    item { SectionTitle("PRÓXIMAS 16 HORAS") }
+    item { SectionTitle(stringResource(R.string.detail_next_hours)) }
     item {
         Box(modifier = Modifier.padding(vertical = 8.dp)) {
             HourlyScoreGrid(hours = forecast.hours)
@@ -75,7 +77,7 @@ fun LazyListScope.forecastBody(
     }
     item { ConditionsGrid(forecast.current) }
     item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-    item { SectionTitle("PRÓXIMOS 7 DÍAS") }
+    item { SectionTitle(stringResource(R.string.detail_next_days)) }
     itemsIndexed(forecast.days.take(7)) { i, d ->
         DayRow(day = d, dayIndex = i, onClick = onDayClick?.let { { it(i) } })
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
@@ -86,7 +88,7 @@ fun LazyListScope.forecastBody(
 @Composable
 fun HeroSection(forecast: Forecast) {
     val cur = forecast.current
-    val verdict = if (cur.score >= 55) "SÍ" else "NO"
+    val verdict = if (cur.score >= 55) stringResource(R.string.detail_yes) else stringResource(R.string.detail_no)
     val window = forecast.bestWindow
 
     Row(
@@ -113,7 +115,7 @@ fun HeroSection(forecast: Forecast) {
             }
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("ÍNDICE",
+            Text(stringResource(R.string.detail_index),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(verticalAlignment = Alignment.Bottom) {
@@ -174,7 +176,7 @@ fun FactorsAccordion(current: Current, expanded: Boolean, onToggle: () -> Unit) 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("¿POR QUÉ ESTE ÍNDICE?",
+            Text(stringResource(R.string.detail_why_index),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Icon(
@@ -228,7 +230,7 @@ fun ConditionsGrid(cur: Current) {
             ConditionCell("LLUVIA 72H", "${cur.precip72h}", "mm", Modifier.weight(1f))
             ConditionCell("ROCÍO", cur.dewPoint?.let { "${it.toInt()}" } ?: "—", "°", Modifier.weight(1f))
             ConditionCell("PROB LLUVIA", "${cur.precipitationProbability}", "%", Modifier.weight(1f))
-            ConditionCell("ROCA", if (cur.dryRock) "SECA" else "HÚM", "", Modifier.weight(1f))
+            ConditionCell("ROCA", if (cur.dryRock) stringResource(R.string.schools_rock_dry) else "HÚM", "", Modifier.weight(1f))
         }
     }
 }
@@ -263,7 +265,7 @@ fun BestDayBar(forecast: Forecast) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text("★ MEJOR DÍA",
+            Text(stringResource(R.string.detail_best_day),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("En ${best.daysFromToday}d (${best.score})",

@@ -38,8 +38,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.meteomontana.android.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.domain.model.Inbox
@@ -161,10 +163,10 @@ fun NotificationsScreen(
             text = { Text("Se eliminarán todas tus notificaciones. No se puede deshacer.") },
             confirmButton = {
                 TextButton(onClick = { showDeleteAll = false; viewModel.deleteAll() }) {
-                    Text("Borrar todas", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.notifications_delete_all), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { showDeleteAll = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { showDeleteAll = false }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 
@@ -175,7 +177,7 @@ fun NotificationsScreen(
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)) {
         // Cabecera de sheet (título centrado + "Cerrar"), como Cuenta.
-        com.meteomontana.android.ui.components.SheetHeader("Notificaciones", onClose = onBack)
+        com.meteomontana.android.ui.components.SheetHeader(stringResource(R.string.notifications_title), onClose = onBack)
         // Acciones en su propia fila a la derecha, solo si hay algo que tocar.
         if (hasItems) {
             Row(
@@ -184,12 +186,12 @@ fun NotificationsScreen(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = viewModel::markAllRead) {
-                    Text("Marcar leído",
+                    Text(stringResource(R.string.notifications_mark_read),
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelLarge)
                 }
                 TextButton(onClick = { showDeleteAll = true }) {
-                    Text("Borrar todas",
+                    Text(stringResource(R.string.notifications_delete_all),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelLarge)
                 }
@@ -208,7 +210,7 @@ fun NotificationsScreen(
                 if (s.inbox.items.isEmpty()) {
                     com.meteomontana.android.ui.components.EmptyState(
                         icon = Icons.Outlined.Notifications,
-                        title = "Sin notificaciones",
+                        title = stringResource(R.string.notifications_empty),
                         message = "Aquí te avisaremos de nuevos seguidores, solicitudes, mensajes y novedades de tus propuestas."
                     )
                 } else {

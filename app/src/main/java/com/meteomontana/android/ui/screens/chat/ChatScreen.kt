@@ -62,7 +62,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.port.ChatService
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -164,7 +166,7 @@ fun ChatScreen(
                     value = text,
                     onValueChange = { text = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Escribe un mensaje",
+                    placeholder = { Text(stringResource(R.string.chat_write),
                         style = MaterialTheme.typography.bodyMedium) },
                     maxLines = 4,
                     shape = RoundedCornerShape(24.dp),
@@ -183,7 +185,7 @@ fun ChatScreen(
                     },
                     enabled = text.isNotBlank()
                 ) {
-                    Icon(Icons.Outlined.Send, contentDescription = "Enviar",
+                    Icon(Icons.Outlined.Send, contentDescription = stringResource(R.string.common_send),
                         tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurfaceVariant)
                 }

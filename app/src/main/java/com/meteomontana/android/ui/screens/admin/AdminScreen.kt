@@ -77,6 +77,8 @@ import com.meteomontana.android.ui.components.toTopoLines
 import com.meteomontana.android.ui.components.pinBitmap
 import com.meteomontana.android.ui.components.pinBitmapBoulder
 import org.maplibre.android.annotations.IconFactory
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Moss

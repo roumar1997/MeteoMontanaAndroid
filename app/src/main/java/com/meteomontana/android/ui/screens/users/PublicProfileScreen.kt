@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -144,7 +145,7 @@ fun PublicProfileScreen(
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text("Perfil", style = MaterialTheme.typography.headlineMedium,
@@ -232,9 +233,9 @@ private fun Body(
             }
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-                FollowCount(s.status.followers, "SEGUIDORES",
+                FollowCount(s.status.followers, stringResource(R.string.profile_followers).uppercase(),
                     if (locked) ({}) else onFollowersClick)
-                FollowCount(s.status.following, "SIGUIENDO",
+                FollowCount(s.status.following, stringResource(R.string.profile_following).uppercase(),
                     if (locked) ({}) else onFollowingClick)
             }
         }
@@ -257,7 +258,7 @@ private fun Body(
                     .clickable(onClick = onMessage),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Mensaje", style = MaterialTheme.typography.labelLarge,
+                    Text(stringResource(R.string.chat_message), style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onBackground)
                 }
             }

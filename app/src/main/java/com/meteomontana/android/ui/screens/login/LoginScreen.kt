@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meteomontana.android.R
 import com.meteomontana.android.data.auth.AuthManager
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
@@ -67,7 +68,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 )
                 Spacer(Modifier.height(20.dp))
                 Text(
-                    "CUMBRE",
+                    stringResource(R.string.login_title),
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold,
                     fontSize = 36.sp,
@@ -76,13 +77,13 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "MeteoMontana",
+                    stringResource(R.string.login_subtitle),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "Tiempo para escalar",
+                    stringResource(R.string.login_tagline),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -135,7 +136,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    "TÉRMINOS",
+                    stringResource(R.string.login_terms),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
@@ -143,7 +144,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                         .padding(8.dp)
                 )
                 Text(
-                    "PRIVACIDAD",
+                    stringResource(R.string.login_privacy),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
@@ -179,7 +180,7 @@ private fun GoogleSignInButton(onClick: () -> Unit) {
             )
             Spacer(Modifier.padding(start = 10.dp))
             Text(
-                "Continuar con Google",
+                stringResource(R.string.login_google),
                 style = MaterialTheme.typography.labelLarge,
                 color = Color.White
             )

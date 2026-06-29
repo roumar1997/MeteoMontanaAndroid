@@ -37,6 +37,8 @@ import com.meteomontana.android.domain.model.FavoriteSchool
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.components.FavoritesGridTable
 import com.meteomontana.android.ui.components.forecastBody
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -54,25 +56,25 @@ fun WeatherScreen(
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when (val s = state) {
             WeatherUiState.Loading -> {
-                TopBar(title = "Tiempo", subtitle = "")
+                TopBar(title = stringResource(R.string.weather_title), subtitle = "")
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
             WeatherUiState.NeedPermission -> {
-                TopBar(title = "Tiempo", subtitle = "")
+                TopBar(title = stringResource(R.string.weather_title), subtitle = "")
                 PermissionPrompt { locationPermission.launchPermissionRequest() }
             }
             is WeatherUiState.Error -> {
-                TopBar(title = "Tiempo", subtitle = "")
+                TopBar(title = stringResource(R.string.weather_title), subtitle = "")
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
                 }
             }
             is WeatherUiState.Success -> {
                 TopBar(
-                    title = "Tiempo",
-                    subtitle = if (s.selectedFavoriteId == null) "En tu ubicación"
+                    title = stringResource(R.string.weather_title),
+                    subtitle = if (s.selectedFavoriteId == null) stringResource(R.string.weather_your_location)
                                else s.favorites.firstOrNull { it.id == s.selectedFavoriteId }?.name ?: ""
                 )
                 if (s.favorites.isNotEmpty()) {
@@ -128,7 +130,7 @@ private fun FavoriteChips(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item { CumbreChip("Ubicación", selectedId == null, { onSelect(null) }) }
+        item { CumbreChip(stringResource(R.string.weather_your_location), selectedId == null, { onSelect(null) }) }
         items(favorites) { fav ->
             CumbreChip(fav.name, fav.id == selectedId, { onSelect(fav.id) })
         }

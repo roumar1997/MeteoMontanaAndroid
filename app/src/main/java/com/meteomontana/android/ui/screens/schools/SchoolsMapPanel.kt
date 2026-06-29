@@ -54,6 +54,8 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import com.meteomontana.android.domain.util.Geo
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Panel desplegable "VER MAPA" en la pantalla de escuelas.
@@ -103,7 +105,7 @@ fun SchoolsMapPanel(
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                if (expanded) "OCULTAR MAPA" else "VER MAPA",
+                if (expanded) stringResource(R.string.schools_hide_map) else stringResource(R.string.schools_view_map),
                 style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
@@ -249,9 +251,9 @@ private fun MapBody(
                 .padding(Spacing.sm),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            MapStyleChip(label = "TOPO", selected = !isSatellite,
+            MapStyleChip(label = stringResource(R.string.map_topo).uppercase(), selected = !isSatellite,
                 onClick = { isSatellite = false })
-            MapStyleChip(label = "SATÉLITE", selected = isSatellite,
+            MapStyleChip(label = stringResource(R.string.map_satellite).uppercase(), selected = isSatellite,
                 onClick = { isSatellite = true })
         }
 
@@ -491,7 +493,7 @@ private fun MarkerPreviewCard(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             OutlinedAction(
-                text = "CÓMO LLEGAR",
+                text = stringResource(R.string.common_directions),
                 onClick = {
                     val intent = Intent(
                         Intent.ACTION_VIEW,

@@ -53,6 +53,8 @@ import com.meteomontana.android.ui.components.SchoolListItem
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.TerraBg
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -151,7 +153,7 @@ fun SchoolListScreen(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Buscar escuela…") },
+                        placeholder = { Text(stringResource(R.string.common_search) + "…") },
                         singleLine = true,
                         shape = MaterialTheme.shapes.small,
                         colors = TextFieldDefaults.colors(
@@ -267,12 +269,12 @@ fun SchoolListScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    "No hay escuelas con esos filtros",
+                                    stringResource(R.string.schools_empty),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(Modifier.height(Spacing.md))
-                                OutlinedCumbreButton(text = "QUITAR FILTROS", onClick = viewModel::clearFilters)
+                                OutlinedCumbreButton(text = stringResource(R.string.schools_clear_filters), onClick = viewModel::clearFilters)
                             }
                         }
                     }
@@ -295,7 +297,7 @@ fun SchoolListScreen(
                 IconButton(onClick = viewModel::clearCompare) {
                     Icon(
                         Icons.Outlined.Close,
-                        contentDescription = "Quitar selección",
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.background
                     )
                 }
@@ -316,7 +318,7 @@ fun SchoolListScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "COMPARAR ▸",
+                            stringResource(R.string.schools_compare) + " ▸",
                             style = MaterialTheme.typography.labelLarge,
                             color = androidx.compose.ui.graphics.Color.White
                         )
@@ -422,7 +424,7 @@ private fun TopIconsRow(
     ) {
         com.meteomontana.android.ui.components.HelpButton(topicKey = "schools")
         IconButton(onClick = onSearchUsers) {
-            Icon(Icons.Outlined.Search, contentDescription = "Buscar usuarios",
+            Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_users_title),
                 tint = MaterialTheme.colorScheme.onBackground)
         }
         IconButton(onClick = onChats) {
@@ -432,11 +434,11 @@ private fun TopIconsRow(
                         Text(if (chatUnread > 9) "9+" else chatUnread.toString(), color = Color.White)
                     }
                 }) {
-                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Chats",
+                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = stringResource(R.string.chat_title),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
             } else {
-                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Chats",
+                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = stringResource(R.string.chat_title),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
@@ -447,17 +449,17 @@ private fun TopIconsRow(
                         Text(if (unread > 9) "9+" else unread.toString(), color = Color.White)
                     }
                 }) {
-                    Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
+                    Icon(Icons.Outlined.Notifications, contentDescription = stringResource(R.string.notifications_title),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
             } else {
-                Icon(Icons.Outlined.Notifications, contentDescription = "Notificaciones",
+                Icon(Icons.Outlined.Notifications, contentDescription = stringResource(R.string.notifications_title),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
         ThemeToggleButton()
         IconButton(onClick = onProfileClick) {
-            Icon(Icons.Outlined.Person, contentDescription = "Perfil",
+            Icon(Icons.Outlined.Person, contentDescription = stringResource(R.string.profile_title),
                 tint = MaterialTheme.colorScheme.onBackground)
         }
     }
@@ -476,7 +478,7 @@ private fun ThemeToggleButton() {
     IconButton(onClick = vm::toggle) {
         Icon(
             imageVector = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-            contentDescription = "Cambiar tema",
+            contentDescription = null,
             tint = MaterialTheme.colorScheme.onBackground
         )
     }
@@ -504,19 +506,19 @@ private fun HeaderEscuelas(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "Escuelas",
+                stringResource(R.string.schools_title),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
             if (count != null) {
                 Text(
-                    "$count escuelas",
+                    stringResource(R.string.schools_count, count),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-        OutlinedCumbreButton(text = "+ Enviar escuela", onClick = onSubmitSchool)
+        OutlinedCumbreButton(text = stringResource(R.string.schools_submit), onClick = onSubmitSchool, textColor = Terra)
     }
 }
 
@@ -638,7 +640,7 @@ private fun DonateDialog(onDismiss: () -> Unit) {
  * padding excesivos, así que lo construimos como Box clickable.
  */
 @Composable
-private fun OutlinedCumbreButton(text: String, onClick: () -> Unit) {
+private fun OutlinedCumbreButton(text: String, onClick: () -> Unit, textColor: Color? = null) {
     Box(
         modifier = Modifier
             .clip(MaterialTheme.shapes.small)
@@ -649,7 +651,7 @@ private fun OutlinedCumbreButton(text: String, onClick: () -> Unit) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            color = if (text == "+ Enviar escuela") Terra else MaterialTheme.colorScheme.onBackground
+            color = textColor ?: MaterialTheme.colorScheme.onBackground
         )
     }
 }
@@ -692,6 +694,6 @@ private fun ErrorRow(message: String, onRetry: () -> Unit) {
             color = MaterialTheme.colorScheme.error
         )
         Spacer(Modifier.height(Spacing.md))
-        OutlinedCumbreButton(text = "REINTENTAR", onClick = onRetry)
+        OutlinedCumbreButton(text = stringResource(R.string.common_retry), onClick = onRetry)
     }
 }

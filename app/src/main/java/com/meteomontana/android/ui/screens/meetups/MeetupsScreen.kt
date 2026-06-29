@@ -60,9 +60,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Meetup
 import com.meteomontana.android.domain.util.Geo
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
@@ -151,7 +153,7 @@ fun MeetupsScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text("QUEDADAS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.meetups_title).uppercase(), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     text = if (displayedMeetups.isEmpty()) "Quedar a escalar"
@@ -195,7 +197,7 @@ fun MeetupsScreen(
                         Text("No se pudo cargar", style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(Spacing.sm))
-                        TextButton(onClick = { viewModel.loadMeetups() }) { Text("REINTENTAR") }
+                        TextButton(onClick = { viewModel.loadMeetups() }) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
             }
@@ -251,7 +253,7 @@ fun MeetupsScreen(
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.size(6.dp))
-                            Text("FILTROS", style = EyebrowTextStyle,
+                            Text(stringResource(R.string.common_filters), style = EyebrowTextStyle,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f))
                             if (activeFilterCount > 0) {
@@ -284,16 +286,16 @@ fun MeetupsScreen(
                                 FilterGroupLabel("TIPO DE GRUPO")
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FilterChip("Todos", state.filterRelation == null && state.filterPrivacy == null) {
+                                    FilterChip(stringResource(R.string.meetups_filter_all), state.filterRelation == null && state.filterPrivacy == null) {
                                         viewModel.setFilterRelation(null); viewModel.setFilterPrivacy(null)
                                     }
-                                    FilterChip("Siguiendo", state.filterRelation == "following") {
+                                    FilterChip(stringResource(R.string.meetups_filter_following), state.filterRelation == "following") {
                                         viewModel.setFilterRelation(if (state.filterRelation == "following") null else "following")
                                     }
-                                    FilterChip("Seguidos/Seguidores", state.filterPrivacy == "FOLLOWERS") {
+                                    FilterChip(stringResource(R.string.create_meetup_privacy_followers), state.filterPrivacy == "FOLLOWERS") {
                                         viewModel.setFilterPrivacy(if (state.filterPrivacy == "FOLLOWERS") null else "FOLLOWERS")
                                     }
-                                    FilterChip("No mixto", state.filterPrivacy == "WOMEN") {
+                                    FilterChip(stringResource(R.string.meetups_filter_women), state.filterPrivacy == "WOMEN") {
                                         if (myGender == "WOMAN") viewModel.setFilterPrivacy(
                                             if (state.filterPrivacy == "WOMEN") null else "WOMEN")
                                         else showWomenGateDialog = true
@@ -341,7 +343,7 @@ fun MeetupsScreen(
                                     Icon(Icons.Outlined.Search, null, Modifier.size(16.dp),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(
-                                        text = state.filterSchoolName ?: "Buscar escuela…",
+                                        text = state.filterSchoolName ?: stringResource(R.string.create_meetup_school_search),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = if (state.filterSchoolName != null) MaterialTheme.colorScheme.onSurface
                                                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -369,7 +371,7 @@ fun MeetupsScreen(
                                 Icon(Icons.Outlined.Groups, null, Modifier.size(48.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(Spacing.md))
-                                Text("Sin quedadas activas", style = MaterialTheme.typography.bodyLarge,
+                                Text(stringResource(R.string.meetups_empty), style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(Spacing.sm))
                                 Text("Crea una para quedar a escalar", style = MaterialTheme.typography.bodyMedium,
@@ -523,7 +525,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
                     Box(Modifier.clip(RoundedCornerShape(2.dp))
                         .background(MaterialTheme.colorScheme.primary)
                         .padding(horizontal = Spacing.sm, vertical = 2.dp)) {
-                        Text("UNIDO", style = MaterialTheme.typography.labelSmall,
+                        Text(stringResource(R.string.meetups_joined).uppercase(), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -531,7 +533,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
                     Box(Modifier.clip(RoundedCornerShape(2.dp))
                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                         .padding(horizontal = Spacing.sm, vertical = 2.dp)) {
-                        Text("LLENO", style = MaterialTheme.typography.labelSmall,
+                        Text(stringResource(R.string.meetups_full).uppercase(), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -621,7 +623,7 @@ private fun MeetupSchoolFilterDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
     )
 }
 

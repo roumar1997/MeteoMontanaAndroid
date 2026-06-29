@@ -57,6 +57,8 @@ import com.meteomontana.android.ui.theme.Spacing
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Botón "?" reutilizable que abre la hoja de ayuda contextual de una pantalla.
@@ -199,7 +201,7 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        "Volver a ver todas las pistas",
+                        stringResource(R.string.profile_show_hints),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
