@@ -31,8 +31,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.meteomontana.android.R
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -161,7 +163,7 @@ fun JournalEntriesScreen(
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(viewModel.title, style = MaterialTheme.typography.headlineMedium,
@@ -202,7 +204,7 @@ fun JournalEntriesScreen(
                                         .padding(horizontal = 16.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("VER ESCUELA",
+                                    Text(stringResource(R.string.common_view_school),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.primary)
                                 }

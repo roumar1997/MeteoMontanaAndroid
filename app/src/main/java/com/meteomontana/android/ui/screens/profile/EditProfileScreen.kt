@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -71,10 +72,10 @@ fun EditProfileScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Editar perfil", style = MaterialTheme.typography.headlineLarge,
+            Text(stringResource(R.string.profile_edit), style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)

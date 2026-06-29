@@ -497,7 +497,7 @@ private fun TypePickerDialog(
                 .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center
         ) {
-            Text("CERRAR", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurface)
+            Text(stringResource(R.string.common_close).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -611,7 +611,7 @@ private fun SectorFormDialog(
                 .clickable(enabled = !sending, onClick = onCancel)
                 .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center) {
-                Text("CANCELAR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
             }
             Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
@@ -623,7 +623,7 @@ private fun SectorFormDialog(
                 contentAlignment = Alignment.Center) {
                 if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
                     color = Color.White, strokeWidth = 2.dp)
-                else Text("ENVIAR PROPUESTA", style = EyebrowTextStyle, color = Color.White)
+                else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
             }
         }
     }
@@ -700,7 +700,7 @@ private fun ParkingFormDialog(
                 .clickable(enabled = !sending, onClick = onCancel)
                 .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center) {
-                Text("CANCELAR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
             }
             Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
@@ -710,7 +710,7 @@ private fun ParkingFormDialog(
                 contentAlignment = Alignment.Center) {
                 if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
                     color = Color.White, strokeWidth = 2.dp)
-                else Text("ENVIAR PROPUESTA", style = EyebrowTextStyle, color = Color.White)
+                else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
             }
         }
     }
@@ -770,7 +770,7 @@ private fun BoulderFormDialog(
         Spacer(Modifier.height(Spacing.md))
 
         // ── Modalidad: BLOQUE o VÍA ───────────────────────────────────────────────
-        Text("MODALIDAD", style = EyebrowTextStyle,
+        Text(stringResource(R.string.propose_discipline), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?",
@@ -781,7 +781,7 @@ private fun BoulderFormDialog(
         Spacer(Modifier.height(Spacing.md))
 
         // ── Geometría: PUNTO o MURO ───────────────────────────────────────────────
-        Text("GEOMETRÍA", style = EyebrowTextStyle,
+        Text(stringResource(R.string.propose_geometry), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.",
@@ -821,7 +821,7 @@ private fun BoulderFormDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(Spacing.md))
-            Text("SENTIDO DE NUMERACIÓN", style = EyebrowTextStyle,
+            Text(stringResource(R.string.propose_direction), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
             DirectionSelector(selected = direction, onSelect = onDirectionChange)
@@ -911,7 +911,7 @@ private fun BoulderFormDialog(
                         }
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
-                    Text("+ AÑADIR FOTO", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.propose_add_photo), style = EyebrowTextStyle, color = Terra)
                 }
             }
         }
@@ -1106,7 +1106,7 @@ private fun BoulderFormDialog(
                 .clickable(enabled = !sending, onClick = onCancel)
                 .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center) {
-                Text("CANCELAR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
             }
             Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
@@ -1116,7 +1116,7 @@ private fun BoulderFormDialog(
                 contentAlignment = Alignment.Center) {
                 if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
                     color = Color.White, strokeWidth = 2.dp)
-                else Text("ENVIAR PROPUESTA", style = EyebrowTextStyle, color = Color.White)
+                else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
             }
         }
     }
@@ -1135,7 +1135,7 @@ fun DisciplineSelector(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        listOf("BOULDER" to "BLOQUE", "ROUTE" to "VÍA").forEach { (value, label) ->
+        listOf("BOULDER" to stringResource(R.string.propose_discipline_boulder), "ROUTE" to stringResource(R.string.propose_discipline_route)).forEach { (value, label) ->
             val sel = selected == value
             Box(
                 modifier = Modifier
@@ -1170,7 +1170,7 @@ fun GeometrySelector(
     onSelect: (String) -> Unit
 ) {
     SegmentedSelector(
-        options = listOf("POINT" to "PUNTO", "LINE" to "MURO"),
+        options = listOf("POINT" to stringResource(R.string.propose_geometry_point), "LINE" to stringResource(R.string.propose_geometry_wall)),
         selected = selected,
         onSelect = onSelect
     )
@@ -1185,7 +1185,7 @@ fun DirectionSelector(
     onSelect: (String) -> Unit
 ) {
     SegmentedSelector(
-        options = listOf("LTR" to "IZQ → DER", "RTL" to "DER → IZQ"),
+        options = listOf("LTR" to stringResource(R.string.propose_direction_ltr), "RTL" to stringResource(R.string.propose_direction_rtl)),
         selected = selected,
         onSelect = onSelect
     )

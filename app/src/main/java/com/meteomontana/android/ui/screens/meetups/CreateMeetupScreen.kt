@@ -56,11 +56,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.CreateMeetupRequest
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
@@ -123,9 +125,9 @@ fun CreateMeetupScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Cancelar")
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_cancel))
             }
-            Text("Nueva quedada", modifier = Modifier.weight(1f),
+            Text(stringResource(R.string.create_meetup_title), modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
         HorizontalDivider()
@@ -200,7 +202,7 @@ fun CreateMeetupScreen(
                 Icon(Icons.Outlined.School, contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 Text(
-                    text = if (schoolName.isNotBlank()) schoolName else "Buscar escuela…",
+                    text = if (schoolName.isNotBlank()) schoolName else stringResource(R.string.create_meetup_school_search),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (schoolName.isNotBlank()) MaterialTheme.colorScheme.onSurface
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -239,7 +241,7 @@ fun CreateMeetupScreen(
             FieldLabel("LÍMITE DE PARTICIPANTES (opcional)")
             OutlinedTextField(
                 value = limitText, onValueChange = { limitText = it.filter { c -> c.isDigit() } },
-                placeholder = { Text("Sin límite") },
+                placeholder = { Text(stringResource(R.string.create_meetup_no_limit)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -295,7 +297,7 @@ fun CreateMeetupScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (submitting) CircularProgressIndicator(Modifier.size(18.dp), color = MaterialTheme.colorScheme.onPrimary)
-                else Text("CREAR QUEDADA")
+                else Text(stringResource(R.string.create_meetup_create))
             }
         }
     }
@@ -386,10 +388,13 @@ private fun nextNDays(n: Int): List<Pair<Pair<String, String>, String>> {
 
 @Composable
 private fun PrivacySelector(selected: String, onSelected: (String) -> Unit) {
+    val openLabel = stringResource(R.string.create_meetup_privacy_open)
+    val followersLabel = stringResource(R.string.create_meetup_privacy_followers)
+    val womenLabel = stringResource(R.string.create_meetup_privacy_women)
     val options = listOf(
-        "OPEN" to "Abierta",
-        "FOLLOWERS" to "Solo seguidores",
-        "WOMEN" to "No mixto"
+        "OPEN" to openLabel,
+        "FOLLOWERS" to followersLabel,
+        "WOMEN" to womenLabel
     )
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         options.forEach { (key, label) ->
@@ -489,7 +494,7 @@ private fun SchoolPickerDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }

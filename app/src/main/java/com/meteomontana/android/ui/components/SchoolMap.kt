@@ -67,9 +67,9 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 
-private enum class MapStyleOption(val label: String) {
-    SATELLITE("Satélite"),
-    TOPO("Topográfico")
+private enum class MapStyleOption(val labelResId: Int) {
+    SATELLITE(R.string.map_satellite),
+    TOPO(R.string.map_topo)
 }
 
 private fun styleJsonFor(style: MapStyleOption): String = when (style) {
@@ -400,7 +400,7 @@ private fun InnerMap(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             MapStyleOption.entries.forEach { option ->
-                StyleChip(option.label, currentStyle == option) {
+                StyleChip(stringResource(option.labelResId), currentStyle == option) {
                     if (currentStyle != option) {
                         currentStyle = option
                         mapViewRef.value?.getMapAsync { map ->
@@ -766,7 +766,7 @@ private fun CumbreSuccessDialog(
                         .clickable(onClick = onClose)
                         .padding(vertical = Spacing.md),
                         contentAlignment = Alignment.Center) {
-                        Text("CERRAR", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.common_close).uppercase(), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurface)
                     }
                     Box(modifier = Modifier.weight(1.5f)

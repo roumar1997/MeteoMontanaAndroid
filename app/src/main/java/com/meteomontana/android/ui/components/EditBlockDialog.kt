@@ -226,7 +226,7 @@ fun EditBlockDialog(
             // Para BLOCK: modalidad (bloque/vía)
             if (block.type == "BLOCK") {
                 Spacer(Modifier.height(Spacing.md))
-                Text("MODALIDAD", style = EyebrowTextStyle,
+                Text(stringResource(R.string.propose_discipline), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 com.meteomontana.android.ui.screens.detail.DisciplineSelector(

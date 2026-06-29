@@ -351,7 +351,7 @@ fun BlockDetailDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (block.sectorBlockId == null) "+ ASIGNAR SECTOR" else "CAMBIAR SECTOR",
+                        if (block.sectorBlockId == null) stringResource(R.string.propose_assign_sector) else stringResource(R.string.propose_change_sector),
                         style = EyebrowTextStyle, color = Terra
                     )
                 }

@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
@@ -37,6 +38,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
@@ -191,7 +193,7 @@ fun FollowListScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(viewModel.title, style = MaterialTheme.typography.headlineMedium,
@@ -272,9 +274,9 @@ private fun UserRow(
         // para poder seguir desde aquí sin entrar al perfil. No para mí mismo.
         if (!isMe) {
             val label = when {
-                iFollow   -> "Siguiendo"
-                requested -> "Solicitado"
-                else      -> "Seguir"
+                iFollow   -> stringResource(R.string.profile_unfollow)
+                requested -> stringResource(R.string.profile_requested)
+                else      -> stringResource(R.string.profile_follow)
             }
             RowActionButton(
                 text = label,
@@ -285,7 +287,7 @@ private fun UserRow(
         }
         // "Eliminar" solo en MI lista de seguidores → fuerza que dejen de seguirme.
         if (onRemove != null) {
-            RowActionButton(text = "Eliminar", filled = false, onClick = onRemove)
+            RowActionButton(text = stringResource(R.string.common_delete), filled = false, onClick = onRemove)
         }
     }
 }

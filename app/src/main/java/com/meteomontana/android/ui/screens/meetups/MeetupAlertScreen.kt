@@ -48,9 +48,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
@@ -81,12 +83,12 @@ fun MeetupAlertScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver")
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
             }
             Icon(Icons.Outlined.NotificationsActive, contentDescription = null,
                 modifier = Modifier.size(20.dp).padding(end = 4.dp),
                 tint = MaterialTheme.colorScheme.primary)
-            Text("Alertas de quedadas", modifier = Modifier.weight(1f),
+            Text(stringResource(R.string.meetup_alert_title), modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
         HorizontalDivider()
@@ -251,6 +253,6 @@ private fun AlertSchoolPickerDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
     )
 }

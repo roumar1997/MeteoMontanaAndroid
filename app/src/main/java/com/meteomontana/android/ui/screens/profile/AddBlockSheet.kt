@@ -33,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.meteomontana.android.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -358,7 +360,7 @@ fun AddBlockSheet(
                 shape = MaterialTheme.shapes.small
             ) { Text("GUARDAR") }
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.common_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Spacer(Modifier.height(16.dp))
