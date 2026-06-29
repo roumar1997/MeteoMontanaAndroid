@@ -56,9 +56,9 @@ targets:
       path: iosApp/Info.plist
       properties:
         CFBundleDisplayName: Cumbre
-        # Versión espejo de Android (versionName 1.7 / versionCode 10).
-        CFBundleShortVersionString: "1.7"
-        CFBundleVersion: "10"
+        # Versión espejo de Android (versionName 1.8 / versionCode 11).
+        CFBundleShortVersionString: "1.8"
+        CFBundleVersion: "11"
         UILaunchScreen: {}
         # Fuentes bundladas (mismas familias que Android: Source Serif 4 para
         # nombres/títulos, JetBrains Mono para eyebrows/dígitos).
