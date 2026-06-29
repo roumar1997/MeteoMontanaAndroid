@@ -651,7 +651,7 @@ struct FlowLayoutView: Layout {
     }
 }
 
-enum MeetupSheet: Identifiable {
+enum MeetupSheet: Identifiable, Equatable {
     case create
     case detail(String)
     case chat(String, String)   // convId, groupName
