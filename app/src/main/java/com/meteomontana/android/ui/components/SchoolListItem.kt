@@ -32,6 +32,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
@@ -196,8 +198,8 @@ private fun DryWetTag(dry: Boolean?, rainProb: Int?, rainMm: Double?) {
     ) {
         Text(
             text = when (dry) {
-                true  -> "● SECA"
-                false -> "● MOJADA"
+                true  -> "● ${stringResource(R.string.schools_rock_dry)}"
+                false -> "● ${stringResource(R.string.schools_rock_wet)}"
                 null  -> ""
             },
             style = MaterialTheme.typography.labelMedium.copy(

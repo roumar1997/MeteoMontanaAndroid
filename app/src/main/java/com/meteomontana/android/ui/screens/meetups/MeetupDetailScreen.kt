@@ -126,7 +126,7 @@ fun MeetupDetailScreen(
                         context, m.name, m.schoolName, m.days, m.discipline,
                         m.memberCount, m.memberLimit)
                 }) {
-                    Icon(Icons.Outlined.Share, "Compartir", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Outlined.Share, stringResource(R.string.common_share), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             state.meetup?.conversationId?.let { convId ->
@@ -138,7 +138,7 @@ fun MeetupDetailScreen(
             }
             if (state.meetup != null && state.meetup?.creatorUid != myUid) {
                 IconButton(onClick = { showReportDialog = true }) {
-                    Icon(Icons.Outlined.Flag, "Denunciar",
+                    Icon(Icons.Outlined.Flag, stringResource(R.string.common_report),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -178,8 +178,8 @@ fun MeetupDetailScreen(
         if (showDeleteConfirm) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
-                title = { Text("Eliminar quedada") },
-                text = { Text("Se eliminará la quedada y su chat de grupo. ¿Continuar?") },
+                title = { Text(stringResource(R.string.meetup_detail_delete)) },
+                text = { Text(stringResource(R.string.meetup_detail_delete_confirm)) },
                 confirmButton = {
                     TextButton(onClick = {
                         showDeleteConfirm = false
@@ -199,14 +199,14 @@ fun MeetupDetailScreen(
                         Text("SALIR", color = MaterialTheme.colorScheme.error)
                     }
                 },
-                dismissButton = { TextButton(onClick = { showLeaveConfirm = false }) { Text("CANCELAR") } }
+                dismissButton = { TextButton(onClick = { showLeaveConfirm = false }) { Text(stringResource(R.string.common_cancel).uppercase()) } }
             )
         }
         if (reportDone) {
             LaunchedEffect(Unit) { kotlinx.coroutines.delay(3000); reportDone = false }
             Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondaryContainer)
                 .padding(Spacing.sm), contentAlignment = Alignment.Center) {
-                Text("Denuncia enviada", style = MaterialTheme.typography.bodySmall,
+                Text(stringResource(R.string.meetup_detail_report_done), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
         }
@@ -220,7 +220,7 @@ fun MeetupDetailScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("No se pudo cargar la quedada")
                         Spacer(Modifier.height(Spacing.sm))
-                        TextButton(onClick = { viewModel.loadMeetup(meetupId) }) { Text("REINTENTAR") }
+                        TextButton(onClick = { viewModel.loadMeetup(meetupId) }) { Text(stringResource(R.string.common_retry)) }
                     }
                 }
             }
@@ -258,7 +258,7 @@ fun MeetupDetailScreen(
                                     ?.let { it.displayName ?: it.username }
                                     ?: meetup.creatorUsername ?: "Organizador"
                                 Column {
-                                    Text("ORGANIZA", style = EyebrowTextStyle,
+                                    Text(stringResource(R.string.meetup_detail_organized_by), style = EyebrowTextStyle,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(creatorName, style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium)
@@ -276,7 +276,7 @@ fun MeetupDetailScreen(
                                     ) {
                                         Icon(Icons.Outlined.Directions, null, Modifier.size(16.dp))
                                         Spacer(Modifier.size(6.dp))
-                                        Text("Como llegar", style = MaterialTheme.typography.labelMedium)
+                                        Text(stringResource(R.string.common_directions), style = MaterialTheme.typography.labelMedium)
                                     }
                                 }
                                 meetup.schoolName?.let { schoolName ->
@@ -287,7 +287,7 @@ fun MeetupDetailScreen(
                                     ) {
                                         Icon(Icons.Outlined.Terrain, null, Modifier.size(16.dp))
                                         Spacer(Modifier.size(6.dp))
-                                        Text("Ver escuela", style = MaterialTheme.typography.labelMedium)
+                                        Text(stringResource(R.string.common_view_school), style = MaterialTheme.typography.labelMedium)
                                     }
                                 }
                             }
@@ -358,7 +358,7 @@ fun MeetupDetailScreen(
                         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             Row(verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                Text("DETALLES", style = EyebrowTextStyle,
+                                Text(stringResource(R.string.meetup_detail_details), style = EyebrowTextStyle,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 if (isCreator) {
                                     IconButton(onClick = { showEditDescription = true }, Modifier.size(28.dp)) {
@@ -409,12 +409,12 @@ fun MeetupDetailScreen(
                                         border = androidx.compose.foundation.BorderStroke(
                                             1.dp, MaterialTheme.colorScheme.error),
                                         shape = RoundedCornerShape(2.dp)
-                                    ) { Text("ELIMINAR QUEDADA") }
+                                    ) { Text(stringResource(R.string.meetup_detail_delete).uppercase()) }
                                 }
                                 meetup.joined -> OutlinedButton(onClick = { showLeaveConfirm = true },
                                     enabled = !state.leaving, modifier = Modifier.fillMaxWidth()) {
                                     if (state.leaving) CircularProgressIndicator(Modifier.size(16.dp))
-                                    else Text("SALIR DE LA QUEDADA")
+                                    else Text(stringResource(R.string.meetup_detail_leave))
                                 }
                                 meetup.isFull -> Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant).padding(Spacing.sm),
@@ -433,7 +433,7 @@ fun MeetupDetailScreen(
                                     shape = RoundedCornerShape(2.dp)) {
                                     if (state.joining) CircularProgressIndicator(Modifier.size(16.dp),
                                         color = MaterialTheme.colorScheme.onPrimary)
-                                    else Text("UNIRSE A LA QUEDADA")
+                                    else Text(stringResource(R.string.meetup_detail_join))
                                 }
                             }
                         }
@@ -449,7 +449,7 @@ fun MeetupDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             Icon(Icons.Outlined.Person, null, Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$limitText PARTICIPANTES", style = EyebrowTextStyle,
+                            Text("$limitText ${stringResource(R.string.meetup_detail_participants)}", style = EyebrowTextStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -503,7 +503,7 @@ private fun MemberRow(member: MeetupMember, canKick: Boolean,
         }
         if (canKick) {
             IconButton(onClick = { showConfirm = true }) {
-                Icon(Icons.Outlined.PersonRemove, "Expulsar", tint = MaterialTheme.colorScheme.error)
+                Icon(Icons.Outlined.PersonRemove, stringResource(R.string.meetup_detail_kick), tint = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -513,7 +513,7 @@ private fun MemberRow(member: MeetupMember, canKick: Boolean,
             text = { Text("¿Expulsar a ${member.displayName ?: member.username}?") },
             confirmButton = { TextButton(onClick = { showConfirm = false; onKick() }) {
                 Text("EXPULSAR", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { showConfirm = false }) { Text("CANCELAR") } })
+            dismissButton = { TextButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.common_cancel).uppercase()) } })
     }
 }
 
@@ -542,8 +542,8 @@ private fun EditDescriptionDialog(initial: String, saving: Boolean,
             placeholder = { Text("Material, nivel, punto de encuentro, hora…") },
             minLines = 3, maxLines = 8) },
         confirmButton = { TextButton(onClick = { onSave(text) }, enabled = !saving) {
-            if (saving) CircularProgressIndicator(Modifier.size(16.dp)) else Text("GUARDAR") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR") } })
+            if (saving) CircularProgressIndicator(Modifier.size(16.dp)) else Text(stringResource(R.string.common_save).uppercase()) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel).uppercase()) } })
 }
 
 @Composable
@@ -556,7 +556,7 @@ private fun ReportMeetupDialog(onDismiss: () -> Unit, onReport: (String) -> Unit
             reasons.forEach { (code, label) -> TextButton(onClick = { onReport(code) },
                 modifier = Modifier.fillMaxWidth()) { Text(label, Modifier.fillMaxWidth()) } }
         } }, confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR") } })
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel).uppercase()) } })
 }
 
 private fun detailScoreColor(score: Int): Color = when {
@@ -643,7 +643,7 @@ private fun GearSection(
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Icon(Icons.Outlined.Luggage, null, Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("MATERIAL", style = EyebrowTextStyle,
+            Text(stringResource(R.string.meetup_detail_material), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -667,7 +667,7 @@ private fun GearSection(
                 }
             }
         } else {
-            Text("Nadie ha indicado material todavía. Pulsa abajo para añadir el tuyo.",
+            Text(stringResource(R.string.meetup_detail_no_material),
                 style = MaterialTheme.typography.bodySmall,
                 fontStyle = FontStyle.Italic,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -686,7 +686,7 @@ private fun GearSection(
                     Text(gear, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    Text("sin material", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.meetup_detail_no_gear), style = MaterialTheme.typography.bodySmall,
                         fontStyle = FontStyle.Italic,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                 }
@@ -702,7 +702,7 @@ private fun GearSection(
             ) {
                 Icon(Icons.Outlined.Edit, null, Modifier.size(16.dp))
                 Spacer(Modifier.size(6.dp))
-                Text("Editar mi material", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.meetup_detail_edit_gear), style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -729,7 +729,7 @@ internal fun EditGearDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Mi material") },
+        title = { Text(stringResource(R.string.meetup_detail_my_gear)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Text("Indica el material que llevas a la quedada",
@@ -758,9 +758,9 @@ internal fun EditGearDialog(
                 onClick = { onSave(buildGearJson(gearState)) },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(2.dp)
-            ) { Text("GUARDAR") }
+            ) { Text(stringResource(R.string.common_save).uppercase()) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel).uppercase()) } }
     )
 }
 

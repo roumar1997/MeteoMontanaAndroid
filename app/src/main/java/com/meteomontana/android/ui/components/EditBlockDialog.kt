@@ -32,10 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.data.api.dto.CreateBlockLineRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
@@ -269,7 +271,7 @@ fun EditBlockDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("CANCELAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
                 Box(

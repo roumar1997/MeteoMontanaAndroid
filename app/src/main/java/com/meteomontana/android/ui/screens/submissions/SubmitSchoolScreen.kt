@@ -40,6 +40,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.data.api.dto.SubmitSchoolRequest
 
 @Composable
@@ -69,10 +71,10 @@ fun SubmitSchoolScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Proponer escuela", style = MaterialTheme.typography.headlineLarge,
+            Text(stringResource(R.string.submit_school_title), style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -160,7 +162,7 @@ fun SubmitSchoolScreen(
                     ),
                     shape = MaterialTheme.shapes.small
                 ) {
-                    Text("ENVIAR PROPUESTA")
+                    Text(stringResource(R.string.propose_submit))
                 }
             }
 

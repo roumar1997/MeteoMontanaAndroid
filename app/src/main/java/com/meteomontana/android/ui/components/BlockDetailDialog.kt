@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
@@ -199,7 +200,7 @@ fun BlockDetailDialog(
                     if (face.lines.isNotEmpty()) {
                         Spacer(Modifier.height(Spacing.sm))
                         Text(
-                            "VÍAS (${face.lines.size})",
+                            "${stringResource(R.string.block_routes)} (${face.lines.size})",
                             style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -313,7 +314,7 @@ fun BlockDetailDialog(
                     .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("→ CÓMO LLEGAR", style = EyebrowTextStyle, color = Color.White)
+                Text("→ ${stringResource(R.string.common_directions)}", style = EyebrowTextStyle, color = Color.White)
             }
 
             // Botón editor por cara (corregir/repintar/añadir + cambiar foto) —
@@ -329,7 +330,7 @@ fun BlockDetailDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(if (block.lines.isEmpty()) "+ AÑADIR VÍAS" else "✎ EDITAR / CORREGIR VÍAS",
+                    Text(if (block.lines.isEmpty()) stringResource(R.string.block_add_routes) else stringResource(R.string.block_edit_routes),
                         style = EyebrowTextStyle, color = Terra)
                 }
             }
@@ -431,7 +432,7 @@ fun BlockDetailDialog(
             confirmButton = {},
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showLinePicker = false }) {
-                    Text("CANCELAR")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -465,7 +466,7 @@ fun BlockDetailDialog(
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("CANCELAR")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -520,7 +521,7 @@ fun BlockDetailDialog(
             confirmButton = {},
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showSectorPicker = false }) {
-                    Text("CANCELAR")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )

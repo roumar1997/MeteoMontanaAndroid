@@ -77,6 +77,8 @@ import com.meteomontana.android.ui.components.toTopoLines
 import com.meteomontana.android.ui.components.pinBitmap
 import com.meteomontana.android.ui.components.pinBitmapBoulder
 import org.maplibre.android.annotations.IconFactory
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Moss
@@ -133,13 +135,13 @@ internal fun SubmissionCard(
                 .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))
                 .clickable { onReject(s.id, null) }.padding(Spacing.sm),
                 contentAlignment = Alignment.Center) {
-                Text("RECHAZAR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.admin_reject), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.error)
             }
             Box(modifier = Modifier.weight(1f).clip(RoundedCornerShape(2.dp))
                 .background(Moss).clickable { onApprove(s.id) }.padding(Spacing.sm),
                 contentAlignment = Alignment.Center) {
-                Text("APROBAR", style = EyebrowTextStyle, color = Color.White)
+                Text(stringResource(R.string.admin_approve), style = EyebrowTextStyle, color = Color.White)
             }
         }
     }

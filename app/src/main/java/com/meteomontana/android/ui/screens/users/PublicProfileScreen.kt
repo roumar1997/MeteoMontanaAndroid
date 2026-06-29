@@ -282,7 +282,7 @@ private fun Body(
             )
             if (s.stats.bySchool.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
-                Text("ESCUELAS",
+                Text(stringResource(R.string.profile_schools),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp))
@@ -320,14 +320,14 @@ private fun ActivityStatsRow(
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox("BLOQUES", stats.boulderCount.toString(), Modifier.weight(1f), onBlocksClick)
-            StatBox("VÍAS", stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick)
-            StatBox("ESCUELAS", stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick)
+            StatBox(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f), onBlocksClick)
+            StatBox(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick)
+            StatBox(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick)
         }
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox("MÁX BLOQUE", stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick)
-            StatBox("MÁX VÍA", stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick)
+            StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick)
+            StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick)
         }
     }
 }
@@ -397,9 +397,9 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
 @Composable
 private fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: () -> Unit) {
     val text = when {
-        iFollow         -> "Dejar de seguir"
-        requestPending  -> "Solicitud enviada"
-        else            -> "Seguir"
+        iFollow         -> stringResource(R.string.profile_unfollow)
+        requestPending  -> stringResource(R.string.profile_requested)
+        else            -> stringResource(R.string.profile_follow)
     }
     val filled = !iFollow && !requestPending
     val bg = if (filled) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.surface

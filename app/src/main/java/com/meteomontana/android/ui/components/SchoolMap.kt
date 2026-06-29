@@ -45,7 +45,9 @@ import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
 import com.meteomontana.android.ui.screens.detail.ProposeContributionFlow
@@ -149,7 +151,7 @@ fun SchoolMap(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp)
                     )
-                    Text("MAPA DE LA ESCUELA",
+                    Text(stringResource(R.string.detail_school_map),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = EyebrowTextStyle)
                 }
@@ -560,7 +562,7 @@ private fun InnerMap(
                     .clickable(onClick = onProposeClick)
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
-                Text("+ PROPONER", style = EyebrowTextStyle, color = Color.White)
+                Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
             }
 
         }

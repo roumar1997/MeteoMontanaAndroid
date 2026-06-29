@@ -78,6 +78,8 @@ import com.meteomontana.android.ui.components.toTopoLines
 import com.meteomontana.android.ui.components.pinBitmap
 import com.meteomontana.android.ui.components.pinBitmapBoulder
 import org.maplibre.android.annotations.IconFactory
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Moss
@@ -201,7 +203,7 @@ internal fun PushTab(
             ),
             shape = MaterialTheme.shapes.small
         ) {
-            Text(if (busy) "Enviando..." else "ENVIAR PUSH")
+            Text(if (busy) "Enviando..." else stringResource(R.string.common_send))
         }
         result?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium,

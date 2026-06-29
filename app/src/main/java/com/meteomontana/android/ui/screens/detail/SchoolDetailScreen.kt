@@ -45,6 +45,8 @@ import com.meteomontana.android.ui.components.BlocksSection
 import com.meteomontana.android.ui.components.MonthlyStatsSection
 import com.meteomontana.android.ui.components.NotesSection
 import com.meteomontana.android.ui.components.forecastBody
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.Spacing
 
 @Composable
@@ -108,7 +110,7 @@ fun SchoolDetailScreen(
                     Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(Spacing.md))
                     androidx.compose.material3.OutlinedButton(onClick = viewModel::load) {
-                        Text("REINTENTAR")
+                        Text(stringResource(R.string.common_retry))
                     }
                 }
             }
@@ -167,7 +169,7 @@ private fun TopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+            Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                 tint = MaterialTheme.colorScheme.onBackground)
         }
         Text(title, style = MaterialTheme.typography.titleLarge,
@@ -176,13 +178,13 @@ private fun TopBar(
         com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
         if (onDirections != null) {
             IconButton(onClick = onDirections) {
-                Icon(Icons.Outlined.Place, contentDescription = "Cómo llegar",
+                Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
         if (onShare != null) {
             IconButton(onClick = onShare) {
-                Icon(Icons.Outlined.Share, contentDescription = "Compartir",
+                Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
@@ -190,7 +192,7 @@ private fun TopBar(
             IconButton(onClick = onToggleSaveOffline) {
                 Icon(
                     imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
-                    contentDescription = if (isSavedOffline) "Quitar de offline" else "Guardar para offline",
+                    contentDescription = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
                     tint = if (isSavedOffline) MaterialTheme.colorScheme.primary
                            else MaterialTheme.colorScheme.onBackground
                 )
@@ -330,7 +332,7 @@ private fun StaleForecastBanner(timestamp: Long, onRetry: () -> Unit) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f))
-        Text("REINTENTAR",
+        Text(stringResource(R.string.common_retry),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable(onClick = onRetry))

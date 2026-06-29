@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -82,11 +84,11 @@ fun SearchUsersScreen(
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)) {
-        com.meteomontana.android.ui.components.SheetHeader("Buscar usuarios", onClose = onBack)
+        com.meteomontana.android.ui.components.SheetHeader(stringResource(R.string.search_users_title), onClose = onBack)
         Spacer(Modifier.padding(top = 8.dp))
         OutlinedTextField(
             value = q, onValueChange = viewModel::setQuery,
-            placeholder = { Text("Username o nombre...") },
+            placeholder = { Text(stringResource(R.string.search_users_hint)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         )

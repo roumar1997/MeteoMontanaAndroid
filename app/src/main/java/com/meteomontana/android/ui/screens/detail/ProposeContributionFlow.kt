@@ -57,6 +57,8 @@ import coil.compose.AsyncImage
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.FileRef
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Moss
@@ -1418,14 +1420,14 @@ private fun SuccessDialog(
             }
             Spacer(Modifier.height(Spacing.lg))
             if (isAdmin) {
-                Text("PUBLICADO", style = EyebrowTextStyle,
+                Text(stringResource(R.string.propose_success_admin), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
                 Text("Se ha publicado directamente en el mapa.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                Text("PROPUESTA ENVIADA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.propose_success), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
                 Text("Un admin la revisará en ",
@@ -1446,14 +1448,14 @@ private fun SuccessDialog(
                     .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                     .clickable(onClick = onClose).padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center) {
-                    Text("CERRAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.common_close), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
                 Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
                     .background(MaterialTheme.colorScheme.onBackground)
                     .clickable(onClick = onMyProposals).padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center) {
-                    Text("VER MIS PROPUESTAS", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.propose_view_my), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.background)
                 }
             }
