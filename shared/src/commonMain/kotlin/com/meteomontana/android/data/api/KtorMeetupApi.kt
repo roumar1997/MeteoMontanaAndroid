@@ -59,6 +59,12 @@ class KtorMeetupApi(private val client: HttpClient) {
         }
     }
 
+    suspend fun updateMyGear(meetupId: String, gearJson: String): MeetupDto =
+        client.put("meetups/$meetupId/my-gear") {
+            contentType(ContentType.Application.Json)
+            setBody(mapOf("gearJson" to gearJson))
+        }.body()
+
     suspend fun reportMeetup(meetupId: String, req: ReportRequestDto) {
         client.post("meetups/$meetupId/report") {
             contentType(ContentType.Application.Json)

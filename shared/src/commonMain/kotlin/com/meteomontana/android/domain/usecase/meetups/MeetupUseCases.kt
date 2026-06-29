@@ -126,6 +126,12 @@ class KickMeetupMemberUseCase(
     }
 }
 
+class UpdateMyGearUseCase(private val api: KtorMeetupApi) {
+    suspend fun execute(meetupId: String, gearJson: String): Meetup {
+        return api.updateMyGear(meetupId, gearJson).toDomain()
+    }
+}
+
 class DeleteMeetupUseCase(private val api: KtorMeetupApi) {
     suspend fun execute(meetupId: String) { api.deleteMeetup(meetupId) }
 }

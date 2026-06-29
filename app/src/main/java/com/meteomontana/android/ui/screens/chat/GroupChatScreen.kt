@@ -71,6 +71,8 @@ import com.meteomontana.android.data.api.KtorChatPushApi
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupByConversationUseCase
+import androidx.compose.material.icons.outlined.Luggage
+import com.meteomontana.android.ui.screens.meetups.totalGearSummary
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.push.MutedChatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -99,7 +101,8 @@ data class GroupChatUiState(
     val schoolLat: Double? = null,
     val schoolLon: Double? = null,
     val schoolName: String? = null,
-    val muted: Boolean = false
+    val muted: Boolean = false,
+    val gearSummary: String? = null
 )
 
 @HiltViewModel
@@ -129,11 +132,13 @@ class GroupChatViewModel @Inject constructor(
         viewModelScope.launch {
             val meetup = getMeetupByConversation.execute(convId)
             if (meetup != null) {
+                val gear = totalGearSummary(meetup.members)
                 _state.value = _state.value.copy(
                     meetupId = meetup.id,
                     schoolLat = meetup.schoolLat,
                     schoolLon = meetup.schoolLon,
-                    schoolName = meetup.schoolName
+                    schoolName = meetup.schoolName,
+                    gearSummary = gear.ifEmpty { null }
                 )
             }
         }
@@ -261,6 +266,23 @@ fun GroupChatScreen(
             TextButton(onClick = onBack) {
                 Text("Cerrar", color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        // ── Gear banner (si hay material registrado) ──
+        state.gearSummary?.let { summary ->
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(Icons.Outlined.Luggage, null,
+                    modifier = Modifier.height(14.dp).width(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(summary, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
 

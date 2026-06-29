@@ -382,4 +382,9 @@ object UseCasesModule {
     fun provideSetMeetupAlertUseCase(
         api: com.meteomontana.android.data.api.KtorMeetupApi
     ) = com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase(api)
+
+    @Provides @Singleton
+    fun provideUpdateMyGearUseCase(
+        api: com.meteomontana.android.data.api.KtorMeetupApi
+    ) = com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase(api)
 }

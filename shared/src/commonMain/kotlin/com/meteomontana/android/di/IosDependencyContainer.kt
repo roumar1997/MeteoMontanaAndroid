@@ -103,6 +103,7 @@ import com.meteomontana.android.domain.usecase.meetups.GetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
+import com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase
 
 /**
  * Grafo de dependencias para iOS, construido en Kotlin (commonMain).
@@ -299,6 +300,7 @@ class IosDependencyContainer(
     val getMeetupByConversation = GetMeetupByConversationUseCase(meetupApi)
     val kickMeetupMember  = KickMeetupMemberUseCase(meetupApi)
     val reportMeetup      = ReportMeetupUseCase(meetupApi)
+    val updateMyGear      = UpdateMyGearUseCase(meetupApi)
     val getMeetupAlert    = GetMeetupAlertUseCase(meetupApi)
     val setMeetupAlert    = SetMeetupAlertUseCase(meetupApi)
 

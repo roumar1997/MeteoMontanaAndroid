@@ -34,7 +34,8 @@ data class MeetupMember(
     val uid: String,
     val username: String?,
     val displayName: String?,
-    val photoUrl: String?
+    val photoUrl: String?,
+    val gearJson: String? = null
 )
 
 data class CreateMeetupRequest(

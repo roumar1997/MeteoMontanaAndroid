@@ -32,7 +32,8 @@ fun MeetupMemberDto.toDomain() = MeetupMember(
     uid = uid,
     username = username,
     displayName = displayName,
-    photoUrl = photoUrl
+    photoUrl = photoUrl,
+    gearJson = gearJson
 )
 
 private fun isoToEpochMillis(iso: String): Long {

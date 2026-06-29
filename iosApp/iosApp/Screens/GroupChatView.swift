@@ -17,6 +17,7 @@ final class GroupChatVM: ObservableObject {
     @Published var meetupId: String?
     @Published var schoolLat: Double?
     @Published var schoolLon: Double?
+    @Published var gearSummary: String?
     @Published var muted: Bool
 
     private let chat = AppDependencies.shared.container.chatService
@@ -52,6 +53,8 @@ final class GroupChatVM: ObservableObject {
                 self.meetupId = m.id
                 self.schoolLat = m.schoolLat?.doubleValue
                 self.schoolLon = m.schoolLon?.doubleValue
+                let gear = totalGearSummary(Array(m.members))
+                self.gearSummary = gear.isEmpty ? nil : gear
             }
         }
         task = Task { [weak self] in
@@ -118,6 +121,20 @@ struct GroupChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Gear banner
+            if let gear = vm.gearSummary {
+                HStack(spacing: 6) {
+                    Image(systemName: "bag").font(.system(size: 11))
+                        .foregroundStyle(Cumbre.ink3)
+                    Text(gear).font(.system(size: 11))
+                        .foregroundStyle(Cumbre.ink3)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(Cumbre.ink.opacity(0.04))
+            }
+
             if vm.loading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

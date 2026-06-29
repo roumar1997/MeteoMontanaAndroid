@@ -15,18 +15,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Directions
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PersonRemove
@@ -86,6 +90,7 @@ fun MeetupDetailScreen(
     var showReportDialog by remember { mutableStateOf(false) }
     var reportDone by remember { mutableStateOf(false) }
     var showEditDescription by remember { mutableStateOf(false) }
+    var showEditGear by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showLeaveConfirm by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -138,6 +143,19 @@ fun MeetupDetailScreen(
         }
 
         // Diálogos
+        if (showEditGear) {
+            state.meetup?.let { m ->
+                EditGearDialog(
+                    discipline = m.discipline,
+                    currentGearJson = m.members.firstOrNull { it.uid == myUid }?.gearJson,
+                    onDismiss = { showEditGear = false },
+                    onSave = { json ->
+                        viewModel.updateMyGear(meetupId, json)
+                        showEditGear = false
+                    }
+                )
+            }
+        }
         if (showEditDescription) {
             EditDescriptionDialog(
                 initial = state.meetup?.description ?: "", saving = savingDescription,
@@ -361,6 +379,17 @@ fun MeetupDetailScreen(
                         }
                     }
 
+                    // ── Material (gear) ──
+                    item {
+                        HorizontalDivider()
+                        GearSection(
+                            meetup = meetup,
+                            myUid = myUid,
+                            isCreator = isCreator,
+                            onEditGear = { showEditGear = true }
+                        )
+                    }
+
                     // ── Unirse / salir ──
                     item {
                         HorizontalDivider()
@@ -531,4 +560,235 @@ private fun ReportMeetupDialog(onDismiss: () -> Unit, onReport: (String) -> Unit
 private fun detailScoreColor(score: Int): Color = when {
     score >= 80 -> Color(0xFF22C55E); score >= 60 -> Color(0xFFF59E0B)
     score >= 40 -> Color(0xFFEF4444); else -> Color(0xFF6B7280)
+}
+
+// ── Gear helpers ────────────────────────────────────────────────────────────
+
+internal fun parseGear(json: String?): Map<String, Int> {
+    if (json.isNullOrBlank()) return emptyMap()
+    return try {
+        json.trim('{', '}').split(",").mapNotNull { pair ->
+            val parts = pair.split(":")
+            if (parts.size == 2) {
+                val key = parts[0].trim().trim('"')
+                val value = parts[1].trim().toIntOrNull() ?: 0
+                if (value > 0) key to value else null
+            } else null
+        }.toMap()
+    } catch (_: Exception) { emptyMap() }
+}
+
+internal fun buildGearJson(gear: Map<String, Int>): String {
+    val entries = gear.filter { it.value > 0 }
+    if (entries.isEmpty()) return "{}"
+    return "{" + entries.entries.joinToString(",") { "\"${it.key}\":${it.value}" } + "}"
+}
+
+internal fun gearItemsForDiscipline(discipline: String?): List<Pair<String, String>> = when (discipline) {
+    "BOULDER" -> listOf("crashpads" to "Crashpads")
+    "ROUTE" -> listOf("cintas" to "Cintas", "cuerda" to "Cuerdas", "grigri" to "Gri-gri")
+    else -> listOf("crashpads" to "Crashpads", "cintas" to "Cintas", "cuerda" to "Cuerdas", "grigri" to "Gri-gri")
+}
+
+internal fun gearLabel(key: String): String = when (key) {
+    "crashpads" -> "crashpads"
+    "cintas" -> "cintas"
+    "cuerda" -> "cuerdas"
+    "grigri" -> "gri-gri"
+    else -> key
+}
+
+/** Suma el material de todos los miembros. */
+private fun totalGear(members: List<MeetupMember>): Map<String, Int> {
+    val totals = mutableMapOf<String, Int>()
+    members.forEach { m ->
+        parseGear(m.gearJson).forEach { (k, v) ->
+            totals[k] = (totals[k] ?: 0) + v
+        }
+    }
+    return totals.filter { it.value > 0 }
+}
+
+/** Texto compacto del material de un miembro (e.g. "2 crashpads, 12 cintas"). */
+private fun gearSummaryText(gearJson: String?): String {
+    val gear = parseGear(gearJson)
+    if (gear.isEmpty()) return ""
+    return gear.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key)}" }
+}
+
+/** Texto compacto del total (para el banner del chat). */
+internal fun totalGearSummary(members: List<MeetupMember>): String {
+    val totals = totalGear(members)
+    if (totals.isEmpty()) return ""
+    return totals.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key)}" }
+}
+
+// ── Gear section composable ─────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GearSection(
+    meetup: com.meteomontana.android.domain.model.Meetup,
+    myUid: String?,
+    isCreator: Boolean,
+    onEditGear: () -> Unit
+) {
+    val totals = totalGear(meetup.members)
+
+    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        // Eyebrow
+        Row(verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Icon(Icons.Outlined.Luggage, null, Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("MATERIAL", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        // Total pills
+        if (totals.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                totals.forEach { (key, count) ->
+                    Row(
+                        modifier = Modifier.clip(RoundedCornerShape(2.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("$count", style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(gearLabel(key), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        } else {
+            Text("Nadie ha indicado material aun",
+                style = MaterialTheme.typography.bodySmall,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        // Per-member breakdown
+        meetup.members.forEach { member ->
+            val gear = gearSummaryText(member.gearJson)
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                MemberAvatar(member.photoUrl, 28.dp)
+                Text(member.displayName ?: member.username ?: member.uid.take(6),
+                    style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f, fill = false))
+                if (gear.isNotEmpty()) {
+                    Text(gear, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Text("sin material", style = MaterialTheme.typography.bodySmall,
+                        fontStyle = FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
+                }
+            }
+        }
+
+        // Edit button (only if joined or creator)
+        if (meetup.joined || isCreator) {
+            OutlinedButton(
+                onClick = onEditGear,
+                shape = RoundedCornerShape(2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Outlined.Edit, null, Modifier.size(16.dp))
+                Spacer(Modifier.size(6.dp))
+                Text("Editar mi material", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+// ── Edit gear dialog ────────────────────────────────────────────────────────
+
+@Composable
+private fun EditGearDialog(
+    discipline: String?,
+    currentGearJson: String?,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    val items = gearItemsForDiscipline(discipline)
+    val currentGear = parseGear(currentGearJson)
+    val gearState = remember {
+        mutableMapOf<String, Int>().apply {
+            items.forEach { (key, _) -> put(key, currentGear[key] ?: 0) }
+        }
+    }
+    // Force recomposition via a counter
+    var version by remember { mutableStateOf(0) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Mi material") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text("Indica el material que llevas a la quedada",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Trigger recomposition on version change
+                @Suppress("UNUSED_VARIABLE") val ver = version
+                items.forEach { (key, label) ->
+                    GearStepper(
+                        label = label,
+                        value = gearState[key] ?: 0,
+                        onMinus = {
+                            val cur = gearState[key] ?: 0
+                            if (cur > 0) { gearState[key] = cur - 1; version++ }
+                        },
+                        onPlus = {
+                            val cur = gearState[key] ?: 0
+                            gearState[key] = cur + 1; version++
+                        }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(buildGearJson(gearState)) },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(2.dp)
+            ) { Text("GUARDAR") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR") } }
+    )
+}
+
+@Composable
+private fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        Row(verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            IconButton(
+                onClick = onMinus,
+                modifier = Modifier.size(32.dp),
+                enabled = value > 0
+            ) {
+                Icon(Icons.Outlined.Remove, "Menos", Modifier.size(18.dp))
+            }
+            Text("$value", style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold, modifier = Modifier.widthIn(min = 28.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            IconButton(
+                onClick = onPlus,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(Icons.Outlined.Add, "Mas", Modifier.size(18.dp))
+            }
+        }
+    }
 }

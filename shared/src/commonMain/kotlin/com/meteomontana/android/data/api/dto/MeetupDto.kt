@@ -52,7 +52,8 @@ data class MeetupMemberDto(
     val uid: String,
     val username: String? = null,
     val displayName: String? = null,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    val gearJson: String? = null
 )
 
 @Serializable

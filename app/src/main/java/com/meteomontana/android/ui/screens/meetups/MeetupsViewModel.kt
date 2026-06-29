@@ -18,6 +18,7 @@ import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.UpdateMeetupUseCase
+import com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase
 import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
 import com.meteomontana.android.domain.usecase.schools.SearchSchoolsUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
@@ -69,6 +70,7 @@ class MeetupsViewModel @Inject constructor(
     private val reportMeetup: ReportMeetupUseCase,
     private val getMeetupAlert: GetMeetupAlertUseCase,
     private val setMeetupAlert: SetMeetupAlertUseCase,
+    private val updateMyGearUseCase: UpdateMyGearUseCase,
     private val searchSchoolsUseCase: SearchSchoolsUseCase,
     private val getRangeScores: GetRangeScoresUseCase,
     private val getMyProfile: GetMyProfileUseCase,
@@ -315,6 +317,20 @@ class MeetupsViewModel @Inject constructor(
                 onResult(null)
             } finally {
                 _uploadingPhoto.value = false
+            }
+        }
+    }
+
+    fun updateMyGear(meetupId: String, gearJson: String) {
+        viewModelScope.launch {
+            try {
+                val updated = updateMyGearUseCase.execute(meetupId, gearJson)
+                _detail.update { it.copy(meetup = updated) }
+                _list.update { s ->
+                    s.copy(meetups = s.meetups.map { m -> if (m.id == meetupId) updated else m })
+                }
+            } catch (e: Exception) {
+                _detail.update { it.copy(error = e.message) }
             }
         }
     }
