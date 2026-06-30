@@ -179,6 +179,8 @@ jobs:
             '  <key>teamID</key><string>3CP2YRJ579</string>' \
             '  <key>signingStyle</key><string>automatic</string>' \
             '  <key>uploadSymbols</key><true/>' \
+            '  <key>uploadBitcode</key><false/>' \
+            '  <key>destination</key><string>upload</string>' \
             '</dict></plist>' > ExportOptions.plist
 
       - name: Export y subir a App Store Connect
@@ -186,6 +188,8 @@ jobs:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
+          # destination=upload hace que xcodebuild exporte Y suba en un solo paso
+          # usando la App Store Connect API key — sin necesitar altool (deprecated en Xcode 15+)
           xcodebuild -exportArchive \
             -archivePath build/MeteoMontana.xcarchive \
             -exportPath build/export \
@@ -194,15 +198,7 @@ jobs:
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID"
-          IPA=$(find build/export -name "*.ipa" | head -1)
-          if [ -z "$IPA" ]; then echo "ERROR: no se encontró el IPA" && exit 1; fi
-          echo "IPA: $IPA"
-          xcrun altool --upload-app \
-            --type ios \
-            --file "$IPA" \
-            --apiKey "$KEY_ID" \
-            --apiIssuer "$ISSUER_ID" \
-            --verbose || echo "::warning::altool deprecated — el IPA está en el artifact"
+          echo "Export completado. El IPA también queda en build/export/ como artifact."
 
       - name: Upload .ipa (artifact)
         if: always()
