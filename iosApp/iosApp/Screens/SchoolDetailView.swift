@@ -360,7 +360,7 @@ private struct SchoolMapSection: View {
             Button { withAnimation { expanded.toggle() } } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "map").font(.system(size: 13))
-                    Text(expanded ? "OCULTAR MAPA" : "VER MAPA")
+                    Text(expanded ? NSLocalizedString("schools_hide_map", comment: "") : NSLocalizedString("schools_view_map", comment: ""))
                         .font(Cumbre.mono(11, .bold)).tracking(0.8)
                     if !blocks.isEmpty {
                         Text("· \(blocks.count)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
@@ -431,7 +431,7 @@ private struct SchoolMapSection: View {
                     } else {
                         // Botón "+ PROPONER" (esquina inferior derecha).
                         Button { showTypePicker = true } label: {
-                            Text("+ PROPONER").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                            Text(NSLocalizedString("detail_propose", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 14).padding(.vertical, 10)
                                 .background(Cumbre.terra)
@@ -795,7 +795,7 @@ private struct ContributionTypePicker: View {
             .background(Cumbre.bg.ignoresSafeArea())
             .navigationTitle("Proponer mejora")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.ink3) } }
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.ink3) } }
         }
     }
     private func row(_ t: String, _ sub: String, _ icon: String, enabled: Bool, action: @escaping () -> Void) -> some View {
@@ -843,7 +843,7 @@ private struct ContributionFormSheet: View {
                     field("NOTAS (opcional)", $notes, isSector ? "Descripción de la zona" : "Cómo es el acceso, etc.")
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
-                            Text("ENVIAR PROPUESTA").font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                            Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
                         .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
@@ -852,7 +852,7 @@ private struct ContributionFormSheet: View {
             .background(Cumbre.bg.ignoresSafeArea())
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
         }
     }
 
@@ -1037,7 +1037,7 @@ struct BlockInfoSheet: View {
                     // Editor unificado de vías (corregir existentes + añadir nuevas).
                     if block.type.uppercased() == "BLOCK", let onEditLines {
                         Button { dismiss(); onEditLines() } label: {
-                            Text(block.lines.isEmpty ? "+ AÑADIR VÍAS" : "✎ EDITAR / AÑADIR VÍAS")
+                            Text(block.lines.isEmpty ? NSLocalizedString("block_add_routes", comment: "") : NSLocalizedString("block_edit_routes", comment: ""))
                                 .font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
@@ -1049,7 +1049,7 @@ struct BlockInfoSheet: View {
                     // muestra los demás; si no hay otro, lo avisa).
                     if block.type.uppercased() == "BLOCK", let onAssignSector, !sectors.isEmpty {
                         Button { dismiss(); onAssignSector() } label: {
-                            Text(block.sectorBlockId == nil ? "+ ASIGNAR SECTOR" : "CAMBIAR SECTOR")
+                            Text(block.sectorBlockId == nil ? NSLocalizedString("propose_assign_sector", comment: "") : NSLocalizedString("propose_change_sector", comment: ""))
                                 .font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.ink).frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
@@ -1077,7 +1077,7 @@ struct BlockInfoSheet: View {
             .navigationTitle(block.name.isEmpty ? typeLabel : block.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) }
+                ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) }
             }
             .task { await loadDone() }
             // Deep-link del diario: hace scroll a la cara que contiene la vía
@@ -1636,7 +1636,7 @@ struct NotesSectionView: View {
 
             // Composer
             VStack(alignment: .trailing, spacing: 8) {
-                TextField("Escribe una nota…", text: $draft, axis: .vertical)
+                TextField(NSLocalizedString("detail_write_note", comment: ""), text: $draft, axis: .vertical)
                     .lineLimit(1...4)
                     .font(.system(size: 15))
                     .foregroundStyle(Cumbre.ink)
@@ -1757,7 +1757,7 @@ private struct NotePhotoSheet: View {
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
             }
         }

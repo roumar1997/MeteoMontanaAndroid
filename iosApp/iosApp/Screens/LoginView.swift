@@ -30,7 +30,7 @@ struct LoginView: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Cumbre.ink)
                 Spacer().frame(height: 2)
-                Text("Tiempo para escalar")
+                Text(NSLocalizedString("login_tagline", comment: ""))
                     .font(.system(size: 14))
                     .foregroundStyle(Cumbre.ink2)
             }
@@ -61,11 +61,11 @@ struct LoginView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
                 HStack {
-                    Link("TÉRMINOS", destination: URL(string: "https://climbingteams.com/terms.html")!)
+                    Link(NSLocalizedString("login_terms", comment: ""), destination: URL(string: "https://climbingteams.com/terms.html")!)
                         .font(Cumbre.mono(11, .bold))
                         .foregroundStyle(Cumbre.terra)
                         .padding(8)
-                    Link("PRIVACIDAD", destination: URL(string: "https://climbingteams.com/privacy.html")!)
+                    Link(NSLocalizedString("login_privacy", comment: ""), destination: URL(string: "https://climbingteams.com/privacy.html")!)
                         .font(Cumbre.mono(11, .bold))
                         .foregroundStyle(Cumbre.terra)
                         .padding(8)
@@ -91,7 +91,7 @@ struct LoginView: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Color(hex: 0x4285F4))
                 }
-                Text("Continuar con Google")
+                Text(NSLocalizedString("login_google", comment: ""))
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.white)
             }
@@ -111,7 +111,7 @@ struct LoginView: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "applelogo").font(.system(size: 17, weight: .medium))
-                Text("Continuar con Apple").font(.system(size: 15, weight: .medium))
+                Text(NSLocalizedString("login_apple", comment: "")).font(.system(size: 15, weight: .medium))
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity).frame(height: 52)

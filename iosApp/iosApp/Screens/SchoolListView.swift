@@ -538,7 +538,7 @@ private struct HeaderEscuelas: View {
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Escuelas")
+                Text(NSLocalizedString("schools_title", comment: ""))
                     .font(Cumbre.serif(34, .bold))
                     .foregroundStyle(Cumbre.ink)
                 if let count {
@@ -549,7 +549,7 @@ private struct HeaderEscuelas: View {
             }
             Spacer()
             Button { showSubmit = true } label: {
-                OutlinedCumbreButton(text: "+ Enviar escuela", tint: Cumbre.terra)
+                OutlinedCumbreButton(text: NSLocalizedString("schools_submit", comment: ""), tint: Cumbre.terra)
             }
             .buttonStyle(.plain)
         }
@@ -660,7 +660,7 @@ private struct MapToggleAndPanel: View {
             Button { withAnimation { show.toggle() } } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "map").font(.system(size: 13))
-                    Text(show ? "OCULTAR MAPA" : "VER MAPA").font(Cumbre.mono(11, .bold)).tracking(0.8)
+                    Text(show ? NSLocalizedString("schools_hide_map", comment: "") : NSLocalizedString("schools_view_map", comment: "")).font(Cumbre.mono(11, .bold)).tracking(0.8)
                     Spacer()
                     Image(systemName: show ? "chevron.up" : "chevron.down").font(.system(size: 11))
                 }
@@ -789,17 +789,17 @@ private struct FilterChips: View {
             section("DISTANCIA") {
                 chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
                         isSel: { $0 == vm.maxDistanceKm },
-                        label: { $0 == nil ? "Todas" : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
+                        label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
             }
             section("ESTILO") {
                 chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
                         isSel: { $0 == vm.style },
-                        label: { $0 ?? "Todas" }) { vm.style = $0 }
+                        label: { $0 ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
             }
             section("TIPO DE ROCA") {
                 chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
                         isSel: { $0 == vm.rock },
-                        label: { $0 ?? "Todas" }) { vm.rock = $0 }
+                        label: { $0 ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
             }
             section("MOSTRAR") {
                 chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
