@@ -11,14 +11,27 @@ data class ReportRequestDto(
 
 @Serializable
 data class MeetupAlertDto(
+    val enabled: Boolean = false,
     val schoolId: String? = null,   // null = cualquier escuela
-    val daysCsv: String? = null     // null = cualquier día
+    val schoolName: String? = null,
+    val daysCsv: String? = null,    // null = cualquier día
+    val discipline: String? = null, // BOULDER | ROUTE | BOTH | null = cualquiera
+    val privacy: String? = null,    // OPEN | FOLLOWERS | WOMEN | null = cualquiera
+    val maxDistanceKm: Int? = null, // null = sin límite
+    val userLat: Double? = null,
+    val userLon: Double? = null
 )
 
 @Serializable
 data class SetAlertRequestDto(
     val enabled: Boolean,
-    val daysCsv: String? = null
+    val daysCsv: String? = null,
+    val schoolId: String? = null,
+    val discipline: String? = null,
+    val privacy: String? = null,
+    val maxDistanceKm: Int? = null,
+    val userLat: Double? = null,
+    val userLon: Double? = null
 )
 
 @Serializable

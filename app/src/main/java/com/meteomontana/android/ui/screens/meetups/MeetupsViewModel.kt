@@ -277,16 +277,37 @@ class MeetupsViewModel @Inject constructor(
 
     fun toggleAlert(enabled: Boolean, daysCsv: String? = null) {
         viewModelScope.launch {
-            try { _alertState.value = setMeetupAlert.execute(enabled, daysCsv) }
+            try { _alertState.value = setMeetupAlert.execute(enabled = enabled, daysCsv = daysCsv) }
             catch (e: Exception) { _list.update { it.copy(error = e.message) } }
         }
     }
 
+    private val _alertError = MutableStateFlow<String?>(null)
+    val alertError = _alertError.asStateFlow()
+
     fun saveAlert(enabled: Boolean, daysCsv: String?, schoolId: String?,
                   privacy: String?, discipline: String?, radiusKm: Int?) {
         viewModelScope.launch {
-            try { _alertState.value = setMeetupAlert.execute(enabled, daysCsv) }
-            catch (e: Exception) { _list.update { it.copy(error = e.message) } }
+            _alertError.value = null
+            try {
+                var lat: Double? = null
+                var lon: Double? = null
+                if (radiusKm != null) {
+                    try {
+                        val loc = locationProvider.current()
+                        lat = loc?.lat; lon = loc?.lon
+                    } catch (_: Exception) {}
+                }
+                _alertState.value = setMeetupAlert.execute(
+                    enabled = enabled, daysCsv = daysCsv, schoolId = schoolId,
+                    discipline = discipline, privacy = privacy, maxDistanceKm = radiusKm,
+                    userLat = lat, userLon = lon
+                )
+            } catch (e: Exception) {
+                _alertError.value = if (e.message?.contains("GENDER_REQUIRED") == true)
+                    "Para filtrar por No Mixto necesitas indicar tu género como Mujer en tu perfil."
+                else e.message
+            }
         }
     }
 

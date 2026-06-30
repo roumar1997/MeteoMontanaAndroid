@@ -81,9 +81,9 @@ class KtorMeetupApi(private val client: HttpClient) {
         try { client.get("meetups/alerts/me").body() }
         catch (e: Exception) { null }
 
-    suspend fun setMeetupAlert(enabled: Boolean, daysCsv: String?): MeetupAlertDto =
+    suspend fun setMeetupAlert(req: SetAlertRequestDto): MeetupAlertDto =
         client.put("meetups/alerts/me") {
             contentType(ContentType.Application.Json)
-            setBody(SetAlertRequestDto(enabled, daysCsv))
+            setBody(req)
         }.body()
 }

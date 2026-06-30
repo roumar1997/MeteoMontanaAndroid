@@ -146,19 +146,50 @@ class ReportMeetupUseCase(private val api: KtorMeetupApi) {
     }
 }
 
-/** Devuelve si la alerta está activa (enabled=true) y los días configurados. */
-data class MeetupAlertState(val enabled: Boolean, val daysCsv: String?)
+/** Estado completo de la alerta de quedadas, con todos los filtros configurables. */
+data class MeetupAlertState(
+    val enabled: Boolean,
+    val daysCsv: String? = null,
+    val schoolId: String? = null,
+    val schoolName: String? = null,
+    val discipline: String? = null,    // BOULDER | ROUTE | BOTH | null = cualquiera
+    val privacy: String? = null,       // OPEN | FOLLOWERS | WOMEN | null = cualquiera
+    val maxDistanceKm: Int? = null,
+    val userLat: Double? = null,
+    val userLon: Double? = null
+)
+
+private fun com.meteomontana.android.data.api.dto.MeetupAlertDto.toState() = MeetupAlertState(
+    enabled = enabled, daysCsv = daysCsv, schoolId = schoolId, schoolName = schoolName,
+    discipline = discipline, privacy = privacy, maxDistanceKm = maxDistanceKm,
+    userLat = userLat, userLon = userLon
+)
 
 class GetMeetupAlertUseCase(private val api: KtorMeetupApi) {
     suspend fun execute(): MeetupAlertState {
         val dto = api.getMeetupAlert()
-        return MeetupAlertState(enabled = dto != null, daysCsv = dto?.daysCsv)
+        return dto?.toState() ?: MeetupAlertState(enabled = false)
     }
 }
 
 class SetMeetupAlertUseCase(private val api: KtorMeetupApi) {
-    suspend fun execute(enabled: Boolean, daysCsv: String?): MeetupAlertState {
-        val dto = api.setMeetupAlert(enabled, daysCsv)
-        return MeetupAlertState(enabled = enabled, daysCsv = dto.daysCsv)
+    suspend fun execute(
+        enabled: Boolean,
+        daysCsv: String? = null,
+        schoolId: String? = null,
+        discipline: String? = null,
+        privacy: String? = null,
+        maxDistanceKm: Int? = null,
+        userLat: Double? = null,
+        userLon: Double? = null
+    ): MeetupAlertState {
+        val dto = api.setMeetupAlert(
+            com.meteomontana.android.data.api.dto.SetAlertRequestDto(
+                enabled = enabled, daysCsv = daysCsv, schoolId = schoolId,
+                discipline = discipline, privacy = privacy, maxDistanceKm = maxDistanceKm,
+                userLat = userLat, userLon = userLon
+            )
+        )
+        return dto.toState()
     }
 }

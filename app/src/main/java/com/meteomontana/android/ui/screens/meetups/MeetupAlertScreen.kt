@@ -64,14 +64,38 @@ fun MeetupAlertScreen(
 ) {
     val alertState by viewModel.alertState.collectAsState()
     val schoolResults by viewModel.schoolResults.collectAsState()
+    val myGender by viewModel.myGender.collectAsState()
+    val alertError by viewModel.alertError.collectAsState()
 
     var enabled by remember(alertState) { mutableStateOf(alertState?.enabled == true) }
     var selectedDays by remember(alertState) {
         mutableStateOf(alertState?.daysCsv?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() }?.toSet()
             ?: emptySet())
     }
+    var discipline by remember(alertState) { mutableStateOf(alertState?.discipline) }       // null=ambas, BOULDER, ROUTE
+    var privacy by remember(alertState) { mutableStateOf(alertState?.privacy) }             // null=todas, OPEN, FOLLOWERS, WOMEN
+    var selectedSchoolId by remember(alertState) { mutableStateOf(alertState?.schoolId) }
+    var selectedSchoolName by remember(alertState) { mutableStateOf(alertState?.schoolName) }
+    var maxDistanceKm by remember(alertState) { mutableStateOf(alertState?.maxDistanceKm) }
+    var showSchoolPicker by remember { mutableStateOf(false) }
+
+    val isWoman = myGender == "WOMAN"
 
     LaunchedEffect(Unit) { viewModel.loadAlertState() }
+
+    if (showSchoolPicker) {
+        AlertSchoolPickerDialog(
+            results = schoolResults,
+            onQueryChange = { viewModel.searchSchools(it) },
+            onSelect = { school ->
+                selectedSchoolId = school.id
+                selectedSchoolName = school.name
+                showSchoolPicker = false
+                viewModel.clearSchoolSearch()
+            },
+            onDismiss = { showSchoolPicker = false; viewModel.clearSchoolSearch() }
+        )
+    }
 
     Column(Modifier.fillMaxSize()) {
         // Toolbar
@@ -119,6 +143,75 @@ fun MeetupAlertScreen(
             if (enabled) {
                 HorizontalDivider()
 
+                // Escuela concreta (opcional)
+                SectionLabel("ESCUELA")
+                Text("Avísame solo de una escuela en concreto, o de cualquiera",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    OutlinedButton(
+                        onClick = { showSchoolPicker = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Icon(Icons.Outlined.Search, null, Modifier.size(16.dp))
+                        Spacer(Modifier.size(6.dp))
+                        Text(selectedSchoolName ?: "Cualquier escuela", maxLines = 1)
+                    }
+                    if (selectedSchoolId != null) {
+                        IconButton(onClick = { selectedSchoolId = null; selectedSchoolName = null }) {
+                            Icon(Icons.Outlined.Close, "Quitar filtro de escuela")
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Disciplina
+                SectionLabel("MODALIDAD")
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    AlertChip("Ambas", discipline == null) { discipline = null }
+                    AlertChip("Bloque", discipline == "BOULDER") { discipline = "BOULDER" }
+                    AlertChip("Vía", discipline == "ROUTE") { discipline = "ROUTE" }
+                }
+
+                HorizontalDivider()
+
+                // Privacidad
+                SectionLabel("TIPO DE QUEDADA")
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    AlertChip("Todas", privacy == null) { privacy = null }
+                    AlertChip("Abiertas", privacy == "OPEN") { privacy = "OPEN" }
+                    AlertChip("Seguidos/Seguidores", privacy == "FOLLOWERS") { privacy = "FOLLOWERS" }
+                    AlertChip("No mixto", privacy == "WOMEN", enabled = isWoman) {
+                        if (isWoman) privacy = "WOMEN"
+                    }
+                }
+                if (privacy == "WOMEN" && !isWoman) {
+                    Text("Necesitas indicar tu género como Mujer en tu perfil para usar este filtro.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+
+                HorizontalDivider()
+
+                // Distancia
+                SectionLabel("DISTANCIA")
+                Text("Avísame solo de quedadas a menos de X km de mi ubicación",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    AlertChip("Sin límite", maxDistanceKm == null) { maxDistanceKm = null }
+                    AlertChip("50 km", maxDistanceKm == 50) { maxDistanceKm = 50 }
+                    AlertChip("100 km", maxDistanceKm == 100) { maxDistanceKm = 100 }
+                    AlertChip("200 km", maxDistanceKm == 200) { maxDistanceKm = 200 }
+                }
+
+                HorizontalDivider()
+
                 // Días concretos (próximos 14, mismo rango que crear)
                 SectionLabel("DÍAS")
                 Text("Avísame si la quedada incluye alguno de estos días (vacío = cualquier día)",
@@ -137,6 +230,11 @@ fun MeetupAlertScreen(
                             })
                     }
                 }
+
+                if (alertError != null) {
+                    Text(alertError ?: "", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error)
+                }
             }
         }
 
@@ -147,7 +245,7 @@ fun MeetupAlertScreen(
                 onClick = {
                     val daysCsv = if (selectedDays.isEmpty()) null
                                   else selectedDays.sorted().joinToString(",")
-                    viewModel.toggleAlert(enabled, daysCsv)
+                    viewModel.saveAlert(enabled, daysCsv, selectedSchoolId, privacy, discipline, maxDistanceKm)
                     onBack()
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -186,17 +284,20 @@ private fun SectionLabel(text: String) {
 }
 
 @Composable
-private fun AlertChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun AlertChip(label: String, selected: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
     val bg = if (selected) MaterialTheme.colorScheme.primaryContainer
              else MaterialTheme.colorScheme.surface
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-             else MaterialTheme.colorScheme.onSurfaceVariant
+    val fg = when {
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        selected -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))
             .background(bg)
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)

@@ -102,23 +102,58 @@ final class MeetupsViewModel: ObservableObject {
         Task { await load() }
     }
 
+    @Published var alertSchoolId: String?
+    @Published var alertSchoolName: String?
+    @Published var alertDiscipline: String?
+    @Published var alertPrivacy: String?
+    @Published var alertMaxDistanceKm: Int32?
+    @Published var alertError: String?
+
     func loadAlert() async {
         do {
             let state = try await getMeetupAlert.execute()
             alertEnabled = state.enabled
             alertDaysCsv = state.daysCsv
+            alertSchoolId = state.schoolId
+            alertSchoolName = state.schoolName
+            alertDiscipline = state.discipline
+            alertPrivacy = state.privacy
+            alertMaxDistanceKm = state.maxDistanceKm?.int32Value
         } catch {}
     }
 
-    /// Guarda la alerta (el backend solo persiste enabled + daysCsv; el resto de
-    /// filtros son sugerencia de UI, igual que en Android).
-    func saveAlert(enabled: Bool, daysCsv: String?) async {
+    /// Guarda la alerta con todos sus filtros (espejo del backend completo).
+    func saveAlert(enabled: Bool, daysCsv: String?, schoolId: String?,
+                   discipline: String?, privacy: String?, maxDistanceKm: Int32?) async {
+        alertError = nil
         do {
-            let state = try await setMeetupAlert.execute(enabled: enabled, daysCsv: daysCsv)
+            var lat: Double? = nil
+            var lon: Double? = nil
+            if maxDistanceKm != nil, let lp = AppDependencies.shared.container.locationProvider {
+                let loc = try? await lp.current()
+                lat = loc?.lat
+                lon = loc?.lon
+            }
+            let state = try await setMeetupAlert.execute(
+                enabled: enabled, daysCsv: daysCsv, schoolId: schoolId,
+                discipline: discipline, privacy: privacy,
+                maxDistanceKm: maxDistanceKm.map { KotlinInt(int: $0) },
+                userLat: lat.map { KotlinDouble(double: $0) },
+                userLon: lon.map { KotlinDouble(double: $0) }
+            )
             alertEnabled = state.enabled
             alertDaysCsv = state.daysCsv
+            alertSchoolId = state.schoolId
+            alertSchoolName = state.schoolName
+            alertDiscipline = state.discipline
+            alertPrivacy = state.privacy
+            alertMaxDistanceKm = state.maxDistanceKm?.int32Value
         } catch {
-            self.error = error.localizedDescription
+            if error.localizedDescription.contains("GENDER_REQUIRED") {
+                alertError = "Para filtrar por No Mixto necesitas indicar tu género como Mujer en tu perfil."
+            } else {
+                alertError = error.localizedDescription
+            }
         }
     }
 
@@ -888,7 +923,14 @@ struct MeetupAlertView: View {
 
     @State private var enabled = false
     @State private var selectedDays: Set<String> = []
+    @State private var discipline: String?
+    @State private var privacy: String?
+    @State private var schoolId: String?
+    @State private var schoolName: String?
+    @State private var maxDistanceKm: Int32?
+    @State private var showSchoolPicker = false
     private let next14 = generateNextDays(14)
+    private var isWoman: Bool { vm.myGender == "WOMAN" }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -905,19 +947,99 @@ struct MeetupAlertView: View {
                         Toggle("", isOn: $enabled).labelsHidden().tint(Cumbre.terra)
                     }
 
-                    Divider()
-                    // Días
-                    VStack(alignment: .leading, spacing: 6) {
-                        FilterGroupLabel(text: "DIAS")
-                        Text("Avisame si la quedada incluye alguno de estos dias (vacio = cualquier dia)")
-                            .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
-                        FlowLayoutView(spacing: 6) {
-                            ForEach(next14) { d in
-                                FilterPill(label: d.label, selected: selectedDays.contains(d.iso)) {
-                                    if selectedDays.contains(d.iso) { selectedDays.remove(d.iso) }
-                                    else { selectedDays.insert(d.iso) }
+                    Group {
+                        Divider()
+                        // Escuela
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "ESCUELA")
+                            Text("Avisame solo de una escuela en concreto, o de cualquiera")
+                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                            HStack {
+                                Button {
+                                    showSchoolPicker = true
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "magnifyingglass").font(.system(size: 13))
+                                        Text(schoolName ?? "Cualquier escuela").lineLimit(1)
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 10).padding(.horizontal, 12)
+                                    .background(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule))
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundColor(Cumbre.ink)
+                                if schoolId != nil {
+                                    Button {
+                                        schoolId = nil; schoolName = nil
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill").foregroundColor(Cumbre.ink.opacity(0.5))
+                                    }
                                 }
                             }
+                        }
+
+                        Divider()
+                        // Modalidad
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "MODALIDAD")
+                            HStack(spacing: 6) {
+                                FilterPill(label: "Ambas", selected: discipline == nil) { discipline = nil }
+                                FilterPill(label: "Bloque", selected: discipline == "BOULDER") { discipline = "BOULDER" }
+                                FilterPill(label: "Via", selected: discipline == "ROUTE") { discipline = "ROUTE" }
+                            }
+                        }
+
+                        Divider()
+                        // Privacidad
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "TIPO DE QUEDADA")
+                            FlowLayoutView(spacing: 6) {
+                                FilterPill(label: "Todas", selected: privacy == nil) { privacy = nil }
+                                FilterPill(label: "Abiertas", selected: privacy == "OPEN") { privacy = "OPEN" }
+                                FilterPill(label: "Seguidos/Seguidores", selected: privacy == "FOLLOWERS") { privacy = "FOLLOWERS" }
+                                FilterPill(label: "No mixto", selected: privacy == "WOMEN") {
+                                    if isWoman { privacy = "WOMEN" }
+                                }
+                                .opacity(isWoman ? 1 : 0.4)
+                            }
+                            if privacy == "WOMEN" && !isWoman {
+                                Text("Necesitas indicar tu genero como Mujer en tu perfil para usar este filtro.")
+                                    .font(.caption).foregroundColor(Cumbre.bad)
+                            }
+                        }
+
+                        Divider()
+                        // Distancia
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "DISTANCIA")
+                            Text("Avisame solo de quedadas a menos de X km de mi ubicacion")
+                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                            HStack(spacing: 6) {
+                                FilterPill(label: "Sin limite", selected: maxDistanceKm == nil) { maxDistanceKm = nil }
+                                FilterPill(label: "50 km", selected: maxDistanceKm == 50) { maxDistanceKm = 50 }
+                                FilterPill(label: "100 km", selected: maxDistanceKm == 100) { maxDistanceKm = 100 }
+                                FilterPill(label: "200 km", selected: maxDistanceKm == 200) { maxDistanceKm = 200 }
+                            }
+                        }
+
+                        Divider()
+                        // Días
+                        VStack(alignment: .leading, spacing: 6) {
+                            FilterGroupLabel(text: "DIAS")
+                            Text("Avisame si la quedada incluye alguno de estos dias (vacio = cualquier dia)")
+                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                            FlowLayoutView(spacing: 6) {
+                                ForEach(next14) { d in
+                                    FilterPill(label: d.label, selected: selectedDays.contains(d.iso)) {
+                                        if selectedDays.contains(d.iso) { selectedDays.remove(d.iso) }
+                                        else { selectedDays.insert(d.iso) }
+                                    }
+                                }
+                            }
+                        }
+
+                        if let err = vm.alertError {
+                            Text(err).font(.caption).foregroundColor(Cumbre.bad)
                         }
                     }
                     .opacity(enabled ? 1 : 0.45)
@@ -930,7 +1052,8 @@ struct MeetupAlertView: View {
             Button {
                 let daysCsv = selectedDays.isEmpty ? nil : selectedDays.sorted().joined(separator: ",")
                 Task {
-                    await vm.saveAlert(enabled: enabled, daysCsv: daysCsv)
+                    await vm.saveAlert(enabled: enabled, daysCsv: daysCsv, schoolId: schoolId,
+                                       discipline: discipline, privacy: privacy, maxDistanceKm: maxDistanceKm)
                     dismiss()
                 }
             } label: {
@@ -956,6 +1079,18 @@ struct MeetupAlertView: View {
             selectedDays = Set(vm.alertDaysCsv?
                 .split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty } ?? [])
+            discipline = vm.alertDiscipline
+            privacy = vm.alertPrivacy
+            schoolId = vm.alertSchoolId
+            schoolName = vm.alertSchoolName
+            maxDistanceKm = vm.alertMaxDistanceKm
+        }
+        .sheet(isPresented: $showSchoolPicker) {
+            MeetupSchoolFilterSheet { school in
+                schoolId = school.id
+                schoolName = school.name
+                showSchoolPicker = false
+            }
         }
     }
 }
