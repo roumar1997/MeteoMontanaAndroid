@@ -29,8 +29,9 @@ import androidx.core.os.LocaleListCompat
 
 private const val PREFS_NAME = "language_prefs"
 private const val KEY_LANGUAGE_SET = "language_chosen"
+private const val KEY_LANGUAGE_CODE = "language_code"
 
-/** Guarda si el usuario ya eligió idioma (para no preguntar mas de una vez). */
+/** Guarda si el usuario ya eligió idioma y cuál es, para aplicarlo en attachBaseContext. */
 object LanguagePrefs {
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -41,19 +42,30 @@ object LanguagePrefs {
     fun markChosen(context: Context) {
         prefs(context).edit().putBoolean(KEY_LANGUAGE_SET, true).apply()
     }
+
+    fun saveLanguageCode(context: Context, code: String) {
+        prefs(context).edit()
+            .putBoolean(KEY_LANGUAGE_SET, true)
+            .putString(KEY_LANGUAGE_CODE, code)
+            .apply()
+    }
+
+    fun getSavedLanguageCode(context: Context): String? =
+        prefs(context).getString(KEY_LANGUAGE_CODE, null)
 }
 
-/** Aplica el idioma elegido a toda la app (persiste automáticamente vía AppCompatDelegate). */
+/** Aplica el idioma elegido a toda la app. */
 fun applyAppLanguage(context: Context, languageCode: String) {
-    LanguagePrefs.markChosen(context)
+    // 1. Persiste el código para que attachBaseContext lo aplique en la recreación.
+    LanguagePrefs.saveLanguageCode(context, languageCode)
+    // 2. setApplicationLocales para API 33+ (per-app language en ajustes del sistema).
     AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageCode))
-    // En algunos OEM (MIUI, etc.) setApplicationLocales no dispara recreación automáticamente.
-    // Compose envuelve el contexto en ContextWrapper(s), así que hay que traversar hasta la Activity.
+    // 3. Fuerza recreación — findActivity() traversa los ContextWrapper de Compose.
     context.findActivity()?.recreate()
 }
 
 /** Traversa la cadena de ContextWrapper hasta encontrar la Activity real. */
-private fun Context.findActivity(): Activity? {
+fun Context.findActivity(): Activity? {
     var ctx = this
     while (ctx is ContextWrapper) {
         if (ctx is Activity) return ctx
