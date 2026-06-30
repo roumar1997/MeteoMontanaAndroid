@@ -56,6 +56,10 @@ targets:
       path: iosApp/Info.plist
       properties:
         CFBundleDisplayName: Cumbre
+        CFBundleLocalizations:
+          - es
+          - en
+        CFBundleDevelopmentRegion: es
         # Versión espejo de Android (versionName 1.8 / versionCode 11).
         CFBundleShortVersionString: "1.8"
         CFBundleVersion: "11"

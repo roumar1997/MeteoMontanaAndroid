@@ -975,7 +975,7 @@ struct WallTraceSheet: View {
             .navigationTitle("Trazar muro")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button("Cancelar") { dismiss() }.foregroundStyle(Cumbre.ink3) } }
+                Button(NSLocalizedString("common_cancel", comment: "")) { dismiss() }.foregroundStyle(Cumbre.ink3) } }
         }
         .onAppear { if !started { started = true; points = initial } }
     }
@@ -1076,7 +1076,7 @@ struct ReorderFacesSheet: View {
             .navigationTitle("Reordenar fotos")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                Button("Listo") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+                Button(NSLocalizedString("common_done", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
         }
     }
 }
