@@ -160,27 +160,23 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             DEVELOPMENT_TEAM=3CP2YRJ579
 
+      - name: Crear ExportOptions.plist
+        run: |
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict>' \
+            '  <key>method</key><string>app-store</string>' \
+            '  <key>teamID</key><string>3CP2YRJ579</string>' \
+            '  <key>signingStyle</key><string>automatic</string>' \
+            '  <key>uploadSymbols</key><true/>' \
+            '</dict></plist>' > ExportOptions.plist
+
       - name: Export y subir a App Store Connect
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          cat > ExportOptions.plist <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store</string>
-  <key>teamID</key>
-  <string>3CP2YRJ579</string>
-  <key>signingStyle</key>
-  <string>automatic</string>
-  <key>uploadSymbols</key>
-  <true/>
-</dict>
-</plist>
-EOF
           xcodebuild -exportArchive \
             -archivePath build/MeteoMontana.xcarchive \
             -exportPath build/export \
