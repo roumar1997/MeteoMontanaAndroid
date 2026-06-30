@@ -105,7 +105,7 @@ jobs:
           CERT_P12: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12 }}
           CERT_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
         run: |
-          echo "$CERT_P12" | base64 --decode > /tmp/distribution.p12
+          echo "$CERT_P12" | base64 -d > /tmp/distribution.p12
           security create-keychain -p "ci-keychain" ci.keychain
           security default-keychain -s ci.keychain
           security unlock-keychain -p "ci-keychain" ci.keychain
