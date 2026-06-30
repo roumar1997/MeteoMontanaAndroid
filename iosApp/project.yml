@@ -47,11 +47,10 @@ targets:
         # firmar el .ipa (los free accounts no soportan Sign in with Apple) →
         # se rompería el sideload de pruebas. Por eso queda comentada hasta que
         # haya cuenta de pago.
-        # com.apple.developer.applesignin:
-        #   - Default
-        # Push (APNs/FCM): activar antes de publicar (ver PushManager.swift).
-        # Requiere cuenta de pago; rompería el sideload con Apple ID gratis.
-        # aps-environment: production   # (development en debug)
+        com.apple.developer.applesignin:
+          - Default
+        # Push (APNs/FCM): activado con cuenta Apple Developer de pago.
+        aps-environment: production
     info:
       path: iosApp/Info.plist
       properties:

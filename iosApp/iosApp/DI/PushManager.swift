@@ -19,7 +19,7 @@ import Shared
 final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDelegate {
     static let shared = PushManager()
     /// Interruptor maestro. Mientras sea false no se pide permiso ni se registra.
-    static let enabled = false
+    static let enabled = true
 
     func registerIfEnabled() {
         guard Self.enabled else { return }
