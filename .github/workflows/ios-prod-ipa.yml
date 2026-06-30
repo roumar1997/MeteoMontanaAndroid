@@ -96,61 +96,82 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "ci-keychain" ci.keychain
           security list-keychains -d user -s ci.keychain
 
-      - name: Instalar perfil de aprovisionamiento
+      - name: Preparar API Key de App Store Connect
         env:
-          PROFILE_B64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+          API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
         run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROFILE_B64" | base64 --decode > /tmp/profile.mobileprovision
-          UUID=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract UUID raw -)
-          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
-          echo "Perfil instalado: $UUID"
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$API_KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
 
       - name: XcodeGen generate
         working-directory: iosApp
         run: xcodegen generate
 
-      - name: Build (iphoneos, RELEASE, firmado)
+      - name: Archive (iphoneos, RELEASE, firma automática)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           chmod +x gradlew
-          xcodebuild \
+          xcodebuild archive \
             -project iosApp/MeteoMontana.xcodeproj \
             -scheme MeteoMontana \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath build \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="Cumbre App Store" \
-            DEVELOPMENT_TEAM=3CP2YRJ579 \
-            build
+            -archivePath build/MeteoMontana.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=3CP2YRJ579
 
-      - name: Empaquetar .ipa firmado
+      - name: Crear ExportOptions.plist
         run: |
-          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
-          echo "App: $APP"
-          mkdir -p Payload
-          cp -R "$APP" Payload/
-          zip -qr MeteoMontana-AppStore.ipa Payload
-          ls -la MeteoMontana-AppStore.ipa
+          cat > ExportOptions.plist <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>3CP2YRJ579</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Export y subir a App Store Connect
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/MeteoMontana.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+          IPA=$(find build/export -name "*.ipa" | head -1)
+          echo "IPA: $IPA"
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA" \
+            --apiKey "$KEY_ID" \
+            --apiIssuer "$ISSUER_ID"
 
       - name: Upload .ipa (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: ios-app-store-ipa
-          path: MeteoMontana-AppStore.ipa
-
-      - name: Subir a App Store Connect
-        env:
-          API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$API_KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
-          xcrun altool --upload-app \
-            --type ios \
-            --file MeteoMontana-AppStore.ipa \
-            --apiKey "$KEY_ID" \
-            --apiIssuer "$ISSUER_ID" \
-            --verbose
+          path: build/export/*.ipa
