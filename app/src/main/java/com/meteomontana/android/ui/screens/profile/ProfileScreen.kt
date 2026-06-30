@@ -400,6 +400,7 @@ private fun ProfileMenu(
     onOpenFollowRequests: () -> Unit
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    var showLanguagePicker by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     Column(Modifier.fillMaxWidth()) {
         MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -413,10 +414,21 @@ private fun ProfileMenu(
             MenuRow(Icons.Outlined.PersonAdd, stringResource(R.string.profile_follow_requests), onOpenFollowRequests)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        MenuRow(Icons.Outlined.Place, "Idioma / Language") { showLanguagePicker = true }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
             com.meteomontana.android.ui.components.resetAllHints(ctx)
             android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
         }
+    }
+    if (showLanguagePicker) {
+        com.meteomontana.android.ui.components.LanguagePickerDialog(
+            onDismiss = { showLanguagePicker = false },
+            onSelected = { code ->
+                com.meteomontana.android.ui.components.applyAppLanguage(ctx, code)
+                showLanguagePicker = false
+            }
+        )
     }
 }
 

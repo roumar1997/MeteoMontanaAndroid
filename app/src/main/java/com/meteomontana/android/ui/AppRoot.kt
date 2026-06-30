@@ -4,6 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +16,9 @@ import com.meteomontana.android.data.api.dto.FcmTokenRequest
 import com.meteomontana.android.data.auth.AuthManager
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase
+import com.meteomontana.android.ui.components.LanguagePickerDialog
+import com.meteomontana.android.ui.components.LanguagePrefs
+import com.meteomontana.android.ui.components.applyAppLanguage
 import com.meteomontana.android.ui.screens.login.LoginScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
@@ -26,9 +33,21 @@ fun AppRoot(
     viewModel: AppRootViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsState()
+    val context = LocalContext.current
+    var showLanguagePicker by remember { mutableStateOf(!LanguagePrefs.hasChosenLanguage(context)) }
 
     LaunchedEffect(authState) {
         if (authState is AuthManager.AuthState.SignedIn) viewModel.ensureUserProvisioned()
+    }
+
+    if (showLanguagePicker) {
+        LanguagePickerDialog(
+            onDismiss = { LanguagePrefs.markChosen(context); showLanguagePicker = false },
+            onSelected = { code ->
+                applyAppLanguage(context, code)
+                showLanguagePicker = false
+            }
+        )
     }
 
     when (authState) {
