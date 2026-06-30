@@ -317,6 +317,90 @@
     <string name="block_edit_routes">✎ EDIT / ADD ROUTES</string>
     <string name="block_delete_confirm">Delete this boulder? Its routes will be deleted too.</string>
 
+    <!-- Add lines flow (edit boulder/wall) -->
+    <string name="add_lines_title">Edit boulder / wall</string>
+    <string name="add_lines_description">Edit \"%1$s\": fix or add routes, add more photos, reorder and adjust the wall. An admin will review it (or it goes live right away if you\'re an admin).</string>
+    <string name="add_lines_wall_traced">✓ WALL TRACED (%1$d POINTS) · RE-TRACE</string>
+    <string name="add_lines_wall_retrace">✎ RE-TRACE THE WALL ON THE MAP</string>
+    <string name="add_lines_wall_trace">✎ TRACE THE WALL ON THE MAP</string>
+    <string name="add_lines_wall_new_trace_note">The new trace will be sent.</string>
+    <string name="add_lines_wall_keep_trace_note">The current trace is kept if you don\'t re-trace it.</string>
+    <string name="add_lines_wall_no_trace_note">This wall doesn\'t have a trace yet: trace its base on the map.</string>
+    <string name="add_lines_faces_title">BOULDER PHOTOS</string>
+    <string name="add_lines_face_label">PHOTO %1$d</string>
+    <string name="add_lines_remove_photo">✕ REMOVE PHOTO %1$d</string>
+    <string name="add_lines_photo_alt">Photo %1$d of the boulder</string>
+    <string name="add_lines_new_photo_pick_other">✓ NEW PHOTO · CHOOSE ANOTHER</string>
+    <string name="add_lines_change_photo">CHANGE PHOTO FOR THIS FACE</string>
+    <string name="add_lines_new_photo_redraw_note">New photo: redraw this face\'s routes on it before submitting.</string>
+    <string name="add_lines_no_photo">No photo on this face</string>
+    <string name="add_lines_select_photo">SELECT PHOTO</string>
+    <string name="add_lines_routes_of_photo">ROUTES IN THIS PHOTO</string>
+    <string name="add_lines_routes_numbering_note">No. = position on the wall (%1$s). Reorder with ▲▼.</string>
+    <string name="add_lines_direction_ltr_short">left→right</string>
+    <string name="add_lines_direction_rtl_short">right→left</string>
+    <string name="add_lines_existing_route">EXISTING ROUTE</string>
+    <string name="add_lines_new_route">NEW</string>
+    <string name="add_lines_add_new_route">+ ADD NEW ROUTE</string>
+    <string name="add_lines_edit_lines_on_photo">✎ EDIT LINES ON PHOTO</string>
+    <string name="add_lines_draw_lines_on_photo">✎ DRAW LINES ON PHOTO</string>
+    <string name="add_lines_need_photo_note">Add a photo to this face to be able to draw lines.</string>
+    <string name="add_lines_submit_error">Couldn\'t submit the proposal. Try again.</string>
+    <string name="add_lines_reorder_title">Reorder photos</string>
+    <string name="add_lines_reorder_wall_note">Photos are walked in this order (%1$s) to number the wall\'s routes.</string>
+    <string name="add_lines_reorder_simple_note">Order the boulder\'s photos.</string>
+    <string name="add_lines_reorder_photo_routes">PHOTO %1$d · %2$d routes</string>
+    <string name="add_lines_reorder_hide_routes">▾ hide routes</string>
+    <string name="add_lines_reorder_show_routes">▸ view routes</string>
+    <string name="add_lines_reorder_no_image">This photo doesn\'t have an image yet.</string>
+    <string name="add_lines_route_drawn">✓ Line drawn (%1$d points)</string>
+    <string name="add_lines_route_name_placeholder">Name (optional)</string>
+    <string name="add_lines_grade_placeholder">Grade</string>
+
+    <!-- Add block to school sheet -->
+    <string name="add_block_sheet_title">Propose on the map</string>
+    <string name="add_block_sheet_type">TYPE</string>
+    <string name="add_block_sheet_type_block">Boulder</string>
+    <string name="add_block_sheet_type_parking">Parking</string>
+    <string name="add_block_sheet_type_zone">Zone</string>
+    <string name="add_block_sheet_name">NAME</string>
+    <string name="add_block_sheet_name_hint_block">e.g. The sticker</string>
+    <string name="add_block_sheet_name_hint_parking">e.g. Main parking</string>
+    <string name="add_block_sheet_name_hint_zone">e.g. Lower meadow</string>
+    <string name="add_block_sheet_latitude">LATITUDE</string>
+    <string name="add_block_sheet_longitude">LONGITUDE</string>
+    <string name="add_block_sheet_description">DESCRIPTION (optional)</string>
+
+    <!-- Journal schools list -->
+    <string name="journal_schools_empty">No schools yet</string>
+    <string name="journal_schools_block_count_one">%1$d boulder</string>
+    <string name="journal_schools_block_count_other">%1$d boulders</string>
+
+    <!-- Saved schools list -->
+    <string name="saved_schools_empty">You haven\'t saved any schools offline yet.</string>
+
+    <!-- Topo editor -->
+    <string name="topo_editor_default_title">Topo</string>
+    <string name="topo_editor_saving">Saving...</string>
+    <string name="topo_editor_loading">Loading...</string>
+    <string name="topo_editor_drawing">Drawing ●</string>
+    <string name="topo_editor_draw">Draw</string>
+    <string name="topo_editor_undo_point">Undo point</string>
+    <string name="topo_editor_add_line">+ Line</string>
+    <string name="topo_editor_lines_title">LINES</string>
+    <string name="topo_editor_empty_lines">Tap \'+ Line\' to create the first one</string>
+    <string name="topo_editor_error_prefix">Error: %1$s</string>
+    <string name="topo_editor_delete">Delete</string>
+    <string name="topo_editor_new_line_title">New line</string>
+    <string name="topo_editor_line_name_placeholder">Line name</string>
+    <string name="topo_editor_grade_label">GRADE</string>
+    <string name="topo_editor_start_label">START</string>
+    <string name="topo_editor_create">Create</string>
+    <string name="topo_editor_start_sit">Sit</string>
+    <string name="topo_editor_start_stand">Stand</string>
+    <string name="topo_editor_start_jump">Jump</string>
+    <string name="topo_editor_start_trav">Trav.</string>
+
     <!-- Donate -->
     <string name="donate_title">Is the app helpful?</string>
     <string name="donate_body">Cumbre is free and ad-free. If you find it useful, you can buy me a coffee.</string>

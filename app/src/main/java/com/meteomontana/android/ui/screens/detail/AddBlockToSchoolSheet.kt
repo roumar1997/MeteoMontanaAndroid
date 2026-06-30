@@ -24,11 +24,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.meteomontana.android.R
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.ui.components.CumbreChip
-
-private val BLOCK_TYPES = listOf("BLOCK" to "Piedra", "PARKING" to "Parking", "ZONE" to "Zona")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +39,12 @@ fun AddBlockToSchoolSheet(
     onSave: (CreateBlockRequest) -> Unit
 ) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val blockTypes = listOf(
+        "BLOCK" to stringResource(R.string.add_block_sheet_type_block),
+        "PARKING" to stringResource(R.string.add_block_sheet_type_parking),
+        "ZONE" to stringResource(R.string.add_block_sheet_type_zone)
+    )
 
     var type by remember { mutableStateOf("BLOCK") }
     var name by remember { mutableStateOf("") }
@@ -53,41 +59,41 @@ fun AddBlockToSchoolSheet(
     ) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f).padding(16.dp),
                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Proponer en el mapa",
+            Text(stringResource(R.string.add_block_sheet_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
 
-            Label("TIPO")
+            Label(stringResource(R.string.add_block_sheet_type))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BLOCK_TYPES.forEach { (value, label) ->
+                blockTypes.forEach { (value, label) ->
                     CumbreChip(label, type == value, { type = value })
                 }
             }
 
-            Label("NOMBRE")
+            Label(stringResource(R.string.add_block_sheet_name))
             OutlinedTextField(value = name, onValueChange = { name = it },
                 placeholder = { Text(when (type) {
-                    "BLOCK" -> "ej: La pegatina"
-                    "PARKING" -> "ej: Parking principal"
-                    else -> "ej: Pradera inferior"
+                    "BLOCK" -> stringResource(R.string.add_block_sheet_name_hint_block)
+                    "PARKING" -> stringResource(R.string.add_block_sheet_name_hint_parking)
+                    else -> stringResource(R.string.add_block_sheet_name_hint_zone)
                 }) },
                 singleLine = true, modifier = Modifier.fillMaxWidth())
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Label("LATITUD")
+                    Label(stringResource(R.string.add_block_sheet_latitude))
                     OutlinedTextField(value = latStr, onValueChange = { latStr = it },
                         singleLine = true, modifier = Modifier.fillMaxWidth())
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Label("LONGITUD")
+                    Label(stringResource(R.string.add_block_sheet_longitude))
                     OutlinedTextField(value = lonStr, onValueChange = { lonStr = it },
                         singleLine = true, modifier = Modifier.fillMaxWidth())
                 }
             }
 
-            Label("DESCRIPCIÓN (opcional)")
+            Label(stringResource(R.string.add_block_sheet_description))
             OutlinedTextField(value = description, onValueChange = { description = it },
                 modifier = Modifier.fillMaxWidth().height(80.dp))
 
@@ -111,9 +117,9 @@ fun AddBlockToSchoolSheet(
                     containerColor = Color(0xFF1C1C1A), contentColor = Color.White
                 ),
                 shape = MaterialTheme.shapes.small
-            ) { Text("ENVIAR PROPUESTA") }
+            ) { Text(stringResource(R.string.propose_submit)) }
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.common_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(16.dp))
         }

@@ -61,7 +61,12 @@ import androidx.compose.ui.graphics.PathEffect
 
 private val GRADES = listOf("4", "5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c", "6c+",
     "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+")
-private val START_TYPES = listOf("SIT" to "Sentado", "STAND" to "Pie", "JUMP" to "Lance", "TRAV" to "Trav.")
+private val START_TYPE_KEYS = listOf(
+    "SIT" to R.string.topo_editor_start_sit,
+    "STAND" to R.string.topo_editor_start_stand,
+    "JUMP" to R.string.topo_editor_start_jump,
+    "TRAV" to R.string.topo_editor_start_trav
+)
 
 /**
  * Editor topo. ViewModel carga el bloque por id via GET /api/blocks/{id}.
@@ -85,7 +90,7 @@ fun TopoEditorScreen(
                     Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
-                Text(block?.name ?: "Topo",
+                Text(block?.name ?: stringResource(R.string.topo_editor_default_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground)
             }
@@ -97,14 +102,14 @@ fun TopoEditorScreen(
                         containerColor = Color(0xFF1C1C1A), contentColor = Color.White
                     ),
                     shape = MaterialTheme.shapes.small
-                ) { Text(if (state.saving) "Guardando..." else "Guardar") }
+                ) { Text(if (state.saving) stringResource(R.string.topo_editor_saving) else stringResource(R.string.common_save)) }
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         if (block == null) {
             Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text(state.error ?: "Cargando...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(state.error ?: stringResource(R.string.topo_editor_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Column
         }
@@ -179,28 +184,28 @@ fun TopoEditorScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CumbreChip(
-                label = if (state.drawing) "Dibujando ●" else "Dibujar",
+                label = if (state.drawing) stringResource(R.string.topo_editor_drawing) else stringResource(R.string.topo_editor_draw),
                 selected = state.drawing,
                 onClick = { viewModel.toggleDrawing() }
             )
             IconButton(onClick = { viewModel.undoLastPoint() }) {
-                Icon(Icons.Outlined.Undo, contentDescription = "Deshacer punto",
+                Icon(Icons.Outlined.Undo, contentDescription = stringResource(R.string.topo_editor_undo_point),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Spacer(Modifier.weight(1f))
-            CumbreChip(label = "+ Línea", selected = false,
+            CumbreChip(label = stringResource(R.string.topo_editor_add_line), selected = false,
                 onClick = { showCreateLineDialog = true })
         }
 
         // ───── Lista de líneas ─────
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        Text("LÍNEAS",
+        Text(stringResource(R.string.topo_editor_lines_title),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         if (state.lines.isEmpty()) {
-            Text("Toca '+ Línea' para crear la primera",
+            Text(stringResource(R.string.topo_editor_empty_lines),
                 modifier = Modifier.padding(16.dp),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -219,7 +224,7 @@ fun TopoEditorScreen(
         }
 
         if (state.error != null) {
-            Text("Error: ${state.error}",
+            Text(stringResource(R.string.topo_editor_error_prefix, state.error ?: ""),
                 modifier = Modifier.padding(16.dp),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium)
@@ -267,7 +272,7 @@ private fun LineChip(
                 fontWeight = FontWeight.Bold)
         }
         if (selected) {
-            Icon(Icons.Outlined.Delete, contentDescription = "Borrar",
+            Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.topo_editor_delete),
                 tint = Color.White,
                 modifier = Modifier.clickable(onClick = onDelete).width(20.dp).height(20.dp))
         }
@@ -285,26 +290,26 @@ private fun NewLineDialog(
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva línea") },
+        title = { Text(stringResource(R.string.topo_editor_new_line_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
-                    placeholder = { Text("Nombre de la línea") },
+                    placeholder = { Text(stringResource(R.string.topo_editor_line_name_placeholder)) },
                     singleLine = true, modifier = Modifier.fillMaxWidth()
                 )
-                Text("GRADO", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.topo_editor_grade_label), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(GRADES) { g ->
                         CumbreChip(g, grade == g, { grade = g })
                     }
                 }
-                Text("INICIO", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.topo_editor_start_label), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    START_TYPES.forEach { (v, label) ->
-                        CumbreChip(label, startType == v, { startType = v })
+                    START_TYPE_KEYS.forEach { (v, labelRes) ->
+                        CumbreChip(stringResource(labelRes), startType == v, { startType = v })
                     }
                 }
             }
@@ -313,7 +318,7 @@ private fun NewLineDialog(
             Button(
                 onClick = { if (name.isNotBlank()) onCreate(name, grade, startType) },
                 enabled = name.isNotBlank()
-            ) { Text("Crear") }
+            ) { Text(stringResource(R.string.topo_editor_create)) }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

@@ -47,11 +47,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.components.TopoLine
 import com.meteomontana.android.ui.components.TopoPhotoCanvas
@@ -181,27 +183,25 @@ internal fun AddLinesFlow(
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.md)
         ) {
-            Text("Editar piedra / muro",
+            Text(stringResource(R.string.add_lines_title),
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                "Edita \"${block.name}\": corrige o añade vías, añade más fotos, " +
-                "reordena y ajusta el muro. Un admin lo revisará (o se publica directo " +
-                "si eres admin).",
+                stringResource(R.string.add_lines_description, block.name),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(Spacing.lg))
 
             // ── Geometría (PUNTO / MURO) ────────────────────────────────────────
-            Text("GEOMETRÍA", style = EyebrowTextStyle,
+            Text(stringResource(R.string.propose_geometry), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
             GeometrySelector(selected = geometry, onSelect = onGeometryChange)
             if (isWall) {
                 Spacer(Modifier.height(Spacing.md))
-                Text("SENTIDO DE NUMERACIÓN", style = EyebrowTextStyle,
+                Text(stringResource(R.string.propose_direction), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 DirectionSelector(selected = direction, onSelect = onDirectionChange)
@@ -221,9 +221,9 @@ internal fun AddLinesFlow(
                 ) {
                     Text(
                         when {
-                            hasTrace -> "✓ MURO TRAZADO (${tracedPath!!.size} PUNTOS) · RE-TRAZAR"
-                            hasCurrent -> "✎ RE-TRAZAR EL MURO EN EL MAPA"
-                            else -> "✎ TRAZAR EL MURO EN EL MAPA"
+                            hasTrace -> stringResource(R.string.add_lines_wall_traced, tracedPath!!.size)
+                            hasCurrent -> stringResource(R.string.add_lines_wall_retrace)
+                            else -> stringResource(R.string.add_lines_wall_trace)
                         },
                         style = EyebrowTextStyle, color = Terra
                     )
@@ -231,9 +231,9 @@ internal fun AddLinesFlow(
                 Spacer(Modifier.height(Spacing.xs))
                 Text(
                     when {
-                        hasTrace -> "Se enviará el trazado nuevo."
-                        hasCurrent -> "Se conserva el trazado actual si no lo re-trazas."
-                        else -> "Este muro aún no tiene trazado: traza la base en el mapa."
+                        hasTrace -> stringResource(R.string.add_lines_wall_new_trace_note)
+                        hasCurrent -> stringResource(R.string.add_lines_wall_keep_trace_note)
+                        else -> stringResource(R.string.add_lines_wall_no_trace_note)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -242,7 +242,7 @@ internal fun AddLinesFlow(
             Spacer(Modifier.height(Spacing.lg))
 
             // ── Fotos (caras) ───────────────────────────────────────────────────
-            Text("FOTOS DE LA PIEDRA", style = EyebrowTextStyle,
+            Text(stringResource(R.string.add_lines_faces_title), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -256,7 +256,7 @@ internal fun AddLinesFlow(
                             .clickable { onSelectedFaceChange(i) }
                             .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                     ) {
-                        Text("FOTO ${i + 1}", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.add_lines_face_label, i + 1), style = EyebrowTextStyle,
                             color = if (on) Color.White else MaterialTheme.colorScheme.onSurface)
                     }
                 }
@@ -271,7 +271,7 @@ internal fun AddLinesFlow(
                             }
                             .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                     ) {
-                        Text("+ AÑADIR FOTO", style = EyebrowTextStyle, color = Terra)
+                        Text(stringResource(R.string.propose_add_photo), style = EyebrowTextStyle, color = Terra)
                     }
                 }
             }
@@ -288,7 +288,7 @@ internal fun AddLinesFlow(
                             .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("↕ REORDENAR FOTOS", style = EyebrowTextStyle, color = Terra)
+                        Text(stringResource(R.string.propose_reorder_photos), style = EyebrowTextStyle, color = Terra)
                     }
                     Box(
                         modifier = Modifier
@@ -301,7 +301,7 @@ internal fun AddLinesFlow(
                             .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✕ QUITAR FOTO ${faceIdx + 1}", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.add_lines_remove_photo, faceIdx + 1), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -312,7 +312,7 @@ internal fun AddLinesFlow(
             if (face.hasPhoto) {
                 AsyncImage(
                     model = face.photoModel,
-                    contentDescription = "Foto ${faceIdx + 1} de la piedra",
+                    contentDescription = stringResource(R.string.add_lines_photo_alt, faceIdx + 1),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
@@ -336,13 +336,14 @@ internal fun AddLinesFlow(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (face.newPhotoUri != null) "✓ FOTO NUEVA · ELEGIR OTRA" else "CAMBIAR FOTO DE ESTA CARA",
+                        if (face.newPhotoUri != null) stringResource(R.string.add_lines_new_photo_pick_other)
+                        else stringResource(R.string.add_lines_change_photo),
                         style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (face.newPhotoUri != null) {
                     Spacer(Modifier.height(Spacing.xs))
-                    Text("Foto nueva: redibuja las vías de esta cara sobre ella antes de enviar.",
+                    Text(stringResource(R.string.add_lines_new_photo_redraw_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -363,22 +364,24 @@ internal fun AddLinesFlow(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Sin foto en esta cara",
+                        Text(stringResource(R.string.add_lines_no_photo),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        Text("SELECCIONAR FOTO", style = EyebrowTextStyle, color = Terra)
+                        Text(stringResource(R.string.add_lines_select_photo), style = EyebrowTextStyle, color = Terra)
                     }
                 }
             }
             Spacer(Modifier.height(Spacing.md))
 
             // ── Vías de esta cara ───────────────────────────────────────────────
-            Text("VÍAS DE ESTA FOTO", style = EyebrowTextStyle,
+            Text(stringResource(R.string.add_lines_routes_of_photo), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (isWall) {
                 Spacer(Modifier.height(2.dp))
-                Text("Nº = posición en el muro (${if (direction == "LTR") "izq→der" else "der→izq"}). Reordena con ▲▼.",
+                val dirShort = if (direction == "LTR") stringResource(R.string.add_lines_direction_ltr_short)
+                    else stringResource(R.string.add_lines_direction_rtl_short)
+                Text(stringResource(R.string.add_lines_routes_numbering_note, dirShort),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -393,7 +396,7 @@ internal fun AddLinesFlow(
                     direction == "LTR" -> globalPos + 1
                     else -> totalVias - globalPos
                 }
-                Text(if (b.existingLineId != null) "VÍA EXISTENTE" else "NUEVA",
+                Text(if (b.existingLineId != null) stringResource(R.string.add_lines_existing_route) else stringResource(R.string.add_lines_new_route),
                     style = EyebrowTextStyle,
                     color = if (b.existingLineId != null) MaterialTheme.colorScheme.onSurfaceVariant else Terra)
                 AddLineRow(
@@ -426,7 +429,7 @@ internal fun AddLinesFlow(
                     .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("+ AÑADIR VÍA NUEVA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.add_lines_add_new_route), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
@@ -444,13 +447,13 @@ internal fun AddLinesFlow(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (hasLines) "✎ EDITAR LÍNEAS SOBRE LA FOTO" else "✎ DIBUJAR LÍNEAS SOBRE LA FOTO",
+                        if (hasLines) stringResource(R.string.add_lines_edit_lines_on_photo) else stringResource(R.string.add_lines_draw_lines_on_photo),
                         style = EyebrowTextStyle, color = Color.White
                     )
                 }
             } else {
                 Spacer(Modifier.height(Spacing.xs))
-                Text("Añade una foto a esta cara para poder dibujar las líneas.",
+                Text(stringResource(R.string.add_lines_need_photo_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -476,9 +479,10 @@ internal fun AddLinesFlow(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("CANCELAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.common_cancel).uppercase(), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
+                val submitErrorText = stringResource(R.string.add_lines_submit_error)
                 Box(
                     modifier = Modifier
                         .weight(1.5f)
@@ -529,7 +533,7 @@ internal fun AddLinesFlow(
                                 if (result.isSuccess) onSuccess()
                                 else {
                                     sending = false
-                                    error = "No se pudo enviar la propuesta. Inténtalo de nuevo."
+                                    error = submitErrorText
                                 }
                             }
                         }
@@ -538,7 +542,7 @@ internal fun AddLinesFlow(
                 ) {
                     if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
                         color = Color.White, strokeWidth = 2.dp)
-                    else Text("ENVIAR PROPUESTA", style = EyebrowTextStyle, color = Color.White)
+                    else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
                 }
             }
         }
@@ -607,13 +611,16 @@ private fun ReorderFacesDialog(
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.md)
         ) {
-            Text("Reordenar fotos",
+            Text(stringResource(R.string.add_lines_reorder_title),
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                if (isWall) "Las fotos se recorren en este orden (${if (direction == "LTR") "izq→der" else "der→izq"}) para numerar las vías del muro."
-                else "Ordena las fotos de la piedra.",
+                if (isWall) {
+                    val dirShort = if (direction == "LTR") stringResource(R.string.add_lines_direction_ltr_short)
+                        else stringResource(R.string.add_lines_direction_rtl_short)
+                    stringResource(R.string.add_lines_reorder_wall_note, dirShort)
+                } else stringResource(R.string.add_lines_reorder_simple_note),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -645,7 +652,7 @@ private fun ReorderFacesDialog(
                         if (f.hasPhoto) {
                             AsyncImage(
                                 model = f.photoModel,
-                                contentDescription = "Foto ${i + 1}",
+                                contentDescription = stringResource(R.string.add_lines_face_label, i + 1),
                                 modifier = Modifier.size(56.dp).clip(RoundedCornerShape(2.dp)),
                                 contentScale = ContentScale.Crop
                             )
@@ -659,10 +666,10 @@ private fun ReorderFacesDialog(
                             }
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("FOTO ${i + 1} · ${f.bloques.size} vías",
+                            Text(stringResource(R.string.add_lines_reorder_photo_routes, i + 1, f.bloques.size),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface)
-                            Text(if (isExpanded) "▾ ocultar vías" else "▸ ver vías",
+                            Text(if (isExpanded) stringResource(R.string.add_lines_reorder_hide_routes) else stringResource(R.string.add_lines_reorder_show_routes),
                                 style = MaterialTheme.typography.bodySmall, color = Terra)
                         }
                         // Subir / bajar
@@ -684,7 +691,7 @@ private fun ReorderFacesDialog(
                                 .map { TopoLine(it.name, it.grade, it.startType, it.linePath) }
                             TopoPhotoCanvas(photoUrl = photoUrl, lines = topoLines)
                         } else {
-                            Text("Esta foto aún no tiene imagen.",
+                            Text(stringResource(R.string.add_lines_reorder_no_image),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -702,7 +709,7 @@ private fun ReorderFacesDialog(
                     .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("✓ LISTO", style = EyebrowTextStyle, color = Color.White)
+                Text("✓ " + stringResource(R.string.propose_ready), style = EyebrowTextStyle, color = Color.White)
             }
         }
     }
@@ -754,7 +761,7 @@ internal fun AddLineRow(
                 value = bloque.name,
                 onValueChange = { onUpdate(bloque.copy(name = it)) },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Nombre (opcional)",
+                placeholder = { Text(stringResource(R.string.add_lines_route_name_placeholder),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
@@ -783,7 +790,7 @@ internal fun AddLineRow(
                 modifier = Modifier.width(120.dp)
             ) {
                 OutlinedTextField(
-                    value = bloque.grade ?: "Grado",
+                    value = bloque.grade ?: stringResource(R.string.add_lines_grade_placeholder),
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier.menuAnchor(),
@@ -849,7 +856,7 @@ internal fun AddLineRow(
         }
 
         if (bloque.linePath.isNotEmpty()) {
-            Text("✓ Línea dibujada (${bloque.linePath.size} puntos)",
+            Text(stringResource(R.string.add_lines_route_drawn, bloque.linePath.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary)
         }

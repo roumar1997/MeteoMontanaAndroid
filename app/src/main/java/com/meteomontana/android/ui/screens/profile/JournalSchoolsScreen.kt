@@ -86,7 +86,7 @@ fun JournalSchoolsScreen(
                 Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Escuelas", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.schools_title), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -101,7 +101,7 @@ fun JournalSchoolsScreen(
             is JournalSchoolsUiState.Success -> {
                 if (s.schools.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("Sin escuelas todavía",
+                        Text(stringResource(R.string.journal_schools_empty),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
@@ -128,7 +128,11 @@ private fun SchoolRow(school: SchoolStats, onClick: () -> Unit) {
             Text(school.schoolName,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
-            Text("${school.blockCount} bloque${if (school.blockCount == 1) "" else "s"}",
+            val blockCountText = if (school.blockCount == 1)
+                stringResource(R.string.journal_schools_block_count_one, school.blockCount)
+            else
+                stringResource(R.string.journal_schools_block_count_other, school.blockCount)
+            Text(blockCountText,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

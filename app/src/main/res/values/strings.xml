@@ -317,6 +317,90 @@
     <string name="block_edit_routes">✎ EDITAR / AÑADIR VÍAS</string>
     <string name="block_delete_confirm">¿Eliminar este bloque? Se borrarán sus vías.</string>
 
+    <!-- Add lines flow (edit boulder/wall) -->
+    <string name="add_lines_title">Editar piedra / muro</string>
+    <string name="add_lines_description">Edita \"%1$s\": corrige o añade vías, añade más fotos, reordena y ajusta el muro. Un admin lo revisará (o se publica directo si eres admin).</string>
+    <string name="add_lines_wall_traced">✓ MURO TRAZADO (%1$d PUNTOS) · RE-TRAZAR</string>
+    <string name="add_lines_wall_retrace">✎ RE-TRAZAR EL MURO EN EL MAPA</string>
+    <string name="add_lines_wall_trace">✎ TRAZAR EL MURO EN EL MAPA</string>
+    <string name="add_lines_wall_new_trace_note">Se enviará el trazado nuevo.</string>
+    <string name="add_lines_wall_keep_trace_note">Se conserva el trazado actual si no lo re-trazas.</string>
+    <string name="add_lines_wall_no_trace_note">Este muro aún no tiene trazado: traza la base en el mapa.</string>
+    <string name="add_lines_faces_title">FOTOS DE LA PIEDRA</string>
+    <string name="add_lines_face_label">FOTO %1$d</string>
+    <string name="add_lines_remove_photo">✕ QUITAR FOTO %1$d</string>
+    <string name="add_lines_photo_alt">Foto %1$d de la piedra</string>
+    <string name="add_lines_new_photo_pick_other">✓ FOTO NUEVA · ELEGIR OTRA</string>
+    <string name="add_lines_change_photo">CAMBIAR FOTO DE ESTA CARA</string>
+    <string name="add_lines_new_photo_redraw_note">Foto nueva: redibuja las vías de esta cara sobre ella antes de enviar.</string>
+    <string name="add_lines_no_photo">Sin foto en esta cara</string>
+    <string name="add_lines_select_photo">SELECCIONAR FOTO</string>
+    <string name="add_lines_routes_of_photo">VÍAS DE ESTA FOTO</string>
+    <string name="add_lines_routes_numbering_note">Nº = posición en el muro (%1$s). Reordena con ▲▼.</string>
+    <string name="add_lines_direction_ltr_short">izq→der</string>
+    <string name="add_lines_direction_rtl_short">der→izq</string>
+    <string name="add_lines_existing_route">VÍA EXISTENTE</string>
+    <string name="add_lines_new_route">NUEVA</string>
+    <string name="add_lines_add_new_route">+ AÑADIR VÍA NUEVA</string>
+    <string name="add_lines_edit_lines_on_photo">✎ EDITAR LÍNEAS SOBRE LA FOTO</string>
+    <string name="add_lines_draw_lines_on_photo">✎ DIBUJAR LÍNEAS SOBRE LA FOTO</string>
+    <string name="add_lines_need_photo_note">Añade una foto a esta cara para poder dibujar las líneas.</string>
+    <string name="add_lines_submit_error">No se pudo enviar la propuesta. Inténtalo de nuevo.</string>
+    <string name="add_lines_reorder_title">Reordenar fotos</string>
+    <string name="add_lines_reorder_wall_note">Las fotos se recorren en este orden (%1$s) para numerar las vías del muro.</string>
+    <string name="add_lines_reorder_simple_note">Ordena las fotos de la piedra.</string>
+    <string name="add_lines_reorder_photo_routes">FOTO %1$d · %2$d vías</string>
+    <string name="add_lines_reorder_hide_routes">▾ ocultar vías</string>
+    <string name="add_lines_reorder_show_routes">▸ ver vías</string>
+    <string name="add_lines_reorder_no_image">Esta foto aún no tiene imagen.</string>
+    <string name="add_lines_route_drawn">✓ Línea dibujada (%1$d puntos)</string>
+    <string name="add_lines_route_name_placeholder">Nombre (opcional)</string>
+    <string name="add_lines_grade_placeholder">Grado</string>
+
+    <!-- Add block to school sheet -->
+    <string name="add_block_sheet_title">Proponer en el mapa</string>
+    <string name="add_block_sheet_type">TIPO</string>
+    <string name="add_block_sheet_type_block">Piedra</string>
+    <string name="add_block_sheet_type_parking">Parking</string>
+    <string name="add_block_sheet_type_zone">Zona</string>
+    <string name="add_block_sheet_name">NOMBRE</string>
+    <string name="add_block_sheet_name_hint_block">ej: La pegatina</string>
+    <string name="add_block_sheet_name_hint_parking">ej: Parking principal</string>
+    <string name="add_block_sheet_name_hint_zone">ej: Pradera inferior</string>
+    <string name="add_block_sheet_latitude">LATITUD</string>
+    <string name="add_block_sheet_longitude">LONGITUD</string>
+    <string name="add_block_sheet_description">DESCRIPCIÓN (opcional)</string>
+
+    <!-- Journal schools list -->
+    <string name="journal_schools_empty">Sin escuelas todavía</string>
+    <string name="journal_schools_block_count_one">%1$d bloque</string>
+    <string name="journal_schools_block_count_other">%1$d bloques</string>
+
+    <!-- Saved schools list -->
+    <string name="saved_schools_empty">Aún no has guardado ninguna escuela offline.</string>
+
+    <!-- Topo editor -->
+    <string name="topo_editor_default_title">Topo</string>
+    <string name="topo_editor_saving">Guardando...</string>
+    <string name="topo_editor_loading">Cargando...</string>
+    <string name="topo_editor_drawing">Dibujando ●</string>
+    <string name="topo_editor_draw">Dibujar</string>
+    <string name="topo_editor_undo_point">Deshacer punto</string>
+    <string name="topo_editor_add_line">+ Línea</string>
+    <string name="topo_editor_lines_title">LÍNEAS</string>
+    <string name="topo_editor_empty_lines">Toca \'+ Línea\' para crear la primera</string>
+    <string name="topo_editor_error_prefix">Error: %1$s</string>
+    <string name="topo_editor_delete">Borrar</string>
+    <string name="topo_editor_new_line_title">Nueva línea</string>
+    <string name="topo_editor_line_name_placeholder">Nombre de la línea</string>
+    <string name="topo_editor_grade_label">GRADO</string>
+    <string name="topo_editor_start_label">INICIO</string>
+    <string name="topo_editor_create">Crear</string>
+    <string name="topo_editor_start_sit">Sentado</string>
+    <string name="topo_editor_start_stand">Pie</string>
+    <string name="topo_editor_start_jump">Lance</string>
+    <string name="topo_editor_start_trav">Trav.</string>
+
     <!-- Donate -->
     <string name="donate_title">¿Te ayuda la app?</string>
     <string name="donate_body">Cumbre es gratis y sin anuncios. Si te resulta útil, puedes invitarme a un café.</string>
