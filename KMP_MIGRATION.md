@@ -47,10 +47,39 @@ material, diff de admin, diario por lineId) están en `main` de ambos repos
 - ✅ Todo mergeado: app → `main`, backend → `main` (producción, Railway
   redesplegado). AAB v1.8/11 + `.ipa` de producción generados.
 
-**Próximo paso**: completar la ficha de App Store Connect (capturas de
-pantalla, descripción ya redactada — ver conversación), activar Sign in with
-Apple + APNs cuando Apple apruebe la cuenta Developer (ver
-`APP_STORE_CHECKLIST.md`), y subir el AAB a Play Console (prueba cerrada).
+**Próximo paso** (sesión siguiente — Apple Developer ya aprobada y pagada):
+
+1. **Probar en dispositivo real** lo hecho hoy: filtros nuevos de la alerta de
+   quedadas (modalidad/privacidad/distancia/escuela + que ahora SÍ lleguen
+   notificaciones, antes nunca coincidían por el bug de fechas) y el selector
+   de idioma ES/EN (primer arranque + cambiarlo desde Perfil/Cuenta, en ambas
+   plataformas). `.ipa` de producción de hoy ya descargado en
+   `C:\Users\rouma\ipa-serve\MeteoMontana.ipa` listo para AltStore.
+2. **Activar Sign in with Apple** (botón ya existe en LoginView pero está
+   desactivado / fallaría si se pulsa):
+   - Descomentar `com.apple.developer.applesignin` en `iosApp/project.yml`
+     (línea ~50, ya localizada)
+   - Firebase Console → climbingteams → Authentication → Sign-in method →
+     habilitar proveedor **Apple**
+   - Recompilar con firma real (ver punto 3, van juntos)
+3. **Generar compilación firmada para App Store Connect** (el `.ipa` actual
+   del CI es SIN firmar, solo vale para AltStore):
+   - Crear **Certificado de distribución** + **Provisioning Profile** en
+     developer.apple.com → Certificates, Identifiers & Profiles
+   - Compilar vía GitHub Actions (sin Mac) con esos certificados como secrets
+   - Subir con Transporter (app de Apple) o `xcrun altool`
+4. **Activar APNs** (push real, código ya listo en `PushManager.swift`):
+   crear key .p8 en developer.apple.com → subir a Firebase Cloud Messaging →
+   descomentar `aps-environment` en `project.yml` → `enabled = true`
+5. Completar ficha de App Store Connect: capturas de pantalla (mínimo 3,
+   iPhone 6,5", pendiente de hacer con el iPhone real), subir la compilación
+   firmada, rellenar "Información para el equipo de revisión" — la app exige
+   login, crear una cuenta de Google de prueba para que el revisor entre con
+   "Continuar con Google" (rellenar usuario/contraseña + nota explicativa).
+6. Subir el AAB v1.8/11 (ya generado, ruta en la bitácora de CLAUDE.md) a
+   Play Console, prueba cerrada.
+
+Detalle completo y checklist marcable en `APP_STORE_CHECKLIST.md`.
 
 ---
 
