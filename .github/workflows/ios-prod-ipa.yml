@@ -46,6 +46,13 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
           restore-keys: konan-${{ runner.os }}-
 
+      - name: Cache SPM packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
+          restore-keys: spm-${{ runner.os }}-
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
