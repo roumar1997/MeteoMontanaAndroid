@@ -131,10 +131,12 @@ jobs:
           chmod +x gradlew
           # Pre-compilamos el framework antes de xcodebuild para que su
           # preBuildScript lo encuentre ya compilado (Gradle incremental = no-op).
-          # CONFIGURATION, SDK_NAME y ARCHS simulan el entorno de xcodebuild.
+          # Todas las vars que el task embedAndSignAppleFrameworkForXcode exige.
           CONFIGURATION=Release \
           SDK_NAME=iphoneos \
           ARCHS=arm64 \
+          TARGET_BUILD_DIR=/tmp/kmp-pre-build \
+          FRAMEWORKS_FOLDER_PATH=Frameworks \
           EXPANDED_CODE_SIGN_IDENTITY=- \
           EXPANDED_CODE_SIGN_IDENTITY_HASH=- \
           CODE_SIGNING_ALLOWED=NO \
