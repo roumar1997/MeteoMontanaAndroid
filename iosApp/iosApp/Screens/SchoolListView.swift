@@ -1114,7 +1114,7 @@ private struct EmptyRow: View {
             Text("No hay escuelas con esos filtros")
                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
             if canClear {
-                Button(action: onClear) { OutlinedCumbreButton(text: "QUITAR FILTROS") }
+                Button(action: onClear) { OutlinedCumbreButton(text: NSLocalizedString("schools_clear_filters", comment: "")) }
             }
         }
         .frame(maxWidth: .infinity).padding(32)
@@ -1127,7 +1127,7 @@ private struct ErrorRow: View {
     var body: some View {
         VStack(spacing: 12) {
             Text("Error: \(message)").font(.system(size: 15)).foregroundStyle(Cumbre.bad)
-            Button(action: onRetry) { OutlinedCumbreButton(text: "REINTENTAR") }
+            Button(action: onRetry) { OutlinedCumbreButton(text: NSLocalizedString("common_retry", comment: "")) }
         }
         .frame(maxWidth: .infinity).padding(40)
     }

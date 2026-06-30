@@ -153,7 +153,7 @@ struct MeetupDetailView: View {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left").foregroundColor(Cumbre.ink)
                 }
-                Text("Quedada").font(.headline).lineLimit(1)
+                Text(NSLocalizedString("meetup_detail_title", comment: "")).font(.headline).lineLimit(1)
                 Spacer()
                 HelpButton(topicKey: "meetup_detail")
                 // Share
@@ -186,7 +186,7 @@ struct MeetupDetailView: View {
                 } else if vm.meetup == nil {
                     VStack(spacing: 12) {
                         Text("No se pudo cargar").foregroundColor(Cumbre.ink.opacity(0.6))
-                        Button("REINTENTAR") { Task { await vm.load(id: meetupId) } }
+                        Button(NSLocalizedString("common_retry", comment: "")) { Task { await vm.load(id: meetupId) } }
                             .foregroundColor(Cumbre.terra)
                     }.frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -218,7 +218,7 @@ struct MeetupDetailView: View {
                                     HStack(spacing: 8) {
                                         MeetupAvatarCircle(url: meetup.creatorPhotoUrl, size: 28)
                                         VStack(alignment: .leading, spacing: 1) {
-                                            Text("ORGANIZA")
+                                            Text(NSLocalizedString("meetup_detail_organized_by", comment: ""))
                                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                                                 .tracking(1.8)
                                                 .foregroundColor(Cumbre.ink.opacity(0.6))
@@ -318,7 +318,7 @@ struct MeetupDetailView: View {
                             // ── Description ──
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 6) {
-                                    Text("DETALLES")
+                                    Text(NSLocalizedString("meetup_detail_details", comment: ""))
                                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                                         .tracking(1.8)
                                         .foregroundColor(Cumbre.ink.opacity(0.6))
@@ -379,7 +379,7 @@ struct MeetupDetailView: View {
                                     } label: {
                                         HStack {
                                             if vm.leaving { ProgressView().scaleEffect(0.7) }
-                                            else { Text("SALIR DE LA QUEDADA") }
+                                            else { Text(NSLocalizedString("meetup_detail_leave", comment: "")) }
                                         }
                                         .frame(maxWidth: .infinity)
                                     }
@@ -414,7 +414,7 @@ struct MeetupDetailView: View {
                                         HStack {
                                             if vm.joining { ProgressView().scaleEffect(0.7).tint(.white) }
                                             else {
-                                                Text("UNIRSE A LA QUEDADA")
+                                                Text(NSLocalizedString("meetup_detail_join", comment: ""))
                                                     .font(.system(size: 13, weight: .bold))
                                             }
                                         }
@@ -542,7 +542,7 @@ struct MeetupDetailView: View {
             }
             Button("Cancelar", role: .cancel) {}
         }
-        .alert("Eliminar quedada", isPresented: $showDeleteConfirm) {
+        .alert(NSLocalizedString("meetup_detail_delete", comment: ""), isPresented: $showDeleteConfirm) {
             Button("ELIMINAR", role: .destructive) {
                 Task {
                     let ok = await vm.deleteMeetup(id: meetupId)
@@ -788,7 +788,7 @@ private struct GearSectionView: View {
             HStack(spacing: 6) {
                 Image(systemName: "bag").font(.system(size: 13))
                     .foregroundColor(Cumbre.ink.opacity(0.6))
-                Text("MATERIAL")
+                Text(NSLocalizedString("meetup_detail_material", comment: ""))
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .tracking(1.8)
                     .foregroundColor(Cumbre.ink.opacity(0.6))
@@ -830,7 +830,7 @@ private struct GearSectionView: View {
                             .font(.system(size: 12))
                             .foregroundColor(Cumbre.ink.opacity(0.6))
                     } else {
-                        Text("sin material")
+                        Text(NSLocalizedString("meetup_detail_no_gear", comment: ""))
                             .font(.system(size: 12)).italic()
                             .foregroundColor(Cumbre.ink.opacity(0.35))
                     }
@@ -842,7 +842,7 @@ private struct GearSectionView: View {
                 Button(action: onEditGear) {
                     HStack(spacing: 6) {
                         Image(systemName: "pencil").font(.caption2)
-                        Text("Editar mi material").font(.system(size: 13, weight: .medium))
+                        Text(NSLocalizedString("meetup_detail_edit_gear", comment: "")).font(.system(size: 13, weight: .medium))
                     }
                     .foregroundColor(Cumbre.ink)
                     .frame(maxWidth: .infinity)
@@ -908,7 +908,7 @@ struct EditGearSheet: View {
                 Spacer()
             }
             .padding(.top)
-            .navigationTitle("Mi material")
+            .navigationTitle(NSLocalizedString("meetup_detail_my_gear", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

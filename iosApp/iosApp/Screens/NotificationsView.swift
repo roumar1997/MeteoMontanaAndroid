@@ -118,7 +118,7 @@ struct NotificationsView: View {
                 } else if vm.items.isEmpty {
                     EmptyStateView(
                         icon: "bell",
-                        title: "Sin notificaciones",
+                        title: NSLocalizedString("notifications_empty", comment: ""),
                         message: "Aquí te avisaremos de nuevos seguidores, solicitudes, mensajes y novedades de tus propuestas."
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -143,7 +143,7 @@ struct NotificationsView: View {
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Notificaciones")
+            .navigationTitle(NSLocalizedString("notifications_title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(item: $target) { t in
                 switch t {
@@ -156,7 +156,7 @@ struct NotificationsView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -164,7 +164,7 @@ struct NotificationsView: View {
                             Button("Marcar todas leídas") { Task { await vm.markAll() } }
                         }
                         if !vm.items.isEmpty {
-                            Button("Borrar todas", role: .destructive) { showDeleteAll = true }
+                            Button(NSLocalizedString("notifications_delete_all", comment: ""), role: .destructive) { showDeleteAll = true }
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle").foregroundStyle(Cumbre.terra)
@@ -173,8 +173,8 @@ struct NotificationsView: View {
             }
             .task { await vm.load() }
             .confirmationDialog("¿Borrar todas las notificaciones?", isPresented: $showDeleteAll, titleVisibility: .visible) {
-                Button("Borrar todas", role: .destructive) { vm.deleteAll() }
-                Button("Cancelar", role: .cancel) {}
+                Button(NSLocalizedString("notifications_delete_all", comment: ""), role: .destructive) { vm.deleteAll() }
+                Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
             }
             // Al cerrar la bandeja se consideran vistas → se limpia el badge.
             .onDisappear { Task { await vm.markAllSilent() } }

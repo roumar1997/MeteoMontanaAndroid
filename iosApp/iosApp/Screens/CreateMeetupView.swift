@@ -120,7 +120,7 @@ struct CreateMeetupView: View {
                             Button { showSchoolPicker = true } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "building.2").foregroundColor(Cumbre.ink.opacity(0.5))
-                                    Text(schoolName.isEmpty ? "Buscar escuela…" : schoolName)
+                                    Text(schoolName.isEmpty ? NSLocalizedString("create_meetup_school_search", comment: "") : schoolName)
                                         .foregroundStyle(schoolName.isEmpty ? Cumbre.ink.opacity(0.4) : Cumbre.ink)
                                         .font(.system(size: 15))
                                     Spacer()
@@ -208,7 +208,7 @@ struct CreateMeetupView: View {
                 } label: {
                     HStack {
                         if submitting { ProgressView().scaleEffect(0.8).tint(.white) }
-                        else { Text("CREAR QUEDADA").fontWeight(.bold) }
+                        else { Text(NSLocalizedString("create_meetup_create", comment: "")).fontWeight(.bold) }
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -432,7 +432,7 @@ private struct SchoolPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") { dismiss() }
+                    Button(NSLocalizedString("common_cancel", comment: "")) { dismiss() }
                 }
             }
         }

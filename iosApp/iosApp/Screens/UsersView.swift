@@ -56,11 +56,11 @@ struct SearchUsersView: View {
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Buscar usuarios")
+            .navigationTitle(NSLocalizedString("search_users_title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
             }
         }
@@ -225,7 +225,7 @@ struct PublicProfileView: View {
                         NavigationLink(destination: ChatView(
                             otherUid: uid,
                             otherName: vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")) {
-                            Text("MENSAJE").font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                            Text(NSLocalizedString("chat_message", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
                         }.buttonStyle(.plain)
@@ -259,7 +259,7 @@ struct PublicProfileView: View {
         let following = s.iFollowThem
         let pending = s.requestPending
         Button { vm.toggleFollow(uid: uid) } label: {
-            Text(pending ? "SOLICITADO" : (following ? "SIGUIENDO" : "SEGUIR"))
+            Text(pending ? NSLocalizedString("profile_requested", comment: "") : (following ? NSLocalizedString("profile_unfollow", comment: "") : NSLocalizedString("profile_follow", comment: "")))
                 .font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(following || pending ? Cumbre.ink : .white)
                 .padding(.vertical, 12).padding(.horizontal, 28)
@@ -451,7 +451,7 @@ struct FollowListView: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(mode == .followers ? "Seguidores" : "Siguiendo")
+        .navigationTitle(mode == .followers ? NSLocalizedString("profile_followers", comment: "") : NSLocalizedString("profile_following", comment: ""))
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.load(uid: uid, mode: mode) }
     }
@@ -459,7 +459,7 @@ struct FollowListView: View {
     @ViewBuilder private func followButton(_ targetUid: String) -> some View {
         let iFollow = vm.following.contains(targetUid)
         let pending = vm.requested.contains(targetUid)
-        let label = iFollow ? "SIGUIENDO" : (pending ? "SOLICITADO" : "SEGUIR")
+        let label = iFollow ? NSLocalizedString("profile_unfollow", comment: "") : (pending ? NSLocalizedString("profile_requested", comment: "") : NSLocalizedString("profile_follow", comment: ""))
         rowButton(label, filled: !iFollow && !pending, enabled: !pending) {
             vm.toggleFollow(targetUid)
         }

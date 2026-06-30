@@ -319,7 +319,7 @@ private struct ContributionAdminCard: View {
             }
 
             Button { showMap = true } label: {
-                Text("VER EN MAPA").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
+                Text(NSLocalizedString("admin_view_map", comment: "")).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
                     .frame(maxWidth: .infinity).padding(.vertical, 9)
                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
             }.buttonStyle(.plain)
@@ -603,7 +603,7 @@ private struct ContributionMapSheet: View {
             .navigationTitle(adminTypeLabel(contribution.type))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+                Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
         }
         .task {
             blocks = (try? await AppDependencies.shared.container.getBlocks
@@ -623,12 +623,12 @@ private struct ReviewButtons: View {
                 ProgressView().frame(maxWidth: .infinity)
             } else {
                 Button(action: onReject) {
-                    Text("RECHAZAR").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.bad)
+                    Text(NSLocalizedString("admin_reject", comment: "")).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.bad)
                         .frame(maxWidth: .infinity).padding(.vertical, 10)
                         .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
                 }.buttonStyle(.plain)
                 Button(action: onApprove) {
-                    Text("APROBAR").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(.white)
+                    Text(NSLocalizedString("admin_approve", comment: "")).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 10)
                         .background(Cumbre.ok)
                 }.buttonStyle(.plain)
@@ -664,7 +664,7 @@ private struct RejectReasonSheet: View {
             .navigationTitle("Rechazar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancelar") { dismiss() }.foregroundStyle(Cumbre.ink3) }
+                ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_cancel", comment: "")) { dismiss() }.foregroundStyle(Cumbre.ink3) }
             }
         }
     }
@@ -854,7 +854,7 @@ private struct SchoolBlocksManageSheet: View {
             .navigationTitle(school.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+                Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
         }
         .task { await reload() }
         .sheet(item: $manage) { b in
@@ -990,10 +990,10 @@ private struct BlockManageSheet: View {
             .navigationTitle(block.name.isEmpty ? typeLabel : block.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.ink3) } }
+                Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.ink3) } }
             .alert("¿Borrar este bloque?", isPresented: $confirmDelete) {
-                Button("Cancelar", role: .cancel) {}
-                Button("Borrar", role: .destructive) { Task { await remove() } }
+                Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
+                Button(NSLocalizedString("common_delete", comment: ""), role: .destructive) { Task { await remove() } }
             } message: { Text("Se borrará «\(block.name)» y sus vías. No se puede deshacer.") }
         }
     }

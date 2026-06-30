@@ -287,7 +287,7 @@ struct MeetupsView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "line.3.horizontal.decrease")
                             .font(.system(size: 13)).foregroundColor(Cumbre.terra)
-                        Text("FILTROS")
+                        Text(NSLocalizedString("common_filters", comment: ""))
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
                             .tracking(1.5)
                             .foregroundColor(Cumbre.terra)
@@ -396,7 +396,7 @@ struct MeetupsView: View {
                 } else if vm.error != nil && vm.meetups.isEmpty {
                     VStack(spacing: 12) {
                         Text("No se pudo cargar").foregroundColor(Cumbre.ink.opacity(0.6))
-                        Button("REINTENTAR") { Task { await vm.load() } }
+                        Button(NSLocalizedString("common_retry", comment: "")) { Task { await vm.load() } }
                             .foregroundColor(Cumbre.terra)
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 60)
@@ -404,7 +404,7 @@ struct MeetupsView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "person.3").font(.system(size: 40))
                             .foregroundColor(Cumbre.ink.opacity(0.4))
-                        Text("Sin quedadas activas").foregroundColor(Cumbre.ink.opacity(0.6))
+                        Text(NSLocalizedString("meetups_empty", comment: "")).foregroundColor(Cumbre.ink.opacity(0.6))
                         Text("Crea una para quedar a escalar")
                             .font(.footnote).foregroundColor(Cumbre.ink.opacity(0.5))
                     }
@@ -561,14 +561,14 @@ struct MeetupRowView: View {
             // Right: badge + members
             VStack(alignment: .trailing, spacing: 4) {
                 if meetup.joined {
-                    Text("UNIDO")
+                    Text(NSLocalizedString("meetups_joined", comment: ""))
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Cumbre.terra)
                         .foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                 } else if meetup.isFull {
-                    Text("LLENO")
+                    Text(NSLocalizedString("meetups_full", comment: ""))
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
@@ -948,7 +948,7 @@ struct MeetupAlertView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cerrar") { dismiss() }.foregroundColor(Cumbre.terra)
+                Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundColor(Cumbre.terra)
             }
         }
         .onAppear {
@@ -1021,7 +1021,7 @@ private struct MeetupSchoolFilterSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cerrar") { dismiss() }.foregroundColor(Cumbre.terra)
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundColor(Cumbre.terra)
                 }
             }
         }

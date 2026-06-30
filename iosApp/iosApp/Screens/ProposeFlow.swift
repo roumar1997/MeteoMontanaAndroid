@@ -153,7 +153,7 @@ struct BoulderFormSheet: View {
 
                     // ── Geometría: PUNTO o MURO ────────────────────────────────────
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("GEOMETRÍA").eyebrow()
+                        Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
                         Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.")
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                         WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
@@ -210,7 +210,7 @@ struct BoulderFormSheet: View {
                                 }.buttonStyle(.plain)
                             }
                             Button { faces.append(BoulderFaceForm()); selectedFace = faces.count - 1 } label: {
-                                Text("+ AÑADIR FOTO").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                Text(NSLocalizedString("propose_add_photo", comment: "")).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                     .padding(.horizontal, 10).padding(.vertical, 6)
                                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                             }.buttonStyle(.plain)
@@ -266,7 +266,7 @@ struct BoulderFormSheet: View {
 
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
-                            Text("ENVIAR PROPUESTA").font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                            Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
                         .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
@@ -276,7 +276,7 @@ struct BoulderFormSheet: View {
             .navigationTitle("Nueva piedra")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+                Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
         }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
@@ -413,7 +413,7 @@ struct TopoEditorView: View {
                     .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.bad)
                     .padding(.vertical, 12).frame(maxWidth: .infinity)
                     .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
-                    Button("GUARDAR LÍNEAS") { dismiss() }
+                    Button(NSLocalizedString("propose_save_lines", comment: "")) { dismiss() }
                         .font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
                         .padding(.vertical, 12).frame(maxWidth: .infinity).background(Cumbre.ink)
                 }
@@ -423,7 +423,7 @@ struct TopoEditorView: View {
             .navigationTitle("Dibujar líneas")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+                Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
         }
         .task {
             if photo == nil, let photoUrl, let url = URL(string: photoUrl),
@@ -608,7 +608,7 @@ struct AssignSectorSheet: View {
             .navigationTitle("Asignar sector")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+                Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
         }
     }
 
@@ -694,7 +694,7 @@ struct EditLinesSheet: View {
 
                     // ── Geometría / sentido ───────────────────────────────────────
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("GEOMETRÍA").eyebrow()
+                        Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
                         WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
                     }
                     if isWall {
@@ -731,7 +731,7 @@ struct EditLinesSheet: View {
                             Button {
                                 facePhotos.append(nil); faceBlocks.append([]); selectedFace = facePhotos.count - 1
                             } label: {
-                                Text("+ AÑADIR FOTO").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                Text(NSLocalizedString("propose_add_photo", comment: "")).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                     .padding(.horizontal, 10).padding(.vertical, 6)
                                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                             }.buttonStyle(.plain)
@@ -810,7 +810,7 @@ struct EditLinesSheet: View {
             .navigationTitle("Editar vías")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button("Cancelar") { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+                Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
         }
         .onAppear {
             guard !loaded else { return }

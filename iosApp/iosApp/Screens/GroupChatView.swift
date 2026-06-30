@@ -205,7 +205,7 @@ struct GroupChatView: View {
                                             .font(.system(size: 12))
                                             .foregroundColor(Cumbre.ink.opacity(0.6))
                                     } else {
-                                        Text("sin material")
+                                        Text(NSLocalizedString("meetup_detail_no_gear", comment: ""))
                                             .font(.system(size: 12)).italic()
                                             .foregroundColor(Cumbre.ink.opacity(0.35))
                                     }
@@ -216,7 +216,7 @@ struct GroupChatView: View {
                             } label: {
                                 HStack(spacing: 4) {
                                     Image(systemName: "pencil").font(.system(size: 10))
-                                    Text("Editar mi material").font(.system(size: 12, weight: .bold))
+                                    Text(NSLocalizedString("meetup_detail_edit_gear", comment: "")).font(.system(size: 12, weight: .bold))
                                 }
                                 .foregroundColor(Cumbre.terra)
                                 .frame(maxWidth: .infinity)
@@ -531,9 +531,9 @@ struct NewGroupView: View {
                 .padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Nuevo grupo")
+            .navigationTitle(NSLocalizedString("chat_new_group", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
             .onAppear { vm.load() }
         }
     }

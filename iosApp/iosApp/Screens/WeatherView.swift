@@ -89,7 +89,7 @@ struct WeatherView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Tiempo").font(Cumbre.serif(34, .bold)).foregroundStyle(Cumbre.ink)
+                Text(NSLocalizedString("weather_title", comment: "")).font(Cumbre.serif(34, .bold)).foregroundStyle(Cumbre.ink)
                 Text(vm.selectedName ?? "En tu ubicación")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
             }
@@ -161,7 +161,7 @@ struct WeatherView: View {
                 // Tras conceder, reintentamos cargar.
                 Task { try? await Task.sleep(nanoseconds: 800_000_000); await vm.load() }
             } label: {
-                Text("ACTIVAR UBICACIÓN").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                Text(NSLocalizedString("weather_enable_location", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
                     .foregroundStyle(.white)
                     .padding(.vertical, 12).padding(.horizontal, 20)
                     .background(Cumbre.terra)

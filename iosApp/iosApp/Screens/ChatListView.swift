@@ -144,7 +144,7 @@ struct ChatListView: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle("Mensajes")
+        .navigationTitle(NSLocalizedString("chat_title", comment: ""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) { HelpButton(topicKey: "chat") }
@@ -272,9 +272,9 @@ private struct NewChatView: View {
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Nuevo mensaje")
+            .navigationTitle(NSLocalizedString("chat_new", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra) } }
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
         }
     }
 }

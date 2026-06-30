@@ -179,7 +179,7 @@ struct AccountView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     if vm.offline {
-                        Text("SIN CONEXIÓN · datos guardados")
+                        Text(NSLocalizedString("common_offline_data", comment: ""))
                             .font(Cumbre.mono(10, .bold)).tracking(0.8)
                             .foregroundStyle(Cumbre.ink2)
                             .frame(maxWidth: .infinity)
@@ -209,16 +209,16 @@ struct AccountView: View {
                 .padding(.horizontal, 24)
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Cuenta")
+            .navigationTitle(NSLocalizedString("profile_title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { HelpButton(topicKey: "profile") }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
             }
             .alert("¿Eliminar tu cuenta?", isPresented: $showDeleteConfirm) {
-                Button("Cancelar", role: .cancel) {}
+                Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
                 Button("Eliminar", role: .destructive) {
                     Task { await vm.deleteMyAccount(); dismiss() }
                 }
@@ -242,7 +242,7 @@ struct AccountView: View {
         AccountJournalStatsNav(vm: vm)
         Button { showAddBlock = true } label: {
             // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
-            Text("+ AÑADIR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8)
+            Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
                 .background(Cumbre.terra)
         }.buttonStyle(.plain).padding(.top, 4)
@@ -305,10 +305,10 @@ struct AccountView: View {
 
     private var menuLinks: some View {
         VStack(spacing: 0) {
-            menuRow("Editar perfil", "pencil", EditProfileView())
+            menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
             menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
-            menuRow("Alerta de tiempo", "bell.badge", WeekendAlertView())
-            menuRow("Mis propuestas", "mappin.and.ellipse", MySubmissionsView())
+            menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
+            menuRow(NSLocalizedString("profile_my_proposals", comment: ""), "mappin.and.ellipse", MySubmissionsView())
             menuRow("Mis contribuciones", "square.and.pencil", MyContributionsView())
             menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
             // Panel de admin: solo si el perfil es admin. Muestra un aviso con el
@@ -341,7 +341,7 @@ struct AccountView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "questionmark.circle").font(.system(size: 16))
                         .foregroundStyle(Cumbre.terra).frame(width: 24)
-                    Text("Volver a ver las pistas").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                    Text(NSLocalizedString("profile_show_hints", comment: "")).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                     Spacer()
                 }
                 .padding(.vertical, 12).contentShape(Rectangle())
@@ -374,7 +374,7 @@ struct AccountView: View {
             authBridge.signOut {}
             dismiss()
         } label: {
-            Text("CERRAR SESIÓN").font(Cumbre.mono(12, .bold)).tracking(0.8)
+            Text(NSLocalizedString("profile_logout", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(Cumbre.ink)
                 .padding(.vertical, 14).frame(maxWidth: .infinity)
                 .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
@@ -384,7 +384,7 @@ struct AccountView: View {
 
     private var deleteAccountButton: some View {
         Button { showDeleteConfirm = true } label: {
-            Text("Eliminar cuenta")
+            Text(NSLocalizedString("profile_delete_account", comment: ""))
                 .font(.system(size: 14))
                 .foregroundStyle(Cumbre.ink3)
                 .padding(.vertical, 8).frame(maxWidth: .infinity)

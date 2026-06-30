@@ -135,14 +135,14 @@ struct EditProfileView: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle("Editar perfil")
+        .navigationTitle(NSLocalizedString("profile_edit", comment: ""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     Task { if await vm.save() { dismiss() } }
                 } label: {
-                    if vm.saving { ProgressView() } else { Text("Guardar").foregroundStyle(Cumbre.terra) }
+                    if vm.saving { ProgressView() } else { Text(NSLocalizedString("common_save", comment: "")).foregroundStyle(Cumbre.terra) }
                 }
                 .disabled(vm.saving)
             }
