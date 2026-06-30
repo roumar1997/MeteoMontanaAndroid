@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build-prod-ipa:
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -45,6 +45,16 @@ jobs:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
           restore-keys: konan-${{ runner.os }}-
+
+      - name: Cache build KMP shared (shared/build)
+        uses: actions/cache@v4
+        with:
+          path: |
+            shared/build
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: kmp-build-${{ runner.os }}-${{ hashFiles('shared/src/**/*.kt', 'shared/build.gradle.kts', 'gradle/libs.versions.toml') }}
+          restore-keys: kmp-build-${{ runner.os }}-
 
       - name: Cache SPM packages
         uses: actions/cache@v4
@@ -115,6 +125,22 @@ jobs:
       - name: XcodeGen generate
         working-directory: iosApp
         run: xcodegen generate
+
+      - name: Compilar framework KMP (shared → iphoneos arm64)
+        run: |
+          chmod +x gradlew
+          # Pre-compilamos el framework antes de xcodebuild para que su
+          # preBuildScript lo encuentre ya compilado (Gradle incremental = no-op).
+          # CONFIGURATION, SDK_NAME y ARCHS simulan el entorno de xcodebuild.
+          CONFIGURATION=Release \
+          SDK_NAME=iphoneos \
+          ARCHS=arm64 \
+          EXPANDED_CODE_SIGN_IDENTITY=- \
+          EXPANDED_CODE_SIGN_IDENTITY_HASH=- \
+          CODE_SIGNING_ALLOWED=NO \
+          PLATFORM_NAME=iphoneos \
+          METAL_LIBRARY_OUTPUT_DIR=/tmp \
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode --stacktrace
 
       - name: Archive (iphoneos, RELEASE, firma automática)
         env:
