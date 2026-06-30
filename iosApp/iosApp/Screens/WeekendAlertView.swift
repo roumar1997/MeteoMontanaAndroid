@@ -122,7 +122,7 @@ struct WeekendAlertView: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle("Alerta de tiempo")
+        .navigationTitle(NSLocalizedString("profile_weather_alert", comment: ""))
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.load() }
         .onChange(of: vm.savedOk) { _, ok in
@@ -225,7 +225,7 @@ struct WeekendAlertView: View {
                 .padding(.vertical, 4)
             }
             if vm.selected.count < 3 {
-                TextField("Buscar escuela…", text: Binding(get: { vm.query }, set: { vm.search($0) }))
+                TextField(NSLocalizedString("create_meetup_school_search", comment: ""), text: Binding(get: { vm.query }, set: { vm.search($0) }))
                     .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                     .autocorrectionDisabled()
                     .padding(10).background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))

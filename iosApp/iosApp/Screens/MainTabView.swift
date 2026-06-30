@@ -18,13 +18,13 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $tab) {
             WeatherView()
-                .tabItem { Label("Tiempo", systemImage: "cloud") }
+                .tabItem { Label(NSLocalizedString("tab_weather", comment: ""), systemImage: "cloud") }
                 .tag(0)
             SchoolListView()
-                .tabItem { Label("Escuelas", systemImage: "list.bullet") }
+                .tabItem { Label(NSLocalizedString("tab_schools", comment: ""), systemImage: "list.bullet") }
                 .tag(1)
             MeetupsView()
-                .tabItem { Label("Quedadas", systemImage: "person.3") }
+                .tabItem { Label(NSLocalizedString("tab_meetups", comment: ""), systemImage: "person.3") }
                 .tag(2)
         }
         .tint(Cumbre.terra)

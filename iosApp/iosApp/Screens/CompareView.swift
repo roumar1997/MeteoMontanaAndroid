@@ -79,11 +79,11 @@ struct CompareView: View {
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Comparar")
+            .navigationTitle(NSLocalizedString("compare_title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
             }
             .task { await vm.load(schools: schools) }
@@ -97,7 +97,7 @@ struct CompareView: View {
                 // Cabecera: mejor de hoy (pulsable).
                 NavigationLink(destination: SchoolDetailView(school: winner.school)) {
                     VStack(spacing: 2) {
-                        Text("HOY MEJOR").font(Cumbre.mono(11, .bold)).tracking(1.6).foregroundStyle(Cumbre.ink3)
+                        Text(NSLocalizedString("compare_best_today", comment: "")).font(Cumbre.mono(11, .bold)).tracking(1.6).foregroundStyle(Cumbre.ink3)
                         HStack(spacing: 6) {
                             Text(winner.name).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
                             Text("\(winner.score)").font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.score(winner.score))
@@ -186,7 +186,7 @@ struct DirectionsLink: View {
             let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(lat),\(lon)")!
             openURL(UIApplication.shared.canOpenURL(g) ? g : web)
         } label: {
-            Text("CÓMO LLEGAR").font(Cumbre.mono(11, .bold)).tracking(0.8)
+            Text(NSLocalizedString("common_directions", comment: "")).font(Cumbre.mono(11, .bold)).tracking(0.8)
                 .foregroundStyle(Cumbre.terra)
                 .padding(.vertical, 8).frame(maxWidth: .infinity)
                 .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))

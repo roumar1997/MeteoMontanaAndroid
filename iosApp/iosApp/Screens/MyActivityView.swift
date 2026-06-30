@@ -55,7 +55,7 @@ final class MySubmissionsViewModel: ObservableObject {
 struct MySubmissionsView: View {
     @StateObject private var vm = MySubmissionsViewModel()
     var body: some View {
-        listScaffold(title: "Mis propuestas", loading: vm.loading, empty: vm.items.isEmpty,
+        listScaffold(title: NSLocalizedString("profile_my_proposals", comment: ""), loading: vm.loading, empty: vm.items.isEmpty,
                      emptyText: "Sin propuestas todavía", emptyIcon: "mappin.and.ellipse",
                      emptyHint: "Con \"+ Enviar escuela\" o + PROPONER en el mapa de una escuela puedes proponer cosas. Aquí verás su estado.") {
             ForEach(vm.items, id: \.id) { s in
@@ -192,7 +192,7 @@ final class FollowRequestsViewModel: ObservableObject {
 struct FollowRequestsView: View {
     @StateObject private var vm = FollowRequestsViewModel()
     var body: some View {
-        listScaffold(title: "Solicitudes", loading: vm.loading, empty: vm.items.isEmpty,
+        listScaffold(title: NSLocalizedString("profile_follow_requests", comment: ""), loading: vm.loading, empty: vm.items.isEmpty,
                      emptyText: "Sin solicitudes", emptyIcon: "person.crop.circle.badge.questionmark",
                      emptyHint: "Cuando alguien pida seguirte (perfil privado), aparecerá aquí para aceptar o rechazar.") {
             ForEach(vm.items, id: \.uid) { u in

@@ -59,7 +59,7 @@ struct HelpSheet: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "info.circle").font(.system(size: 16))
-                                Text("Volver a ver todas las pistas").font(.system(size: 15))
+                                Text(NSLocalizedString("profile_show_hints", comment: "")).font(.system(size: 15))
                             }
                             .foregroundStyle(Cumbre.terra)
                             .frame(maxWidth: .infinity)
@@ -75,7 +75,7 @@ struct HelpSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
             }
         }

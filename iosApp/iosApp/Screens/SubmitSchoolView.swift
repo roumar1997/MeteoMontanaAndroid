@@ -130,7 +130,7 @@ struct SubmitSchoolView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.ink3)
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.ink3)
                 }
             }
             .task { await vm.loadOptions() }
@@ -175,7 +175,7 @@ struct SubmitSchoolView: View {
                 } label: {
                     HStack {
                         if vm.saving { ProgressView().tint(.white) }
-                        Text("ENVIAR PROPUESTA").font(Cumbre.mono(13, .bold)).tracking(0.8)
+                        Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8)
                     }
                     .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
                     .background(vm.canSubmit ? Cumbre.terra : Cumbre.ink3)
@@ -195,7 +195,7 @@ struct SubmitSchoolView: View {
             Text("La revisaremos en 24-48 h. Gracias por aportar a la comunidad.")
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
                 .multilineTextAlignment(.center).padding(.horizontal, 24)
-            Button("CERRAR") { dismiss() }
+            Button(NSLocalizedString("common_close", comment: "")) { dismiss() }
                 .font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
                 .padding(.vertical, 14).padding(.horizontal, 32)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
