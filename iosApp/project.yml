@@ -90,6 +90,9 @@ targets:
           Para hacer fotos de las vías, escuelas o tu perfil.
         NSPhotoLibraryUsageDescription: >-
           Para elegir fotos de las vías, escuelas o tu perfil.
+        # Encriptación exenta: la app solo usa HTTPS estándar del SO (no algoritmos propios).
+        # Evita tener que subir documentación de encriptación a App Store Connect.
+        ITSAppUsesNonExemptEncryption: false
     settings:
       base:
         PRODUCT_NAME: MeteoMontana
