@@ -98,11 +98,11 @@ jobs:
 
       - name: Preparar API Key de App Store Connect
         env:
-          API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          API_KEY_B64: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
-          echo "$API_KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          echo "$API_KEY_B64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
           chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
 
       - name: XcodeGen generate
