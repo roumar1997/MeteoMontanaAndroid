@@ -1,6 +1,8 @@
 package com.meteomontana.android.ui.components
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
@@ -46,8 +48,18 @@ fun applyAppLanguage(context: Context, languageCode: String) {
     LanguagePrefs.markChosen(context)
     AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageCode))
     // En algunos OEM (MIUI, etc.) setApplicationLocales no dispara recreación automáticamente.
-    // La forzamos explícitamente para que todas las cadenas se refresquen.
-    (context as? android.app.Activity)?.recreate()
+    // Compose envuelve el contexto en ContextWrapper(s), así que hay que traversar hasta la Activity.
+    context.findActivity()?.recreate()
+}
+
+/** Traversa la cadena de ContextWrapper hasta encontrar la Activity real. */
+private fun Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }
 
 fun currentAppLanguage(): String {
