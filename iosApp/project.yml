@@ -98,12 +98,6 @@ targets:
         PRODUCT_NAME: MeteoMontana
         PRODUCT_BUNDLE_IDENTIFIER: com.meteomontana.ios
         SWIFT_VERSION: "5.0"
-        # Firma ad-hoc en el simulador (sin Apple Developer): basta para que el
-        # entitlement keychain-access-groups se aplique y FirebaseAuth persista
-        # la sesión. En dispositivo real habrá que poner DEVELOPMENT_TEAM.
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGN_STYLE: Manual
-        CODE_SIGNING_REQUIRED: "NO"
         TARGETED_DEVICE_FAMILY: "1,2"
         # El framework KMP se compila y embebe con una build phase de Gradle
         # (preBuildScripts), no como dependencia SPM.
@@ -112,10 +106,17 @@ targets:
         # Shared referencia símbolos sqlite3_* del sistema.
         OTHER_LDFLAGS: $(inherited) -framework Shared -lsqlite3
       configs:
-        # Garantiza que `#if DEBUG` funcione: los builds Debug apuntan a staging,
-        # los Release a producción (ver AppDependencies.swift).
+        # Debug: firma ad-hoc (sin Apple Developer, para CI ios-ci.yml y simulador).
         Debug:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEBUG
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGNING_REQUIRED: "NO"
+        # Release: firma automática con Apple Distribution (para App Store, ios-prod-ipa.yml).
+        Release:
+          CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          DEVELOPMENT_TEAM: 3CP2YRJ579
     dependencies:
       - package: Firebase
         product: FirebaseAuth
