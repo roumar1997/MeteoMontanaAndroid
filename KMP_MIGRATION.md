@@ -12,22 +12,45 @@
 > **Esta sección se actualiza al final de cada sesión.** Una sesión nueva
 > debe leer SOLO esta sección y ya sabe por dónde seguir.
 
-**Última actualización:** 2026-06-27 — Feature Quedadas: Fases 1/3/4/7 completadas.
+**Última actualización:** 2026-06-30 — Quedadas completas y en producción (app +
+backend); material de escalada; i18n ES/EN; filtros de alerta completos.
 
 ---
-### Feature: Quedadas para escalar (MEETUPS_DESIGN.md)
+### Feature: Quedadas para escalar (MEETUPS_DESIGN.md) — ✅ COMPLETA, en producción
 
-- ✅ **Fase 1 — Backend** (`develop`): V31__meetups.sql, entidades JPA, use cases (Get/Create/Join/Leave/Kick + Expiry scheduler), MeetupController, gender field en User. Tests verdes (13 nuevos).
-- ✅ **Fase 3 — Shared KMP** (`main`): MeetupModels, DTOs, KtorMeetupApi, MeetupCacheRepository (SQLDelight offline), 6 use cases, IosDependencyContainer actualizado.
-- ✅ **Fase 4 — Android UI** (`main`): Tab "Quedadas" (3ª pestaña, icono Groups), MeetupsScreen (lista + filtros), MeetupDetailScreen (info + miembros + join/leave/kick + chat), CreateMeetupScreen (formulario completo). Build y tests verdes.
-- ✅ **Fase 7 — iOS UI** (`main`): MeetupsView (lista + filtros TODAS/SIGUIENDO + badge UNIDO/LLENO), MeetupDetailView (foto + días + privacidad/disciplina + unirse/salir/expulsar + chat), CreateMeetupView (nombre, escuela, días picker 14 días, privacidad, disciplina, límite). Pestaña "Quedadas" en MainTabView. CI iOS verificará al compilar.
-- ✅ **Fase 5 — Moderación** (`main`): Backend (`develop`): V32__meetup_reports.sql, `MeetupReport` domain + JPA + repo + `SubmitReportUseCase`/`ListReportsUseCase`/`ResolveReportUseCase`, `POST /meetups/{id}/report`, `GET /admin/reports`, `POST /admin/reports/{id}/resolve`. App: botón 🚩 Denunciar en MeetupDetailScreen/View (dialog/confirmationDialog con 4 razones), MeetupReport model en shared, KtorAdminApi/AdminRepository extendidos, tab "DENUNCIAS" en AdminScreen con DenunciasTab + botones RESOLVER/DESESTIMAR. Build Android verde. iOS verificará en CI.
-- ✅ **Fase 6 — Notificaciones "quedada nueva"** (`develop` backend, `main` app): V33__meetup_alerts.sql + `MeetupAlert` domain + JPA + repo + `GetMeetupAlertUseCase`/`SetMeetupAlertUseCase` + hook en `CreateMeetupUseCase` (push + in-app a suscritos). App: shared `MeetupAlertDto`/`SetAlertRequestDto` + `GetMeetupAlertUseCase`/`SetMeetupAlertUseCase`. Android: campana 🔔 en header de Quedadas (activa=terra/NotificationsActive, apagada/NotificationsOff). iOS: `bell.fill`/`bell.slash`. Build Android verde.
-- ✅ **"No mixto"**: etiqueta WOMEN → "No mixto" en Android + iOS (código WOMEN en BD sin cambios).
+Todas las fases (1-9: backend, shared, Android, iOS, moderación, alertas,
+material, diff de admin, diario por lineId) están en `main` de ambos repos
+(app y backend = producción). Detalle completo de cada fase en la bitácora de
+`CLAUDE.md` (sesiones del 2026-06-20 al 2026-06-30).
 
-**Próximo paso**: Fase 8 — Foto de quedada (subir foto al crear/editar; ya existe `photoUrl` en el modelo), o pedir OK a Rodrigo para mergear `develop`→`main` del backend (Fases 1+5+6 listas en staging).
+**Sesión 2026-06-30 — cierre de Quedadas + i18n:**
+- ✅ **Material de escalada**: cada participante indica qué material lleva
+  (crashpads en bloque; cintas/cuerda/gri-gri en vía). Sección MATERIAL en el
+  detalle + banner desplegable en el chat de grupo. Backend V37
+  (`gear_json` en `meetup_members`), endpoint `PUT /meetups/{id}/my-gear`.
+- ✅ **Filtros completos en la alerta de quedadas**: modalidad (ambas/bloque/
+  vía), privacidad (todas/abiertas/seguidos-seguidores/no mixto con gate de
+  género), distancia (50/100/200km), escuela específica. **Bug corregido**:
+  `matchesDays` comparaba día-de-semana (1-7) contra fechas ISO completas que
+  manda la app → las alertas nunca coincidían realmente. Backend V38
+  (`discipline`/`privacy`/`max_distance_km`/`user_lat`/`user_lon` en
+  `meetup_alerts`). `MeetupAlertScreen.kt` (Android) y `MeetupAlertView`
+  (iOS) reescritas con todos los filtros + gate de género.
+- ✅ **Internacionalización ES/EN** (Android + iOS completa): ~45 ficheros
+  Android con `stringResource()`, ~25 ficheros iOS con `NSLocalizedString`,
+  `HelpCatalog` bilingüe, selector de idioma al primer arranque + opción en
+  Perfil/Cuenta (Android: `AppCompatDelegate.setApplicationLocales`; iOS:
+  swizzling de `Bundle`, cambio en caliente sin reiniciar). Verificado por CI.
+- ✅ **App Store**: app "Cumbre Climbing" creada en App Store Connect.
+  `https://climbingteams.com/support.html` desplegado (página de soporte +
+  FAQ). Checklist completo en `APP_STORE_CHECKLIST.md`.
+- ✅ Todo mergeado: app → `main`, backend → `main` (producción, Railway
+  redesplegado). AAB v1.8/11 + `.ipa` de producción generados.
 
-**Backend Fases 1+5+6 en `develop`** — no mergeados a `main` aún. Pedir OK explícito a Rodrigo antes de mergear (Railway prod = testers en vivo).
+**Próximo paso**: completar la ficha de App Store Connect (capturas de
+pantalla, descripción ya redactada — ver conversación), activar Sign in with
+Apple + APNs cuando Apple apruebe la cuenta Developer (ver
+`APP_STORE_CHECKLIST.md`), y subir el AAB a Play Console (prueba cerrada).
 
 ---
 

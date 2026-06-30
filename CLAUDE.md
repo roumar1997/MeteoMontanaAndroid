@@ -538,6 +538,74 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-06-30 — material de quedadas, i18n ES/EN completo, filtros de alerta, App Store
+
+Sesión larga, app + backend + repo PWA. Todo mergeado a `main` de los tres
+repos (app, MeteoMontanaAPI = producción, MeteoMontana = PWA/web legal).
+AAB v1.8/11 + `.ipa` de producción generados y verificados (varios runs CI
+verdes en macOS).
+
+- **Material de escalada en Quedadas**: cada participante indica qué material
+  lleva (crashpads en bloque; cintas/cuerda/gri-gri en vía; ambos en
+  disciplina BOTH). Backend V37 (`gear_json` en `meetup_members`, JSON simple
+  tipo `{"crashpads":2}`), endpoint `PUT /meetups/{id}/my-gear`. Sección
+  MATERIAL en el detalle de quedada (total + desglose por persona + editar) y
+  banner **desplegable** en el chat de grupo (cerrado=resumen compacto,
+  abierto=quién lleva qué + botón editar, vacío=invita a añadir). Diseñado con
+  bocetos antes de implementar (3 iteraciones de feedback).
+- **Filtros completos en la alerta de quedadas** — antes solo tenía días;
+  ahora: modalidad (ambas/bloque/vía), privacidad (todas/abiertas/seguidos-
+  seguidores/no mixto con gate de género igual que crear quedada), distancia
+  (50/100/200km, pide ubicación al guardar), escuela específica (reutiliza el
+  buscador). **Bug real corregido**: `MeetupAlert.matchesDays` comparaba
+  "día de la semana" (1-7) contra las fechas ISO completas que mandan las
+  apps ("2026-07-04") → las alertas NUNCA coincidían en producción, llevaba
+  así desde que se creó la feature. Backend V38 (nuevas columnas en
+  `meetup_alerts`). `CreateMeetupUseCase.notifyAlerts` ahora evalúa todos los
+  filtros Y comprueba que el usuario realmente pueda VER esa quedada (sigue/
+  seguido para FOLLOWERS, género Mujer para WOMEN) antes de notificar — antes
+  solo notificaba quedadas OPEN, ignorando FOLLOWERS/WOMEN por completo.
+  `MeetupAlertScreen.kt` (Android) y `MeetupAlertView` (iOS) reescritas con
+  todos los filtros nuevos.
+- **Internacionalización ES/EN completa** (Android + iOS): ~45 ficheros
+  Android externalizados a `stringResource()` (`strings.xml` + `values-en/
+  strings.xml`, ~290 strings), ~25 ficheros iOS a `NSLocalizedString`
+  (`es.lproj`/`en.lproj`, ~200 keys), `HelpCatalog` (shared) bilingüe con
+  `byKey(key, lang)`. **Selector de idioma**: al primer arranque (antes del
+  login, espejo en ambas plataformas) + opción "Idioma / Language" en Perfil/
+  Cuenta. Android usa `AppCompatDelegate.setApplicationLocales` (retro-
+  compatible vía appcompat, ya era dependencia). iOS usa el patrón estándar de
+  swizzling de `Bundle.localizedString` (`LanguageManager.swift`) para cambiar
+  de idioma **sin reiniciar la app** (no hay soporte nativo equivalente al de
+  Android). Los nombres de escuelas/lugares NO se traducen (son catálogo, no
+  UI). Trabajo verificado con múltiples runs de CI iOS en macOS real (sin Mac
+  en la sesión) — la sintaxis Swift se comprobó además contando paréntesis/
+  llaves balanceados antes de cada push, por si el CI tardaba.
+- **App Store Connect**: cuenta Apple Developer aprobada y pagada. App creada
+  como **"Cumbre Climbing"** (el nombre "Cumbre" a secas ya estaba en uso por
+  otra app). Bundle ID `com.meteomontana.ios` registrado en Certificates,
+  Identifiers & Profiles con capabilities Push Notifications + Sign In with
+  Apple. Página de soporte nueva **`climbingteams.com/support.html`** (FAQ +
+  contacto + enlaces a términos/privacidad) creada en el repo `MeteoMontana`
+  (PWA, sirve las páginas legales) y desplegada a producción vía Cloudflare.
+  Descripción, keywords, copyright redactados (ver conversación). Checklist
+  paso a paso de lo que falta (Sign in with Apple, APNs, firma real, subida)
+  en `APP_STORE_CHECKLIST.md`, creado en sesión anterior.
+- **PWA (`MeteoMontana`, repo aparte)**: además de `support.html`, se subieron
+  a `main` cambios pendientes de sesiones previas (secciones de Quedadas y
+  Género en `terms.html`/`privacy.html`, regla de Storage para
+  `meetup-photos/`) que llevaban escritos pero sin pushear.
+
+> ### 🔜 PENDIENTE
+> - **App Store**: capturas de pantalla (mínimo 3, iPhone 6,5") — pendiente de
+>   hacer desde el iPhone real. Activar Sign in with Apple (capability +
+>   Firebase provider) y APNs (key .p8 + Firebase) en cuanto convenga — el
+>   código ya está listo en ambas plataformas, ver `APP_STORE_CHECKLIST.md`.
+> - **Play Store**: subir el AAB v1.8/11 ya generado a la prueba cerrada.
+> - Probar en dispositivo real los filtros nuevos de la alerta de quedadas
+>   (compilado y verificado por CI, pero sin probar en runtime con datos
+>   reales todavía).
+
 ### Sesión 2026-06-26 (2) — ayuda v2, fix nav pantalla en blanco, release 1.7, revisión de seguridad, diseño Quedadas
 
 App + repos. Todo en `main`. Release **1.7 / versionCode 10** subida a Play
