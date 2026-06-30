@@ -171,6 +171,7 @@ struct AccountView: View {
     @State private var showAddBlock = false
     @State private var showDeleteConfirm = false
     @State private var showHintsReset = false
+    @State private var showLanguagePicker = false
 
     private let authBridge = AppDependencies.shared.authBridge
 
@@ -333,6 +334,23 @@ struct AccountView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+            }
+            Button {
+                showLanguagePicker = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "globe").font(.system(size: 16))
+                        .foregroundStyle(Cumbre.terra).frame(width: 24)
+                    Text("Idioma / Language").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                    Spacer()
+                }
+                .padding(.vertical, 12).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showLanguagePicker) {
+                LanguagePickerView { code in
+                    LanguageManager.shared.setLanguage(code)
+                }
             }
             Button {
                 FirstTimeHint.resetAll()
