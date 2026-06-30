@@ -1,4 +1,4 @@
-name: iOS PROD .ipa (manual)
+name: "iOS PROD .ipa (manual)"
 
 # Compila la app iOS en configuración RELEASE, firmada con el certificado de
 # distribución de App Store, y la sube automáticamente a App Store Connect.
