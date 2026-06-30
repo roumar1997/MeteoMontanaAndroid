@@ -1,14 +1,16 @@
 name: iOS PROD .ipa (manual)
 
 # Compila la app iOS en configuración RELEASE, firmada con el certificado de
-# distribución de App Store. El .ipa resultante se puede subir directamente a
-# App Store Connect con Transporter.
+# distribución de App Store, y la sube automáticamente a App Store Connect.
 #
 # Secrets necesarios:
-#   GOOGLE_SERVICE_INFO_PLIST       → GoogleService-Info.plist real de Firebase
-#   DISTRIBUTION_CERTIFICATE_P12   → certificado Apple Distribution en base64
+#   GOOGLE_SERVICE_INFO_PLIST          → GoogleService-Info.plist real de Firebase
+#   DISTRIBUTION_CERTIFICATE_P12      → certificado Apple Distribution en base64
 #   DISTRIBUTION_CERTIFICATE_PASSWORD → contraseña del .p12
-#   PROVISIONING_PROFILE_BASE64    → perfil Cumbre App Store en base64
+#   PROVISIONING_PROFILE_BASE64       → perfil Cumbre App Store en base64
+#   APP_STORE_CONNECT_API_KEY         → contenido del .p8 de la API Key
+#   APP_STORE_CONNECT_KEY_ID          → Key ID (ej. 39CT43AKCN)
+#   APP_STORE_CONNECT_ISSUER_ID       → Issuer ID (UUID)
 
 on:
   workflow_dispatch: {}
@@ -132,8 +134,23 @@ jobs:
           zip -qr MeteoMontana-AppStore.ipa Payload
           ls -la MeteoMontana-AppStore.ipa
 
-      - name: Upload .ipa
+      - name: Upload .ipa (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: ios-app-store-ipa
           path: MeteoMontana-AppStore.ipa
+
+      - name: Subir a App Store Connect
+        env:
+          API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$API_KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          xcrun altool --upload-app \
+            --type ios \
+            --file MeteoMontana-AppStore.ipa \
+            --apiKey "$KEY_ID" \
+            --apiIssuer "$ISSUER_ID" \
+            --verbose
