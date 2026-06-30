@@ -47,11 +47,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.meteomontana.android.R
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.theme.colorForGrade
 import com.meteomontana.android.ui.theme.gradeStyle
@@ -80,7 +82,7 @@ fun TopoEditorScreen(
             horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Text(block?.name ?: "Topo",
@@ -314,7 +316,7 @@ private fun NewLineDialog(
             ) { Text("Crear") }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancelar") }
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
     )
 }
