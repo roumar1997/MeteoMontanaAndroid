@@ -43,8 +43,11 @@ object LanguagePrefs {
 
 /** Aplica el idioma elegido a toda la app (persiste automáticamente vía AppCompatDelegate). */
 fun applyAppLanguage(context: Context, languageCode: String) {
-    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageCode))
     LanguagePrefs.markChosen(context)
+    AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageCode))
+    // En algunos OEM (MIUI, etc.) setApplicationLocales no dispara recreación automáticamente.
+    // La forzamos explícitamente para que todas las cadenas se refresquen.
+    (context as? android.app.Activity)?.recreate()
 }
 
 fun currentAppLanguage(): String {

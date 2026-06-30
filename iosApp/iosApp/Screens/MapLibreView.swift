@@ -173,6 +173,9 @@ struct MapLibreView: UIViewRepresentable {
         private var lastSignature: String = ""
         private var lastFittedIds: Set<String> = []
         private var didLoadFit = false
+        // autoFitToMarkers: el fit inicial se hace en mapViewDidFinishLoadingMap
+        // (makeUIView no tiene layout aún). Esta bandera evita re-fit en cambio de estilo.
+        private var didAutoFitOnLoad = false
         /// Mapa annotation→marker para resolver taps sin depender del título.
         private var byAnnotation: [ObjectIdentifier: CumbreMarker] = [:]
         /// Estilo (color/grosor) por polilínea para los delegates de MapLibre.
@@ -281,19 +284,29 @@ struct MapLibreView: UIViewRepresentable {
         // calcula bien el zoom. Solo una vez (didLoadFit) para no pisar el pan del
         // usuario al alternar topo/satélite (que vuelve a disparar este callback).
         func mapViewDidFinishLoadingMap(_ mapView: MLNMapView) {
-            guard !didLoadFit, parent.fitToCoordinatesOnLoad.count >= 2 else { return }
-            didLoadFit = true
-            let coords = parent.fitToCoordinatesOnLoad
-            let lats = coords.map { $0.latitude }, lons = coords.map { $0.longitude }
-            let bounds = MLNCoordinateBounds(
-                sw: CLLocationCoordinate2D(latitude: lats.min()!, longitude: lons.min()!),
-                ne: CLLocationCoordinate2D(latitude: lats.max()!, longitude: lons.max()!))
-            mapView.setVisibleCoordinateBounds(bounds,
-                edgePadding: UIEdgeInsets(top: 90, left: 60, bottom: 90, right: 60), animated: false)
-            // Si las dos coords están casi pegadas (corrección de pocos metros), el
-            // fit deja un zoom altísimo y desorienta; lo capamos a algo cómodo.
-            if mapView.zoomLevel > 16.5 {
-                mapView.setCenter(mapView.centerCoordinate, zoomLevel: 16.5, animated: false)
+            // Encuadre inicial a ≥2 coords (corrección viejo+nuevo en admin).
+            // Solo una vez: no re-centrar al cambiar topo↔satélite.
+            if !didLoadFit && parent.fitToCoordinatesOnLoad.count >= 2 {
+                didLoadFit = true
+                let coords = parent.fitToCoordinatesOnLoad
+                let lats = coords.map { $0.latitude }, lons = coords.map { $0.longitude }
+                let bounds = MLNCoordinateBounds(
+                    sw: CLLocationCoordinate2D(latitude: lats.min()!, longitude: lons.min()!),
+                    ne: CLLocationCoordinate2D(latitude: lats.max()!, longitude: lons.max()!))
+                mapView.setVisibleCoordinateBounds(bounds,
+                    edgePadding: UIEdgeInsets(top: 90, left: 60, bottom: 90, right: 60), animated: false)
+                if mapView.zoomLevel > 16.5 {
+                    mapView.setCenter(mapView.centerCoordinate, zoomLevel: 16.5, animated: false)
+                }
+            }
+            // autoFitToMarkers: makeUIView llama con force=true que salta el fit
+            // (el mapa no tiene layout aún). Lo hacemos aquí, una sola vez, para
+            // que todos los marcadores sean visibles al abrir (ej: mapa de quedadas
+            // con Albarracín a 200 km — zoom inicial 8 no lo cubre sin este fit).
+            if parent.autoFitToMarkers && !didAutoFitOnLoad {
+                didAutoFitOnLoad = true
+                let nonUser = byAnnotation.values.filter { $0.id != "__USER__" }
+                if !nonUser.isEmpty { fit(mapView, to: Array(nonUser)) }
             }
         }
     }

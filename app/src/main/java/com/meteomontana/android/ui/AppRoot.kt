@@ -40,18 +40,22 @@ fun AppRoot(
         if (authState is AuthManager.AuthState.SignedIn) viewModel.ensureUserProvisioned()
     }
 
-    if (showLanguagePicker) {
-        LanguagePickerDialog(
-            onDismiss = { LanguagePrefs.markChosen(context); showLanguagePicker = false },
-            onSelected = { code ->
-                applyAppLanguage(context, code)
-                showLanguagePicker = false
-            }
-        )
-    }
-
     when (authState) {
-        is AuthManager.AuthState.SignedIn -> MainScreen(deepLink = deepLink, onDeepLinkConsumed = onDeepLinkConsumed)
+        is AuthManager.AuthState.SignedIn -> {
+            // Selector de idioma ANTES del onboarding (que está dentro de SchoolListScreen).
+            // Se muestra solo la primera vez (hasChosenLanguage=false).
+            if (showLanguagePicker) {
+                LanguagePickerDialog(
+                    onDismiss = { LanguagePrefs.markChosen(context); showLanguagePicker = false },
+                    onSelected = { code ->
+                        applyAppLanguage(context, code)
+                        showLanguagePicker = false
+                    }
+                )
+            } else {
+                MainScreen(deepLink = deepLink, onDeepLinkConsumed = onDeepLinkConsumed)
+            }
+        }
         else -> LoginScreen()
     }
 }

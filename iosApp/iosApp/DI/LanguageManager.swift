@@ -28,6 +28,14 @@ final class LanguageManager {
         object_setClass(Bundle.main, CumbreBundle.self)
         NotificationCenter.default.post(name: .languageChanged, object: nil)
     }
+
+    /// Marca el selector como ya mostrado (guarda el idioma del sistema).
+    /// Se usa cuando el usuario cierra el gate sin elegir explícitamente.
+    func markChosen() {
+        guard UserDefaults.standard.string(forKey: key) == nil else { return }
+        let lang = Locale.preferredLanguages.first.map { String($0.prefix(2)) } ?? "es"
+        UserDefaults.standard.set(lang, forKey: key)
+    }
 }
 
 extension Notification.Name {
