@@ -1,16 +1,15 @@
 name: iOS PROD .ipa (manual)
 
-# Compila la app iOS en configuración RELEASE → apunta al backend de
-# PRODUCCIÓN (api.climbingteams.com), a diferencia del CI normal (ios-ci.yml)
-# que compila Debug → staging. Sirve para PROBAR EN EL IPHONE con los datos
-# reales (tus usuarios), instalando el .ipa con AltStore.
+# Compila la app iOS en configuración RELEASE, firmada con el certificado de
+# distribución de App Store. El .ipa resultante se puede subir directamente a
+# App Store Connect con Transporter.
 #
-# Es MANUAL (workflow_dispatch): no se dispara en cada push para no gastar
-# minutos ni confundir el artifact de staging. Lánzalo desde
-# Actions → "iOS PROD .ipa (manual)" → Run workflow.
-#
-# Necesita el secret GOOGLE_SERVICE_INFO_PLIST (igual que ios-ci.yml) para que
-# el login de Google funcione.
+# Secrets necesarios:
+#   GOOGLE_SERVICE_INFO_PLIST       → GoogleService-Info.plist real de Firebase
+#   DISTRIBUTION_CERTIFICATE_P12   → certificado Apple Distribution en base64
+#   DISTRIBUTION_CERTIFICATE_PASSWORD → contraseña del .p12
+#   PROVISIONING_PROFILE_BASE64    → perfil Cumbre App Store en base64
+
 on:
   workflow_dispatch: {}
 
@@ -57,37 +56,59 @@ jobs:
             printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" > "$PLIST"
             echo "GoogleService-Info.plist escrito desde el secret."
           else
-            echo "::warning::Sin secret GOOGLE_SERVICE_INFO_PLIST — usando dummy. El login de Google NO funcionará en este .ipa."
-            sed 's/^[[:space:]]*//' > "$PLIST" <<'EOF'
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-            <key>API_KEY</key><string>AIzaSyDUMMY-DUMMY-DUMMY-DUMMY-DUMMY-DUMMY</string>
-            <key>GCM_SENDER_ID</key><string>000000000000</string>
-            <key>PLIST_VERSION</key><string>1</string>
-            <key>BUNDLE_ID</key><string>com.meteomontana.ios</string>
-            <key>PROJECT_ID</key><string>ci-dummy</string>
-            <key>STORAGE_BUCKET</key><string>ci-dummy.appspot.com</string>
-            <key>IS_ADS_ENABLED</key><false/>
-            <key>IS_ANALYTICS_ENABLED</key><false/>
-            <key>IS_APPINVITE_ENABLED</key><true/>
-            <key>IS_GCM_ENABLED</key><true/>
-            <key>IS_SIGNIN_ENABLED</key><true/>
-            <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
-            <key>CLIENT_ID</key><string>000000000000-dummy.apps.googleusercontent.com</string>
-            <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-dummy</string>
-            </dict>
-            </plist>
+            echo "::warning::Sin secret GOOGLE_SERVICE_INFO_PLIST — usando dummy."
+            cat > "$PLIST" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          <key>API_KEY</key><string>AIzaSyDUMMY</string>
+          <key>GCM_SENDER_ID</key><string>000000000000</string>
+          <key>PLIST_VERSION</key><string>1</string>
+          <key>BUNDLE_ID</key><string>com.meteomontana.ios</string>
+          <key>PROJECT_ID</key><string>ci-dummy</string>
+          <key>STORAGE_BUCKET</key><string>ci-dummy.appspot.com</string>
+          <key>IS_ADS_ENABLED</key><false/>
+          <key>IS_ANALYTICS_ENABLED</key><false/>
+          <key>IS_APPINVITE_ENABLED</key><true/>
+          <key>IS_GCM_ENABLED</key><true/>
+          <key>IS_SIGNIN_ENABLED</key><true/>
+          <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
+          <key>CLIENT_ID</key><string>000000000000-dummy.apps.googleusercontent.com</string>
+          <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-dummy</string>
+          </dict>
+          </plist>
           EOF
           fi
+
+      - name: Instalar certificado de distribución
+        env:
+          CERT_P12: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12 }}
+          CERT_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$CERT_P12" | base64 --decode > /tmp/distribution.p12
+          security create-keychain -p "ci-keychain" ci.keychain
+          security default-keychain -s ci.keychain
+          security unlock-keychain -p "ci-keychain" ci.keychain
+          security import /tmp/distribution.p12 -k ci.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "ci-keychain" ci.keychain
+          security list-keychains -d user -s ci.keychain
+
+      - name: Instalar perfil de aprovisionamiento
+        env:
+          PROFILE_B64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE_B64" | base64 --decode > /tmp/profile.mobileprovision
+          UUID=$(security cms -D -i /tmp/profile.mobileprovision | plutil -extract UUID raw -)
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
+          echo "Perfil instalado: $UUID"
 
       - name: XcodeGen generate
         working-directory: iosApp
         run: xcodegen generate
 
-      # Build RELEASE → AppDependencies usa la rama #else (producción).
-      - name: Build (iphoneos, RELEASE, sin firma)
+      - name: Build (iphoneos, RELEASE, firmado)
         run: |
           chmod +x gradlew
           xcodebuild \
@@ -96,22 +117,23 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="Cumbre App Store" \
+            DEVELOPMENT_TEAM=3CP2YRJ579 \
             build
 
-      - name: Empaquetar .ipa sin firmar
+      - name: Empaquetar .ipa firmado
         run: |
           APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
           echo "App: $APP"
           mkdir -p Payload
           cp -R "$APP" Payload/
-          zip -qr MeteoMontana-prod-unsigned.ipa Payload
-          ls -la MeteoMontana-prod-unsigned.ipa
+          zip -qr MeteoMontana-AppStore.ipa Payload
+          ls -la MeteoMontana-AppStore.ipa
 
       - name: Upload .ipa
         uses: actions/upload-artifact@v4
         with:
-          name: ios-app-prod-unsigned-ipa
-          path: MeteoMontana-prod-unsigned.ipa
+          name: ios-app-store-ipa
+          path: MeteoMontana-AppStore.ipa
