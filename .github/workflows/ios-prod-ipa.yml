@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build-prod-ipa:
     runs-on: macos-15
-    timeout-minutes: 120
+    timeout-minutes: 360
 
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +62,13 @@ jobs:
           path: ~/Library/Caches/org.swift.swiftpm
           key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
           restore-keys: spm-${{ runner.os }}-
+
+      - name: Cache DerivedData archive (Firebase/gRPC compilados)
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: deriveddata-archive-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
+          restore-keys: deriveddata-archive-${{ runner.os }}-
 
       - name: Install XcodeGen
         run: brew install xcodegen
