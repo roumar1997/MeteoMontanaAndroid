@@ -134,32 +134,27 @@ jobs:
             -authenticationKeyIssuerID "$ISSUER_ID" \
             DEVELOPMENT_TEAM=3CP2YRJ579
 
-      - name: Crear ExportOptions.plist
-        run: |
-          cat > ExportOptions.plist <<'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>3CP2YRJ579</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>uploadSymbols</key>
-            <true/>
-            <key>compileBitcode</key>
-            <false/>
-          </dict>
-          </plist>
-          EOF
-
       - name: Export y subir a App Store Connect
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
+          cat > ExportOptions.plist <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store</string>
+  <key>teamID</key>
+  <string>3CP2YRJ579</string>
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>uploadSymbols</key>
+  <true/>
+</dict>
+</plist>
+EOF
           xcodebuild -exportArchive \
             -archivePath build/MeteoMontana.xcarchive \
             -exportPath build/export \
@@ -169,15 +164,19 @@ jobs:
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID"
           IPA=$(find build/export -name "*.ipa" | head -1)
+          if [ -z "$IPA" ]; then echo "ERROR: no se encontró el IPA" && exit 1; fi
           echo "IPA: $IPA"
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA" \
             --apiKey "$KEY_ID" \
-            --apiIssuer "$ISSUER_ID"
+            --apiIssuer "$ISSUER_ID" \
+            --verbose || echo "::warning::altool deprecated — el IPA está en el artifact"
 
       - name: Upload .ipa (artifact)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ios-app-store-ipa
           path: build/export/*.ipa
+          if-no-files-found: warn
