@@ -135,6 +135,19 @@ jobs:
           echo "$API_KEY_B64" | tr -d '\r' | base64 -d > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
           chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
 
+      - name: Generar e instalar perfil App Store (firma manual)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          BUNDLE_ID: com.meteomontana.ios.3CP2YRJ579
+          PROFILE_NAME: "Cumbre App Store CI"
+        run: |
+          # Crea por API un perfil App Store fresco (firmado con el certificado de
+          # distribución instalado) y lo pone donde Xcode lo busca. Con esto la
+          # firma es MANUAL y no se crea ningún certificado nuevo por build.
+          API_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8" \
+            node .github/scripts/asc_make_profile.js
+
       - name: XcodeGen generate
         working-directory: iosApp
         run: xcodegen generate
@@ -157,22 +170,18 @@ jobs:
           METAL_LIBRARY_OUTPUT_DIR=/tmp \
           ./gradlew :shared:embedAndSignAppleFrameworkForXcode --stacktrace
 
-      - name: Archive (iphoneos, RELEASE, firma automática)
-        env:
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      - name: Archive (iphoneos, RELEASE, firma manual)
         run: |
           chmod +x gradlew
+          # Firma MANUAL: usa el certificado de distribución instalado + el perfil
+          # "Cumbre App Store CI" (paso anterior). SIN -allowProvisioningUpdates,
+          # para que Xcode NO cree certificados nuevos (agotaban el límite).
           xcodebuild archive \
             -project iosApp/MeteoMontana.xcodeproj \
             -scheme MeteoMontana \
             -configuration Release \
             -sdk iphoneos \
             -archivePath build/MeteoMontana.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
             DEVELOPMENT_TEAM=3CP2YRJ579
 
       - name: Crear ExportOptions.plist
@@ -187,25 +196,21 @@ jobs:
             '<plist version="1.0"><dict>' \
             '  <key>method</key><string>app-store-connect</string>' \
             '  <key>teamID</key><string>3CP2YRJ579</string>' \
-            '  <key>signingStyle</key><string>automatic</string>' \
+            '  <key>signingStyle</key><string>manual</string>' \
+            '  <key>provisioningProfiles</key>' \
+            '  <dict><key>com.meteomontana.ios.3CP2YRJ579</key><string>Cumbre App Store CI</string></dict>' \
             '  <key>uploadSymbols</key><true/>' \
             '  <key>uploadBitcode</key><false/>' \
             '  <key>destination</key><string>export</string>' \
             '</dict></plist>' > ExportOptions.plist
 
       - name: Exportar .ipa firmado a disco
-        env:
-          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
+          # Firma manual: usa el perfil instalado. Sin -allowProvisioningUpdates.
           xcodebuild -exportArchive \
             -archivePath build/MeteoMontana.xcarchive \
             -exportPath build/export \
-            -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
-            -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID"
+            -exportOptionsPlist ExportOptions.plist
           echo "Export OK. IPA en build/export/ (se sube como artifact aunque la subida a ASC falle)."
 
       - name: Subir a App Store Connect (altool --verbose)

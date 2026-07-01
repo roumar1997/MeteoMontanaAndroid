@@ -138,11 +138,18 @@ targets:
           CODE_SIGN_IDENTITY: "-"
           CODE_SIGN_STYLE: Manual
           CODE_SIGNING_REQUIRED: "NO"
-        # Release: firma automática para App Store (ios-prod-ipa.yml).
-        # Con CODE_SIGN_STYLE=Automatic Xcode elige la identidad solo; no poner CODE_SIGN_IDENTITY.
+        # Release: firma MANUAL para App Store (ios-prod-ipa.yml).
+        # ¿Por qué manual y no automática? La firma automática + -allowProvisioning
+        # Updates crea un certificado "Apple Development" NUEVO en cada build (el
+        # runner de CI es efímero), y tras muchos builds la cuenta agota el límite
+        # de certificados ("maximum number of certificates"). Con firma manual +
+        # el certificado de distribución instalado + un perfil App Store generado
+        # por API (paso "Generar perfil"), NO se crea ningún certificado por build.
         Release:
-          CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_STYLE: Manual
           DEVELOPMENT_TEAM: 3CP2YRJ579
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: "Cumbre App Store CI"
     dependencies:
       - package: Firebase
         product: FirebaseAuth
