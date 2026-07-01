@@ -1,17 +1,5 @@
 name: "iOS PROD .ipa (manual)"
 
-# Compila la app iOS en configuración RELEASE, firmada con el certificado de
-# distribución de App Store, y la sube automáticamente a App Store Connect.
-#
-# Secrets necesarios:
-#   GOOGLE_SERVICE_INFO_PLIST          → GoogleService-Info.plist real de Firebase
-#   DISTRIBUTION_CERTIFICATE_P12      → certificado Apple Distribution en base64
-#   DISTRIBUTION_CERTIFICATE_PASSWORD → contraseña del .p12
-#   PROVISIONING_PROFILE_BASE64       → perfil Cumbre App Store en base64
-#   APP_STORE_CONNECT_API_KEY         → contenido del .p8 de la API Key
-#   APP_STORE_CONNECT_KEY_ID          → Key ID (ej. 39CT43AKCN)
-#   APP_STORE_CONNECT_ISSUER_ID       → Issuer ID (UUID)
-
 on:
   workflow_dispatch: {}
 
@@ -22,192 +10,84 @@ concurrency:
 jobs:
   build-prod-ipa:
     runs-on: macos-15
-    timeout-minutes: 360
-
+    timeout-minutes: 60 # Reducido: si pasa de 60 min, algo va mal
     steps:
       - uses: actions/checkout@v4
 
-      - name: Seleccionar Xcode más reciente
-        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+      - name: Seleccionar Xcode
+        run: sudo xcode-select -s "/Applications/Xcode_15.4.app" # Ajusta a la versión exacta de tu runner
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Set up Gradle (con caché de dependencias)
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Cache Kotlin/Native (~/.konan)
-        uses: actions/cache@v4
-        with:
-          path: ~/.konan
-          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
-          restore-keys: konan-${{ runner.os }}-
-
-      - name: Cache build KMP shared (shared/build)
-        uses: actions/cache@v4
-        with:
-          path: |
-            shared/build
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: kmp-build-${{ runner.os }}-${{ hashFiles('shared/src/**/*.kt', 'shared/build.gradle.kts', 'gradle/libs.versions.toml') }}
-          restore-keys: kmp-build-${{ runner.os }}-
-
-      - name: Cache SPM packages
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/org.swift.swiftpm
-          key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
-          restore-keys: spm-${{ runner.os }}-
-
-      # Firebase ahora usa xcframeworks pre-compilados (sin compilar C++/gRPC),
-      # así que ya no hace falta cachear DerivedData (frágil: puede corromper el
-      # grafo de paquetes SPM entre builds — "PIFLoader GUID already registered").
-      # Solo cacheamos las descargas de SPM (fuentes/binarios de los paquetes).
-      - name: Cache SPM downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/org.swift.swiftpm
-          key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
-          restore-keys: spm-${{ runner.os }}-
-
-      - name: Install XcodeGen
-        run: brew install xcodegen
-
-      - name: Write GoogleService-Info.plist
-        env:
-          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
-        run: |
-          PLIST=iosApp/iosApp/GoogleService-Info.plist
-          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
-            printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" > "$PLIST"
-            echo "GoogleService-Info.plist escrito desde el secret."
-          else
-            echo "::warning::Sin secret GOOGLE_SERVICE_INFO_PLIST — usando dummy."
-            cat > "$PLIST" <<'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-          <key>API_KEY</key><string>AIzaSyDUMMY</string>
-          <key>GCM_SENDER_ID</key><string>000000000000</string>
-          <key>PLIST_VERSION</key><string>1</string>
-          <key>BUNDLE_ID</key><string>com.meteomontana.ios</string>
-          <key>PROJECT_ID</key><string>ci-dummy</string>
-          <key>STORAGE_BUCKET</key><string>ci-dummy.appspot.com</string>
-          <key>IS_ADS_ENABLED</key><false/>
-          <key>IS_ANALYTICS_ENABLED</key><false/>
-          <key>IS_APPINVITE_ENABLED</key><true/>
-          <key>IS_GCM_ENABLED</key><true/>
-          <key>IS_SIGNIN_ENABLED</key><true/>
-          <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
-          <key>CLIENT_ID</key><string>000000000000-dummy.apps.googleusercontent.com</string>
-          <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-dummy</string>
-          </dict>
-          </plist>
-          EOF
-          fi
-
-      - name: Instalar certificado de distribución
+      - name: Instalar certificados y perfiles
         env:
           CERT_P12: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12 }}
           CERT_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          PROVISIONING_PROFILE_B64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
         run: |
-          echo "$CERT_P12" | base64 -d > /tmp/distribution.p12
+          # Crear Keychain
           security create-keychain -p "ci-keychain" ci.keychain
           security default-keychain -s ci.keychain
           security unlock-keychain -p "ci-keychain" ci.keychain
-          security import /tmp/distribution.p12 -k ci.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          
+          # Instalar Certificado
+          echo "$CERT_P12" | base64 -d > distribution.p12
+          security import distribution.p12 -k ci.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "ci-keychain" ci.keychain
-          security list-keychains -d user -s ci.keychain
+          
+          # Instalar Provisioning Profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROVISIONING_PROFILE_B64" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
 
-      - name: Preparar API Key de App Store Connect
+      - name: Preparar API Key
         env:
           API_KEY_B64: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$API_KEY_B64" | tr -d '\r' | base64 -d > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
-          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
 
-      - name: XcodeGen generate
+      - name: XcodeGen
         working-directory: iosApp
         run: xcodegen generate
 
-      - name: Compilar framework KMP (shared → iphoneos arm64)
-        run: |
-          chmod +x gradlew
-          # Pre-compilamos el framework antes de xcodebuild para que su
-          # preBuildScript lo encuentre ya compilado (Gradle incremental = no-op).
-          # Todas las vars que el task embedAndSignAppleFrameworkForXcode exige.
-          CONFIGURATION=Release \
-          SDK_NAME=iphoneos \
-          ARCHS=arm64 \
-          TARGET_BUILD_DIR=/tmp/kmp-pre-build \
-          FRAMEWORKS_FOLDER_PATH=Frameworks \
-          EXPANDED_CODE_SIGN_IDENTITY=- \
-          EXPANDED_CODE_SIGN_IDENTITY_HASH=- \
-          CODE_SIGNING_ALLOWED=NO \
-          PLATFORM_NAME=iphoneos \
-          METAL_LIBRARY_OUTPUT_DIR=/tmp \
-          ./gradlew :shared:embedAndSignAppleFrameworkForXcode --stacktrace
+      - name: Compilar Framework KMP
+        run: ./gradlew :shared:embedAndSignAppleFrameworkForXcode -Pconfiguration=Release
 
-      - name: Archive (iphoneos, RELEASE, firma automática)
+      - name: Archive
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          chmod +x gradlew
           xcodebuild archive \
             -project iosApp/MeteoMontana.xcodeproj \
             -scheme MeteoMontana \
             -configuration Release \
             -sdk iphoneos \
             -archivePath build/MeteoMontana.xcarchive \
-            -allowProvisioningUpdates \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
             -authenticationKeyID "$KEY_ID" \
-            -authenticationKeyIssuerID "$ISSUER_ID" \
-            DEVELOPMENT_TEAM=3CP2YRJ579
+            -authenticationKeyIssuerID "$ISSUER_ID"
 
-      - name: Crear ExportOptions.plist
-        run: |
-          printf '%s\n' \
-            '<?xml version="1.0" encoding="UTF-8"?>' \
-            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
-            '<plist version="1.0"><dict>' \
-            '  <key>method</key><string>app-store</string>' \
-            '  <key>teamID</key><string>3CP2YRJ579</string>' \
-            '  <key>signingStyle</key><string>automatic</string>' \
-            '  <key>uploadSymbols</key><true/>' \
-            '  <key>uploadBitcode</key><false/>' \
-            '  <key>destination</key><string>upload</string>' \
-            '</dict></plist>' > ExportOptions.plist
-
-      - name: Export y subir a App Store Connect
+      - name: Export y subir
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          # destination=upload hace que xcodebuild exporte Y suba en un solo paso
-          # usando la App Store Connect API key — sin necesitar altool (deprecated en Xcode 15+)
+          # Usamos un ExportOptions directo para forzar la firma manual con el perfil instalado
+          printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>method</key><string>app-store</string><key>uploadSymbols</key><true/></dict></plist>' > ExportOptions.plist
+          
           xcodebuild -exportArchive \
             -archivePath build/MeteoMontana.xcarchive \
             -exportPath build/export \
             -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates \
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID"
-          echo "Export completado. El IPA también queda en build/export/ como artifact."
 
-      - name: Upload .ipa (artifact)
+      - name: Upload Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ios-app-store-ipa
           path: build/export/*.ipa
-          if-no-files-found: warn
