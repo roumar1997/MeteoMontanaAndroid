@@ -17,11 +17,12 @@ packages:
     # Binarios pre-compilados de Firebase (sin compilar ~500k líneas de C++/gRPC).
     # Drop-in replacement de firebase/firebase-ios-sdk: mismos product names.
     # Reduce el Archive de 6+ horas a ~15-20 minutos en CI.
+    # OJO: este paquete YA incluye su propio producto "GoogleSignIn" (binario
+    # _GoogleSignIn.xcframework) — NO declarar google/GoogleSignIn-iOS aparte,
+    # dos paquetes con un producto de igual nombre rompen el grafo SPM
+    # ("PIFLoader: GUID ... already registered"). Usamos el de Firebase.
     url: https://github.com/akaffenberger/firebase-ios-sdk-xcframeworks
     from: "11.0.0"
-  GoogleSignIn:
-    url: https://github.com/google/GoogleSignIn-iOS
-    from: "8.0.0"
   # Mapas (equivalente iOS de MapLibre Android). Distribución binaria oficial.
   MapLibre:
     url: https://github.com/maplibre/maplibre-gl-native-distribution
@@ -131,7 +132,7 @@ targets:
       # antes de publicar (necesita APNs key + capability, ver PushManager.swift).
       - package: Firebase
         product: FirebaseMessaging
-      - package: GoogleSignIn
+      - package: Firebase
         product: GoogleSignIn
       - package: MapLibre
         product: MapLibre
