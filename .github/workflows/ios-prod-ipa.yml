@@ -177,25 +177,27 @@ jobs:
 
       - name: Crear ExportOptions.plist
         run: |
+          # destination=export: xcodebuild solo EXPORTA el .ipa firmado a disco
+          # (no intenta subir). La subida la hace altool después, que da errores
+          # explícitos. Antes usábamos destination=upload, pero fallaba con un
+          # "Error Downloading App Information" opaco sin decir la causa.
           printf '%s\n' \
             '<?xml version="1.0" encoding="UTF-8"?>' \
             '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
             '<plist version="1.0"><dict>' \
-            '  <key>method</key><string>app-store</string>' \
+            '  <key>method</key><string>app-store-connect</string>' \
             '  <key>teamID</key><string>3CP2YRJ579</string>' \
             '  <key>signingStyle</key><string>automatic</string>' \
             '  <key>uploadSymbols</key><true/>' \
             '  <key>uploadBitcode</key><false/>' \
-            '  <key>destination</key><string>upload</string>' \
+            '  <key>destination</key><string>export</string>' \
             '</dict></plist>' > ExportOptions.plist
 
-      - name: Export y subir a App Store Connect
+      - name: Exportar .ipa firmado a disco
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
-          # destination=upload hace que xcodebuild exporte Y suba en un solo paso
-          # usando la App Store Connect API key — sin necesitar altool (deprecated en Xcode 15+)
           xcodebuild -exportArchive \
             -archivePath build/MeteoMontana.xcarchive \
             -exportPath build/export \
@@ -204,7 +206,31 @@ jobs:
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8 \
             -authenticationKeyID "$KEY_ID" \
             -authenticationKeyIssuerID "$ISSUER_ID"
-          echo "Export completado. El IPA también queda en build/export/ como artifact."
+          echo "Export OK. IPA en build/export/ (se sube como artifact aunque la subida a ASC falle)."
+
+      - name: Subir a App Store Connect (altool --verbose)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          IPA="$(ls build/export/*.ipa | head -1)"
+          echo "Subiendo: $IPA"
+          # altool lee la key de ~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8
+          # --verbose da mensajes claros: app inexistente, bundle id, permisos, etc.
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --verbose
+
+      - name: Volcar logs de distribución (solo si algo falla)
+        if: failure()
+        run: |
+          echo "=== xcdistributionlogs (causa detallada del fallo de export/subida) ==="
+          find "$TMPDIR" /var/folders -type d -name "*.xcdistributionlogs" 2>/dev/null | while read -r d; do
+            echo "########## $d"
+            find "$d" -type f \( -name "*.log" -o -name "*.txt" \) 2>/dev/null | while read -r f; do
+              echo "----- $f -----"
+              cat "$f" 2>/dev/null || true
+            done
+          done
 
       - name: Upload .ipa (artifact)
         if: always()
