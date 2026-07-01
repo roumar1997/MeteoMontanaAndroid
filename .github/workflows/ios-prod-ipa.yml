@@ -63,12 +63,14 @@ jobs:
           key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
           restore-keys: spm-${{ runner.os }}-
 
-      - name: Cache DerivedData archive (Firebase/gRPC compilados)
-        uses: actions/cache@v4
+      # irgaly/xcode-cache preserva los mtime de ficheros con precisión nanosegundo
+      # tras el checkout. Sin esto, Xcode ve todos los ficheros como "nuevos" aunque
+      # estén en caché y recompila desde cero igualmente.
+      - name: Cache DerivedData + SPM (irgaly/xcode-cache)
+        uses: irgaly/xcode-cache@v1
         with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: deriveddata-archive-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
-          restore-keys: deriveddata-archive-${{ runner.os }}-
+          key: xcode-cache-${{ runner.os }}-${{ hashFiles('iosApp/project.yml', 'shared/src/**/*.kt', 'shared/build.gradle.kts') }}
+          restore-keys: xcode-cache-${{ runner.os }}-
 
       - name: Install XcodeGen
         run: brew install xcodegen

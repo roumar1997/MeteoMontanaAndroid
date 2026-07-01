@@ -59,6 +59,14 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
           restore-keys: konan-${{ runner.os }}-
 
+      # irgaly/xcode-cache preserva mtime (nanosegundo) — Xcode solo recompila
+      # ficheros que cambiaron. Sin esto, un actions/cache normal no sirve de nada.
+      - name: Cache DerivedData + SPM (irgaly/xcode-cache)
+        uses: irgaly/xcode-cache@v1
+        with:
+          key: xcode-cache-${{ runner.os }}-${{ hashFiles('iosApp/project.yml', 'shared/src/**/*.kt', 'shared/build.gradle.kts') }}
+          restore-keys: xcode-cache-${{ runner.os }}-
+
       - name: Install XcodeGen
         run: brew install xcodegen
 

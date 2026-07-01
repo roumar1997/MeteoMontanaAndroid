@@ -14,7 +14,10 @@ options:
 
 packages:
   Firebase:
-    url: https://github.com/firebase/firebase-ios-sdk
+    # Binarios pre-compilados de Firebase (sin compilar ~500k líneas de C++/gRPC).
+    # Drop-in replacement de firebase/firebase-ios-sdk: mismos product names.
+    # Reduce el Archive de 6+ horas a ~15-20 minutos en CI.
+    url: https://github.com/akaffenberger/firebase-ios-sdk-xcframeworks
     from: "11.0.0"
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS
