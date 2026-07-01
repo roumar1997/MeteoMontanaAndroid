@@ -1,4 +1,5 @@
 import FirebaseAuth
+import FirebaseCore
 import SwiftUI
 
 /// Estado de sesión observable a nivel de app. Se apoya en el listener nativo de
@@ -11,6 +12,13 @@ final class SessionStore: ObservableObject {
     private var handle: AuthStateDidChangeListenerHandle?
 
     init() {
+        // Protección: Auth.auth() hace fatalError si Firebase no está configurado.
+        // El AppDelegate lo configura antes de la primera escena, pero por si el
+        // orden fallara en alguna build (Release/beta), lo configuramos aquí si
+        // aún no lo está — así la app NUNCA crashea al arrancar por esto.
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
         user = Auth.auth().currentUser
         handle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             self?.user = user
