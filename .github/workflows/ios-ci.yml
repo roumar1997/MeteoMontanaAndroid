@@ -59,13 +59,16 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
           restore-keys: konan-${{ runner.os }}-
 
-      # irgaly/xcode-cache preserva mtime (nanosegundo) — Xcode solo recompila
-      # ficheros que cambiaron. Sin esto, un actions/cache normal no sirve de nada.
-      - name: Cache DerivedData + SPM (irgaly/xcode-cache)
-        uses: irgaly/xcode-cache@v1
+      # Firebase ahora usa xcframeworks pre-compilados (sin compilar C++/gRPC),
+      # así que ya no hace falta cachear DerivedData (frágil: puede corromper el
+      # grafo de paquetes SPM entre builds — "PIFLoader GUID already registered").
+      # Solo cacheamos las descargas de SPM (fuentes/binarios de los paquetes).
+      - name: Cache SPM downloads
+        uses: actions/cache@v4
         with:
-          key: xcode-cache-${{ runner.os }}-${{ hashFiles('iosApp/project.yml', 'shared/src/**/*.kt', 'shared/build.gradle.kts') }}
-          restore-keys: xcode-cache-${{ runner.os }}-
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
+          restore-keys: spm-${{ runner.os }}-
 
       - name: Install XcodeGen
         run: brew install xcodegen
