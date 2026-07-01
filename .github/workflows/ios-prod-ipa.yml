@@ -121,6 +121,11 @@ jobs:
           security import /tmp/distribution.p12 -k ci.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "ci-keychain" ci.keychain
           security list-keychains -d user -s ci.keychain
+          # Sin esto, macOS bloquea el keychain a los 5 min por defecto. El
+          # Archive+Export con -allowProvisioningUpdates puede tardar más →
+          # xcodebuild/codesign se cuelga pidiendo la contraseña por un prompt
+          # gráfico que nunca aparece en el runner headless (colgado horas).
+          security set-keychain-settings -t 3600 -u ci.keychain
 
       - name: Preparar API Key de App Store Connect
         env:
