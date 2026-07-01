@@ -19,9 +19,12 @@ packages:
     # Reduce el Archive de 6+ horas a ~15-20 minutos en CI.
     url: https://github.com/akaffenberger/firebase-ios-sdk-xcframeworks
     from: "11.0.0"
-  GoogleSignIn:
-    url: https://github.com/google/GoogleSignIn-iOS
-    from: "8.0.0"
+  # OJO: NO declarar aquí el paquete google/GoogleSignIn-iOS por separado.
+  # El fork akaffenberger de Firebase YA incluye su propio producto GoogleSignIn
+  # (un xcframework pre-compilado). Tener los dos hace que SPM registre el
+  # producto "GoogleSignIn" dos veces con el mismo GUID → el Archive falla con
+  # "PIFLoader: GUID ...GoogleSignIn... has already been registered". Por eso la
+  # dependencia GoogleSignIn de abajo apunta al paquete Firebase, no a uno propio.
   # Mapas (equivalente iOS de MapLibre Android). Distribución binaria oficial.
   MapLibre:
     url: https://github.com/maplibre/maplibre-gl-native-distribution
@@ -131,7 +134,7 @@ targets:
       # antes de publicar (necesita APNs key + capability, ver PushManager.swift).
       - package: Firebase
         product: FirebaseMessaging
-      - package: GoogleSignIn
+      - package: Firebase
         product: GoogleSignIn
       - package: MapLibre
         product: MapLibre
