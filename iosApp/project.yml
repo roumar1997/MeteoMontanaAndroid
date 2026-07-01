@@ -102,7 +102,7 @@ targets:
         # de GoogleService-Info.plist (proyecto Firebase climbingteams).
         CFBundleURLTypes:
           - CFBundleURLSchemes:
-              - com.googleusercontent.apps.977545428920-i3vcsfvn6fpaos56h0se5tksb7p0mrvi
+              - com.googleusercontent.apps.977545428920-3bvolfjtmfp3a6spjnqe3fdhuu24bb23
         NSLocationWhenInUseUsageDescription: >-
           Usamos tu ubicación para ordenar las escuelas por cercanía y
           mostrar tu posición en el mapa.
