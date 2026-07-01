@@ -63,14 +63,13 @@ jobs:
           key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
           restore-keys: spm-${{ runner.os }}-
 
-      # irgaly/xcode-cache preserva los mtime de ficheros con precisión nanosegundo
-      # tras el checkout. Sin esto, Xcode ve todos los ficheros como "nuevos" aunque
-      # estén en caché y recompila desde cero igualmente.
-      - name: Cache DerivedData + SPM (irgaly/xcode-cache)
-        uses: irgaly/xcode-cache@v1
-        with:
-          key: xcode-cache-${{ runner.os }}-${{ hashFiles('iosApp/project.yml', 'shared/src/**/*.kt', 'shared/build.gradle.kts') }}
-          restore-keys: xcode-cache-${{ runner.os }}-
+      # NOTA: aquí había un paso irgaly/xcode-cache que cacheaba DerivedData.
+      # Restauraba un PIF (grafo de dependencias) obsoleto que registraba el
+      # paquete GoogleSignIn dos veces al regenerar el proyecto con xcodegen
+      # -> "PIFLoader: GUID ... has already been registered" -> ARCHIVE FAILED.
+      # El último build que funcionó (30-jun) NO tenía esta caché. Quitada.
+      # Firebase ya no se compila desde fuente (usa binarios pre-compilados en
+      # project.yml), así que el DerivedData cacheado ya no era el gran ahorro.
 
       - name: Install XcodeGen
         run: brew install xcodegen
