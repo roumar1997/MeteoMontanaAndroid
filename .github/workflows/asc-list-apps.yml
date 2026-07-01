@@ -1,0 +1,61 @@
+name: "ASC diagnóstico: listar apps"
+
+# Diagnóstico rápido (sin compilar). Usa la App Store Connect API Key de los
+# secrets para listar TODAS las apps que ve esa key y sus bundle IDs. Sirve para
+# comprobar si existe una app con bundle id com.meteomontana.ios bajo la cuenta
+# de la key (el Archive/export ya funcionan; la subida fallaba con
+# "Cannot determine the Apple ID from Bundle ID com.meteomontana.ios").
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  list-apps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Listar apps visibles para la API Key
+        env:
+          API_KEY_B64: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          python3 -m pip install --quiet pyjwt[crypto] requests
+          echo "$API_KEY_B64" | tr -d '\r' | base64 -d > /tmp/AuthKey.p8
+          python3 - <<'PY'
+          import os, time, jwt, requests
+          key_id = os.environ["KEY_ID"]
+          issuer = os.environ["ISSUER_ID"]
+          with open("/tmp/AuthKey.p8") as f:
+              private_key = f.read()
+          token = jwt.encode(
+              {"iss": issuer, "iat": int(time.time()),
+               "exp": int(time.time()) + 600, "aud": "appstoreconnect-v1"},
+              private_key, algorithm="ES256",
+              headers={"kid": key_id, "typ": "JWT"},
+          )
+          h = {"Authorization": f"Bearer {token}"}
+          r = requests.get(
+              "https://api.appstoreconnect.apple.com/v1/apps?limit=200",
+              headers=h, timeout=30)
+          print("HTTP", r.status_code)
+          if r.status_code != 200:
+              print(r.text[:2000]); raise SystemExit(1)
+          apps = r.json().get("data", [])
+          print(f"\n=== {len(apps)} apps visibles para esta API Key ===")
+          found = False
+          for a in apps:
+              attr = a.get("attributes", {})
+              name = attr.get("name")
+              bid = attr.get("bundleId")
+              sku = attr.get("sku")
+              print(f"  • {name!r:35} bundleId={bid!r:35} sku={sku!r}")
+              if bid == "com.meteomontana.ios":
+                  found = True
+          print()
+          if found:
+              print(">>> SÍ existe una app con bundleId com.meteomontana.ios ✅")
+          else:
+              print(">>> NO hay ninguna app con bundleId com.meteomontana.ios ❌")
+              print(">>> La app hay que crearla/corregir su bundle id en App Store Connect,")
+              print(">>> o la API Key pertenece a otra cuenta/equipo que la de la app.")
+          PY
