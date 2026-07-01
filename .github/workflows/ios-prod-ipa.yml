@@ -252,3 +252,11 @@ jobs:
           name: ios-app-store-ipa
           path: build/export/*.ipa
           if-no-files-found: warn
+
+      - name: Upload dSYM (símbolos para traducir crashes)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-dsyms
+          path: build/MeteoMontana.xcarchive/dSYMs/**
+          if-no-files-found: warn
