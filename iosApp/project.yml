@@ -76,6 +76,15 @@ targets:
         CFBundleShortVersionString: "1.9"
         CFBundleVersion: "12"
         UILaunchScreen: {}
+        # App Store exige declarar orientaciones (device family incluye iPad "1,2").
+        # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         # Fuentes bundladas (mismas familias que Android: Source Serif 4 para
         # nombres/títulos, JetBrains Mono para eyebrows/dígitos).
         UIAppFonts:
