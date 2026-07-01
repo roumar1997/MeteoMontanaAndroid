@@ -7,14 +7,28 @@ import Shared
 // build en Xcode (Fase E): nombres de métodos async, tipos opcionales boxed
 // (KotlinDouble?), y la exposición del `operator fun invoke`.
 
+/// AppDelegate solo para configurar Firebase en didFinishLaunching, que corre
+/// GARANTIZADO antes de que SwiftUI cree la primera escena y sus @StateObject.
+/// Antes FirebaseApp.configure() vivía en el init() de la App, pero en builds
+/// Release (y en iOS 26 beta) el @StateObject `session = SessionStore()` se
+/// creaba ANTES de ese init → SessionStore.init llamaba a Auth.auth() con
+/// Firebase sin configurar → EXC_BREAKPOINT (crash al abrir). Este es el patrón
+/// oficial de Firebase para SwiftUI.
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        FirebaseApp.configure()
+        return true
+    }
+}
+
 @main
 struct MeteoMontanaApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var session = SessionStore()
     @Environment(\.scenePhase) private var scenePhase
-
-    init() {
-        FirebaseApp.configure()
-    }
 
     var body: some Scene {
         WindowGroup {
