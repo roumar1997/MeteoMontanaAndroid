@@ -48,10 +48,13 @@ class AndroidGripScaleProvider @Inject constructor(
     }
 
     private val bluetoothManager by lazy {
-        context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        runCatching { context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }.getOrNull()
     }
+    // adapter.isEnabled y bluetoothLeScanner pueden lanzar SecurityException
+    // en según qué versión/fabricante si falta algún permiso de Bluetooth —
+    // TODO lo que toca esta propiedad va envuelto en runCatching.
     private val scanner: BluetoothLeScanner?
-        get() = bluetoothManager?.adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner
+        get() = runCatching { bluetoothManager?.adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner }.getOrNull()
 
     private var activeCallback: ScanCallback? = null
 
@@ -64,7 +67,8 @@ class AndroidGripScaleProvider @Inject constructor(
         return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
     }
 
-    override fun isBluetoothEnabled(): Boolean = bluetoothManager?.adapter?.isEnabled == true
+    override fun isBluetoothEnabled(): Boolean =
+        runCatching { bluetoothManager?.adapter?.isEnabled == true }.getOrDefault(false)
 
     @SuppressLint("MissingPermission")
     override fun scanDevices(): Flow<List<GripScaleDevice>> = callbackFlow {

@@ -12,7 +12,12 @@
     <!-- Báscula WH-C06 (pestaña Agarres): escaneo BLE de anuncios, sin
          emparejar. neverForLocation porque no derivamos ubicación del
          escaneo — en Android <12 igualmente hace falta ACCESS_FINE_LOCATION
-         (ya declarado arriba). -->
+         (ya declarado arriba). Los permisos "clásicos" BLUETOOTH/
+         BLUETOOTH_ADMIN son solo para <12 (en 12+ los sustituyen SCAN/
+         CONNECT), pero algunos fabricantes (MIUI) son más estrictos
+         comprobando el adaptador si faltan — se declaran igual por si acaso. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s" />
