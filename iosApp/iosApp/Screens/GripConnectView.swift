@@ -115,6 +115,9 @@ struct GripConnectView: View {
                 if vm.bluetoothOn { vm.startScan() }
             }
         }
+        // Pantalla siempre encendida — las manos están ocupadas con la báscula.
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
         .alert("Nombre de la báscula", isPresented: Binding(get: { renameTarget != nil }, set: { if !$0 { renameTarget = nil } })) {
             TextField("p.ej. Mi báscula azul", text: $renameText)
             Button("GUARDAR") {
