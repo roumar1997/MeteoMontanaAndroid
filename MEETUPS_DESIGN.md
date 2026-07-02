@@ -1,14 +1,8 @@
 # MEETUPS_DESIGN.md — Quedadas para escalar
 
-> Diseño (sin implementar aún) de una **tercera pestaña** "Quedadas": quedar
-> para escalar en una escuela, en uno o varios días, con chat de grupo,
-> privacidad (abierta / solo seguidores / solo mujeres), caducidad automática
-> y moderación (expulsar + denunciar). LEER antes de empezar a implementar.
->
-> Decidido con Rodrigo el 2026-06-26. Bocetos en `meetups-mockups.html`
-> (ábrelo en el navegador; estilo Cumbre, los 3 pasos).
-
----
+> **Implementado y en producción.** Queda como referencia del modelo de
+> datos y reglas de negocio para cuando se toque esta pestaña; el plan de
+> fases y el prompt de arranque se retiraron (ya ejecutados).
 
 ## 0. Resumen en una línea
 
@@ -236,70 +230,3 @@ Cumbre (papel/tinta/terracota):
 
 ---
 
-## 10. Fases de implementación (propuesta)
-
-> Backend primero (es la puerta de autorización), luego shared, luego Android,
-> luego iOS. Pedir OK antes de cada commit/merge (testers en vivo).
-
-- **Fase 0 — Foto de perfil siempre visible** (transversal, pequeña): asegurar
-  `photoUrl`+`username` nunca se ocultan (backend DTO + reglas + UI búsqueda).
-- **Fase 1 — Backend Quedadas (core)**: migración Postgres (meetups, days,
-  members, gender en users), `GET/POST /api/meetups`, join/leave, creación de
-  conversación de grupo vía Admin SDK, `@Scheduled` de caducidad. Tests.
-- **Fase 2 — Género + gate "solo mujeres"**: `PUT /api/me` con gender privado,
-  comprobación server-side en create/join WOMEN. (Probar en staging.)
-- **Fase 3 — shared (KMP)**: modelos + use cases + API Ktor para quedadas y
-  alertas; exponer en `IosDependencyContainer`.
-- **Fase 4 — Android UI**: tercera pestaña, lista+filtros, detalle, crear,
-  unirse, expulsar, acceso al tiempo, miembros→perfil, chat (reusa grupos).
-- **Fase 5 — Moderación**: denunciar (usuario) + sección "Denuncias" en panel
-  admin + acción banear/eliminar cuenta.
-- **Fase 6 — Notificaciones** "quedada nueva" (alerts opt-in + push).
-- **Fase 7 — iOS**: paridad EXACTA de todo lo anterior (SwiftUI), verificado
-  por CI.
-
----
-
-## 11. Decisiones abiertas (resolver al empezar)
-
-- ¿La lista de quedadas se refresca con **pull-to-refresh** (simple, MVP) o
-  hace falta tiempo real? (El chat sí es tiempo real; la lista probablemente
-  no lo necesita.)
-- ¿Se puede **editar** una quedada tras crearla (cambiar día/límite) o solo
-  borrarla y recrearla? (MVP: solo borrar/recrear.)
-- ¿Tope máximo de miembros aunque sea "Abierto"? (p. ej. cap a 50 por sanidad.)
-- ¿"Solo mujeres" requiere también que el **creador** sea mujer SIEMPRE? (Sí,
-  decidido: no puedes crear "solo mujeres" si no eres mujer.)
-
----
-
-## 12. Cómo empezar en una sesión nueva (PROMPT)
-
-> Crea la sesión **con los DOS repos** (`MeteoMontanaAndroid` + `MeteoMontanaAPI`)
-> y pega esto:
-
-```
-Vamos a implementar la 3ª pestaña "Quedadas" (quedar a escalar). Lee primero
-MEETUPS_DESIGN.md en la raíz del repo Android (diseño completo y cerrado) y abre
-meetups-mockups.html para ver los bocetos en estilo Cumbre.
-
-Contexto importante:
-- Backend en vivo con testers (Railway prod = main, staging = develop). PIDE OK
-  antes de cualquier commit/merge, sobre todo en el backend. Trabaja primero
-  contra staging.
-- Reutiliza lo que ya existe: grupos de chat (Firestore conversations), el grafo
-  de seguidores, FcmService/NotificationService para push, y el patrón admin
-  (submissions/contributions).
-- El gate de "solo mujeres" y la visibilidad (solo seguidores) se resuelven en el
-  BACKEND, no en el cliente. El género es un dato PRIVADO (Postgres, nunca en
-  PublicProfileDto).
-
-Empieza por la Fase 0 (foto de perfil siempre visible — transversal y pequeña) y
-la Fase 1 (backend core: migración Postgres + GET/POST /api/meetups + join/leave +
-creación del grupo de chat vía Admin SDK + @Scheduled de caducidad + tests). Sigue
-el orden de fases del documento. NO empieces a programar hasta confirmar conmigo el
-plan de la Fase 1.
-
-Modelo: Sonnet para el grueso (CRUD, migraciones, UI mecánica); Opus solo si hay
-una decisión de arquitectura ambigua.
-```
