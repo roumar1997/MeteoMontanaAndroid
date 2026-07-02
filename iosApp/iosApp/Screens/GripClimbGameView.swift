@@ -249,10 +249,14 @@ private struct PlayingCanvas: View {
         let ropeColor = isDark ? Color(hex: 0xD8D2C2) : Color(hex: 0x3A3A38)
         let mountainFar = isDark ? Color(hex: 0x2A3540) : Color(hex: 0xA9BCC7)
         let mountainNear = isDark ? Color(hex: 0x33402E) : Color(hex: 0xB7C4B0)
+        // Capturado AQUÍ (contexto MainActor): el closure del Canvas es
+        // nonisolated y no puede tocar el VM directamente.
+        let overhangGrowth = vm.overhangGrowthPerM
+        let engineState = vm.engineState
 
         ZStack {
             Canvas { context, size in
-                guard let state = vm.engineState else { return }
+                guard let state = engineState else { return }
                 let w = size.width
                 let h = size.height
                 let pxPerMeterY = 70.0
@@ -293,7 +297,8 @@ private struct PlayingCanvas: View {
                     state.heightM + (climberScreenY - y) / pxPerMeterY
                 }
                 func leanFraction(_ heightM: Double) -> Double {
-                    min(max(vm.overhangDegAt(heightM) / 75.0, 0), 1)
+                    let deg = min(heightM * overhangGrowth, 75.0)
+                    return min(max(deg / 75.0, 0), 1)
                 }
                 func wallXAt(_ y: Double) -> Double {
                     wallBaseX + leanFraction(worldHeightAt(y)) * maxLeanPx
