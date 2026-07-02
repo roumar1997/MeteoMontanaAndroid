@@ -33,7 +33,11 @@ interface IosGripScaleBridge {
     fun isBluetoothEnabled(): Boolean
     fun scanDevices(onChange: (List<IosGripDeviceDto>) -> Unit): IosGripListener
     fun stopScan()
-    fun observeWeight(deviceId: String, onReading: (Double, Long) -> Unit): IosGripListener
+    // timestampMs como Double (no Long): SKIE deja los tipos función con Long
+    // "empaquetado" (KotlinLong) en vez de desempaquetarlo a Int64 como hace
+    // con un valor de retorno normal, y eso rompe la conformidad del
+    // protocolo en Swift.
+    fun observeWeight(deviceId: String, onReading: (Double, Double) -> Unit): IosGripListener
     fun disconnect()
     fun getAlias(deviceId: String): String?
     fun setAlias(deviceId: String, alias: String)
@@ -58,7 +62,7 @@ class IosGripScaleProvider(
     override fun stopScan() = bridge.stopScan()
 
     override fun observeWeight(deviceId: String): Flow<GripReading> = callbackFlow {
-        val listener = bridge.observeWeight(deviceId) { kg, timestampMs -> trySend(GripReading(kg, timestampMs)) }
+        val listener = bridge.observeWeight(deviceId) { kg, timestampMs -> trySend(GripReading(kg, timestampMs.toLong())) }
         awaitClose { listener.remove() }
     }
 

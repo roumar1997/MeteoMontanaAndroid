@@ -29,7 +29,7 @@ final class GripScaleBridge: NSObject, IosGripScaleBridge, CBCentralManagerDeleg
     // deviceId (peripheral.identifier.uuidString) -> (rssi, peripheral)
     private var found: [String: Int] = [:]
     private var onDevicesChange: (([IosGripDeviceDto]) -> Void)?
-    private var onWeightReading: ((Double, Int64) -> Void)?
+    private var onWeightReading: ((Double, Double) -> Void)?
     private var observingDeviceId: String?
 
     func hasPermission() -> Bool {
@@ -63,7 +63,7 @@ final class GripScaleBridge: NSObject, IosGripScaleBridge, CBCentralManagerDeleg
 
     // MARK: - "Bloquear" una báscula y escuchar su peso
 
-    func observeWeight(deviceId: String, onReading: @escaping (Double, Int64) -> Void) -> IosGripListener {
+    func observeWeight(deviceId: String, onReading: @escaping (Double, Double) -> Void) -> IosGripListener {
         observingDeviceId = deviceId
         onWeightReading = onReading
         startScanIfReady()
@@ -134,7 +134,7 @@ final class GripScaleBridge: NSObject, IosGripScaleBridge, CBCentralManagerDeleg
         if observingDeviceId == deviceId, onWeightReading != nil, payload.count >= 12 {
             let bytes = [UInt8](payload)
             let kg = Double(Int(bytes[10]) * 256 + Int(bytes[11])) / 100.0
-            let timestampMs = Int64(Date().timeIntervalSince1970 * 1000)
+            let timestampMs = Date().timeIntervalSince1970 * 1000
             onWeightReading?(kg, timestampMs)
         }
     }
