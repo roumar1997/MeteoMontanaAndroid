@@ -301,6 +301,7 @@ private fun GearSelector(gearState: MutableMap<String, Int>, version: Int, onCha
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GenderSelector(selected: String, onSelect: (String) -> Unit) {
     val options = listOf("WOMAN" to "Mujer", "MAN" to "Hombre", "OTHER" to "Otro", "" to "No indicar")
