@@ -115,7 +115,7 @@ fun ProjectsScreen(
                             Text("Sin proyectos todavía",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onBackground)
-                            Text("Marca la bandera en una vía dentro de su piedra para probarla como proyecto.",
+                            Text("Marca la P de una vía dentro de su piedra para probarla como proyecto.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),

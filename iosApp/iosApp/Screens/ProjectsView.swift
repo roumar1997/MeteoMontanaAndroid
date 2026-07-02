@@ -57,7 +57,7 @@ struct ProjectsView: View {
                 EmptyStateView(
                     icon: "flag",
                     title: "Sin proyectos todavía",
-                    message: "Marca la bandera en una vía dentro de su piedra para probarla como proyecto."
+                    message: "Marca la P de una vía dentro de su piedra para probarla como proyecto."
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filterDiscipline == nil {

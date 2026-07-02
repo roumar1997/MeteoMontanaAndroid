@@ -1038,7 +1038,7 @@ struct BlockInfoSheet: View {
                             )
                             FirstTimeHint(
                                 hintKey: "via_project",
-                                text: "Toca la bandera de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
+                                text: "Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
                             )
                         }
                         ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
@@ -1076,10 +1076,17 @@ struct BlockInfoSheet: View {
                                                 if togglingProject == l.id {
                                                     ProgressView().scaleEffect(0.7).frame(width: 24, height: 24)
                                                 } else {
-                                                    Image(systemName: projectLines.contains(l.id) ? "flag.fill" : "flag")
-                                                        .font(.system(size: 17))
-                                                        .foregroundStyle(projectLines.contains(l.id) ? Cumbre.terra : Cumbre.ink3.opacity(0.4))
+                                                    let isProject = projectLines.contains(l.id)
+                                                    Text("P")
+                                                        .font(.system(size: 13, weight: .bold))
+                                                        .foregroundStyle(isProject ? .white : Cumbre.ink3.opacity(0.4))
                                                         .frame(width: 24, height: 24)
+                                                        .background(
+                                                            Circle().fill(isProject ? Cumbre.terra : Color.clear)
+                                                        )
+                                                        .overlay(
+                                                            Circle().stroke(isProject ? Color.clear : Cumbre.ink3.opacity(0.4), lineWidth: 1)
+                                                        )
                                                 }
                                             }
                                             .buttonStyle(.plain)

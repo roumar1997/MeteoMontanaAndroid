@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -176,7 +177,7 @@ fun BlockDetailDialog(
                 if (onToggleProject != null && !isProposal && block.lines.isNotEmpty()) {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "via_project",
-                        text = "Toca la bandera de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
+                        text = "Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
                     )
                 }
                 // Si venimos de pulsar una vía (deep-link del diario), su foto/cara
@@ -267,18 +268,23 @@ fun BlockDetailDialog(
                                         Spacer(Modifier.weight(1f))
                                         val isProject = projectLines.contains(line.id)
                                         Text(
-                                            "🚩",
+                                            "P",
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = if (isProject) Terra
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isProject) Color.White
                                                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                                             modifier = Modifier
                                                 .clip(CircleShape)
+                                                .then(
+                                                    if (isProject) Modifier.background(Terra, CircleShape)
+                                                    else Modifier.border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), CircleShape)
+                                                )
                                                 .clickable {
                                                     if (isProject) projectLines.remove(line.id)
                                                     else projectLines.add(line.id)
                                                     onToggleProject(line, idx)
                                                 }
-                                                .padding(horizontal = 6.dp)
+                                                .padding(horizontal = 6.dp, vertical = 1.dp)
                                         )
                                     }
                                 }
