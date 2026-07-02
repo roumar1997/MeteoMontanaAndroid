@@ -34,6 +34,7 @@ import com.meteomontana.android.data.stats.MonthlyStatsRepository
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.domain.port.LocationProvider
+import com.meteomontana.android.domain.port.GripScaleProvider
 import com.meteomontana.db.MeteoMontanaDb
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetFavoritesGridUseCase
@@ -152,7 +153,14 @@ class IosDependencyContainer(
      * Chat 1-a-1 (Firestore). En iOS se pasa un [com.meteomontana.android.data.chat.IosChatService]
      * (envoltorio del bridge Swift con FirebaseFirestore). Null → sin chat.
      */
-    val chatService: ChatService? = null
+    val chatService: ChatService? = null,
+    /**
+     * Báscula WH-C06 (pestaña Agarres). En iOS se pasa un
+     * [com.meteomontana.android.data.grips.IosGripScaleProvider] (envoltorio
+     * del bridge Swift con CBCentralManager). Null → la pestaña Agarres no
+     * puede escanear/medir (pero el resto de la app funciona igual).
+     */
+    val gripScaleProvider: GripScaleProvider? = null
 ) {
     private val httpClient = buildApiHttpClient(baseUrl) {
         authService?.currentIdToken(false)

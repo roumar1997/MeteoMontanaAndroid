@@ -122,6 +122,10 @@ targets:
           Para hacer fotos de las vías, escuelas o tu perfil.
         NSPhotoLibraryUsageDescription: >-
           Para elegir fotos de las vías, escuelas o tu perfil.
+        # Báscula WH-C06 (pestaña Agarres): escaneo BLE de anuncios, sin
+        # emparejar. Sin esta cadena iOS crashea al usar CBCentralManager.
+        NSBluetoothAlwaysUsageDescription: >-
+          Para conectar tu báscula WH-C06 y medir tu fuerza de dedo.
         # Encriptación exenta: la app solo usa HTTPS estándar del SO (no algoritmos propios).
         # Evita tener que subir documentación de encriptación a App Store Connect.
         ITSAppUsesNonExemptEncryption: false
