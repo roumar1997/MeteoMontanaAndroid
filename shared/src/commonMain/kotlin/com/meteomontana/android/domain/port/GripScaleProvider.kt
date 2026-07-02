@@ -15,6 +15,10 @@ interface GripScaleProvider {
     /** ¿Tenemos permisos de Bluetooth concedidos? */
     fun hasPermission(): Boolean
 
+    /** ¿Está el Bluetooth del móvil encendido? (sin esto el escaneo no
+     *  encuentra nada, aunque los permisos estén concedidos). */
+    fun isBluetoothEnabled(): Boolean
+
     /**
      * Escanea básculas WH-C06 cercanas. Emite la lista acumulada (puede
      * haber más de una — gimnasio con varias unidades) cada vez que aparece

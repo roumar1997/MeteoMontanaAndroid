@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
@@ -23,30 +22,36 @@ import javax.inject.Inject
 
 /**
  * Implementación Android de [GripScaleProvider] para la báscula WH-C06.
- * NO usa GATT/emparejamiento: solo escaneo de anuncios BLE (nombre "IF_B7",
- * manufacturer ID 256). Protocolo verificado leyendo el código de
- * TheLastKiwi/Dyna (ver GRIPS_DESIGN.md sección 1):
+ * NO usa GATT/emparejamiento: solo escaneo de anuncios BLE. Protocolo
+ * verificado leyendo el código de TheLastKiwi/Dyna (ver GRIPS_DESIGN.md
+ * sección 1):
  *
  *   peso_kg = (unsigned(byte[10])*256 + unsigned(byte[11])) / 100.0
  *
- * ⚠️ No probado contra hardware real — pendiente de validar con la báscula
- * física antes de dar la Fase 3 por cerrada del todo.
+ * Identificamos el dispositivo por el **manufacturer ID 256** en vez de
+ * filtrar por nombre exacto ("IF_B7") en el `ScanFilter` nativo — es más
+ * robusto (algunas unidades/firmwares pueden anunciar el nombre distinto,
+ * pero el fabricante siempre manda ese ID) y evita escaneos "vacíos" si el
+ * filtro por nombre no casa exacto.
+ *
+ * ⚠️ No probado contra hardware real hasta esta sesión — si la báscula
+ * sigue sin aparecer, comprobar en logcat qué nombre/manufacturer real
+ * anuncia (puede que el ID o el offset de bytes necesite un ajuste fino).
  */
 class AndroidGripScaleProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) : GripScaleProvider {
 
     private companion object {
-        const val DEVICE_NAME = "IF_B7"
         const val MANUFACTURER_ID = 256
         const val PREFS_NAME = "grip_scale_aliases"
     }
 
     private val bluetoothManager by lazy {
-        context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     }
     private val scanner: BluetoothLeScanner?
-        get() = bluetoothManager.adapter?.bluetoothLeScanner
+        get() = bluetoothManager?.adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner
 
     private var activeCallback: ScanCallback? = null
 
@@ -59,12 +64,16 @@ class AndroidGripScaleProvider @Inject constructor(
         return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
     }
 
+    override fun isBluetoothEnabled(): Boolean = bluetoothManager?.adapter?.isEnabled == true
+
     @SuppressLint("MissingPermission")
     override fun scanDevices(): Flow<List<GripScaleDevice>> = callbackFlow {
-        if (!hasPermission()) { close(); return@callbackFlow }
+        if (!hasPermission() || !isBluetoothEnabled()) { close(); return@callbackFlow }
         val found = LinkedHashMap<String, Int>() // deviceId (MAC) -> rssi
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
+                // Filtro por manufacturer ID en vez de nombre exacto: más robusto.
+                if (result.scanRecord?.getManufacturerSpecificData(MANUFACTURER_ID) == null) return
                 found[result.device.address] = result.rssi
                 trySend(found.map { (id, rssi) -> GripScaleDevice(id, rssi, getAlias(id)) })
             }
@@ -72,20 +81,20 @@ class AndroidGripScaleProvider @Inject constructor(
         }
         activeCallback = callback
         val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
-        val filters = listOf(ScanFilter.Builder().setDeviceName(DEVICE_NAME).build())
-        scanner?.startScan(filters, settings, callback)
+        runCatching { scanner?.startScan(null, settings, callback) }
+            .onFailure { close(it) }
         awaitClose { stopScan() }
     }
 
     @SuppressLint("MissingPermission")
     override fun stopScan() {
-        activeCallback?.let { scanner?.stopScan(it) }
+        runCatching { activeCallback?.let { scanner?.stopScan(it) } }
         activeCallback = null
     }
 
     @SuppressLint("MissingPermission")
     override fun observeWeight(deviceId: String): Flow<GripReading> = callbackFlow {
-        if (!hasPermission()) { close(); return@callbackFlow }
+        if (!hasPermission() || !isBluetoothEnabled()) { close(); return@callbackFlow }
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 if (result.device.address != deviceId) return
@@ -98,14 +107,14 @@ class AndroidGripScaleProvider @Inject constructor(
         }
         activeCallback = callback
         val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
-        val filters = listOf(ScanFilter.Builder().setDeviceName(DEVICE_NAME).build())
-        scanner?.startScan(filters, settings, callback)
+        runCatching { scanner?.startScan(null, settings, callback) }
+            .onFailure { close(it) }
         awaitClose { disconnect() }
     }
 
     @SuppressLint("MissingPermission")
     override fun disconnect() {
-        activeCallback?.let { scanner?.stopScan(it) }
+        runCatching { activeCallback?.let { scanner?.stopScan(it) } }
         activeCallback = null
     }
 

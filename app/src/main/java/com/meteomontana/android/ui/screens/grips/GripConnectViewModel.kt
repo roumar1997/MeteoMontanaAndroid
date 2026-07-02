@@ -34,6 +34,7 @@ class GripConnectViewModel @Inject constructor(
     val connectedId: StateFlow<String?> = _connectedId.asStateFlow()
 
     val hasPermission: Boolean get() = scaleProvider.hasPermission()
+    val isBluetoothEnabled: Boolean get() = scaleProvider.isBluetoothEnabled()
 
     private var scanJob: Job? = null
 

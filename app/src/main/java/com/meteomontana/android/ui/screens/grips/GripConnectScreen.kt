@@ -1,6 +1,8 @@
 package com.meteomontana.android.ui.screens.grips
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,9 +42,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.GripScaleDevice
 
@@ -55,6 +61,7 @@ fun GripConnectScreen(
     val devices by viewModel.devices.collectAsState()
     val scanning by viewModel.scanning.collectAsState()
     var renameTarget by remember { mutableStateOf<GripScaleDevice?>(null) }
+    var bluetoothOn by remember { mutableStateOf(viewModel.isBluetoothEnabled) }
 
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         Manifest.permission.BLUETOOTH_SCAN
@@ -63,10 +70,28 @@ fun GripConnectScreen(
     }
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) viewModel.startScan() }
+    ) { granted -> if (granted && bluetoothOn) viewModel.startScan() }
+    val enableBtLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { /* onResume ya re-comprueba isBluetoothEnabled */ }
 
-    LaunchedEffect(Unit) {
+    fun tryStartScan() {
+        if (!bluetoothOn) return
         if (viewModel.hasPermission) viewModel.startScan() else permLauncher.launch(permission)
+    }
+
+    LaunchedEffect(Unit) { tryStartScan() }
+
+    // Re-comprueba el estado del Bluetooth al volver de Ajustes/activarlo.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val nowOn = viewModel.isBluetoothEnabled
+                if (nowOn != bluetoothOn) { bluetoothOn = nowOn; if (nowOn) tryStartScan() }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -82,6 +107,20 @@ fun GripConnectScreen(
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+
+        if (!bluetoothOn) {
+            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("El Bluetooth está apagado", style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground)
+                    androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 8.dp))
+                    Button(onClick = { enableBtLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) }) {
+                        Text("ACTIVAR BLUETOOTH")
+                    }
+                }
+            }
+            return@Column
+        }
 
         Box(Modifier.fillMaxWidth().padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
