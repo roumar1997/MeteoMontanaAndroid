@@ -14,17 +14,21 @@ options:
 
 packages:
   Firebase:
-    # Binarios pre-compilados de Firebase (sin compilar ~500k líneas de C++/gRPC).
-    # Drop-in replacement de firebase/firebase-ios-sdk: mismos product names.
-    # Reduce el Archive de 6+ horas a ~15-20 minutos en CI.
-    url: https://github.com/akaffenberger/firebase-ios-sdk-xcframeworks
+    # ⚠️ SDK OFICIAL de Firebase, compilado desde fuente. NO cambiar al fork
+    # akaffenberger/firebase-ios-sdk-xcframeworks ("binarios pre-compilados"):
+    # sus xcframeworks acaban enlazados al ejecutable Y embebidos en Frameworks/
+    # → Firebase queda DUPLICADO en la app → dos registros de componentes
+    # independientes → FirebaseApp.configure() configura una copia pero
+    # Auth.auth() consulta la otra → fatalError → LA APP CRASHEA AL ABRIR en
+    # TestFlight (builds 13-16, jul-2026). Verificado comparando el .ipa que
+    # funcionaba (AltStore, SDK fuente: sin Firebase*.framework embebidos) con
+    # el que crasheaba (fork: 20+ frameworks Firebase embebidos + copia estática).
+    # El Archive tarda más compilando fuente; es el precio de que funcione.
+    url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
-  # OJO: NO declarar aquí el paquete google/GoogleSignIn-iOS por separado.
-  # El fork akaffenberger de Firebase YA incluye su propio producto GoogleSignIn
-  # (un xcframework pre-compilado). Tener los dos hace que SPM registre el
-  # producto "GoogleSignIn" dos veces con el mismo GUID → el Archive falla con
-  # "PIFLoader: GUID ...GoogleSignIn... has already been registered". Por eso la
-  # dependencia GoogleSignIn de abajo apunta al paquete Firebase, no a uno propio.
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "8.0.0"
   # Mapas (equivalente iOS de MapLibre Android). Distribución binaria oficial.
   MapLibre:
     url: https://github.com/maplibre/maplibre-gl-native-distribution
@@ -79,8 +83,8 @@ targets:
         # Versión espejo de Android (versionName 1.9 / versionCode 12).
         CFBundleShortVersionString: "1.9"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
-        # ÚNICO y mayor que el anterior. 12-15 ya subidos → 16.
-        CFBundleVersion: "16"
+        # ÚNICO y mayor que el anterior. 12-16 ya subidos → 17.
+        CFBundleVersion: "17"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
@@ -167,7 +171,7 @@ targets:
       # antes de publicar (necesita APNs key + capability, ver PushManager.swift).
       - package: Firebase
         product: FirebaseMessaging
-      - package: Firebase
+      - package: GoogleSignIn
         product: GoogleSignIn
       - package: MapLibre
         product: MapLibre
