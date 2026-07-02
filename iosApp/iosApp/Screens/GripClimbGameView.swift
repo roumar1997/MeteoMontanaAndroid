@@ -320,15 +320,41 @@ private struct PlayingCanvas: View {
                 while ey <= h { edgePath.addLine(to: CGPoint(x: wallXAt(ey), y: ey)); ey += 8 }
                 context.stroke(edgePath, with: .color(rockEdge), lineWidth: 4)
 
-                // Vetas de la roca.
-                var ty = 20.0
-                while ty <= h {
-                    let x = wallXAt(ty)
-                    var vein = Path()
-                    vein.move(to: CGPoint(x: x * 0.15, y: ty))
-                    vein.addLine(to: CGPoint(x: x - 8, y: ty))
-                    context.stroke(vein, with: .color(rockEdge.opacity(0.30)), lineWidth: 1.5)
-                    ty += 40
+                // Vetas de la roca ANCLADAS AL MUNDO (cada 0,55m): al escalar
+                // se desplazan hacia abajo contigo — sin esto la pared parecía
+                // estática aunque subieras.
+                var veinH = (worldHeightAt(h) / 0.55).rounded(.down) * 0.55
+                while true {
+                    let vy = climberScreenY - (veinH - state.heightM) * pxPerMeterY
+                    if vy < -10 { break }
+                    if vy >= 0 && vy <= h {
+                        let x = wallXAt(vy)
+                        let n = Int(veinH * 100)
+                        let len = 0.35 + Double((n * 31) % 40) / 100.0
+                        var vein = Path()
+                        vein.move(to: CGPoint(x: x * (1 - len), y: vy))
+                        vein.addLine(to: CGPoint(x: x - 8, y: vy))
+                        context.stroke(vein, with: .color(rockEdge.opacity(0.30)), lineWidth: 1.5)
+                    }
+                    veinH += 0.55
+                }
+                // PRESAS sobre la pared (cada ~0,8m, offset pseudo-aleatorio
+                // estable) — refuerzan la sensación de movimiento al escalar.
+                var holdH = (worldHeightAt(h) / 0.8).rounded(.down) * 0.8
+                while true {
+                    let hy = climberScreenY - (holdH - state.heightM) * pxPerMeterY
+                    if hy < -10 { break }
+                    if hy >= 0 && hy <= h && holdH > 0.3 {
+                        let x = wallXAt(hy)
+                        let n = Int(holdH * 100)
+                        let offset = 14.0 + Double((n * 17) % 46)
+                        let r = 5.0 + Double((n * 13) % 5)
+                        context.fill(Path(ellipseIn: CGRect(x: x - offset - r, y: hy - r, width: r * 2, height: r * 2)),
+                                     with: .color(rockEdge))
+                        context.fill(Path(ellipseIn: CGRect(x: x - offset - (r - 2.5), y: hy - 1.5 - (r - 2.5), width: (r - 2.5) * 2, height: (r - 2.5) * 2)),
+                                     with: .color(rockColor))
+                    }
+                    holdH += 0.8
                 }
 
                 // Marcas de altura cada 5m sobre la pared.
@@ -382,10 +408,20 @@ private struct PlayingCanvas: View {
                     limb(climberX, climberY + 20, climberX - 16, climberY + 26, width: 5)
                     limb(climberX, climberY + 20, climberX - 12, climberY + 34, width: 5)
                 } else {
-                    limb(climberX, climberY - 4, climberX - 17, climberY - 16, width: 5)
-                    limb(climberX, climberY + 2, climberX - 15, climberY + 12, width: 5)
-                    limb(climberX, climberY + 20, climberX - 14, climberY + 30, width: 5)
-                    limb(climberX, climberY + 20, climberX + 8, climberY + 34, width: 5)
+                    // Escalando: CICLO de animación por altura (~cada 0,35m
+                    // alterna el brazo/pierna que sube) — el muñeco "trepa".
+                    let step = Int(state.heightM / 0.35) % 2 == 0
+                    if step {
+                        limb(climberX, climberY - 6, climberX - 19, climberY - 22, width: 5)
+                        limb(climberX, climberY + 2, climberX - 13, climberY + 12, width: 5)
+                        limb(climberX, climberY + 20, climberX - 17, climberY + 24, width: 5)
+                        limb(climberX, climberY + 20, climberX + 6, climberY + 35, width: 5)
+                    } else {
+                        limb(climberX, climberY - 6, climberX - 8, climberY - 24, width: 5)
+                        limb(climberX, climberY + 2, climberX - 18, climberY + 4, width: 5)
+                        limb(climberX, climberY + 20, climberX - 8, climberY + 34, width: 5)
+                        limb(climberX, climberY + 20, climberX - 18, climberY + 28, width: 5)
+                    }
                 }
             }
             .ignoresSafeArea()
@@ -393,6 +429,7 @@ private struct PlayingCanvas: View {
             // ---- HUD compacto arriba ----
             VStack {
                 HStack(spacing: 6) {
+                    hudChip("MANO", vm.hand == "LEFT" ? "IZQ" : "DER")
                     hudChip("ALTURA", String(format: "%.1f m", vm.engineState?.heightM ?? 0))
                     hudChip("MEJOR", String(format: "%.1f m", vm.engineState?.bestHeightM ?? 0))
                     hudChip("DESPLOME", "\(Int(vm.engineState?.wallOverhangDeg ?? 0))°")
@@ -435,7 +472,7 @@ private struct PlayingCanvas: View {
                         Text("m").font(Cumbre.mono(18)).foregroundStyle(Cumbre.ink3)
                             .padding(.bottom, 10)
                     }
-                    Text("Altura máxima · \(difficultyLabel(vm.difficulty))")
+                    Text("Altura máxima · \(difficultyLabel(vm.difficulty)) · mano \(vm.hand == "LEFT" ? "izquierda" : "derecha")")
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     Button { vm.retry() } label: {
                         Text("VOLVER A INTENTAR").font(.system(size: 15, weight: .semibold))

@@ -15,11 +15,17 @@ final class GripMeasureViewModel: ObservableObject {
     @Published var points: [GripChartPoint] = []
     @Published var phase: MeasurePhase = .idle
     @Published var saved = false
+    @Published var sessionPeak: Double = 0
 
     private let getGripTypes = AppDependencies.shared.container.getGripTypes
     private let createGripMeasureSession = AppDependencies.shared.container.createGripMeasureSession
     private let provider = AppDependencies.shared.container.gripScaleProvider
     private var measureTask: Task<Void, Never>?
+
+    // Estadísticas de TODA la sesión (la lista de puntos se acota para el
+    // render; sin esto la gráfica se aplastaba con el tiempo).
+    private var sessionSum: Double = 0
+    private var sessionCount = 0
 
     var connectedDeviceId: String? { GripScaleSession.shared.connectedDeviceId }
 
@@ -33,9 +39,14 @@ final class GripMeasureViewModel: ObservableObject {
         points = []
         phase = .measuring
         saved = false
+        sessionPeak = 0; sessionSum = 0; sessionCount = 0
         measureTask = Task {
             for await reading in provider.observeWeight(deviceId: deviceId) {
+                sessionCount += 1
+                sessionSum += reading.kg
+                if reading.kg > sessionPeak { sessionPeak = reading.kg }
                 points.append(GripChartPoint(kg: reading.kg, hand: nil))
+                if points.count > 300 { points.removeFirst(points.count - 300) }
             }
         }
     }
@@ -44,12 +55,10 @@ final class GripMeasureViewModel: ObservableObject {
         measureTask?.cancel()
         measureTask = nil
         provider?.disconnect()
-        let kgs = points.map { $0.kg }
-        guard !kgs.isEmpty else { phase = .idle; return }
-        let peak = kgs.max() ?? 0
-        let avg = kgs.reduce(0, +) / Double(kgs.count)
-        let durationS = max(kgs.count / 8, 1) // ~8Hz de muestreo (protocolo WH-C06)
-        phase = .done(peakKg: peak, avgKg: avg, durationS: durationS)
+        guard sessionCount > 0 else { phase = .idle; return }
+        let avg = sessionSum / Double(sessionCount)
+        let durationS = max(sessionCount / 8, 1) // ~8Hz de muestreo (protocolo WH-C06)
+        phase = .done(peakKg: sessionPeak, avgKg: avg, durationS: durationS)
     }
 
     func save() {
@@ -67,6 +76,7 @@ final class GripMeasureViewModel: ObservableObject {
         phase = .idle
         points = []
         saved = false
+        sessionPeak = 0; sessionSum = 0; sessionCount = 0
     }
 }
 
@@ -103,16 +113,15 @@ struct GripMeasureView: View {
                             }
                         case .measuring:
                             let liveKg = vm.points.last?.kg
-                            let peakKg = vm.points.map { $0.kg }.max()
                             bigKgDisplay(kg: liveKg,
-                                sublabel: peakKg.map { String(format: "Pico hasta ahora: %.1f kg", $0) } ?? "Tira ya…")
-                            GripLineChartView(points: vm.points)
+                                sublabel: vm.sessionPeak > 0 ? String(format: "Pico hasta ahora: %.1f kg", vm.sessionPeak) : "Tira ya…")
+                            GripLineChartView(points: vm.points, yMaxKg: vm.sessionPeak)
                             primaryButton("PARAR", enabled: true, bg: Cumbre.bad) {
                                 vm.stopMeasuring()
                             }
                         case .done(let peak, let avg, let duration):
                             resultCard(peakKg: peak, avgKg: avg, durationS: duration)
-                            GripLineChartView(points: vm.points)
+                            GripLineChartView(points: vm.points, yMaxKg: peak)
                             if vm.saved {
                                 Text("✓ GUARDADO — si supera tu máximo anterior, queda como nuevo récord")
                                     .font(.system(size: 13, weight: .semibold))

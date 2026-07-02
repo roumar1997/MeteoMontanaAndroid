@@ -204,20 +204,31 @@ struct GripChartPoint {
     let hand: String? // "LEFT" | "RIGHT" | nil
 }
 
-/// Gráfica de líneas simple dibujada a mano con Canvas (sin librería externa,
-/// espejo de GripLineChart.kt de Android).
+/// Gráfica de fuerza en tiempo real, estilo ECG (espejo de GripLineChart.kt):
+/// - VENTANA DESLIZANTE: solo los últimos `windowSize` puntos, cada punto con
+///   ancho FIJO — la curva entra por la derecha y se desplaza (nada de
+///   comprimir toda la sesión en el ancho, que aplastaba la línea).
+/// - ESCALA Y ESTABLE: `yMaxKg` la fija el llamador (pico de la sesión) para
+///   que el eje no salte con cada lectura.
 struct GripLineChartView: View {
     let points: [GripChartPoint]
     var targetMin: Double? = nil
     var targetMax: Double? = nil
+    var yMaxKg: Double? = nil
+    var windowSize: Int = 160 // ~20s a 8Hz
 
     private let leftColor = Color(hex: 0xB5654A)
     private let rightColor = Color(hex: 0x3A6B8A)
 
+    private func color(for hand: String?) -> Color {
+        hand == "LEFT" ? leftColor : (hand == "RIGHT" ? rightColor : Cumbre.terra)
+    }
+
     var body: some View {
         Canvas { context, size in
-            let maxKg = max(points.map { $0.kg }.max() ?? 1, targetMax ?? 0) * 1.15
-            let safeMax = maxKg <= 0 ? 1 : maxKg
+            let visible = Array(points.suffix(windowSize))
+            let dataMax = visible.map { $0.kg }.max() ?? 1
+            let safeMax = max(yMaxKg ?? 0, dataMax, targetMax ?? 0, 1) * 1.10
             let w = size.width
             let h = size.height
 
@@ -236,16 +247,38 @@ struct GripLineChartView: View {
                 context.stroke(path, with: .color(Cumbre.rule.opacity(0.3)), lineWidth: 1)
             }
 
-            guard points.count >= 2 else { return }
-            let stepX = w / Double(max(points.count - 1, 1))
-            for i in 0..<(points.count - 1) {
-                let p0 = points[i]
-                let p1 = points[i + 1]
-                let color: Color = p1.hand == "LEFT" ? leftColor : (p1.hand == "RIGHT" ? rightColor : Cumbre.terra)
-                var path = Path()
-                path.move(to: CGPoint(x: Double(i) * stepX, y: y(for: p0.kg)))
-                path.addLine(to: CGPoint(x: Double(i + 1) * stepX, y: y(for: p1.kg)))
-                context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            guard visible.count >= 2 else { return }
+            // Ancho FIJO por punto: la curva entra por la derecha.
+            let stepX = w / Double(windowSize - 1)
+            let startX = w - Double(visible.count - 1) * stepX
+
+            // Un Path por tramo del mismo color — mucho más fluido que N strokes.
+            var segStart = 0
+            var i = 1
+            while i <= visible.count {
+                let segColor = color(for: visible[max(i - 1, segStart)].hand)
+                let changed = i < visible.count && color(for: visible[i].hand) != segColor
+                if i == visible.count || changed {
+                    var path = Path()
+                    path.move(to: CGPoint(x: startX + Double(segStart) * stepX, y: y(for: visible[segStart].kg)))
+                    for j in (segStart + 1)..<i {
+                        path.addLine(to: CGPoint(x: startX + Double(j) * stepX, y: y(for: visible[j].kg)))
+                    }
+                    if i < visible.count {
+                        path.addLine(to: CGPoint(x: startX + Double(i) * stepX, y: y(for: visible[i].kg)))
+                    }
+                    context.stroke(path, with: .color(segColor), style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    segStart = i
+                }
+                i += 1
+            }
+
+            // Punto "en vivo" al final de la curva.
+            if let last = visible.last {
+                let cx = startX + Double(visible.count - 1) * stepX
+                let cy = y(for: last.kg)
+                context.fill(Path(ellipseIn: CGRect(x: cx - 7, y: cy - 7, width: 14, height: 14)),
+                             with: .color(color(for: last.hand)))
             }
         }
         .frame(height: 180)

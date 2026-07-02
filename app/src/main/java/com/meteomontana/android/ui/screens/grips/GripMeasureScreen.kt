@@ -54,6 +54,7 @@ fun GripMeasureScreen(
     val points by viewModel.points.collectAsState()
     val phase by viewModel.phase.collectAsState()
     val saved by viewModel.saved.collectAsState()
+    val sessionPeak by viewModel.peakKg.collectAsState()
 
     // Pantalla siempre encendida mientras se mide (manos ocupadas con la báscula).
     KeepScreenOn()
@@ -114,12 +115,12 @@ fun GripMeasureScreen(
                 }
                 MeasurePhase.Measuring -> {
                     val liveKg = points.lastOrNull()?.kg?.toDouble()
-                    val peakKg = points.maxOfOrNull { it.kg }?.toDouble()
                     BigKgDisplay(
                         kg = liveKg,
-                        sublabel = peakKg?.let { "Pico hasta ahora: %.1f kg".format(it) } ?: "Tira ya…"
+                        sublabel = if (sessionPeak > 0) "Pico hasta ahora: %.1f kg".format(sessionPeak) else "Tira ya…"
                     )
-                    GripLineChart(points = points, modifier = Modifier.padding(vertical = Spacing.md))
+                    GripLineChart(points = points, yMaxKg = sessionPeak.toFloat(),
+                        modifier = Modifier.padding(vertical = Spacing.md))
                     Button(
                         onClick = { viewModel.stopMeasuring() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -131,7 +132,8 @@ fun GripMeasureScreen(
                     ResultCard(peakKg = p.peakKg, avgKg = p.avgKg, durationS = p.durationS,
                         gripLabel = selected?.let { "${fingerGroupLabel(it.fingerGroup)} · ${gripStyleLabel(it.style)}" } ?: "",
                         handText = if (hand == "LEFT") "Izquierda" else "Derecha")
-                    GripLineChart(points = points, modifier = Modifier.padding(vertical = Spacing.md))
+                    GripLineChart(points = points, yMaxKg = p.peakKg.toFloat(),
+                        modifier = Modifier.padding(vertical = Spacing.md))
                     if (saved) {
                         Box(
                             Modifier.fillMaxWidth()

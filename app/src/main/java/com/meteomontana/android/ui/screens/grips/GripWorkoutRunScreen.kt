@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.grips
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ fun GripWorkoutRunScreen(
     val engineState by viewModel.engineState.collectAsState()
     val points by viewModel.points.collectAsState()
     val currentKg by viewModel.currentKg.collectAsState()
+    val sessionMaxKg by viewModel.sessionMaxKg.collectAsState()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -87,41 +89,64 @@ fun GripWorkoutRunScreen(
             return@Column
         }
 
-        Text("SET ${es.setIndex + 1} DE ${workout!!.sets.size}", style = EyebrowTextStyle,
+        val currentSet = workout!!.sets.getOrNull(es.setIndex)
+        Text(
+            "SET ${es.setIndex + 1} DE ${workout!!.sets.size}" +
+                (currentSet?.let { " · ${it.reps} REPS" } ?: ""),
+            style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth().padding(Spacing.lg), textAlign = TextAlign.Center)
+            modifier = Modifier.fillMaxWidth().padding(Spacing.md), textAlign = TextAlign.Center)
         viewModel.currentGripLabel()?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         }
 
-        Spacer(Modifier.height(Spacing.md))
+        Spacer(Modifier.height(Spacing.sm))
         HandIndicator(es)
-        Spacer(Modifier.height(Spacing.md))
+        Spacer(Modifier.height(Spacing.sm))
 
-        Box(Modifier.fillMaxWidth(), Alignment.Center) {
+        val range = viewModel.currentTargetRangeKg()
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(verticalAlignment = Alignment.Bottom) {
                 Text("%.1f".format(currentKg),
                     style = MaterialTheme.typography.displayMedium.copy(
                         fontFamily = com.meteomontana.android.ui.theme.Mono,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onBackground)
+                    color = when {
+                        range == null -> MaterialTheme.colorScheme.onBackground
+                        currentKg in range.first..range.second -> MaterialTheme.colorScheme.primary
+                        es.activeHand == GripWorkoutEngine.Hand.NONE -> MaterialTheme.colorScheme.onBackground
+                        else -> MaterialTheme.colorScheme.error
+                    })
                 Text(" kg", style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp))
             }
+            if (range != null) {
+                Text("OBJETIVO: %.1f – %.1f kg".format(range.first, range.second),
+                    style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else if (es.activeHand != GripWorkoutEngine.Hand.NONE) {
+                Text("Sin máximo guardado para este agarre y mano — mide tu máximo para tener objetivo",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = Spacing.lg))
+            }
         }
 
-        val range = viewModel.currentTargetRangeKg()
         GripLineChart(
             points = points, modifier = Modifier.padding(Spacing.lg),
-            targetMin = range?.first?.toFloat(), targetMax = range?.second?.toFloat()
+            targetMin = range?.first?.toFloat(), targetMax = range?.second?.toFloat(),
+            yMaxKg = sessionMaxKg
         )
 
-        Row(Modifier.fillMaxWidth().padding(Spacing.lg), horizontalArrangement = Arrangement.SpaceEvenly) {
-            HandTimer("IZQUIERDA", es.left)
-            HandTimer("DERECHA", es.right)
+        val totalReps = currentSet?.reps ?: 0
+        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            HandPanel("IZQUIERDA", es.left, active = es.activeHand == GripWorkoutEngine.Hand.LEFT,
+                totalReps = totalReps, handMode = workout!!.handMode, modifier = Modifier.weight(1f))
+            HandPanel("DERECHA", es.right, active = es.activeHand == GripWorkoutEngine.Hand.RIGHT,
+                totalReps = totalReps, handMode = workout!!.handMode, modifier = Modifier.weight(1f))
         }
     }
 }
@@ -149,7 +174,14 @@ private fun HandIndicator(es: GripWorkoutEngine.EngineState) {
 }
 
 @Composable
-private fun HandTimer(label: String, hs: GripWorkoutEngine.HandState) {
+private fun HandPanel(
+    label: String,
+    hs: GripWorkoutEngine.HandState,
+    active: Boolean,
+    totalReps: Int,
+    handMode: String,
+    modifier: Modifier = Modifier
+) {
     val seconds = (hs.remainingMs / 1000).coerceAtLeast(0)
     val phaseLabel = when (hs.phase) {
         GripWorkoutEngine.Phase.WORK -> "TRABAJO"
@@ -157,9 +189,35 @@ private fun HandTimer(label: String, hs: GripWorkoutEngine.HandState) {
         GripWorkoutEngine.Phase.WAITING -> "ESPERANDO"
         GripWorkoutEngine.Phase.DONE -> "HECHO"
     }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("${seconds}s", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
-        Text(phaseLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(
+        modifier = modifier
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+            .background(if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surface)
+            .border(
+                if (active) 2.dp else 1.dp,
+                if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
+            )
+            .padding(Spacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(label, style = EyebrowTextStyle,
+            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("${seconds}s",
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontFamily = com.meteomontana.android.ui.theme.Mono,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            ),
+            color = MaterialTheme.colorScheme.onBackground)
+        Text(phaseLabel, style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Progreso de reps de ESTA mano en el set. En POR_REP las reps se
+        // reparten entre las dos manos (contador total conjunto).
+        if (totalReps > 0) {
+            val repsThisHand = if (handMode == "UNA") totalReps else (totalReps + 1) / 2
+            Text("REP ${hs.repIndex.coerceAtMost(repsThisHand)}/${repsThisHand}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

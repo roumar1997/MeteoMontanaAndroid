@@ -45,6 +45,11 @@ class GripWorkoutRunViewModel @Inject constructor(
     private val _currentKg = MutableStateFlow(0.0)
     val currentKg: StateFlow<Double> = _currentKg.asStateFlow()
 
+    // Máximo visto en la sesión — fija la escala Y de la gráfica (sin esto
+    // el eje saltaba con cada pico y la curva "bailaba").
+    private val _sessionMaxKg = MutableStateFlow(0f)
+    val sessionMaxKg: StateFlow<Float> = _sessionMaxKg.asStateFlow()
+
     private val _gripTypes = MutableStateFlow<List<GripType>>(emptyList())
     private val _maxesByGripHand = MutableStateFlow<Map<Pair<Int, String>, Double>>(emptyMap())
 
@@ -110,6 +115,7 @@ class GripWorkoutRunViewModel @Inject constructor(
             try {
                 scaleProvider.observeWeight(deviceId).collect { reading ->
                     _currentKg.value = reading.kg
+                    if (reading.kg.toFloat() > _sessionMaxKg.value) _sessionMaxKg.value = reading.kg.toFloat()
                     val es = _engineState.value
                     val hand = when (es?.activeHand) {
                         GripWorkoutEngine.Hand.LEFT -> "LEFT"

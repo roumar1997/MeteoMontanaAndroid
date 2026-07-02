@@ -221,6 +221,7 @@ private fun PlayingBody(viewModel: GripClimbGameViewModel, onExit: () -> Unit) {
     val state by viewModel.engineState.collectAsState()
     val pct by viewModel.currentPct.collectAsState()
     val difficulty by viewModel.difficulty.collectAsState()
+    val hand by viewModel.hand.collectAsState()
 
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val skyTop = if (isDark) Color(0xFF1B2733) else Color(0xFFC9DCE8)
@@ -290,12 +291,37 @@ private fun PlayingBody(viewModel: GripClimbGameViewModel, onExit: () -> Unit) {
                 prev = p
                 ey += 8f
             }
-            // Vetas de la roca (siguiendo la inclinación, cada ~40px).
-            var ty = 20f
-            while (ty <= h) {
-                val x = wallXAt(ty)
-                drawLine(rockEdge.copy(alpha = 0.30f), Offset(x * 0.15f, ty), Offset(x - 8f, ty), strokeWidth = 1.5f)
-                ty += 40f
+            // Vetas de la roca ANCLADAS AL MUNDO (cada 0,55m de pared): al
+            // escalar se desplazan hacia abajo contigo — sin esto la pared
+            // parecía estática aunque subieras.
+            var veinH = kotlin.math.floor(worldHeightAt(h) / 0.55) * 0.55
+            while (true) {
+                val vy = climberScreenY - ((veinH - state.heightM) * pxPerMeterY).toFloat()
+                if (vy < -10f) break
+                if (vy in 0f..h) {
+                    val x = wallXAt(vy)
+                    // Longitud pseudo-aleatoria estable por posición del mundo.
+                    val n = (veinH * 100).toInt()
+                    val len = 0.35f + ((n * 31) % 40) / 100f
+                    drawLine(rockEdge.copy(alpha = 0.30f), Offset(x * (1f - len), vy), Offset(x - 8f, vy), strokeWidth = 1.5f)
+                }
+                veinH += 0.55
+            }
+            // PRESAS sobre la pared (cada ~0,8m, offset pseudo-aleatorio
+            // estable) — refuerzan la sensación de movimiento al escalar.
+            var holdH = kotlin.math.floor(worldHeightAt(h) / 0.8) * 0.8
+            while (true) {
+                val hy = climberScreenY - ((holdH - state.heightM) * pxPerMeterY).toFloat()
+                if (hy < -10f) break
+                if (hy in 0f..h && holdH > 0.3) {
+                    val x = wallXAt(hy)
+                    val n = (holdH * 100).toInt()
+                    val offset = 14f + ((n * 17) % 46)
+                    val r = 5f + ((n * 13) % 5)
+                    drawCircle(rockEdge, radius = r, center = Offset(x - offset, hy))
+                    drawCircle(rockColor, radius = r - 2.5f, center = Offset(x - offset, hy - 1.5f))
+                }
+                holdH += 0.8
             }
             // Marcas de altura cada 5m sobre la pared.
             val firstMark = ((worldHeightAt(h).toInt() / 5) * 5).coerceAtLeast(0)
@@ -336,11 +362,22 @@ private fun PlayingBody(viewModel: GripClimbGameViewModel, onExit: () -> Unit) {
                 drawLine(bodyC, Offset(climberX, climberY + 20f), Offset(climberX - 16f, climberY + 26f), strokeWidth = 5f, cap = StrokeCap.Round)
                 drawLine(bodyC, Offset(climberX, climberY + 20f), Offset(climberX - 12f, climberY + 34f), strokeWidth = 5f, cap = StrokeCap.Round)
             } else {
-                // Escalando: un brazo estirado al muro, piernas en apoyo.
-                drawLine(bodyC, Offset(climberX, climberY - 4f), Offset(climberX - 17f, climberY - 16f), strokeWidth = 5f, cap = StrokeCap.Round)
-                drawLine(bodyC, Offset(climberX, climberY + 2f), Offset(climberX - 15f, climberY + 12f), strokeWidth = 5f, cap = StrokeCap.Round)
-                drawLine(bodyC, Offset(climberX, climberY + 20f), Offset(climberX - 14f, climberY + 30f), strokeWidth = 5f, cap = StrokeCap.Round)
-                drawLine(bodyC, Offset(climberX, climberY + 20f), Offset(climberX + 8f, climberY + 34f), strokeWidth = 5f, cap = StrokeCap.Round)
+                // Escalando: CICLO de animación por altura (~cada 0,35m
+                // alterna el brazo/pierna que sube) — el muñeco "trepa".
+                val step = ((state.heightM / 0.35).toInt() % 2 == 0)
+                if (step) {
+                    // Brazo izq arriba estirado, derecho abajo; pierna der subiendo.
+                    drawLine(bodyC, Offset(climberX, climberY - 6f), Offset(climberX - 19f, climberY - 22f), strokeWidth = 5f, cap = StrokeCap.Round)
+                    drawLine(bodyC, Offset(climberX, climberY + 2f), Offset(climberX - 13f, climberY + 12f), strokeWidth = 5f, cap = StrokeCap.Round)
+                    drawLine(bodyC, Offset(climberX, climberY + 20f), Offset(climberX - 17f, climberY + 24f), strokeWidth = 5f, cap = StrokeCap.Round)
+                    drawLine(bodyC, Offset(climberX, climberY + 20f), Offset(climberX + 6f, climberY + 35f), strokeWidth = 5f, cap = StrokeCap.Round)
+                } else {
+                    // Brazo der arriba, izq abajo; pierna izq subiendo.
+                    drawLine(bodyC, Offset(climberX, climberY - 6f), Offset(climberX - 8f, climberY - 24f), strokeWidth = 5f, cap = StrokeCap.Round)
+                    drawLine(bodyC, Offset(climberX, climberY + 2f), Offset(climberX - 18f, climberY + 4f), strokeWidth = 5f, cap = StrokeCap.Round)
+                    drawLine(bodyC, Offset(climberX, climberY + 20f), Offset(climberX - 8f, climberY + 34f), strokeWidth = 5f, cap = StrokeCap.Round)
+                    drawLine(bodyC, Offset(climberX, climberY + 20f), Offset(climberX - 18f, climberY + 28f), strokeWidth = 5f, cap = StrokeCap.Round)
+                }
             }
         }
 
@@ -350,6 +387,7 @@ private fun PlayingBody(viewModel: GripClimbGameViewModel, onExit: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            HudChip("MANO", if (hand == "LEFT") "IZQ" else "DER")
             HudChip("ALTURA", "%.1f m".format(state.heightM))
             HudChip("MEJOR", "%.1f m".format(state.bestHeightM))
             HudChip("DESPLOME", "${state.wallOverhangDeg.toInt()}°")
@@ -397,7 +435,7 @@ private fun PlayingBody(viewModel: GripClimbGameViewModel, onExit: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = Spacing.sm))
                     }
-                    Text("Altura máxima · ${difficultyLabel(difficulty)}",
+                    Text("Altura máxima · ${difficultyLabel(difficulty)} · mano ${if (hand == "LEFT") "izquierda" else "derecha"}",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(Spacing.lg))

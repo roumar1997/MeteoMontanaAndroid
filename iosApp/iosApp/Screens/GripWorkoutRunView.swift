@@ -8,6 +8,8 @@ final class GripWorkoutRunViewModel: ObservableObject {
     @Published var engineState: GripWorkoutEngine.EngineState?
     @Published var points: [GripChartPoint] = []
     @Published var currentKg: Double = 0
+    // Máximo visto en la sesión — fija la escala Y de la gráfica.
+    @Published var sessionMaxKg: Double = 0
 
     private let getGripWorkout = AppDependencies.shared.container.getGripWorkout
     private let getGripTypes = AppDependencies.shared.container.getGripTypes
@@ -58,6 +60,7 @@ final class GripWorkoutRunViewModel: ObservableObject {
         weightTask = Task {
             for await reading in provider.observeWeight(deviceId: deviceId) {
                 currentKg = reading.kg
+                if reading.kg > sessionMaxKg { sessionMaxKg = reading.kg }
                 guard let hand = engineState?.activeHand, hand.name != "NONE" else { continue }
                 points.append(GripChartPoint(kg: reading.kg, hand: hand.name))
                 if points.count > 200 { points.removeFirst(points.count - 200) }
@@ -146,9 +149,11 @@ struct GripWorkoutRunView: View {
     private var runningBody: some View {
         let es = vm.engineState!
         let w = vm.workout!
+        let currentSet = es.setIndex >= 0 && Int(es.setIndex) < w.sets.count ? w.sets[Int(es.setIndex)] : nil
+        let range = vm.currentTargetRangeKg()
         ScrollView {
-            VStack(spacing: 12) {
-                Text("SET \(es.setIndex + 1) DE \(w.sets.count)")
+            VStack(spacing: 10) {
+                Text("SET \(es.setIndex + 1) DE \(w.sets.count)" + (currentSet.map { " · \($0.reps) REPS" } ?? ""))
                     .eyebrow()
                 if let label = vm.currentGripLabel() {
                     Text(label).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
@@ -157,21 +162,37 @@ struct GripWorkoutRunView: View {
                 handIndicator(es)
 
                 Text(String(format: "%.1f kg", vm.currentKg))
-                    .font(Cumbre.mono(40, .bold)).foregroundStyle(Cumbre.ink)
+                    .font(Cumbre.mono(40, .bold))
+                    .foregroundStyle(kgColor(es: es, range: range))
+                if let range {
+                    Text(String(format: "OBJETIVO: %.1f – %.1f kg", range.0, range.1)).eyebrow()
+                } else if es.activeHand.name != "NONE" {
+                    Text("Sin máximo guardado para este agarre y mano — mide tu máximo para tener objetivo")
+                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                        .multilineTextAlignment(.center).padding(.horizontal, 24)
+                }
 
-                let range = vm.currentTargetRangeKg()
-                GripLineChartView(points: vm.points, targetMin: range?.0, targetMax: range?.1)
+                GripLineChartView(points: vm.points, targetMin: range?.0, targetMax: range?.1,
+                                  yMaxKg: vm.sessionMaxKg)
                     .padding(.horizontal, 8)
 
-                HStack {
-                    handTimer("IZQUIERDA", es.left)
-                    Spacer()
-                    handTimer("DERECHA", es.right)
+                HStack(spacing: 8) {
+                    handPanel("IZQUIERDA", es.left, active: es.activeHand.name == "LEFT",
+                              totalReps: Int(currentSet?.reps ?? 0), handMode: w.handMode)
+                    handPanel("DERECHA", es.right, active: es.activeHand.name == "RIGHT",
+                              totalReps: Int(currentSet?.reps ?? 0), handMode: w.handMode)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
             }
             .padding(.vertical, 16)
         }
+    }
+
+    private func kgColor(es: GripWorkoutEngine.EngineState, range: (Double, Double)?) -> Color {
+        guard let range else { return Cumbre.ink }
+        if vm.currentKg >= range.0 && vm.currentKg <= range.1 { return Cumbre.terra }
+        if es.activeHand.name == "NONE" { return Cumbre.ink }
+        return Cumbre.bad
     }
 
     private func handIndicator(_ es: GripWorkoutEngine.EngineState) -> some View {
@@ -190,7 +211,8 @@ struct GripWorkoutRunView: View {
             .padding(.horizontal, 16)
     }
 
-    private func handTimer(_ label: String, _ hs: GripWorkoutEngine.HandState) -> some View {
+    private func handPanel(_ label: String, _ hs: GripWorkoutEngine.HandState,
+                           active: Bool, totalReps: Int, handMode: String) -> some View {
         let seconds = max(hs.remainingMs / 1000, 0)
         let phaseLabel: String
         switch hs.phase.name {
@@ -199,10 +221,21 @@ struct GripWorkoutRunView: View {
         case "WAITING": phaseLabel = "ESPERANDO"
         default: phaseLabel = "HECHO"
         }
+        // Progreso de reps de ESTA mano en el set. En POR_REP las reps se
+        // reparten entre las dos manos (contador total conjunto).
+        let repsThisHand = handMode == "UNA" ? totalReps : (totalReps + 1) / 2
         return VStack(spacing: 2) {
-            Text(label).eyebrow()
-            Text("\(seconds)s").font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
+            Text(label).eyebrow(active ? Cumbre.terra : Cumbre.ink3)
+            Text("\(seconds)s").font(Cumbre.mono(20, .bold)).foregroundStyle(Cumbre.ink)
             Text(phaseLabel).font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+            if totalReps > 0 {
+                Text("REP \(min(Int(hs.repIndex), repsThisHand))/\(repsThisHand)")
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            }
         }
+        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(active ? Cumbre.terra.opacity(0.10) : Cumbre.paper)
+        .overlay(Rectangle().stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: active ? 2 : 1))
     }
 }

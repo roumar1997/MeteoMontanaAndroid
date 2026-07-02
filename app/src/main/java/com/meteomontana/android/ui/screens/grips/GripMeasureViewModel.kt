@@ -50,6 +50,15 @@ class GripMeasureViewModel @Inject constructor(
 
     private var measureJob: Job? = null
 
+    // Estadísticas de TODA la sesión (la lista de puntos se acota para el
+    // render; sin esto la gráfica se aplastaba y el pico podía perderse).
+    private var sessionPeak = 0.0
+    private var sessionSum = 0.0
+    private var sessionCount = 0
+
+    private val _peakKg = MutableStateFlow(0.0)
+    val peakKg: StateFlow<Double> = _peakKg.asStateFlow()
+
     init {
         viewModelScope.launch {
             _gripTypes.value = runCatching { getGripTypes() }.getOrDefault(emptyList())
@@ -65,11 +74,15 @@ class GripMeasureViewModel @Inject constructor(
         _points.value = emptyList()
         _phase.value = MeasurePhase.Measuring
         _saved.value = false
-        val startedAt = System.currentTimeMillis()
+        sessionPeak = 0.0; sessionSum = 0.0; sessionCount = 0
+        _peakKg.value = 0.0
         measureJob = viewModelScope.launch {
             try {
                 scaleProvider.observeWeight(deviceId).collect { reading ->
-                    _points.value = _points.value + ChartPoint(reading.kg.toFloat())
+                    sessionCount++
+                    sessionSum += reading.kg
+                    if (reading.kg > sessionPeak) { sessionPeak = reading.kg; _peakKg.value = reading.kg }
+                    _points.value = (_points.value + ChartPoint(reading.kg.toFloat())).takeLast(300)
                 }
             } catch (_: Throwable) {
             }
@@ -80,13 +93,11 @@ class GripMeasureViewModel @Inject constructor(
         measureJob?.cancel()
         measureJob = null
         scaleProvider.disconnect()
-        val kgs = _points.value.map { it.kg }
-        if (kgs.isEmpty()) { _phase.value = MeasurePhase.Idle; return }
-        val peak = kgs.max().toDouble()
-        val avg = kgs.average()
+        if (sessionCount == 0) { _phase.value = MeasurePhase.Idle; return }
+        val avg = sessionSum / sessionCount
         // ~8Hz de muestreo (protocolo WH-C06) -> duración aproximada.
-        val durationS = (kgs.size / 8.0).toInt().coerceAtLeast(1)
-        _phase.value = MeasurePhase.Done(peak, avg, durationS)
+        val durationS = (sessionCount / 8.0).toInt().coerceAtLeast(1)
+        _phase.value = MeasurePhase.Done(sessionPeak, avg, durationS)
     }
 
     fun save() {
@@ -109,6 +120,8 @@ class GripMeasureViewModel @Inject constructor(
         _phase.value = MeasurePhase.Idle
         _points.value = emptyList()
         _saved.value = false
+        sessionPeak = 0.0; sessionSum = 0.0; sessionCount = 0
+        _peakKg.value = 0.0
     }
 
     override fun onCleared() {

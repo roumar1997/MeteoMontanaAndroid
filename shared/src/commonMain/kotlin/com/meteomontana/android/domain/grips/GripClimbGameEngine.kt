@@ -4,7 +4,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
@@ -59,9 +58,10 @@ class GripClimbGameEngine(private val difficulty: Difficulty) {
         Difficulty.MEDIO -> 75.0
         Difficulty.DIFICIL -> 92.0
     }
-    private val climbSpeedMPerSec: Double = 0.9
+    private val climbSpeedMPerSec: Double = 1.1
 
     private var swingAngularVel = 0.0
+    private var rappelSpeed = 0.0
     private val gravity = 9.8
 
     /**
@@ -85,6 +85,7 @@ class GripClimbGameEngine(private val difficulty: Difficulty) {
             val speed = climbSpeedMPerSec * (0.6 + 0.4 * margin)
             val newHeight = s.heightM + speed * dt
             swingAngularVel = 0.0
+            rappelSpeed = 0.0
             s.copy(
                 heightM = newHeight,
                 bestHeightM = max(s.bestHeightM, newHeight),
@@ -95,17 +96,19 @@ class GripClimbGameEngine(private val difficulty: Difficulty) {
                 ropePaidOutM = 0.0
             )
         } else {
-            // Soltaste: la cuerda se destensa y el muñeco pendula hacia
-            // atrás/abajo. Simulamos un péndulo simple con la cuerda pagando
-            // longitud (te vas alejando de la pared mientras bajas).
+            // Soltaste: la cuerda se destensa y rapelas. Al separarte de la
+            // pared el cuerpo recibe un EMPUJÓN hacia afuera (sin él, el
+            // péndulo arranca en equilibrio y no se movería nada) y la cuerda
+            // va pagando: desciendes acelerando hasta velocidad de rapel.
+            if (s.phase == Phase.CLIMBING) swingAngularVel = 1.4
+            rappelSpeed = min(rappelSpeed + 2.5 * dt, 2.8)
             val ropeLen = (s.ropePaidOutM + 1.2).coerceAtLeast(1.2)
             val angularAccel = -(gravity / ropeLen) * sin(s.swingAngleRad)
             swingAngularVel += angularAccel * dt
-            swingAngularVel *= 0.995 // fricción del aire/roce con la cuerda
+            swingAngularVel *= 0.985 // fricción del aire/roce con la cuerda
             val newAngle = (s.swingAngleRad + swingAngularVel * dt).coerceIn(0.0, PI / 2.1)
-            val descent = (1.0 - cos(newAngle)) * ropeLen * 0.5 + 0.35 * dt
-            val newHeight = (s.heightM - descent * dt * 3.0).coerceAtLeast(0.0)
-            val newPaidOut = (s.ropePaidOutM + 0.4 * dt).coerceIn(0.0, 3.0)
+            val newHeight = (s.heightM - rappelSpeed * dt).coerceAtLeast(0.0)
+            val newPaidOut = (s.ropePaidOutM + 1.2 * dt).coerceIn(0.0, 3.5)
 
             if (newHeight <= 0.0 && s.heightM > 0.0) {
                 s.copy(heightM = 0.0, phase = Phase.GAME_OVER)
@@ -139,6 +142,7 @@ class GripClimbGameEngine(private val difficulty: Difficulty) {
 
     fun reset() {
         swingAngularVel = 0.0
+        rappelSpeed = 0.0
         _state.value = GameState()
     }
 }
