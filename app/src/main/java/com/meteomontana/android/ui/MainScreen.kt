@@ -193,17 +193,13 @@ fun MainScreen(
                                             }
                                         }
                                     }
-                                    // Con 4+ pestañas, solo la seleccionada lleva texto (si no, la
-                                    // píldora se desborda del ancho de pantalla y sale "torcida").
-                                    .padding(horizontal = if (selected) 20.dp else 14.dp, vertical = 10.dp),
+                                    .padding(horizontal = 20.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(tab.icon, contentDescription = tab.label,
                                     tint = tint, modifier = Modifier.size(20.dp))
-                                if (selected) {
-                                    Text(tab.label, style = MaterialTheme.typography.labelMedium, color = tint)
-                                }
+                                Text(tab.label, style = MaterialTheme.typography.labelMedium, color = tint)
                             }
                         }
                     }

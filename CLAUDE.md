@@ -538,6 +538,44 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-07-02 (2) — Agarres: feature completa → ELIMINADA + release 2.1
+
+Sesión larguísima. Se construyó ENTERA la pestaña "Agarres" (dinamómetro BLE
+WH-C06: medir máximos por agarre×mano, entrenos con alternancia de manos,
+historial, juego arcade "Sube la pared", backend V41-V43 + endpoints, bridges
+BLE Android/iOS, todo a paridad, TestFlight 2.0/2.0.1) y, tras probarla
+Rodrigo en iOS, **pidió eliminarla por completo** ("que no quede nada").
+
+- **Eliminación total**: app (54 ficheros, −6.5k líneas, fuera permisos
+  Bluetooth y NSBluetoothAlwaysUsageDescription), backend (23 ficheros +
+  migración **V44** que DROPea las 5 tablas en prod y staging; V41-V43 se
+  conservan en el historial Flyway — NUNCA borrarlas). La app vuelve a
+  3 tabs. **Recuperable desde git**: app `b69ccf4`, api `e4c8d18`.
+  NO reintroducir sin que Rodrigo lo pida (ver memoria project_grips_backlog).
+- **Release 2.1** (Android versionCode 15, iOS build 22) SIN agarres:
+  TestFlight subido verde, APK/AAB release firmados en `app/build/outputs/`.
+  ⚠️ El build 2.0.1 (21) de TestFlight SÍ lleva agarres — caducarlo en
+  App Store Connect (TestFlight → build 21 → Expire) para que nadie lo instale.
+- **Backend grips llegó a estar en PROD** (mergeado con OK de Rodrigo) y se
+  retiró igual: prod health UP verificado tras cada despliegue.
+- **Recuperados cambios locales sin commitear** de una sesión anterior que
+  estaban solo en el PC (MeetupAlertScreen: desactivar guarda al instante,
+  filtros siempre visibles) → commiteados a main.
+- **Investigación Frez** (competidor, misma báscula): test de Fuerza Crítica
+  (24 tirones 7/3 → CF+W′), RFD, zonas con audio. Solo referencia histórica
+  tras la eliminación (memoria project_grips_backlog).
+- **Revisión de seguridad** (a petición): sin fallos graves. Secretos fuera de
+  git en ambos repos, SecurityConfig con allowlist correcta, quedadas con
+  checks de propiedad/membresía completos, diario privado protegido (el
+  pendiente de junio YA está resuelto en código), reglas Firestore/Storage
+  estrictas, release solo-HTTPS. Menores anotados: `gearJson` sin límite de
+  tamaño, fotos sin validación de magic bytes, rotar contraseñas BD Railway
+  (pendiente de Rodrigo desde junio).
+- **Revisión de flujos**: restaurada la píldora de navegación con etiquetas en
+  las 3 tabs (el "solo la seleccionada" era un apaño para 4 tabs). Pendiente
+  menor: `ShareUtils.APPSTORE_URL` sigue siendo placeholder (falta el Apple ID
+  numérico de la ficha).
+
 ### Sesión 2026-07-02 — 🎉 app iOS arranca desde TestFlight (pipeline prod completo)
 
 Sesión larga depurando por qué el `.ipa` de producción crasheaba en TestFlight
