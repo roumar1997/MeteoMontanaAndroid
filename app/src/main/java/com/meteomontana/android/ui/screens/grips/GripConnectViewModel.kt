@@ -13,10 +13,24 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Guarda qué báscula está "bloqueada" para la sesión actual (Medir/Entrenar
- *  la leen de aquí; se resetea al cerrar la app). */
+ *  la leen de aquí; se resetea al cerrar la app). Reactivo (StateFlow) para
+ *  que cualquier pantalla que lo observe (p.ej. la home de Agarres) se
+ *  entere al instante de que ya hay báscula conectada, sin depender de
+ *  recomponer al volver de otra pantalla. */
 object GripScaleSession {
-    var connectedDeviceId: String? = null
-    var connectedAlias: String? = null
+    data class Connection(val deviceId: String, val alias: String?)
+
+    private val _connection = MutableStateFlow<Connection?>(null)
+    val connection: StateFlow<Connection?> = _connection.asStateFlow()
+
+    val connectedDeviceId: String? get() = _connection.value?.deviceId
+    val connectedAlias: String? get() = _connection.value?.alias
+
+    fun set(deviceId: String, alias: String?) { _connection.value = Connection(deviceId, alias) }
+    fun updateAlias(deviceId: String, alias: String) {
+        if (_connection.value?.deviceId == deviceId) _connection.value = Connection(deviceId, alias)
+    }
+    fun clear() { _connection.value = null }
 }
 
 @HiltViewModel
@@ -59,15 +73,14 @@ class GripConnectViewModel @Inject constructor(
     }
 
     fun connect(deviceId: String) {
-        GripScaleSession.connectedDeviceId = deviceId
-        GripScaleSession.connectedAlias = scaleProvider.getAlias(deviceId)
+        GripScaleSession.set(deviceId, scaleProvider.getAlias(deviceId))
         _connectedId.value = deviceId
         stopScan()
     }
 
     fun renameDevice(deviceId: String, alias: String) {
         scaleProvider.setAlias(deviceId, alias)
-        if (GripScaleSession.connectedDeviceId == deviceId) GripScaleSession.connectedAlias = alias
+        GripScaleSession.updateAlias(deviceId, alias)
         _devices.value = _devices.value.map { if (it.id == deviceId) it.copy(alias = alias) else it }
     }
 
