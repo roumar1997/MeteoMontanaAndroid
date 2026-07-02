@@ -92,4 +92,5 @@ object Routes {
     const val GRIP_WORKOUT_RUN = "grips/workouts/{workoutId}/run"
     fun gripWorkoutRun(workoutId: String) = "grips/workouts/$workoutId/run"
     const val GRIP_PROGRESS = "grips/progress"
+    const val GRIP_CLIMB_GAME = "grips/climb-game"
 }

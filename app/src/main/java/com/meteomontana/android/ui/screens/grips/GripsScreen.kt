@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.BluetoothConnected
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ShowChart
+import androidx.compose.material.icons.outlined.Terrain
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,6 +51,7 @@ fun GripsScreen(
     onMeasure: () -> Unit = {},
     onOpenWorkout: (String?) -> Unit = {},
     onProgress: () -> Unit = {},
+    onClimbGame: () -> Unit = {},
     viewModel: GripsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -102,11 +104,21 @@ fun GripsScreen(
                         ActionCard(
                             icon = if (connection != null) Icons.Outlined.BluetoothConnected else Icons.Outlined.Bluetooth,
                             label = if (connection != null) "BÁSCULA CONECTADA" else "CONECTAR BÁSCULA",
-                            onClick = onConnect, modifier = Modifier
+                            onClick = onConnect, modifier = Modifier.weight(1f)
                         )
                         ActionCard(
                             icon = Icons.Outlined.ShowChart, label = "MEDIR MÁXIMO",
-                            onClick = onMeasure, modifier = Modifier
+                            onClick = onMeasure, modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg)
+                    ) {
+                        ActionCard(
+                            icon = Icons.Outlined.Terrain, label = "JUEGO: SUBE LA PARED",
+                            onClick = onClimbGame, modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }

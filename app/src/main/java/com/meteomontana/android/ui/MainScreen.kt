@@ -254,7 +254,17 @@ fun MainScreen(
                         onConnect = { navController.navigate(Routes.GRIP_CONNECT) },
                         onMeasure = { navController.navigate(Routes.GRIP_MEASURE) },
                         onOpenWorkout = { id -> navController.navigate(Routes.gripWorkoutEditor(id)) },
-                        onProgress = { navController.navigate(Routes.GRIP_PROGRESS) }
+                        onProgress = { navController.navigate(Routes.GRIP_PROGRESS) },
+                        onClimbGame = { navController.navigate(Routes.GRIP_CLIMB_GAME) }
+                    )
+                }
+                composable(Routes.GRIP_CLIMB_GAME) {
+                    com.meteomontana.android.ui.screens.grips.GripClimbGameScreen(
+                        onBack = { navController.popBackStack() },
+                        onGoMeasure = {
+                            navController.popBackStack()
+                            navController.navigate(Routes.GRIP_MEASURE)
+                        }
                     )
                 }
                 composable(Routes.GRIP_CONNECT) {
