@@ -128,113 +128,121 @@ fun MeetupAlertScreen(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("Activar alertas", style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium)
                     Text("Recibe una notificación cuando se cree una quedada que te interese",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Switch(checked = enabled, onCheckedChange = { enabled = it })
-            }
-
-            if (enabled) {
-                HorizontalDivider()
-
-                // Escuela concreta (opcional)
-                SectionLabel("ESCUELA")
-                Text("Avísame solo de una escuela en concreto, o de cualquiera",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    OutlinedButton(
-                        onClick = { showSchoolPicker = true },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Icon(Icons.Outlined.Search, null, Modifier.size(16.dp))
-                        Spacer(Modifier.size(6.dp))
-                        Text(selectedSchoolName ?: "Cualquier escuela", maxLines = 1)
-                    }
-                    if (selectedSchoolId != null) {
-                        IconButton(onClick = { selectedSchoolId = null; selectedSchoolName = null }) {
-                            Icon(Icons.Outlined.Close, "Quitar filtro de escuela")
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = { newValue ->
+                        enabled = newValue
+                        if (!newValue) {
+                            // Desactivar guarda al instante, sin necesidad de pulsar GUARDAR
+                            viewModel.saveAlert(false, null, selectedSchoolId, privacy, discipline, maxDistanceKm)
                         }
                     }
-                }
+                )
+            }
 
-                HorizontalDivider()
+            HorizontalDivider()
 
-                // Disciplina
-                SectionLabel("MODALIDAD")
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    AlertChip("Ambas", discipline == null) { discipline = null }
-                    AlertChip("Bloque", discipline == "BOULDER") { discipline = "BOULDER" }
-                    AlertChip("Vía", discipline == "ROUTE") { discipline = "ROUTE" }
-                }
-
-                HorizontalDivider()
-
-                // Privacidad
-                SectionLabel("TIPO DE QUEDADA")
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            // Escuela concreta (opcional)
+            SectionLabel("ESCUELA")
+            Text("Avísame solo de una escuela en concreto, o de cualquiera",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                OutlinedButton(
+                    onClick = { showSchoolPicker = true },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(4.dp),
+                    enabled = enabled
                 ) {
-                    AlertChip("Todas", privacy == null) { privacy = null }
-                    AlertChip("Abiertas", privacy == "OPEN") { privacy = "OPEN" }
-                    AlertChip("Seguidos/Seguidores", privacy == "FOLLOWERS") { privacy = "FOLLOWERS" }
-                    AlertChip("No mixto", privacy == "WOMEN", enabled = isWoman) {
-                        if (isWoman) privacy = "WOMEN"
+                    Icon(Icons.Outlined.Search, null, Modifier.size(16.dp))
+                    Spacer(Modifier.size(6.dp))
+                    Text(selectedSchoolName ?: "Cualquier escuela", maxLines = 1)
+                }
+                if (selectedSchoolId != null) {
+                    IconButton(onClick = { selectedSchoolId = null; selectedSchoolName = null }) {
+                        Icon(Icons.Outlined.Close, "Quitar filtro de escuela")
                     }
                 }
-                if (privacy == "WOMEN" && !isWoman) {
-                    Text("Necesitas indicar tu género como Mujer en tu perfil para usar este filtro.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+
+            HorizontalDivider()
+
+            // Disciplina
+            SectionLabel("MODALIDAD")
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                AlertChip("Ambas", discipline == null, enabled = enabled) { if (enabled) discipline = null }
+                AlertChip("Bloque", discipline == "BOULDER", enabled = enabled) { if (enabled) discipline = "BOULDER" }
+                AlertChip("Vía", discipline == "ROUTE", enabled = enabled) { if (enabled) discipline = "ROUTE" }
+            }
+
+            HorizontalDivider()
+
+            // Privacidad
+            SectionLabel("TIPO DE QUEDADA")
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                AlertChip("Todas", privacy == null, enabled = enabled) { if (enabled) privacy = null }
+                AlertChip("Abiertas", privacy == "OPEN", enabled = enabled) { if (enabled) privacy = "OPEN" }
+                AlertChip("Seguidos/Seguidores", privacy == "FOLLOWERS", enabled = enabled) { if (enabled) privacy = "FOLLOWERS" }
+                AlertChip("No mixto", privacy == "WOMEN", enabled = enabled && isWoman) {
+                    if (enabled && isWoman) privacy = "WOMEN"
                 }
+            }
+            if (privacy == "WOMEN" && !isWoman) {
+                Text("Necesitas indicar tu género como Mujer en tu perfil para usar este filtro.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
 
-                HorizontalDivider()
+            HorizontalDivider()
 
-                // Distancia
-                SectionLabel("DISTANCIA")
-                Text("Avísame solo de quedadas a menos de X km de mi ubicación",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    AlertChip("Sin límite", maxDistanceKm == null) { maxDistanceKm = null }
-                    AlertChip("50 km", maxDistanceKm == 50) { maxDistanceKm = 50 }
-                    AlertChip("100 km", maxDistanceKm == 100) { maxDistanceKm = 100 }
-                    AlertChip("200 km", maxDistanceKm == 200) { maxDistanceKm = 200 }
+            // Distancia
+            SectionLabel("DISTANCIA")
+            Text("Avísame solo de quedadas a menos de X km de mi ubicación",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                AlertChip("Sin límite", maxDistanceKm == null, enabled = enabled) { if (enabled) maxDistanceKm = null }
+                AlertChip("50 km", maxDistanceKm == 50, enabled = enabled) { if (enabled) maxDistanceKm = 50 }
+                AlertChip("100 km", maxDistanceKm == 100, enabled = enabled) { if (enabled) maxDistanceKm = 100 }
+                AlertChip("200 km", maxDistanceKm == 200, enabled = enabled) { if (enabled) maxDistanceKm = 200 }
+            }
+
+            HorizontalDivider()
+
+            // Días concretos (próximos 14, mismo rango que crear)
+            SectionLabel("DÍAS")
+            Text("Avísame si la quedada incluye alguno de estos días (vacío = cualquier día)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val nextDays = remember { nextNDaysAlert(14) }
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                nextDays.forEach { (iso, label) ->
+                    AlertChip(label = label, selected = selectedDays.contains(iso), enabled = enabled,
+                        onClick = {
+                            if (enabled) selectedDays = if (selectedDays.contains(iso))
+                                selectedDays - iso else selectedDays + iso
+                        })
                 }
+            }
 
-                HorizontalDivider()
-
-                // Días concretos (próximos 14, mismo rango que crear)
-                SectionLabel("DÍAS")
-                Text("Avísame si la quedada incluye alguno de estos días (vacío = cualquier día)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                val nextDays = remember { nextNDaysAlert(14) }
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    nextDays.forEach { (iso, label) ->
-                        AlertChip(label = label, selected = selectedDays.contains(iso),
-                            onClick = {
-                                selectedDays = if (selectedDays.contains(iso))
-                                    selectedDays - iso else selectedDays + iso
-                            })
-                    }
-                }
-
-                if (alertError != null) {
-                    Text(alertError ?: "", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error)
-                }
+            if (alertError != null) {
+                Text(alertError ?: "", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error)
             }
         }
 
