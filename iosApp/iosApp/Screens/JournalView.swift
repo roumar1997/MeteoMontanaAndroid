@@ -513,7 +513,9 @@ struct JournalSchoolsView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(schools, id: \.schoolName) { s in
-                            NavigationLink(destination: SchoolJournalBlocksView(
+                            // Antes iba directo a la lista plana; ahora pasa por
+                            // "sectores" (paridad con Android).
+                            NavigationLink(destination: SchoolJournalSectorsView(
                                 schoolName: s.schoolName,
                                 entries: entriesFor(s.schoolName),
                                 viaInfo: viaInfo
@@ -548,8 +550,76 @@ struct JournalSchoolsView: View {
     }
 }
 
-/// Bloques registrados en una escuela concreta (solo lectura). Se llega desde
-/// el desglose por escuela; sirve tanto para tu diario como para el de otro.
+/// Sectores de una escuela concreta (solo lectura): agrupa por sector; las
+/// entradas sin sector resuelto (o con uno aún no catalogado) se muestran
+/// sueltas, sin subcarpeta. Sirve tanto para tu diario como para el de otro.
+struct SchoolJournalSectorsView: View {
+    let schoolName: String
+    let entries: [JournalSession]
+    var viaInfo: [String: ViaCatalogInfo] = [:]
+
+    private var sectors: [(name: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for e in entries {
+            if let s = viaInfo[e.id]?.sector, !s.isEmpty {
+                counts[s, default: 0] += 1
+            }
+        }
+        return counts.map { (name: $0.key, count: $0.value) }.sorted { $0.name.lowercased() < $1.name.lowercased() }
+    }
+    private var loose: [JournalSession] {
+        entries.filter { (viaInfo[$0.id]?.sector ?? "").isEmpty }
+    }
+
+    var body: some View {
+        Group {
+            if sectors.isEmpty && loose.isEmpty {
+                Text("Sin bloques registrados aquí.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(sectors, id: \.name) { sec in
+                            NavigationLink(destination: SchoolJournalBlocksView(
+                                schoolName: sec.name,
+                                entries: entries.filter { viaInfo[$0.id]?.sector?.caseInsensitiveCompare(sec.name) == .orderedSame },
+                                viaInfo: viaInfo
+                            )) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "folder").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(sec.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                                        Text(sec.count == 1 ? "1 bloque" : "\(sec.count) bloques")
+                                            .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            Divider().overlay(Cumbre.rule)
+                        }
+                        ForEach(loose, id: \.id) { e in
+                            JournalRow(entry: e, schoolId: e.schoolId, info: viaInfo[e.id])
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle(schoolName)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Bloques registrados en una escuela (o sector) concreta (solo lectura). Se
+/// llega desde el desglose por sectores; sirve tanto para tu diario como para
+/// el de otro. `schoolName` hace de título — al venir de un sector, ya trae el
+/// nombre del sector (las entries vienen pre-filtradas por SchoolJournalSectorsView).
 struct SchoolJournalBlocksView: View {
     let schoolName: String
     let entries: [JournalSession]

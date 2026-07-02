@@ -54,6 +54,8 @@ import com.meteomontana.android.ui.screens.notifications.NotificationsScreen
 import com.meteomontana.android.ui.screens.profile.EditProfileScreen
 import com.meteomontana.android.ui.screens.profile.JournalEntriesScreen
 import com.meteomontana.android.ui.screens.profile.JournalSchoolsScreen
+import com.meteomontana.android.ui.screens.profile.JournalSectorsScreen
+import com.meteomontana.android.ui.screens.profile.ProjectsScreen
 import com.meteomontana.android.ui.screens.profile.ProfileScreen
 import com.meteomontana.android.ui.screens.radar.RadarScreen
 import com.meteomontana.android.ui.screens.schools.SchoolListScreen
@@ -340,11 +342,12 @@ fun MainScreen(
                                 }
                             },
                             onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
-                            onOpenSchoolEntries = { schoolName -> sheetNav.navigate(Routes.journalEntries("school:$schoolName")) },
+                            onOpenSchoolEntries = { schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName)) },
                             onOpenBoulders = { sheetNav.navigate(Routes.journalEntries("discipline:BOULDER")) },
                             onOpenRoutes = { sheetNav.navigate(Routes.journalEntries("discipline:ROUTE")) },
                             onOpenAllSchools = { sheetNav.navigate(Routes.journalSchools(null)) },
-                            onOpenMaxGrade = { sheetNav.navigate(Routes.journalEntries("grade-max")) }
+                            onOpenMaxGrade = { sheetNav.navigate(Routes.journalEntries("grade-max")) },
+                            onOpenProjects = { sheetNav.navigate(Routes.projects(null)) }
                         )
                     }
                     composable(Routes.EDIT_PROFILE) {
@@ -407,9 +410,46 @@ fun MainScreen(
                         val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
                         JournalSchoolsScreen(
                             onBack = popSheetOrDismiss,
+                            // Antes iba directo al listado plano; ahora pasa por
+                            // "sectores" (JOURNAL_SECTORS) para no mezclar todos los
+                            // bloques/vías de la escuela de golpe.
                             onSchoolClick = { schoolName ->
-                                sheetNav.navigate(Routes.journalEntries(filter = "school:$schoolName", uid = uid))
+                                sheetNav.navigate(Routes.journalSectors(schoolName, uid))
                             }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.JOURNAL_SECTORS,
+                        arguments = listOf(
+                            navArgument("school") { type = NavType.StringType; defaultValue = "" },
+                            navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null }
+                        )
+                    ) { entry ->
+                        val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
+                        JournalSectorsScreen(
+                            onBack = popSheetOrDismiss,
+                            onSectorClick = { schoolName, sectorName ->
+                                sheetNav.navigate(
+                                    Routes.journalEntries(
+                                        filter = "school:$schoolName|sector:$sectorName",
+                                        uid = uid
+                                    )
+                                )
+                            },
+                            onOpenSchool = { id, via, viaId -> openFullScreen(Routes.schoolDetail(id, via, viaId)) }
+                        )
+                    }
+
+                    composable(
+                        route = Routes.PROJECTS,
+                        arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
+                    ) { entry ->
+                        val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
+                        ProjectsScreen(
+                            onBack = popSheetOrDismiss,
+                            onOpenBoulders = { sheetNav.navigate(Routes.journalEntries(filter = "project:BOULDER", uid = uid)) },
+                            onOpenRoutes = { sheetNav.navigate(Routes.journalEntries(filter = "project:ROUTE", uid = uid)) }
                         )
                     }
 
@@ -426,7 +466,8 @@ fun MainScreen(
                             onOpenRoutes = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "discipline:ROUTE", uid = uid)) },
                             onOpenMaxGrade = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "grade-max", uid = uid)) },
                             onOpenSchools = { uid -> sheetNav.navigate(Routes.journalSchools(uid)) },
-                            onOpenSchoolEntries = { uid, schoolName -> sheetNav.navigate(Routes.journalEntries(filter = "school:$schoolName", uid = uid)) }
+                            onOpenSchoolEntries = { uid, schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName, uid)) },
+                            onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) }
                         )
                     }
                     composable(

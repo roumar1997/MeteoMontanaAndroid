@@ -22,6 +22,7 @@ final class MeetupDetailViewModel: ObservableObject {
 
     @Published var savingDescription = false
     private let updateMyGearUC = AppDependencies.shared.container.updateMyGear
+    private let getMyProfileUC = AppDependencies.shared.container.getMyProfile
 
     func updateMyGear(id: String, gearJson: String) async {
         do {
@@ -52,7 +53,16 @@ final class MeetupDetailViewModel: ObservableObject {
     func join(id: String) async {
         joining = true
         do {
-            if let uc = joinMeetup { meetup = try await uc.execute(id: id) }
+            if let uc = joinMeetup {
+                meetup = try await uc.execute(id: id)
+                // Autorrelleno del material desde el perfil: si tienes algo
+                // configurado, se copia solo al unirte (editable después desde
+                // "MI MATERIAL" en la quedada). Si falla, no bloquea el join.
+                if let myGear = try? await getMyProfileUC.invoke().gearJson,
+                   !myGear.isEmpty, !parseGear(myGear).isEmpty {
+                    meetup = try? await updateMyGearUC.execute(meetupId: id, gearJson: myGear)
+                }
+            }
         } catch { self.error = error.localizedDescription }
         joining = false
     }
@@ -756,6 +766,10 @@ func gearLabel(_ key: String) -> String {
     }
 }
 
+/// Cuerda y grigri son "sí/no" por persona; cintas y crashpads son cantidad.
+/// Al sumar entre miembros, cada "sí" cuenta 1 -> "5 cuerdas" si 5 dijeron que sí.
+func isBooleanGearKey(_ key: String) -> Bool { key == "cuerda" || key == "grigri" }
+
 func totalGear(_ members: [MeetupMember]) -> [String: Int] {
     var totals: [String: Int] = [:]
     for m in members {
@@ -876,33 +890,45 @@ struct EditGearSheet: View {
                     .padding(.horizontal)
 
                 ForEach(items, id: \.key) { item in
-                    HStack {
-                        Text(item.label).font(.subheadline).fontWeight(.medium)
-                        Spacer()
-                        HStack(spacing: 8) {
-                            Button {
-                                let cur = gear[item.key] ?? 0
-                                if cur > 0 { gear[item.key] = cur - 1 }
-                            } label: {
-                                Image(systemName: "minus.circle")
-                                    .font(.title3)
-                                    .foregroundColor(gear[item.key, default: 0] > 0 ? Cumbre.ink : Cumbre.ink.opacity(0.2))
-                            }
-                            .disabled(gear[item.key, default: 0] == 0)
+                    if isBooleanGearKey(item.key) {
+                        HStack {
+                            Text(item.label).font(.subheadline).fontWeight(.medium)
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { (gear[item.key] ?? 0) > 0 },
+                                set: { gear[item.key] = $0 ? 1 : 0 }
+                            )).labelsHidden()
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        HStack {
+                            Text(item.label).font(.subheadline).fontWeight(.medium)
+                            Spacer()
+                            HStack(spacing: 8) {
+                                Button {
+                                    let cur = gear[item.key] ?? 0
+                                    if cur > 0 { gear[item.key] = cur - 1 }
+                                } label: {
+                                    Image(systemName: "minus.circle")
+                                        .font(.title3)
+                                        .foregroundColor(gear[item.key, default: 0] > 0 ? Cumbre.ink : Cumbre.ink.opacity(0.2))
+                                }
+                                .disabled(gear[item.key, default: 0] == 0)
 
-                            Text("\(gear[item.key] ?? 0)")
-                                .font(.title3).fontWeight(.bold).monospacedDigit()
-                                .frame(minWidth: 28)
+                                Text("\(gear[item.key] ?? 0)")
+                                    .font(.title3).fontWeight(.bold).monospacedDigit()
+                                    .frame(minWidth: 28)
 
-                            Button {
-                                gear[item.key, default: 0] += 1
-                            } label: {
-                                Image(systemName: "plus.circle")
-                                    .font(.title3).foregroundColor(Cumbre.terra)
+                                Button {
+                                    gear[item.key, default: 0] += 1
+                                } label: {
+                                    Image(systemName: "plus.circle")
+                                        .font(.title3).foregroundColor(Cumbre.terra)
+                                }
                             }
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
 
                 Spacer()

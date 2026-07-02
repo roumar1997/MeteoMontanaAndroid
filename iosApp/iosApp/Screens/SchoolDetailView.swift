@@ -117,12 +117,17 @@ final class SchoolDetailViewModel: ObservableObject {
         let blocks = (try? await getBlocks.invoke(schoolId: school.id)) ?? []
         try? await repo.saveOffline(school: school, blocks: blocks, forecast: forecast)
         await ImageCache.prefetch(blocks.compactMap { $0.photoPath })
+        // Tiles del mapa offline (mismo punto que Android): sin esto, offline el
+        // mapa solo mostraba los marcadores, no el mapa de fondo, si no se había
+        // visitado antes esa zona con red.
+        OfflineTileManager.downloadFor(schoolId: school.id, lat: school.lat, lon: school.lon)
         isSaved = true; savingOffline = false
     }
 
     func removeOffline(schoolId: String) async {
         guard let repo = savedSchools else { return }
         try? await repo.remove(id: schoolId)
+        OfflineTileManager.removeFor(schoolId: schoolId)
         isSaved = false
     }
 
@@ -347,6 +352,9 @@ private struct SchoolMapSection: View {
     @State private var editLinesBlock: Block?
     @State private var assignSectorBlock: Block?
     @State private var mapZoom: Double = 14   // para mostrar el nombre del sector al acercar
+    // Foco explícito al pulsar un parking en la lista (recentra el mapa ahí).
+    @State private var focusCoord: CLLocationCoordinate2D?
+    @State private var focusToken = 0
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -385,6 +393,14 @@ private struct SchoolMapSection: View {
                         zoom: 14,
                         markers: markers,
                         style: mapStyle,
+                        // Encuadre inicial con TODOS los elementos (parkings/sectores/
+                        // piedras), por muy separados que estén — antes el mapa abría
+                        // fijo en zoom 14 sobre la escuela, dejando fuera sectores a
+                        // km. Mi ubicación solo entra en el encuadre si ya está cerca
+                        // (ver userMarkerIfNearby en MapLibreView.swift).
+                        autoFitToMarkers: true,
+                        focusCoordinate: focusCoord,
+                        focusToken: focusToken,
                         onZoomChange: { mapZoom = $0 },
                         onTapMarker: { id in
                             if correctionMode && !corrActive {
@@ -442,6 +458,7 @@ private struct SchoolMapSection: View {
                 legend
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).
+                parkingsList
             }
         }
         .task(id: expanded) {
@@ -744,6 +761,50 @@ private struct SchoolMapSection: View {
         }
     }
 
+    // Lo importante para llegar: desde qué parking se va andando. Orden
+    // alfabético (NO por cercanía — debe tener sentido también viéndolo desde
+    // casa, lejos de la escuela); la distancia es solo dato informativo. Tocar
+    // uno centra el mapa en esa zona (para ver qué sectores/piedras hay
+    // alrededor) y abre su ficha, que ya tiene "CÓMO LLEGAR".
+    private var parkingsList: some View {
+        let parkings = blocks.filter { $0.type.uppercased() == "PARKING" }.sorted { $0.name < $1.name }
+        return Group {
+            if !parkings.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("PARKINGS").eyebrow()
+                        .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 4)
+                    ForEach(parkings, id: \.id) { p in
+                        Button {
+                            selectedBlock = p
+                            focusCoord = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)
+                            focusToken += 1
+                        } label: {
+                            HStack(spacing: 10) {
+                                Text("P")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 22, height: 22)
+                                    .background(Color(parkingColor))
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                Text(p.name.isEmpty ? "Parking" : p.name)
+                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                Spacer()
+                                if let u = userCoord {
+                                    let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: p.lat, lon2: p.lon)
+                                    Text(km < 1 ? "\(Int(km * 1000)) m" : String(format: "%.1f km", km))
+                                        .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                                }
+                            }
+                            .padding(.horizontal, 16).padding(.vertical, 10)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
     private func color(for type: String) -> UIColor {
         switch type.uppercased() {
         case "PARKING": return parkingColor
@@ -938,6 +999,8 @@ struct BlockInfoSheet: View {
     }
     @State private var tickedLines: Set<String> = []   // vías marcadas como hechas en esta sesión
     @State private var tickingLine: String?            // vía guardándose ahora
+    @State private var projectLines: Set<String> = []  // vías marcadas como PROYECTO
+    @State private var togglingProject: String?         // vía de proyecto guardándose ahora
     @State private var showDeleteConfirm = false
 
     private var sectorName: String? {
@@ -998,6 +1061,21 @@ struct BlockInfoSheet: View {
                                         if let st = l.startType, !st.isEmpty {
                                             Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                         }
+                                        // Proyecto: la estás probando, aún no te ha salido. Oculto
+                                        // si ya está hecha (no tiene sentido marcarla como proyecto).
+                                        if !tickedLines.contains(l.id) {
+                                            Button { Task { await toggleProject(l, index: idx) } } label: {
+                                                if togglingProject == l.id {
+                                                    ProgressView().scaleEffect(0.7).frame(width: 24, height: 24)
+                                                } else {
+                                                    Text("⛏").font(.system(size: 17))
+                                                        .foregroundStyle(projectLines.contains(l.id) ? Cumbre.terra : Cumbre.ink3.opacity(0.4))
+                                                        .frame(width: 24, height: 24)
+                                                }
+                                            }
+                                            .buttonStyle(.plain)
+                                            .disabled(tickingLine != nil || togglingProject != nil)
+                                        }
                                         // Tic: marca/desmarca la vía en tu diario (toggle).
                                         Button { Task { await toggle(l, index: idx) } } label: {
                                             if tickingLine == l.id {
@@ -1010,7 +1088,7 @@ struct BlockInfoSheet: View {
                                             }
                                         }
                                         .buttonStyle(.plain)
-                                        .disabled(tickingLine != nil)
+                                        .disabled(tickingLine != nil || togglingProject != nil)
                                     }
                                     // Estrellas de valoración
                                     if onRateLine != nil {
@@ -1097,32 +1175,43 @@ struct BlockInfoSheet: View {
     /// la vía (mismo nombre que se guardó al dar el tic).
     private func loadDone() async {
         let container = AppDependencies.shared.container
-        // Claves pendientes en la cola offline.
-        let pendingKeys: Set<String> = (try? await container.pendingJournalKeys()) ?? []
+        // Claves pendientes en la cola offline, separadas por estado (la cola
+        // JOURNAL guarda tanto "hechas" como "proyecto" bajo el mismo tipo).
+        let pendingDoneKeys: Set<String> = (try? await container.pendingJournalKeysByStatus(status: "DONE")) ?? []
+        let pendingProjectKeys: Set<String> = (try? await container.pendingJournalKeysByStatus(status: "PROJECT")) ?? []
         let pendingDeletes: Set<String> = (try? await container.pendingJournalDeleteKeys()) ?? []
         // Con red: sincroniza el registro local con la verdad del servidor
-        // (descontando las que tienen borrado pendiente).
+        // (descontando las que tienen borrado pendiente). Separamos por status:
+        // solo DONE cuenta como "hecha"; solo PROJECT cuenta como "proyecto".
         if let journal = try? await container.getMyJournal.invoke() {
-            var serverKeys = Set<String>()
+            var serverDoneKeys = Set<String>()
+            var serverProjectKeys = Set<String>()
             for j in journal {
-                if let sid = j.schoolId {
-                    serverKeys.insert("\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())")
-                }
+                guard let sid = j.schoolId else { continue }
+                let key = "\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+                if j.status == "PROJECT" { serverProjectKeys.insert(key) } else { serverDoneKeys.insert(key) }
             }
-            JournalDoneStore.shared.sync(server: serverKeys.subtracting(pendingDeletes), pending: pendingKeys)
+            JournalDoneStore.shared.sync(server: serverDoneKeys.subtracting(pendingDeletes), pending: pendingDoneKeys)
+            JournalProjectStore.shared.sync(server: serverProjectKeys.subtracting(pendingDeletes), pending: pendingProjectKeys)
         }
         // El registro local (UserDefaults) funciona también SIN conexión → evita
         // duplicar al volver a entrar offline en la misma piedra.
         let storeKeys = JournalDoneStore.shared.all
+        let projectKeys = JournalProjectStore.shared.all
         var done = Set<String>()
+        var projects = Set<String>()
         for (idx, l) in block.lines.enumerated() {
             let viaName = l.name.isEmpty ? "Vía \(idx + 1)" : l.name
             let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
-            if (storeKeys.contains(key) || pendingKeys.contains(key)) && !pendingDeletes.contains(key) {
+            if (storeKeys.contains(key) || pendingDoneKeys.contains(key)) && !pendingDeletes.contains(key) {
                 done.insert(l.id)
+            }
+            if (projectKeys.contains(key) || pendingProjectKeys.contains(key)) && !pendingDeletes.contains(key) && !done.contains(l.id) {
+                projects.insert(l.id)
             }
         }
         tickedLines = done
+        projectLines = projects
     }
 
     private var typeLabel: String {
@@ -1161,7 +1250,13 @@ struct BlockInfoSheet: View {
                 if !deleted { try? await container.enqueueJournalDelete(key: key) }
             }
         } else {
-            // MARCAR (dedup: no estaba hecha)
+            // Si era un PROYECTO, primero lo quitamos (local + servidor/cola): al
+            // conseguirla, desaparece de Proyectos y pasa a Vías/Bloques.
+            if projectLines.contains(line.id) {
+                await removeProjectEntry(key: key)
+                projectLines.remove(line.id)
+            }
+            // MARCAR HECHA (dedup: no estaba hecha)
             tickedLines.insert(line.id)
             JournalDoneStore.shared.add(key)
             try? await container.dequeueJournalDelete(key: key)   // cancela borrado pendiente
@@ -1172,11 +1267,62 @@ struct BlockInfoSheet: View {
                 blockName: viaName, grade: line.grade,
                 notes: nil, date: df.string(from: Date()),
                 discipline: block.discipline,   // la vía hereda la modalidad de su piedra
-                lineId: line.id)                // id estable → enganche del diario por muro
+                lineId: line.id,                // id estable → enganche del diario por muro
+                status: "DONE")
             let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
             if !ok { try? await container.enqueueJournal(req: req) }   // sin red → cola
         }
         tickingLine = nil
+    }
+
+    /// Marca/DESMARCA la vía como PROYECTO (la estás probando, aún no te ha
+    /// salido). Espejo de [toggle], pero con status="PROJECT". No hace nada si
+    /// la vía ya está HECHA (la UI ya oculta el botón en ese caso).
+    private func toggleProject(_ line: BlockLine, index: Int) async {
+        guard !tickedLines.contains(line.id) else { return }
+        togglingProject = line.id
+        let container = AppDependencies.shared.container
+        let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
+        let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
+
+        if projectLines.contains(line.id) {
+            // DESMARCAR proyecto
+            projectLines.remove(line.id)
+            await removeProjectEntry(key: key)
+        } else {
+            // MARCAR proyecto
+            projectLines.insert(line.id)
+            JournalProjectStore.shared.add(key)
+            try? await container.dequeueJournalDelete(key: key)
+            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+            let req = CreateJournalRequest(
+                schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
+                blockName: viaName, grade: line.grade,
+                notes: nil, date: df.string(from: Date()),
+                discipline: block.discipline, lineId: line.id, status: "PROJECT")
+            let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
+            if !ok { try? await container.enqueueJournal(req: req) }
+        }
+        togglingProject = nil
+    }
+
+    /// Cancela/borra la entrada PROYECTO de [key] (cola pendiente o ya subida al
+    /// servidor). Compartido por toggleProject (desmarcar) y toggle (promoción
+    /// proyecto→hecha).
+    private func removeProjectEntry(key: String) async {
+        let container = AppDependencies.shared.container
+        JournalProjectStore.shared.remove(key)
+        let hadPending = ((try? await container.dequeueJournal(key: key))?.boolValue) ?? false
+        if !hadPending {
+            var deleted = false
+            if let j = (try? await container.getMyJournal.invoke())?.first(where: {
+                $0.status == "PROJECT" && $0.schoolId == block.schoolId &&
+                "\($0.schoolId ?? "")|\($0.blockName.trimmingCharacters(in: .whitespaces).lowercased())" == key
+            }) {
+                deleted = ((try? await container.deleteJournalEntry.invoke(id: j.id)) != nil)
+            }
+            if !deleted { try? await container.enqueueJournalDelete(key: key) }
+        }
     }
 }
 

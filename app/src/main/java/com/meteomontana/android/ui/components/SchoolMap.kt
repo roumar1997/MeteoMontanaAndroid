@@ -62,10 +62,13 @@ import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.annotations.Polyline
 import org.maplibre.android.annotations.PolylineOptions
 import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import com.meteomontana.android.domain.util.Geo
 
 private enum class MapStyleOption(val labelResId: Int) {
     SATELLITE(R.string.map_satellite),
@@ -75,6 +78,42 @@ private enum class MapStyleOption(val labelResId: Int) {
 private fun styleJsonFor(style: MapStyleOption): String = when (style) {
     MapStyleOption.SATELLITE -> """{"version":8,"sources":{"sat":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"sat","type":"raster","source":"sat"}]}"""
     MapStyleOption.TOPO      -> """{"version":8,"sources":{"topo":{"type":"raster","tiles":["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"topo","type":"raster","source":"topo"}]}"""
+}
+
+// Si el usuario está más lejos de esto del centro de los elementos de la
+// escuela, su ubicación NO entra en el encuadre inicial (evita que "verla
+// desde casa" estire el zoom para abarcarte a ti también).
+private const val MAX_USER_LOCATION_INCLUDE_KM = 20.0
+
+/**
+ * Encuadre inicial del mapa: TODOS los elementos de la escuela (parkings,
+ * sectores, piedras), por muy separados que estén — antes era zoom fijo 15
+ * centrado en la escuela, que dejaba fuera sectores a kilómetros. La
+ * ubicación del usuario se incluye SOLO si ya está razonablemente cerca.
+ */
+private fun fitSchoolBoundsCameraUpdate(
+    markers: List<Block>,
+    userLoc: com.meteomontana.android.domain.model.UserLocation?,
+    padding: Int = 90
+): org.maplibre.android.camera.CameraUpdate? {
+    if (markers.isEmpty()) return null
+    val boundsBuilder = LatLngBounds.Builder()
+    markers.forEach { boundsBuilder.include(LatLng(it.lat, it.lon)) }
+    if (userLoc != null) {
+        val avgLat = markers.map { it.lat }.average()
+        val avgLon = markers.map { it.lon }.average()
+        val distKm = Geo.haversineKm(userLoc.lat, userLoc.lon, avgLat, avgLon)
+        if (distKm <= MAX_USER_LOCATION_INCLUDE_KM) {
+            boundsBuilder.include(LatLng(userLoc.lat, userLoc.lon))
+        }
+    }
+    return try {
+        CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding)
+    } catch (_: Exception) {
+        // Un único punto (o todos coincidentes) → bounds degenerado, cae a zoom fijo.
+        val first = markers.first()
+        CameraUpdateFactory.newLatLngZoom(LatLng(first.lat, first.lon), 15.0)
+    }
 }
 
 /**
@@ -513,12 +552,21 @@ private fun InnerMap(
                         getMapAsync { map ->
                             mapRef.value = map
                             map.setStyle(Style.Builder().fromJson(styleJsonFor(currentStyle))) {
+                                // Encuadre provisional mientras se calcula el fitBounds
+                                // (evita un frame en (0,0)); el fitBounds de abajo lo sustituye.
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(centerLat, centerLon))
                                     .zoom(15.0).build()
                                 placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview) { tapped ->
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
                                     else onBlockTap(tapped)
+                                }
+                                // Encuadre inicial con TODOS los elementos (solo al abrir el
+                                // mapa por primera vez; los re-pintados posteriores —al
+                                // colapsar un sector, cambiar de estilo…— no vuelven a mover
+                                // la cámara).
+                                fitSchoolBoundsCameraUpdate(visibleMarkers, userLoc)?.let { update ->
+                                    runCatching { map.moveCamera(update) }
                                 }
                             }
                             map.uiSettings.apply {
@@ -566,6 +614,75 @@ private fun InnerMap(
             }
 
         }
+
+        // ── Lista de parkings ────────────────────────────────────────────
+        // Lo importante para llegar: desde qué parking se va andando. Orden
+        // alfabético (NO por cercanía — la lista debe tener sentido también
+        // viéndola desde casa, lejos de la escuela). La distancia se muestra
+        // solo como dato informativo. Pulsar uno centra el mapa en esa zona
+        // (para ver qué sectores/piedras hay alrededor) y abre su ficha, que
+        // ya tiene el botón "CÓMO LLEGAR".
+        val parkings = remember(blocks) { blocks.filter { it.type == "PARKING" }.sortedBy { it.name } }
+        if (parkings.isNotEmpty()) {
+            Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
+                Text(
+                    "PARKINGS",
+                    style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                )
+                parkings.forEach { parking ->
+                    val distanceText = userLoc?.let { loc ->
+                        val km = Geo.haversineKm(loc.lat, loc.lon, parking.lat, parking.lon)
+                        if (km < 1.0) "${(km * 1000).toInt()} m" else "${"%.1f".format(km)} km"
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                selectedBlock = parking
+                                mapRef.value?.let { map ->
+                                    runCatching {
+                                        map.animateCamera(
+                                            CameraUpdateFactory.newLatLngZoom(
+                                                LatLng(parking.lat, parking.lon), 16.5
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color(0xFF1A56DB)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("P", color = Color.White, style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold)
+                            }
+                            Text(
+                                parking.name.ifBlank { "Parking" },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        if (distanceText != null) {
+                            Text(distanceText, style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Dialog de detalles (foto + líneas + vías + CÓMO LLEGAR).
@@ -581,10 +698,20 @@ private fun InnerMap(
                 if (doneKeys.contains(key)) line.id else null
             }.toSet()
         }
+        // Vías marcadas como PROYECTO → mismo mecanismo que doneLineIds.
+        val projectKeys by viewModel.projectViaKeys.collectAsState()
+        val projectLineIds = remember(block, projectKeys) {
+            block.lines.mapIndexedNotNull { idx, line ->
+                val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
+                val key = "${block.schoolId}|${viaName.trim().lowercase()}"
+                if (projectKeys.contains(key)) line.id else null
+            }.toSet()
+        }
         BlockDetailDialog(
             block = block,
             highlightVia = highlightVia,
             initiallyTicked = doneLineIds,
+            initiallyProjects = projectLineIds,
             onAddLines = if (block.type == "BLOCK") ({
                 // Inicializa el estado del editor AQUÍ (no en un LaunchedEffect)
                 // para que abra ya poblado y no haya un frame vacío (el "salto").
@@ -617,6 +744,12 @@ private fun InnerMap(
                 // navega a "solicitudes".
                 viewModel.viewModelScope.launch {
                     viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                }
+            }) else null,
+            onToggleProject = if (block.type == "BLOCK") ({ line, idx ->
+                val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
+                viewModel.viewModelScope.launch {
+                    viewModel.toggleProject(block, line, idx, schoolName, sectorName)
                 }
             }) else null,
             availableSectors = sectors.takeIf { it.isNotEmpty() },

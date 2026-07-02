@@ -11,7 +11,10 @@ data class PrivateProfile(
     val isPublic: Boolean,
     val isAdmin: Boolean,
     val isPremium: Boolean,
-    val gender: String? = null  // WOMAN | MAN | UNSPECIFIED — privado, nunca en perfiles públicos
+    val gender: String? = null,  // WOMAN | MAN | OTHER | UNSPECIFIED — privado, nunca en perfiles públicos
+    // Material propio: JSON {"cuerda":true,"grigri":false,"cintas":12,"crashpads":2} | null.
+    // Privado — se usa para autorrellenar el material al unirte a una quedada.
+    val gearJson: String? = null
 )
 
 data class PublicProfile(

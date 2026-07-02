@@ -6,8 +6,14 @@ import AuthenticationServices
 /// botón "Continuar con Google" en el centro, legal abajo. Al iniciar sesión,
 /// el `SessionStore` de la raíz detecta el cambio y muestra `MainTabView`.
 struct LoginView: View {
-    @State private var working = false
+    /// Qué proveedor está autenticando ahora mismo (para mostrar el spinner en su
+    /// propio botón). Antes había un solo `working` que compartían los dos botones,
+    /// así que al pulsar Apple el spinner salía en el botón de Google.
+    private enum Loading { case none, google, apple }
+    @State private var loading: Loading = .none
     @State private var errorText: String?
+
+    private var working: Bool { loading != .none }
 
     private let authBridge = AppDependencies.shared.authBridge
 
@@ -84,7 +90,7 @@ struct LoginView: View {
             Task { await signIn() }
         } label: {
             HStack(spacing: 10) {
-                if working {
+                if loading == .google {
                     ProgressView().tint(.white)
                 } else {
                     Text("G")
@@ -110,7 +116,11 @@ struct LoginView: View {
             Task { await signInApple() }
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: "applelogo").font(.system(size: 17, weight: .medium))
+                if loading == .apple {
+                    ProgressView().tint(.white)
+                } else {
+                    Image(systemName: "applelogo").font(.system(size: 17, weight: .medium))
+                }
                 Text(NSLocalizedString("login_apple", comment: "")).font(.system(size: 15, weight: .medium))
             }
             .foregroundStyle(.white)
@@ -123,14 +133,14 @@ struct LoginView: View {
     }
 
     private func signIn() async {
-        working = true; errorText = nil
+        loading = .google; errorText = nil
         do { try await authBridge.signInWithGoogle() }
         catch { errorText = error.localizedDescription }
-        working = false
+        loading = .none
     }
 
     private func signInApple() async {
-        working = true; errorText = nil
+        loading = .apple; errorText = nil
         do { try await authBridge.signInWithApple() }
         catch {
             // El usuario cancelando (código 1001) no es un error que mostrar.
@@ -139,6 +149,6 @@ struct LoginView: View {
                 errorText = error.localizedDescription
             }
         }
-        working = false
+        loading = .none
     }
 }

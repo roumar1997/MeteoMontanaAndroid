@@ -67,6 +67,10 @@ fun BlockDetailDialog(
     onTickLine: ((com.meteomontana.android.domain.model.BlockLine, Int) -> Unit)? = null,
     /** Ids de vías ya hechas (del diario) para mostrarlas marcadas ✓ al abrir. */
     initiallyTicked: Set<String> = emptySet(),
+    /** Marca/desmarca una vía como PROYECTO (la estás probando). null = no mostrar el botón. */
+    onToggleProject: ((com.meteomontana.android.domain.model.BlockLine, Int) -> Unit)? = null,
+    /** Ids de vías ya marcadas como proyecto, para mostrarlas al abrir. */
+    initiallyProjects: Set<String> = emptySet(),
     /** Valorar una vía (1-5 estrellas). null = no mostrar estrellas. */
     onRateLine: ((lineId: String, stars: Int) -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
@@ -78,6 +82,7 @@ fun BlockDetailDialog(
 ) {
     var showLinePicker by remember { mutableStateOf(false) }
     val tickedLines = remember { mutableStateListOf<String>().apply { addAll(initiallyTicked) } }   // vías hechas
+    val projectLines = remember { mutableStateListOf<String>().apply { addAll(initiallyProjects) } } // vías proyecto
     val context = LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }
@@ -248,10 +253,36 @@ fun BlockDetailDialog(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
+                                // Proyecto: la estás probando, aún no te ha salido. Oculto
+                                // si ya está hecha (no tiene sentido marcarla como proyecto).
+                                if (onToggleProject != null && !isProposal) {
+                                    val done = tickedLines.contains(line.id)
+                                    if (!done) {
+                                        Spacer(Modifier.weight(1f))
+                                        val isProject = projectLines.contains(line.id)
+                                        Text(
+                                            "⛏",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = if (isProject) Terra
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                            modifier = Modifier
+                                                .clip(CircleShape)
+                                                .clickable {
+                                                    if (isProject) projectLines.remove(line.id)
+                                                    else projectLines.add(line.id)
+                                                    onToggleProject(line, idx)
+                                                }
+                                                .padding(horizontal = 6.dp)
+                                        )
+                                    }
+                                }
                                 // Tic: marca/desmarca la vía en tu diario (toggle).
                                 if (onTickLine != null && !isProposal) {
-                                    Spacer(Modifier.weight(1f))
                                     val done = tickedLines.contains(line.id)
+                                    // Si el icono de proyecto ya se pintó (arriba, cuando !done)
+                                    // ese Spacer ya empujó todo a la derecha; si no, este lo hace.
+                                    val projectIconShown = onToggleProject != null && !isProposal && !done
+                                    if (!projectIconShown) Spacer(Modifier.weight(1f))
                                     Text(
                                         if (done) "✓" else "○",
                                         style = MaterialTheme.typography.titleMedium,
@@ -260,8 +291,15 @@ fun BlockDetailDialog(
                                         modifier = Modifier
                                             .clip(CircleShape)
                                             .clickable {
-                                                if (done) tickedLines.remove(line.id)
-                                                else tickedLines.add(line.id)
+                                                if (done) {
+                                                    tickedLines.remove(line.id)
+                                                } else {
+                                                    tickedLines.add(line.id)
+                                                    // Al marcarla hecha desde aquí, si era un proyecto
+                                                    // desaparece de la lista local (promoción; el
+                                                    // ViewModel hace lo mismo en el servidor).
+                                                    projectLines.remove(line.id)
+                                                }
                                                 onTickLine(line, idx)
                                             }
                                             .padding(horizontal = 6.dp)

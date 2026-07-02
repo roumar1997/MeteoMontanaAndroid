@@ -75,6 +75,7 @@ fun ProfileScreen(
     onOpenRoutes: () -> Unit = {},
     onOpenAllSchools: () -> Unit = {},
     onOpenMaxGrade: () -> Unit = {},
+    onOpenProjects: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -108,6 +109,7 @@ fun ProfileScreen(
                 following = s.following,
                 offline = s.offline,
                 pendingReview = s.pendingReview,
+                projectCount = s.projectCount,
                 onAddBlock = { addBlockOpen = true },
                 onEdit = onEdit,
                 onSubmissions = onSubmissions,
@@ -122,6 +124,7 @@ fun ProfileScreen(
                 onOpenRoutes = onOpenRoutes,
                 onOpenAllSchools = onOpenAllSchools,
                 onOpenMaxGrade = onOpenMaxGrade,
+                onOpenProjects = onOpenProjects,
                 onSignOut = viewModel::signOut,
                 onDeleteAccount = { viewModel.deleteAccount() }
             )
@@ -162,6 +165,7 @@ private fun Content(
     following: Long,
     offline: Boolean = false,
     pendingReview: Int = 0,
+    projectCount: Int = 0,
     onAddBlock: () -> Unit,
     onEdit: () -> Unit,
     onSubmissions: () -> Unit,
@@ -176,6 +180,7 @@ private fun Content(
     onOpenRoutes: () -> Unit,
     onOpenAllSchools: () -> Unit,
     onOpenMaxGrade: () -> Unit,
+    onOpenProjects: () -> Unit,
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit = {}
 ) {
@@ -198,6 +203,7 @@ private fun Content(
         item { Header(profile, topGrade = stats.maxGrade, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade) }
+        item { ProjectsLink(projectCount, onClick = onOpenProjects) }
         item { AddBlockButton(onClick = onAddBlock) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         // Menú con iconos terracota (filas tipo iOS).
@@ -480,6 +486,22 @@ private fun StatCell(label: String, value: String, modifier: Modifier = Modifier
             fontSize = 28.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(label, style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun ProjectsLink(count: Int, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(if (count > 0) "⛏ PROYECTOS ($count)" else "⛏ PROYECTOS",
+            style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.primary)
     }
 }
 

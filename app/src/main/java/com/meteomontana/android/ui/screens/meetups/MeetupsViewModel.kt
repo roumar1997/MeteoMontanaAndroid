@@ -146,7 +146,18 @@ class MeetupsViewModel @Inject constructor(
         _detail.update { it.copy(joining = true) }
         viewModelScope.launch {
             try {
-                val updated = joinMeetup.execute(id)
+                var updated = joinMeetup.execute(id)
+                // Autorrelleno del material desde el perfil: si tienes algo
+                // configurado (cuerda/grigri/cintas/crashpads), se copia solo al
+                // unirte — no hace falta que lo pongas a mano. Sigue siendo
+                // editable después desde "MI MATERIAL" en la quedada. Si falla
+                // (o no tienes nada configurado) no bloquea el join.
+                runCatching {
+                    val myGear = getMyProfile().gearJson
+                    if (!myGear.isNullOrBlank() && parseGear(myGear).isNotEmpty()) {
+                        updated = updateMyGearUseCase.execute(id, myGear)
+                    }
+                }
                 _detail.update { it.copy(meetup = updated, joining = false) }
                 // Actualizar también en la lista
                 _list.update { s ->

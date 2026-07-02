@@ -82,12 +82,22 @@ class JournalEntriesViewModel @Inject constructor(
     private val _state = MutableStateFlow<JournalEntriesUiState>(JournalEntriesUiState.Loading)
     val state: StateFlow<JournalEntriesUiState> = _state.asStateFlow()
 
+    // Filtro compuesto "school:X|sector:Y" (llegando desde JournalSectorsScreen):
+    // el título es el nombre del sector, no de la escuela (ya viniste de ahí).
+    private val sectorName: String? = filter
+        ?.takeIf { it.contains("|sector:") }
+        ?.substringAfter("|sector:")
+
     val title: String = when {
         filter == null               -> if (isMine) "Todos mis bloques" else "Todos los bloques"
+        sectorName != null           -> sectorName
         filter.startsWith("school:") -> filter.removePrefix("school:")
         filter == "grade-max"        -> "Grado máximo"
         filter == "discipline:BOULDER" -> if (isMine) "Mis bloques" else "Bloques"
         filter == "discipline:ROUTE"   -> if (isMine) "Mis vías" else "Vías"
+        filter == "project"          -> if (isMine) "Mis proyectos" else "Proyectos"
+        filter == "project:BOULDER"  -> if (isMine) "Mis proyectos · bloques" else "Proyectos · bloques"
+        filter == "project:ROUTE"    -> if (isMine) "Mis proyectos · vías" else "Proyectos · vías"
         else                         -> "Diario"
     }
 
@@ -115,27 +125,44 @@ class JournalEntriesViewModel @Inject constructor(
                 val all = visible.distinctBy {
                     "${it.schoolId ?: ""}|${(it.sector ?: "").trim().lowercase()}|${it.blockName.trim().lowercase()}"
                 }
+                // Los PROYECTOS (probando, aún no hecho) tienen sus propias pantallas
+                // ("project"/"project:BOULDER"/"project:ROUTE"); el resto de filtros
+                // (todos preexistentes) solo muestran lo HECHO, para no mezclarlos.
+                val done = all.filter { it.status != "PROJECT" }
+                val projects = all.filter { it.status == "PROJECT" }
                 val filtered = when {
-                    filter == null               -> all
+                    filter == null               -> done
+                    filter == "project"           -> projects
+                    filter == "project:BOULDER"   -> projects.filter { !it.discipline.equals("ROUTE", true) }
+                    filter == "project:ROUTE"     -> projects.filter { it.discipline.equals("ROUTE", true) }
+                    // "school:X|sector:Y" (viene de JournalSectorsScreen): primero por
+                    // escuela; el filtro por sector se aplica DESPUÉS, una vez resuelto
+                    // viaInfo más abajo (el sector no se guarda en la entrada).
                     filter.startsWith("school:") -> {
-                        val name = filter.removePrefix("school:")
-                        all.filter { it.schoolName?.equals(name, ignoreCase = true) == true }
+                        val name = filter.removePrefix("school:").substringBefore("|sector:")
+                        done.filter { it.schoolName?.equals(name, ignoreCase = true) == true }
                     }
                     filter == "grade-max" -> {
                         val max = if (uid == null) getMyJournalStats().maxGrade
                                   else getUserStats(uid).maxGrade
-                        if (max != null) all.filter { it.grade == max } else emptyList()
+                        if (max != null) done.filter { it.grade == max } else emptyList()
                     }
                     // Modalidad: BOULDER (bloque) o ROUTE (vía). Entradas viejas sin
                     // modalidad cuentan como BOULDER (default), igual que en stats.
-                    filter == "discipline:BOULDER" -> all.filter { !it.discipline.equals("ROUTE", true) }
-                    filter == "discipline:ROUTE"   -> all.filter { it.discipline.equals("ROUTE", true) }
-                    else -> all
+                    filter == "discipline:BOULDER" -> done.filter { !it.discipline.equals("ROUTE", true) }
+                    filter == "discipline:ROUTE"   -> done.filter { it.discipline.equals("ROUTE", true) }
+                    else -> done
                 }
                 // Resuelvo nº de piedra + sector en vivo del catálogo (no se guardan
                 // en la entrada). Si falla la red, queda vacío y no se muestran.
-                val viaInfo = runCatching { getJournalViaInfo(filtered) }.getOrDefault(emptyMap())
-                JournalEntriesUiState.Success(filtered, filter, isMine, viaInfo)
+                val viaInfoAll = runCatching { getJournalViaInfo(filtered) }.getOrDefault(emptyMap())
+                // Segunda pasada: dentro de la escuela, quedarnos solo con las del
+                // sector pedido (comparación por nombre de sector, insensible a mayúsculas).
+                val entries = if (sectorName != null) {
+                    filtered.filter { viaInfoAll[it.id]?.sector?.equals(sectorName, ignoreCase = true) == true }
+                } else filtered
+                val viaInfo = if (sectorName != null) viaInfoAll.filterKeys { k -> entries.any { it.id == k } } else viaInfoAll
+                JournalEntriesUiState.Success(entries, filter, isMine, viaInfo)
             } catch (t: Throwable) {
                 JournalEntriesUiState.Error(t.toUserMessage())
             }
@@ -227,8 +254,10 @@ fun JournalEntriesScreen(
     }
 }
 
+// internal (no private): reutilizado por JournalSectorsScreen.kt (mismo paquete)
+// para las entradas sin sector, que se muestran directamente sin subcarpeta.
 @Composable
-private fun EntryRow(
+internal fun EntryRow(
     e: JournalSession,
     canDelete: Boolean = true,
     info: com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo? = null,

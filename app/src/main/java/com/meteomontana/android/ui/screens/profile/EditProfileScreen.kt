@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -110,6 +112,17 @@ private fun EditForm(
     var topGrade by remember { mutableStateOf(s.profile.topGrade ?: "") }
     var isPublic by remember { mutableStateOf(s.profile.isPublic) }
     var gender by remember { mutableStateOf(s.profile.gender ?: "") }
+    // Material propio: se autorrellena al unirte a una quedada (sigue siendo
+    // editable ahí para esa quedada concreta). Mismo formato que meetup gear.
+    val gearState = remember {
+        mutableMapOf<String, Int>().apply {
+            val current = com.meteomontana.android.ui.screens.meetups.parseGear(s.profile.gearJson)
+            com.meteomontana.android.ui.screens.meetups.gearItemsForDiscipline(null).forEach { (key, _) ->
+                put(key, current[key] ?: 0)
+            }
+        }
+    }
+    var gearVersion by remember { mutableStateOf(0) }
 
     val context = LocalContext.current
 
@@ -223,6 +236,8 @@ private fun EditForm(
 
         GenderSelector(selected = gender, onSelect = { gender = it })
 
+        GearSelector(gearState = gearState, version = gearVersion, onChange = { gearVersion++ })
+
         Spacer(Modifier.height(8.dp))
 
         Button(
@@ -233,7 +248,8 @@ private fun EditForm(
                     bio = bio,  // permite vaciar
                     topGrade = topGrade.takeIf { it.isNotBlank() },
                     isPublic = isPublic,
-                    gender = gender.takeIf { it.isNotBlank() }
+                    gender = gender.takeIf { it.isNotBlank() },
+                    gearJson = com.meteomontana.android.ui.screens.meetups.buildGearJson(gearState)
                 ))
             },
             modifier = Modifier.fillMaxWidth(),
@@ -246,15 +262,54 @@ private fun EditForm(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Material propio del perfil (cuerda/grigri sí-no, cintas/crashpads cantidad).
+ * Al unirte a una quedada se usa para autorrellenar tu material (sigue siendo
+ * editable ahí, para esa quedada concreta). Reutiliza los helpers de gear de
+ * quedadas para no duplicar el formato/parsing del JSON.
+ */
+@Composable
+private fun GearSelector(gearState: MutableMap<String, Int>, version: Int, onChange: () -> Unit) {
+    @Suppress("UNUSED_VARIABLE") val v = version // fuerza recomposición al cambiar
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("MI MATERIAL",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(6.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            com.meteomontana.android.ui.screens.meetups.gearItemsForDiscipline(null).forEach { (key, label) ->
+                if (com.meteomontana.android.ui.screens.meetups.isBooleanGearKey(key)) {
+                    com.meteomontana.android.ui.screens.meetups.GearToggle(
+                        label = label,
+                        checked = (gearState[key] ?: 0) > 0,
+                        onToggle = { gearState[key] = if ((gearState[key] ?: 0) > 0) 0 else 1; onChange() }
+                    )
+                } else {
+                    com.meteomontana.android.ui.screens.meetups.GearStepper(
+                        label = label,
+                        value = gearState[key] ?: 0,
+                        onMinus = {
+                            val cur = gearState[key] ?: 0
+                            if (cur > 0) { gearState[key] = cur - 1; onChange() }
+                        },
+                        onPlus = { gearState[key] = (gearState[key] ?: 0) + 1; onChange() }
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun GenderSelector(selected: String, onSelect: (String) -> Unit) {
-    val options = listOf("" to "No indicar", "WOMAN" to "Mujer", "MAN" to "Hombre")
+    val options = listOf("WOMAN" to "Mujer", "MAN" to "Hombre", "OTHER" to "Otro", "" to "No indicar")
     Column(modifier = Modifier.fillMaxWidth()) {
         Text("GÉNERO (privado — solo para quedadas no mixtas)",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             options.forEach { (value, label) ->
                 FilterChip(
                     selected = selected == value,

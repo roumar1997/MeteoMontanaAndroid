@@ -58,6 +58,13 @@ object Routes {
     }
     const val JOURNAL_SCHOOLS = "journal/schools?uid={uid}"
     fun journalSchools(uid: String? = null): String = "journal/schools?uid=${uid ?: ""}"
+    // Pantalla intermedia: escuela → sectores → (al pulsar sector) sus bloques/vías.
+    const val JOURNAL_SECTORS = "journal/sectors?school={school}&uid={uid}"
+    fun journalSectors(schoolName: String, uid: String? = null): String =
+        "journal/sectors?school=${android.net.Uri.encode(schoolName)}&uid=${uid ?: ""}"
+    // Proyectos: bloques/vías que estás probando, aún no hechos.
+    const val PROJECTS = "journal/projects?uid={uid}"
+    fun projects(uid: String? = null): String = "journal/projects?uid=${uid ?: ""}"
 
     // schoolId opcional (vacío = tab Tiempo, ubicación actual)
     const val DAY_DETAIL = "day/{schoolId}/{dayIndex}"

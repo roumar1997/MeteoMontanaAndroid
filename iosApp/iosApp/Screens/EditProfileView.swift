@@ -9,7 +9,11 @@ final class EditProfileViewModel: ObservableObject {
     @Published var bio = ""
     @Published var topGrade = ""
     @Published var isPublic = true
-    @Published var gender = ""   // "" | "WOMAN" | "MAN"
+    @Published var gender = ""   // "" | "WOMAN" | "MAN" | "OTHER"
+    // Material propio (perfil): mismo formato/helpers que el gear de quedadas
+    // (parseGear/buildGearJson/gearItemsForDiscipline en MeetupDetailView.swift).
+    // Se usa para autorrellenar el material al unirte a una quedada.
+    @Published var gear: [String: Int] = [:]
     @Published var photoUrl: String?
     @Published var pickedImage: UIImage?      // foto nueva pendiente de subir
     @Published var uploading = false
@@ -38,6 +42,10 @@ final class EditProfileViewModel: ObservableObject {
             topGrade = p.topGrade ?? ""
             isPublic = p.isPublic
             gender = p.gender ?? ""
+            let current = parseGear(p.gearJson)
+            var initial: [String: Int] = [:]
+            for item in gearItemsForDiscipline(nil) { initial[item.key] = current[item.key] ?? 0 }
+            gear = initial
             photoUrl = p.photoUrl
         }
         loading = false
@@ -60,7 +68,8 @@ final class EditProfileViewModel: ObservableObject {
             topGrade: topGrade.trimmingCharacters(in: .whitespaces).nilIfEmpty,
             isPublic: KotlinBoolean(bool: isPublic),
             photoUrl: photoUrl,
-            gender: gender.nilIfEmpty
+            gender: gender.nilIfEmpty,
+            gearJson: buildGearJson(gear)
         )
         return (try? await updateMyProfile.invoke(req: req)) != nil
     }
@@ -112,23 +121,79 @@ struct EditProfileView: View {
                     // Género — solo para el gate de quedadas no mixtas
                     VStack(alignment: .leading, spacing: 8) {
                         Text("GÉNERO (privado — solo para quedadas no mixtas)").eyebrow()
-                        HStack(spacing: 8) {
-                            ForEach([("", "No indicar"), ("WOMAN", "Mujer"), ("MAN", "Hombre")], id: \.0) { (val, label) in
-                                let sel = vm.gender == val
-                                Button { vm.gender = val } label: {
-                                    Text(label)
-                                        .font(.system(size: 12, weight: sel ? .bold : .regular))
-                                        .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .background(sel ? Cumbre.terra.opacity(0.15) : Cumbre.paper)
-                                        .foregroundStyle(sel ? Cumbre.terra : Cumbre.ink3)
-                                        .overlay(RoundedRectangle(cornerRadius: 4)
-                                            .stroke(sel ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                                        .cornerRadius(4)
+                        // Rejilla 2x2 (antes HStack de 3; con "Otro" ya no cabe en una fila
+                        // sin recortarse en iPhones pequeños).
+                        let genderOptions = [("WOMAN", "Mujer"), ("MAN", "Hombre"), ("OTHER", "Otro"), ("", "No indicar")]
+                        VStack(spacing: 8) {
+                            ForEach(0..<2, id: \.self) { row in
+                                HStack(spacing: 8) {
+                                    ForEach(0..<2, id: \.self) { col in
+                                        let (val, label) = genderOptions[row * 2 + col]
+                                        let sel = vm.gender == val
+                                        Button { vm.gender = val } label: {
+                                            Text(label)
+                                                .font(.system(size: 12, weight: sel ? .bold : .regular))
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                                .background(sel ? Cumbre.terra.opacity(0.15) : Cumbre.paper)
+                                                .foregroundStyle(sel ? Cumbre.terra : Cumbre.ink3)
+                                                .overlay(RoundedRectangle(cornerRadius: 4)
+                                                    .stroke(sel ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                                                .cornerRadius(4)
+                                        }
+                                    }
                                 }
                             }
                         }
                         Text("Nunca se muestra a nadie. Solo lo usa el servidor para crear quedadas no mixtas.")
                             .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                    }
+
+                    // Material propio: se autorrellena al unirte a una quedada
+                    // (sigue siendo editable ahí, para esa quedada concreta).
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("MI MATERIAL").eyebrow()
+                        VStack(spacing: 8) {
+                            ForEach(gearItemsForDiscipline(nil), id: \.key) { item in
+                                if isBooleanGearKey(item.key) {
+                                    HStack {
+                                        Text(item.label).font(.subheadline).fontWeight(.medium)
+                                        Spacer()
+                                        Toggle("", isOn: Binding(
+                                            get: { (vm.gear[item.key] ?? 0) > 0 },
+                                            set: { vm.gear[item.key] = $0 ? 1 : 0 }
+                                        )).labelsHidden().tint(Cumbre.terra)
+                                    }
+                                } else {
+                                    HStack {
+                                        Text(item.label).font(.subheadline).fontWeight(.medium)
+                                        Spacer()
+                                        HStack(spacing: 8) {
+                                            Button {
+                                                let cur = vm.gear[item.key] ?? 0
+                                                if cur > 0 { vm.gear[item.key] = cur - 1 }
+                                            } label: {
+                                                Image(systemName: "minus.circle")
+                                                    .font(.title3)
+                                                    .foregroundColor((vm.gear[item.key] ?? 0) > 0 ? Cumbre.ink : Cumbre.ink.opacity(0.2))
+                                            }
+                                            .disabled((vm.gear[item.key] ?? 0) == 0)
+                                            Text("\(vm.gear[item.key] ?? 0)")
+                                                .font(.title3).fontWeight(.bold).monospacedDigit()
+                                                .frame(minWidth: 28)
+                                            Button {
+                                                vm.gear[item.key, default: 0] += 1
+                                            } label: {
+                                                Image(systemName: "plus.circle")
+                                                    .font(.title3).foregroundColor(Cumbre.terra)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .padding(10).background(Cumbre.paper)
+                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                     }
                 }
                 .padding(16)

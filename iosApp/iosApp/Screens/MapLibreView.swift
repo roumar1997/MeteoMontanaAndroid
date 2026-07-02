@@ -124,6 +124,12 @@ struct MapLibreView: UIViewRepresentable {
     /// Polilíneas a dibujar (p. ej. de la piedra a su sector viejo/nuevo al revisar
     /// un cambio de sector). Color y grosor por línea.
     var polylines: [CumbrePolyline] = []
+    /// Recentra el mapa aquí cuando `focusToken` cambia (p. ej. al pulsar un
+    /// parking en la lista). `focusToken` es un contador: incrementarlo fuerza
+    /// el re-centrado aunque la coordenada sea la misma que la última vez.
+    var focusCoordinate: CLLocationCoordinate2D? = nil
+    var focusZoom: Double = 16.5
+    var focusToken: Int = 0
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -163,6 +169,13 @@ struct MapLibreView: UIViewRepresentable {
         // OJO: no re-centramos aquí a propósito — re-centrar en cada update era
         // la causa de que el mapa de la lista se "perdiera" al cambiar filtros.
         // El encuadre programático se hace vía fitBounds(...) cuando procede.
+
+        // Foco explícito (p. ej. pulsar un parking en la lista): solo cuando
+        // `focusToken` cambia, para no recentrar en cada recomposición.
+        if let coord = focusCoordinate, focusToken != context.coordinator.lastFocusToken {
+            context.coordinator.lastFocusToken = focusToken
+            map.setCenter(coord, zoomLevel: focusZoom, animated: true)
+        }
     }
 
     final class Coordinator: NSObject, MLNMapViewDelegate {
@@ -176,6 +189,8 @@ struct MapLibreView: UIViewRepresentable {
         // autoFitToMarkers: el fit inicial se hace en mapViewDidFinishLoadingMap
         // (makeUIView no tiene layout aún). Esta bandera evita re-fit en cambio de estilo.
         private var didAutoFitOnLoad = false
+        /// Último `focusToken` aplicado — evita recentrar de más en cada update.
+        var lastFocusToken = 0
         /// Mapa annotation→marker para resolver taps sin depender del título.
         private var byAnnotation: [ObjectIdentifier: CumbreMarker] = [:]
         /// Estilo (color/grosor) por polilínea para los delegates de MapLibre.
@@ -223,6 +238,23 @@ struct MapLibreView: UIViewRepresentable {
                 lastFittedIds = ids
                 fit(map, to: markers.filter { $0.id != "__USER__" })
             }
+        }
+
+        /// Si el usuario está más lejos de esto del centro de los elementos, su
+        /// ubicación NO entra en el encuadre (evita que "verlo desde casa" estire
+        /// el zoom para abarcarte a ti también). Espejo de Android (SchoolMap.kt).
+        private let maxUserLocationIncludeKm = 20.0
+
+        /// Devuelve [marker de usuario] si está razonablemente cerca del centro de
+        /// `nonUser`, o [] si no (para no incluirlo en el fitBounds inicial).
+        private func userMarkerIfNearby(all: [CumbreMarker], nonUser: [CumbreMarker]) -> [CumbreMarker] {
+            guard let userMarker = all.first(where: { $0.id == "__USER__" }), !nonUser.isEmpty else { return [] }
+            let avgLat = nonUser.map { $0.coordinate.latitude }.reduce(0, +) / Double(nonUser.count)
+            let avgLon = nonUser.map { $0.coordinate.longitude }.reduce(0, +) / Double(nonUser.count)
+            let distKm = Geo.shared.haversineKm(
+                lat1: userMarker.coordinate.latitude, lon1: userMarker.coordinate.longitude,
+                lat2: avgLat, lon2: avgLon)
+            return distKm <= maxUserLocationIncludeKm ? [userMarker] : []
         }
 
         private func fit(_ map: MLNMapView, to markers: [CumbreMarker]) {
@@ -305,8 +337,11 @@ struct MapLibreView: UIViewRepresentable {
             // con Albarracín a 200 km — zoom inicial 8 no lo cubre sin este fit).
             if parent.autoFitToMarkers && !didAutoFitOnLoad {
                 didAutoFitOnLoad = true
-                let nonUser = byAnnotation.values.filter { $0.id != "__USER__" }
-                if !nonUser.isEmpty { fit(mapView, to: Array(nonUser)) }
+                let all = Array(byAnnotation.values)
+                let nonUser = all.filter { $0.id != "__USER__" }
+                if !nonUser.isEmpty {
+                    fit(mapView, to: nonUser + userMarkerIfNearby(all: all, nonUser: nonUser))
+                }
             }
         }
     }

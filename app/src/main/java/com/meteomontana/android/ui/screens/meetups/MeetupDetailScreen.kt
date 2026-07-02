@@ -46,6 +46,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
@@ -600,6 +601,13 @@ internal fun gearLabel(key: String): String = when (key) {
     else -> key
 }
 
+/**
+ * Cuerda y grigri son "sí/no" por persona (o los llevas o no); cintas y
+ * crashpads son cantidad (cuántas llevas). Al sumar entre miembros de una
+ * quedada, cada "sí" cuenta como 1 → "5 cuerdas" si 5 personas dijeron que sí.
+ */
+internal fun isBooleanGearKey(key: String): Boolean = key == "cuerda" || key == "grigri"
+
 /** Suma el material de todos los miembros. */
 internal fun totalGear(members: List<MeetupMember>): Map<String, Int> {
     val totals = mutableMapOf<String, Int>()
@@ -738,18 +746,26 @@ internal fun EditGearDialog(
                 // Trigger recomposition on version change
                 @Suppress("UNUSED_VARIABLE") val ver = version
                 items.forEach { (key, label) ->
-                    GearStepper(
-                        label = label,
-                        value = gearState[key] ?: 0,
-                        onMinus = {
-                            val cur = gearState[key] ?: 0
-                            if (cur > 0) { gearState[key] = cur - 1; version++ }
-                        },
-                        onPlus = {
-                            val cur = gearState[key] ?: 0
-                            gearState[key] = cur + 1; version++
-                        }
-                    )
+                    if (isBooleanGearKey(key)) {
+                        GearToggle(
+                            label = label,
+                            checked = (gearState[key] ?: 0) > 0,
+                            onToggle = { gearState[key] = if ((gearState[key] ?: 0) > 0) 0 else 1; version++ }
+                        )
+                    } else {
+                        GearStepper(
+                            label = label,
+                            value = gearState[key] ?: 0,
+                            onMinus = {
+                                val cur = gearState[key] ?: 0
+                                if (cur > 0) { gearState[key] = cur - 1; version++ }
+                            },
+                            onPlus = {
+                                val cur = gearState[key] ?: 0
+                                gearState[key] = cur + 1; version++
+                            }
+                        )
+                    }
                 }
             }
         },
@@ -762,6 +778,20 @@ internal fun EditGearDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel).uppercase()) } }
     )
+}
+
+/** Sí/no para material que no se cuenta (cuerda, grigri): lo llevas o no. */
+@Composable
+internal fun GearToggle(label: String, checked: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = { onToggle() })
+    }
 }
 
 @Composable

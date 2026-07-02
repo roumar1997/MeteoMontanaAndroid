@@ -137,6 +137,7 @@ fun PublicProfileScreen(
     onOpenMaxGrade: (String) -> Unit = {},
     onOpenSchools: (String) -> Unit = {},
     onOpenSchoolEntries: (uid: String, schoolName: String) -> Unit = { _, _ -> },
+    onOpenProjects: (String) -> Unit = {},
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -169,7 +170,8 @@ fun PublicProfileScreen(
                 onOpenRoutes = { onOpenRoutes(s.profile.uid) },
                 onOpenMaxGrade = { onOpenMaxGrade(s.profile.uid) },
                 onOpenSchools = { onOpenSchools(s.profile.uid) },
-                onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) }
+                onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) },
+                onOpenProjects = { onOpenProjects(s.profile.uid) }
             )
         }
     }
@@ -186,7 +188,8 @@ private fun Body(
     onOpenRoutes: () -> Unit = {},
     onOpenMaxGrade: () -> Unit = {},
     onOpenSchools: () -> Unit = {},
-    onOpenSchoolEntries: (String) -> Unit = {}
+    onOpenSchoolEntries: (String) -> Unit = {},
+    onOpenProjects: () -> Unit = {}
 ) {
     val p = s.profile
     val locked = p.locked
@@ -280,6 +283,17 @@ private fun Body(
                 onSchoolsClick = onOpenSchools,
                 onMaxClick = onOpenMaxGrade
             )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .clickable(onClick = onOpenProjects)
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text("⛏ PROYECTOS", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.primary)
+            }
             if (s.stats.bySchool.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 Text(stringResource(R.string.profile_schools),

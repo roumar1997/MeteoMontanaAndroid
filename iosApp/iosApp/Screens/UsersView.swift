@@ -155,7 +155,8 @@ final class PublicProfileViewModel: ObservableObject {
     func loadJournal(uid: String) async {
         if profile?.locked == true { stats = nil; entries = []; viaInfo = [:]; return }
         stats = try? await getUserStats.invoke(uid: uid)
-        entries = (try? await getUserJournal.invoke(uid: uid)) ?? []
+        // Solo HECHO: los PROYECTOS tienen su propia pantalla (ProjectsView).
+        entries = ((try? await getUserJournal.invoke(uid: uid)) ?? []).filter { $0.status != "PROJECT" }
         // Nº de piedra + sector de cada vía, resueltos en vivo del catálogo.
         viaInfo = (try? await getJournalViaInfo.invoke(entries: entries)) ?? [:]
     }
@@ -236,6 +237,12 @@ struct PublicProfileView: View {
                         Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                         Text("DIARIO").eyebrow().frame(maxWidth: .infinity, alignment: .leading)
                         JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo)
+                        NavigationLink(destination: ProjectsView(uid: uid)) {
+                            HStack { Spacer()
+                                Text("⛏ PROYECTOS").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                            Spacer() }
+                            .padding(.vertical, 8)
+                        }.buttonStyle(.plain)
                     }
                 }
             }

@@ -52,6 +52,11 @@ object LocalModule {
         com.meteomontana.android.data.local.JournalDoneStore(ctx)
 
     @Provides @Singleton
+    fun provideJournalProjectStore(@ApplicationContext ctx: Context):
+        com.meteomontana.android.data.local.JournalProjectStore =
+        com.meteomontana.android.data.local.JournalProjectStore(ctx)
+
+    @Provides @Singleton
     fun provideCatalogEtagStore(@ApplicationContext ctx: Context):
         com.meteomontana.android.data.local.CatalogEtagStore =
         com.meteomontana.android.data.local.CatalogEtagStore(ctx)

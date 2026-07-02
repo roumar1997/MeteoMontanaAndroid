@@ -68,7 +68,10 @@ final class AccountViewModel: ObservableObject {
     /// perfil). Devuelve nil si no hay red (para no vaciar la lista cacheada).
     private func loadEntries() async -> [JournalSession]? {
         guard let all = try? await getMyJournal.invoke() else { return nil }
-        return await filterPendingDeletes(all)
+        let filtered = await filterPendingDeletes(all)
+        // Solo HECHO: los PROYECTOS tienen su propia pantalla (ProjectsView), no
+        // se mezclan aquí (Bloques/Vías/Escuelas del perfil).
+        return filtered.filter { $0.status != "PROJECT" }
     }
 
     /// Quita de [list] las entradas con borrado pendiente (clave o uid) y
@@ -151,7 +154,7 @@ final class AccountViewModel: ObservableObject {
             // descontando lo que ya borraste offline (aún sin sincronizar).
             profile = cached.profile
             stats = cached.stats
-            entries = await filterPendingDeletes(cached.entries)
+            entries = (await filterPendingDeletes(cached.entries)).filter { $0.status != "PROJECT" }
             await refreshViaInfo()   // sin red devuelve vacío → solo escuela
             follow = FollowStatus(followers: cached.followers, following: cached.following,
                                   iFollowThem: false, theyFollowMe: false, requestPending: false)
@@ -241,6 +244,12 @@ struct AccountView: View {
     /// ESCUELAS, y desde dentro se puede borrar.
     @ViewBuilder private var diarySection: some View {
         AccountJournalStatsNav(vm: vm)
+        NavigationLink(destination: ProjectsView()) {
+            HStack { Spacer()
+                Text("⛏ PROYECTOS").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+            Spacer() }
+            .padding(.vertical, 8)
+        }.buttonStyle(.plain)
         Button { showAddBlock = true } label: {
             // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
             Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
@@ -496,7 +505,10 @@ private struct AccountSchoolsList: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(schools, id: \.schoolName) { s in
-                            NavigationLink(destination: AccountSchoolBlocksList(vm: vm, schoolName: s.schoolName)) {
+                            // Antes iba directo a la lista plana; ahora pasa por
+                            // "sectores" para no mezclar todos los bloques/vías de
+                            // la escuela de golpe (paridad con Android).
+                            NavigationLink(destination: AccountSchoolSectorsList(vm: vm, schoolName: s.schoolName)) {
                                 HStack(spacing: 12) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(s.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
@@ -523,12 +535,82 @@ private struct AccountSchoolsList: View {
     }
 }
 
-/// Bloques de una escuela concreta del diario propio, con borrar.
+/// Sectores de una escuela concreta del diario propio: agrupa por sector (nº
+/// de bloques) y deja sueltas (sin subcarpeta) las entradas sin sector resuelto
+/// o con un sector aún no catalogado. Pulsar un sector entra a sus bloques.
+private struct AccountSchoolSectorsList: View {
+    @ObservedObject var vm: AccountViewModel
+    let schoolName: String
+
+    private var schoolEntries: [JournalSession] {
+        vm.entries.filter { $0.schoolName?.caseInsensitiveCompare(schoolName) == .orderedSame }
+    }
+    private var sectors: [(name: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for e in schoolEntries {
+            if let s = vm.viaInfo[e.id]?.sector, !s.isEmpty {
+                counts[s, default: 0] += 1
+            }
+        }
+        return counts.map { (name: $0.key, count: $0.value) }.sorted { $0.name.lowercased() < $1.name.lowercased() }
+    }
+    private var loose: [JournalSession] {
+        schoolEntries.filter { (vm.viaInfo[$0.id]?.sector ?? "").isEmpty }
+    }
+
+    var body: some View {
+        Group {
+            if sectors.isEmpty && loose.isEmpty {
+                Text("Sin bloques registrados aquí.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(sectors, id: \.name) { sec in
+                            NavigationLink(destination: AccountSchoolBlocksList(vm: vm, schoolName: schoolName, sectorName: sec.name)) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "folder").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(sec.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                                        Text(sec.count == 1 ? "1 bloque" : "\(sec.count) bloques")
+                                            .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            Divider().overlay(Cumbre.rule)
+                        }
+                        ForEach(loose, id: \.id) { e in
+                            JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id])
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle(schoolName)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Bloques de una escuela concreta del diario propio, con borrar. Si
+/// `sectorName` viene indicado, solo los de ese sector (llegado desde
+/// AccountSchoolSectorsList); si no, todos (compatibilidad).
 private struct AccountSchoolBlocksList: View {
     @ObservedObject var vm: AccountViewModel
     let schoolName: String
+    var sectorName: String? = nil
     var body: some View {
-        let entries = vm.entries.filter { $0.schoolName?.caseInsensitiveCompare(schoolName) == .orderedSame }
+        let entries = vm.entries.filter {
+            $0.schoolName?.caseInsensitiveCompare(schoolName) == .orderedSame &&
+            (sectorName == nil || vm.viaInfo[$0.id]?.sector?.caseInsensitiveCompare(sectorName!) == .orderedSame)
+        }
         Group {
             if entries.isEmpty {
                 Text("Sin bloques registrados aquí.")
@@ -560,7 +642,7 @@ private struct AccountSchoolBlocksList: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(schoolName)
+        .navigationTitle(sectorName ?? schoolName)
         .navigationBarTitleDisplayMode(.inline)
     }
 }

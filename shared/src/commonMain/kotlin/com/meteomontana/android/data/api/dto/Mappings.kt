@@ -125,7 +125,7 @@ fun FavoriteRowDto.toDomain() = FavoriteRow(schoolId, schoolName, cells.map { it
 fun DayCellDto.toDomain() = DayCell(date, avgScore, label)
 
 // Profile & Social
-fun PrivateProfileDto.toDomain() = PrivateProfile(uid, email, username, displayName, photoUrl, bio, topGrade, isPublic, isAdmin, isPremium, gender)
+fun PrivateProfileDto.toDomain() = PrivateProfile(uid, email, username, displayName, photoUrl, bio, topGrade, isPublic, isAdmin, isPremium, gender, gearJson)
 fun PublicProfileDto.toDomain() = PublicProfile(uid, username, displayName, photoUrl, bio, topGrade, locked, isPublic)
 fun FollowStatusDto.toDomain() = FollowStatus(followers, following, iFollowThem, theyFollowMe, requestPending)
 fun NotificationDto.toDomain() = Notification(id, type, title, body, targetType, targetId, readAt, createdAt)
@@ -139,6 +139,6 @@ fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, prop
 fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, sectorBlockId, proposedLat, proposedLon, correctionReason, geometry, path, direction)
 
 // Journal
-fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId)
+fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status)
 fun JournalStatsDto.toDomain() = JournalStats(blockCount, boulderCount, routeCount, schoolCount, maxGrade, maxBoulderGrade, maxRouteGrade, bySchool.map { it.toDomain() })
 fun SchoolStatsDto.toDomain() = SchoolStats(schoolName, blockCount, maxGrade)

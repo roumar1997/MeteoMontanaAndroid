@@ -368,6 +368,24 @@ class IosDependencyContainer(
             .toSet()
     }
 
+    /** Como [pendingJournalKeys], pero solo las de estado [status] (DONE|PROJECT).
+     *  Necesario porque la cola JOURNAL guarda tanto "hechas" como "proyecto"
+     *  bajo el mismo tipo — sin filtrar por status no se pueden distinguir. */
+    @Throws(Exception::class)
+    suspend fun pendingJournalKeysByStatus(status: String): Set<String> {
+        val pend = outbox?.all() ?: return emptySet()
+        return pend.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
+            .mapNotNull { row ->
+                runCatching {
+                    outboxJson.decodeFromString(
+                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                }.getOrNull()
+            }
+            .filter { (it.status ?: "DONE") == status }
+            .map { "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" }
+            .toSet()
+    }
+
     /** Claves "escuela|vía" con BORRADO pendiente (desmarcadas sin red). */
     @Throws(Exception::class)
     suspend fun pendingJournalDeleteKeys(): Set<String> {

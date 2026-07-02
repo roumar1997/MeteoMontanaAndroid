@@ -9,6 +9,7 @@ import com.meteomontana.android.domain.model.JournalStats
 import com.meteomontana.android.domain.model.PrivateProfile
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
+import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -29,7 +30,9 @@ sealed interface ProfileUiState {
         /** true cuando los datos vienen de la caché local (sin conexión). */
         val offline: Boolean = false,
         /** Propuestas + contribuciones pendientes de revisar (solo admin). */
-        val pendingReview: Int = 0
+        val pendingReview: Int = 0,
+        /** Nº de vías/bloques marcados como PROYECTO (probando, aún no hecho). */
+        val projectCount: Int = 0
     ) : ProfileUiState
     data class Error(val message: String) : ProfileUiState
 }
@@ -38,6 +41,7 @@ sealed interface ProfileUiState {
 class ProfileViewModel @Inject constructor(
     private val getMyProfile: GetMyProfileUseCase,
     private val getMyJournalStats: GetMyJournalStatsUseCase,
+    private val getMyJournal: GetMyJournalUseCase,
     private val createJournalEntry: CreateJournalEntryUseCase,
     private val getPendingSubmissions: com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase,
     private val getPendingContributions: com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase,
@@ -68,8 +72,15 @@ class ProfileViewModel @Inject constructor(
                 coroutineScope {
                     val profileDeferred = async { getMyProfile() }
                     val statsDeferred = async { getMyJournalStats() }
+                    // Nº de proyectos: no viene en las stats (que solo cuentan lo
+                    // HECHO); lo derivamos del diario completo, que ya trae ambos
+                    // estados. Si falla, 0 (no rompe la carga del perfil).
+                    val projectCountDeferred = async {
+                        runCatching { getMyJournal().count { it.status == "PROJECT" } }.getOrDefault(0)
+                    }
                     val profile = profileDeferred.await()
                     val stats = statsDeferred.await()
+                    val projectCount = projectCountDeferred.await()
                     val follow = runCatching { getFollowStatus(profile.uid) }
                         .getOrDefault(com.meteomontana.android.domain.model.FollowStatus(0, 0, false, false))
                     // Si soy admin, cuento las propuestas/contribuciones pendientes
@@ -81,7 +92,7 @@ class ProfileViewModel @Inject constructor(
                     } else 0
                     // Cachea para poder ver el perfil SIN conexión la próxima vez.
                     runCatching { profileCache.save(profile, stats, follow.followers, follow.following) }
-                    ProfileUiState.Success(withPhotoFallback(profile), stats, follow.followers, follow.following, pendingReview = pending)
+                    ProfileUiState.Success(withPhotoFallback(profile), stats, follow.followers, follow.following, pendingReview = pending, projectCount = projectCount)
                 }
             } catch (t: Throwable) {
                 // Sin conexión: cae a la última copia cacheada (si existe). Si nunca

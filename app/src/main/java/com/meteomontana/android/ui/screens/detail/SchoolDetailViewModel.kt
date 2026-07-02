@@ -89,6 +89,7 @@ class SchoolDetailViewModel @Inject constructor(
     private val getMyJournal: com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase,
     private val deleteJournalEntry: com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase,
     private val journalDoneStore: com.meteomontana.android.data.local.JournalDoneStore,
+    private val journalProjectStore: com.meteomontana.android.data.local.JournalProjectStore,
     private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase
 ) : ViewModel() {
 
@@ -126,15 +127,38 @@ class SchoolDetailViewModel @Inject constructor(
         ) { journal, pending, local ->
             val keys = mutableSetOf<String>()
             keys.addAll(local)   // registro local: funciona también SIN conexión
-            journal.forEach { keys.add(viaKey(it.schoolId, it.blockName)) }
+            // Solo las entradas DONE cuentan como "hecha" — un PROYECTO no lo es.
+            journal.filter { it.status != "PROJECT" }.forEach { keys.add(viaKey(it.schoolId, it.blockName)) }
             pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }.forEach { row ->
                 runCatching {
                     journalJson.decodeFromString(
                         com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                }.getOrNull()?.let { keys.add(viaKey(it.schoolId, it.blockName)) }
+                }.getOrNull()?.takeIf { it.status != "PROJECT" }?.let { keys.add(viaKey(it.schoolId, it.blockName)) }
             }
             // Vías con borrado pendiente (desmarcadas sin red) → fuera, aunque el
             // diario del servidor todavía las tenga.
+            pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
+                .forEach { keys.remove(it.payloadJson) }
+            keys
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /**
+     * Claves "escuela|vía" de las vías marcadas como PROYECTO (las estás
+     * probando, aún no te han salido). Espejo exacto de [doneViaKeys].
+     */
+    val projectViaKeys: StateFlow<Set<String>> =
+        kotlinx.coroutines.flow.combine(
+            _myJournal, outboxRepo.observePending(), journalProjectStore.keys
+        ) { journal, pending, local ->
+            val keys = mutableSetOf<String>()
+            keys.addAll(local)
+            journal.filter { it.status == "PROJECT" }.forEach { keys.add(viaKey(it.schoolId, it.blockName)) }
+            pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }.forEach { row ->
+                runCatching {
+                    journalJson.decodeFromString(
+                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
+                }.getOrNull()?.takeIf { it.status == "PROJECT" }?.let { keys.add(viaKey(it.schoolId, it.blockName)) }
+            }
             pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
                 .forEach { keys.remove(it.payloadJson) }
             keys
@@ -153,20 +177,28 @@ class SchoolDetailViewModel @Inject constructor(
             val net = runCatching { getMyJournal() }.getOrNull() ?: return@launch
             _myJournal.value = net
             val all = outboxRepo.all()
-            val pendingCreate = all
+            val pendingRequests = all
                 .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
                 .mapNotNull { row ->
                     runCatching {
                         journalJson.decodeFromString(
                             com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                    }.getOrNull()?.let { viaKey(it.schoolId, it.blockName) }
-                }.toSet()
-            // Vías con borrado pendiente: aún no se deben mostrar como hechas.
+                    }.getOrNull()
+                }
+            val pendingCreateDone = pendingRequests.filter { it.status != "PROJECT" }
+                .map { viaKey(it.schoolId, it.blockName) }.toSet()
+            val pendingCreateProject = pendingRequests.filter { it.status == "PROJECT" }
+                .map { viaKey(it.schoolId, it.blockName) }.toSet()
+            // Vías con borrado pendiente: aún no se deben mostrar como hechas/proyecto.
             val pendingDelete = all
                 .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
                 .map { it.payloadJson }.toSet()
-            val serverKeys = net.map { viaKey(it.schoolId, it.blockName) }.toSet() - pendingDelete
-            journalDoneStore.sync(serverKeys, pendingCreate)
+            val serverDoneKeys = net.filter { it.status != "PROJECT" }
+                .map { viaKey(it.schoolId, it.blockName) }.toSet() - pendingDelete
+            val serverProjectKeys = net.filter { it.status == "PROJECT" }
+                .map { viaKey(it.schoolId, it.blockName) }.toSet() - pendingDelete
+            journalDoneStore.sync(serverDoneKeys, pendingCreateDone)
+            journalProjectStore.sync(serverProjectKeys, pendingCreateProject)
         }
     }
 
@@ -208,7 +240,13 @@ class SchoolDetailViewModel @Inject constructor(
             refreshJournal()
             false
         } else {
-            // MARCAR: registro local primero (dedup offline), luego crear/encolar.
+            // Si era un PROYECTO, primero lo quitamos (local + servidor/cola): al
+            // conseguirla, desaparece de Proyectos y pasa a Vías/Bloques, sin
+            // quedar duplicada.
+            if (projectViaKeys.value.contains(key)) {
+                removeProjectEntry(block.schoolId, key)
+            }
+            // MARCAR HECHA: registro local primero (dedup offline), luego crear/encolar.
             journalDoneStore.add(key)
             // Cancela cualquier BORRADO pendiente de esta vía (la re-marcamos).
             removeOutboxByKey(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, key)
@@ -228,7 +266,8 @@ class SchoolDetailViewModel @Inject constructor(
                 // Enganche estable por id (Fase 8): el perfil resuelve grado/foto/
                 // posición EN VIVO por lineId (aguanta renombres, reordenes y muros).
                 // Va también offline (la cola serializa la request entera).
-                lineId = line.id.takeIf { it.isNotBlank() }
+                lineId = line.id.takeIf { it.isNotBlank() },
+                status = "DONE"
             )
             val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
             if (sent) {
@@ -242,6 +281,80 @@ class SchoolDetailViewModel @Inject constructor(
                 )
             }
             true
+        }
+    }
+
+    /**
+     * Marca/DESMARCA una vía como PROYECTO (la estás probando, aún no te ha
+     * salido). Espejo exacto de [toggleLine], pero con status="PROJECT". Si la
+     * vía ya está marcada como HECHA, no hace nada (no tiene sentido marcarla
+     * como proyecto): la UI debe ocultar/deshabilitar este botón en ese caso.
+     */
+    suspend fun toggleProject(
+        block: Block,
+        line: com.meteomontana.android.domain.model.BlockLine,
+        index: Int,
+        schoolName: String,
+        sectorName: String?
+    ): Result<Boolean> = runCatching {
+        val viaName = line.name.ifBlank { "Vía ${index + 1}" }
+        val key = viaKey(block.schoolId, viaName)
+        if (doneViaKeys.value.contains(key)) return@runCatching false
+
+        if (projectViaKeys.value.contains(key)) {
+            // DESMARCAR proyecto
+            removeProjectEntry(block.schoolId, key)
+            refreshJournal()
+            false
+        } else {
+            // MARCAR proyecto
+            journalProjectStore.add(key)
+            removeOutboxByKey(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, key)
+            val req = com.meteomontana.android.data.api.dto.CreateJournalRequest(
+                schoolId = block.schoolId,
+                schoolName = schoolName.ifBlank { null },
+                sector = sectorName,
+                blockName = viaName,
+                grade = line.grade,
+                notes = null,
+                date = java.time.LocalDate.now().toString(),
+                discipline = block.discipline,
+                lineId = line.id.takeIf { it.isNotBlank() },
+                status = "PROJECT"
+            )
+            val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
+            if (sent) {
+                refreshJournal()
+            } else {
+                outboxRepo.enqueue(
+                    com.meteomontana.android.data.outbox.OutboxType.JOURNAL,
+                    block.schoolId,
+                    journalJson.encodeToString(
+                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), req)
+                )
+            }
+            true
+        }
+    }
+
+    /** Cancela/borra la entrada PROYECTO de [key] (cola pendiente o ya subida
+     *  al servidor). Compartido por toggleProject (desmarcar) y toggleLine
+     *  (promoción proyecto→hecha). */
+    private suspend fun removeProjectEntry(schoolId: String, key: String) {
+        journalProjectStore.remove(key)
+        val hadPendingCreate = removeOutboxByKey(
+            com.meteomontana.android.data.outbox.OutboxType.JOURNAL, key)
+        if (!hadPendingCreate) {
+            val online = networkMonitor.isOnline.value
+            val entry = if (online) {
+                _myJournal.value.firstOrNull { it.status == "PROJECT" && viaKey(it.schoolId, it.blockName) == key }
+            } else null
+            val deleted = entry != null && runCatching { deleteJournalEntry(entry.id) }.isSuccess
+            if (!deleted) {
+                removeOutboxByKey(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, key)
+                outboxRepo.enqueue(
+                    com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, schoolId, key)
+            }
         }
     }
 

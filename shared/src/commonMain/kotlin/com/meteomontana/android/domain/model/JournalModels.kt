@@ -11,7 +11,9 @@ data class JournalSession(
     val date: String,
     val createdAt: String,
     val discipline: String = "BOULDER",  // BOULDER (bloque) / ROUTE (vía)
-    val lineId: String? = null           // id estable de la vía (null = antiguo/offline → match por nombre)
+    val lineId: String? = null,          // id estable de la vía (null = antiguo/offline → match por nombre)
+    // DONE (hecho) | PROJECT (proyecto: lo estás probando, aún no te ha salido).
+    val status: String = "DONE"
 )
 
 data class JournalStats(

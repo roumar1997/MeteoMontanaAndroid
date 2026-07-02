@@ -152,6 +152,9 @@ class SchoolDetailViewModelTest {
         mockk<com.meteomontana.android.data.local.JournalDoneStore>(relaxed = true) {
             every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
         },
+        mockk<com.meteomontana.android.data.local.JournalProjectStore>(relaxed = true) {
+            every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
+        },
         mockk(relaxed = true)  // rateLineUseCase
     )
 
