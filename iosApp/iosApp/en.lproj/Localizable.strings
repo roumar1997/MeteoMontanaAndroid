@@ -29,6 +29,7 @@
 "tab_weather" = "Weather";
 "tab_schools" = "Schools";
 "tab_meetups" = "Meetups";
+"tab_grips" = "Grips";
 
 /* Login */
 "login_tagline" = "Weather for climbing";
