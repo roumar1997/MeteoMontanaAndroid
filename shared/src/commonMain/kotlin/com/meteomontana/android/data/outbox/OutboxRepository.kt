@@ -11,6 +11,10 @@ import kotlinx.datetime.Clock
 /** Tipos de petición que pueden encolarse en el outbox. */
 object OutboxType {
     const val CONTRIBUTION = "CONTRIBUTION"
+    // Propuesta de PIEDRA guardada sin red: el payload lleva las vías por cara
+    // y rutas LOCALES de las fotos (copiadas al almacenamiento de la app); el
+    // flusher de cada plataforma sube las fotos y monta el request al reconectar.
+    const val CONTRIBUTION_BOULDER = "CONTRIBUTION_BOULDER"
     const val NOTE         = "NOTE"
     const val SUBMISSION   = "SUBMISSION"
     const val JOURNAL        = "JOURNAL"        // vía marcada como hecha (POST /api/journal)

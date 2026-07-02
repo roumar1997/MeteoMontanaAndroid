@@ -892,6 +892,7 @@ private struct ContributionFormSheet: View {
     @State private var notes = ""
     @State private var sending = false
     @State private var sendError: String? = nil
+    @State private var queued = false
 
     private var isSector: Bool { type == "SECTOR" }
     private var title: String { isSector ? "Nueva zona" : "Nuevo parking" }
@@ -909,6 +910,14 @@ private struct ContributionFormSheet: View {
                     field("NOTAS (opcional)", $notes, isSector ? "Descripción de la zona" : "Cómo es el acceso, etc.")
                     if let sendError {
                         Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                        // Cola offline: guarda la propuesta y el flusher la envía
+                        // solo al recuperar cobertura (espejo de Android).
+                        Button { Task { await saveOffline() } } label: {
+                            Text("GUARDAR Y ENVIAR CON COBERTURA").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                .foregroundStyle(Cumbre.ink)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        }.buttonStyle(.plain)
                     }
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
@@ -922,6 +931,11 @@ private struct ContributionFormSheet: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+            .alert("Guardada en tu móvil", isPresented: $queued) {
+                Button("CERRAR") { dismiss(); onDone(false) }
+            } message: {
+                Text("Se enviará automáticamente en cuanto haya cobertura. No tienes que hacer nada.")
+            }
         }
     }
 
@@ -940,6 +954,21 @@ private struct ContributionFormSheet: View {
         sending = false
         if ok { dismiss(); onDone(true) }
         else { sendError = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí." }
+    }
+
+    /// Encola la propuesta para que ContributionOutboxFlusher la envíe al
+    /// recuperar cobertura. El JSON usa las MISMAS claves que ContributionRequest
+    /// (lo decodifica kotlinx en el contenedor).
+    private func saveOffline() async {
+        var dict: [String: Any] = ["type": type, "lat": coord.latitude, "lon": coord.longitude]
+        let nm = name.trimmingCharacters(in: .whitespaces)
+        if !nm.isEmpty { dict["name"] = nm }
+        let nt = notes.trimmingCharacters(in: .whitespaces)
+        if !nt.isEmpty { dict["notes"] = nt }
+        guard let d = try? JSONSerialization.data(withJSONObject: dict),
+              let json = String(data: d, encoding: .utf8) else { return }
+        try? await AppDependencies.shared.container.enqueueContribution(schoolId: schoolId, requestJson: json)
+        queued = true
     }
 
     private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {

@@ -34,7 +34,8 @@ class OutboxFlusher @Inject constructor(
     private val getMyJournal: GetMyJournalUseCase,
     private val deleteJournalEntry: DeleteJournalEntryUseCase,
     private val addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase,
-    private val removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
+    private val removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase,
+    private val photoUploader: com.meteomontana.android.domain.port.PhotoUploader
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val log = Logger.withTag("Outbox")
@@ -63,6 +64,41 @@ class OutboxFlusher @Inject constructor(
                     OutboxType.CONTRIBUTION -> {
                         val req = json.decodeFromString<ContributionRequest>(row.payloadJson)
                         submitContribution(row.schoolId, req)
+                    }
+                    OutboxType.CONTRIBUTION_BOULDER -> {
+                        // Piedra guardada sin red: sube las fotos locales y monta
+                        // el request igual que el envío online.
+                        val q = json.decodeFromString<QueuedBoulder>(row.payloadJson)
+                        val (faces, localByFace) = q.toFaces()
+                        val urlByFace = HashMap<String, String?>()
+                        faces.forEach { f ->
+                            val path = localByFace[f.id]
+                            urlByFace[f.id] = path?.let {
+                                val bytes = java.io.File(it).readBytes()
+                                photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", q.schoolId)
+                            }
+                        }
+                        val req = ContributionRequest(
+                            type = "BOULDER",
+                            name = q.name?.takeIf { it.isNotBlank() },
+                            lat = q.lat, lon = q.lon,
+                            notes = null, description = null,
+                            proposedLat = null, proposedLon = null,
+                            correctionReason = null, targetBlockId = null, targetLineId = null,
+                            sectorBlockId = q.sectorBlockId,
+                            photoUrl = faces.firstNotNullOfOrNull { urlByFace[it.id] },
+                            bloquesJson = com.meteomontana.android.ui.screens.detail
+                                .facesToBloquesJson(faces, urlByFace),
+                            topoLinesJson = null,
+                            discipline = q.discipline,
+                            geometry = q.geometry,
+                            path = q.pathJson,
+                            direction = q.direction
+                        )
+                        submitContribution(q.schoolId, req)
+                        // Limpia las fotos copiadas — ya viven en Storage.
+                        localByFace.values.filterNotNull()
+                            .forEach { runCatching { java.io.File(it).delete() } }
                     }
                     OutboxType.NOTE -> {
                         val req = json.decodeFromString<CreateNoteRequest>(row.payloadJson)

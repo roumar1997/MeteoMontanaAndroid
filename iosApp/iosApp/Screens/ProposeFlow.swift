@@ -125,6 +125,7 @@ struct BoulderFormSheet: View {
     // Error de envío: al fallar NO se cierra el sheet — se muestra el error y
     // el botón pasa a REINTENTAR (la foto y las vías siguen ahí).
     @State private var sendError: String? = nil
+    @State private var queued = false
     // Muro/sector plegados (opciones avanzadas del formulario).
     @State private var advancedOpen = false
     // Geometría/sentido + trazado del muro (PUNTO por defecto).
@@ -292,6 +293,14 @@ struct BoulderFormSheet: View {
 
                     if let sendError {
                         Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                        // Cola offline: guarda la propuesta (fotos incluidas) y el
+                        // flusher la envía solo al recuperar cobertura.
+                        Button { Task { await saveOffline() } } label: {
+                            Text("GUARDAR Y ENVIAR CON COBERTURA").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                .foregroundStyle(Cumbre.ink)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        }.buttonStyle(.plain)
                     }
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
@@ -306,6 +315,11 @@ struct BoulderFormSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
                 Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+            .alert("Guardada en tu móvil", isPresented: $queued) {
+                Button("CERRAR") { dismiss(); onDone(false) }
+            } message: {
+                Text("Se enviará automáticamente en cuanto haya cobertura. No tienes que hacer nada.")
+            }
         }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
@@ -362,6 +376,48 @@ struct BoulderFormSheet: View {
         } else {
             sendError = "No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí."
         }
+    }
+
+    /// Encola la propuesta entera (fotos copiadas a Documents/outbox-photos) para
+    /// que ContributionOutboxFlusher.swift la suba al recuperar cobertura. El
+    /// payload usa las mismas claves que QueuedBoulder de Android.
+    private func saveOffline() async {
+        let fm = FileManager.default
+        let dir = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("outbox-photos", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        var facesArr: [[String: Any]] = []
+        for face in faces {
+            var path: Any = NSNull()
+            if let img = face.photo, let data = img.jpegData(compressionQuality: 0.85) {
+                let f = dir.appendingPathComponent(UUID().uuidString + ".jpg")
+                if (try? data.write(to: f)) != nil { path = f.path }
+            }
+            let vias: [[String: Any]] = face.blocks.map { b in [
+                "name": b.name,
+                "grade": b.grade ?? NSNull(),
+                "startType": b.startType ?? NSNull(),
+                "points": b.line.map { [Double($0.x), Double($0.y)] },
+                "targetLineId": b.existingLineId ?? NSNull()
+            ] }
+            facesArr.append(["localPhotoPath": path, "vias": vias])
+        }
+        let payload: [String: Any] = [
+            "schoolId": schoolId,
+            "lat": coord.latitude, "lon": coord.longitude,
+            "name": name.isEmpty ? NSNull() : name,
+            "sectorBlockId": sectorId ?? NSNull(),
+            "discipline": discipline,
+            "geometry": geometry,
+            "pathJson": (isWall && !wallPath.isEmpty) ? buildPathJson(wallPath) : NSNull(),
+            "direction": direction,
+            "faces": facesArr
+        ]
+        guard let d = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: d, encoding: .utf8) else { return }
+        try? await AppDependencies.shared.container.enqueueBoulderContribution(schoolId: schoolId, payloadJson: json)
+        queued = true
     }
 }
 

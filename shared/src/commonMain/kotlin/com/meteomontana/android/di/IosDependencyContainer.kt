@@ -395,6 +395,56 @@ class IosDependencyContainer(
             .map { it.payloadJson }.toSet()
     }
 
+    // ── Cola offline de contribuciones (parking/sector/piedra) ──────────────
+    // Espejo del OutboxFlusher de Android: las simples (sin fotos) se envían
+    // desde aquí (Kotlin); las de PIEDRA llevan fotos locales y las drena un
+    // flusher Swift (necesita StorageUploader nativo).
+
+    /** Encola una contribución simple (parking/sector). [requestJson] = el
+     *  ContributionRequest serializado (mismas claves que el DTO). */
+    @Throws(Exception::class)
+    suspend fun enqueueContribution(schoolId: String, requestJson: String) {
+        outbox?.enqueue(com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION, schoolId, requestJson)
+    }
+
+    /** Encola una propuesta de PIEDRA guardada sin red (payload con rutas
+     *  locales de fotos; lo drena ContributionOutboxFlusher.swift). */
+    @Throws(Exception::class)
+    suspend fun enqueueBoulderContribution(schoolId: String, payloadJson: String) {
+        outbox?.enqueue(com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION_BOULDER, schoolId, payloadJson)
+    }
+
+    /** Envía las contribuciones SIMPLES pendientes. Devuelve cuántas subió. */
+    @Throws(Exception::class)
+    suspend fun flushSimpleContributions(): Int {
+        val repo = outbox ?: return 0
+        var sent = 0
+        repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION }
+            .forEach { row ->
+                val ok = runCatching {
+                    val req = outboxJson.decodeFromString(
+                        com.meteomontana.android.data.api.dto.ContributionRequest.serializer(), row.payloadJson)
+                    submitContribution.invoke(row.schoolId, req)
+                }.isSuccess
+                if (ok) { repo.delete(row.id); sent++ }
+                else repo.markRetry(row.id, null)
+            }
+        return sent
+    }
+
+    /** Filas de PIEDRA pendientes, para el flusher Swift. */
+    @Throws(Exception::class)
+    suspend fun pendingBoulderContributions(): List<PendingContributionRow> {
+        val repo = outbox ?: return emptyList()
+        return repo.all()
+            .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION_BOULDER }
+            .map { PendingContributionRow(it.id, it.schoolId, it.payloadJson) }
+    }
+
+    /** Borra una fila del outbox (el flusher Swift la llama tras subir). */
+    @Throws(Exception::class)
+    suspend fun deleteOutboxRow(id: Long) { outbox?.delete(id) }
+
     /** Encola un BORRADO de entrada de diario por su uid (borrada sin red desde el
      *  perfil). Se aplica al volver la conexión. Borra por id → no puede tocar otra. */
     @Throws(Exception::class)
@@ -520,3 +570,11 @@ class IosDependencyContainer(
         }
     }
 }
+
+/** Fila del outbox pendiente de subir — expuesta a Swift para el flusher de
+ *  piedras (SKIE no expone bien el tipo generado por SQLDelight). */
+class PendingContributionRow(
+    val id: Long,
+    val schoolId: String,
+    val payloadJson: String
+)

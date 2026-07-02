@@ -597,6 +597,41 @@ class SchoolDetailViewModel @Inject constructor(
         Unit
     }
 
+    // ── Cola offline de contribuciones ─────────────────────────────────────
+    // Al fallar el envío por falta de red, el usuario puede "guardar y enviar
+    // con cobertura": la propuesta se encola y OutboxFlusher la envía sola al
+    // reconectar (mismo mecanismo que el diario/favoritas).
+
+    private val outboxJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+    /** Encola una contribución simple (parking/sector: sin fotos). */
+    suspend fun queueContributionOffline(req: ContributionRequest) {
+        outboxRepo.enqueue(
+            com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION,
+            schoolId, outboxJson.encodeToString(ContributionRequest.serializer(), req)
+        )
+    }
+
+    /** Encola una propuesta de piedra (las fotos YA copiadas a rutas locales). */
+    suspend fun queueBoulderOffline(
+        lat: Double, lon: Double, name: String?,
+        sectorBlockId: String?, discipline: String, geometry: String,
+        pathJson: String?, direction: String,
+        faces: List<com.meteomontana.android.data.outbox.QueuedFace>
+    ) {
+        val q = com.meteomontana.android.data.outbox.QueuedBoulder(
+            schoolId = schoolId, lat = lat, lon = lon, name = name,
+            sectorBlockId = sectorBlockId, discipline = discipline,
+            geometry = geometry, pathJson = pathJson, direction = direction,
+            faces = faces
+        )
+        outboxRepo.enqueue(
+            com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION_BOULDER,
+            schoolId,
+            outboxJson.encodeToString(com.meteomontana.android.data.outbox.QueuedBoulder.serializer(), q)
+        )
+    }
+
     /**
      * Propone una piedra con VARIAS CARAS (fotos). Sube la foto de cada cara y
      * construye un único `bloquesJson` donde cada vía lleva el `photoUrl` de su

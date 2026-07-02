@@ -39,7 +39,10 @@ struct MeteoMontanaApp: App {
                 // Callback del navegador tras el login de Google.
                 .onOpenURL { url in GIDSignIn.sharedInstance.handle(url) }
                 // Al arrancar, sube las vías marcadas sin red que quedaron en cola.
-                .task { try? await AppDependencies.shared.container.flushJournalOutbox() }
+                .task {
+                    try? await AppDependencies.shared.container.flushJournalOutbox()
+                    await ContributionOutboxFlusher.flush()
+                }
                 // Refresca las escuelas guardadas offline (datos al día, sin
                 // tener que pulsar "descargar" de nuevo).
                 .task { try? await AppDependencies.shared.container.syncSavedSchools() }
@@ -54,7 +57,10 @@ struct MeteoMontanaApp: App {
             // Al volver a primer plano (recuperada la conexión normalmente),
             // reintenta subir la cola offline de vías hechas.
             if phase == .active {
-                Task { try? await AppDependencies.shared.container.flushJournalOutbox() }
+                Task {
+                    try? await AppDependencies.shared.container.flushJournalOutbox()
+                    await ContributionOutboxFlusher.flush()
+                }
                 Task { try? await AppDependencies.shared.container.syncSavedSchools() }
                 ThemeManager.shared.applyToWindows()
             }

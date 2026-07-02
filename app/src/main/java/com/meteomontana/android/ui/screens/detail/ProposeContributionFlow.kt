@@ -53,7 +53,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
+import com.meteomontana.android.data.outbox.toQueued
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.FileRef
@@ -96,7 +98,7 @@ private sealed interface ProposeStep {
         val newLat: Double? = null,  // null = aún no fijada
         val newLon: Double? = null
     ) : ProposeStep
-    data object Success       : ProposeStep
+    data class  Success(val queued: Boolean = false) : ProposeStep
 }
 
 // ─── Punto de entrada ────────────────────────────────────────────────────────
@@ -169,6 +171,7 @@ fun ProposeContributionFlow(
         ?.blocks?.filter { it.type == "ZONE" } ?: emptyList()
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // Tipo de la última opción elegida en el picker — guía el WaitingMapTap a qué Form ir.
     var pickedType by remember { mutableStateOf("PARKING") }
@@ -250,7 +253,7 @@ fun ProposeContributionFlow(
                 onGhostMarkerChange(null)
                 onCorrectionTargetChange(null)
                 onCorrectionModeChange(false)
-                step = ProposeStep.Success
+                step = ProposeStep.Success()
             }
         }
     }
@@ -307,8 +310,23 @@ fun ProposeContributionFlow(
                     photoUrl = null, bloquesJson = null, topoLinesJson = null
                 )
                 val result = viewModel.submitContribution(req)
-                if (result.isSuccess) step = ProposeStep.Success
+                if (result.isSuccess) step = ProposeStep.Success()
                 result.isSuccess
+            },
+            onSaveOffline = { name, notes ->
+                scope.launch {
+                    viewModel.queueContributionOffline(ContributionRequest(
+                        type = "PARKING",
+                        name = name.takeIf { it.isNotBlank() },
+                        lat = s.lat, lon = s.lon,
+                        notes = notes.takeIf { it.isNotBlank() },
+                        description = null,
+                        proposedLat = null, proposedLon = null,
+                        correctionReason = null, targetBlockId = null,
+                        photoUrl = null, bloquesJson = null, topoLinesJson = null
+                    ))
+                    step = ProposeStep.Success(queued = true)
+                }
             }
         )
 
@@ -347,8 +365,33 @@ fun ProposeContributionFlow(
                             boulderPath.toPathJson() else null,
                         direction = boulderDirection
                     )
-                    if (result.isSuccess) step = ProposeStep.Success
+                    if (result.isSuccess) step = ProposeStep.Success()
                     result.isSuccess
+                },
+                onSaveOffline = {
+                    scope.launch {
+                        // Copia cada foto al almacenamiento de la app (un
+                        // content:// del picker caduca; un fichero propio no).
+                        val qFaces = boulderFaces.map { f ->
+                            com.meteomontana.android.data.outbox.QueuedFace(
+                                localPhotoPath = f.photoUri?.let {
+                                    com.meteomontana.android.data.outbox.copyPhotoToOutbox(context, it)
+                                },
+                                vias = f.bloques.map { it.toQueued() }
+                            )
+                        }
+                        viewModel.queueBoulderOffline(
+                            lat = s.lat, lon = s.lon, name = boulderName,
+                            sectorBlockId = boulderSectorBlockId,
+                            discipline = boulderDiscipline,
+                            geometry = boulderGeometry,
+                            pathJson = if (boulderGeometry == "LINE" && boulderPath.isNotEmpty())
+                                boulderPath.toPathJson() else null,
+                            direction = boulderDirection,
+                            faces = qFaces
+                        )
+                        step = ProposeStep.Success(queued = true)
+                    }
                 }
             )
 
@@ -390,8 +433,23 @@ fun ProposeContributionFlow(
                     photoUrl = null, bloquesJson = null, topoLinesJson = null
                 )
                 val result = viewModel.submitContribution(req)
-                if (result.isSuccess) step = ProposeStep.Success
+                if (result.isSuccess) step = ProposeStep.Success()
                 result.isSuccess
+            },
+            onSaveOffline = { name, notes ->
+                scope.launch {
+                    viewModel.queueContributionOffline(ContributionRequest(
+                        type = "SECTOR",
+                        name = name.takeIf { it.isNotBlank() },
+                        lat = s.lat, lon = s.lon,
+                        notes = notes.takeIf { it.isNotBlank() },
+                        description = null,
+                        proposedLat = null, proposedLon = null,
+                        correctionReason = null, targetBlockId = null,
+                        photoUrl = null, bloquesJson = null, topoLinesJson = null
+                    ))
+                    step = ProposeStep.Success(queued = true)
+                }
             }
         )
 
@@ -405,6 +463,7 @@ fun ProposeContributionFlow(
 
         is ProposeStep.Success -> SuccessDialog(
             isAdmin = isAdmin,
+            queued = s.queued,
             onClose = onDismiss,
             onMyProposals = { onDismiss(); onMyProposals() }
         )
@@ -1412,6 +1471,7 @@ private fun BloqueRow(
 @Composable
 private fun SuccessDialog(
     isAdmin: Boolean = false,
+    queued: Boolean = false,
     onClose: () -> Unit,
     onMyProposals: () -> Unit
 ) {
@@ -1427,7 +1487,16 @@ private fun SuccessDialog(
                 Text("✓", style = MaterialTheme.typography.headlineLarge, color = Color.White)
             }
             Spacer(Modifier.height(Spacing.lg))
-            if (isAdmin) {
+            if (queued) {
+                Text("GUARDADA EN TU MÓVIL", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    "Se enviará automáticamente en cuanto\nhaya cobertura. No tienes que hacer nada.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (isAdmin) {
                 Text(stringResource(R.string.propose_success_admin), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
