@@ -538,6 +538,63 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Bitácora reciente
 
+### Sesión 2026-07-02 — 🎉 app iOS arranca desde TestFlight (pipeline prod completo)
+
+Sesión larga depurando por qué el `.ipa` de producción crasheaba en TestFlight
+(la de AltStore/debug SÍ funcionaba). Se resolvió una cadena de **7 problemas**
+en el workflow `ios-prod-ipa.yml` y `project.yml`; el build **1.9 (17)** arranca
+en el iPhone y el **login con Google funciona**. Todo en `main`. Ver memoria
+[[project_ios_testflight_pipeline]].
+
+- **CAUSA RAÍZ del crash al abrir (builds 13-16)**: `project.yml` usaba el fork
+  `akaffenberger/firebase-ios-sdk-xcframeworks` ("Firebase pre-compilado"). Ese
+  fork deja Firebase **duplicado**: copia estática enlazada en el ejecutable **+**
+  20+ `Firebase*.framework` dinámicos embebidos en `Frameworks/`. Dos registros de
+  componentes → `FirebaseApp.configure()` configura una copia pero `Auth.auth()`
+  consulta la otra (sin configurar) → `fatalError` (EXC_BREAKPOINT) al crear el
+  `@StateObject SessionStore` en el arranque. **Solo en builds firmadas** (debug
+  ad-hoc de AltStore no lo disparaba igual). **Se halló comparando el `.ipa` de
+  AltStore que funcionaba (SDK fuente: solo 6 frameworks, sin Firebase duplicado)
+  con el build 16 (fork: Firebase por todos lados)** + simbolicando el `.ips` con
+  el dSYM. **Fix: volver a `firebase/firebase-ios-sdk` oficial** (fuente) +
+  `GoogleSignIn` como paquete propio. **NUNCA volver al fork.** Con caché SPM el
+  Archive tarda ~10 min igual.
+- **Los otros 6 problemas resueltos por el camino** (todos en `ios-prod-ipa.yml`/
+  `project.yml`): (1) keychain de CI se auto-bloqueaba a 5 min → builds colgados
+  horas → `security set-keychain-settings -t 3600`; (2) al probar el fork surgió
+  el GUID duplicado de GoogleSignIn (cuando el fork ya lo incluía) → resuelto al
+  volver al SDK oficial; (3) la app en App Store Connect tiene bundle id
+  **`com.meteomontana.ios.3CP2YRJ579`** (con Team ID pegado, NO `com.meteomontana.ios`)
+  → ajustado `PRODUCT_BUNDLE_IDENTIFIER`; (4) el bundle id largo NO tiene capacidad
+  PUSH → entitlement `aps-environment` COMENTADO; (5) App Store exige orientaciones
+  → `UISupportedInterfaceOrientations` (iPhone vertical, iPad las 4); (6) firma
+  automática + `-allowProvisioningUpdates` creaba un cert nuevo por build y agotó el
+  límite de la cuenta → **firma MANUAL**: cert de distribución del secret + perfil
+  App Store generado por API en el CI (`.github/scripts/asc_make_profile.js`,
+  "Cumbre App Store CI"). Subida con `altool --upload-app` (el `destination=upload`
+  daba "Error Downloading App Information" opaco); altool puede dar exit 0 con
+  ERROR → el workflow greppea y falla a mano. **`keychain-access-groups`** se
+  actualizó al bundle id nuevo (era necesario aunque no fue la causa raíz del crash).
+- **CI sube el dSYM** como artifact (`ios-dsyms`) → simbolicación de `.ips` sin Mac
+  con un `symbolicate.js` casero (lee la symtab del Mach-O en Node, corre en Windows).
+- **Firebase**: 2ª app iOS registrada en `climbingteams` con el bundle id largo;
+  su `GoogleService-Info.plist` en el secret `GOOGLE_SERVICE_INFO_PLIST` y su
+  REVERSED_CLIENT_ID en `CFBundleURLTypes`. **Proveedor Apple habilitado** en
+  Authentication (para Sign in with Apple). Rodrigo verificó login Google OK.
+- **Firma de arranque robusta** (queda como defensa, no era la causa): Firebase se
+  configura en un `AppDelegate` (didFinishLaunching) + guard en `SessionStore.init`.
+- Diagnóstico ASC sin Mac: scripts Node que firman JWT ES256 con la API key
+  ("GitHub Actions CI" `39CT43AKCN`, Issuer `4615915b-...`) para listar apps/
+  bundle ids/certs/perfiles y activar capacidades.
+
+> ### 🔜 PENDIENTE App Store (la app ya arranca; falta lo de la ficha)
+> - Capturas de pantalla (mín. 3, iPhone 6,5") — hacerlas desde el build 17 instalado.
+> - Rellenar ficha (descripción/keywords ya redactados) + privacidad + enviar a
+>   revisión con el build 17. Probar login Apple en runtime (proveedor ya activo).
+> - APNs (push iOS) opcional para v1: habilitar capacidad PUSH en el App ID
+>   `com.meteomontana.ios.3CP2YRJ579` + descomentar `aps-environment` + APNs key.
+> - Detalle completo en `APP_STORE_CHECKLIST.md`.
+
 ### Sesión 2026-06-30 — material de quedadas, i18n ES/EN completo, filtros de alerta, App Store
 
 Sesión larga, app + backend + repo PWA. Todo mergeado a `main` de los tres
