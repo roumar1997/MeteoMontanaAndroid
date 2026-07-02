@@ -399,8 +399,6 @@ private struct SchoolMapSection: View {
                         // km. Mi ubicación solo entra en el encuadre si ya está cerca
                         // (ver userMarkerIfNearby en MapLibreView.swift).
                         autoFitToMarkers: true,
-                        focusCoordinate: focusCoord,
-                        focusToken: focusToken,
                         onZoomChange: { mapZoom = $0 },
                         onTapMarker: { id in
                             if correctionMode && !corrActive {
@@ -426,7 +424,13 @@ private struct SchoolMapSection: View {
                                 corrNew = coord
                             }
                         } : nil,
-                        polylines: wallPolylines
+                        polylines: wallPolylines,
+                        // Foco explícito al pulsar un parking en la lista (recentra
+                        // el mapa ahí). Debe ir DESPUÉS de polylines: el init
+                        // memberwise de Swift exige el mismo orden que la
+                        // declaración del struct aunque los args vayan con nombre.
+                        focusCoordinate: focusCoord,
+                        focusToken: focusToken
                     )
                     .frame(height: 280)
 

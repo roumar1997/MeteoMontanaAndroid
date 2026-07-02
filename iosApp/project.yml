@@ -83,7 +83,8 @@ targets:
         # Versión espejo de Android (versionName 1.9 / versionCode 12).
         CFBundleShortVersionString: "1.9"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
-        # ÚNICO y mayor que el anterior. 12-17 ya subidos → 18.
+        # ÚNICO y mayor que el anterior. 12-17 ya subidos (18 falló en Archive,
+        # no cuenta como subido) → 18.
         CFBundleVersion: "18"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").

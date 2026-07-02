@@ -1,6 +1,7 @@
 import SwiftUI
 import MapLibre
 import CoreLocation
+import Shared
 
 // Equivalente iOS del mapa MapLibre de Android. Envuelve MLNMapView en un
 // UIViewRepresentable. Soporta dos estilos de tiles (topográfico OpenTopoMap /

@@ -64,13 +64,15 @@ final class ProfileCache {
             photoUrl = p.photoUrl; bio = p.bio; topGrade = p.topGrade
             isPublic = p.isPublic; isAdmin = p.isAdmin; isPremium = p.isPremium
             gender = p.gender
+            gearJson = p.gearJson
         }
         var gender: String?
+        var gearJson: String?
         func toModel() -> PrivateProfile {
             PrivateProfile(uid: uid, email: email, username: username, displayName: displayName,
                            photoUrl: photoUrl, bio: bio, topGrade: topGrade,
                            isPublic: isPublic, isAdmin: isAdmin, isPremium: isPremium,
-                           gender: gender)
+                           gender: gender, gearJson: gearJson)
         }
     }
 
@@ -106,15 +108,17 @@ final class ProfileCache {
         let id: String, schoolId: String?, schoolName: String?, sector: String?
         let blockName: String, grade: String?, notes: String?, date: String, createdAt: String
         let discipline: String
+        let status: String
         init(_ e: JournalSession) {
             id = e.id; schoolId = e.schoolId; schoolName = e.schoolName; sector = e.sector
             blockName = e.blockName; grade = e.grade; notes = e.notes; date = e.date; createdAt = e.createdAt
             discipline = e.discipline
+            status = e.status
         }
         func toModel() -> JournalSession {
             JournalSession(id: id, schoolId: schoolId, schoolName: schoolName, sector: sector,
                            blockName: blockName, grade: grade, notes: notes, date: date, createdAt: createdAt,
-                           discipline: discipline, lineId: nil)
+                           discipline: discipline, lineId: nil, status: status)
         }
     }
 }
