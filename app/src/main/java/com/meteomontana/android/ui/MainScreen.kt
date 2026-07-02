@@ -245,6 +245,52 @@ fun MainScreen(
                     )
                 }
 
+                composable(Tab.Grips.route) {
+                    com.meteomontana.android.ui.screens.grips.GripsScreen(
+                        onConnect = { navController.navigate(Routes.GRIP_CONNECT) },
+                        onMeasure = { navController.navigate(Routes.GRIP_MEASURE) },
+                        onOpenWorkout = { id -> navController.navigate(Routes.gripWorkoutEditor(id)) },
+                        onProgress = { navController.navigate(Routes.GRIP_PROGRESS) }
+                    )
+                }
+                composable(Routes.GRIP_CONNECT) {
+                    com.meteomontana.android.ui.screens.grips.GripConnectScreen(
+                        onBack = { navController.popBackStack() },
+                        onConnected = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.GRIP_MEASURE) {
+                    com.meteomontana.android.ui.screens.grips.GripMeasureScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = Routes.GRIP_WORKOUT_EDITOR,
+                    arguments = listOf(navArgument("workoutId") { type = NavType.StringType })
+                ) {
+                    val workoutId = it.arguments?.getString("workoutId")?.takeIf { id -> id != "new" }
+                    com.meteomontana.android.ui.screens.grips.GripWorkoutEditorScreen(
+                        workoutId = workoutId,
+                        onBack = { navController.popBackStack() },
+                        onRun = { id -> navController.navigate(Routes.gripWorkoutRun(id)) }
+                    )
+                }
+                composable(
+                    route = Routes.GRIP_WORKOUT_RUN,
+                    arguments = listOf(navArgument("workoutId") { type = NavType.StringType })
+                ) {
+                    val workoutId = it.arguments?.getString("workoutId") ?: ""
+                    com.meteomontana.android.ui.screens.grips.GripWorkoutRunScreen(
+                        workoutId = workoutId,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable(Routes.GRIP_PROGRESS) {
+                    com.meteomontana.android.ui.screens.grips.GripProgressScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
                 composable(
                     route = Routes.SCHOOL_DETAIL,
                     arguments = listOf(
