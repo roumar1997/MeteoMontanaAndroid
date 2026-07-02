@@ -281,19 +281,9 @@ private fun Body(
                 onBlocksClick = onOpenBoulders,
                 onRoutesClick = onOpenRoutes,
                 onSchoolsClick = onOpenSchools,
-                onMaxClick = onOpenMaxGrade
+                onMaxClick = onOpenMaxGrade,
+                onProjectsClick = onOpenProjects
             )
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth()
-                    .clickable(onClick = onOpenProjects)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Text("⛏ PROYECTOS", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.primary)
-            }
             if (s.stats.bySchool.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 Text(stringResource(R.string.profile_schools),
@@ -328,7 +318,8 @@ private fun ActivityStatsRow(
     onBlocksClick: () -> Unit,
     onRoutesClick: () -> Unit,
     onSchoolsClick: () -> Unit,
-    onMaxClick: () -> Unit
+    onMaxClick: () -> Unit,
+    onProjectsClick: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -342,6 +333,10 @@ private fun ActivityStatsRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick)
             StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick)
+        }
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatBox(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f), onProjectsClick)
         }
     }
 }

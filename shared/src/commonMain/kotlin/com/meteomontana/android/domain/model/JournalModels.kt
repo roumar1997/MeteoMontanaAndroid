@@ -24,7 +24,10 @@ data class JournalStats(
     val maxGrade: String?,               // grado máx global
     val maxBoulderGrade: String? = null, // grado máx de bloque
     val maxRouteGrade: String? = null,   // grado máx de vía
-    val bySchool: List<SchoolStats>
+    val bySchool: List<SchoolStats>,
+    val projectCount: Int = 0,           // nº total de proyectos (probando, aún no hecho)
+    val projectBoulderCount: Int = 0,
+    val projectRouteCount: Int = 0
 )
 
 data class SchoolStats(val schoolName: String, val blockCount: Int, val maxGrade: String?)

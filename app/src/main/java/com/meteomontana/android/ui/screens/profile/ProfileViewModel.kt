@@ -9,7 +9,6 @@ import com.meteomontana.android.domain.model.JournalStats
 import com.meteomontana.android.domain.model.PrivateProfile
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
-import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -41,7 +40,6 @@ sealed interface ProfileUiState {
 class ProfileViewModel @Inject constructor(
     private val getMyProfile: GetMyProfileUseCase,
     private val getMyJournalStats: GetMyJournalStatsUseCase,
-    private val getMyJournal: GetMyJournalUseCase,
     private val createJournalEntry: CreateJournalEntryUseCase,
     private val getPendingSubmissions: com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase,
     private val getPendingContributions: com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase,
@@ -71,16 +69,12 @@ class ProfileViewModel @Inject constructor(
                 // capture el catch en vez de cancelar el ViewModel scope.
                 coroutineScope {
                     val profileDeferred = async { getMyProfile() }
+                    // projectCount viene en la MISMA llamada de stats (junto con
+                    // bloques/vías/escuelas) → se cachea igual y funciona offline.
                     val statsDeferred = async { getMyJournalStats() }
-                    // Nº de proyectos: no viene en las stats (que solo cuentan lo
-                    // HECHO); lo derivamos del diario completo, que ya trae ambos
-                    // estados. Si falla, 0 (no rompe la carga del perfil).
-                    val projectCountDeferred = async {
-                        runCatching { getMyJournal().count { it.status == "PROJECT" } }.getOrDefault(0)
-                    }
                     val profile = profileDeferred.await()
                     val stats = statsDeferred.await()
-                    val projectCount = projectCountDeferred.await()
+                    val projectCount = stats.projectCount
                     val follow = runCatching { getFollowStatus(profile.uid) }
                         .getOrDefault(com.meteomontana.android.domain.model.FollowStatus(0, 0, false, false))
                     // Si soy admin, cuento las propuestas/contribuciones pendientes
@@ -101,7 +95,8 @@ class ProfileViewModel @Inject constructor(
                 val cached = profileCache.load()
                 when {
                     cached != null -> ProfileUiState.Success(
-                        withPhotoFallback(cached.profile), cached.stats, cached.followers, cached.following, offline = true
+                        withPhotoFallback(cached.profile), cached.stats, cached.followers, cached.following,
+                        offline = true, projectCount = cached.stats.projectCount
                     )
                     authManager.currentUid() != null -> ProfileUiState.Success(
                         PrivateProfile(

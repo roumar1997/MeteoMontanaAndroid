@@ -236,13 +236,7 @@ struct PublicProfileView: View {
                     if let st = vm.stats {
                         Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                         Text("DIARIO").eyebrow().frame(maxWidth: .infinity, alignment: .leading)
-                        JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo)
-                        NavigationLink(destination: ProjectsView(uid: uid)) {
-                            HStack { Spacer()
-                                Text("⛏ PROYECTOS").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
-                            Spacer() }
-                            .padding(.vertical, 8)
-                        }.buttonStyle(.plain)
+                        JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo, projectsUid: uid)
                     }
                 }
             }

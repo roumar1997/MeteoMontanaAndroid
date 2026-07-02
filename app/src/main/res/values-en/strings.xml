@@ -134,6 +134,7 @@
     <string name="profile_schools">SCHOOLS</string>
     <string name="profile_max_boulder">MAX BOULDER</string>
     <string name="profile_max_route">MAX ROUTE</string>
+    <string name="profile_projects">PROJECTS</string>
     <string name="profile_followers">Followers</string>
     <string name="profile_following">Following</string>
     <string name="profile_follow">Follow</string>

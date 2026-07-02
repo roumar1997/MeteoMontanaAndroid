@@ -109,7 +109,6 @@ fun ProfileScreen(
                 following = s.following,
                 offline = s.offline,
                 pendingReview = s.pendingReview,
-                projectCount = s.projectCount,
                 onAddBlock = { addBlockOpen = true },
                 onEdit = onEdit,
                 onSubmissions = onSubmissions,
@@ -165,7 +164,6 @@ private fun Content(
     following: Long,
     offline: Boolean = false,
     pendingReview: Int = 0,
-    projectCount: Int = 0,
     onAddBlock: () -> Unit,
     onEdit: () -> Unit,
     onSubmissions: () -> Unit,
@@ -202,8 +200,7 @@ private fun Content(
         // TOPE/ADMIN y seguidores) — paridad con AccountView de iOS.
         item { Header(profile, topGrade = stats.maxGrade, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
-        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade) }
-        item { ProjectsLink(projectCount, onClick = onOpenProjects) }
+        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects) }
         item { AddBlockButton(onClick = onAddBlock) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         // Menú con iconos terracota (filas tipo iOS).
@@ -453,7 +450,8 @@ private fun StatsRow(
     onBoulders: () -> Unit,
     onRoutes: () -> Unit,
     onSchools: () -> Unit,
-    onMax: () -> Unit
+    onMax: () -> Unit,
+    onProjects: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -469,6 +467,11 @@ private fun StatsRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
             StatCell(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
+        }
+        // Fila 3: PROYECTOS — misma celda pulsable que el resto (mismo caché
+        // offline: viene en la misma llamada de stats).
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatCell(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f).clickable(onClick = onProjects))
         }
     }
 }
@@ -486,22 +489,6 @@ private fun StatCell(label: String, value: String, modifier: Modifier = Modifier
             fontSize = 28.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(label, style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun ProjectsLink(count: Int, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Text(if (count > 0) "⛏ PROYECTOS ($count)" else "⛏ PROYECTOS",
-            style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-            color = MaterialTheme.colorScheme.primary)
     }
 }
 

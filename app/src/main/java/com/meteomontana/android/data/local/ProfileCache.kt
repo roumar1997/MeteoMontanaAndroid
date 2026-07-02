@@ -30,7 +30,8 @@ class ProfileCache(context: Context) {
             stats = StatsSnap(
                 stats.blockCount, stats.schoolCount, stats.maxGrade,
                 stats.bySchool.map { SchoolStatSnap(it.schoolName, it.blockCount, it.maxGrade) },
-                stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade
+                stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade,
+                stats.projectCount, stats.projectBoulderCount, stats.projectRouteCount
             ),
             followers = followers,
             following = following
@@ -56,7 +57,10 @@ class ProfileCache(context: Context) {
                 maxGrade = snap.stats.maxGrade,
                 maxBoulderGrade = snap.stats.maxBoulderGrade,
                 maxRouteGrade = snap.stats.maxRouteGrade,
-                bySchool = snap.stats.bySchool.map { SchoolStats(it.schoolName, it.blockCount, it.maxGrade) }
+                bySchool = snap.stats.bySchool.map { SchoolStats(it.schoolName, it.blockCount, it.maxGrade) },
+                projectCount = snap.stats.projectCount,
+                projectBoulderCount = snap.stats.projectBoulderCount,
+                projectRouteCount = snap.stats.projectRouteCount
             ),
             followers = snap.followers,
             following = snap.following
@@ -90,7 +94,8 @@ class ProfileCache(context: Context) {
         val blockCount: Int, val schoolCount: Int, val maxGrade: String?,
         val bySchool: List<SchoolStatSnap>,
         val boulderCount: Int = 0, val routeCount: Int = 0,
-        val maxBoulderGrade: String? = null, val maxRouteGrade: String? = null
+        val maxBoulderGrade: String? = null, val maxRouteGrade: String? = null,
+        val projectCount: Int = 0, val projectBoulderCount: Int = 0, val projectRouteCount: Int = 0
     )
 
     @Serializable

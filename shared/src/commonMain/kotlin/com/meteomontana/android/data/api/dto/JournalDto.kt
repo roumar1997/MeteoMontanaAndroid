@@ -41,7 +41,10 @@ data class JournalStatsDto(
     val maxGrade: String? = null,
     val maxBoulderGrade: String? = null,
     val maxRouteGrade: String? = null,
-    val bySchool: List<SchoolStatsDto>
+    val bySchool: List<SchoolStatsDto>,
+    val projectCount: Int = 0,
+    val projectBoulderCount: Int = 0,
+    val projectRouteCount: Int = 0
 )
 
 @Serializable

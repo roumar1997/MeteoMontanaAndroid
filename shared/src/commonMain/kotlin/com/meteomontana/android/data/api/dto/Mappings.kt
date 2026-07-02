@@ -140,5 +140,5 @@ fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, school
 
 // Journal
 fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status)
-fun JournalStatsDto.toDomain() = JournalStats(blockCount, boulderCount, routeCount, schoolCount, maxGrade, maxBoulderGrade, maxRouteGrade, bySchool.map { it.toDomain() })
+fun JournalStatsDto.toDomain() = JournalStats(blockCount, boulderCount, routeCount, schoolCount, maxGrade, maxBoulderGrade, maxRouteGrade, bySchool.map { it.toDomain() }, projectCount, projectBoulderCount, projectRouteCount)
 fun SchoolStatsDto.toDomain() = SchoolStats(schoolName, blockCount, maxGrade)

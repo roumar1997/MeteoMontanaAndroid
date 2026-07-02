@@ -173,6 +173,12 @@ fun BlockDetailDialog(
                         text = "Toca el círculo de una vía para apuntarla como hecha en tu diario."
                     )
                 }
+                if (onToggleProject != null && !isProposal && block.lines.isNotEmpty()) {
+                    com.meteomontana.android.ui.components.FirstTimeHint(
+                        hintKey = "via_project",
+                        text = "Toca la bandera de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
+                    )
+                }
                 // Si venimos de pulsar una vía (deep-link del diario), su foto/cara
                 // va primero para "llevar a la foto correspondiente".
                 val orderedFaces = block.facesOrDerived().let { fs ->
@@ -261,7 +267,7 @@ fun BlockDetailDialog(
                                         Spacer(Modifier.weight(1f))
                                         val isProject = projectLines.contains(line.id)
                                         Text(
-                                            "⛏",
+                                            "🚩",
                                             style = MaterialTheme.typography.titleMedium,
                                             color = if (isProject) Terra
                                                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),

@@ -82,17 +82,22 @@ final class ProfileCache {
         let bySchool: [SchoolStatSnap]
         let boulderCount: Int32, routeCount: Int32
         let maxBoulderGrade: String?, maxRouteGrade: String?
+        let projectCount: Int32, projectBoulderCount: Int32, projectRouteCount: Int32
         init(_ s: JournalStats) {
             blockCount = s.blockCount; schoolCount = s.schoolCount
             maxGrade = s.maxGrade; bySchool = s.bySchool.map { SchoolStatSnap($0) }
             boulderCount = s.boulderCount; routeCount = s.routeCount
             maxBoulderGrade = s.maxBoulderGrade; maxRouteGrade = s.maxRouteGrade
+            projectCount = s.projectCount; projectBoulderCount = s.projectBoulderCount
+            projectRouteCount = s.projectRouteCount
         }
         func toModel() -> JournalStats {
             JournalStats(blockCount: blockCount, boulderCount: boulderCount, routeCount: routeCount,
                          schoolCount: schoolCount, maxGrade: maxGrade,
                          maxBoulderGrade: maxBoulderGrade, maxRouteGrade: maxRouteGrade,
-                         bySchool: bySchool.map { $0.toModel() })
+                         bySchool: bySchool.map { $0.toModel() },
+                         projectCount: projectCount, projectBoulderCount: projectBoulderCount,
+                         projectRouteCount: projectRouteCount)
         }
     }
 

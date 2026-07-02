@@ -55,9 +55,9 @@ struct ProjectsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if vm.boulderCount == 0 && vm.routeCount == 0 {
                 EmptyStateView(
-                    icon: "hammer",
+                    icon: "flag",
                     title: "Sin proyectos todavía",
-                    message: "Marca ⛏ en una vía dentro de su piedra para probarla como proyecto."
+                    message: "Marca la bandera en una vía dentro de su piedra para probarla como proyecto."
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filterDiscipline == nil {

@@ -244,12 +244,6 @@ struct AccountView: View {
     /// ESCUELAS, y desde dentro se puede borrar.
     @ViewBuilder private var diarySection: some View {
         AccountJournalStatsNav(vm: vm)
-        NavigationLink(destination: ProjectsView()) {
-            HStack { Spacer()
-                Text("⛏ PROYECTOS").font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
-            Spacer() }
-            .padding(.vertical, 8)
-        }.buttonStyle(.plain)
         Button { showAddBlock = true } label: {
             // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
             Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
@@ -434,6 +428,11 @@ private struct AccountJournalStatsNav: View {
                     cell(s.maxBoulderGrade ?? "—", "MÁX BLOQUE")
                     cell(s.maxRouteGrade ?? "—", "MÁX VÍA")
                 }
+                // Proyectos: misma celda pulsable que el resto, mismo caché
+                // offline (viene en la misma llamada de stats).
+                NavigationLink(destination: ProjectsView()) {
+                    cell("\(s.projectCount)", "PROYECTOS")
+                }.buttonStyle(.plain)
             }
         }
     }

@@ -702,6 +702,9 @@ struct JournalStatsNav: View {
     let stats: JournalStats
     let entries: [JournalSession]
     var viaInfo: [String: ViaCatalogInfo] = [:]
+    /// Si se indica, "PROYECTOS" navega a los proyectos de ESE usuario (perfil
+    /// público); si es nil, a los proyectos propios.
+    var projectsUid: String? = nil
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
@@ -719,6 +722,11 @@ struct JournalStatsNav: View {
                 cell(stats.maxBoulderGrade ?? "—", "MÁX BLOQUE")
                 cell(stats.maxRouteGrade ?? "—", "MÁX VÍA")
             }
+            // Proyectos: misma celda pulsable que el resto, mismo caché offline
+            // (viene en la misma llamada de stats).
+            NavigationLink(destination: ProjectsView(uid: projectsUid)) {
+                cell("\(stats.projectCount)", "PROYECTOS")
+            }.buttonStyle(.plain)
         }
     }
     private func cell(_ v: String, _ l: String) -> some View {

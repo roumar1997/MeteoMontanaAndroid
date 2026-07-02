@@ -1036,6 +1036,10 @@ struct BlockInfoSheet: View {
                                 hintKey: "via_tick",
                                 text: "Toca el círculo de una vía para apuntarla como hecha en tu diario."
                             )
+                            FirstTimeHint(
+                                hintKey: "via_project",
+                                text: "Toca la bandera de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
+                            )
                         }
                         ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
                           VStack(alignment: .leading, spacing: 12) {
@@ -1072,7 +1076,8 @@ struct BlockInfoSheet: View {
                                                 if togglingProject == l.id {
                                                     ProgressView().scaleEffect(0.7).frame(width: 24, height: 24)
                                                 } else {
-                                                    Text("⛏").font(.system(size: 17))
+                                                    Image(systemName: projectLines.contains(l.id) ? "flag.fill" : "flag")
+                                                        .font(.system(size: 17))
                                                         .foregroundStyle(projectLines.contains(l.id) ? Cumbre.terra : Cumbre.ink3.opacity(0.4))
                                                         .frame(width: 24, height: 24)
                                                 }
