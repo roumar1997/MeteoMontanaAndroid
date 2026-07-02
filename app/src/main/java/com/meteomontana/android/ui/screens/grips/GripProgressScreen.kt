@@ -57,37 +57,16 @@ fun GripProgressScreen(
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-        LazyRow(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            items(gripTypes, key = { it.id }) { g ->
-                val isSel = g.id == selected?.id
-                Text(
-                    g.label(),
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .background(if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface, RoundedCornerShape(50))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
-                        .clickable { viewModel.selectGripType(g) }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    color = if (isSel) Color.White else MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
-        }
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("LEFT" to "IZQUIERDA", "RIGHT" to "DERECHA").forEach { (value, label) ->
-                val isSel = hand == value
-                Text(
-                    label,
-                    modifier = Modifier.weight(1f)
-                        .background(if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .clickable { viewModel.selectHand(value) }
-                        .padding(vertical = 12.dp),
-                    color = if (isSel) Color.White else MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.labelLarge,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            GripTypeTwoAxisSelector(
+                gripTypes = gripTypes, selected = selected,
+                onSelect = { viewModel.selectGripType(it) }
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 12.dp))
+            Text("MANO", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp))
+            HandSelector(hand = hand, onSelect = { viewModel.selectHand(it) })
         }
 
         if (loading) {

@@ -120,9 +120,10 @@ class GripClimbGameViewModel @Inject constructor(
         }
     }
 
+    /** Reinicia la partida con los mismos ajustes (agarre/mano/dificultad). */
     fun retry() {
         stopLoops()
-        _uiPhase.value = ClimbGameUiPhase.Setup
+        start()
     }
 
     fun backToSetup() {

@@ -242,23 +242,11 @@ private fun SetCard(
             LabeledStepper("Descanso (s)", set.restS, { onChange { s -> s.copy(restS = it) } }, step = 5, modifier = Modifier.weight(1f))
         }
         Spacer(Modifier.height(Spacing.sm))
-        Text("AGARRE", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        androidx.compose.foundation.lazy.LazyRow(Modifier.padding(top = Spacing.xs)) {
-            items(gripTypes, key = { it.id }) { g ->
-                val isSel = g.id == set.gripTypeId
-                Text(
-                    g.label(),
-                    modifier = Modifier
-                        .padding(end = Spacing.xs)
-                        .background(if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background, RoundedCornerShape(50))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
-                        .clickable { onChange { s -> s.copy(gripTypeId = g.id) } }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    color = if (isSel) Color.White else MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-        }
+        GripTypeTwoAxisSelector(
+            gripTypes = gripTypes,
+            selected = gripTypes.firstOrNull { it.id == set.gripTypeId },
+            onSelect = { g -> onChange { s -> s.copy(gripTypeId = g.id) } }
+        )
         Spacer(Modifier.height(Spacing.sm))
         Text("RANGO OBJETIVO: ${set.targetMinPct.toInt()}% – ${set.targetMaxPct.toInt()}% de tu máximo",
             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

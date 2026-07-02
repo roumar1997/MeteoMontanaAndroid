@@ -100,8 +100,17 @@ fun GripWorkoutRunScreen(
         Spacer(Modifier.height(Spacing.md))
 
         Box(Modifier.fillMaxWidth(), Alignment.Center) {
-            Text("%.1f kg".format(currentKg), style = MaterialTheme.typography.displayMedium,
-                color = MaterialTheme.colorScheme.onBackground)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("%.1f".format(currentKg),
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        fontFamily = com.meteomontana.android.ui.theme.Mono,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground)
+                Text(" kg", style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp))
+            }
         }
 
         val range = viewModel.currentTargetRangeKg()

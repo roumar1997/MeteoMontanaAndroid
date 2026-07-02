@@ -47,6 +47,29 @@ fun GripType.label(): String {
 
 fun handLabel(hand: String): String = if (hand == "LEFT") "IZQ" else "DER"
 
+/** Etiquetas por eje, para los selectores DEDOS × ESTILO (más claros que
+ *  una sola fila con las 15 combinaciones). */
+fun fingerGroupLabel(fingerGroup: String): String = when (fingerGroup) {
+    "FIVE" -> "5 dedos"
+    "FOUR" -> "4 dedos"
+    "THREE" -> "3 dedos"
+    "FRONT_TWO" -> "2 frontales"
+    "MID_TWO" -> "2 centrales"
+    else -> fingerGroup
+}
+
+fun gripStyleLabel(style: String): String = when (style) {
+    "CRIMP" -> "Arqueo"
+    "HALF_CRIMP" -> "Semi-arqueo"
+    "DRAG" -> "Extensión"
+    else -> style
+}
+
+/** Orden canónico de los ejes (el catálogo del backend puede venir en
+ *  cualquier orden). */
+val FINGER_GROUP_ORDER = listOf("FIVE", "FOUR", "THREE", "FRONT_TWO", "MID_TWO")
+val GRIP_STYLE_ORDER = listOf("CRIMP", "HALF_CRIMP", "DRAG")
+
 @HiltViewModel
 class GripsViewModel @Inject constructor(
     private val getGripTypes: GetGripTypesUseCase,
