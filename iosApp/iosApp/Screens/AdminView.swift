@@ -274,6 +274,17 @@ private struct ContributionAdminCard: View {
                 }
             }
             Text(contribution.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+
+            // QUÉ CAMBIA en una línea — se entiende la propuesta sin scrollear
+            // (el detalle foto a foto sigue debajo). Espejo de ContributionCard.kt.
+            Text(contributionSummary(contribution, blocks: schoolBlocks))
+                .font(.system(size: 13, weight: .medium)).foregroundStyle(Cumbre.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(Cumbre.terraBg.opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.terra.opacity(0.4), lineWidth: 1))
+
             if let nm = contribution.name, !nm.isEmpty { Text(nm).font(.system(size: 14)).foregroundStyle(Cumbre.ink) }
             if let n = contribution.notes, !n.isEmpty { Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2) }
 
@@ -468,6 +479,47 @@ func adminTypeLabel(_ t: String) -> String {
     default: return t.uppercased()
     }
 }
+
+/// Resumen humano de UNA LÍNEA de qué cambia una propuesta — espejo de
+/// contributionSummary de ContributionCard.kt (Android).
+func contributionSummary(_ c: Contribution, blocks: [Block]) -> String {
+    let target = blocks.first { $0.id == c.targetBlockId }
+    switch c.type.uppercased() {
+    case "PARKING":
+        let nm = (c.name?.isEmpty == false) ? " «\(c.name!)»" : ""
+        return "Añade un parking nuevo" + nm
+    case "SECTOR":
+        let nm = (c.name?.isEmpty == false) ? " «\(c.name!)»" : ""
+        return "Añade un sector nuevo" + nm
+    case "ASSIGN_SECTOR":
+        let sector = blocks.first { $0.id == c.sectorBlockId }
+        return "Mueve «\(target?.name ?? "una piedra")» al sector «\(sector?.name ?? "?")»"
+    case "POSITION_CORRECTION":
+        let what = c.targetBlockId == nil ? "la ESCUELA entera"
+                   : "«\(target?.name ?? c.name ?? "un elemento")»"
+        if let la = c.proposedLat?.doubleValue, let lo = c.proposedLon?.doubleValue {
+            let meters = Int(Geo.shared.haversineKm(lat1: c.lat, lon1: c.lon, lat2: la, lon2: lo) * 1000)
+            return "Mueve \(what) unos \(meters) m"
+        }
+        return "Mueve \(what)"
+    case "BOULDER":
+        let vias = TopoParse.proposedVias(c.bloquesJson)
+        let corrige = vias.filter { $0.targetLineId != nil }.count
+        let nuevas = max(vias.count - corrige, 0)
+        let esMuro = (c.geometry ?? "").uppercased() == "LINE"
+        if target == nil {
+            return (esMuro ? "Muro NUEVO" : "Piedra NUEVA") + " con \(vias.count) vía\(vias.count == 1 ? "" : "s")"
+        }
+        var parts: [String] = []
+        if nuevas > 0 { parts.append("añade \(nuevas) vía\(nuevas == 1 ? "" : "s")") }
+        if corrige > 0 { parts.append("corrige \(corrige)") }
+        if parts.isEmpty { parts.append("cambios en el trazado/orden") }
+        return (esMuro ? "Muro" : "Piedra") + " «\(target!.name)»: " + parts.joined(separator: " y ")
+    default:
+        return "Propuesta de tipo \(c.type)"
+    }
+}
+
 
 /// Color por tipo de bloque (parking azul, zona verde, piedra terra).
 func blockTypeColor(_ t: String) -> UIColor {

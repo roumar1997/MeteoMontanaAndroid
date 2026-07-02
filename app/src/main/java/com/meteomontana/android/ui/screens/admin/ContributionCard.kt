@@ -117,22 +117,23 @@ internal fun ContributionCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
             .padding(Spacing.md)
     ) {
-        // Cabecera: badge tipo + escuela + tiempo
+        // Cabecera: badge tipo (en claro) + escuela + tiempo
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(2.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(Terra)
                     .padding(horizontal = Spacing.sm, vertical = 2.dp)
             ) {
-                Text(c.type, style = EyebrowTextStyle, color = Color.White)
+                Text(contributionTypeLabel(c.type), style = EyebrowTextStyle, color = Color.White)
             }
             Text(c.schoolName,
                 style = MaterialTheme.typography.labelLarge,
@@ -141,6 +142,22 @@ internal fun ContributionCard(
             Text("ahora",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        Spacer(Modifier.height(Spacing.sm))
+
+        // QUÉ CAMBIA: resumen humano de una línea — el admin entiende la
+        // propuesta sin scrollear (el detalle foto a foto sigue debajo).
+        Box(
+            modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(Terra.copy(alpha = 0.08f))
+                .border(1.dp, Terra.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                .padding(Spacing.sm)
+        ) {
+            Text(contributionSummary(c, existingBlocks),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface)
         }
 
         Spacer(Modifier.height(Spacing.sm))
@@ -542,6 +559,68 @@ internal data class ProposedVia(
     val points: List<androidx.compose.ui.geometry.Offset>,
     val photoUrl: String?, val targetLineId: String?
 )
+
+/** Badge del tipo en claro (antes se mostraba el código a pelo). */
+internal fun contributionTypeLabel(type: String): String = when (type) {
+    "BOULDER" -> "PIEDRA"
+    "PARKING" -> "PARKING"
+    "SECTOR" -> "SECTOR"
+    "ASSIGN_SECTOR" -> "SECTOR DE PIEDRA"
+    "POSITION_CORRECTION" -> "MOVER"
+    else -> type
+}
+
+/**
+ * Resumen humano de UNA LÍNEA de qué cambia esta propuesta — el admin lo lee
+ * arriba de la card sin tener que scrollear el detalle. Se apoya en los
+ * bloques existentes de la escuela para nombrar la piedra/sector afectados.
+ */
+internal fun contributionSummary(
+    c: Contribution,
+    blocks: List<com.meteomontana.android.domain.model.Block>
+): String {
+    val target = blocks.firstOrNull { it.id == c.targetBlockId }
+    return when (c.type) {
+        "PARKING" -> "Añade un parking nuevo" +
+            (c.name?.takeIf { it.isNotBlank() }?.let { " «$it»" } ?: "")
+        "SECTOR" -> "Añade un sector nuevo" +
+            (c.name?.takeIf { it.isNotBlank() }?.let { " «$it»" } ?: "")
+        "ASSIGN_SECTOR" -> {
+            val sector = blocks.firstOrNull { it.id == c.sectorBlockId }
+            "Mueve «${target?.name ?: "una piedra"}» al sector «${sector?.name ?: "?"}»"
+        }
+        "POSITION_CORRECTION" -> {
+            val what = if (c.targetBlockId.isNullOrBlank()) "la ESCUELA entera"
+                       else "«${target?.name ?: c.name ?: "un elemento"}»"
+            val meters = if (c.proposedLat != null && c.proposedLon != null)
+                (com.meteomontana.android.domain.util.Geo.haversineKm(
+                    c.lat, c.lon, c.proposedLat!!, c.proposedLon!!) * 1000).toInt()
+            else null
+            "Mueve $what" + (meters?.let { " unos $it m" } ?: "")
+        }
+        "BOULDER" -> {
+            val vias = parseProposedVias(c.bloquesJson)
+            val nuevas = vias.count { it.targetLineId == null }
+            val corrige = vias.size - nuevas
+            val esMuro = c.geometry.equals("LINE", true)
+            if (target == null) {
+                (if (esMuro) "Muro NUEVO" else "Piedra NUEVA") +
+                    " con ${vias.size} vía${if (vias.size == 1) "" else "s"}"
+            } else {
+                buildString {
+                    append(if (esMuro) "Muro" else "Piedra")
+                    append(" «${target.name}»: ")
+                    val parts = mutableListOf<String>()
+                    if (nuevas > 0) parts.add("añade $nuevas vía${if (nuevas == 1) "" else "s"}")
+                    if (corrige > 0) parts.add("corrige $corrige")
+                    if (parts.isEmpty()) parts.add("cambios en el trazado/orden")
+                    append(parts.joinToString(" y "))
+                }
+            }
+        }
+        else -> "Propuesta de tipo ${c.type}"
+    }
+}
 
 internal fun ProposedVia.toTopoLine(): TopoLine = TopoLine(name, grade, startType, points)
 
