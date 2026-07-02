@@ -7,7 +7,6 @@ import com.meteomontana.android.data.api.KtorAdminApi
 import com.meteomontana.android.data.api.KtorBlockApi
 import com.meteomontana.android.data.api.KtorChatPushApi
 import com.meteomontana.android.data.api.KtorContributionApi
-import com.meteomontana.android.data.api.KtorGripApi
 import com.meteomontana.android.data.api.KtorJournalApi
 import com.meteomontana.android.data.api.KtorNotificationApi
 import com.meteomontana.android.data.api.KtorProfileApi
@@ -22,7 +21,6 @@ import com.meteomontana.android.data.repository.KtorNotificationsRepository
 import com.meteomontana.android.data.repository.KtorAdminRepository
 import com.meteomontana.android.data.repository.KtorBlockRepository
 import com.meteomontana.android.data.repository.KtorContributionRepository
-import com.meteomontana.android.data.repository.KtorGripRepository
 import com.meteomontana.android.data.repository.KtorJournalRepository
 import com.meteomontana.android.data.repository.KtorProfileRepository
 import com.meteomontana.android.data.repository.KtorSchoolRepository
@@ -34,7 +32,6 @@ import com.meteomontana.android.data.stats.MonthlyStatsRepository
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.domain.port.LocationProvider
-import com.meteomontana.android.domain.port.GripScaleProvider
 import com.meteomontana.db.MeteoMontanaDb
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetFavoritesGridUseCase
@@ -72,16 +69,6 @@ import com.meteomontana.android.domain.usecase.journal.GetUserJournalUseCase
 import com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
-import com.meteomontana.android.domain.usecase.grips.GetGripTypesUseCase
-import com.meteomontana.android.domain.usecase.grips.GetMyGripMaxesUseCase
-import com.meteomontana.android.domain.usecase.grips.SaveGripMaxUseCase
-import com.meteomontana.android.domain.usecase.grips.GetMyGripMeasureSessionsUseCase
-import com.meteomontana.android.domain.usecase.grips.CreateGripMeasureSessionUseCase
-import com.meteomontana.android.domain.usecase.grips.GetMyGripWorkoutsUseCase
-import com.meteomontana.android.domain.usecase.grips.GetGripWorkoutUseCase
-import com.meteomontana.android.domain.usecase.grips.CreateGripWorkoutUseCase
-import com.meteomontana.android.domain.usecase.grips.UpdateGripWorkoutUseCase
-import com.meteomontana.android.domain.usecase.grips.DeleteGripWorkoutUseCase
 import com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase
 import com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase
 import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
@@ -153,14 +140,7 @@ class IosDependencyContainer(
      * Chat 1-a-1 (Firestore). En iOS se pasa un [com.meteomontana.android.data.chat.IosChatService]
      * (envoltorio del bridge Swift con FirebaseFirestore). Null → sin chat.
      */
-    val chatService: ChatService? = null,
-    /**
-     * Báscula WH-C06 (pestaña Agarres). En iOS se pasa un
-     * [com.meteomontana.android.data.grips.IosGripScaleProvider] (envoltorio
-     * del bridge Swift con CBCentralManager). Null → la pestaña Agarres no
-     * puede escanear/medir (pero el resto de la app funciona igual).
-     */
-    val gripScaleProvider: GripScaleProvider? = null
+    val chatService: ChatService? = null
 ) {
     private val httpClient = buildApiHttpClient(baseUrl) {
         authService?.currentIdToken(false)
@@ -190,7 +170,6 @@ class IosDependencyContainer(
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
-    private val gripRepository = KtorGripRepository(KtorGripApi(httpClient))
     private val blockApi = KtorBlockApi(httpClient)
     private val blockRepository = KtorBlockRepository(blockApi)
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
@@ -298,17 +277,6 @@ class IosDependencyContainer(
     val getJournalViaInfo =
         com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase(blockRepository)
 
-    // Agarres (dinamómetro BLE WH-C06): catálogo, máximos, historial, entrenos.
-    val getGripTypes = GetGripTypesUseCase(gripRepository)
-    val getMyGripMaxes = GetMyGripMaxesUseCase(gripRepository)
-    val saveGripMax = SaveGripMaxUseCase(gripRepository)
-    val getMyGripMeasureSessions = GetMyGripMeasureSessionsUseCase(gripRepository)
-    val createGripMeasureSession = CreateGripMeasureSessionUseCase(gripRepository)
-    val getMyGripWorkouts = GetMyGripWorkoutsUseCase(gripRepository)
-    val getGripWorkout = GetGripWorkoutUseCase(gripRepository)
-    val createGripWorkout = CreateGripWorkoutUseCase(gripRepository)
-    val updateGripWorkout = UpdateGripWorkoutUseCase(gripRepository)
-    val deleteGripWorkout = DeleteGripWorkoutUseCase(gripRepository)
 
     // Caché local del catálogo (stale-while-revalidate): la lista pinta desde
     // aquí al instante y refresca desde red después. Null si no hay BD.

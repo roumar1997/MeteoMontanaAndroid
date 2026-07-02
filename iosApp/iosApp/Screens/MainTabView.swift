@@ -26,9 +26,6 @@ struct MainTabView: View {
             MeetupsView()
                 .tabItem { Label(NSLocalizedString("tab_meetups", comment: ""), systemImage: "person.3") }
                 .tag(2)
-            GripsView()
-                .tabItem { Label(NSLocalizedString("tab_grips", comment: ""), systemImage: "figure.strengthtraining.traditional") }
-                .tag(3)
         }
         .tint(Cumbre.terra)
     }

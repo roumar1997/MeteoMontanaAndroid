@@ -123,12 +123,6 @@ object RepositoryModule {
         KtorJournalRepository(api)
 
     @Provides @Singleton
-    fun provideGripRepository(
-        api: com.meteomontana.android.data.api.KtorGripApi
-    ): com.meteomontana.android.domain.repository.GripRepository =
-        com.meteomontana.android.data.repository.KtorGripRepository(api)
-
-    @Provides @Singleton
     fun provideSubmissionRepository(api: KtorSubmissionApi): SubmissionRepository =
         KtorSubmissionRepository(api)
 

@@ -40,9 +40,6 @@ final class AppDependencies {
     /// Bridge de chat (FirebaseFirestore). El `ChatService` del contenedor lo
     /// envuelve en Flow/suspend para las pantallas de chat.
     let chatBridge = ChatBridge()
-    /// Bridge de la báscula WH-C06 (CoreBluetooth). El `GripScaleProvider` del
-    /// contenedor lo envuelve en Flow para la pestaña Agarres.
-    let gripScaleBridge = GripScaleBridge()
 
     private init() {
         // locationProvider: bridge iOS → tab Tiempo en tu ubicación real.
@@ -51,7 +48,6 @@ final class AppDependencies {
         let auth = IosAuthService(bridge: authBridge)
         authService = auth
         let chat = IosChatService(bridge: chatBridge)
-        let gripScale = IosGripScaleProvider(bridge: gripScaleBridge)
         // BD SQLDelight local (driver nativo) para el caché del catálogo.
         let db = DatabaseFactory().create()
         container = IosDependencyContainer(
@@ -59,8 +55,7 @@ final class AppDependencies {
             authService: auth,
             locationProvider: location,
             database: db,
-            chatService: chat,
-            gripScaleProvider: gripScale
+            chatService: chat
         )
     }
 }

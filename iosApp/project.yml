@@ -80,11 +80,11 @@ targets:
           - es
           - en
         CFBundleDevelopmentRegion: es
-        # Versión espejo de Android (versionName 2.0.1 / versionCode 14).
-        CFBundleShortVersionString: "2.0.1"
+        # Versión espejo de Android (versionName 2.1 / versionCode 15).
+        CFBundleShortVersionString: "2.1"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
-        # ÚNICO y mayor que el anterior. 12-20 ya subidos → 21.
-        CFBundleVersion: "21"
+        # ÚNICO y mayor que el anterior. 12-21 ya subidos → 22.
+        CFBundleVersion: "22"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
@@ -122,10 +122,6 @@ targets:
           Para hacer fotos de las vías, escuelas o tu perfil.
         NSPhotoLibraryUsageDescription: >-
           Para elegir fotos de las vías, escuelas o tu perfil.
-        # Báscula WH-C06 (pestaña Agarres): escaneo BLE de anuncios, sin
-        # emparejar. Sin esta cadena iOS crashea al usar CBCentralManager.
-        NSBluetoothAlwaysUsageDescription: >-
-          Para conectar tu báscula WH-C06 y medir tu fuerza de dedo.
         # Encriptación exenta: la app solo usa HTTPS estándar del SO (no algoritmos propios).
         # Evita tener que subir documentación de encriptación a App Store Connect.
         ITSAppUsesNonExemptEncryption: false

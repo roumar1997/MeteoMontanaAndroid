@@ -2,7 +2,6 @@ package com.meteomontana.android.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.List
 import androidx.compose.material.icons.outlined.Radar
@@ -15,13 +14,12 @@ sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
     data object Weather  : Tab("weather",  "Tiempo",   Icons.Outlined.Cloud)
     data object Schools  : Tab("schools",  "Escuelas", Icons.Outlined.List)
     data object Meetups  : Tab("meetups",  "Quedadas", Icons.Outlined.Groups)
-    data object Grips    : Tab("grips",    "Agarres",  Icons.Outlined.FitnessCenter)
     data object Radar    : Tab("radar",    "Radar",    Icons.Outlined.Radar)
 }
 
 // Radar (Windy) OCULTO de momento: Windy de pago no asumible hasta validar la
 // app. El código de RadarScreen sigue ahí; reactivar añadiendo Tab.Radar aquí.
-val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Meetups, Tab.Grips)
+val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Meetups)
 
 object Routes {
     const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}&viaId={viaId}"
@@ -84,13 +82,4 @@ object Routes {
     const val CREATE_MEETUP = "meetups/new"
     const val MEETUP_ALERT = "meetups/alert"
 
-    // Agarres (dinamómetro BLE WH-C06)
-    const val GRIP_CONNECT = "grips/connect"
-    const val GRIP_MEASURE = "grips/measure"
-    const val GRIP_WORKOUT_EDITOR = "grips/workouts/{workoutId}"
-    fun gripWorkoutEditor(workoutId: String? = null) = "grips/workouts/${workoutId ?: "new"}"
-    const val GRIP_WORKOUT_RUN = "grips/workouts/{workoutId}/run"
-    fun gripWorkoutRun(workoutId: String) = "grips/workouts/$workoutId/run"
-    const val GRIP_PROGRESS = "grips/progress"
-    const val GRIP_CLIMB_GAME = "grips/climb-game"
 }
