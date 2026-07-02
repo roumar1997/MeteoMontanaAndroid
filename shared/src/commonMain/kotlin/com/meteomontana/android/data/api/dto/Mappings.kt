@@ -142,3 +142,10 @@ fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, school
 fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status)
 fun JournalStatsDto.toDomain() = JournalStats(blockCount, boulderCount, routeCount, schoolCount, maxGrade, maxBoulderGrade, maxRouteGrade, bySchool.map { it.toDomain() }, projectCount, projectBoulderCount, projectRouteCount)
 fun SchoolStatsDto.toDomain() = SchoolStats(schoolName, blockCount, maxGrade)
+
+// Grips (agarres)
+fun GripTypeDto.toDomain() = com.meteomontana.android.domain.model.GripType(id, fingerGroup, style)
+fun GripMaxRecordDto.toDomain() = com.meteomontana.android.domain.model.GripMaxRecord(id, gripTypeId, hand, maxKg, edgeMm, measuredAt)
+fun GripMeasureSessionDto.toDomain() = com.meteomontana.android.domain.model.GripMeasureSession(id, gripTypeId, hand, peakKg, avgKg, durationS, edgeMm, createdAt)
+fun GripWorkoutSetDto.toDomain() = com.meteomontana.android.domain.model.GripWorkoutSet(id, sortOrder, reps, workS, restS, gripTypeId, targetMinPct, targetMaxPct)
+fun GripWorkoutDto.toDomain() = com.meteomontana.android.domain.model.GripWorkout(id, name, handMode, countMode, restBetweenSetsS, createdAt, updatedAt, sets.map { it.toDomain() })

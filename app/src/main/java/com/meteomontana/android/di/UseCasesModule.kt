@@ -268,6 +268,47 @@ object UseCasesModule {
     fun provideGetJournalViaInfoUseCase(repo: BlockRepository) =
         com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase(repo)
 
+    // Grips (agarres)
+    @Provides @Singleton
+    fun provideGetGripTypesUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.GetGripTypesUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetMyGripMaxesUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.GetMyGripMaxesUseCase(repo)
+
+    @Provides @Singleton
+    fun provideSaveGripMaxUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.SaveGripMaxUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetMyGripMeasureSessionsUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.GetMyGripMeasureSessionsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideCreateGripMeasureSessionUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.CreateGripMeasureSessionUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetMyGripWorkoutsUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.GetMyGripWorkoutsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetGripWorkoutUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.GetGripWorkoutUseCase(repo)
+
+    @Provides @Singleton
+    fun provideCreateGripWorkoutUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.CreateGripWorkoutUseCase(repo)
+
+    @Provides @Singleton
+    fun provideUpdateGripWorkoutUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.UpdateGripWorkoutUseCase(repo)
+
+    @Provides @Singleton
+    fun provideDeleteGripWorkoutUseCase(repo: com.meteomontana.android.domain.repository.GripRepository) =
+        com.meteomontana.android.domain.usecase.grips.DeleteGripWorkoutUseCase(repo)
+
     // Submissions
     @Provides @Singleton
     fun provideGetMySubmissionsUseCase(repo: SubmissionRepository) = GetMySubmissionsUseCase(repo)
