@@ -157,7 +157,7 @@ struct GripWorkoutRunView: View {
                 handIndicator(es)
 
                 Text(String(format: "%.1f kg", vm.currentKg))
-                    .font(Cumbre.serif(40, .bold)).foregroundStyle(Cumbre.ink)
+                    .font(Cumbre.mono(40, .bold)).foregroundStyle(Cumbre.ink)
 
                 let range = vm.currentTargetRangeKg()
                 GripLineChartView(points: vm.points, targetMin: range?.0, targetMax: range?.1)

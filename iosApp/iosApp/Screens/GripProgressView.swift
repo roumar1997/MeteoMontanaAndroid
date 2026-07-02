@@ -43,26 +43,13 @@ struct GripProgressView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(vm.gripTypes, id: \.id) { g in
-                            let isSel = g.id == vm.selectedGripType?.id
-                            Text(gripTypeLabel(g))
-                                .font(.system(size: 13, weight: .semibold))
-                                .padding(.horizontal, 14).padding(.vertical, 8)
-                                .background(isSel ? Cumbre.terra : Cumbre.paper)
-                                .foregroundStyle(isSel ? .white : Cumbre.ink)
-                                .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
-                                .clipShape(Capsule())
-                                .onTapGesture { vm.selectGripType(g) }
-                        }
-                    }
-                }
+                GripTypeTwoAxisSelector(
+                    gripTypes: vm.gripTypes, selected: vm.selectedGripType,
+                    onSelect: { vm.selectGripType($0) }
+                )
 
-                HStack(spacing: 8) {
-                    handChip("IZQUIERDA", "LEFT")
-                    handChip("DERECHA", "RIGHT")
-                }
+                Text("MANO").eyebrow()
+                HandSelectorView(hand: vm.hand, onSelect: { vm.selectHand($0) })
 
                 if vm.loading {
                     ProgressView().frame(maxWidth: .infinity).padding(.vertical, 40)
@@ -83,16 +70,5 @@ struct GripProgressView: View {
         .navigationTitle("Progreso")
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.load() }
-    }
-
-    private func handChip(_ label: String, _ value: String) -> some View {
-        let isSel = vm.hand == value
-        return Text(label)
-            .font(.system(size: 14, weight: .semibold))
-            .frame(maxWidth: .infinity).padding(.vertical, 12)
-            .background(isSel ? Cumbre.terra : Cumbre.paper)
-            .foregroundStyle(isSel ? .white : Cumbre.ink)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-            .onTapGesture { vm.selectHand(value) }
     }
 }

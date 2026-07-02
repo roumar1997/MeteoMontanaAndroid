@@ -37,7 +37,6 @@ final class GripsViewModel: ObservableObject {
     private let deleteGripWorkout = AppDependencies.shared.container.deleteGripWorkout
 
     func load() async {
-        loading = true
         do {
             gripTypes = try await getGripTypes.invoke()
             maxes = try await getMyGripMaxes.invoke()
@@ -63,57 +62,51 @@ struct GripsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Estado de conexión, siempre visible.
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(session.connectedDeviceId != nil ? Cumbre.ok : Cumbre.ink3)
-                            .frame(width: 8, height: 8)
-                        Text(session.connectedDeviceId != nil
-                             ? "Báscula conectada · \(session.connectedAlias ?? session.connectedDeviceId ?? "")"
-                             : "Ninguna báscula conectada")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Cumbre.ink2)
+                    // Cabecera: título + pill de estado de báscula.
+                    HStack {
+                        Text("Agarres").font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
                         Spacer()
-                        if session.connectedDeviceId != nil {
-                            Button("DESCONECTAR") { session.clear() }
-                                .font(Cumbre.mono(11, .bold))
-                                .foregroundStyle(Cumbre.terra)
-                        }
+                        scaleStatusPill
                     }
 
                     HStack(spacing: 8) {
                         NavigationLink(destination: GripConnectView()) {
                             actionCard(
                                 icon: session.connectedDeviceId != nil ? "wave.3.right.circle.fill" : "wave.3.right",
-                                label: session.connectedDeviceId != nil ? "BÁSCULA CONECTADA" : "CONECTAR BÁSCULA"
+                                label: session.connectedDeviceId != nil ? "BÁSCULA CONECTADA" : "CONECTAR BÁSCULA",
+                                caption: session.connectedDeviceId != nil ? "Toca para cambiar" : "Busca tu WH-C06",
+                                highlighted: session.connectedDeviceId == nil
                             )
                         }
                         NavigationLink(destination: GripMeasureView()) {
-                            actionCard(icon: "chart.line.uptrend.xyaxis", label: "MEDIR MÁXIMO")
+                            actionCard(icon: "chart.line.uptrend.xyaxis", label: "MEDIR MÁXIMO",
+                                       caption: "Por agarre y mano")
                         }
                     }
+                    NavigationLink(destination: GripClimbGameView()) {
+                        gameCard
+                    }
 
-                    if !vm.maxes.isEmpty {
+                    HStack {
                         Text("TUS MÁXIMOS").eyebrow()
-                        VStack(alignment: .leading, spacing: 4) {
-                            ForEach(groupedMaxes(), id: \.gripTypeId) { group in
-                                if let gripType = vm.gripTypes.first(where: { $0.id == group.gripTypeId }) {
-                                    HStack {
-                                        Text(gripTypeLabel(gripType)).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                                        Spacer()
-                                        Text("IZQ \(fmt(group.left)) · DER \(fmt(group.right))")
-                                            .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                }
+                        Spacer()
+                        if !vm.maxes.isEmpty {
+                            NavigationLink(destination: GripProgressView()) {
+                                Text("VER PROGRESO").eyebrow(Cumbre.terra)
                             }
                         }
-                        NavigationLink(destination: GripProgressView()) {
-                            HStack { Spacer(); Text("VER PROGRESO").eyebrow(Cumbre.terra); Spacer() }
-                                .padding(.vertical, 4)
-                        }
                     }
 
-                    Divider().overlay(Cumbre.rule)
+                    if vm.maxes.isEmpty {
+                        emptyCard(
+                            title: "Aún no has medido ningún máximo",
+                            body: "Conecta la báscula y haz tu primera prueba: elige agarre y mano, tira fuerte unos segundos y guarda.",
+                            ctaLabel: "EMPEZAR A MEDIR",
+                            ctaDestination: AnyView(GripMeasureView())
+                        )
+                    } else {
+                        GripMaxesTableView(gripTypes: vm.gripTypes, maxes: vm.maxes)
+                    }
 
                     HStack {
                         Text("TUS ENTRENOS").eyebrow()
@@ -124,25 +117,16 @@ struct GripsView: View {
                     }
 
                     if vm.workouts.isEmpty {
-                        Text("Aún no has creado ningún entreno")
-                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                            .frame(maxWidth: .infinity).padding(.vertical, 24)
+                        emptyCard(
+                            title: "Aún no has creado ningún entreno",
+                            body: "Define sets, reps, tiempos y el rango de fuerza objetivo (% de tu máximo).",
+                            ctaLabel: "CREAR ENTRENO",
+                            ctaDestination: AnyView(GripWorkoutEditorView(workoutId: nil))
+                        )
                     } else {
-                        VStack(spacing: 0) {
+                        VStack(spacing: 6) {
                             ForEach(vm.workouts, id: \.id) { workout in
-                                NavigationLink(destination: GripWorkoutEditorView(workoutId: workout.id)) {
-                                    HStack {
-                                        VStack(alignment: .leading) {
-                                            Text(workout.name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                                            Text("\(workout.sets.count) sets · \(handModeLabel(workout.handMode))")
-                                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                                        }
-                                        Spacer()
-                                        Image(systemName: "chevron.right").foregroundStyle(Cumbre.ink3)
-                                    }
-                                    .padding(.vertical, 12)
-                                }
-                                Divider().overlay(Cumbre.rule)
+                                workoutCard(workout)
                             }
                         }
                     }
@@ -150,34 +134,99 @@ struct GripsView: View {
                 .padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Agarres")
-            .task { await vm.load() }
+            .toolbar(.hidden, for: .navigationBar)
+            .onAppear { Task { await vm.load() } }
         }
     }
 
-    private struct MaxGroup { let gripTypeId: Int32; let left: Double?; let right: Double? }
-    private func groupedMaxes() -> [MaxGroup] {
-        let ids = Set(vm.maxes.map { $0.gripTypeId })
-        return ids.map { id in
-            MaxGroup(
-                gripTypeId: id,
-                left: vm.maxes.first { $0.gripTypeId == id && $0.hand == "LEFT" }?.maxKg,
-                right: vm.maxes.first { $0.gripTypeId == id && $0.hand == "RIGHT" }?.maxKg
-            )
+    private var scaleStatusPill: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(session.connectedDeviceId != nil ? Cumbre.ok : Cumbre.ink3)
+                .frame(width: 8, height: 8)
+            Text(session.connectedDeviceId != nil
+                 ? (session.connectedAlias ?? "Conectada")
+                 : "Sin báscula")
+                .font(.system(size: 12))
+                .foregroundStyle(Cumbre.ink)
+                .lineLimit(1)
+            if session.connectedDeviceId != nil {
+                Text("✕")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Cumbre.ink3)
+                    .onTapGesture { session.clear() }
+            }
         }
-    }
-    private func fmt(_ v: Double?) -> String {
-        guard let v else { return "—kg" }
-        return String(format: "%.1fkg", v)
+        .padding(.horizontal, 12).padding(.vertical, 5)
+        .background(Cumbre.paper)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
     }
 
-    private func actionCard(icon: String, label: String) -> some View {
-        VStack(spacing: 8) {
+    private var gameCard: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "mountain.2").font(.system(size: 26)).foregroundStyle(Cumbre.terra)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("JUEGO: SUBE LA PARED").eyebrow(Cumbre.ink)
+                Text("Tira para escalar; suelta y rapelas")
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").foregroundStyle(Cumbre.ink3)
+        }
+        .padding(16)
+        .background(Cumbre.paper)
+        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func actionCard(icon: String, label: String, caption: String, highlighted: Bool = false) -> some View {
+        VStack(spacing: 6) {
             Image(systemName: icon).font(.system(size: 24)).foregroundStyle(Cumbre.terra)
-            Text(label).eyebrow()
+            Text(label).eyebrow(Cumbre.ink).multilineTextAlignment(.center)
+            Text(caption).font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(16)
+        .background(Cumbre.paper)
+        .overlay(Rectangle().stroke(highlighted ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+    }
+
+    private func emptyCard(title: String, body bodyText: String, ctaLabel: String, ctaDestination: AnyView) -> some View {
+        VStack(spacing: 6) {
+            Text(title).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                .multilineTextAlignment(.center)
+            Text(bodyText).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                .multilineTextAlignment(.center)
+            NavigationLink(destination: ctaDestination) {
+                Text(ctaLabel).eyebrow(Cumbre.terra).padding(.top, 8)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(16)
+        .background(Cumbre.paper)
+        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func workoutCard(_ workout: GripWorkout) -> some View {
+        HStack {
+            NavigationLink(destination: GripWorkoutEditorView(workoutId: workout.id)) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(workout.name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                    Text("\(workout.sets.count) sets · \(handModeLabel(workout.handMode))")
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                Spacer()
+            }
+            Button {
+                Task { await vm.delete(workoutId: workout.id) }
+            } label: {
+                Image(systemName: "trash").foregroundStyle(Cumbre.ink3)
+            }
+            .buttonStyle(.plain)
+            Image(systemName: "chevron.right").foregroundStyle(Cumbre.ink3)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
         .background(Cumbre.paper)
         .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
     }

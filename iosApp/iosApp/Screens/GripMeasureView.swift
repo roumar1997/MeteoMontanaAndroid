@@ -25,7 +25,7 @@ final class GripMeasureViewModel: ObservableObject {
 
     func load() async {
         gripTypes = (try? await getGripTypes.invoke()) ?? []
-        selectedGripType = gripTypes.first
+        if selectedGripType == nil { selectedGripType = gripTypes.first }
     }
 
     func startMeasuring() {
@@ -76,77 +76,56 @@ struct GripMeasureView: View {
     var body: some View {
         Group {
             if vm.connectedDeviceId == nil {
-                Text("Conecta primero tu báscula desde la pantalla anterior")
+                Text("Conecta primero tu báscula desde la pantalla de Agarres")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
                     .multilineTextAlignment(.center).padding(24)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    VStack(spacing: 16) {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(vm.gripTypes, id: \.id) { g in
-                                    let isSel = g.id == vm.selectedGripType?.id
-                                    Text(gripTypeLabel(g))
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .padding(.horizontal, 14).padding(.vertical, 8)
-                                        .background(isSel ? Cumbre.terra : Cumbre.paper)
-                                        .foregroundStyle(isSel ? .white : Cumbre.ink)
-                                        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
-                                        .clipShape(Capsule())
-                                        .onTapGesture {
-                                            if vm.phase == .idle { vm.selectedGripType = g }
-                                        }
-                                }
-                            }
-                        }
+                    VStack(alignment: .leading, spacing: 16) {
+                        let editable = vm.phase == .idle
 
-                        HStack(spacing: 8) {
-                            handButton("IZQUIERDA", value: "LEFT")
-                            handButton("DERECHA", value: "RIGHT")
-                        }
+                        GripTypeTwoAxisSelector(
+                            gripTypes: vm.gripTypes, selected: vm.selectedGripType,
+                            enabled: editable, onSelect: { vm.selectedGripType = $0 }
+                        )
 
-                        GripLineChartView(points: vm.points)
+                        Text("MANO").eyebrow()
+                        HandSelectorView(hand: vm.hand, enabled: editable, onSelect: { vm.hand = $0 })
 
                         switch vm.phase {
                         case .idle:
-                            Text("Pico: — kg").font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
-                            Button {
+                            bigKgDisplay(kg: nil,
+                                sublabel: "Elige agarre y mano, cuelga la báscula y dale a EMPEZAR")
+                            GripLineChartView(points: vm.points)
+                            primaryButton("EMPEZAR A TIRAR", enabled: vm.selectedGripType != nil, bg: Cumbre.terra) {
                                 vm.startMeasuring()
-                            } label: {
-                                Text("EMPEZAR A TIRAR").frame(maxWidth: .infinity).padding(.vertical, 14)
-                                    .background(Cumbre.terra).foregroundStyle(.white)
                             }
-                            .disabled(vm.selectedGripType == nil)
                         case .measuring:
-                            Text("Pico: \(String(format: "%.1f", vm.points.map { $0.kg }.max() ?? 0)) kg")
-                                .font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
-                            Button {
+                            let liveKg = vm.points.last?.kg
+                            let peakKg = vm.points.map { $0.kg }.max()
+                            bigKgDisplay(kg: liveKg,
+                                sublabel: peakKg.map { String(format: "Pico hasta ahora: %.1f kg", $0) } ?? "Tira ya…")
+                            GripLineChartView(points: vm.points)
+                            primaryButton("PARAR", enabled: true, bg: Cumbre.bad) {
                                 vm.stopMeasuring()
-                            } label: {
-                                Text("PARAR").frame(maxWidth: .infinity).padding(.vertical, 14)
-                                    .background(Cumbre.bad).foregroundStyle(.white)
                             }
                         case .done(let peak, let avg, let duration):
-                            VStack(spacing: 4) {
-                                Text("Pico: \(String(format: "%.1f", peak)) kg")
-                                    .font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
-                                Text("Media: \(String(format: "%.1f", avg)) kg · \(duration)s")
-                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                            }
+                            resultCard(peakKg: peak, avgKg: avg, durationS: duration)
+                            GripLineChartView(points: vm.points)
                             if vm.saved {
-                                Text("GUARDADO").eyebrow(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 8)
+                                Text("✓ GUARDADO — si supera tu máximo anterior, queda como nuevo récord")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Cumbre.terra)
+                                    .multilineTextAlignment(.center)
+                                    .frame(maxWidth: .infinity).padding(12)
+                                    .background(Cumbre.terraBg)
+                                    .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                                secondaryButton("MEDIR OTRA VEZ") { vm.reset() }
                             } else {
                                 HStack(spacing: 8) {
-                                    Button { vm.reset() } label: {
-                                        Text("REPETIR").frame(maxWidth: .infinity).padding(.vertical, 14)
-                                            .background(Cumbre.paper).foregroundStyle(Cumbre.ink)
-                                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                                    }
-                                    Button { vm.save() } label: {
-                                        Text("GUARDAR").frame(maxWidth: .infinity).padding(.vertical, 14)
-                                            .background(Cumbre.terra).foregroundStyle(.white)
-                                    }
+                                    secondaryButton("REPETIR") { vm.reset() }
+                                    primaryButton("GUARDAR", enabled: true, bg: Cumbre.terra) { vm.save() }
                                 }
                             }
                         }
@@ -165,16 +144,61 @@ struct GripMeasureView: View {
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
-    private func handButton(_ label: String, value: String) -> some View {
-        let isSel = vm.hand == value
-        return Text(label)
-            .font(.system(size: 14, weight: .semibold))
-            .frame(maxWidth: .infinity).padding(.vertical, 12)
-            .background(isSel ? Cumbre.terra : Cumbre.paper)
-            .foregroundStyle(isSel ? .white : Cumbre.ink)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-            .onTapGesture {
-                if vm.phase == .idle { vm.hand = value }
+    /// Número enorme en mono — protagonista absoluto de la pantalla.
+    private func bigKgDisplay(kg: Double?, sublabel: String) -> some View {
+        VStack(spacing: 2) {
+            HStack(alignment: .bottom, spacing: 2) {
+                Text(kg.map { String(format: "%.1f", $0) } ?? "—")
+                    .font(Cumbre.mono(64, .bold))
+                    .foregroundStyle(Cumbre.ink)
+                Text("kg").font(Cumbre.mono(20))
+                    .foregroundStyle(Cumbre.ink3)
+                    .padding(.bottom, 12)
             }
+            Text(sublabel).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func resultCard(peakKg: Double, avgKg: Double, durationS: Int) -> some View {
+        VStack(spacing: 4) {
+            Text("RESULTADO").eyebrow()
+            HStack(alignment: .bottom, spacing: 2) {
+                Text(String(format: "%.1f", peakKg))
+                    .font(Cumbre.mono(52, .bold)).foregroundStyle(Cumbre.terra)
+                Text("kg").font(Cumbre.mono(18)).foregroundStyle(Cumbre.ink3)
+                    .padding(.bottom, 10)
+            }
+            if let g = vm.selectedGripType {
+                Text("\(fingerGroupLabel(g.fingerGroup)) · \(gripStyleLabel(g.style)) · \(vm.hand == "LEFT" ? "Izquierda" : "Derecha")")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+            }
+            Text(String(format: "Media %.1f kg · %ds de tirón", avgKg, durationS))
+                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(16)
+        .background(Cumbre.paper)
+        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func primaryButton(_ label: String, enabled: Bool, bg: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label).font(.system(size: 15, weight: .semibold))
+                .frame(maxWidth: .infinity).padding(.vertical, 15)
+                .background(enabled ? bg : Cumbre.ink3)
+                .foregroundStyle(.white)
+        }
+        .disabled(!enabled)
+    }
+
+    private func secondaryButton(_ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label).font(.system(size: 15, weight: .semibold))
+                .frame(maxWidth: .infinity).padding(.vertical, 15)
+                .background(Cumbre.paper).foregroundStyle(Cumbre.ink)
+                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        }
     }
 }

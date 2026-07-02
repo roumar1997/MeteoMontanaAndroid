@@ -217,22 +217,11 @@ struct GripWorkoutEditorView: View {
                     get: { Int(vm.sets[index].restS) }, set: { vm.sets[index].restS = Int32($0) }
                 ), range: 0...600, step: 5)
             }
-            Text("AGARRE").eyebrow()
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(vm.gripTypes, id: \.id) { g in
-                        let isSel = g.id == vm.sets[index].gripTypeId
-                        Text(gripTypeLabel(g))
-                            .font(.system(size: 12, weight: .semibold))
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(isSel ? Cumbre.terra : Cumbre.bg)
-                            .foregroundStyle(isSel ? .white : Cumbre.ink)
-                            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
-                            .clipShape(Capsule())
-                            .onTapGesture { vm.sets[index].gripTypeId = g.id }
-                    }
-                }
-            }
+            GripTypeTwoAxisSelector(
+                gripTypes: vm.gripTypes,
+                selected: vm.gripTypes.first { $0.id == vm.sets[index].gripTypeId },
+                onSelect: { g in vm.sets[index].gripTypeId = g.id }
+            )
             Text("RANGO OBJETIVO: \(Int(vm.sets[index].targetMinPct))% – \(Int(vm.sets[index].targetMaxPct))% de tu máximo")
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
             RangeSliderView(
