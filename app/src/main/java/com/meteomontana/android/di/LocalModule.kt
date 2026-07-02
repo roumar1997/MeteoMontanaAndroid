@@ -76,4 +76,10 @@ object LocalModule {
     fun provideLocationProvider(
         impl: com.meteomontana.android.data.location.AndroidLocationProvider
     ): com.meteomontana.android.domain.port.LocationProvider = impl
+
+    // GripScaleProvider: interfaz en shared/commonMain, impl Android (escaneo BLE WH-C06).
+    @Provides @Singleton
+    fun provideGripScaleProvider(
+        impl: com.meteomontana.android.data.grips.AndroidGripScaleProvider
+    ): com.meteomontana.android.domain.port.GripScaleProvider = impl
 }

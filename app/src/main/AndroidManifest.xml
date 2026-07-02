@@ -9,6 +9,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Notificaciones push (Android 13+ requiere permiso runtime) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Báscula WH-C06 (pestaña Agarres): escaneo BLE de anuncios, sin
+         emparejar. neverForLocation porque no derivamos ubicación del
+         escaneo — en Android <12 igualmente hace falta ACCESS_FINE_LOCATION
+         (ya declarado arriba). -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
 
     <application
         android:name=".MeteoMontanaApp"
