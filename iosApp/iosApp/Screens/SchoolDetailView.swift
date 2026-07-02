@@ -891,6 +891,7 @@ private struct ContributionFormSheet: View {
     @State private var name = ""
     @State private var notes = ""
     @State private var sending = false
+    @State private var sendError: String? = nil
 
     private var isSector: Bool { type == "SECTOR" }
     private var title: String { isSector ? "Nueva zona" : "Nuevo parking" }
@@ -906,9 +907,12 @@ private struct ContributionFormSheet: View {
                             .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
                     }
                     field("NOTAS (opcional)", $notes, isSector ? "Descripción de la zona" : "Cómo es el acceso, etc.")
+                    if let sendError {
+                        Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                    }
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
-                            Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                            Text(sendError != nil ? "REINTENTAR" : NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
                         .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
@@ -934,8 +938,8 @@ private struct ContributionFormSheet: View {
             geometry: nil, path: nil, direction: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
-        dismiss()
-        onDone(ok)
+        if ok { dismiss(); onDone(true) }
+        else { sendError = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí." }
     }
 
     private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {

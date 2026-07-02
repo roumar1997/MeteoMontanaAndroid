@@ -295,21 +295,20 @@ fun ProposeContributionFlow(
             lon = s.lon,
             onCancel = onDismiss,
             onSubmit = { name, notes ->
-                scope.launch {
-                    val req = ContributionRequest(
-                        type = "PARKING",
-                        name = name.takeIf { it.isNotBlank() },
-                        lat = s.lat,
-                        lon = s.lon,
-                        notes = notes.takeIf { it.isNotBlank() },
-                        description = null,
-                        proposedLat = null, proposedLon = null,
-                        correctionReason = null, targetBlockId = null,
-                        photoUrl = null, bloquesJson = null, topoLinesJson = null
-                    )
-                    val result = viewModel.submitContribution(req)
-                    if (result.isSuccess) step = ProposeStep.Success
-                }
+                val req = ContributionRequest(
+                    type = "PARKING",
+                    name = name.takeIf { it.isNotBlank() },
+                    lat = s.lat,
+                    lon = s.lon,
+                    notes = notes.takeIf { it.isNotBlank() },
+                    description = null,
+                    proposedLat = null, proposedLon = null,
+                    correctionReason = null, targetBlockId = null,
+                    photoUrl = null, bloquesJson = null, topoLinesJson = null
+                )
+                val result = viewModel.submitContribution(req)
+                if (result.isSuccess) step = ProposeStep.Success
+                result.isSuccess
             }
         )
 
@@ -337,20 +336,19 @@ fun ProposeContributionFlow(
                 },
                 onCancel = onDismiss,
                 onSubmit = {
-                    scope.launch {
-                        val result = viewModel.submitBoulderFacesContribution(
-                            lat = s.lat, lon = s.lon,
-                            name = boulderName,
-                            faces = boulderFaces,
-                            sectorBlockId = boulderSectorBlockId,
-                            discipline = boulderDiscipline,
-                            geometry = boulderGeometry,
-                            path = if (boulderGeometry == "LINE" && boulderPath.isNotEmpty())
-                                boulderPath.toPathJson() else null,
-                            direction = boulderDirection
-                        )
-                        if (result.isSuccess) step = ProposeStep.Success
-                    }
+                    val result = viewModel.submitBoulderFacesContribution(
+                        lat = s.lat, lon = s.lon,
+                        name = boulderName,
+                        faces = boulderFaces,
+                        sectorBlockId = boulderSectorBlockId,
+                        discipline = boulderDiscipline,
+                        geometry = boulderGeometry,
+                        path = if (boulderGeometry == "LINE" && boulderPath.isNotEmpty())
+                            boulderPath.toPathJson() else null,
+                        direction = boulderDirection
+                    )
+                    if (result.isSuccess) step = ProposeStep.Success
+                    result.isSuccess
                 }
             )
 
@@ -381,20 +379,19 @@ fun ProposeContributionFlow(
             lat = s.lat, lon = s.lon,
             onCancel = onDismiss,
             onSubmit = { name, notes ->
-                scope.launch {
-                    val req = ContributionRequest(
-                        type = "SECTOR",
-                        name = name.takeIf { it.isNotBlank() },
-                        lat = s.lat, lon = s.lon,
-                        notes = notes.takeIf { it.isNotBlank() },
-                        description = null,
-                        proposedLat = null, proposedLon = null,
-                        correctionReason = null, targetBlockId = null,
-                        photoUrl = null, bloquesJson = null, topoLinesJson = null
-                    )
-                    val result = viewModel.submitContribution(req)
-                    if (result.isSuccess) step = ProposeStep.Success
-                }
+                val req = ContributionRequest(
+                    type = "SECTOR",
+                    name = name.takeIf { it.isNotBlank() },
+                    lat = s.lat, lon = s.lon,
+                    notes = notes.takeIf { it.isNotBlank() },
+                    description = null,
+                    proposedLat = null, proposedLon = null,
+                    correctionReason = null, targetBlockId = null,
+                    photoUrl = null, bloquesJson = null, topoLinesJson = null
+                )
+                val result = viewModel.submitContribution(req)
+                if (result.isSuccess) step = ProposeStep.Success
+                result.isSuccess
             }
         )
 
@@ -543,17 +540,77 @@ private fun BannerCancelOverlay(
     // Aquí solo dejamos pasar el cancel y el texto si quisieras render adicional.
 }
 
+// ─── Footer de envío compartido (CANCELAR + ENVIAR con error/reintento) ─────
+//
+// El envío puede fallar (sin cobertura en la escuela = caso habitual): al
+// fallar se resetea el spinner, se muestra el error y el botón vuelve a
+// ENVIAR — los datos del formulario NUNCA se pierden. Si [onSaveOffline] no
+// es null, además se ofrece guardar la propuesta para enviarla al recuperar
+// cobertura (cola offline).
+@Composable
+internal fun SubmitFooter(
+    sending: Boolean,
+    error: String?,
+    submitEnabled: Boolean = true,
+    onCancel: () -> Unit,
+    onSubmit: () -> Unit,
+    onSaveOffline: (() -> Unit)? = null
+) {
+    if (error != null) {
+        Text(error, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error)
+        if (onSaveOffline != null) {
+            Spacer(Modifier.height(Spacing.xs))
+            Box(modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
+                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                .clickable(enabled = !sending, onClick = onSaveOffline)
+                .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center) {
+                Text("GUARDAR Y ENVIAR CON COBERTURA", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+        Spacer(Modifier.height(Spacing.sm))
+    }
+    Row(modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Box(modifier = Modifier.weight(1f).clip(MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .clickable(enabled = !sending, onClick = onCancel)
+            .padding(vertical = Spacing.md),
+            contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurface)
+        }
+        Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
+            .background(if (submitEnabled) Terra else MaterialTheme.colorScheme.outline)
+            .clickable(enabled = !sending && submitEnabled, onClick = onSubmit)
+            .padding(vertical = Spacing.md),
+            contentAlignment = Alignment.Center) {
+            if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                color = Color.White, strokeWidth = 2.dp)
+            else Text(
+                if (error != null) "REINTENTAR" else stringResource(R.string.propose_submit),
+                style = EyebrowTextStyle, color = Color.White
+            )
+        }
+    }
+}
+
 // ─── SectorFormDialog ────────────────────────────────────────────────────────
 @Composable
 private fun SectorFormDialog(
     lat: Double,
     lon: Double,
     onCancel: () -> Unit,
-    onSubmit: (name: String, notes: String) -> Unit
+    onSubmit: suspend (name: String, notes: String) -> Boolean,
+    onSaveOffline: ((name: String, notes: String) -> Unit)? = null
 ) {
     var name  by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
         Text("Nuevo sector",
@@ -604,28 +661,19 @@ private fun SectorFormDialog(
         )
         Spacer(Modifier.height(Spacing.lg))
 
-        Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Box(modifier = Modifier.weight(1f).clip(MaterialTheme.shapes.small)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                .clickable(enabled = !sending, onClick = onCancel)
-                .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurface)
-            }
-            Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
-                .background(Terra)
-                .clickable(enabled = !sending && name.isNotBlank()) {
-                    sending = true; onSubmit(name, notes)
+        SubmitFooter(
+            sending = sending, error = error, submitEnabled = name.isNotBlank(),
+            onCancel = onCancel,
+            onSubmit = {
+                sending = true; error = null
+                scope.launch {
+                    val ok = onSubmit(name, notes)
+                    sending = false
+                    if (!ok) error = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí."
                 }
-                .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center) {
-                if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
-                    color = Color.White, strokeWidth = 2.dp)
-                else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
-            }
-        }
+            },
+            onSaveOffline = onSaveOffline?.let { save -> { save(name, notes) } }
+        )
     }
 }
 
@@ -636,11 +684,14 @@ private fun ParkingFormDialog(
     lat: Double,
     lon: Double,
     onCancel: () -> Unit,
-    onSubmit: (name: String, notes: String) -> Unit
+    onSubmit: suspend (name: String, notes: String) -> Boolean,
+    onSaveOffline: ((name: String, notes: String) -> Unit)? = null
 ) {
     var name  by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
         Text("Nuevo parking",
@@ -693,26 +744,19 @@ private fun ParkingFormDialog(
         )
         Spacer(Modifier.height(Spacing.lg))
 
-        Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Box(modifier = Modifier.weight(1f).clip(MaterialTheme.shapes.small)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                .clickable(enabled = !sending, onClick = onCancel)
-                .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurface)
-            }
-            Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
-                .background(Terra)
-                .clickable(enabled = !sending) { sending = true; onSubmit(name, notes) }
-                .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center) {
-                if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
-                    color = Color.White, strokeWidth = 2.dp)
-                else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
-            }
-        }
+        SubmitFooter(
+            sending = sending, error = error,
+            onCancel = onCancel,
+            onSubmit = {
+                sending = true; error = null
+                scope.launch {
+                    val ok = onSubmit(name, notes)
+                    sending = false
+                    if (!ok) error = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí."
+                }
+            },
+            onSaveOffline = onSaveOffline?.let { save -> { save(name, notes) } }
+        )
     }
 }
 
@@ -737,9 +781,12 @@ private fun BoulderFormDialog(
     path: List<Pair<Double, Double>>,
     onTraceWall: () -> Unit,
     onCancel: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: suspend () -> Boolean,
+    onSaveOffline: (() -> Unit)? = null
 ) {
     var sending by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val submitScope = rememberCoroutineScope()
     var sectorExpanded by remember { mutableStateOf(false) }
     var selectedFaceIdx by remember { mutableStateOf(0) }
     val faceIdx = selectedFaceIdx.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
@@ -1099,26 +1146,19 @@ private fun BoulderFormDialog(
         Spacer(Modifier.height(Spacing.lg))
 
         // ── Footer ────────────────────────────────────────────────────────────────
-        Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Box(modifier = Modifier.weight(1f).clip(MaterialTheme.shapes.small)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                .clickable(enabled = !sending, onClick = onCancel)
-                .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurface)
-            }
-            Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
-                .background(Terra)
-                .clickable(enabled = !sending) { sending = true; onSubmit() }
-                .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center) {
-                if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
-                    color = Color.White, strokeWidth = 2.dp)
-                else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
-            }
-        }
+        SubmitFooter(
+            sending = sending, error = error,
+            onCancel = onCancel,
+            onSubmit = {
+                sending = true; error = null
+                submitScope.launch {
+                    val ok = onSubmit()
+                    sending = false
+                    if (!ok) error = "No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí."
+                }
+            },
+            onSaveOffline = onSaveOffline
+        )
     }
 }
 

@@ -122,6 +122,9 @@ struct BoulderFormSheet: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var showEditor = false
     @State private var sending = false
+    // Error de envío: al fallar NO se cierra el sheet — se muestra el error y
+    // el botón pasa a REINTENTAR (la foto y las vías siguen ahí).
+    @State private var sendError: String? = nil
     // Geometría/sentido + trazado del muro (PUNTO por defecto).
     @State private var geometry = "POINT"
     @State private var direction = "LTR"
@@ -264,9 +267,12 @@ struct BoulderFormSheet: View {
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     }
 
+                    if let sendError {
+                        Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                    }
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
-                            Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                            Text(sendError != nil ? "REINTENTAR" : NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
                         .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
@@ -327,8 +333,12 @@ struct BoulderFormSheet: View {
             direction: direction)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
-        dismiss()
-        onDone(ok)
+        if ok {
+            dismiss()
+            onDone(true)
+        } else {
+            sendError = "No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí."
+        }
     }
 }
 
@@ -575,6 +585,7 @@ struct AssignSectorSheet: View {
     let onDone: (Bool) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var sending = false
+    @State private var sendError: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -600,6 +611,10 @@ struct AssignSectorSheet: View {
                             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                         }.buttonStyle(.plain).disabled(sending)
                     }
+                    if let sendError {
+                        Text(sendError + " Toca un sector para reintentar.")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                    }
                     if sending { ProgressView().frame(maxWidth: .infinity) }
                 }
                 .padding(16)
@@ -621,7 +636,9 @@ struct AssignSectorSheet: View {
             photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
             geometry: nil, path: nil, direction: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
-        sending = false; dismiss(); onDone(ok)
+        sending = false
+        if ok { dismiss(); onDone(true) }
+        else { sendError = "No se pudo enviar. Revisa la conexión." }
     }
 }
 
@@ -644,6 +661,7 @@ struct EditLinesSheet: View {
     @State private var selectedFace = 0
     @State private var showEditor = false
     @State private var sending = false
+    @State private var sendError: String? = nil
     @State private var loaded = false
     // Foto nueva elegida para una cara (mejorar la imagen). Al cambiarla, TODAS
     // las vías de esa cara se mueven a la foto nueva y se redibujan sobre ella.
@@ -798,9 +816,12 @@ struct EditLinesSheet: View {
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     }
 
+                    if let sendError {
+                        Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                    }
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
-                            Text("ENVIAR CAMBIOS").font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                            Text(sendError != nil ? "REINTENTAR" : "ENVIAR CAMBIOS").font(Cumbre.mono(13, .bold)).tracking(0.8) }
                         .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
@@ -912,7 +933,9 @@ struct EditLinesSheet: View {
             path: isWall ? (tracedPath.isEmpty ? block.path : buildPathJson(tracedPath)) : nil,
             direction: direction)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
-        sending = false; dismiss(); onDone(ok)
+        sending = false
+        if ok { dismiss(); onDone(true) }
+        else { sendError = "No se pudo enviar. Revisa la conexión — tus cambios siguen aquí." }
     }
 }
 
