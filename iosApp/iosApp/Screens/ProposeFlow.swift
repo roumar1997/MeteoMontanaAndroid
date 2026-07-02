@@ -125,6 +125,8 @@ struct BoulderFormSheet: View {
     // Error de envío: al fallar NO se cierra el sheet — se muestra el error y
     // el botón pasa a REINTENTAR (la foto y las vías siguen ahí).
     @State private var sendError: String? = nil
+    // Muro/sector plegados (opciones avanzadas del formulario).
+    @State private var advancedOpen = false
     // Geometría/sentido + trazado del muro (PUNTO por defecto).
     @State private var geometry = "POINT"
     @State private var direction = "LTR"
@@ -143,60 +145,8 @@ struct BoulderFormSheet: View {
 
                     FirstTimeHint(
                         hintKey: "boulder_form_guide",
-                        text: "Pasos: 1) Elige modalidad y geometría, 2) Añade una foto de la piedra, 3) Dibuja las líneas de las vías sobre la foto, 4) Envía."
+                        text: "Pasos: 1) Añade una foto de la piedra, 2) marca sus vías con grado, 3) dibuja las líneas sobre la foto, 4) envía."
                     )
-
-                    // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("MODALIDAD").eyebrow()
-                        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?")
-                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                        DisciplineSelector(selected: $discipline)
-                    }
-
-                    // ── Geometría: PUNTO o MURO ────────────────────────────────────
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
-                        Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.")
-                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                        WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
-                    }
-                    if isWall {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("SENTIDO DE NUMERACIÓN").eyebrow()
-                            WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
-                        }
-                        Button { showTrace = true } label: {
-                            Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✓ MURO TRAZADO (\(wallPath.count) PUNTOS) · RE-TRAZAR")
-                                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                                .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
-
-                    if !sectors.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("SECTOR (opcional)").eyebrow()
-                            Menu {
-                                Button("Sin sector") { sectorId = nil }
-                                ForEach(sectors, id: \.id) { s in
-                                    Button(s.name.isEmpty ? "Zona" : s.name) { sectorId = s.id }
-                                }
-                            } label: {
-                                HStack {
-                                    Text(sectorName).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                                    Spacer(); Image(systemName: "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                                }
-                                .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                            }
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("COORDENADAS").eyebrow()
-                        Text(String(format: "%.5f, %.5f", coord.latitude, coord.longitude))
-                            .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
-                    }
 
                     // ── Caras (fotos) ──────────────────────────────────────────────
                     Text("FOTOS DE LA PIEDRA").eyebrow()
@@ -265,6 +215,79 @@ struct BoulderFormSheet: View {
                     if !hasPhoto {
                         Text("Añade una foto para poder dibujar las líneas.")
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+
+                    // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("MODALIDAD").eyebrow()
+                        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                        DisciplineSelector(selected: $discipline)
+                    }
+
+                    // ── Opciones avanzadas: muro, sector y numeración (plegado) ──
+                    // El 90% de las propuestas son una piedra normal: esto vive
+                    // plegado para no estorbar (espejo del formulario Android).
+                    Button { withAnimation { advancedOpen.toggle() } } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Muro, sector y numeración").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                                Text(isWall ? "Muro de (wallPath.count) puntos" + (sectorId != nil ? " · con sector" : "")
+                                     : (sectorId != nil ? "Con sector asignado" : "Solo si es una pared larga o va en un sector"))
+                                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            }
+                            Spacer()
+                            Image(systemName: advancedOpen ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                        }
+                        .padding(12)
+                        .background(Cumbre.paper)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(advancedOpen ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                    }.buttonStyle(.plain)
+                    if advancedOpen {
+                        // ── Geometría: PUNTO o MURO ────────────────────────────────────
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
+                            Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.")
+                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
+                        }
+                        if isWall {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("SENTIDO DE NUMERACIÓN").eyebrow()
+                                WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
+                            }
+                            Button { showTrace = true } label: {
+                                Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✓ MURO TRAZADO (\(wallPath.count) PUNTOS) · RE-TRAZAR")
+                                    .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                    .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                    .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                            }.buttonStyle(.plain)
+                        }
+                        if !sectors.isEmpty {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("SECTOR (opcional)").eyebrow()
+                                Menu {
+                                    Button("Sin sector") { sectorId = nil }
+                                    ForEach(sectors, id: \.id) { s in
+                                        Button(s.name.isEmpty ? "Zona" : s.name) { sectorId = s.id }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(sectorName).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                                        Spacer(); Image(systemName: "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                                }
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("COORDENADAS").eyebrow()
+                        Text(String(format: "%.5f, %.5f", coord.latitude, coord.longitude))
+                            .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
                     }
 
                     if let sendError {
@@ -529,39 +552,55 @@ struct BoulderBlockRow: View {
                     }
                 }
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(BOULDER_GRADES, id: \.self) { g in
-                        let on = block.grade == g
-                        Button { block.grade = on ? nil : g } label: {
-                            Text(g).font(Cumbre.mono(11, .bold))
-                                .foregroundStyle(on ? .white : Cumbre.ink2)
-                                .padding(.horizontal, 9).padding(.vertical, 5)
-                                .background(on ? GradeColor.color(g) : Color.clear)
-                                .overlay(Rectangle().stroke(on ? GradeColor.color(g) : Cumbre.rule, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
-                }
-            }
-            HStack(spacing: 6) {
-                ForEach(START_TYPES, id: \.self) { st in
-                    let on = block.startType == st
-                    Button { block.startType = on ? nil : st } label: {
-                        Text(st).font(Cumbre.mono(10, .bold))
-                            .foregroundStyle(on ? .white : Cumbre.ink2)
-                            .padding(.horizontal, 9).padding(.vertical, 5)
-                            .background(on ? Cumbre.ink : Color.clear)
-                            .overlay(Rectangle().stroke(on ? Cumbre.ink : Cumbre.rule, lineWidth: 1))
+            // Grado: GRID de chips (todos visibles, un toque) — espejo de
+            // GradeChipsGrid de Android. Colores por dificultad (GradeColor).
+            Text("Grado").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 5)], spacing: 5) {
+                ForEach(BOULDER_GRADES, id: \.self) { g in
+                    let on = block.grade == g
+                    let c = GradeColor.color(g)
+                    Button { block.grade = on ? nil : g } label: {
+                        Text(g).font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(on ? (GradeColor.style(g).dark ? Color.black : .white) : Cumbre.ink)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                            .background(on ? c : c.opacity(0.16))
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .overlay(RoundedRectangle(cornerRadius: 9)
+                                .stroke(on ? Cumbre.ink : c.opacity(0.55), lineWidth: on ? 2 : 1))
                     }.buttonStyle(.plain)
                 }
-                if !block.line.isEmpty {
-                    Text("✓ línea (\(block.line.count))").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ok)
+            }
+            // Tipo de inicio con nombre completo (antes: siglas sin explicar).
+            Text("Tipo de inicio").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            HStack(spacing: 5) {
+                ForEach(START_TYPE_LABELS, id: \.0) { code, label in
+                    let on = block.startType == code
+                    Button { block.startType = on ? nil : code } label: {
+                        Text(label).font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(on ? Cumbre.bg : Cumbre.ink)
+                            .padding(.horizontal, 10).padding(.vertical, 7)
+                            .background(on ? Cumbre.ink : Cumbre.paper)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Cumbre.rule, lineWidth: 1))
+                    }.buttonStyle(.plain)
                 }
             }
+            if !block.line.isEmpty {
+                Text("✓ línea (\(block.line.count))").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ok)
+            }
         }
-        .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        .padding(10)
+        .background(Cumbre.bg)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
     }
 }
+
+/// Códigos de tipo de inicio → etiqueta legible (espejo de GradePickers.kt).
+let START_TYPE_LABELS: [(String, String)] = [
+    ("PIE", "De pie"), ("SIT", "Sentado"), ("LANCE", "Al lance"), ("TRAV", "Travesía")
+]
 
 
 /// Mapea el tipo de inicio del backend (STAND/JUMP) a la UI (PIE/LANCE).

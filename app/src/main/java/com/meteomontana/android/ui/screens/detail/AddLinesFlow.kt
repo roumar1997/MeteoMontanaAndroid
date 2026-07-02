@@ -725,14 +725,14 @@ internal fun AddLineRow(
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null
 ) {
-    var gradeExpanded by remember { mutableStateOf(false) }
     val gradeColor = colorForGrade(bloque.grade)
-    val startTypes = listOf("PIE", "SIT", "LANCE", "TRAV")
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.background)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
             .padding(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
@@ -782,78 +782,17 @@ internal fun AddLineRow(
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            ExposedDropdownMenuBox(
-                expanded = gradeExpanded,
-                onExpandedChange = { gradeExpanded = it },
-                modifier = Modifier.width(120.dp)
-            ) {
-                OutlinedTextField(
-                    value = bloque.grade ?: stringResource(R.string.add_lines_grade_placeholder),
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier.menuAnchor(),
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = gradeExpanded)
-                    },
-                    shape = MaterialTheme.shapes.small,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedIndicatorColor = gradeColor,
-                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-                ExposedDropdownMenu(
-                    expanded = gradeExpanded,
-                    onDismissRequest = { gradeExpanded = false }
-                ) {
-                    BOULDER_GRADES.forEach { grade ->
-                        val gs = gradeStyle(grade)
-                        DropdownMenuItem(
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                    Box(Modifier.size(10.dp).clip(CircleShape).background(gs.stroke))
-                                    Text(grade, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            },
-                            onClick = {
-                                onUpdate(bloque.copy(grade = grade))
-                                gradeExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
+        // Grado: grid de chips de un toque (colores por dificultad).
+        Text("Grado", style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        GradeChipsGrid(selected = bloque.grade,
+            onSelect = { onUpdate(bloque.copy(grade = it)) })
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                contentPadding = PaddingValues(horizontal = 0.dp)
-            ) {
-                items(startTypes) { type ->
-                    val sel = bloque.startType == type
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(
-                                if (sel) MaterialTheme.colorScheme.onBackground
-                                else MaterialTheme.colorScheme.surface
-                            )
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                            .clickable {
-                                onUpdate(bloque.copy(startType = if (sel) null else type))
-                            }
-                            .padding(horizontal = Spacing.xs, vertical = 2.dp)
-                    ) {
-                        Text(type, style = EyebrowTextStyle,
-                            color = if (sel) MaterialTheme.colorScheme.background
-                                    else MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-            }
-        }
+        // Tipo de inicio con nombre completo.
+        Text("Tipo de inicio", style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        StartTypeChips(selected = bloque.startType,
+            onSelect = { onUpdate(bloque.copy(startType = it)) })
 
         if (bloque.linePath.isNotEmpty()) {
             Text(stringResource(R.string.add_lines_route_drawn, bloque.linePath.size),
