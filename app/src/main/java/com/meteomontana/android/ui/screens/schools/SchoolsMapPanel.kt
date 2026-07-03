@@ -282,6 +282,15 @@ private fun MapBody(
 private val activeMarkers = mutableListOf<Marker>()
 private val markerSchoolBySnippet = mutableMapOf<String, String>()
 
+/** Caché de iconos (ver comentario en syncMarkers: evita corromper el atlas). */
+private val panelIconCache = HashMap<String, org.maplibre.android.annotations.Icon>()
+private fun cachedPanelIcon(
+    ctx: android.content.Context,
+    key: String,
+    make: () -> Bitmap
+): org.maplibre.android.annotations.Icon =
+    panelIconCache.getOrPut(key) { IconFactory.getInstance(ctx).fromBitmap(make()) }
+
 /**
  * Borra los markers anteriores y crea uno por escuela visible. Hace fit-bounds
  * para que la cámara encuadre lo que el usuario está filtrando.
@@ -309,8 +318,8 @@ internal fun syncMarkers(
         activeMarkers += map.addMarker(
             MarkerOptions()
                 .position(LatLng(userLat, userLon))
-                .icon(IconFactory.getInstance(ctx).fromBitmap(
-                    com.meteomontana.android.ui.components.userDotBitmap()))
+                .icon(cachedPanelIcon(ctx, "user") {
+                    com.meteomontana.android.ui.components.userDotBitmap() })
         )
     }
 
@@ -322,12 +331,19 @@ internal fun syncMarkers(
         // Escalar por densidad: en px fijos el pin salía diminuto en pantallas
         // de alta densidad (los móviles modernos, o sea, todos).
         val density = ctx.resources.displayMetrics.density
-        val bmp = if (tiny) dotBitmap(score, density)
-                  else diamondBitmap(score, if (showLabels) s.name else null, density)
+        // Icono CACHEADO por clave: sin caché, cada re-sync registra sprites
+        // nuevos en el atlas de MapLibre y acaba corrompiéndolo (markers
+        // pintados como bandas gigantes al hacer zoom).
+        val label = if (showLabels) s.name else null
+        val key = if (tiny) "dot:$score" else "dia:$score:${label ?: ""}"
+        val icon = cachedPanelIcon(ctx, key) {
+            if (tiny) dotBitmap(score, density)
+            else diamondBitmap(score, label, density)
+        }
         val marker = map.addMarker(
             MarkerOptions()
                 .position(LatLng(s.lat, s.lon))
-                .icon(IconFactory.getInstance(ctx).fromBitmap(bmp))
+                .icon(icon)
                 .snippet(s.id)         // truco: snippet = id para mapear back
         )
         activeMarkers += marker

@@ -1075,6 +1075,21 @@ internal fun parseWallPath(path: String?): List<LatLng> {
 /** Color terra de las piedras: el muro usa el MISMO color (solo que como línea). */
 private const val PIEDRA_COLOR = "#C2410C"
 
+/**
+ * Caché de iconos de marcador. Sin ella, cada re-sincronización registra
+ * sprites NUEVOS en el atlas de texturas de MapLibre (fromBitmap = id único);
+ * tras muchas re-sync el atlas se corrompe y los markers se pintan como
+ * bandas rayadas gigantes por el mapa (visto al hacer zoom en La Pedriza).
+ * Reutilizar el mismo Icon por clave lo evita de raíz.
+ */
+private val iconCache = HashMap<String, org.maplibre.android.annotations.Icon>()
+private fun cachedIcon(
+    factory: IconFactory,
+    key: String,
+    make: () -> android.graphics.Bitmap
+): org.maplibre.android.annotations.Icon =
+    iconCache.getOrPut(key) { factory.fromBitmap(make()) }
+
 private fun placeMarkers(
     ctx: android.content.Context,
     map: MapLibreMap,
@@ -1096,7 +1111,7 @@ private fun placeMarkers(
         map.addMarker(
             MarkerOptions()
                 .position(LatLng(userLoc.lat, userLoc.lon))
-                .icon(iconFactory.fromBitmap(userDotBitmap()))
+                .icon(cachedIcon(iconFactory, "user") { userDotBitmap() })
         )
     }
 
@@ -1124,7 +1139,9 @@ private fun placeMarkers(
             val midMarker = map.addMarker(
                 MarkerOptions()
                     .position(mid)
-                    .icon(iconFactory.fromBitmap(blockBitmap(b.name).fadedIf(isOriginalBeingMoved)))
+                    .icon(cachedIcon(iconFactory, "block:${b.name}:$isOriginalBeingMoved") {
+                        blockBitmap(b.name).fadedIf(isOriginalBeingMoved)
+                    })
                     .title(b.name)
             )
             markerBlockMap[midMarker.id] = b
@@ -1132,10 +1149,14 @@ private fun placeMarkers(
         }
 
         val icon = when (b.type.uppercase()) {
-            "PARKING" -> iconFactory.fromBitmap(parkingBitmap().fadedIf(isOriginalBeingMoved))
-            "ZONE"    -> iconFactory.fromBitmap(zoneBitmap().fadedIf(isOriginalBeingMoved))
-            "SCHOOL"  -> iconFactory.fromBitmap(schoolBitmap(b.name).fadedIf(isOriginalBeingMoved))
-            else      -> iconFactory.fromBitmap(blockBitmap(b.name).fadedIf(isOriginalBeingMoved))
+            "PARKING" -> cachedIcon(iconFactory, "parking:$isOriginalBeingMoved") {
+                parkingBitmap().fadedIf(isOriginalBeingMoved) }
+            "ZONE"    -> cachedIcon(iconFactory, "zone:$isOriginalBeingMoved") {
+                zoneBitmap().fadedIf(isOriginalBeingMoved) }
+            "SCHOOL"  -> cachedIcon(iconFactory, "school:${b.name}:$isOriginalBeingMoved") {
+                schoolBitmap(b.name).fadedIf(isOriginalBeingMoved) }
+            else      -> cachedIcon(iconFactory, "block:${b.name}:$isOriginalBeingMoved") {
+                blockBitmap(b.name).fadedIf(isOriginalBeingMoved) }
         }
         val marker = map.addMarker(
             MarkerOptions()
@@ -1161,7 +1182,7 @@ private fun placeMarkers(
             map.addMarker(
                 MarkerOptions()
                     .position(p)
-                    .icon(iconFactory.fromBitmap(wallPointBitmap(idx + 1)))
+                    .icon(cachedIcon(iconFactory, "wallpt:${idx + 1}") { wallPointBitmap(idx + 1) })
             )
         }
     }
@@ -1171,7 +1192,7 @@ private fun placeMarkers(
         map.addMarker(
             MarkerOptions()
                 .position(LatLng(ghost.newLat, ghost.newLon))
-                .icon(iconFactory.fromBitmap(ghostBitmap()))
+                .icon(cachedIcon(iconFactory, "ghost") { ghostBitmap() })
                 .title("Nueva posición")
         )
     }
