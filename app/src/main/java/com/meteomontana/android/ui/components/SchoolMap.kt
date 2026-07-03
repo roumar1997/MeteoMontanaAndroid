@@ -490,6 +490,25 @@ private fun InnerMap(
         }
     }
 
+    // Vigilante anti-desapariciones: si un re-pintado coincide con un gesto de
+    // zoom, el SDK a veces pierde las anotaciones (piedras/sectores esfumados).
+    // Al pararse la cámara, si el mapa está vacío cuando no debería, re-pintamos.
+    val visibleState = androidx.compose.runtime.rememberUpdatedState(visibleMarkers)
+    val ghostState = androidx.compose.runtime.rememberUpdatedState(correctionGhost)
+    val previewState = androidx.compose.runtime.rememberUpdatedState(activePreview)
+    androidx.compose.runtime.LaunchedEffect(mapRef.value) {
+        val map = mapRef.value ?: return@LaunchedEffect
+        map.addOnCameraIdleListener {
+            if (map.annotations.isEmpty() && visibleState.value.isNotEmpty()) {
+                placeMarkers(ctx, map, visibleState.value, ghostState.value,
+                    userLoc, previewState.value) { tapped ->
+                    if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+                    else onBlockTap(tapped)
+                }
+            }
+        }
+    }
+
     MapViewLifecycleEffect(mapViewRef) { mapRef.value = null }
 
     Column(modifier = Modifier.fillMaxWidth()) {
