@@ -85,7 +85,11 @@ struct RadarView: View {
                 radarBounds: bounds,
                 radarOpacity: opacity
             )
-            .ignoresSafeArea(edges: .top)
+            // El mapa ES la pantalla: llega hasta los bordes y se ve por
+            // DEBAJO de la tab bar (translúcida en esta pestaña). Los
+            // controles flotantes respetan el safe area, así que nada
+            // funcional queda tapado.
+            .ignoresSafeArea()
 
             // Título flotante + crédito AEMET (licencia)
             VStack {
@@ -197,6 +201,9 @@ struct RadarView: View {
         }
         .task { await loadAll() }
         .onDisappear { animTask?.cancel() }
+        // Tab bar translúcida con blur SOLO en Radar: el mapa asoma por
+        // debajo (espejo de la cápsula flotante de Android).
+        .toolbarBackground(.ultraThinMaterial, for: .tabBar)
     }
 
     // MARK: - Player flotante
