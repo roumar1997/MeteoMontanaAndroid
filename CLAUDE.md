@@ -542,6 +542,17 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-03 (noche)** — Release **2.8** (Android vc23, iOS build 33) con
+invitación a quedadas por enlace (/s/q/{id}?i=token HMAC; FOLLOWERS se salta,
+WOMEN nunca) y botón compartir en chat de grupo y detalle. **Push
+multi-dispositivo** (backend): users.fcm_token era UN token por usuario →
+login en el 2º móvil machacaba el del 1º (por eso iOS "no recibía"); tabla
+user_devices (V48) + PushSender.sendToUser/sendDataToUser con fan-out y
+limpieza de tokens inválidos; las apps no cambian. Descubierto: el boletín de
+montaña AEMET es ESTACIONAL — en verano solo publican Pirineos+Riojana; los
+otros 5 macizos devuelven 204 (no es bug). INVITE_SECRET pendiente de setear
+en Railway (prod+staging).
+
 **2026-07-03 (tarde)** — Releases **2.6/2.6.1/2.7** el mismo día. Notas
 comunitarias plegables + votos ▲/▼ (tabla note_votes; OJO: SMALLINT vs int
 tumbó prod 10 min — regla nueva: verificar staging UP antes de mergear main).
