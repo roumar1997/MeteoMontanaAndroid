@@ -542,6 +542,19 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-03** — Release **2.5** (Android vc19, iOS build 29). Pestaña **Radar propia**
+(AEMET OpenData: recolector cada 10 min + compuesto España cosido de los 15
+radares regionales, repintado en azules Cumbre, player HOY/AYER, retención 48h,
+servido por /api/radar/*; coordenadas de antenas de la BD OPERA). **Boletín de
+Montaña AEMET** en detalle de escuela (9 macizos, alerta de tormentas iluminada,
+/api/mountain/bulletin). Pestaña **Perfil** en la tab bar (fuera de Escuelas).
+Mini-fichas unificadas en mapas de Escuelas/Quedadas. Bugs cazados: atlas de
+iconos de MapLibre corrupto (rayas gigantes → caché de Icons), zona horaria
+UTC/Madrid escondía las últimas 2h del radar, .task en Group vacío (iOS) nunca
+disparaba. Prod y staging comparten key AEMET → RADAR_CRON desfasa los crons.
+Pendiente decidir: "segunda opinión" AEMET vs Open-Meteo; modelo de precio
+(Rodrigo sopesa 1 mes gratis → suscripción).
+
 **2026-07-02** — Se construyó completa la pestaña **Agarres** (dinamómetro BLE
 WH-C06: medir máximos, entrenos, juego arcade) y **se eliminó entera** el
 mismo día a petición de Rodrigo tras probarla. Recuperable en git si se
