@@ -908,39 +908,52 @@ private struct SchoolMapSection: View {
         let parkings = blocks.filter { $0.type.uppercased() == "PARKING" }.sorted { $0.name < $1.name }
         return Group {
             if !parkings.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("PARKINGS").eyebrow()
-                        .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 4)
-                    ForEach(parkings, id: \.id) { p in
-                        Button {
-                            // Puerta de entrada: mini-ficha + volar a su zona.
-                            miniBlock = p
-                            flyToParkingZone(p)
-                        } label: {
-                            HStack(spacing: 10) {
-                                Text("P")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .frame(width: 22, height: 22)
-                                    .background(Color(parkingColor))
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                                Text(p.name.isEmpty ? "Parking" : p.name)
-                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                                Spacer()
-                                if let u = userCoord {
-                                    let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: p.lat, lon2: p.lon)
-                                    Text(km < 1 ? "\(Int(km * 1000)) m" : String(format: "%.1f km", km))
-                                        .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                        .padding(.horizontal, 16).padding(.top, 10)
+                    // Chips horizontales (una línea): cada uno lleva el mapa a SU
+                    // zona (mini-ficha + encuadre parking + cercanos).
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(parkings, id: \.id) { p in
+                                Button {
+                                    miniBlock = p
+                                    flyToParkingZone(p)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Text("P")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .frame(width: 20, height: 20)
+                                            .background(Color(parkingColor))
+                                            .clipShape(RoundedRectangle(cornerRadius: 5))
+                                        Text(chipLabel(p))
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    }
+                                    .padding(.horizontal, 10).padding(.vertical, 7)
+                                    .background(Cumbre.paper)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
                                 }
+                                .buttonStyle(.plain)
                             }
-                            .padding(.horizontal, 16).padding(.vertical, 10)
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16).padding(.vertical, 6)
                     }
                 }
             }
         }
+    }
+
+    /// Etiqueta del chip de parking: nombre + distancia si hay ubicación.
+    private func chipLabel(_ p: Block) -> String {
+        var label = p.name.isEmpty ? "Parking" : p.name
+        if let u = userCoord {
+            let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: p.lat, lon2: p.lon)
+            label += km < 1 ? " · \(Int(km * 1000)) m" : String(format: " · %.1f km", km)
+        }
+        return label
     }
 
     private func color(for type: String) -> UIColor {

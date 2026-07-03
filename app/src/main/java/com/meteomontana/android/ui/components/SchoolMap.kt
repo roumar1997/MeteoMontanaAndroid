@@ -713,46 +713,49 @@ private fun InnerMap(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
                 )
-                parkings.forEach { parking ->
-                    val distanceText = userLoc?.let { loc ->
-                        val km = Geo.haversineKm(loc.lat, loc.lon, parking.lat, parking.lon)
-                        if (km < 1.0) "${(km * 1000).toInt()} m" else "${"%.1f".format(km)} km"
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                // Puerta de entrada: mini-ficha + volar a su zona.
-                                miniBlock = parking
-                                flyToParkingZone(parking)
-                            }
-                            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                // Chips horizontales (una línea): cada uno lleva el mapa a SU zona
+                // (mini-ficha + encuadre parking + sectores/piedras cercanos).
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Spacing.md)
+                ) {
+                    items(parkings.size) { i ->
+                        val parking = parkings[i]
+                        val distanceText = userLoc?.let { loc ->
+                            val km = Geo.haversineKm(loc.lat, loc.lon, parking.lat, parking.lon)
+                            if (km < 1.0) "${(km * 1000).toInt()} m" else "${"%.1f".format(km)} km"
+                        }
                         Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                                .clickable {
+                                    miniBlock = parking
+                                    flyToParkingZone(parking)
+                                }
+                                .padding(horizontal = Spacing.sm, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(RoundedCornerShape(4.dp))
+                                modifier = Modifier.size(20.dp)
+                                    .clip(RoundedCornerShape(5.dp))
                                     .background(Color(0xFF1A56DB)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("P", color = Color.White, style = MaterialTheme.typography.labelSmall,
+                                Text("P", color = Color.White,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold)
                             }
                             Text(
-                                parking.name.ifBlank { "Parking" },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground
+                                parking.name.ifBlank { "Parking" } +
+                                    (distanceText?.let { " · $it" } ?: ""),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                maxLines = 1
                             )
-                        }
-                        if (distanceText != null) {
-                            Text(distanceText, style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
