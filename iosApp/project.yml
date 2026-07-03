@@ -78,13 +78,12 @@ targets:
         CFBundleDisplayName: Cumbre
         CFBundleLocalizations:
           - es
-          - en
         CFBundleDevelopmentRegion: es
-        # Versión espejo de Android (versionName 2.3 / versionCode 17).
-        CFBundleShortVersionString: "2.3"
+        # Versión espejo de Android (versionName 2.4 / versionCode 18).
+        CFBundleShortVersionString: "2.4"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
-        # ÚNICO y mayor que el anterior. 12-23 ya subidos → 24.
-        CFBundleVersion: "24"
+        # ÚNICO y mayor que el anterior. 12-24 ya subidos → 25.
+        CFBundleVersion: "25"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).

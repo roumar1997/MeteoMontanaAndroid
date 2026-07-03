@@ -661,10 +661,11 @@ private fun InnerMap(
                 }
             )
 
-            // Botón "+ PROPONER" (esquina inferior derecha)
+            // Botón "+ PROPONER": pill flotante ARRIBA a la derecha —
+            // abajo lo tapaba la mini-ficha de parking/sector.
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.TopEnd)
                     .padding(Spacing.sm)
                     .clip(RoundedCornerShape(2.dp))
                     .background(Terra)

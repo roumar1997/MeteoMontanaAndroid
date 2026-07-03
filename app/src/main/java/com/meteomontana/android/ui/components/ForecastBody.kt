@@ -82,7 +82,7 @@ fun LazyListScope.forecastBody(
         DayRow(day = d, dayIndex = i, onClick = onDayClick?.let { { it(i) } })
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
     }
-    item { BestDayBar(forecast) }
+    // BestDayBar quitado: el score coloreado de cada fila ya lo dice (paridad iOS).
 }
 
 @Composable

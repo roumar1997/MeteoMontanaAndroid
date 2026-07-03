@@ -584,7 +584,7 @@ private struct SchoolMapSection: View {
             }
         }
         .sheet(isPresented: $showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
-        .alert("¿Eliminar «(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
+        .alert("¿Eliminar «\(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
             Button("ELIMINAR", role: .destructive) {
                 guard let mb = miniBlock else { return }
                 miniBlock = nil
@@ -734,7 +734,9 @@ private struct SchoolMapSection: View {
     // si la piedra pertenece a un sector colapsado (igual que su marcador).
     private var wallPolylines: [CumbrePolyline] {
         blocks.compactMap { b in
-            guard b.geometry.uppercased() == "LINE" else { return nil }
+            // Solo PIEDRAS: un parking/zona con path corrupto no debe estirarse
+            // en una línea (se veía azul, color del tipo).
+            guard b.type.uppercased() == "BLOCK", b.geometry.uppercased() == "LINE" else { return nil }
             if let sid = b.sectorBlockId, collapsedSectors.contains(sid) { return nil }
             let pts = parseWallPath(b.path)
             guard pts.count >= 2 else { return nil }
@@ -847,10 +849,10 @@ private struct SchoolMapSection: View {
         let stoneCount = blocks.filter { $0.sectorBlockId == mb.id }.count
         let collapsed = collapsedSectors.contains(mb.id)
         var subtitle = isParking ? "Parking" : "Sector"
-        if !isParking && stoneCount > 0 { subtitle += " · (stoneCount) piedra(stoneCount == 1 ? "" : "s")" }
+        if !isParking && stoneCount > 0 { subtitle += " · \(stoneCount) piedra\(stoneCount == 1 ? "" : "s")" }
         if let u = userCoord {
             let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: mb.lat, lon2: mb.lon)
-            subtitle += km < 1 ? " · (Int(km * 1000)) m" : String(format: " · %.1f km", km)
+            subtitle += km < 1 ? " · \(Int(km * 1000)) m" : String(format: " · %.1f km", km)
         }
         return VStack(spacing: 6) {
             HStack(spacing: 8) {
@@ -874,8 +876,8 @@ private struct SchoolMapSection: View {
                     }.buttonStyle(.plain)
                 }
                 Button {
-                    let g = URL(string: "comgooglemaps://?daddr=(mb.lat),(mb.lon)&directionsmode=driving")!
-                    let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=(mb.lat),(mb.lon)")!
+                    let g = URL(string: "comgooglemaps://?daddr=\(mb.lat),\(mb.lon)&directionsmode=driving")!
+                    let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(mb.lat),\(mb.lon)")!
                     UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
                 } label: {
                     Text("CÓMO LLEGAR").font(Cumbre.mono(10, .bold)).tracking(0.8)
@@ -1021,7 +1023,9 @@ private struct ContributionTypePicker: View {
                 Spacer()
             }
             .padding(12).frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .background(Cumbre.paper)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
         }
         .buttonStyle(.plain).disabled(!enabled)
     }

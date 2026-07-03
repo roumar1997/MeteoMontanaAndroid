@@ -17,7 +17,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import com.meteomontana.android.ui.AppRoot
-import com.meteomontana.android.ui.components.LanguagePrefs
 import com.meteomontana.android.ui.theme.MeteoMontanaTheme
 import com.meteomontana.android.ui.theme.ThemeManager
 import com.meteomontana.android.ui.theme.ThemeMode
@@ -39,22 +38,6 @@ class MainActivity : ComponentActivity() {
     // notificaciones nunca se concede y NO llega ninguna push (Android 13+).
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* resultado ignorado */ }
-
-    // Aplica el idioma guardado al CREAR el contexto base — antes de inflar cualquier
-    // recurso. Este es el único punto que garantiza el cambio en todos los OEM (MIUI,
-    // OneUI, etc.) sin depender de AppCompatDelegate.setApplicationLocales().
-    override fun attachBaseContext(newBase: Context) {
-        val code = LanguagePrefs.getSavedLanguageCode(newBase)
-        if (code != null) {
-            val locale = java.util.Locale(code)
-            java.util.Locale.setDefault(locale)
-            val config = Configuration(newBase.resources.configuration)
-            config.setLocale(locale)
-            super.attachBaseContext(newBase.createConfigurationContext(config))
-        } else {
-            super.attachBaseContext(newBase)
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash Screen API: pinta fondo papel + montaña al instante en vez de

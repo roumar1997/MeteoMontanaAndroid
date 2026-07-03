@@ -174,7 +174,6 @@ struct AccountView: View {
     @State private var showAddBlock = false
     @State private var showDeleteConfirm = false
     @State private var showHintsReset = false
-    @State private var showLanguagePicker = false
 
     private let authBridge = AppDependencies.shared.authBridge
 
