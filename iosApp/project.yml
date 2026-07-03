@@ -63,15 +63,10 @@ targets:
         # haya cuenta de pago.
         com.apple.developer.applesignin:
           - Default
-        # Push (APNs/FCM): DESACTIVADO por ahora. El identificador
-        # com.meteomontana.ios.3CP2YRJ579 (el de la app en App Store Connect) NO
-        # tiene la capacidad PUSH_NOTIFICATIONS habilitada, y el push de iOS aún no
-        # está activo en la app (PushManager.enabled = false). Con el entitlement
-        # puesto pero la capacidad ausente, la firma fallaría. Para reactivar push:
-        #  1) habilitar PUSH_NOTIFICATIONS en ese identificador (developer.apple.com),
-        #  2) descomentar la línea de abajo,
-        #  3) subir la APNs key a Firebase y poner PushManager.enabled = true.
-        # aps-environment: production
+        # Push (APNs/FCM): ACTIVO desde 2026-07-03. Capability habilitada en el
+        # App ID, llave AuthKey_8RXH43AWKR subida a Firebase (producción) y
+        # PushManager.enabled = true.
+        aps-environment: production
     info:
       path: iosApp/Info.plist
       properties:
@@ -79,6 +74,9 @@ targets:
         CFBundleLocalizations:
           - es
         CFBundleDevelopmentRegion: es
+        # Push con la app cerrada (FCM data messages).
+        UIBackgroundModes:
+          - remote-notification
         # Versión espejo de Android (versionName 2.4 / versionCode 18).
         CFBundleShortVersionString: "2.6.1"
         # CFBundleVersion: cada subida a App Store Connect necesita un número

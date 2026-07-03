@@ -6,16 +6,8 @@ import Shared
 
 /// Notificaciones push (APNs → FCM) para iOS.
 ///
-/// ⚠️ CÓDIGO LISTO PERO DESACTIVADO (`enabled = false`). Para activarlo antes de
-/// publicar (requiere cuenta Apple Developer de pago):
-///   1. Crear una APNs Auth Key (.p8) en developer.apple.com y subirla a Firebase
-///      (proyecto climbingteams → Cloud Messaging → APNs).
-///   2. En project.yml: descomentar la capability "aps-environment" (entitlement)
-///      y añadir UIBackgroundModes: [remote-notification]. Poner
-///      FirebaseAppDelegateProxyEnabled: true (o reenviar el apnsToken a Messaging
-///      desde un AppDelegate en didRegisterForRemoteNotificationsWithDeviceToken).
-///   3. Aquí: poner `enabled = true`.
-/// Hasta entonces no se registra nada (las notificaciones in-app/campana sí van).
+/// ACTIVO desde 2026-07-03: capability Push en el App ID, APNs key en Firebase
+/// (producción) y entitlement aps-environment en project.yml.
 final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDelegate {
     static let shared = PushManager()
     /// Interruptor maestro. Mientras sea false no se pide permiso ni se registra.
