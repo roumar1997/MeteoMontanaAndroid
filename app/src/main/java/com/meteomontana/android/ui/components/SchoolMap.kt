@@ -619,9 +619,9 @@ private fun InnerMap(
         // Lo importante para llegar: desde qué parking se va andando. Orden
         // alfabético (NO por cercanía — la lista debe tener sentido también
         // viéndola desde casa, lejos de la escuela). La distancia se muestra
-        // solo como dato informativo. Pulsar uno centra el mapa en esa zona
-        // (para ver qué sectores/piedras hay alrededor) y abre su ficha, que
-        // ya tiene el botón "CÓMO LLEGAR".
+        // solo como dato informativo. Pulsar uno lleva el mapa a SU zona
+        // (encuadra parking + sectores/piedras cercanos, expandiéndolos). La
+        // ficha con "CÓMO LLEGAR" se abre tocando el marker en el mapa.
         val parkings = remember(blocks) { blocks.filter { it.type == "PARKING" }.sortedBy { it.name } }
         if (parkings.isNotEmpty()) {
             Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
@@ -640,14 +640,37 @@ private fun InnerMap(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                selectedBlock = parking
+                                // El parking como PUERTA DE ENTRADA a su zona: el
+                                // mapa vuela a encuadrar el parking + lo que hay a
+                                // ≤800 m (sectores y piedras, expandiendo los
+                                // colapsados). NO se abre la ficha encima (antes
+                                // tapaba el mapa y no se veía la zona); la ficha
+                                // con CÓMO LLEGAR sigue en el marker del mapa.
+                                val near = blocks.filter { b ->
+                                    b.id != parking.id &&
+                                        Geo.haversineKm(parking.lat, parking.lon, b.lat, b.lon) <= 0.8
+                                }
+                                val nearZoneIds = near.filter { it.type == "ZONE" }.map { it.id } +
+                                    near.mapNotNull { it.sectorBlockId }
+                                if (nearZoneIds.isNotEmpty()) {
+                                    collapsedSectors = collapsedSectors - nearZoneIds.toSet()
+                                }
                                 mapRef.value?.let { map ->
                                     runCatching {
-                                        map.animateCamera(
-                                            CameraUpdateFactory.newLatLngZoom(
-                                                LatLng(parking.lat, parking.lon), 16.5
+                                        if (near.isEmpty()) {
+                                            map.animateCamera(
+                                                CameraUpdateFactory.newLatLngZoom(
+                                                    LatLng(parking.lat, parking.lon), 16.0
+                                                )
                                             )
-                                        )
+                                        } else {
+                                            val bb = LatLngBounds.Builder()
+                                                .include(LatLng(parking.lat, parking.lon))
+                                            near.forEach { bb.include(LatLng(it.lat, it.lon)) }
+                                            map.animateCamera(
+                                                CameraUpdateFactory.newLatLngBounds(bb.build(), 130)
+                                            )
+                                        }
                                     }
                                 }
                             }

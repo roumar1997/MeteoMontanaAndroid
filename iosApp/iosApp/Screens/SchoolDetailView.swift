@@ -355,6 +355,8 @@ private struct SchoolMapSection: View {
     // Foco explícito al pulsar un parking en la lista (recentra el mapa ahí).
     @State private var focusCoord: CLLocationCoordinate2D?
     @State private var focusToken = 0
+    // Encuadre de bounds (parking + su zona) — tiene prioridad sobre focusCoord.
+    @State private var focusFit: [CLLocationCoordinate2D] = []
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -430,7 +432,8 @@ private struct SchoolMapSection: View {
                         // memberwise de Swift exige el mismo orden que la
                         // declaración del struct aunque los args vayan con nombre.
                         focusCoordinate: focusCoord,
-                        focusToken: focusToken
+                        focusToken: focusToken,
+                        focusFitCoordinates: focusFit
                     )
                     .frame(height: 280)
 
@@ -779,8 +782,26 @@ private struct SchoolMapSection: View {
                         .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 4)
                     ForEach(parkings, id: \.id) { p in
                         Button {
-                            selectedBlock = p
-                            focusCoord = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)
+                            // El parking como PUERTA DE ENTRADA a su zona: el mapa
+                            // vuela a encuadrar parking + lo que hay a ≤800 m
+                            // (expandiendo sectores colapsados). NO se abre la
+                            // ficha encima (tapaba el mapa); la ficha con CÓMO
+                            // LLEGAR sigue en el marker.
+                            let near = blocks.filter { b in
+                                b.id != p.id &&
+                                Geo.shared.haversineKm(lat1: p.lat, lon1: p.lon, lat2: b.lat, lon2: b.lon) <= 0.8
+                            }
+                            for b in near {
+                                if b.type.uppercased() == "ZONE" { collapsedSectors.remove(b.id) }
+                                if let sid = b.sectorBlockId { collapsedSectors.remove(sid) }
+                            }
+                            if near.isEmpty {
+                                focusFit = []
+                                focusCoord = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)
+                            } else {
+                                focusFit = [CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)]
+                                    + near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+                            }
                             focusToken += 1
                         } label: {
                             HStack(spacing: 10) {

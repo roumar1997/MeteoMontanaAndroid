@@ -131,6 +131,10 @@ struct MapLibreView: UIViewRepresentable {
     var focusCoordinate: CLLocationCoordinate2D? = nil
     var focusZoom: Double = 16.5
     var focusToken: Int = 0
+    /// Si tiene ≥2 coordenadas, el foco ENCUADRA todas (bounds) en vez de
+    /// centrar en focusCoordinate — p. ej. parking + sus sectores/piedras
+    /// cercanos ("parking como puerta de entrada a su zona").
+    var focusFitCoordinates: [CLLocationCoordinate2D] = []
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -173,9 +177,25 @@ struct MapLibreView: UIViewRepresentable {
 
         // Foco explícito (p. ej. pulsar un parking en la lista): solo cuando
         // `focusToken` cambia, para no recentrar en cada recomposición.
-        if let coord = focusCoordinate, focusToken != context.coordinator.lastFocusToken {
+        if focusToken != context.coordinator.lastFocusToken,
+           (focusCoordinate != nil || focusFitCoordinates.count >= 2) {
             context.coordinator.lastFocusToken = focusToken
-            map.setCenter(coord, zoomLevel: focusZoom, animated: true)
+            if focusFitCoordinates.count >= 2 {
+                var minLat = focusFitCoordinates[0].latitude, maxLat = minLat
+                var minLon = focusFitCoordinates[0].longitude, maxLon = minLon
+                for c in focusFitCoordinates {
+                    minLat = min(minLat, c.latitude); maxLat = max(maxLat, c.latitude)
+                    minLon = min(minLon, c.longitude); maxLon = max(maxLon, c.longitude)
+                }
+                let bounds = MLNCoordinateBounds(
+                    sw: CLLocationCoordinate2D(latitude: minLat, longitude: minLon),
+                    ne: CLLocationCoordinate2D(latitude: maxLat, longitude: maxLon))
+                map.setVisibleCoordinateBounds(bounds,
+                    edgePadding: UIEdgeInsets(top: 60, left: 50, bottom: 60, right: 50),
+                    animated: true)
+            } else if let coord = focusCoordinate {
+                map.setCenter(coord, zoomLevel: focusZoom, animated: true)
+            }
         }
     }
 
