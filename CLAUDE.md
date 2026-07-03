@@ -548,7 +548,11 @@ WOMEN nunca) y botón compartir en chat de grupo y detalle. **Push
 multi-dispositivo** (backend): users.fcm_token era UN token por usuario →
 login en el 2º móvil machacaba el del 1º (por eso iOS "no recibía"); tabla
 user_devices (V48) + PushSender.sendToUser/sendDataToUser con fan-out y
-limpieza de tokens inválidos; las apps no cambian. Descubierto: el boletín de
+limpieza de tokens inválidos; las apps no cambian. Segunda causa raíz (la
+definitiva): con FirebaseAppDelegateProxyEnabled=false hay que pasar el token
+APNs a Messaging A MANO en el AppDelegate — faltaba → iOS nunca generó token
+FCM ni se registró. Fix en build 34 (TestFlight), VERIFICADO: push llega a
+Android e iPhone a la vez. Descubierto: el boletín de
 montaña AEMET es ESTACIONAL — en verano solo publican Pirineos+Riojana; los
 otros 5 macizos devuelven 204 (no es bug). INVITE_SECRET pendiente de setear
 en Railway (prod+staging).
