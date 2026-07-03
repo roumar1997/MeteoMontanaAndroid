@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -266,14 +269,15 @@ fun BlockDetailDialog(
                                 // abre la app directamente en esta piedra con la línea.
                                 if (!isProposal) {
                                     Spacer(Modifier.weight(1f))
-                                    Text(
-                                        "⇪",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    androidx.compose.material3.Icon(
+                                        Icons.Outlined.Share,
+                                        contentDescription = "Compartir",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier
                                             .clip(CircleShape)
                                             .clickable { shareLine(context, block, line, schoolName) }
-                                            .padding(horizontal = 6.dp)
+                                            .padding(5.dp)
+                                            .size(22.dp)
                                     )
                                 }
                                 // Proyecto: la estás probando, aún no te ha salido. Oculto
@@ -283,25 +287,29 @@ fun BlockDetailDialog(
                                     if (!done) {
                                         // (El compartir ya empujó el grupo a la derecha.)
                                         val isProject = projectLines.contains(line.id)
-                                        Text(
-                                            "P",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isProject) Color.White
-                                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                        Box(
                                             modifier = Modifier
+                                                .size(30.dp)
                                                 .clip(CircleShape)
                                                 .then(
                                                     if (isProject) Modifier.background(Terra, CircleShape)
-                                                    else Modifier.border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), CircleShape)
+                                                    else Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), CircleShape)
                                                 )
                                                 .clickable {
                                                     if (isProject) projectLines.remove(line.id)
                                                     else projectLines.add(line.id)
                                                     onToggleProject(line, idx)
-                                                }
-                                                .padding(horizontal = 6.dp, vertical = 1.dp)
-                                        )
+                                                },
+                                            contentAlignment = androidx.compose.ui.Alignment.Center
+                                        ) {
+                                            Text(
+                                                "P",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isProject) Color.White
+                                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                            )
+                                        }
                                     }
                                 }
                                 // Tic: marca/desmarca la vía en tu diario (toggle).
@@ -311,7 +319,7 @@ fun BlockDetailDialog(
                                     if (isProposal) Spacer(Modifier.weight(1f))
                                     Text(
                                         if (done) "✓" else "○",
-                                        style = MaterialTheme.typography.titleMedium,
+                                        style = MaterialTheme.typography.titleLarge,
                                         color = if (done) Color(0xFF1FA84E)
                                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier

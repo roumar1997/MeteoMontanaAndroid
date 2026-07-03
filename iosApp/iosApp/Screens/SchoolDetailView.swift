@@ -1311,9 +1311,9 @@ struct BlockInfoSheet: View {
                                         // directamente en esta piedra (espejo de Android).
                                         ShareLink(item: shareLineText(l)) {
                                             Image(systemName: "square.and.arrow.up")
-                                                .font(.system(size: 15))
-                                                .foregroundStyle(Cumbre.ink3)
-                                                .frame(width: 24, height: 24)
+                                                .font(.system(size: 16, weight: .medium))
+                                                .foregroundStyle(Cumbre.ink2)
+                                                .frame(width: 28, height: 28)
                                         }
                                         .buttonStyle(.plain)
                                         // Proyecto: la estás probando, aún no te ha salido. Oculto
