@@ -2,8 +2,9 @@ import SwiftUI
 import Shared
 
 // Boletín de montaña oficial de AEMET — espejo de MountainBulletinSection.kt.
-// Solo aparece si la escuela cae en uno de los 9 macizos con boletín; se
-// carga solo (204 → nil → no pinta nada).
+// Solo aparece si la escuela cae en uno de los 9 macizos con boletín.
+// Si el meteorólogo espera TORMENTAS, la tarjeta "se ilumina": borde terra
+// + chip de aviso visible SIN abrir el desplegable.
 struct MountainBulletinSection: View {
     let lat: Double
     let lon: Double
@@ -25,17 +26,37 @@ struct MountainBulletinSection: View {
         }
     }
 
+    /// Aviso si el boletín trae tormentas ("No se esperan" = limpio), o nil.
+    private func alert(_ b: MountainBulletinDto) -> String? {
+        guard let t = b.texts["tormentas"], !t.hasPrefix("No se esperan") else { return nil }
+        var clean = t
+        if clean.hasSuffix(".") { clean.removeLast() }
+        return "⚠ TORMENTAS: \(clean.lowercased())"
+    }
+
     private func card(_ b: MountainBulletinDto) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let warn = alert(b)
+        return VStack(alignment: .leading, spacing: 0) {
             Button { withAnimation { expanded.toggle() } } label: {
-                HStack {
+                HStack(spacing: 10) {
+                    Image(systemName: "mountain.2")
+                        .font(.system(size: 17))
+                        .foregroundStyle(Cumbre.terra)
+                        .frame(width: 38, height: 38)
+                        .background(Cumbre.terraBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 11))
                     VStack(alignment: .leading, spacing: 2) {
                         Text("BOLETÍN DE MONTAÑA · AEMET")
                             .font(Cumbre.mono(10, .bold)).tracking(1.6)
-                            .foregroundStyle(Cumbre.terra)
+                            .foregroundStyle(Cumbre.ink2)
                         Text(b.areaName)
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(Cumbre.ink)
+                        if let w = warn {
+                            Text(w).font(Cumbre.mono(9, .bold)).tracking(0.8)
+                                .foregroundStyle(Cumbre.terra)
+                                .lineLimit(1)
+                        }
                     }
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
@@ -51,21 +72,27 @@ struct MountainBulletinSection: View {
                 VStack(alignment: .leading, spacing: 10) {
                     row("CIELO", b.texts["nubosidad"])
                     row("PRECIPITACIONES", b.texts["pcp"])
-                    row("TORMENTAS", b.texts["tormentas"], highlight: true)
+                    row("TORMENTAS", b.texts["tormentas"], highlight: warn != nil)
                     row("TEMPERATURAS", b.texts["temperatura"])
                     row("VIENTO", b.texts["viento"])
 
-                    let atmo: [String] = [
-                        b.texts["isocero"].map { "Isoterma 0° a \($0)" },
-                        b.texts["v1500"].map { "Viento a 1.500 m: \($0)" },
-                        b.texts["v3000"].map { "Viento a 3.000 m: \($0)" }
+                    // Atmósfera libre como chips mono.
+                    let chips: [String] = [
+                        b.texts["isocero"].map { "ISO 0° · \($0)" },
+                        b.texts["v1500"].map { "1.500 M · \($0)" },
+                        b.texts["v3000"].map { "3.000 M · \($0)" }
                     ].compactMap { $0 }
-                    if !atmo.isEmpty {
-                        Divider().background(Cumbre.rule)
-                        Text("EN ALTURA").font(Cumbre.mono(10, .bold)).tracking(1.4)
-                            .foregroundStyle(Cumbre.ink2)
-                        ForEach(atmo, id: \.self) { line in
-                            Text(line).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                    if !chips.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(chips, id: \.self) { c in
+                                Text(c).font(Cumbre.mono(9, .bold)).tracking(0.6)
+                                    .foregroundStyle(Cumbre.ink)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Cumbre.paper2)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Cumbre.rule, lineWidth: 1))
+                            }
                         }
                     }
 
@@ -75,12 +102,15 @@ struct MountainBulletinSection: View {
                             .foregroundStyle(Cumbre.ink2)
                         ForEach(b.spots, id: \.nombre) { spot in
                             HStack {
-                                Text("\(spot.nombre) (\(spot.altitud))")
+                                Text(spot.nombre)
                                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                                 Spacer()
+                                Text(spot.altitud)
+                                    .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 Text("\(spot.minima)° / \(spot.maxima)°")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(Cumbre.ink)
+                                    .padding(.leading, 6)
                             }
                         }
                     }
@@ -92,8 +122,10 @@ struct MountainBulletinSection: View {
             }
         }
         .background(Cumbre.paper)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14)
+            .stroke(warn != nil ? Cumbre.terra : Cumbre.rule,
+                    lineWidth: warn != nil ? 1.5 : 1))
     }
 
     private func row(_ label: String, _ text: String?, highlight: Bool = false) -> some View {
@@ -101,8 +133,7 @@ struct MountainBulletinSection: View {
             if let t = text, !t.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(label).font(Cumbre.mono(10, .bold)).tracking(1.4)
-                        .foregroundStyle(highlight && !t.hasPrefix("No se esperan")
-                                         ? Cumbre.terra : Cumbre.ink2)
+                        .foregroundStyle(highlight ? Cumbre.terra : Cumbre.ink2)
                     Text(t).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                 }
             }
