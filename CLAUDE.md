@@ -542,6 +542,19 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-03 (tarde)** — Releases **2.6/2.6.1/2.7** el mismo día. Notas
+comunitarias plegables + votos ▲/▼ (tabla note_votes; OJO: SMALLINT vs int
+tumbó prod 10 min — regla nueva: verificar staging UP antes de mergear main).
+**Compartir vías/bloques y escuelas**: landings /s/* con Open Graph + foto
+(proxy URL firmada), assetlinks + apple-app-site-association, App Links
+Android (autoVerify) y Universal Links iOS (ShareLinkRouter + fullScreenCover);
+texto según disciplina. **Push iOS ACTIVADO** (APNs key en Firebase prod,
+capability + Associated Domains en App ID, perfil CI regenerado → secret
+PROVISIONING_PROFILE_BASE64). Deep-link diario Android roto por inserción
+tardía del boletín (LazyColumn destruía el diálogo) → boletín en paralelo.
+Pendiente: SHA-256 de Play App Signing para assetlinks; dominio con marca
+(cumbre.*) si Rodrigo lo compra; invitación a quedadas por enlace (tarea).
+
 **2026-07-03** — Release **2.5** (Android vc19, iOS build 29). Pestaña **Radar propia**
 (AEMET OpenData: recolector cada 10 min + compuesto España cosido de los 15
 radares regionales, repintado en azules Cumbre, player HOY/AYER, retención 48h,
