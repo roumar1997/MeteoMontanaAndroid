@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Directions
 import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Reply
 import androidx.compose.material.icons.outlined.Send
@@ -132,7 +133,8 @@ class GroupChatViewModel @Inject constructor(
     private val getPublicProfile: GetPublicProfileUseCase,
     private val getMeetupByConversation: GetMeetupByConversationUseCase,
     private val chatPushApi: KtorChatPushApi,
-    private val updateMyGearUseCase: UpdateMyGearUseCase
+    private val updateMyGearUseCase: UpdateMyGearUseCase,
+    private val meetupApi: com.meteomontana.android.data.api.KtorMeetupApi
 ) : ViewModel() {
     private val convId: String = checkNotNull(savedStateHandle["convId"])
     private val me: String = authService.currentUid() ?: ""
@@ -199,6 +201,22 @@ class GroupChatViewModel @Inject constructor(
 
     fun startReply(msg: ChatService.ChatMessage) { _state.value = _state.value.copy(replyingTo = msg) }
     fun cancelReply() { _state.value = _state.value.copy(replyingTo = null) }
+
+    /** Comparte el enlace de invitación al grupo (lo genera el backend). */
+    fun shareInvite(context: Context, meetupId: String, groupName: String) {
+        viewModelScope.launch {
+            val link = runCatching { meetupApi.getInviteLink(meetupId) }.getOrNull() ?: return@launch
+            val text = "🧗 Te invito a la quedada *" + groupName + "* en Cumbre\n" +
+                "👉 Únete desde aquí:\n" + link
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_TEXT, text)
+            }
+            runCatching {
+                context.startActivity(android.content.Intent.createChooser(intent, "Invitar al grupo"))
+            }
+        }
+    }
 
     /** Silenciar / reactivar notificaciones de este grupo (solo en este móvil). */
     fun toggleMute() {
@@ -290,6 +308,14 @@ fun GroupChatScreen(
                     openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName)
                 }) {
                     Icon(Icons.Outlined.Directions, "Cómo llegar",
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+            // Invitar al grupo: enlace que permite unirse aunque no haya
+            // relación de follows (los grupos "no mixto" siguen exigiendo género).
+            state.meetupId?.let { meetupId ->
+                IconButton(onClick = { viewModel.shareInvite(context, meetupId, state.name) }) {
+                    Icon(Icons.Outlined.PersonAdd, "Invitar al grupo",
                         tint = MaterialTheme.colorScheme.primary)
                 }
             }

@@ -45,8 +45,16 @@ class KtorMeetupApi(private val client: HttpClient) {
             setBody(req)
         }.body()
 
-    suspend fun joinMeetup(id: String): MeetupDto =
-        client.post("meetups/$id/join").body()
+    suspend fun joinMeetup(id: String, invite: String? = null): MeetupDto =
+        client.post("meetups/$id/join") {
+            invite?.let { parameter("invite", it) }
+        }.body()
+
+    /** Enlace de invitación al grupo (solo miembros). */
+    suspend fun getInviteLink(id: String): String {
+        val resp: Map<String, String> = client.get("meetups/$id/invite").body()
+        return resp["link"] ?: ""
+    }
 
     suspend fun leaveMeetup(id: String) { client.post("meetups/$id/leave") }
 

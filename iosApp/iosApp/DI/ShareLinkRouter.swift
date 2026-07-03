@@ -11,9 +11,10 @@ final class ShareLinkRouter: ObservableObject {
     static let shared = ShareLinkRouter()
 
     struct Target: Identifiable {
-        let school: School
-        let viaId: String?
-        var id: String { school.id + (viaId ?? "") }
+        var school: School? = nil
+        var viaId: String? = nil
+        var meetupId: String? = nil
+        var id: String { (school?.id ?? "") + (viaId ?? "") + (meetupId ?? "") }
     }
 
     @Published var target: Target? = nil
@@ -22,23 +23,28 @@ final class ShareLinkRouter: ObservableObject {
     func handle(_ url: URL) -> Bool {
         let seg = url.pathComponents.filter { $0 != "/" }
         guard seg.first == "s", seg.count >= 3 else { return false }
-        let schoolId: String
-        var viaId: String? = nil
         switch seg[1] {
-        case "e":
-            schoolId = seg[2]
-        case "v":
-            schoolId = seg[2]
-            viaId = seg.count >= 4 ? seg[3] : nil
+        case "e", "v":
+            let schoolId = seg[2]
+            let viaId = (seg[1] == "v" && seg.count >= 4) ? seg[3] : nil
+            Task {
+                if let school = try? await AppDependencies.shared.container.getSchoolById
+                    .invoke(id: schoolId) {
+                    self.target = Target(school: school, viaId: viaId)
+                }
+            }
+            return true
+        case "q":
+            // Invitación a quedada: guarda el token para que el join lo use
+            // (salta FOLLOWERS; los "no mixto" siguen exigiendo género).
+            let meetupId = seg[2]
+            let token = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "i" })?.value
+            PendingMeetupInvite.shared.set(meetupId: meetupId, token: token)
+            target = Target(meetupId: meetupId)
+            return true
         default:
             return false
         }
-        Task {
-            if let school = try? await AppDependencies.shared.container.getSchoolById
-                .invoke(id: schoolId) {
-                self.target = Target(school: school, viaId: viaId)
-            }
-        }
-        return true
     }
 }

@@ -11,6 +11,8 @@ final class MeetupDetailViewModel: ObservableObject {
     @Published var joining = false
     @Published var leaving = false
     @Published var dayScores: [String: Int] = [:]
+    /** Enlace de invitación (solo si somos miembros; el backend lo exige). */
+    @Published var inviteLink: String? = nil
 
     private let getMeetup    = AppDependencies.shared.container.getMeetup
     private let joinMeetup   = AppDependencies.shared.container.joinMeetup
@@ -44,6 +46,11 @@ final class MeetupDetailViewModel: ObservableObject {
             if let uc = getMeetup { meetup = try await uc.execute(id: id) }
         } catch { self.error = error.localizedDescription }
         loading = false
+        // Enlace de invitación (si somos miembros): para el botón de compartir.
+        if let m = meetup, m.joined {
+            inviteLink = try? await AppDependencies.shared.container.meetupApi
+                .getInviteLink(id: m.id)
+        }
         // Load day scores
         if let m = meetup, !m.schoolId.isEmpty, !m.days.isEmpty {
             await loadDayScores(schoolId: m.schoolId, days: Array(m.days))
@@ -166,9 +173,10 @@ struct MeetupDetailView: View {
                 Text(NSLocalizedString("meetup_detail_title", comment: "")).font(.headline).lineLimit(1)
                 Spacer()
                 HelpButton(topicKey: "meetup_detail")
-                // Share
+                // Compartir/invitar: ShareLink nativo (el UIActivityViewController
+                // anterior no se presentaba desde dentro de un sheet).
                 if let m = vm.meetup {
-                    Button { shareMeetup(m) } label: {
+                    ShareLink(item: meetupShareText(m, inviteLink: vm.inviteLink)) {
                         Image(systemName: "square.and.arrow.up").foregroundColor(Cumbre.ink.opacity(0.7))
                     }
                 }
@@ -595,19 +603,20 @@ func openDirections(lat: Double, lon: Double) {
     }
 }
 
-private func shareMeetup(_ meetup: Meetup) {
+/// Texto de compartir/invitar. Con enlace de invitación (miembros): permite
+/// unirse aunque no haya relación de follows (espejo de Android).
+func meetupShareText(_ meetup: Meetup, inviteLink: String?) -> String {
     let days = meetup.days.map { detailFormatDayMonth($0) }.joined(separator: ", ")
-    let plazas: String = {
-        if let lim = meetup.memberLimit {
-            return "\(meetup.memberCount)/\(lim.int32Value) plazas"
-        }
-        return "\(meetup.memberCount) participantes"
-    }()
-    var text = "Quedada: \(meetup.name)\n"
-    if let s = meetup.schoolName { text += "Escuela: \(s)\n" }
-    text += "\(days) \u{00B7} \(plazas)\n\nDescarga Cumbre:\nAndroid: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000"
-    let av = UIActivityViewController(activityItems: [text], applicationActivities: nil)
-    UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow?.rootViewController }.first?.present(av, animated: true)
+    var text = "🧗 Te invito a la quedada *\(meetup.name)*"
+    if let s = meetup.schoolName { text += " en \(s)" }
+    if !days.isEmpty { text += " (\(days))" }
+    text += "\n"
+    if let link = inviteLink, !link.isEmpty {
+        text += "👉 Únete desde aquí:\n\(link)"
+    } else {
+        text += "👉 Búscala en Cumbre (pestaña Quedadas)"
+    }
+    return text
 }
 
 private func detailFormatDayMonth(_ iso: String) -> String {

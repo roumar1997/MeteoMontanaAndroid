@@ -49,16 +49,22 @@ struct MeteoMontanaApp: App {
                         GIDSignIn.sharedInstance.handle(url)
                     }
                 }
-                // Destino del enlace compartido: la escuela (con la vía si venía).
+                // Destino del enlace compartido: escuela/vía o quedada invitada.
                 .fullScreenCover(item: shareTargetBinding) { t in
                     NavigationStack {
-                        SchoolDetailView(school: t.school, openVia: t.viaId)
-                            .toolbar {
-                                ToolbarItem(placement: .topBarLeading) {
-                                    Button("Cerrar") { ShareLinkRouter.shared.target = nil }
-                                        .foregroundStyle(Cumbre.terra)
-                                }
+                        Group {
+                            if let school = t.school {
+                                SchoolDetailView(school: school, openVia: t.viaId)
+                            } else if let meetupId = t.meetupId {
+                                MeetupDetailView(meetupId: meetupId)
                             }
+                        }
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("Cerrar") { ShareLinkRouter.shared.target = nil }
+                                    .foregroundStyle(Cumbre.terra)
+                            }
+                        }
                     }
                 }
                 // Al arrancar, sube las vías marcadas sin red que quedaron en cola.

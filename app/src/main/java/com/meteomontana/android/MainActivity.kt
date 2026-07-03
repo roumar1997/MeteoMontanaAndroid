@@ -73,6 +73,11 @@ class MainActivity : ComponentActivity() {
             val seg = uri.pathSegments
             if (seg.firstOrNull() == "s") {
                 when (seg.getOrNull(1)) {
+                    "q" -> seg.getOrNull(2)?.let { meetupId ->
+                        com.meteomontana.android.domain.usecase.meetups.PendingMeetupInvite
+                            .set(meetupId, uri.getQueryParameter("i"))
+                        pendingDeepLink.value = DeepLinkTarget("meetup", meetupId)
+                    }
                     "e" -> seg.getOrNull(2)?.let { pendingDeepLink.value = DeepLinkTarget("school", it) }
                     "v" -> {
                         val school = seg.getOrNull(2); val line = seg.getOrNull(3)

@@ -15,6 +15,8 @@ final class GroupChatVM: ObservableObject {
     @Published var replyingTo: ChatServiceChatMessage?
     // Quedada asociada (si la conversación es de una quedada).
     @Published var meetupId: String?
+    /** Texto listo para invitar al grupo (con el enlace del backend). */
+    @Published var inviteText: String?
     @Published var schoolLat: Double?
     @Published var schoolLon: Double?
     @Published var gearSummary: String?
@@ -62,6 +64,12 @@ final class GroupChatVM: ObservableObject {
                 self.myGearJson = mems.first(where: { $0.uid == self.me })?.gearJson
                 let gear = totalGearSummary(mems)
                 self.gearSummary = gear.isEmpty ? nil : gear
+                // Enlace de invitación al grupo (los miembros pueden invitar).
+                if let link = try? await AppDependencies.shared.container.meetupApi
+                    .getInviteLink(id: m.id), !link.isEmpty {
+                    self.inviteText = "🧗 Te invito a la quedada *\(m.name)* en Cumbre\n"
+                        + "👉 Únete desde aquí:\n\(link)"
+                }
             }
         }
         task = Task { [weak self] in
@@ -307,6 +315,13 @@ struct GroupChatView: View {
                         openDirections(lat: lat, lon: lon)
                     } label: {
                         Image(systemName: "location.fill").foregroundStyle(Cumbre.terra)
+                    }
+                }
+                // Invitar al grupo: enlace que permite unirse sin relación de
+                // follows (los "no mixto" siguen exigiendo género). Espejo Android.
+                if let invite = vm.inviteText {
+                    ShareLink(item: invite) {
+                        Image(systemName: "person.badge.plus").foregroundStyle(Cumbre.terra)
                     }
                 }
                 Button {

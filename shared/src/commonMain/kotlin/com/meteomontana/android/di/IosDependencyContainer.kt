@@ -177,7 +177,7 @@ class IosDependencyContainer(
     private val blockApi = KtorBlockApi(httpClient)
     private val blockRepository = KtorBlockRepository(blockApi)
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
-    private val meetupApi = KtorMeetupApi(httpClient)
+    val meetupApi = KtorMeetupApi(httpClient)
     private val meetupCache: MeetupCacheRepository? = database?.let { MeetupCacheRepository(it) }
 
     // Use cases públicos del MVP (sin auth). Se irán añadiendo más a medida

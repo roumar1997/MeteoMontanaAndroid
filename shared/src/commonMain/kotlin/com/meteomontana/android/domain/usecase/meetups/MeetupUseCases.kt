@@ -98,7 +98,9 @@ class JoinMeetupUseCase(
     private val cache: MeetupCacheRepository
 ) {
     suspend fun execute(id: String): Meetup {
-        val dto = api.joinMeetup(id)
+        // Si llegamos por un enlace de invitación, el token permite unirse
+        // aunque no haya relación de follows (los "no mixto" siguen exigiendo género).
+        val dto = api.joinMeetup(id, invite = PendingMeetupInvite.tokenFor(id))
         cache.saveAll(listOf(dto))
         return dto.toDomain()
     }
@@ -192,4 +194,21 @@ class SetMeetupAlertUseCase(private val api: KtorMeetupApi) {
         )
         return dto.toState()
     }
+}
+
+/**
+ * Invitación pendiente de consumir (viene del enlace /s/q/{id}?i={token}).
+ * La guarda quien parsea el enlace (MainActivity / ShareLinkRouter) y la lee
+ * el join. Un solo hueco: la última invitación abierta.
+ */
+object PendingMeetupInvite {
+    private var meetupId: String? = null
+    private var token: String? = null
+
+    fun set(meetupId: String, token: String?) {
+        this.meetupId = meetupId
+        this.token = token
+    }
+
+    fun tokenFor(id: String): String? = if (id == meetupId) token else null
 }

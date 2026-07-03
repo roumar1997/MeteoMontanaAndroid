@@ -152,6 +152,9 @@ fun MainScreen(
                 "user"        -> deepLink.targetId?.let { openSheet(Routes.publicProfile(it)) }
                 "chat", "message" -> deepLink.targetId?.let { openSheet(Routes.chat(it)) }
                 "group" -> deepLink.targetId?.let { openSheet(Routes.groupChat(it)) }
+                // Enlace de invitación a una quedada: abre su detalle (el join
+                // usará el token pendiente si lo hay).
+                "meetup" -> deepLink.targetId?.let { openSheet(Routes.meetupDetail(it)) }
                 "submission", "contribution" -> openSheet(Routes.MY_SUBMISSIONS)
                 "notifications" -> openSheet(Routes.NOTIFICATIONS)
                 "follow_request" -> openSheet(Routes.FOLLOW_REQUESTS)
