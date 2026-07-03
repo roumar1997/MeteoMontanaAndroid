@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseCore
+import FirebaseMessaging
 import GoogleSignIn
 import Shared
 
@@ -21,6 +22,20 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         FirebaseApp.configure()
         return true
+    }
+
+    /// Con FirebaseAppDelegateProxyEnabled=false (swizzling off), Firebase NO
+    /// captura solo el token de APNs: hay que pasárselo a mano. Sin esto,
+    /// Messaging nunca genera el token FCM → la app no se registra en el
+    /// backend → cero notificaciones en iOS (bug cazado el 2026-07-03).
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    func application(_ application: UIApplication,
+                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("APNs registration failed: \(error.localizedDescription)")
     }
 }
 
