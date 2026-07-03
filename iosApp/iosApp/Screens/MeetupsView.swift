@@ -878,28 +878,46 @@ struct MeetupsMapPanel: View {
                 }
 
                 if let g = popup {
-                    Button {
-                        onSchoolSelected(g.schoolId)
-                        popup = nil
-                        withAnimation { show = false }
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(g.schoolName).font(.body).fontWeight(.medium)
-                                    .foregroundColor(Cumbre.ink)
-                                Text("\(g.count) quedada\(g.count == 1 ? "" : "s") activa\(g.count == 1 ? "" : "s")")
-                                    .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
-                            }
-                            Spacer()
-                            Text("VER ▸").font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Cumbre.terra)
+                    // Mini-ficha (mismo estilo que parkings/escuelas).
+                    HStack(spacing: 10) {
+                        Text("\(g.count)")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .background(Cumbre.terra)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(g.schoolName).font(.body).fontWeight(.medium)
+                                .foregroundColor(Cumbre.ink)
+                            Text("\(g.count) quedada\(g.count == 1 ? "" : "s") activa\(g.count == 1 ? "" : "s")")
+                                .font(.caption).foregroundColor(Cumbre.ink2)
                         }
-                        .padding(12)
-                        .background(Cumbre.bg)
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
-                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        Spacer()
+                        Button {
+                            onSchoolSelected(g.schoolId)
+                            popup = nil
+                            withAnimation { show = false }
+                        } label: {
+                            Text("VER").font(Cumbre.mono(10, .bold)).tracking(1.2)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                .background(Cumbre.terra)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
+                        Button { popup = nil } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Cumbre.ink2)
+                                .padding(4)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    .padding(12)
+                    .background(Cumbre.bg)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+                    .padding(.horizontal, 8).padding(.vertical, 4)
                 }
             }
         }

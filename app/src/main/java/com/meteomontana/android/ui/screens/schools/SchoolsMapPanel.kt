@@ -474,14 +474,29 @@ private fun MarkerPreviewCard(
     val distKm = haversineKm(userLat, userLon, school.lat, school.lon)
     val scoreColor = pinColorHex(score)
 
+    // Mini-ficha (mismo estilo que la de parkings/sectores del mapa de escuela).
     Column(
         modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.background)
+            .border(1.dp, MaterialTheme.colorScheme.outline,
+                androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
             .padding(Spacing.md)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // Chip de score: el mismo color del pin, con el número dentro.
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                    .background(androidx.compose.ui.graphics.Color(scoreColor.toColorInt())),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(score?.toString() ?: "·",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = androidx.compose.ui.graphics.Color.White)
+            }
             Text(
                 school.name,
                 style = MaterialTheme.typography.titleMedium,
@@ -489,12 +504,7 @@ private fun MarkerPreviewCard(
                 modifier = Modifier.weight(1f)
             )
             Text(
-                if (score != null) "$score/100" else "—",
-                style = MaterialTheme.typography.titleMedium,
-                color = androidx.compose.ui.graphics.Color(scoreColor.toColorInt())
-            )
-            Text(
-                " ✕",
+                "✕",
                 modifier = Modifier
                     .clickable(onClick = onClose)
                     .padding(start = Spacing.sm),
@@ -558,8 +568,9 @@ private fun Tag(text: String) {
 private fun OutlinedAction(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline,
+                androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(vertical = Spacing.sm),
         contentAlignment = Alignment.Center
@@ -573,14 +584,14 @@ private fun OutlinedAction(text: String, onClick: () -> Unit, modifier: Modifier
 private fun FilledAction(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.onBackground)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.primary)
             .clickable(onClick = onClick)
             .padding(vertical = Spacing.sm),
         contentAlignment = Alignment.Center
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.background)
+            color = androidx.compose.ui.graphics.Color.White)
     }
 }
 

@@ -744,13 +744,15 @@ private struct SchoolMapPopup: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 if let s = score {
+                    // Chip redondeado (estilo mini-ficha, adiós al cuadrado duro).
                     VStack(spacing: 0) {
                         Text("\(s)").font(Cumbre.serif(26, .bold)).foregroundStyle(Cumbre.score(s))
                         Text(Cumbre.scoreLabel(s)).font(.system(size: 8, weight: .bold)).foregroundStyle(Cumbre.score(s))
                     }
                     .frame(width: 60, height: 60)
                     .background(Cumbre.score(s).opacity(0.12))
-                    .overlay(Rectangle().stroke(Cumbre.score(s), lineWidth: 1.5))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.score(s), lineWidth: 1.5))
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(school.name).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
@@ -762,8 +764,9 @@ private struct SchoolMapPopup: View {
                 DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
                 Button(action: onDetail) {
                     Text("VER DETALLE ▸").font(Cumbre.mono(12, .bold)).tracking(0.8)
-                        .foregroundStyle(Cumbre.ink).frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(Cumbre.terra)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }.buttonStyle(.plain)
             }
             Spacer()
