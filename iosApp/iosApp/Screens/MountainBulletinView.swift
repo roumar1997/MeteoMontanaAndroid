@@ -83,9 +83,13 @@ struct MountainBulletinSection: View {
                         b.texts["v3000"].map { "3.000 M · \($0)" }
                     ].compactMap { $0 }
                     if !chips.isEmpty {
-                        HStack(spacing: 6) {
+                        // Grid adaptativa: si un chip no cabe, salta de línea
+                        // ENTERO (nada de texto roto en vertical).
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 6)],
+                                  alignment: .leading, spacing: 6) {
                             ForEach(chips, id: \.self) { c in
                                 Text(c).font(Cumbre.mono(9, .bold)).tracking(0.6)
+                                    .lineLimit(1)
                                     .foregroundStyle(Cumbre.ink)
                                     .padding(.horizontal, 8).padding(.vertical, 4)
                                     .background(Cumbre.paper2)

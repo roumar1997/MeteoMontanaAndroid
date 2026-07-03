@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +45,7 @@ import com.meteomontana.android.ui.theme.Terra
  * Si el meteorólogo espera TORMENTAS (o chubascos), la tarjeta "se ilumina":
  * borde terra + chip de aviso visible SIN abrir el desplegable.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MountainBulletinSection(bulletin: MountainBulletinDto) {
     var expanded by remember { mutableStateOf(false) }
@@ -113,7 +116,10 @@ fun MountainBulletinSection(bulletin: MountainBulletinDto) {
                     bulletin.texts["v1500"]?.let { "1.500 M · $it" },
                     bulletin.texts["v3000"]?.let { "3.000 M · $it" })
                 if (chips.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    // FlowRow: si un chip no cabe, salta de línea ENTERO
+                    // (nada de texto roto en vertical).
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.padding(top = 2.dp)) {
                         chips.forEach { AltitudeChip(it) }
                     }
@@ -177,7 +183,7 @@ private fun AltitudeChip(text: String) {
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text, style = EyebrowTextStyle,
+        Text(text, style = EyebrowTextStyle, maxLines = 1,
             color = MaterialTheme.colorScheme.onSurface)
     }
 }
