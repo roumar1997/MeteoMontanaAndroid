@@ -472,7 +472,7 @@ private struct TopIconsRow: View {
             chatButton
             iconButton(theme.iconName) { theme.cycle() }
             bellButton
-            iconButton("person") { showAccount = true }
+            // El perfil ya no va aquí: tiene su propia pestaña inferior.
         }
         .padding(.horizontal, 4)
         .padding(.top, 4)

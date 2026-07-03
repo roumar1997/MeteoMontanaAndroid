@@ -458,10 +458,7 @@ private fun TopIconsRow(
             }
         }
         ThemeToggleButton()
-        IconButton(onClick = onProfileClick) {
-            Icon(Icons.Outlined.Person, contentDescription = stringResource(R.string.profile_title),
-                tint = MaterialTheme.colorScheme.onBackground)
-        }
+        // El perfil ya no va aquí: tiene su propia pestaña inferior.
     }
 }
 
