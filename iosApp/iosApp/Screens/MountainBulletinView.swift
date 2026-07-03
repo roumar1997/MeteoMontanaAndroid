@@ -13,7 +13,10 @@ struct MountainBulletinSection: View {
     @State private var expanded = false
 
     var body: some View {
-        Group {
+        // OJO: contenedor REAL (VStack), no Group. Los modificadores de un
+        // Group se aplican a sus hijos; sin boletín no hay hijos → el .task
+        // no se ejecutaba nunca y la tarjeta jamás aparecía (bug build 27).
+        VStack(spacing: 0) {
             if let b = bulletin {
                 card(b)
                     .padding(.horizontal, 16)
