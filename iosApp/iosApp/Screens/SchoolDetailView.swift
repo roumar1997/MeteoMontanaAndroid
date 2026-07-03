@@ -349,6 +349,10 @@ private struct SchoolMapSection: View {
     @State private var corrNew: CLLocationCoordinate2D?
     @State private var userCoord: CLLocationCoordinate2D?   // mi ubicación en el sector
     @State private var collapsedSectors: Set<String> = []   // zonas con piedras ocultas
+    // Mini-ficha flotante de PARKING/ZONA sobre el mapa (la ficha grande queda
+    // solo para PIEDRAS). confirmDeleteMini = confirmación de borrado (admin).
+    @State private var miniBlock: Block?
+    @State private var confirmDeleteMini = false
     @State private var editLinesBlock: Block?
     @State private var assignSectorBlock: Block?
     @State private var mapZoom: Double = 14   // para mostrar el nombre del sector al acercar
@@ -406,15 +410,18 @@ private struct SchoolMapSection: View {
                             if correctionMode && !corrActive {
                                 selectCorrectionTarget(id)
                             } else if !waitingTap && !correctionMode {
-                                // Tocar una ZONA con piedras → colapsa/expande sus piedras;
-                                // el resto de marcadores abre su ficha.
-                                if let b = blocks.first(where: { $0.id == id }),
-                                   b.type.uppercased() == "ZONE",
-                                   blocks.contains(where: { $0.sectorBlockId == b.id }) {
-                                    if collapsedSectors.contains(b.id) { collapsedSectors.remove(b.id) }
-                                    else { collapsedSectors.insert(b.id) }
-                                } else {
-                                    selectedBlock = blocks.first { $0.id == id }
+                                // Parking/zona → mini-ficha flotante (el mapa se
+                                // sigue viendo); piedras → su ficha completa.
+                                if let b = blocks.first(where: { $0.id == id }) {
+                                    switch b.type.uppercased() {
+                                    case "PARKING":
+                                        miniBlock = b
+                                        flyToParkingZone(b)
+                                    case "ZONE":
+                                        miniBlock = b
+                                    default:
+                                        selectedBlock = b
+                                    }
                                 }
                             }
                         },
@@ -460,6 +467,14 @@ private struct SchoolMapSection: View {
                                 .background(Cumbre.terra)
                         }
                         .buttonStyle(.plain).padding(12)
+                    }
+
+                    // Mini-ficha flotante de parking/sector: informa y da CÓMO
+                    // LLEGAR sin tapar el mapa.
+                    if let mb = miniBlock, !waitingTap, !correctionMode {
+                        VStack { Spacer(); miniBlockCard(mb) }
+                            .frame(height: 280)
+                            .frame(maxWidth: .infinity)
                     }
                 }
                 legend
@@ -553,6 +568,19 @@ private struct SchoolMapSection: View {
             }
         }
         .sheet(isPresented: $showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
+        .alert("¿Eliminar «(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
+            Button("ELIMINAR", role: .destructive) {
+                guard let mb = miniBlock else { return }
+                miniBlock = nil
+                Task {
+                    try? await AppDependencies.shared.container.deleteBlock.invoke(blockId: mb.id)
+                    await reloadBlocks()
+                }
+            }
+            Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
+        } message: {
+            Text("Esta acción no se puede deshacer.")
+        }
     }
 
     private func afterSubmit() {
@@ -773,6 +801,93 @@ private struct SchoolMapSection: View {
     // casa, lejos de la escuela); la distancia es solo dato informativo. Tocar
     // uno centra el mapa en esa zona (para ver qué sectores/piedras hay
     // alrededor) y abre su ficha, que ya tiene "CÓMO LLEGAR".
+    /// Vuela a la "zona" de un parking: encuadra parking + sectores/piedras a
+    /// ≤800 m (expandiendo colapsados) — vista de ~1,5-2 km. Sin nada cerca,
+    /// zoom equivalente. Espejo de flyToParkingZone de Android.
+    private func flyToParkingZone(_ p: Block) {
+        let near = blocks.filter { b in
+            b.id != p.id &&
+            Geo.shared.haversineKm(lat1: p.lat, lon1: p.lon, lat2: b.lat, lon2: b.lon) <= 0.8
+        }
+        for b in near {
+            if b.type.uppercased() == "ZONE" { collapsedSectors.remove(b.id) }
+            if let sid = b.sectorBlockId { collapsedSectors.remove(sid) }
+        }
+        if near.isEmpty {
+            focusFit = []
+            focusCoord = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)
+        } else {
+            focusFit = [CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)]
+                + near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+        }
+        focusToken += 1
+    }
+
+    /// Mini-ficha flotante de parking/sector: una línea de alto, el mapa se
+    /// sigue viendo. Admin: ✎ (abre la ficha completa) y 🗑 a la izquierda de
+    /// CÓMO LLEGAR. Sectores con piedras: toggle VER/OCULTAR explícito.
+    private func miniBlockCard(_ mb: Block) -> some View {
+        let isParking = mb.type.uppercased() == "PARKING"
+        let stoneCount = blocks.filter { $0.sectorBlockId == mb.id }.count
+        let collapsed = collapsedSectors.contains(mb.id)
+        var subtitle = isParking ? "Parking" : "Sector"
+        if !isParking && stoneCount > 0 { subtitle += " · (stoneCount) piedra(stoneCount == 1 ? "" : "s")" }
+        if let u = userCoord {
+            let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: mb.lat, lon2: mb.lon)
+            subtitle += km < 1 ? " · (Int(km * 1000)) m" : String(format: " · %.1f km", km)
+        }
+        return VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Text(isParking ? "P" : "Z")
+                    .font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 24, height: 24)
+                    .background(isParking ? Color(parkingColor) : Color(zoneColor))
+                    .clipShape(RoundedRectangle(cornerRadius: isParking ? 6 : 12))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(mb.name.isEmpty ? (isParking ? "Parking" : "Sector") : mb.name)
+                        .font(.system(size: 14, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                    Text(subtitle).font(.system(size: 11)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                if isAdmin {
+                    Button { selectedBlock = mb; miniBlock = nil } label: {
+                        Image(systemName: "pencil").font(.system(size: 15)).foregroundStyle(Cumbre.ink2).padding(4)
+                    }.buttonStyle(.plain)
+                    Button { confirmDeleteMini = true } label: {
+                        Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad).padding(4)
+                    }.buttonStyle(.plain)
+                }
+                Button {
+                    let g = URL(string: "comgooglemaps://?daddr=(mb.lat),(mb.lon)&directionsmode=driving")!
+                    let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=(mb.lat),(mb.lon)")!
+                    UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
+                } label: {
+                    Text("CÓMO LLEGAR").font(Cumbre.mono(10, .bold)).tracking(0.8)
+                        .foregroundStyle(.white).padding(.horizontal, 10).padding(.vertical, 8)
+                        .background(Cumbre.terra).clipShape(RoundedRectangle(cornerRadius: 9))
+                }.buttonStyle(.plain)
+                Button { miniBlock = nil } label: {
+                    Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Cumbre.ink3).padding(4)
+                }.buttonStyle(.plain)
+            }
+            if !isParking && stoneCount > 0 {
+                Button {
+                    if collapsed { collapsedSectors.remove(mb.id) } else { collapsedSectors.insert(mb.id) }
+                } label: {
+                    Text(collapsed ? "VER PIEDRAS" : "OCULTAR PIEDRAS")
+                        .font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
+                        .frame(maxWidth: .infinity).padding(.vertical, 7)
+                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .background(Cumbre.bg)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+        .padding(.horizontal, 8).padding(.bottom, 8)
+    }
+
     private var parkingsList: some View {
         let parkings = blocks.filter { $0.type.uppercased() == "PARKING" }.sorted { $0.name < $1.name }
         return Group {
@@ -782,27 +897,9 @@ private struct SchoolMapSection: View {
                         .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 4)
                     ForEach(parkings, id: \.id) { p in
                         Button {
-                            // El parking como PUERTA DE ENTRADA a su zona: el mapa
-                            // vuela a encuadrar parking + lo que hay a ≤800 m
-                            // (expandiendo sectores colapsados). NO se abre la
-                            // ficha encima (tapaba el mapa); la ficha con CÓMO
-                            // LLEGAR sigue en el marker.
-                            let near = blocks.filter { b in
-                                b.id != p.id &&
-                                Geo.shared.haversineKm(lat1: p.lat, lon1: p.lon, lat2: b.lat, lon2: b.lon) <= 0.8
-                            }
-                            for b in near {
-                                if b.type.uppercased() == "ZONE" { collapsedSectors.remove(b.id) }
-                                if let sid = b.sectorBlockId { collapsedSectors.remove(sid) }
-                            }
-                            if near.isEmpty {
-                                focusFit = []
-                                focusCoord = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)
-                            } else {
-                                focusFit = [CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)]
-                                    + near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-                            }
-                            focusToken += 1
+                            // Puerta de entrada: mini-ficha + volar a su zona.
+                            miniBlock = p
+                            flyToParkingZone(p)
                         } label: {
                             HStack(spacing: 10) {
                                 Text("P")

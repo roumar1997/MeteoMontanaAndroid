@@ -554,6 +554,14 @@ class SchoolDetailViewModel @Inject constructor(
         load()  // refresca centerLat/Lon
     }
 
+    /** Admin: edita nombre/descripción/coords de un bloque (mini-ficha del mapa). */
+    suspend fun adminUpdateBlock(
+        blockId: String, req: com.meteomontana.android.data.api.dto.CreateBlockRequest
+    ): Result<Unit> = runCatching {
+        updateBlockUseCase(blockId, req)
+        load()
+    }
+
     /** Admin: mueve un bloque (piedra/parking/zona) directamente conservando el resto. */
     suspend fun adminMoveBlock(blockId: String, lat: Double, lon: Double): Result<Unit> = runCatching {
         val cur = (uiState.value as? SchoolDetailUiState.Success)

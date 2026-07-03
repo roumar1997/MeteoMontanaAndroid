@@ -334,6 +334,11 @@ private fun InnerMap(
 
     // Bloque seleccionado (para popup) y bloque al que añadir vías
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
+    // Mini-ficha flotante de PARKING/ZONA: se pinta sobre el mapa sin taparlo
+    // (la ficha grande queda solo para PIEDRAS, que sí tienen contenido).
+    var miniBlock by remember { mutableStateOf<Block?>(null) }
+    var editingMiniBlock by remember { mutableStateOf<Block?>(null) }
+    var confirmDeleteMini by remember { mutableStateOf<Block?>(null) }
     // Vía objetivo del deep-link del diario → el detalle abre por su foto/cara.
     var highlightVia by remember { mutableStateOf<String?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
@@ -407,13 +412,42 @@ private fun InnerMap(
         }
     }
 
+    // Vuela a la "zona" de un parking: encuadra el parking + sectores/piedras a
+    // ≤800 m (expandiendo colapsados) — vista de ~1,5-2 km. Sin nada cerca,
+    // zoom equivalente.
+    val flyToParkingZone: (Block) -> Unit = { parking ->
+        val near = blocks.filter { b ->
+            b.id != parking.id &&
+                Geo.haversineKm(parking.lat, parking.lon, b.lat, b.lon) <= 0.8
+        }
+        val nearZoneIds = near.filter { it.type == "ZONE" }.map { it.id } +
+            near.mapNotNull { it.sectorBlockId }
+        if (nearZoneIds.isNotEmpty()) collapsedSectors = collapsedSectors - nearZoneIds.toSet()
+        mapRef.value?.let { map ->
+            runCatching {
+                if (near.isEmpty()) {
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                        LatLng(parking.lat, parking.lon), 14.3))
+                } else {
+                    val bb = LatLngBounds.Builder().include(LatLng(parking.lat, parking.lon))
+                    near.forEach { bb.include(LatLng(it.lat, it.lon)) }
+                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(bb.build(), 130))
+                }
+            }
+        }
+    }
+
     // Tap de marcador: ZONA con piedras → colapsa/expande sus piedras; resto → popup.
     val onBlockTap: (Block) -> Unit = { tapped ->
         if (tapped.id != "__SCHOOL__") {
-            if (tapped.type == "ZONE" && blocks.any { it.sectorBlockId == tapped.id }) {
-                val cur = collapsedState
-                collapsedSectors = if (tapped.id in cur) cur - tapped.id else cur + tapped.id
-            } else selectedBlock = tapped
+            when (tapped.type) {
+                // Parking: mini-ficha + volar a su zona (el mapa se sigue viendo).
+                "PARKING" -> { miniBlock = tapped; flyToParkingZone(tapped) }
+                // Zona: mini-ficha con VER/OCULTAR PIEDRAS explícito (antes el tap
+                // alternaba el colapso "en silencio" o abría la ficha gigante).
+                "ZONE" -> miniBlock = tapped
+                else -> selectedBlock = tapped
+            }
         }
     }
 
@@ -613,6 +647,27 @@ private fun InnerMap(
                 Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
             }
 
+            // Mini-ficha flotante de parking/sector: informa y da CÓMO LLEGAR
+            // sin tapar el mapa (la ficha grande queda para las piedras).
+            miniBlock?.let { mb ->
+                MiniBlockCard(
+                    block = mb,
+                    stoneCount = blocks.count { it.sectorBlockId == mb.id },
+                    collapsed = mb.id in collapsedSectors,
+                    userLoc = userLoc,
+                    isAdmin = isAdminUser,
+                    onToggleStones = {
+                        collapsedSectors =
+                            if (mb.id in collapsedSectors) collapsedSectors - mb.id
+                            else collapsedSectors + mb.id
+                    },
+                    onEdit = { editingMiniBlock = mb },
+                    onDelete = { confirmDeleteMini = mb },
+                    onClose = { miniBlock = null },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
+                )
+            }
         }
 
         // ── Lista de parkings ────────────────────────────────────────────
@@ -640,39 +695,9 @@ private fun InnerMap(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                // El parking como PUERTA DE ENTRADA a su zona: el
-                                // mapa vuela a encuadrar el parking + lo que hay a
-                                // ≤800 m (sectores y piedras, expandiendo los
-                                // colapsados). NO se abre la ficha encima (antes
-                                // tapaba el mapa y no se veía la zona); la ficha
-                                // con CÓMO LLEGAR sigue en el marker del mapa.
-                                val near = blocks.filter { b ->
-                                    b.id != parking.id &&
-                                        Geo.haversineKm(parking.lat, parking.lon, b.lat, b.lon) <= 0.8
-                                }
-                                val nearZoneIds = near.filter { it.type == "ZONE" }.map { it.id } +
-                                    near.mapNotNull { it.sectorBlockId }
-                                if (nearZoneIds.isNotEmpty()) {
-                                    collapsedSectors = collapsedSectors - nearZoneIds.toSet()
-                                }
-                                mapRef.value?.let { map ->
-                                    runCatching {
-                                        if (near.isEmpty()) {
-                                            map.animateCamera(
-                                                CameraUpdateFactory.newLatLngZoom(
-                                                    LatLng(parking.lat, parking.lon), 16.0
-                                                )
-                                            )
-                                        } else {
-                                            val bb = LatLngBounds.Builder()
-                                                .include(LatLng(parking.lat, parking.lon))
-                                            near.forEach { bb.include(LatLng(it.lat, it.lon)) }
-                                            map.animateCamera(
-                                                CameraUpdateFactory.newLatLngBounds(bb.build(), 130)
-                                            )
-                                        }
-                                    }
-                                }
+                                // Puerta de entrada: mini-ficha + volar a su zona.
+                                miniBlock = parking
+                                flyToParkingZone(parking)
                             }
                             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
@@ -710,6 +735,40 @@ private fun InnerMap(
 
     // Dialog de detalles (foto + líneas + vías + CÓMO LLEGAR).
     // No incluye BORRAR — esa acción vive en el panel admin (FullScreenMapDialog).
+    // ── Admin desde la mini-ficha: editar / eliminar ──
+    editingMiniBlock?.let { mb ->
+        EditBlockDialog(
+            block = mb,
+            onSave = { req ->
+                mapScope.launch {
+                    viewModel.adminUpdateBlock(mb.id, req)
+                    editingMiniBlock = null
+                    miniBlock = null
+                }
+            },
+            onDismiss = { editingMiniBlock = null }
+        )
+    }
+    confirmDeleteMini?.let { mb ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDeleteMini = null },
+            title = { Text("¿Eliminar «${mb.name.ifBlank { if (mb.type == "PARKING") "parking" else "sector" }}»?") },
+            text = { Text("Esta acción no se puede deshacer.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.deleteBlock(mb.id) {}
+                    confirmDeleteMini = null
+                    miniBlock = null
+                }) { Text("ELIMINAR", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDeleteMini = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
+
     selectedBlock?.let { block ->
         val sectors = blocks.filter { it.type == "ZONE" }
         // Vías ya hechas (diario + cola offline pendiente) → marcadas ✓ al abrir.
@@ -1228,5 +1287,110 @@ private fun StyleChip(label: String, selected: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Text(label, color = fg, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mini-ficha flotante de parking/sector sobre el mapa. Una sola línea de alto:
+// icono + nombre + subtítulo, y a la derecha (admin: ✎ 🗑) + CÓMO LLEGAR + ✕.
+// Para sectores con piedras añade el toggle VER/OCULTAR PIEDRAS explícito.
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun MiniBlockCard(
+    block: Block,
+    stoneCount: Int,
+    collapsed: Boolean,
+    userLoc: com.meteomontana.android.domain.model.UserLocation?,
+    isAdmin: Boolean,
+    onToggleStones: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val isParking = block.type == "PARKING"
+    val badgeColor = if (isParking) Color(0xFF1A56DB) else Color(0xFF3F6B4A)
+    val distance = userLoc?.let { loc ->
+        val km = Geo.haversineKm(loc.lat, loc.lon, block.lat, block.lon)
+        if (km < 1.0) "${(km * 1000).toInt()} m" else "${"%.1f".format(km)} km"
+    }
+    val subtitle = buildString {
+        append(if (isParking) "Parking" else "Sector")
+        if (!isParking && stoneCount > 0) append(" · $stoneCount piedra${if (stoneCount == 1) "" else "s"}")
+        distance?.let { append(" · $it") }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.background)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Box(
+                modifier = Modifier.size(24.dp)
+                    .clip(if (isParking) RoundedCornerShape(6.dp) else androidx.compose.foundation.shape.CircleShape)
+                    .background(badgeColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(if (isParking) "P" else "Z", color = Color.White,
+                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(block.name.ifBlank { if (isParking) "Parking" else "Sector" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
+                Text(subtitle, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
+            if (isAdmin) {
+                Text("✎", style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onEdit).padding(Spacing.xs))
+                Text("🗑", style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onDelete).padding(Spacing.xs))
+            }
+            Box(
+                modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(Terra)
+                    .clickable {
+                        runCatching {
+                            ctx.startActivity(android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(
+                                    "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}")
+                            ))
+                        }
+                    }
+                    .padding(horizontal = Spacing.sm, vertical = 7.dp)
+            ) {
+                Text("CÓMO LLEGAR", style = EyebrowTextStyle, color = Color.White)
+            }
+            Text("✕", style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onClose).padding(Spacing.xs))
+        }
+        // Toggle explícito de piedras del sector (antes: tap "silencioso" en el marker).
+        if (!isParking && stoneCount > 0) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs)
+                    .clip(RoundedCornerShape(9.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(9.dp))
+                    .clickable(onClick = onToggleStones)
+                    .padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(if (collapsed) "VER PIEDRAS" else "OCULTAR PIEDRAS",
+                    style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onBackground)
+            }
+        }
     }
 }
