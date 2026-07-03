@@ -224,14 +224,17 @@ struct SchoolDetailView: View {
                     directions: (lat: school.lat, lon: school.lon, label: school.name),
                     factorsExpanded: $factorsExpanded,
                     onSelectDay: { selectedDay = $0 },
-                    mapSlot: AnyView(SchoolMapSection(school: school, openVia: openVia))
+                    // Boletín de montaña ENCIMA del mapa (paridad con Android).
+                    mapSlot: AnyView(VStack(spacing: 0) {
+                        MountainBulletinSection(lat: school.lat, lon: school.lon)
+                        SchoolMapSection(school: school, openVia: openVia)
+                    })
                 )
             } else {
-                // Sin previsión: el mapa va igualmente.
+                // Sin previsión: el mapa (y el boletín) van igualmente.
+                MountainBulletinSection(lat: school.lat, lon: school.lon)
                 SchoolMapSection(school: school, openVia: openVia)
             }
-            // Boletín de montaña AEMET (solo escuelas en un macizo con boletín).
-            MountainBulletinSection(lat: school.lat, lon: school.lon)
             // Notas comunitarias — ahora ENCIMA de "mejores meses".
             NotesSectionView(
                 notes: vm.notes,

@@ -428,6 +428,10 @@ class SchoolDetailViewModel @Inject constructor(
                     val blocksD = async { runCatching { getBlocks(schoolId) }.getOrDefault(emptyList()) }
                     val isAdminD = async { runCatching { getMyProfile().isAdmin }.getOrDefault(false) }
                     val isSavedD = async { runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false) }
+                    // Boletín EN PARALELO con el resto — si se insertara tarde,
+                    // recoloca la LazyColumn y Compose destruye el diálogo del
+                    // deep-link del diario (bug del 2026-07-03).
+                    val bulletinD = async { runCatching { mountainApi.getBulletin(school.lat, school.lon) }.getOrNull() }
                     val forecastResult = forecastD.await()
                     // Forecast fresco → a la caché. Si la red falló → último
                     // forecast cacheado, marcando su antigüedad para que la UI
@@ -451,22 +455,11 @@ class SchoolDetailViewModel @Inject constructor(
                         isCurrentUserAdmin = isAdminD.await(),
                         isSavedOffline = isSavedD.await(),
                         monthlyLoading = true,
-                        forecastCachedAt = forecastCachedAt
+                        forecastCachedAt = forecastCachedAt,
+                        mountainBulletin = bulletinD.await()
                     )
                 }
                 viewModelScope.launch { loadMonthlyStats(school) }
-                // Boletín de montaña AEMET (solo si la escuela cae en un macizo;
-                // no bloquea la pantalla — llega cuando llega).
-                viewModelScope.launch {
-                    val bulletin = runCatching {
-                        mountainApi.getBulletin(school.lat, school.lon)
-                    }.getOrNull()
-                    if (bulletin != null) {
-                        (_uiState.value as? SchoolDetailUiState.Success)?.let {
-                            _uiState.value = it.copy(mountainBulletin = bulletin)
-                        }
-                    }
-                }
                 // Si el sitio está guardado offline, refresca su snapshot con lo
                 // recién bajado (bloques + forecast) para que SIN conexión nunca
                 // se vean datos viejos tras una modificación. Paridad con iOS.
