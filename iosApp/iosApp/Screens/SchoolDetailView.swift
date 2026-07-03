@@ -475,14 +475,24 @@ private struct SchoolMapSection: View {
                                   accept: (corrActive && corrNew != nil) ? { Task { await submitCorrection() } } : nil,
                                   cancel: cancelCorrection)
                     } else {
-                        // Botón "+ PROPONER" (esquina inferior derecha).
-                        Button { showTypePicker = true } label: {
-                            Text(NSLocalizedString("detail_propose", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 14).padding(.vertical, 10)
-                                .background(Cumbre.terra)
+                        // Botón "+ PROPONER": pill flotante ARRIBA a la derecha —
+                        // abajo lo tapaba la mini-ficha de parking/sector.
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button { showTypePicker = true } label: {
+                                    Text(NSLocalizedString("detail_propose", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 14).padding(.vertical, 9)
+                                        .background(Cumbre.terra)
+                                        .clipShape(RoundedRectangle(cornerRadius: 11))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            Spacer()
                         }
-                        .buttonStyle(.plain).padding(12)
+                        .padding(10)
+                        .frame(height: 280)
                     }
 
                     // Mini-ficha flotante de parking/sector: informa y da CÓMO
