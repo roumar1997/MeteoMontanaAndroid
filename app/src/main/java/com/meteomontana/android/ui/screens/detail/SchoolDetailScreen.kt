@@ -132,7 +132,8 @@ fun SchoolDetailScreen(
                     onBlockClick = onOpenBlock,
                     viewModel = viewModel,
                     onMyProposals = onMyProposals,
-                    onDayClick = onDayClick
+                    onDayClick = onDayClick,
+                    mountainBulletin = s.mountainBulletin
                 )
             }
         }
@@ -224,7 +225,8 @@ private fun Content(
     onBlockClick: (String) -> Unit,
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit,
-    onDayClick: (Int) -> Unit = {}
+    onDayClick: (Int) -> Unit = {},
+    mountainBulletin: com.meteomontana.android.data.api.MountainBulletinDto? = null
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
@@ -249,6 +251,10 @@ private fun Content(
             forecastBody(
                 forecast = forecast,
                 afterCurrentWeather = {
+                    // Boletín de montaña AEMET (solo escuelas en un macizo).
+                    mountainBulletin?.let { b ->
+                        item { com.meteomontana.android.ui.components.MountainBulletinSection(b) }
+                    }
                     item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
                     item { BlocksSection(
                         blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,

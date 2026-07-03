@@ -57,7 +57,9 @@ sealed interface SchoolDetailUiState {
         /** Si !=null, los datos provienen del snapshot offline guardado en esa fecha (epoch ms). */
         val offlineSnapshotAt: Long? = null,
         /** Si !=null, el forecast viene de la caché local y se bajó en esa fecha (epoch ms). */
-        val forecastCachedAt: Long? = null
+        val forecastCachedAt: Long? = null,
+        /** Boletín de montaña AEMET si la escuela cae en uno de los 9 macizos. */
+        val mountainBulletin: com.meteomontana.android.data.api.MountainBulletinDto? = null
     ) : SchoolDetailUiState
 }
 
@@ -84,6 +86,7 @@ class SchoolDetailViewModel @Inject constructor(
     private val ktorAdminApi: com.meteomontana.android.data.api.KtorAdminApi,
     private val updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
+    private val mountainApi: com.meteomontana.android.data.api.KtorMountainApi,
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
     private val createJournalEntry: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase,
     private val getMyJournal: com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase,
@@ -451,6 +454,18 @@ class SchoolDetailViewModel @Inject constructor(
                     )
                 }
                 viewModelScope.launch { loadMonthlyStats(school) }
+                // Boletín de montaña AEMET (solo si la escuela cae en un macizo;
+                // no bloquea la pantalla — llega cuando llega).
+                viewModelScope.launch {
+                    val bulletin = runCatching {
+                        mountainApi.getBulletin(school.lat, school.lon)
+                    }.getOrNull()
+                    if (bulletin != null) {
+                        (_uiState.value as? SchoolDetailUiState.Success)?.let {
+                            _uiState.value = it.copy(mountainBulletin = bulletin)
+                        }
+                    }
+                }
                 // Si el sitio está guardado offline, refresca su snapshot con lo
                 // recién bajado (bloques + forecast) para que SIN conexión nunca
                 // se vean datos viejos tras una modificación. Paridad con iOS.

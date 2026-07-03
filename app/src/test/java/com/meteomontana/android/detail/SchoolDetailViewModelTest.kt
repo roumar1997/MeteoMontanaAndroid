@@ -147,7 +147,9 @@ class SchoolDetailViewModelTest {
         getMyFavorites, addFavorite, removeFavorite, getBlocks, createBlock,
         deleteBlockUC, submitContribution, getMyProfile, photoUploader, fileReader,
         monthlyStatsRepo, savedSchoolRepo, offlineTiles, ktorAdminApi, updateBlockUseCase,
-        outboxRepo, networkMonitor,
+        outboxRepo,
+        mockk<com.meteomontana.android.data.api.KtorMountainApi>(relaxed = true),
+        networkMonitor,
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         mockk<com.meteomontana.android.data.local.JournalDoneStore>(relaxed = true) {
             every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())

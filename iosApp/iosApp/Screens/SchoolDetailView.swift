@@ -223,6 +223,8 @@ struct SchoolDetailView: View {
                 // Sin previsión: el mapa va igualmente.
                 SchoolMapSection(school: school, openVia: openVia)
             }
+            // Boletín de montaña AEMET (solo escuelas en un macizo con boletín).
+            MountainBulletinSection(lat: school.lat, lon: school.lon)
             // Notas comunitarias — ahora ENCIMA de "mejores meses".
             NotesSectionView(
                 notes: vm.notes,
