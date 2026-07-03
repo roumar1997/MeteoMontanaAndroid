@@ -149,6 +149,73 @@ struct BoulderFormSheet: View {
                         text: "Pasos: 1) Añade una foto de la piedra, 2) marca sus vías con grado, 3) dibuja las líneas sobre la foto, 4) envía."
                     )
 
+                    // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("MODALIDAD").eyebrow()
+                        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                        DisciplineSelector(selected: $discipline)
+                    }
+
+                    // ── Opciones avanzadas: muro, sector y numeración (plegado) ──
+                    // El 90% de las propuestas son una piedra normal: esto vive
+                    // plegado para no estorbar (espejo del formulario Android).
+                    Button { withAnimation { advancedOpen.toggle() } } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Muro, sector y numeración").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                                Text(isWall ? "Muro de (wallPath.count) puntos" + (sectorId != nil ? " · con sector" : "")
+                                     : (sectorId != nil ? "Con sector asignado" : "Solo si es una pared larga o va en un sector"))
+                                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            }
+                            Spacer()
+                            Image(systemName: advancedOpen ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                        }
+                        .padding(12)
+                        .background(Cumbre.paper)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(advancedOpen ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                    }.buttonStyle(.plain)
+                    if advancedOpen {
+                        // ── Geometría: PUNTO o MURO ────────────────────────────────────
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
+                            Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.")
+                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
+                        }
+                        if isWall {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("SENTIDO DE NUMERACIÓN").eyebrow()
+                                WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
+                            }
+                            Button { showTrace = true } label: {
+                                Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✓ MURO TRAZADO (\(wallPath.count) PUNTOS) · RE-TRAZAR")
+                                    .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                    .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                    .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                            }.buttonStyle(.plain)
+                        }
+                        if !sectors.isEmpty {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("SECTOR (opcional)").eyebrow()
+                                Menu {
+                                    Button("Sin sector") { sectorId = nil }
+                                    ForEach(sectors, id: \.id) { s in
+                                        Button(s.name.isEmpty ? "Zona" : s.name) { sectorId = s.id }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(sectorName).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                                        Spacer(); Image(systemName: "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                                }
+                            }
+                        }
+                    }
+
                     // ── Caras (fotos) ──────────────────────────────────────────────
                     Text("FOTOS DE LA PIEDRA").eyebrow()
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -216,73 +283,6 @@ struct BoulderFormSheet: View {
                     if !hasPhoto {
                         Text("Añade una foto para poder dibujar las líneas.")
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                    }
-
-                    // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("MODALIDAD").eyebrow()
-                        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?")
-                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                        DisciplineSelector(selected: $discipline)
-                    }
-
-                    // ── Opciones avanzadas: muro, sector y numeración (plegado) ──
-                    // El 90% de las propuestas son una piedra normal: esto vive
-                    // plegado para no estorbar (espejo del formulario Android).
-                    Button { withAnimation { advancedOpen.toggle() } } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Muro, sector y numeración").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                                Text(isWall ? "Muro de (wallPath.count) puntos" + (sectorId != nil ? " · con sector" : "")
-                                     : (sectorId != nil ? "Con sector asignado" : "Solo si es una pared larga o va en un sector"))
-                                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                            }
-                            Spacer()
-                            Image(systemName: advancedOpen ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                        }
-                        .padding(12)
-                        .background(Cumbre.paper)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(advancedOpen ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                    }.buttonStyle(.plain)
-                    if advancedOpen {
-                        // ── Geometría: PUNTO o MURO ────────────────────────────────────
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
-                            Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.")
-                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                            WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
-                        }
-                        if isWall {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("SENTIDO DE NUMERACIÓN").eyebrow()
-                                WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
-                            }
-                            Button { showTrace = true } label: {
-                                Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✓ MURO TRAZADO (\(wallPath.count) PUNTOS) · RE-TRAZAR")
-                                    .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                                    .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                    .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
-                            }.buttonStyle(.plain)
-                        }
-                        if !sectors.isEmpty {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("SECTOR (opcional)").eyebrow()
-                                Menu {
-                                    Button("Sin sector") { sectorId = nil }
-                                    ForEach(sectors, id: \.id) { s in
-                                        Button(s.name.isEmpty ? "Zona" : s.name) { sectorId = s.id }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(sectorName).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                                        Spacer(); Image(systemName: "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                    .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                                }
-                            }
-                        }
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -655,7 +655,7 @@ struct BoulderBlockRow: View {
 
 /// Códigos de tipo de inicio → etiqueta legible (espejo de GradePickers.kt).
 let START_TYPE_LABELS: [(String, String)] = [
-    ("PIE", "De pie"), ("SIT", "Sentado"), ("LANCE", "Al lance"), ("TRAV", "Travesía")
+    ("PIE", "De pie"), ("SIT", "Sentado"), ("LANCE", "Lance"), ("TRAV", "Travesía")
 ]
 
 

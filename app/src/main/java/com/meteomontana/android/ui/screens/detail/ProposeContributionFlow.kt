@@ -877,6 +877,138 @@ private fun BoulderFormDialog(
         )
         Spacer(Modifier.height(Spacing.md))
 
+        // ── Modalidad: BLOQUE o VÍA ───────────────────────────────────────────────
+        Text(stringResource(R.string.propose_discipline), style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(Spacing.xs))
+        DisciplineSelector(selected = discipline, onSelect = onDisciplineChange)
+        Spacer(Modifier.height(Spacing.md))
+
+        // ── Opciones avanzadas: muro, sector y numeración (plegado) ─────────────
+        // El 90% de las propuestas son una piedra normal: geometría de muro,
+        // sentido de numeración y sector viven plegados para no estorbar. Se
+        // abre solo si ya son relevantes (muro trazado o sector elegido).
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, if (advancedOpen) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                .clickable { advancedOpen = !advancedOpen }
+                .padding(Spacing.md)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Muro, sector y numeración",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Text(if (geometry == "LINE") "Muro de ${path.size} puntos" +
+                            (sectorBlockId?.let { " · con sector" } ?: "")
+                         else if (sectorBlockId != null) "Con sector asignado"
+                         else "Solo si es una pared larga o va en un sector",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(if (advancedOpen) "▲" else "▼",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (advancedOpen) {
+            Spacer(Modifier.height(Spacing.sm))
+            // ── Geometría: PUNTO o MURO ───────────────────────────────────────────────
+            Text(stringResource(R.string.propose_geometry), style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.xs))
+            Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.xs))
+            GeometrySelector(selected = geometry, onSelect = onGeometryChange)
+            if (geometry == "LINE") {
+                Spacer(Modifier.height(Spacing.xs))
+                val traced = path.size >= 2
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.small)
+                        .then(
+                            if (traced) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                            else Modifier.background(Terra)
+                        )
+                        .clickable(onClick = onTraceWall)
+                        .padding(vertical = Spacing.md),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        when {
+                            traced -> "✓ MURO DE ${path.size} PUNTOS · RE-TRAZAR"
+                            path.size == 1 -> "TRAZAR EL MURO (1 PUNTO, FALTAN MÁS)"
+                            else -> "✎ TRAZAR EL MURO EN EL MAPA"
+                        },
+                        style = EyebrowTextStyle,
+                        color = if (traced) MaterialTheme.colorScheme.onSurface else Color.White
+                    )
+                }
+                if (!traced) {
+                    Spacer(Modifier.height(2.dp))
+                    Text("Toca al menos 2 puntos siguiendo la base del muro.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(Spacing.md))
+                Text(stringResource(R.string.propose_direction), style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(Spacing.xs))
+                DirectionSelector(selected = direction, onSelect = onDirectionChange)
+            }
+            Spacer(Modifier.height(Spacing.md))
+            // ── Sector (opcional) ────────────────────────────────────────────────────
+            if (sectorBlocks.isNotEmpty()) {
+                Text("SECTOR (OPCIONAL)", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(Spacing.xs))
+                val selectedSectorName = sectorBlocks.firstOrNull { it.id == sectorBlockId }?.name
+                ExposedDropdownMenuBox(
+                    expanded = sectorExpanded,
+                    onExpandedChange = { sectorExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedSectorName ?: "Sin sector",
+                        onValueChange = {}, readOnly = true,
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = sectorExpanded)
+                        },
+                        shape = MaterialTheme.shapes.small, colors = fieldColors()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = sectorExpanded,
+                        onDismissRequest = { sectorExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Sin sector",
+                                style = MaterialTheme.typography.bodyMedium) },
+                            onClick = { onSectorChange(null); sectorExpanded = false }
+                        )
+                        sectorBlocks.forEach { sect ->
+                            DropdownMenuItem(
+                                text = { Text(sect.name,
+                                    style = MaterialTheme.typography.bodyMedium) },
+                                onClick = { onSectorChange(sect.id); sectorExpanded = false }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(Spacing.md))
+            }
+        }
+        Spacer(Modifier.height(Spacing.md))
+
         // ── Caras (fotos) ─────────────────────────────────────────────────────────
         // Una piedra grande no cabe en una foto: añade varias fotos, cada una con
         // sus vías. Pestañas para cambiar de foto; "+ AÑADIR FOTO" crea otra.
@@ -1095,138 +1227,6 @@ private fun BoulderFormDialog(
         }
 
         Spacer(Modifier.height(Spacing.lg))
-
-        // ── Modalidad: BLOQUE o VÍA ───────────────────────────────────────────────
-        Text(stringResource(R.string.propose_discipline), style = EyebrowTextStyle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(Spacing.xs))
-        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(Spacing.xs))
-        DisciplineSelector(selected = discipline, onSelect = onDisciplineChange)
-        Spacer(Modifier.height(Spacing.md))
-
-        // ── Opciones avanzadas: muro, sector y numeración (plegado) ─────────────
-        // El 90% de las propuestas son una piedra normal: geometría de muro,
-        // sentido de numeración y sector viven plegados para no estorbar. Se
-        // abre solo si ya son relevantes (muro trazado o sector elegido).
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, if (advancedOpen) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                .clickable { advancedOpen = !advancedOpen }
-                .padding(Spacing.md)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Muro, sector y numeración",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface)
-                    Text(if (geometry == "LINE") "Muro de ${path.size} puntos" +
-                            (sectorBlockId?.let { " · con sector" } ?: "")
-                         else if (sectorBlockId != null) "Con sector asignado"
-                         else "Solo si es una pared larga o va en un sector",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(if (advancedOpen) "▲" else "▼",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        if (advancedOpen) {
-            Spacer(Modifier.height(Spacing.sm))
-            // ── Geometría: PUNTO o MURO ───────────────────────────────────────────────
-            Text(stringResource(R.string.propose_geometry), style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(Spacing.xs))
-            Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(Spacing.xs))
-            GeometrySelector(selected = geometry, onSelect = onGeometryChange)
-            if (geometry == "LINE") {
-                Spacer(Modifier.height(Spacing.xs))
-                val traced = path.size >= 2
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
-                        .then(
-                            if (traced) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                            else Modifier.background(Terra)
-                        )
-                        .clickable(onClick = onTraceWall)
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        when {
-                            traced -> "✓ MURO DE ${path.size} PUNTOS · RE-TRAZAR"
-                            path.size == 1 -> "TRAZAR EL MURO (1 PUNTO, FALTAN MÁS)"
-                            else -> "✎ TRAZAR EL MURO EN EL MAPA"
-                        },
-                        style = EyebrowTextStyle,
-                        color = if (traced) MaterialTheme.colorScheme.onSurface else Color.White
-                    )
-                }
-                if (!traced) {
-                    Spacer(Modifier.height(2.dp))
-                    Text("Toca al menos 2 puntos siguiendo la base del muro.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.height(Spacing.md))
-                Text(stringResource(R.string.propose_direction), style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(Spacing.xs))
-                DirectionSelector(selected = direction, onSelect = onDirectionChange)
-            }
-            Spacer(Modifier.height(Spacing.md))
-            // ── Sector (opcional) ────────────────────────────────────────────────────
-            if (sectorBlocks.isNotEmpty()) {
-                Text("SECTOR (OPCIONAL)", style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(Spacing.xs))
-                val selectedSectorName = sectorBlocks.firstOrNull { it.id == sectorBlockId }?.name
-                ExposedDropdownMenuBox(
-                    expanded = sectorExpanded,
-                    onExpandedChange = { sectorExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = selectedSectorName ?: "Sin sector",
-                        onValueChange = {}, readOnly = true,
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = sectorExpanded)
-                        },
-                        shape = MaterialTheme.shapes.small, colors = fieldColors()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = sectorExpanded,
-                        onDismissRequest = { sectorExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Sin sector",
-                                style = MaterialTheme.typography.bodyMedium) },
-                            onClick = { onSectorChange(null); sectorExpanded = false }
-                        )
-                        sectorBlocks.forEach { sect ->
-                            DropdownMenuItem(
-                                text = { Text(sect.name,
-                                    style = MaterialTheme.typography.bodyMedium) },
-                                onClick = { onSectorChange(sect.id); sectorExpanded = false }
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.height(Spacing.md))
-            }
-        }
-        Spacer(Modifier.height(Spacing.md))
 
         // ── Coordenadas ──────────────────────────────────────────────────────────
         Text("COORDENADAS (LAT, LON)", style = EyebrowTextStyle,
