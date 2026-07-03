@@ -418,8 +418,24 @@ private struct SchoolMapSection: View {
                                         miniBlock = b
                                         flyToParkingZone(b)
                                     case "ZONE":
+                                        // Encuadra el sector con sus piedras
+                                        // (expandiéndolas), como el parking.
                                         miniBlock = b
+                                        let stones = blocks.filter { $0.sectorBlockId == b.id }
+                                        if stones.isEmpty {
+                                            focusFit = []
+                                            focusCoord = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
+                                        } else {
+                                            collapsedSectors.remove(b.id)
+                                            focusFit = [CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)]
+                                                + stones.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+                                        }
+                                        focusToken += 1
                                     default:
+                                        // Piedra: centra suave y abre su ficha.
+                                        focusFit = []
+                                        focusCoord = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
+                                        focusToken += 1
                                         selectedBlock = b
                                     }
                                 }

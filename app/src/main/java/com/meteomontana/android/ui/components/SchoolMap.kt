@@ -443,10 +443,37 @@ private fun InnerMap(
             when (tapped.type) {
                 // Parking: mini-ficha + volar a su zona (el mapa se sigue viendo).
                 "PARKING" -> { miniBlock = tapped; flyToParkingZone(tapped) }
-                // Zona: mini-ficha con VER/OCULTAR PIEDRAS explícito (antes el tap
-                // alternaba el colapso "en silencio" o abría la ficha gigante).
-                "ZONE" -> miniBlock = tapped
-                else -> selectedBlock = tapped
+                // Zona: mini-ficha + encuadrar el sector con sus piedras
+                // (expandiéndolas — "me lleva a la zona", igual que el parking).
+                "ZONE" -> {
+                    miniBlock = tapped
+                    val stones = blocks.filter { it.sectorBlockId == tapped.id }
+                    if (stones.isNotEmpty()) collapsedSectors = collapsedSectors - tapped.id
+                    mapRef.value?.let { map ->
+                        runCatching {
+                            if (stones.isEmpty()) {
+                                map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                    LatLng(tapped.lat, tapped.lon), 16.0))
+                            } else {
+                                val bb = LatLngBounds.Builder()
+                                    .include(LatLng(tapped.lat, tapped.lon))
+                                stones.forEach { bb.include(LatLng(it.lat, it.lon)) }
+                                map.animateCamera(
+                                    CameraUpdateFactory.newLatLngBounds(bb.build(), 130))
+                            }
+                        }
+                    }
+                }
+                // Piedra: centra suave en ella y abre su ficha completa.
+                else -> {
+                    mapRef.value?.let { map ->
+                        runCatching {
+                            map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                LatLng(tapped.lat, tapped.lon), 16.5))
+                        }
+                    }
+                    selectedBlock = tapped
+                }
             }
         }
     }
