@@ -18,6 +18,21 @@ enum MarkerRenderer {
         case .user:    return userDot()
         case .score:   return scoreDiamond(score: m.score, color: m.color,
                                             name: m.showName ? (m.name ?? m.title) : nil)
+        case .dot:     return dot(color: m.color)
+        }
+    }
+
+    // MARK: - Puntito de color (zoom país: los diamantes taparían el mapa)
+
+    private static func dot(color: UIColor) -> UIImage {
+        let size = CGSize(width: 16, height: 16)
+        return UIGraphicsImageRenderer(size: size).image { ctx in
+            let r = CGRect(x: 1.5, y: 1.5, width: 13, height: 13)
+            color.setFill()
+            ctx.cgContext.fillEllipse(in: r)
+            UIColor.white.setStroke()
+            ctx.cgContext.setLineWidth(1.6)
+            ctx.cgContext.strokeEllipse(in: r)
         }
     }
 

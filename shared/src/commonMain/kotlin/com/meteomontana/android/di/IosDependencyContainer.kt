@@ -2,6 +2,7 @@ package com.meteomontana.android.di
 
 import com.meteomontana.android.data.api.KtorFavoritesApi
 import com.meteomontana.android.data.api.KtorForecastApi
+import com.meteomontana.android.data.api.KtorRadarApi
 import com.meteomontana.android.data.api.KtorNoteApi
 import com.meteomontana.android.data.api.KtorAdminApi
 import com.meteomontana.android.data.api.KtorBlockApi
@@ -148,6 +149,7 @@ class IosDependencyContainer(
 
     private val schoolApi = KtorSchoolApi(httpClient)
     private val forecastApi = KtorForecastApi(httpClient)
+    val radarApi = KtorRadarApi(httpClient)
     private val favoritesApi = KtorFavoritesApi(httpClient)
     private val noteApi = KtorNoteApi(httpClient)
     private val profileApi = KtorProfileApi(httpClient)

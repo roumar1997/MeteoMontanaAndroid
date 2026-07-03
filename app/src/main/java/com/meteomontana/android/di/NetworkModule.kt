@@ -13,6 +13,7 @@ import com.meteomontana.android.data.api.KtorBlockApi
 import com.meteomontana.android.data.api.KtorContributionApi
 import com.meteomontana.android.data.api.KtorFavoritesApi
 import com.meteomontana.android.data.api.KtorForecastApi
+import com.meteomontana.android.data.api.KtorRadarApi
 import com.meteomontana.android.data.api.KtorJournalApi
 import com.meteomontana.android.data.api.KtorNotificationApi
 import com.meteomontana.android.data.api.KtorNoteApi
@@ -57,6 +58,9 @@ object NetworkModule {
 
     @Provides @Singleton
     fun provideKtorForecastApi(client: HttpClient) = KtorForecastApi(client)
+
+    @Provides @Singleton
+    fun provideKtorRadarApi(client: HttpClient) = KtorRadarApi(client)
 
     @Provides @Singleton
     fun provideKtorBlockApi(client: HttpClient) = KtorBlockApi(client)

@@ -56,6 +56,7 @@ enum MarkerKind {
     case school       // triángulo oscuro
     case user         // punto azul con halo (mi ubicación)
     case score        // diamante coloreado por score (lista de escuelas)
+    case dot          // puntito por score (radar a zoom país)
 }
 
 /// Marcador del mapa. `kind` decide la forma; `label`, `score` y `name`
@@ -83,8 +84,17 @@ struct CumbreMarker: Identifiable {
         switch kind {
         case .parking: return "p"; case .zone: return "z"; case .block: return "b"
         case .school: return "s"; case .user: return "u"; case .score: return "d"
+        case .dot: return "o"
         }
     }
+}
+
+/// Esquinas geográficas del PNG del radar (los `bounds` que da el backend).
+struct RadarOverlayBounds: Equatable {
+    let north: Double
+    let south: Double
+    let west: Double
+    let east: Double
 }
 
 /// Polilínea con estilo para el mapa (color/grosor/opacidad).
@@ -135,6 +145,11 @@ struct MapLibreView: UIViewRepresentable {
     /// centrar en focusCoordinate — p. ej. parking + sus sectores/piedras
     /// cercanos ("parking como puerta de entrada a su zona").
     var focusFitCoordinates: [CLLocationCoordinate2D] = []
+    /// Capa de radar (lluvia AEMET cocinada por el backend): imagen
+    /// georreferenciada que se estira entre las esquinas dadas.
+    var radarImage: UIImage? = nil
+    var radarBounds: RadarOverlayBounds? = nil
+    var radarOpacity: Double = 1.0
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -197,6 +212,8 @@ struct MapLibreView: UIViewRepresentable {
                 map.setCenter(coord, zoomLevel: focusZoom, animated: true)
             }
         }
+
+        context.coordinator.applyRadar(to: map)
     }
 
     final class Coordinator: NSObject, MLNMapViewDelegate {
@@ -218,6 +235,37 @@ struct MapLibreView: UIViewRepresentable {
         private var polylineStyle: [ObjectIdentifier: CumbrePolyline] = [:]
 
         init(_ parent: MapLibreView) { self.parent = parent }
+
+        /// Capa del radar: la fuente se crea una vez y luego solo se cambia la
+        /// imagen (fluido al animar/arrastrar). El cambio de estilo topo↔satélite
+        /// destruye las capas → didFinishLoading la re-crea.
+        private weak var radarSource: MLNImageSource?
+        func applyRadar(to map: MLNMapView) {
+            guard let style = map.style else { return }
+            guard let img = parent.radarImage, let b = parent.radarBounds else { return }
+            let quad = MLNCoordinateQuad(
+                topLeft: CLLocationCoordinate2D(latitude: b.north, longitude: b.west),
+                bottomLeft: CLLocationCoordinate2D(latitude: b.south, longitude: b.west),
+                bottomRight: CLLocationCoordinate2D(latitude: b.south, longitude: b.east),
+                topRight: CLLocationCoordinate2D(latitude: b.north, longitude: b.east))
+            if let src = style.source(withIdentifier: "radar-source") as? MLNImageSource {
+                src.image = img
+                radarSource = src
+            } else {
+                let src = MLNImageSource(identifier: "radar-source", coordinateQuad: quad, image: img)
+                style.addSource(src)
+                let layer = MLNRasterStyleLayer(identifier: "radar-layer", source: src)
+                style.addLayer(layer)
+                radarSource = src
+            }
+            (style.layer(withIdentifier: "radar-layer") as? MLNRasterStyleLayer)?
+                .rasterOpacity = NSExpression(forConstantValue: parent.radarOpacity)
+        }
+
+        func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
+            // Tras cargar un estilo nuevo (o alternar topo/satélite), re-crear el radar.
+            applyRadar(to: mapView)
+        }
 
         @objc func handleTap(_ g: UITapGestureRecognizer) {
             guard let onTap = parent.onMapTap, let map = mapView else { return }

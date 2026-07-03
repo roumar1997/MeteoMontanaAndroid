@@ -495,6 +495,33 @@ private struct SchoolMapSection: View {
                         .frame(height: 280)
                     }
 
+                    // Botón "dónde estoy": centra el mapa en tu posición para
+                    // ver qué piedras/sectores tienes alrededor al moverte.
+                    if let u = userCoord, miniBlock == nil, !waitingTap, !correctionMode {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Button {
+                                    focusFit = []
+                                    focusCoord = u
+                                    focusToken += 1
+                                } label: {
+                                    Image(systemName: "location.fill")
+                                        .font(.system(size: 15))
+                                        .foregroundStyle(Color(parkingColor))
+                                        .frame(width: 40, height: 40)
+                                        .background(Cumbre.bg)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(10)
+                        .frame(height: 280)
+                    }
+
                     // Mini-ficha flotante de parking/sector: informa y da CÓMO
                     // LLEGAR sin tapar el mapa.
                     if let mb = miniBlock, !waitingTap, !correctionMode {

@@ -286,7 +286,7 @@ private val markerSchoolBySnippet = mutableMapOf<String, String>()
  * Borra los markers anteriores y crea uno por escuela visible. Hace fit-bounds
  * para que la cámara encuadre lo que el usuario está filtrando.
  */
-private fun syncMarkers(
+internal fun syncMarkers(
     ctx: android.content.Context,
     map: MapLibreMap,
     schools: List<School>,
@@ -295,6 +295,7 @@ private fun syncMarkers(
     fitBounds: Boolean,
     userLat: Double?,
     userLon: Double?,
+    tiny: Boolean = false,   // zoom lejano: puntito en vez de diamante
     onMarkerTap: (School) -> Unit
 ) {
     // Limpia los anteriores
@@ -318,7 +319,11 @@ private fun syncMarkers(
     val boundsBuilder = LatLngBounds.Builder()
     schools.forEach { s ->
         val score = scoresById[s.id]
-        val bmp = if (showLabels) diamondBitmap(score, s.name) else diamondBitmap(score, null)
+        // Escalar por densidad: en px fijos el pin salía diminuto en pantallas
+        // de alta densidad (los móviles modernos, o sea, todos).
+        val density = ctx.resources.displayMetrics.density
+        val bmp = if (tiny) dotBitmap(score, density)
+                  else diamondBitmap(score, if (showLabels) s.name else null, density)
         val marker = map.addMarker(
             MarkerOptions()
                 .position(LatLng(s.lat, s.lon))
@@ -357,8 +362,29 @@ private fun pinColorHex(score: Int?): String = when {
  * debajo (con halo blanco para que se lea sobre el mapa). Se construye en
  * código porque MapLibre no acepta vistas Compose como icon, sólo Bitmaps.
  */
-private fun diamondBitmap(score: Int?, name: String?): Bitmap {
-    val pinPx = 64
+/** Puntito de color por score: para zoom país, donde 191 diamantes taparían todo. */
+internal fun dotBitmap(score: Int?, density: Float = 2f): Bitmap {
+    val k = density / 2f
+    val size = (22 * k).toInt()
+    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+    val c = size / 2f
+    canvas.drawCircle(c, c, 8f * k, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = pinColorHex(score).toColorInt()
+    })
+    canvas.drawCircle(c, c, 8f * k, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f * k
+        color = AndroidColor.WHITE
+    })
+    return bmp
+}
+
+private fun diamondBitmap(score: Int?, name: String?, density: Float = 2f): Bitmap {
+    // Todo se dibuja a escala k para que el pin mida lo mismo (en dp) en
+    // cualquier pantalla — igual de grande que en iPhone.
+    val k = density / 2f
+    val pinPx = (64 * k).toInt()
     val label = when {
         name == null -> null
         name.length > 16 -> name.take(15).trimEnd() + "…"
@@ -368,21 +394,21 @@ private fun diamondBitmap(score: Int?, name: String?): Bitmap {
     // Paints del nombre: halo blanco grueso debajo + texto tinta encima.
     val nameHalo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 6f
+        strokeWidth = 6f * k
         color = AndroidColor.WHITE
-        textSize = 22f
+        textSize = 22f * k
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
     val nameInk = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = "#1A1A1A".toColorInt()
-        textSize = 22f
+        textSize = 22f * k
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
-    val nameWidth = if (label != null) nameHalo.measureText(label) + 12f else 0f
+    val nameWidth = if (label != null) nameHalo.measureText(label) + 12f * k else 0f
     val widthPx = maxOf(pinPx, nameWidth.toInt())
-    val nameHeightPx = if (label != null) 28 else 0
+    val nameHeightPx = if (label != null) (28 * k).toInt() else 0
     val bmp = Bitmap.createBitmap(widthPx, pinPx + nameHeightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
 
@@ -393,36 +419,36 @@ private fun diamondBitmap(score: Int?, name: String?): Bitmap {
     val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = AndroidColor.argb(60, 0, 0, 0)
     }
-    canvas.drawOval(RectF(cx - 22f, pinPx - 16f, cx + 22f, pinPx - 6f), shadow)
+    canvas.drawOval(RectF(cx - 22f * k, pinPx - 16f * k, cx + 22f * k, pinPx - 6f * k), shadow)
 
     // Diamante: cuadrado rotado 45º, esquina inferior es la "punta"
     val side = pinPx * 0.55f
-    val cy = pinPx / 2f - 4f
+    val cy = pinPx / 2f - 4f * k
     canvas.save()
     canvas.rotate(45f, cx, cy)
     val rect = RectF(cx - side / 2f, cy - side / 2f, cx + side / 2f, cy + side / 2f)
     val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
-    canvas.drawRoundRect(rect, 6f, 6f, fill)
+    canvas.drawRoundRect(rect, 6f * k, 6f * k, fill)
     val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 3f
+        strokeWidth = 3f * k
         this.color = AndroidColor.WHITE
     }
-    canvas.drawRoundRect(rect, 6f, 6f, stroke)
+    canvas.drawRoundRect(rect, 6f * k, 6f * k, stroke)
     canvas.restore()
 
     // Score blanco centrado
     val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = AndroidColor.WHITE
-        textSize = 18f
+        textSize = 18f * k
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
-    canvas.drawText(score?.toString() ?: "·", cx, cy + 6f, txt)
+    canvas.drawText(score?.toString() ?: "·", cx, cy + 6f * k, txt)
 
     // Nombre debajo del pin (halo primero, tinta encima)
     if (label != null) {
-        val nameY = pinPx + nameHeightPx - 8f
+        val nameY = pinPx + nameHeightPx - 8f * k
         canvas.drawText(label, cx, nameY, nameHalo)
         canvas.drawText(label, cx, nameY, nameInk)
     }
@@ -561,16 +587,16 @@ private fun FilledAction(text: String, onClick: () -> Unit, modifier: Modifier =
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 /** Estilo MapLibre con tiles raster de OSM. Mismo origen que la PWA. */
-private val OSM_RASTER_STYLE = """
+internal val OSM_RASTER_STYLE = """
 {"version":8,"sources":{"osm":{"type":"raster","tiles":["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png","https://b.tile.openstreetmap.org/{z}/{x}/{y}.png","https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap"}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}
 """.trimIndent()
 
 /** Tiles oscuros (CartoDB dark matter) para cuando el tema de la app es oscuro. */
-private val DARK_RASTER_STYLE = """
+internal val DARK_RASTER_STYLE = """
 {"version":8,"sources":{"carto":{"type":"raster","tiles":["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap © CARTO"}},"layers":[{"id":"carto","type":"raster","source":"carto"}]}
 """.trimIndent()
 
-private val SATELLITE_RASTER_STYLE = """
+internal val SATELLITE_RASTER_STYLE = """
 {"version":8,"sources":{"esri":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"© Esri"}},"layers":[{"id":"esri","type":"raster","source":"esri"}]}
 """.trimIndent()
 

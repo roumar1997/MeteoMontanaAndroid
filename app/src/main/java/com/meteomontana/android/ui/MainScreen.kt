@@ -193,13 +193,20 @@ fun MainScreen(
                                             }
                                         }
                                     }
-                                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                                    // Con 4 tabs no caben los 4 rótulos: solo el
+                                    // seleccionado enseña su nombre (estilo iOS).
+                                    .padding(
+                                        horizontal = if (selected) 16.dp else 13.dp,
+                                        vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(tab.icon, contentDescription = tab.label,
                                     tint = tint, modifier = Modifier.size(20.dp))
-                                Text(tab.label, style = MaterialTheme.typography.labelMedium, color = tint)
+                                if (selected) {
+                                    Text(tab.label, style = MaterialTheme.typography.labelMedium,
+                                        color = tint, maxLines = 1)
+                                }
                             }
                         }
                     }
@@ -208,7 +215,11 @@ fun MainScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        // En Radar el mapa ocupa TODA la pantalla y la cápsula de tabs flota
+        // encima (el player del radar ya deja hueco). En el resto, padding normal.
+        val effectivePadding = if (currentRoute == Tab.Radar.route)
+            androidx.compose.foundation.layout.PaddingValues(0.dp) else padding
+        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize().padding(effectivePadding)) {
             com.meteomontana.android.ui.components.NetworkBanner()
             NavHost(
                 navController = navController,
@@ -234,7 +245,9 @@ fun MainScreen(
                         onCompare = { ids -> openSheet(Routes.compare(ids)) }
                     )
                 }
-                composable(Tab.Radar.route) { RadarScreen() }
+                composable(Tab.Radar.route) {
+                    RadarScreen(onSchoolDetail = { id -> navController.navigate(Routes.schoolDetail(id)) })
+                }
 
                 composable(Tab.Meetups.route) {
                     MeetupsScreen(

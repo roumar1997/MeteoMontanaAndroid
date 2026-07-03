@@ -675,6 +675,32 @@ private fun InnerMap(
                 Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
             }
 
+            // Botón "dónde estoy": centra el mapa en tu posición para ver qué
+            // piedras/sectores tienes alrededor mientras te mueves por la escuela.
+            if (userLoc != null && miniBlock == null) {
+                Box(
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                        .padding(Spacing.sm)
+                        .size(40.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(MaterialTheme.colorScheme.background)
+                        .border(1.dp, MaterialTheme.colorScheme.outline,
+                            androidx.compose.foundation.shape.CircleShape)
+                        .clickable {
+                            mapRef.value?.let { map ->
+                                runCatching {
+                                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                        LatLng(userLoc.lat, userLoc.lon), 16.0))
+                                }
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("◎", color = Color(0xFF1A56DB),
+                        style = MaterialTheme.typography.titleLarge)
+                }
+            }
+
             // Mini-ficha flotante de parking/sector: informa y da CÓMO LLEGAR
             // sin tapar el mapa (la ficha grande queda para las piedras).
             miniBlock?.let { mb ->
