@@ -249,6 +249,36 @@ fun MainScreen(
                     RadarScreen(onSchoolDetail = { id -> navController.navigate(Routes.schoolDetail(id)) })
                 }
 
+                composable(Tab.Profile.route) {
+                    // Perfil como pestaña: mismo contenido que el sheet, pero sin CERRAR.
+                    com.meteomontana.android.ui.screens.profile.ProfileScreen(
+                        onBack = {},
+                        showClose = false,
+                        onEdit = { openSheet(Routes.EDIT_PROFILE) },
+                        onSubmissions = { openSheet(Routes.MY_SUBMISSIONS) },
+                        onAdmin = { openFullScreen(Routes.ADMIN) },
+                        onSavedSchools = { openSheet(Routes.SAVED_SCHOOLS) },
+                        onWeekendAlert = { openSheet(Routes.WEEKEND_ALERT) },
+                        onOpenFollowers = {
+                            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                                openSheet(Routes.followList(uid, "followers"))
+                            }
+                        },
+                        onOpenFollowing = {
+                            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                                openSheet(Routes.followList(uid, "following"))
+                            }
+                        },
+                        onOpenFollowRequests = { openSheet(Routes.FOLLOW_REQUESTS) },
+                        onOpenSchoolEntries = { schoolName -> openSheet(Routes.journalSectors(schoolName)) },
+                        onOpenBoulders = { openSheet(Routes.journalEntries("discipline:BOULDER")) },
+                        onOpenRoutes = { openSheet(Routes.journalEntries("discipline:ROUTE")) },
+                        onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
+                        onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
+                        onOpenProjects = { openSheet(Routes.projects(null)) }
+                    )
+                }
+
                 composable(Tab.Meetups.route) {
                     MeetupsScreen(
                         onMeetupClick = { id -> openSheet(Routes.meetupDetail(id)) },

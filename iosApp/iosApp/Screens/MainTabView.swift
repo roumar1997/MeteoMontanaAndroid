@@ -28,6 +28,9 @@ struct MainTabView: View {
             MeetupsView()
                 .tabItem { Label(NSLocalizedString("tab_meetups", comment: ""), systemImage: "person.3") }
                 .tag(3)
+            AccountView(showClose: false)
+                .tabItem { Label("Perfil", systemImage: "person.crop.circle") }
+                .tag(4)
         }
         .tint(Cumbre.terra)
     }

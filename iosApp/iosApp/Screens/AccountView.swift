@@ -169,6 +169,8 @@ final class AccountViewModel: ObservableObject {
 /// permite cerrar sesión. Espejo parcial de ProfileScreen.kt; el diario,
 /// seguidores y edición de foto llegarán con sus bridges.
 struct AccountView: View {
+    /// false cuando Perfil vive como pestaña (no hay sheet que cerrar).
+    var showClose: Bool = true
     @StateObject private var vm = AccountViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var showAddBlock = false
@@ -217,7 +219,9 @@ struct AccountView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { HelpButton(topicKey: "profile") }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
+                    if showClose {
+                        Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
+                    }
                 }
             }
             .alert("¿Eliminar tu cuenta?", isPresented: $showDeleteConfirm) {

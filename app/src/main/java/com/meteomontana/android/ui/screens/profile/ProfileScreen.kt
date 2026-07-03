@@ -62,6 +62,8 @@ import com.meteomontana.android.domain.model.SchoolStats
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit,
+    // false cuando Perfil vive como pestaña (no hay nada que cerrar).
+    showClose: Boolean = true,
     onEdit: () -> Unit = {},
     onSubmissions: () -> Unit = {},
     onAdmin: () -> Unit = {},
@@ -98,7 +100,7 @@ fun ProfileScreen(
     // LazyColumn interior tenga restricción vertical (si no, crashea).
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)) {
-        SheetHeader(stringResource(R.string.profile_title), onBack)
+        SheetHeader(stringResource(R.string.profile_title), if (showClose) onBack else null)
         when (val s = state) {
             ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
             is ProfileUiState.Error -> CenterBox { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
@@ -139,7 +141,7 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun SheetHeader(title: String, onClose: () -> Unit) {
+private fun SheetHeader(title: String, onClose: (() -> Unit)?) {
     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
@@ -148,7 +150,7 @@ private fun SheetHeader(title: String, onClose: () -> Unit) {
             topicKey = "profile",
             modifier = Modifier.align(Alignment.CenterStart)
         )
-        TextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterEnd)) {
+        if (onClose != null) TextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterEnd)) {
             Text(stringResource(R.string.common_close), color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge)
         }

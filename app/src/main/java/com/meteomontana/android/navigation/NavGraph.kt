@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -15,10 +16,11 @@ sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
     data object Schools  : Tab("schools",  "Escuelas", Icons.Outlined.List)
     data object Meetups  : Tab("meetups",  "Quedadas", Icons.Outlined.Groups)
     data object Radar    : Tab("radar",    "Radar",    Icons.Outlined.Radar)
+    data object Profile  : Tab("profile-tab", "Perfil", Icons.Outlined.Person)
 }
 
-// Radar propio (AEMET + backend Cumbre) activo desde 2026-07-03.
-val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Radar, Tab.Meetups)
+// Radar propio (AEMET + backend Cumbre) y Perfil como pestaña desde 2026-07-03.
+val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Radar, Tab.Meetups, Tab.Profile)
 
 object Routes {
     const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}&viaId={viaId}"
