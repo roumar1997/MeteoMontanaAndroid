@@ -116,7 +116,7 @@ fun BlockFaceDto.toDomain(coverPhoto: String? = null): BlockFace {
 }
 
 // Note
-fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount, photoUrl)
+fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount, myVote = myVote, photoUrl = photoUrl)
 
 // Favorites
 fun FavoriteSchoolDto.toDomain() = FavoriteSchool(id, name, region, rockType, isFavorite)

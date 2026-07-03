@@ -15,4 +15,12 @@ class KtorNoteApi(private val client: HttpClient) {
 
     suspend fun createNote(schoolId: String, req: CreateNoteRequest): NoteDto =
         client.post("schools/$schoolId/notes") { setBody(req) }.body()
+
+    /** Voto de utilidad (1 o -1; repetir lo retira). Devuelve el voto vigente. */
+    suspend fun voteNote(noteId: String, value: Int): Int {
+        val resp: Map<String, Int> = client.post("notes/$noteId/vote") {
+            setBody(mapOf("value" to value))
+        }.body()
+        return resp["myVote"] ?: 0
+    }
 }

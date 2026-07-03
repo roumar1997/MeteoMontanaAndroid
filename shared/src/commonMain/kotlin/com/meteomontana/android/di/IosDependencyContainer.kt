@@ -153,7 +153,7 @@ class IosDependencyContainer(
     val radarApi = KtorRadarApi(httpClient)
     val mountainApi = KtorMountainApi(httpClient)
     private val favoritesApi = KtorFavoritesApi(httpClient)
-    private val noteApi = KtorNoteApi(httpClient)
+    val noteApi = KtorNoteApi(httpClient)
     private val profileApi = KtorProfileApi(httpClient)
     private val notificationApi = KtorNotificationApi(httpClient)
     private val socialApi = KtorSocialApi(httpClient)

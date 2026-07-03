@@ -87,6 +87,7 @@ class SchoolDetailViewModel @Inject constructor(
     private val updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
     private val mountainApi: com.meteomontana.android.data.api.KtorMountainApi,
+    private val noteApi: com.meteomontana.android.data.api.KtorNoteApi,
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
     private val createJournalEntry: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase,
     private val getMyJournal: com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase,
@@ -479,6 +480,23 @@ class SchoolDetailViewModel @Inject constructor(
                 success
             } catch (t: Throwable) {
                 SchoolDetailUiState.Error(t.toUserMessage())
+            }
+        }
+    }
+
+    /** Voto de utilidad en una nota (1/-1; repetir retira). Actualiza en local. */
+    fun voteNote(note: com.meteomontana.android.domain.model.Note, value: Int) {
+        viewModelScope.launch {
+            val newVote = runCatching { noteApi.voteNote(note.id, value) }.getOrNull() ?: return@launch
+            (_uiState.value as? SchoolDetailUiState.Success)?.let { s ->
+                _uiState.value = s.copy(notes = s.notes.map { nte ->
+                    if (nte.id != note.id) nte else {
+                        val dUp = (if (newVote == 1) 1 else 0) - (if (nte.myVote == 1) 1 else 0)
+                        val dDown = (if (newVote == -1) 1 else 0) - (if (nte.myVote == -1) 1 else 0)
+                        nte.copy(upvotesCount = nte.upvotesCount + dUp,
+                            downvotesCount = nte.downvotesCount + dDown, myVote = newVote)
+                    }
+                })
             }
         }
     }

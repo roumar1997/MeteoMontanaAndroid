@@ -144,6 +144,13 @@ final class SchoolDetailViewModel: ObservableObject {
         notes = (try? await getNotes.invoke(schoolId: schoolId)) ?? []
     }
 
+    /** Voto de utilidad (1/-1; repetir retira) y recarga: vuelve ordenado por utilidad. */
+    func voteNote(_ note: Note, value: Int) async {
+        _ = try? await AppDependencies.shared.container.noteApi
+            .voteNote(noteId: note.id, value: Int32(value))
+        notes = (try? await getNotes.invoke(schoolId: note.schoolId)) ?? notes
+    }
+
     /// Publica una nota (texto + foto opcional) y refresca la lista. Si hay
     /// imagen, la sube a Firebase Storage y adjunta su URL.
     func publishNote(schoolId: String, text: String, image: UIImage?) async {
@@ -229,7 +236,8 @@ struct SchoolDetailView: View {
             NotesSectionView(
                 notes: vm.notes,
                 publishing: vm.publishing,
-                onPublish: { text, image in Task { await vm.publishNote(schoolId: school.id, text: text, image: image) } }
+                onPublish: { text, image in Task { await vm.publishNote(schoolId: school.id, text: text, image: image) } },
+                onVote: { note, v in Task { await vm.voteNote(note, value: v) } }
             )
             // Mejores meses del año (stats mensuales del backend, cacheadas).
             if !vm.monthlyScores.isEmpty {
@@ -1996,25 +2004,48 @@ struct NotesSectionView: View {
     let notes: [Note]
     let publishing: Bool
     let onPublish: (String, UIImage?) -> Void
+    var onVote: (Note, Int) -> Void = { _, _ in }
 
     @State private var draft = ""
     @State private var photoNote: Note?
     @State private var pickerItem: PhotosPickerItem?
     @State private var pickedImage: UIImage?
+    // Plegada por defecto: con muchas notas la pantalla se hacía eterna.
+    @State private var expanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("NOTAS COMUNITARIAS").eyebrow()
-                .padding(.top, 8)
+            Button { withAnimation { expanded.toggle() } } label: {
+                HStack(spacing: 8) {
+                    Text("NOTAS COMUNITARIAS").eyebrow()
+                    if !notes.isEmpty {
+                        Text("\(notes.count)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Cumbre.ink)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(Cumbre.paper2)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    Spacer()
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Cumbre.ink2)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 8)
 
+            if expanded {
             if notes.isEmpty {
                 Text("Sin notas aún. ¡Sé el primero!")
                     .font(.system(size: 14))
                     .foregroundStyle(Cumbre.ink2)
                     .padding(.vertical, 4)
             } else {
+                // Llegan del backend ordenadas por utilidad (▲ − ▼).
                 ForEach(notes, id: \.id) { n in
-                    NoteRowView(note: n) { photoNote = n }
+                    NoteRowView(note: n, onPhotoTap: { photoNote = n },
+                                onVote: { v in onVote(n, v) })
                     Divider().overlay(Cumbre.rule)
                 }
             }
@@ -2065,6 +2096,7 @@ struct NotesSectionView: View {
                 }
             }
             .padding(.top, 8)
+            }   // fin if expanded
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .onChange(of: pickerItem) { _, item in
@@ -2087,6 +2119,7 @@ struct NotesSectionView: View {
 private struct NoteRowView: View {
     let note: Note
     let onPhotoTap: () -> Void
+    var onVote: (Int) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -2117,8 +2150,28 @@ private struct NoteRowView: View {
                 }
                 .buttonStyle(.plain)
             }
+            // Voto de utilidad: tocar de nuevo tu voto lo retira.
+            HStack(spacing: 6) {
+                Spacer()
+                voteChip("▲ \(note.upvotesCount)", active: note.myVote == 1) { onVote(1) }
+                voteChip("▼ \(note.downvotesCount)", active: note.myVote == -1) { onVote(-1) }
+            }
         }
         .padding(.vertical, 8)
+    }
+
+    private func voteChip(_ label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(active ? Cumbre.terra : Cumbre.ink2)
+                .padding(.horizontal, 8).padding(.vertical, 3)
+                .background(active ? Cumbre.terraBg : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8)
+                    .stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
 

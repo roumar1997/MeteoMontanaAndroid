@@ -64,6 +64,8 @@ data class NoteDto(
     val createdAt: String,
     val upvotesCount: Int,
     val downvotesCount: Int,
+    /** Voto del usuario que consulta: 1, -1 o 0. */
+    val myVote: Int = 0,
     /** URL pública de la foto adjunta (Firebase Storage). Null si no hay foto. */
     val photoUrl: String? = null
 )

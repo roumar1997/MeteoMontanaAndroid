@@ -149,6 +149,7 @@ class SchoolDetailViewModelTest {
         monthlyStatsRepo, savedSchoolRepo, offlineTiles, ktorAdminApi, updateBlockUseCase,
         outboxRepo,
         mockk<com.meteomontana.android.data.api.KtorMountainApi>(relaxed = true),
+        mockk<com.meteomontana.android.data.api.KtorNoteApi>(relaxed = true),
         networkMonitor,
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         mockk<com.meteomontana.android.data.local.JournalDoneStore>(relaxed = true) {

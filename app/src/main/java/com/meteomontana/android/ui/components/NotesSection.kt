@@ -46,35 +46,62 @@ import com.meteomontana.android.domain.model.Note
 fun NotesSection(
     notes: List<Note>,
     onPublish: (String, FileRef?) -> Unit,
+    onVote: (Note, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     // Nota cuya foto se está viendo a pantalla completa (null = ninguna).
     var photoNote by remember { mutableStateOf<Note?>(null) }
+    // Plegada por defecto: con muchas notas la pantalla se hacía eterna.
+    var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text(
-            "NOTAS COMUNITARIAS",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-
-        if (notes.isEmpty()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                "Sin notas aún. ¡Sé el primero!",
-                style = MaterialTheme.typography.bodyMedium,
+                "NOTAS COMUNITARIAS",
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(12.dp))
-        } else {
-            notes.forEach { n ->
-                NoteRow(n, onPhotoClick = { photoNote = n })
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+            Spacer(Modifier.height(0.dp).padding(horizontal = 4.dp))
+            if (notes.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                ) {
+                    Text("${notes.size}", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.weight(1f))
+            Text(if (expanded) "▴" else "▾",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        ComposerRow(onPublish = onPublish)
+        if (expanded) {
+            Spacer(Modifier.height(8.dp))
+            if (notes.isEmpty()) {
+                Text(
+                    "Sin notas aún. ¡Sé el primero!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(12.dp))
+            } else {
+                // Llegan del backend ordenadas por utilidad (▲ − ▼).
+                notes.forEach { n ->
+                    NoteRow(n, onPhotoClick = { photoNote = n }, onVote = { v -> onVote(n, v) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+            ComposerRow(onPublish = onPublish)
+        }
     }
 
     photoNote?.let { n ->
@@ -83,7 +110,7 @@ fun NotesSection(
 }
 
 @Composable
-private fun NoteRow(n: Note, onPhotoClick: () -> Unit) {
+private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(n.text, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground)
@@ -111,12 +138,29 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                "▲ ${n.upvotesCount}  ▼ ${n.downvotesCount}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Voto de utilidad: tocar de nuevo tu voto lo retira.
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                VoteChip("▲ ${n.upvotesCount}", active = n.myVote == 1) { onVote(1) }
+                VoteChip("▼ ${n.downvotesCount}", active = n.myVote == -1) { onVote(-1) }
+            }
         }
+    }
+}
+
+@Composable
+private fun VoteChip(label: String, active: Boolean, onClick: () -> Unit) {
+    val terra = MaterialTheme.colorScheme.primary
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (active) terra.copy(alpha = 0.14f) else Color.Transparent)
+            .border(1.dp, if (active) terra else MaterialTheme.colorScheme.outline,
+                RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium,
+            color = if (active) terra else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
