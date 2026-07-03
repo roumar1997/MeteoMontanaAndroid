@@ -28,7 +28,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct MeteoMontanaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var session = SessionStore()
+    @StateObject private var shareRouter = ShareLinkRouter.shared
     @Environment(\.scenePhase) private var scenePhase
+
+    /// Binding del destino del enlace compartido (para el fullScreenCover).
+    private var shareTargetBinding: Binding<ShareLinkRouter.Target?> {
+        Binding(get: { shareRouter.target }, set: { shareRouter.target = $0 })
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -36,8 +42,25 @@ struct MeteoMontanaApp: App {
             // MainTabView (igual que AppRoot.kt en Android).
             RootView()
                 .environmentObject(session)
-                // Callback del navegador tras el login de Google.
-                .onOpenURL { url in GIDSignIn.sharedInstance.handle(url) }
+                // Enlaces compartidos (Universal Links /s/...) o, si no es
+                // nuestro, el callback del navegador tras el login de Google.
+                .onOpenURL { url in
+                    if !ShareLinkRouter.shared.handle(url) {
+                        GIDSignIn.sharedInstance.handle(url)
+                    }
+                }
+                // Destino del enlace compartido: la escuela (con la vía si venía).
+                .fullScreenCover(item: shareTargetBinding) { t in
+                    NavigationStack {
+                        SchoolDetailView(school: t.school, openVia: t.viaId)
+                            .toolbar {
+                                ToolbarItem(placement: .topBarLeading) {
+                                    Button("Cerrar") { ShareLinkRouter.shared.target = nil }
+                                        .foregroundStyle(Cumbre.terra)
+                                }
+                            }
+                    }
+                }
                 // Al arrancar, sube las vías marcadas sin red que quedaron en cola.
                 .task {
                     try? await AppDependencies.shared.container.flushJournalOutbox()

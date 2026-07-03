@@ -867,6 +867,7 @@ private fun InnerMap(
         }
         BlockDetailDialog(
             block = block,
+            schoolName = schoolName,
             highlightVia = highlightVia,
             initiallyTicked = doneLineIds,
             initiallyProjects = projectLineIds,

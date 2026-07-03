@@ -361,37 +361,24 @@ private fun shareSchool(
     school: School,
     forecast: Forecast?
 ) {
+    // Formato WhatsApp (los *asteriscos* son negrita allí) + nuestro enlace
+    // inteligente: abre la app si la tienes, o la página con las stores si no.
+    val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
     val sb = StringBuilder()
-    sb.append("⛰️ ").append(school.name).append('\n')
-    school.region?.let { sb.append(it) }
-    school.location?.let {
-        if (school.region != null) sb.append(" · ")
-        sb.append(it)
-    }
-    if (school.region != null || school.location != null) sb.append('\n')
-    val tags = listOfNotNull(school.style, school.rockType)
-    if (tags.isNotEmpty()) sb.append(tags.joinToString(" · ")).append('\n')
-
+    sb.append("🧗 *").append(school.name).append("*")
+    school.region?.let { sb.append(" · ").append(it) }
+    sb.append("\n")
     if (forecast != null) {
         val c = forecast.current
-        sb.append('\n')
-        sb.append("Ahora: ").append(c.score).append("/100 (")
-            .append(c.scoreLabel).append(")\n")
-        sb.append("Temp ").append(c.temperature.toInt()).append("°C · ")
-            .append("Hum ").append(c.humidity.toInt()).append("% · ")
-            .append("Viento ").append(c.windSpeed.toInt()).append(" km/h\n")
-        sb.append(if (c.dryRock) "Roca seca" else "Roca mojada").append('\n')
+        sb.append("📊 Índice *").append(c.score).append("/100* (").append(c.scoreLabel).append(")\n")
         forecast.bestWindow?.let {
-            sb.append('\n').append("Mejor ventana próximas horas: ")
-                .append(it.start).append(" – ").append(it.end)
-                .append(" (").append(it.avgScore).append("/100)\n")
+            sb.append("🕐 Óptimo *").append(it.start).append("–").append(it.end).append("*\n")
         }
+        sb.append(if (c.dryRock) "🪨 Roca seca" else "💧 Roca mojada")
+        sb.append(" · ").append(c.temperature.toInt()).append("° · viento ")
+            .append(c.windSpeed.toInt()).append(" km/h\n")
     }
-
-    sb.append("\nDescarga Cumbre:\n")
-    sb.append("Android: https://play.google.com/store/apps/details?id=com.meteomontana.android\n")
-    sb.append("iOS: https://apps.apple.com/app/cumbre/id0000000000")
-
+    sb.append("\n👉 Ábrela en Cumbre:\n").append(base).append("s/e/").append(school.id)
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(android.content.Intent.EXTRA_TEXT, sb.toString())

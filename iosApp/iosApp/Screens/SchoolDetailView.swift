@@ -738,7 +738,11 @@ private struct SchoolMapSection: View {
     /// el bloque cuya vía coincide por nombre (o el bloque con ese nombre).
     private func maybeAutoOpen() {
         guard !didAutoOpen, let via = openVia, !via.isEmpty, !blocks.isEmpty else { return }
+        // Por id ESTABLE primero (enlaces compartidos /s/v/{...}/{lineId});
+        // si no, por nombre (deep-link clásico del diario).
         let target = blocks.first { b in
+            b.lines.contains { $0.id == via }
+        } ?? blocks.first { b in
             b.lines.contains { $0.name.caseInsensitiveCompare(via) == .orderedSame }
         } ?? blocks.first { $0.name.caseInsensitiveCompare(via) == .orderedSame }
         if let target {
@@ -1303,6 +1307,15 @@ struct BlockInfoSheet: View {
                                         if let st = l.startType, !st.isEmpty {
                                             Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                         }
+                                        // Compartir esta vía/bloque: enlace que abre la app
+                                        // directamente en esta piedra (espejo de Android).
+                                        ShareLink(item: shareLineText(l)) {
+                                            Image(systemName: "square.and.arrow.up")
+                                                .font(.system(size: 15))
+                                                .foregroundStyle(Cumbre.ink3)
+                                                .frame(width: 24, height: 24)
+                                        }
+                                        .buttonStyle(.plain)
                                         // Proyecto: la estás probando, aún no te ha salido. Oculto
                                         // si ya está hecha (no tiene sentido marcarla como proyecto).
                                         if !tickedLines.contains(l.id) {
@@ -1470,6 +1483,22 @@ struct BlockInfoSheet: View {
         case "ZONE": return "ZONA"
         default: return "PIEDRA"
         }
+    }
+
+    /// Texto para compartir una vía/bloque (según disciplina) con el enlace
+    /// que abre la app directamente en esta piedra. Espejo de Android.
+    private func shareLineText(_ line: BlockLine) -> String {
+        let isRoute = block.discipline.uppercased() == "ROUTE"
+        let kind = isRoute ? "vía" : "bloque"
+        let article = isRoute ? "esta" : "este"
+        let grade = (line.grade?.isEmpty == false) ? " \(line.grade!)" : ""
+        var place = block.name
+        if let s = schoolName, !s.isEmpty { place += " · \(s)" }
+        let base = AppConfig.apiBaseUrl.replacingOccurrences(of: "api/", with: "")
+        let link = "\(base)s/v/\(block.schoolId)/\(line.id)"
+        return "🧗 Mira \(article) \(kind): «\(line.name)»\(grade)\n"
+            + "📍 \(place)\n"
+            + "👉 Vela en Cumbre (foto con la línea dibujada):\n\(link)"
     }
 
     /// Marca/DESMARCA la vía en tu diario (toggle). Si no estaba hecha la añade
@@ -1916,11 +1945,20 @@ struct DirectionsButton: View {
 /// Resumen de condiciones para compartir (texto). Reutilizado por el icono del
 /// toolbar del detalle.
 func conditionsShareSummary(_ forecast: Forecast) -> String {
+    // Formato WhatsApp (los *asteriscos* son negrita allí) + nuestro enlace
+    // inteligente: abre la app si la tienes, o la página con las stores si no.
+    // Espejo exacto de shareSchool() en Android.
     let c = forecast.current
-    let score = Int(c.score)
-    return "\(forecast.schoolName) — Índice \(score)/100 (\(c.scoreLabel)) hoy. "
-        + "\(Int(c.temperature))°, viento \(Int(c.windSpeed)) km/h, roca \(c.dryRock ? "seca" : "mojada"). "
-        + "Tiempo para escalar · MeteoMontana"
+    var text = "🧗 *\(forecast.schoolName)*\n"
+    text += "📊 Índice *\(Int(c.score))/100* (\(c.scoreLabel))\n"
+    if let w = forecast.bestWindow {
+        text += "🕐 Óptimo *\(w.start)–\(w.end)*\n"
+    }
+    text += c.dryRock ? "🪨 Roca seca" : "💧 Roca mojada"
+    text += " · \(Int(c.temperature))° · viento \(Int(c.windSpeed)) km/h\n"
+    let base = AppConfig.apiBaseUrl.replacingOccurrences(of: "api/", with: "")
+    text += "\n👉 Ábrela en Cumbre:\n\(base)s/e/\(forecast.schoolId)"
+    return text
 }
 
 struct ShareConditionsButton: View {

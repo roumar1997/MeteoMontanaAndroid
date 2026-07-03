@@ -141,6 +141,14 @@ fun MainScreen(
             when (deepLink.targetType) {
                 "school", "school_detail" ->
                     deepLink.targetId?.let { navController.navigate(Routes.schoolDetail(it)) { launchSingleTop = true } }
+                // Enlace compartido de una vía/bloque: "escuela|lineId".
+                "via" -> deepLink.targetId?.let { packed ->
+                    val school = packed.substringBefore('|')
+                    val lineId = packed.substringAfter('|', "")
+                    navController.navigate(
+                        Routes.schoolDetail(school, viaId = lineId.ifBlank { null })
+                    ) { launchSingleTop = true }
+                }
                 "user"        -> deepLink.targetId?.let { openSheet(Routes.publicProfile(it)) }
                 "chat", "message" -> deepLink.targetId?.let { openSheet(Routes.chat(it)) }
                 "group" -> deepLink.targetId?.let { openSheet(Routes.groupChat(it)) }

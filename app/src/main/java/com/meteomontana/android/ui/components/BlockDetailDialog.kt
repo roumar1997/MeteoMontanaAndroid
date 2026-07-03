@@ -59,6 +59,8 @@ import com.meteomontana.android.ui.theme.gradeStyle
 @Composable
 fun BlockDetailDialog(
     block: Block,
+    /** Nombre de la escuela (para el texto de compartir). */
+    schoolName: String = "",
     /** Vía objetivo (deep-link del diario): su cara/foto se muestra la primera. */
     highlightVia: String? = null,
     isProposal: Boolean = false,
@@ -260,12 +262,26 @@ fun BlockDetailDialog(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
+                                // Compartir esta vía/bloque (WhatsApp etc.): enlace que
+                                // abre la app directamente en esta piedra con la línea.
+                                if (!isProposal) {
+                                    Spacer(Modifier.weight(1f))
+                                    Text(
+                                        "⇪",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .clickable { shareLine(context, block, line, schoolName) }
+                                            .padding(horizontal = 6.dp)
+                                    )
+                                }
                                 // Proyecto: la estás probando, aún no te ha salido. Oculto
                                 // si ya está hecha (no tiene sentido marcarla como proyecto).
                                 if (onToggleProject != null && !isProposal) {
                                     val done = tickedLines.contains(line.id)
                                     if (!done) {
-                                        Spacer(Modifier.weight(1f))
+                                        // (El compartir ya empujó el grupo a la derecha.)
                                         val isProject = projectLines.contains(line.id)
                                         Text(
                                             "P",
@@ -291,10 +307,8 @@ fun BlockDetailDialog(
                                 // Tic: marca/desmarca la vía en tu diario (toggle).
                                 if (onTickLine != null && !isProposal) {
                                     val done = tickedLines.contains(line.id)
-                                    // Si el icono de proyecto ya se pintó (arriba, cuando !done)
-                                    // ese Spacer ya empujó todo a la derecha; si no, este lo hace.
-                                    val projectIconShown = onToggleProject != null && !isProposal && !done
-                                    if (!projectIconShown) Spacer(Modifier.weight(1f))
+                                    // El botón de compartir ya empujó el grupo a la derecha.
+                                    if (isProposal) Spacer(Modifier.weight(1f))
                                     Text(
                                         if (done) "✓" else "○",
                                         style = MaterialTheme.typography.titleMedium,
@@ -619,5 +633,34 @@ private fun LineStarsRow(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
+    }
+}
+
+/** Comparte una vía/bloque: texto según disciplina + enlace que abre la app. */
+private fun shareLine(
+    context: android.content.Context,
+    block: Block,
+    line: com.meteomontana.android.domain.model.BlockLine,
+    schoolName: String
+) {
+    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "vía" else "bloque"
+    val article = if (kind == "vía") "esta" else "este"
+    val grade = line.grade?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
+    val where = buildString {
+        append(block.name)
+        if (schoolName.isNotBlank()) append(" · ").append(schoolName)
+    }
+    val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
+    val link = "${base}s/v/${block.schoolId}/${line.id}"
+    val text = "🧗 Mira $article $kind: «${line.name}»$grade\n" +
+        "📍 $where\n" +
+        "👉 Vela en Cumbre (foto con la línea dibujada):\n" +
+        link
+    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(android.content.Intent.EXTRA_TEXT, text)
+    }
+    runCatching {
+        context.startActivity(android.content.Intent.createChooser(intent, "Compartir $kind"))
     }
 }

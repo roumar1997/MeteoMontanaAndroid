@@ -68,6 +68,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun consumeIntentExtras(intent: Intent?) {
+        // App Link compartido: https://.../s/e/{escuela} o /s/v/{escuela}/{via}.
+        intent?.data?.let { uri ->
+            val seg = uri.pathSegments
+            if (seg.firstOrNull() == "s") {
+                when (seg.getOrNull(1)) {
+                    "e" -> seg.getOrNull(2)?.let { pendingDeepLink.value = DeepLinkTarget("school", it) }
+                    "v" -> {
+                        val school = seg.getOrNull(2); val line = seg.getOrNull(3)
+                        if (school != null && line != null)
+                            pendingDeepLink.value = DeepLinkTarget("via", "$school|$line")
+                    }
+                }
+                intent.data = null   // no re-navegar en recreaciones
+                return
+            }
+        }
         val type = intent?.getStringExtra("targetType") ?: return
         val id = intent.getStringExtra("targetId")
         pendingDeepLink.value = DeepLinkTarget(type, id)

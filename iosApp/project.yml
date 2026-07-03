@@ -67,6 +67,11 @@ targets:
         # App ID, llave AuthKey_8RXH43AWKR subida a Firebase (producción) y
         # PushManager.enabled = true.
         aps-environment: production
+        # Universal Links: los enlaces compartidos /s/... abren la app.
+        # Requiere la capability "Associated Domains" en el App ID.
+        com.apple.developer.associated-domains:
+          - applinks:api.climbingteams.com
+          - applinks:meteomontanaapi-staging.up.railway.app
     info:
       path: iosApp/Info.plist
       properties:
