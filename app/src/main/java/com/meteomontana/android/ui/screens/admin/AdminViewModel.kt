@@ -48,7 +48,9 @@ data class AdminUiState(
     val schoolBlocks: Map<String, List<Block>> = emptyMap(),
     val allSchools: List<School> = emptyList(),
     val schoolsLoading: Boolean = false,
-    val reports: List<MeetupReport> = emptyList()
+    val reports: List<MeetupReport> = emptyList(),
+    /** Denuncias de contenido (comentarios/notas/usuarios). */
+    val contentReports: List<com.meteomontana.android.data.api.ContentReportDto> = emptyList()
 )
 
 @HiltViewModel
@@ -64,6 +66,7 @@ class AdminViewModel @Inject constructor(
     private val sendPushUseCase: SendPushUseCase,
     private val getPendingReportsUseCase: GetPendingReportsUseCase,
     private val resolveReportUseCase: ResolveReportUseCase,
+    private val moderationApi: com.meteomontana.android.data.api.KtorModerationApi,
     private val getBlocks: GetBlocksUseCase,
     private val updateBlockUseCase: UpdateBlockUseCase,
     private val deleteBlockUseCase: DeleteBlockUseCase,
@@ -85,9 +88,11 @@ class AdminViewModel @Inject constructor(
                     val contributionsD = async { runCatching { getPendingContributions() }.getOrDefault(emptyList()) }
                     val logsD = async { runCatching { getLogs() }.getOrDefault(emptyList()) }
                     val reportsD = async { runCatching { getPendingReportsUseCase() }.getOrDefault(emptyList()) }
+                    val contentReportsD = async { runCatching { moderationApi.getContentReports() }.getOrDefault(emptyList()) }
                     _state.update { it.copy(loading = false, stats = statsD.await(), pending = pendingD.await(),
                         contributions = contributionsD.await(), logs = logsD.await(),
-                        reports = reportsD.await()) }
+                        reports = reportsD.await(),
+                        contentReports = contentReportsD.await()) }
                 }
             } catch (t: Throwable) {
                 _state.update { it.copy(loading = false, error = t.toUserMessage()) }
@@ -175,6 +180,14 @@ class AdminViewModel @Inject constructor(
     fun resolveReport(id: String, action: String) {
         viewModelScope.launch {
             runCatching { resolveReportUseCase(id, action) }
+            load()
+        }
+    }
+
+    /** Denuncia de CONTENIDO: REMOVE (borra el contenido) / IGNORE. */
+    fun resolveContentReport(id: String, action: String) {
+        viewModelScope.launch {
+            runCatching { moderationApi.resolveContentReport(id, action) }
             load()
         }
     }

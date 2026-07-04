@@ -179,6 +179,9 @@ final class PublicProfileViewModel: ObservableObject {
 struct PublicProfileView: View {
     let uid: String
     @StateObject private var vm = PublicProfileViewModel()
+    // Moderación: denunciar / bloquear a este usuario (menú superior).
+    @ObservedObject private var moderation = ModerationStore.shared
+    @State private var showReport = false
 
     var body: some View {
         ScrollView {
@@ -246,7 +249,34 @@ struct PublicProfileView: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await vm.load(uid: uid) }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { showReport = true } label: {
+                        Label("Denunciar usuario", systemImage: "flag")
+                    }
+                    if moderation.blocked.contains(uid) {
+                        Button { moderation.unblock(uid) } label: {
+                            Label("Desbloquear", systemImage: "hand.raised.slash")
+                        }
+                    } else {
+                        Button(role: .destructive) { moderation.block(uid) } label: {
+                            Label("Bloquear (no verás su contenido)", systemImage: "hand.raised")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink2)
+                }
+            }
+        }
+        .sheet(isPresented: $showReport) {
+            ReportSheet(title: "DENUNCIAR USUARIO",
+                        authorLabel: vm.profile?.username.map { "@" + $0 } ?? "usuario") { reason, alsoBlock in
+                moderation.report(targetType: "USER", targetId: uid, reason: reason,
+                                  alsoBlockUid: alsoBlock ? uid : nil)
+            }
+        }
+        .task { await vm.load(uid: uid); await moderation.loadBlocked() }
     }
 
     private func stat(_ value: String, _ label: String) -> some View {

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -141,6 +143,18 @@ fun PublicProfileScreen(
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    // Moderación: denunciar / bloquear a este usuario (menú ⋯).
+    val moderation: com.meteomontana.android.ui.components.ModerationViewModel =
+        hiltViewModel()
+    val blocked by moderation.blocked.collectAsState()
+    var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var showReport by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { moderation.loadBlocked() }
+    val profileUid = (state as? PublicProfileUiState.Success)?.profile?.uid
+    val profileName = (state as? PublicProfileUiState.Success)?.profile?.let {
+        it.username?.let { u -> "@" + u } ?: it.displayName
+    } ?: "este usuario"
+    val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -150,7 +164,35 @@ fun PublicProfileScreen(
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text("Perfil", style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground)
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f))
+            // ⋯: denunciar / bloquear (solo perfiles ajenos)
+            if (profileUid != null && profileUid != myUid) {
+                androidx.compose.foundation.layout.Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Outlined.MoreVert,
+                            contentDescription = "Opciones",
+                            tint = MaterialTheme.colorScheme.onBackground)
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("Denunciar usuario") },
+                            onClick = { menuOpen = false; showReport = true })
+                        val isBlocked = profileUid in blocked
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(if (isBlocked) "Desbloquear"
+                                          else "Bloquear — no verás su contenido y no podrá escribirte",
+                                          color = if (isBlocked) MaterialTheme.colorScheme.onSurface
+                                                  else MaterialTheme.colorScheme.error) },
+                            onClick = {
+                                menuOpen = false
+                                if (isBlocked) moderation.unblock(profileUid)
+                                else moderation.block(profileUid)
+                            })
+                    }
+                }
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
@@ -174,6 +216,19 @@ fun PublicProfileScreen(
                 onOpenProjects = { onOpenProjects(s.profile.uid) }
             )
         }
+    }
+
+    if (showReport && profileUid != null) {
+        com.meteomontana.android.ui.components.ReportDialog(
+            title = "DENUNCIAR USUARIO",
+            authorLabel = profileName,
+            onReport = { reason, alsoBlock ->
+                moderation.report("USER", profileUid, reason,
+                    alsoBlockUid = if (alsoBlock) profileUid else null)
+                showReport = false
+            },
+            onDismiss = { showReport = false }
+        )
     }
 }
 

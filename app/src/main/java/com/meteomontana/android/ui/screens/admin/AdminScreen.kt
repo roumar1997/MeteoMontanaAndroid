@@ -170,8 +170,11 @@ fun AdminScreen(
             )
             AdminTab.Denuncias -> DenunciasTab(
                 reports = state.reports,
+                contentReports = state.contentReports,
                 onResolve = { id -> viewModel.resolveReport(id, "resolve") },
-                onDismiss = { id -> viewModel.resolveReport(id, "dismiss") }
+                onDismiss = { id -> viewModel.resolveReport(id, "dismiss") },
+                onRemoveContent = { id -> viewModel.resolveContentReport(id, "REMOVE") },
+                onIgnoreContent = { id -> viewModel.resolveContentReport(id, "IGNORE") }
             )
             AdminTab.Stats -> StatsTab(state.stats)
             AdminTab.Activity -> ActivityTab(state.logs)

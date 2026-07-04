@@ -24,6 +24,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +56,11 @@ fun NotesSection(
     var photoNote by remember { mutableStateOf<Note?>(null) }
     // Plegada por defecto: con muchas notas la pantalla se hacía eterna.
     var expanded by remember { mutableStateOf(false) }
+    // Moderación: denunciar notas ajenas (bandera) + ocultar al instante.
+    val moderation: ModerationViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val hiddenIds by moderation.hiddenIds.collectAsState()
+    var reportTarget by remember { mutableStateOf<Note?>(null) }
+    val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(
@@ -93,9 +101,12 @@ fun NotesSection(
                 )
                 Spacer(Modifier.height(12.dp))
             } else {
-                // Llegan del backend ordenadas por utilidad (▲ − ▼).
-                notes.forEach { n ->
-                    NoteRow(n, onPhotoClick = { photoNote = n }, onVote = { v -> onVote(n, v) })
+                // Llegan del backend ordenadas por utilidad (▲ − ▼). Las
+                // denunciadas por ti se ocultan al instante.
+                notes.filter { it.id !in hiddenIds }.forEach { n ->
+                    NoteRow(n, onPhotoClick = { photoNote = n }, onVote = { v -> onVote(n, v) },
+                        canReport = myUid != null && myUid != n.uid,
+                        onReport = { reportTarget = n })
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                 }
                 Spacer(Modifier.height(12.dp))
@@ -107,10 +118,24 @@ fun NotesSection(
     photoNote?.let { n ->
         NotePhotoDialog(note = n, onDismiss = { photoNote = null })
     }
+
+    reportTarget?.let { n ->
+        ReportDialog(
+            title = "DENUNCIAR NOTA",
+            authorLabel = n.author ?: "este usuario",
+            onReport = { reason, alsoBlock ->
+                moderation.report("NOTE", n.id, reason,
+                    alsoBlockUid = if (alsoBlock) n.uid else null)
+                reportTarget = null
+            },
+            onDismiss = { reportTarget = null }
+        )
+    }
 }
 
 @Composable
-private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit) {
+private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
+                    canReport: Boolean = false, onReport: () -> Unit = {}) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(n.text, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground)
@@ -133,11 +158,25 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                n.author ?: "Anónimo",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(
+                    n.author ?: "Anónimo",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (canReport) {
+                    androidx.compose.material3.Icon(
+                        Icons.Outlined.Flag,
+                        contentDescription = "Denunciar",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .clickable(onClick = onReport)
+                            .padding(2.dp)
+                            .size(15.dp))
+                }
+            }
             // Voto de utilidad: tocar de nuevo tu voto lo retira.
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 VoteChip("▲ ${n.upvotesCount}", active = n.myVote == 1) { onVote(1) }

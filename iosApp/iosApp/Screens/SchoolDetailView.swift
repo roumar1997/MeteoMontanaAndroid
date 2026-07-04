@@ -2335,9 +2335,11 @@ struct NotesSectionView: View {
                     .padding(.vertical, 4)
             } else {
                 // Llegan del backend ordenadas por utilidad (▲ − ▼).
-                ForEach(notes, id: \.id) { n in
+                ForEach(notes.filter { !moderation.hiddenIds.contains($0.id) }, id: \.id) { n in
                     NoteRowView(note: n, onPhotoTap: { photoNote = n },
-                                onVote: { v in onVote(n, v) })
+                                onVote: { v in onVote(n, v) },
+                                canReport: Auth.auth().currentUser?.uid != n.uid,
+                                onReport: { reportNote = n })
                     Divider().overlay(Cumbre.rule)
                 }
             }
@@ -2401,6 +2403,12 @@ struct NotesSectionView: View {
         .sheet(item: $photoNote) { n in
             NotePhotoSheet(note: n)
         }
+        .sheet(item: $reportNote) { n in
+            ReportSheet(title: "DENUNCIAR NOTA", authorLabel: n.author ?? "usuario") { reason, alsoBlock in
+                moderation.report(targetType: "NOTE", targetId: n.id, reason: reason,
+                                  alsoBlockUid: alsoBlock ? n.uid : nil)
+            }
+        }
     }
 
     private var canPublish: Bool {
@@ -2410,6 +2418,8 @@ struct NotesSectionView: View {
 
 private struct NoteRowView: View {
     let note: Note
+    var canReport: Bool = false
+    var onReport: () -> Void = {}
     let onPhotoTap: () -> Void
     var onVote: (Int) -> Void = { _ in }
 
@@ -2444,6 +2454,15 @@ private struct NoteRowView: View {
             }
             // Voto de utilidad: tocar de nuevo tu voto lo retira.
             HStack(spacing: 6) {
+                if canReport {
+                    Button(action: onReport) {
+                        Image(systemName: "flag")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Cumbre.ink3.opacity(0.7))
+                            .padding(4)
+                    }
+                    .buttonStyle(.plain)
+                }
                 Spacer()
                 voteChip("▲ \(note.upvotesCount)", active: note.myVote == 1) { onVote(1) }
                 voteChip("▼ \(note.downvotesCount)", active: note.myVote == -1) { onVote(-1) }

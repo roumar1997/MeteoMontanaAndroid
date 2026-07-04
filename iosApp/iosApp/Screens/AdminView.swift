@@ -122,6 +122,7 @@ struct AdminView: View {
             Divider().overlay(Cumbre.rule)
             switch tab {
             case .propuestas: propuestasContent
+            case .denuncias: AdminReportsTab()
             case .gestionar: GestionarTab(vm: vm)
             case .stats: AdminStatsTab(stats: vm.stats)
             case .actividad: AdminLogsTab(logs: vm.logs)
@@ -724,6 +725,7 @@ private struct RejectReasonSheet: View {
 
 private enum AdminTab: String, CaseIterable {
     case propuestas = "PROPUESTAS"
+    case denuncias = "DENUNCIAS"
     case gestionar = "GESTIONAR"
     case stats = "STATS"
     case actividad = "ACTIVIDAD"
@@ -1083,5 +1085,126 @@ private struct BlockManageSheet: View {
             TextField(ph, text: text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         }
+    }
+}
+
+// MARK: - Tab DENUNCIAS (contenido + quedadas) — espejo de DenunciasTab.kt
+private struct AdminReportsTab: View {
+    @State private var contentReports: [ContentReportDto] = []
+    @State private var meetupReports: [MeetupReport] = []
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                if contentReports.isEmpty && meetupReports.isEmpty {
+                    Text("Sin denuncias pendientes")
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                        .frame(maxWidth: .infinity).padding(.top, 40)
+                }
+                if !contentReports.isEmpty {
+                    Text("CONTENIDO (comentarios / notas / usuarios)")
+                        .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+                    ForEach(contentReports, id: \.id) { r in
+                        contentCard(r)
+                    }
+                }
+                if !meetupReports.isEmpty {
+                    Text("QUEDADAS")
+                        .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+                        .padding(.top, 6)
+                    ForEach(meetupReports, id: \.id) { r in
+                        meetupCard(r)
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(Cumbre.bg)
+        .task { await load() }
+    }
+
+    private func load() async {
+        let c = AppDependencies.shared.container
+        contentReports = (try? await c.moderationApi.getContentReports()) ?? []
+        meetupReports = (try? await c.getPendingReports.invoke()) ?? []
+    }
+
+    private func resolveContent(_ id: String, _ action: String) {
+        Task {
+            _ = try? await AppDependencies.shared.container.moderationApi
+                .resolveContentReport(id: id, action: action)
+            await load()
+        }
+    }
+
+    private func resolveMeetup(_ id: String, _ action: String) {
+        Task {
+            _ = try? await AppDependencies.shared.container.resolveReport.invoke(reportId: id, action: action)
+            await load()
+        }
+    }
+
+    @ViewBuilder private func contentCard(_ r: ContentReportDto) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(kindLabel(r.targetType) + " - " + reasonLabel(r.reason))
+                    .font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.bad)
+                Spacer()
+                Text(String((r.createdAt ?? "").prefix(10)))
+                    .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+            }
+            Text(r.snapshot ?? "(contenido no disponible)")
+                .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+            HStack(spacing: 8) {
+                Button { resolveContent(r.id, "REMOVE") } label: {
+                    Text(r.targetType == "USER" ? "MARCAR REVISADO" : "RETIRAR CONTENIDO")
+                        .font(Cumbre.mono(11, .bold)).tracking(0.5).foregroundStyle(Cumbre.bad)
+                        .frame(maxWidth: .infinity).padding(.vertical, 9)
+                        .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
+                }.buttonStyle(.plain)
+                Button { resolveContent(r.id, "IGNORE") } label: {
+                    Text("IGNORAR")
+                        .font(Cumbre.mono(11, .bold)).tracking(0.5).foregroundStyle(Cumbre.ink3)
+                        .frame(maxWidth: .infinity).padding(.vertical, 9)
+                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+        }
+        .padding(12)
+        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    @ViewBuilder private func meetupCard(_ r: MeetupReport) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(reasonLabel(r.reason.name) + " - quedada " + String(r.meetupId.prefix(8)))
+                .font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.bad)
+            if let ctx = r.context, !ctx.isEmpty {
+                Text(ctx).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+            }
+            HStack(spacing: 8) {
+                Button { resolveMeetup(r.id, "resolve") } label: {
+                    Text("RESOLVER").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.bad)
+                        .frame(maxWidth: .infinity).padding(.vertical, 9)
+                        .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
+                }.buttonStyle(.plain)
+                Button { resolveMeetup(r.id, "dismiss") } label: {
+                    Text("IGNORAR").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink3)
+                        .frame(maxWidth: .infinity).padding(.vertical, 9)
+                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+        }
+        .padding(12)
+        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func kindLabel(_ t: String) -> String {
+        switch t { case "COMMENT": return "COMENTARIO"; case "NOTE": return "NOTA"; default: return "USUARIO" }
+    }
+    private func reasonLabel(_ r: String) -> String {
+        switch r.uppercased() {
+        case "SPAM": return "Spam"; case "OFFENSIVE": return "Ofensivo"
+        case "FALSE_INFO": return "Info falsa"; case "HARASSMENT": return "Acoso"
+        case "INAPPROPRIATE": return "Inapropiado"; default: return "Otro" }
     }
 }

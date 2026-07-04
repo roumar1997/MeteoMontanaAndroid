@@ -216,10 +216,13 @@ internal fun PushTab(
 @Composable
 internal fun DenunciasTab(
     reports: List<MeetupReport>,
+    contentReports: List<com.meteomontana.android.data.api.ContentReportDto> = emptyList(),
     onResolve: (String) -> Unit,
-    onDismiss: (String) -> Unit
+    onDismiss: (String) -> Unit,
+    onRemoveContent: (String) -> Unit = {},
+    onIgnoreContent: (String) -> Unit = {}
 ) {
-    if (reports.isEmpty()) {
+    if (reports.isEmpty() && contentReports.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Sin denuncias pendientes",
                 style = MaterialTheme.typography.bodyMedium,
@@ -228,10 +231,87 @@ internal fun DenunciasTab(
         return
     }
     LazyColumn(contentPadding = PaddingValues(Spacing.md)) {
-        items(reports, key = { it.id }) { report ->
-            ReportCard(report = report, onResolve = { onResolve(report.id) },
-                onDismiss = { onDismiss(report.id) })
-            Spacer(Modifier.height(Spacing.sm))
+        if (contentReports.isNotEmpty()) {
+            item {
+                Text("CONTENIDO (comentarios / notas / usuarios)",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.sm))
+            }
+            items(contentReports, key = { "c-" + it.id }) { r ->
+                ContentReportCard(r,
+                    onRemove = { onRemoveContent(r.id) },
+                    onIgnore = { onIgnoreContent(r.id) })
+                Spacer(Modifier.height(Spacing.sm))
+            }
+        }
+        if (reports.isNotEmpty()) {
+            item {
+                Text("QUEDADAS",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = Spacing.sm))
+            }
+            items(reports, key = { it.id }) { report ->
+                ReportCard(report = report, onResolve = { onResolve(report.id) },
+                    onDismiss = { onDismiss(report.id) })
+                Spacer(Modifier.height(Spacing.sm))
+            }
+        }
+    }
+}
+
+/** Card de denuncia de CONTENIDO: snapshot + motivo + RETIRAR / IGNORAR. */
+@Composable
+private fun ContentReportCard(
+    r: com.meteomontana.android.data.api.ContentReportDto,
+    onRemove: () -> Unit,
+    onIgnore: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(4.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+            .padding(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                when (r.targetType) {
+                    "COMMENT" -> "COMENTARIO"; "NOTE" -> "NOTA"; else -> "USUARIO"
+                } + " - " + reasonLabel(r.reason),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error)
+            Text(r.createdAt?.take(10) ?: "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(r.snapshot ?: "(contenido no disponible)",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Box(Modifier.weight(1f)
+                .clip(RoundedCornerShape(2.dp))
+                .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))
+                .clickable(onClick = onRemove)
+                .padding(vertical = Spacing.sm),
+                contentAlignment = Alignment.Center) {
+                Text(if (r.targetType == "USER") "MARCAR REVISADO" else "RETIRAR CONTENIDO",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.error)
+            }
+            Box(Modifier.weight(1f)
+                .clip(RoundedCornerShape(2.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                .clickable(onClick = onIgnore)
+                .padding(vertical = Spacing.sm),
+                contentAlignment = Alignment.Center) {
+                Text("IGNORAR",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

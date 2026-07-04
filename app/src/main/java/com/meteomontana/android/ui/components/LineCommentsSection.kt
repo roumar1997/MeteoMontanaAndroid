@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -119,13 +120,17 @@ fun LineCommentsThread(
 ) {
     viewModel.load(blockId)
     val all by viewModel.comments.collectAsState()
-    val mine = remember(all, blockId, lineId) {
-        all.filter { it.blockId == blockId && it.lineId == lineId }
+    // Moderación: denunciar comentarios ajenos (bandera) + ocultar al instante.
+    val moderation: ModerationViewModel = hiltViewModel()
+    val hiddenIds by moderation.hiddenIds.collectAsState()
+    val mine = remember(all, blockId, lineId, hiddenIds) {
+        all.filter { it.blockId == blockId && it.lineId == lineId && it.id !in hiddenIds }
             .sortedWith(compareByDescending<LineCommentDto> { it.upvotesCount - it.downvotesCount }
                 .thenByDescending { it.createdAt ?: "" })
     }
     var expanded by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
+    var reportTarget by remember { mutableStateOf<com.meteomontana.android.data.api.dto.LineCommentDto?>(null) }
 
     Column(Modifier.fillMaxWidth()) {
         Row(
@@ -181,6 +186,17 @@ fun LineCommentsThread(
                                     .clickable { viewModel.delete(c.id) }
                                     .padding(3.dp)
                                     .size(16.dp))
+                        } else {
+                            // Comentario ajeno → bandera de denuncia (discreta).
+                            androidx.compose.material3.Icon(
+                                Icons.Outlined.Flag,
+                                contentDescription = "Denunciar",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .clickable { reportTarget = c }
+                                    .padding(3.dp)
+                                    .size(16.dp))
                         }
                     }
                     Text(c.text, style = MaterialTheme.typography.bodyMedium,
@@ -226,6 +242,19 @@ fun LineCommentsThread(
                         .size(22.dp))
             }
         }
+    }
+
+    reportTarget?.let { c ->
+        ReportDialog(
+            title = "DENUNCIAR COMENTARIO",
+            authorLabel = c.author,
+            onReport = { reason, alsoBlock ->
+                moderation.report("COMMENT", c.id, reason,
+                    alsoBlockUid = if (alsoBlock) c.uid else null)
+                reportTarget = null
+            },
+            onDismiss = { reportTarget = null }
+        )
     }
 }
 

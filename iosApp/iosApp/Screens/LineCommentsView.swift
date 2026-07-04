@@ -56,10 +56,13 @@ struct LineCommentsThreadView: View {
     let lineId: String?
     @State private var expanded = false
     @State private var draft = ""
+    // Moderación: denunciar comentarios ajenos + ocultar al instante.
+    @ObservedObject private var moderation = ModerationStore.shared
+    @State private var reportTarget: LineCommentDto? = nil
 
     private var mine: [LineCommentDto] {
         store.comments
-            .filter { $0.blockId == blockId && $0.lineId == lineId }
+            .filter { $0.blockId == blockId && $0.lineId == lineId && !moderation.hiddenIds.contains($0.id) }
             .sorted {
                 let a = $0.upvotesCount - $0.downvotesCount
                 let b = $1.upvotesCount - $1.downvotesCount
@@ -105,6 +108,14 @@ struct LineCommentsThreadView: View {
                                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                                 }
                                 .buttonStyle(.plain)
+                            } else {
+                                // Comentario ajeno → bandera de denuncia.
+                                Button { reportTarget = c } label: {
+                                    Image(systemName: "flag")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Cumbre.ink3.opacity(0.7))
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         Text(c.text).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
@@ -145,6 +156,12 @@ struct LineCommentsThreadView: View {
                 .padding(.bottom, 4)
             }
         }
+        .sheet(item: $reportTarget) { c in
+            ReportSheet(title: "DENUNCIAR COMENTARIO", authorLabel: c.author) { reason, alsoBlock in
+                moderation.report(targetType: "COMMENT", targetId: c.id, reason: reason,
+                                  alsoBlockUid: alsoBlock ? c.uid : nil)
+            }
+        }
     }
 
     private func voteChip(_ up: Bool, _ count: Int, _ active: Bool, action: @escaping () -> Void) -> some View {
@@ -161,3 +178,6 @@ struct LineCommentsThreadView: View {
         .buttonStyle(.plain)
     }
 }
+
+// Para .sheet(item:) — el id ya existe en el DTO de Kotlin.
+extension LineCommentDto: Identifiable {}

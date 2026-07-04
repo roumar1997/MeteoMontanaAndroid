@@ -93,6 +93,7 @@ class AdminViewModelTest {
         sendPush,
         mockk(relaxed = true),  // getPendingReportsUseCase
         mockk(relaxed = true),  // resolveReportUseCase
+        mockk(relaxed = true),  // moderationApi
         getBlocks, updateBlockUC, deleteBlockUC, getSchoolsUseCase
     )
 

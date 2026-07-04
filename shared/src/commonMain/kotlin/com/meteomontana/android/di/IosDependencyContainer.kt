@@ -177,6 +177,8 @@ class IosDependencyContainer(
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
     // Público: iOS lo usa directo para los comentarios de piedras/vías.
     val blockApi = KtorBlockApi(httpClient)
+    // Moderación UGC (denunciar/bloquear) — requisito App Store.
+    val moderationApi = com.meteomontana.android.data.api.KtorModerationApi(httpClient)
     private val blockRepository = KtorBlockRepository(blockApi)
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
     val meetupApi = KtorMeetupApi(httpClient)
