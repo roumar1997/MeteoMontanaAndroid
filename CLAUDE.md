@@ -542,6 +542,19 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04 (fase 2 admin)** — Release **2.10.2** (vc34, build 46, el que va
+a App Store): admin Fase 2 completo (GESTIONAR abre la ficha real, STATS
+pulsables con listas, PUSH con buscador de destinatario + confirmación "a
+todos", pestaña DENUNCIAS, paridad iOS); iOS GPS pasa a seguimiento CONTINUO
+con el mapa abierto (requestLocation cada 5 s enfriaba el chip → fixes
+perdidos en montaña); permisos Android encadenados (notificaciones→ubicación,
+PermissionsGate) + re-oferta de precisa; topo ampliable en revisión de
+propuestas ("TOCA PARA AMPLIAR" + aviso SIN FOTO); zona de toque del nombre en
+chats. assetlinks con SHA-256 de Play App Signing (App Links con AAB de Play).
+OJO Xiaomi Android 11: no existe el diálogo de notificaciones ni el selector
+precisa/aproximada (son de A13/A12+) — comportamiento correcto. MIUI cancela
+`adb install` si no confirmas en pantalla (reintentar con el móvil delante).
+
 **2026-07-04 (moderación)** — Release **2.10** (vc32, build 43): moderación
 UGC completa (requisito App Store 1.2, envío CANCELADO para incluirla):
 denunciar comentarios/notas (bandera) y usuarios (menú ⋯ del perfil) +
