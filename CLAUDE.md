@@ -542,6 +542,14 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04 (noche)** — Release **2.9.2** (vc26, build 37): botonera del mapa
+arriba-derecha (se solapaba con ubicación) + botón re-centrar escuela; iOS ya
+no salta el zoom al ocultar capas (auto-fit solo con marcadores NUEVOS —
+lastFittedIds acumulativo en MapLibreView); buscador con placeholder claro y
+sector en resultados (sectorName en /api/search/lines); "Editar piedra/muro"
+Android pasa a ModalBottomSheet; CAUSA RAÍZ de la "imagen fantasma" entre
+pestañas: el crossfade del NavHost (no el SurfaceView) → transiciones None.
+
 **2026-07-04 (tarde)** — Release **2.9.1** (Android vc25, iOS build 36), ronda
 de feedback sobre la 2.9 con maquetas aprobadas: comentarios rediseñados flat
 (solo en vías, no en la piedra), botonera lateral del mapa SIEMPRE con las
