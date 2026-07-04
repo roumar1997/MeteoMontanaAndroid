@@ -30,14 +30,14 @@ enum MapStyleKind: String, CaseIterable {
                         "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
                         "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],
               "tileSize": 256, "maxzoom": 17, "attribution": "© OpenTopoMap (CC-BY-SA)" } },
-              "layers": [{ "id": "topo", "type": "raster", "source": "topo" }] }
+              "layers": [{ "id": "bg", "type": "background", "paint": { "background-color": "#F4F1E9" } }, { "id": "topo", "type": "raster", "source": "topo" }] }
             """
         case .satellite:
             json = """
             { "version": 8, "sources": { "sat": { "type": "raster",
               "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
               "tileSize": 256, "attribution": "Tiles © Esri" } },
-              "layers": [{ "id": "sat", "type": "raster", "source": "sat" }] }
+              "layers": [{ "id": "bg", "type": "background", "paint": { "background-color": "#F4F1E9" } }, { "id": "sat", "type": "raster", "source": "sat" }] }
             """
         }
         let url = FileManager.default.temporaryDirectory
@@ -140,7 +140,7 @@ struct MapLibreView: UIViewRepresentable {
     /// parking en la lista). `focusToken` es un contador: incrementarlo fuerza
     /// el re-centrado aunque la coordenada sea la misma que la última vez.
     var focusCoordinate: CLLocationCoordinate2D? = nil
-    var focusZoom: Double = 16.5
+    var focusZoom: Double = 15.2
     var focusToken: Int = 0
     /// Si tiene ≥2 coordenadas, el foco ENCUADRA todas (bounds) en vez de
     /// centrar en focusCoordinate — p. ej. parking + sus sectores/piedras

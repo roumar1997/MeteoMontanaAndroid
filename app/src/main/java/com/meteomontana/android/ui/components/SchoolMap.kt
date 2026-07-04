@@ -42,7 +42,9 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CenterFocusStrong
+import androidx.compose.material.icons.outlined.CloseFullscreen
+import androidx.compose.material.icons.outlined.GpsFixed
+import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.ui.draw.alpha
@@ -81,8 +83,8 @@ private enum class MapStyleOption(val labelResId: Int) {
 }
 
 private fun styleJsonFor(style: MapStyleOption): String = when (style) {
-    MapStyleOption.SATELLITE -> """{"version":8,"sources":{"sat":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"sat","type":"raster","source":"sat"}]}"""
-    MapStyleOption.TOPO      -> """{"version":8,"sources":{"topo":{"type":"raster","tiles":["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"topo","type":"raster","source":"topo"}]}"""
+    MapStyleOption.SATELLITE -> """{"version":8,"sources":{"sat":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"sat","type":"raster","source":"sat"}]}"""
+    MapStyleOption.TOPO      -> """{"version":8,"sources":{"topo":{"type":"raster","tiles":["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"topo","type":"raster","source":"topo"}]}"""
 }
 
 // Si el usuario está más lejos de esto del centro de los elementos de la
@@ -469,7 +471,7 @@ private fun InnerMap(
                         runCatching {
                             if (stones.isEmpty()) {
                                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                    LatLng(tapped.lat, tapped.lon), 16.0))
+                                    LatLng(tapped.lat, tapped.lon), 15.0))
                             } else {
                                 val bb = LatLngBounds.Builder()
                                     .include(LatLng(tapped.lat, tapped.lon))
@@ -485,7 +487,7 @@ private fun InnerMap(
                     mapRef.value?.let { map ->
                         runCatching {
                             map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                LatLng(tapped.lat, tapped.lon), 16.5))
+                                LatLng(tapped.lat, tapped.lon), 15.2))
                         }
                     }
                     selectedBlock = tapped
@@ -739,9 +741,12 @@ private fun InnerMap(
                     .clickable(onClick = toggleFullscreen),
                 contentAlignment = Alignment.Center
             ) {
-                Text(if (fullscreenMap) "✕" else "⤢",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium)
+                androidx.compose.material3.Icon(
+                    if (fullscreenMap) androidx.compose.material.icons.Icons.Outlined.CloseFullscreen
+                    else androidx.compose.material.icons.Icons.Outlined.OpenInFull,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(18.dp))
             }
 
             // Botonera lateral (SIEMPRE, estilo Radar — maqueta B aprobada):
@@ -753,8 +758,8 @@ private fun InnerMap(
                     // ARRIBA a la derecha, bajo PROPONER — centrada se solapaba
                     // con el botón de ubicación (abajo a la derecha).
                     modifier = Modifier.align(Alignment.TopEnd)
-                        .padding(top = 52.dp, end = Spacing.sm, bottom = Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        .padding(top = 48.dp, end = Spacing.sm, bottom = Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Re-centrar en la escuela (vuelta al encuadre inicial).
@@ -766,7 +771,7 @@ private fun InnerMap(
                         }
                     }) {
                         androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Outlined.CenterFocusStrong,
+                            androidx.compose.material.icons.Icons.Outlined.GpsFixed,
                             contentDescription = "Centrar en la escuela",
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp))
@@ -787,32 +792,19 @@ private fun InnerMap(
                         onClick = { toggleLayer("BLOCK") }) { StoneShapeIcon() }
                     SideMapButton(active = "ZONE" !in hiddenTypes,
                         onClick = { toggleLayer("ZONE") }) { ZoneShapeIcon() }
-                }
-            }
-
-            // Botón "dónde estoy": centra el mapa en tu posición para ver qué
-            // piedras/sectores tienes alrededor mientras te mueves por la escuela.
-            if (userLoc != null && miniBlock == null) {
-                Box(
-                    modifier = Modifier.align(Alignment.BottomEnd)
-                        .padding(Spacing.sm)
-                        .size(40.dp)
-                        .clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(MaterialTheme.colorScheme.background)
-                        .border(1.dp, MaterialTheme.colorScheme.outline,
-                            androidx.compose.foundation.shape.CircleShape)
-                        .clickable {
+                    if (userLoc != null) {
+                        SideMapButton(active = true, onClick = {
                             mapRef.value?.let { map ->
                                 runCatching {
                                     map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                        LatLng(userLoc.lat, userLoc.lon), 16.0))
+                                        LatLng(userLoc.lat, userLoc.lon), 15.5))
                                 }
                             }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("◎", color = Color(0xFF1A56DB),
-                        style = MaterialTheme.typography.titleLarge)
+                        }) {
+                            Text("◎", color = Color(0xFF1A56DB),
+                                style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
                 }
             }
 
@@ -1618,7 +1610,7 @@ private fun SchoolViaSearchBar(
 private fun SideMapButton(active: Boolean, onClick: () -> Unit, content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(34.dp)
             .clip(androidx.compose.foundation.shape.CircleShape)
             .background(MaterialTheme.colorScheme.background)
             .border(1.dp, MaterialTheme.colorScheme.outline,

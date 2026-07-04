@@ -647,7 +647,7 @@ private struct SchoolMapSection: View {
                                           : "arrow.up.left.and.arrow.down.right")
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundStyle(Cumbre.ink)
-                                        .frame(width: 40, height: 40)
+                                        .frame(width: 34, height: 34)
                                         .background(Cumbre.bg)
                                         .clipShape(Circle())
                                         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
@@ -689,39 +689,23 @@ private struct SchoolMapSection: View {
                                 sideButton(active: !hiddenTypes.contains("ZONE")) {
                                     toggleLayer("ZONE")
                                 } content: { zoneShape }
+                                if let u = userCoord {
+                                    sideButton(active: true) {
+                                        focusFit = []
+                                        focusCoord = u
+                                        focusToken += 1
+                                    } content: {
+                                        Image(systemName: "location.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundStyle(Color(parkingColor))
+                                    }
+                                }
                                 }
                             }
                             Spacer()
                         }
                         .padding(.top, fullscreenMap ? 104 : 50)
                         .padding(.trailing, 10)
-                        .frame(height: height)
-                    }
-
-                    // Botón "dónde estoy": centra el mapa en tu posición para
-                    // ver qué piedras/sectores tienes alrededor al moverte.
-                    if let u = userCoord, miniBlock == nil, !waitingTap, !correctionMode {
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Button {
-                                    focusFit = []
-                                    focusCoord = u
-                                    focusToken += 1
-                                } label: {
-                                    Image(systemName: "location.fill")
-                                        .font(.system(size: 15))
-                                        .foregroundStyle(Color(parkingColor))
-                                        .frame(width: 40, height: 40)
-                                        .background(Cumbre.bg)
-                                        .clipShape(Circle())
-                                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(10)
                         .frame(height: height)
                     }
 
@@ -822,7 +806,7 @@ private struct SchoolMapSection: View {
                                      @ViewBuilder content: () -> C) -> some View {
         Button(action: action) {
             content()
-                .frame(width: 40, height: 40)
+                .frame(width: 34, height: 34)
                 .background(Cumbre.bg)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
@@ -2370,7 +2354,7 @@ struct NotesSectionView: View {
                 HStack(spacing: 10) {
                     PhotosPicker(selection: $pickerItem, matching: .images) {
                         Image(systemName: "camera").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
-                            .frame(width: 40, height: 40).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            .frame(width: 34, height: 34).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                     }
                     Spacer()
                     Button {
