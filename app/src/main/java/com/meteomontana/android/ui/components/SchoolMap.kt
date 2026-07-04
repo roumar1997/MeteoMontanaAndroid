@@ -1534,24 +1534,24 @@ private fun clusterBitmap(count: Int): Bitmap {
 
 /** Pin verde para zonas (tipo ZONE). */
 private fun zoneBitmap(): Bitmap {
-    val size = 52
+    val size = 68
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val c = Canvas(bmp)
     val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#3F6B4A") }
-    val cx = size / 2f; val cy = size / 2f - 4f; val r = 20f
+    val cx = size / 2f; val cy = size / 2f - 5f; val r = 27f
     c.drawCircle(cx, cy, r, fill)
     val path = android.graphics.Path().apply {
-        moveTo(cx - 8f, cy + r - 4f)
-        lineTo(cx, cy + r + 10f)
-        lineTo(cx + 8f, cy + r - 4f)
+        moveTo(cx - 10f, cy + r - 5f)
+        lineTo(cx, cy + r + 13f)
+        lineTo(cx + 10f, cy + r - 5f)
         close()
     }
     c.drawPath(path, fill)
     val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.WHITE
-        textSize = 20f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
+        textSize = 26f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
     }
-    c.drawText("Z", cx, cy + 7f, txt)
+    c.drawText("Z", cx, cy + 9f, txt)
     return bmp
 }
 

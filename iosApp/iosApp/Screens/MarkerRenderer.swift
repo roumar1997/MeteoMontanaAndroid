@@ -61,21 +61,21 @@ enum MarkerRenderer {
     // MARK: - Parking (cuadrado azul redondeado con "P")
 
     private static func parking() -> UIImage {
-        let size: CGFloat = 64
+        let size: CGFloat = 50
         return render(size) { ctx in
             let rect = CGRect(x: 8, y: 8, width: size - 16, height: size - 16)
             let path = UIBezierPath(roundedRect: rect, cornerRadius: 10)
             UIColor(hex: 0x1A56DB).setFill(); path.fill()
             UIColor.white.setStroke(); path.lineWidth = 3; path.stroke()
             draw(text: "P", in: CGRect(x: 0, y: 0, width: size, height: size),
-                 size: 34, color: .white)
+                 size: 26, color: .white)
         }
     }
 
     // MARK: - Zona (círculo verde + triángulo, con "Z")
 
     private static func zone(name: String?) -> UIImage {
-        let pin: CGFloat = 56
+        let pin: CGFloat = 48
         let label = name.map { truncate($0, 18) }?.uppercased()
         let nameH: CGFloat = label != nil ? 26 : 0
         // Ancho extra si el nombre del sector es largo (para que no se recorte).
@@ -86,7 +86,7 @@ enum MarkerRenderer {
         let sz = CGSize(width: w, height: h)
         return UIGraphicsImageRenderer(size: sz).image { _ in
             let cx = w / 2, cy = pin / 2 - 6
-            let r: CGFloat = 20
+            let r: CGFloat = 17
             let circle = UIBezierPath(arcCenter: CGPoint(x: cx, y: cy), radius: r,
                                       startAngle: 0, endAngle: .pi * 2, clockwise: true)
             // Triángulo inferior (punta del pin).
@@ -99,7 +99,7 @@ enum MarkerRenderer {
             tri.fill(); circle.fill()
             UIColor.white.setStroke(); circle.lineWidth = 2; circle.stroke()
             draw(text: "Z", in: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2),
-                 size: 20, color: .white)
+                 size: 17, color: .white)
             // Nombre del sector debajo (con halo blanco), visible al hacer zoom.
             if let label {
                 draw(text: label, in: CGRect(x: 0, y: pin - 2, width: w, height: nameH),
@@ -112,7 +112,7 @@ enum MarkerRenderer {
     // MARK: - Piedra (polígono de roca terra con nombre corto)
 
     private static func block(name: String, color: UIColor) -> UIImage {
-        let size: CGFloat = 66
+        let size: CGFloat = 52
         let label = shortLabel(name)
         return render(size) { ctx in
             let cx = size / 2, cy = size / 2
@@ -142,7 +142,7 @@ enum MarkerRenderer {
     // MARK: - Escuela (triángulo oscuro con punto)
 
     private static func school() -> UIImage {
-        let size: CGFloat = 64
+        let size: CGFloat = 50
         return render(size) { ctx in
             let path = UIBezierPath()
             path.move(to: CGPoint(x: size / 2, y: 8))
