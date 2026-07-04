@@ -351,7 +351,9 @@ fun MainScreen(
                     )
                 }
                 composable(Routes.ADMIN) {
-                    AdminScreen(onBack = { navController.popBackStack() })
+                    AdminScreen(onBack = { navController.popBackStack() },
+                        onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) },
+                        onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) })
                 }
                 composable(
                     route = Routes.TOPO_EDITOR,

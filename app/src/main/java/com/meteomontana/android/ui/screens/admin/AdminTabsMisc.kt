@@ -96,32 +96,142 @@ import org.maplibre.android.maps.Style
 
 
 @Composable
-internal fun StatsTab(stats: AdminStats?) {
+internal fun StatsTab(
+    stats: AdminStats?,
+    users: List<com.meteomontana.android.data.api.AdminUserRowDto>? = null,
+    notes: List<com.meteomontana.android.data.api.AdminNoteRowDto>? = null,
+    onLoadUsers: () -> Unit = {},
+    onLoadNotes: () -> Unit = {},
+    onOpenUserProfile: (String) -> Unit = {},
+    onOpenSchool: (String) -> Unit = {},
+    onGoToTab: (String) -> Unit = {}
+) {
     if (stats == null) return
+    // Qué lista está abierta: "users" / "notes" / null.
+    var openList by remember { mutableStateOf<String?>(null) }
     Column(modifier = Modifier.fillMaxSize().padding(16.dp),
            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Toca una tarjeta para ver su lista",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCard("USUARIOS", stats.totalUsers, Modifier.weight(1f))
-            StatCard("ADMINS", stats.totalAdmins, Modifier.weight(1f))
+            StatCard("USUARIOS", stats.totalUsers, Modifier.weight(1f)) {
+                onLoadUsers(); openList = "users"
+            }
+            StatCard("ADMINS", stats.totalAdmins, Modifier.weight(1f)) {
+                onLoadUsers(); openList = "admins"
+            }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCard("ESCUELAS", stats.totalSchools, Modifier.weight(1f))
-            StatCard("NOTAS", stats.totalNotes, Modifier.weight(1f))
+            StatCard("ESCUELAS", stats.totalSchools, Modifier.weight(1f)) { onGoToTab("gestionar") }
+            StatCard("NOTAS", stats.totalNotes, Modifier.weight(1f)) {
+                onLoadNotes(); openList = "notes"
+            }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCard("PENDING", stats.submissionsPending, Modifier.weight(1f))
-            StatCard("APROBADAS", stats.submissionsApproved, Modifier.weight(1f))
-            StatCard("RECHAZADAS", stats.submissionsRejected, Modifier.weight(1f))
+            StatCard("PENDING", stats.submissionsPending, Modifier.weight(1f)) { onGoToTab("propuestas") }
+            StatCard("APROBADAS", stats.submissionsApproved, Modifier.weight(1f)) { onGoToTab("actividad") }
+            StatCard("RECHAZADAS", stats.submissionsRejected, Modifier.weight(1f)) { onGoToTab("actividad") }
+        }
+    }
+
+    // Lista en diálogo a pantalla casi completa.
+    openList?.let { kind ->
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { openList = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Column(Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                .padding(Spacing.md)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(when (kind) {
+                        "users" -> "USUARIOS"; "admins" -> "ADMINS"; else -> "NOTAS"
+                    }, style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Text("✕ CERRAR", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clip(RoundedCornerShape(2.dp))
+                            .clickable { openList = null }.padding(4.dp))
+                }
+                Spacer(Modifier.height(Spacing.sm))
+                when (kind) {
+                    "users", "admins" -> {
+                        val list = users
+                        if (list == null) {
+                            Box(Modifier.fillMaxWidth().padding(Spacing.lg), Alignment.Center) {
+                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                            }
+                        } else {
+                            val shown = if (kind == "admins") list.filter { it.isAdmin } else list
+                            LazyColumn {
+                                items(shown.size) { i ->
+                                    val u = shown[i]
+                                    Row(Modifier.fillMaxWidth()
+                                        .clickable { u.uid.let(onOpenUserProfile) }
+                                        .padding(vertical = 10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Column {
+                                            Text(u.username?.let { "@" + it } ?: (u.displayName ?: u.uid.take(10)),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface)
+                                            if (u.isAdmin) Text("ADMIN",
+                                                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                                                color = com.meteomontana.android.ui.theme.Terra)
+                                        }
+                                        Text(u.createdAt?.take(10) ?: "",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                                }
+                            }
+                        }
+                    }
+                    else -> {
+                        val list = notes
+                        if (list == null) {
+                            Box(Modifier.fillMaxWidth().padding(Spacing.lg), Alignment.Center) {
+                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                            }
+                        } else {
+                            LazyColumn {
+                                items(list.size) { i ->
+                                    val n = list[i]
+                                    Column(Modifier.fillMaxWidth()
+                                        .clickable { n.schoolId?.let(onOpenSchool) }
+                                        .padding(vertical = 8.dp)) {
+                                        Text(n.text, style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface)
+                                        Text(listOfNotNull(n.author, n.schoolId, n.createdAt?.take(10))
+                                                .joinToString(" · "),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun StatCard(label: String, value: Long, modifier: Modifier = Modifier) {
+private fun StatCard(label: String, value: Long, modifier: Modifier = Modifier,
+                     onClick: (() -> Unit)? = null) {
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(2.dp)).clickable(onClick = onClick) else Modifier)
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -170,23 +280,66 @@ internal fun ActivityTab(logs: List<AdminLog>) {
 internal fun PushTab(
     busy: Boolean,
     result: String?,
+    userResults: List<com.meteomontana.android.domain.model.PublicProfile> = emptyList(),
+    onSearchUser: (String) -> Unit = {},
+    onClearSearch: () -> Unit = {},
     onSend: (String?, String, String) -> Unit
 ) {
-    var target by remember { mutableStateOf("") }
+    // Destinatario elegido (null = TODOS los usuarios).
+    var targetUid by remember { mutableStateOf<String?>(null) }
+    var targetLabel by remember { mutableStateOf<String?>(null) }
+    var query by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
     var body by remember { mutableStateOf("") }
+    var confirmAll by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp),
            verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Enviar push", style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground)
-        Text("Si dejas Target UID vacío, se manda a TODOS los usuarios con token.",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        OutlinedTextField(value = target, onValueChange = { target = it },
-            placeholder = { Text("Target UID (opcional)") },
-            singleLine = true, modifier = Modifier.fillMaxWidth())
+        // Destinatario: buscador de usuarios o TODOS.
+        if (targetUid == null) {
+            OutlinedTextField(value = query,
+                onValueChange = { query = it; onSearchUser(it) },
+                placeholder = { Text("Buscar destinatario por @usuario o nombre…") },
+                singleLine = true, modifier = Modifier.fillMaxWidth())
+            if (userResults.isNotEmpty() && query.trim().length >= 2) {
+                Column(Modifier.fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))) {
+                    userResults.take(6).forEach { u ->
+                        Row(Modifier.fillMaxWidth()
+                            .clickable {
+                                targetUid = u.uid
+                                targetLabel = u.username?.let { "@" + it } ?: u.displayName
+                                query = ""; onClearSearch()
+                            }
+                            .padding(horizontal = 12.dp, vertical = 10.dp)) {
+                            Text(u.username?.let { "@" + it } ?: (u.displayName ?: u.uid.take(8)),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                }
+            }
+            Text("Sin destinatario elegido → se enviará a TODOS los usuarios.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("PARA: " + (targetLabel ?: targetUid),
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = com.meteomontana.android.ui.theme.Terra)
+                Text("✕ QUITAR",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clip(RoundedCornerShape(2.dp))
+                        .clickable { targetUid = null; targetLabel = null }
+                        .padding(4.dp))
+            }
+        }
         OutlinedTextField(value = title, onValueChange = { title = it },
             placeholder = { Text("Título") },
             singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -195,7 +348,10 @@ internal fun PushTab(
             modifier = Modifier.fillMaxWidth().height(120.dp))
 
         Button(
-            onClick = { onSend(target.takeIf { it.isNotBlank() }, title, body) },
+            onClick = {
+                if (targetUid == null) confirmAll = true
+                else onSend(targetUid, title, body)
+            },
             enabled = !busy && title.isNotBlank() && body.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
@@ -203,7 +359,27 @@ internal fun PushTab(
             ),
             shape = MaterialTheme.shapes.small
         ) {
-            Text(if (busy) "Enviando..." else stringResource(R.string.common_send))
+            Text(if (busy) "Enviando..."
+                 else if (targetUid == null) "ENVIAR A TODOS LOS USUARIOS"
+                 else stringResource(R.string.common_send))
+        }
+        if (confirmAll) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { confirmAll = false },
+                title = { Text("¿Enviar a TODOS?") },
+                text = { Text("El push llegará a todos los usuarios de Cumbre. Esta acción no se puede deshacer.") },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        confirmAll = false
+                        onSend(null, title, body)
+                    }) { Text("SÍ, A TODOS", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { confirmAll = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
         }
         result?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium,

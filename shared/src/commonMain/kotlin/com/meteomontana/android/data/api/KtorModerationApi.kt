@@ -59,4 +59,30 @@ class KtorModerationApi(private val client: HttpClient) {
             contentType(ContentType.Application.Json)
             setBody(mapOf("action" to action))
         }.body()
+
+    /** Listas del panel de admin (STATS pulsables). */
+    suspend fun getAdminUsers(): List<AdminUserRowDto> = client.get("admin/users").body()
+
+    suspend fun getAdminNotes(): List<AdminNoteRowDto> = client.get("admin/notes").body()
 }
+
+/** Fila de usuario para el panel de admin (STATS pulsables). */
+@Serializable
+data class AdminUserRowDto(
+    val uid: String,
+    val username: String? = null,
+    val displayName: String? = null,
+    val isAdmin: Boolean = false,
+    val createdAt: String? = null
+)
+
+/** Fila de nota para el panel de admin. */
+@Serializable
+data class AdminNoteRowDto(
+    val id: String,
+    val schoolId: String? = null,
+    val author: String? = null,
+    val uid: String = "",
+    val text: String = "",
+    val createdAt: String? = null
+)

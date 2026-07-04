@@ -124,7 +124,7 @@ struct AdminView: View {
             case .propuestas: propuestasContent
             case .denuncias: AdminReportsTab()
             case .gestionar: GestionarTab(vm: vm)
-            case .stats: AdminStatsTab(stats: vm.stats)
+            case .stats: AdminStatsTab(stats: vm.stats, onGoToTab: { tab = $0 })
             case .actividad: AdminLogsTab(logs: vm.logs)
             case .push: AdminPushTab(vm: vm)
             }
@@ -735,30 +735,104 @@ private enum AdminTab: String, CaseIterable {
 /// Tab STATS — tarjetas con estadísticas de la plataforma (espejo de StatsTab).
 private struct AdminStatsTab: View {
     let stats: AdminStats?
+    /// Cambia de pestaña (ESCUELAS → gestionar, PENDIENTES → propuestas).
+    var onGoToTab: (AdminTab) -> Void = { _ in }
+    @State private var openList: String? = nil
+    @State private var users: [AdminUserRowDto]? = nil
+    @State private var notes: [AdminNoteRowDto]? = nil
+
     var body: some View {
         ScrollView {
             if let s = stats {
+                Text("Toca una tarjeta para ver su lista")
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16).padding(.top, 10)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    card("USUARIOS", s.totalUsers)
-                    card("ADMINS", s.totalAdmins)
-                    card("ESCUELAS", s.totalSchools)
-                    card("NOTAS", s.totalNotes)
-                    card("PENDIENTES", s.submissionsPending)
-                    card("APROBADAS", s.submissionsApproved)
-                    card("RECHAZADAS", s.submissionsRejected)
+                    card("USUARIOS", s.totalUsers) { openList = "users"; loadUsers() }
+                    card("ADMINS", s.totalAdmins) { openList = "admins"; loadUsers() }
+                    card("ESCUELAS", s.totalSchools) { onGoToTab(.gestionar) }
+                    card("NOTAS", s.totalNotes) { openList = "notes"; loadNotes() }
+                    card("PENDIENTES", s.submissionsPending) { onGoToTab(.propuestas) }
+                    card("APROBADAS", s.submissionsApproved) { onGoToTab(.actividad) }
+                    card("RECHAZADAS", s.submissionsRejected) { onGoToTab(.actividad) }
                 }.padding(16)
             } else {
                 ProgressView().padding(.top, 40)
             }
         }
-    }
-    private func card(_ label: String, _ value: Int64) -> some View {
-        VStack(spacing: 4) {
-            Text("\(value)").font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
-            Text(label).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+        .sheet(isPresented: Binding(get: { openList != nil }, set: { if !$0 { openList = nil } })) {
+            listSheet
         }
-        .frame(maxWidth: .infinity).padding(.vertical, 16)
-        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func loadUsers() {
+        guard users == nil else { return }
+        Task { users = (try? await AppDependencies.shared.container.moderationApi.getAdminUsers()) ?? [] }
+    }
+    private func loadNotes() {
+        guard notes == nil else { return }
+        Task { notes = (try? await AppDependencies.shared.container.moderationApi.getAdminNotes()) ?? [] }
+    }
+
+    @ViewBuilder private var listSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if openList == "notes" {
+                        if let list = notes {
+                            ForEach(list, id: \.id) { n in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(n.text).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                    Text([n.author, n.schoolId, (n.createdAt ?? "").isEmpty ? nil : String((n.createdAt ?? "").prefix(10))]
+                                            .compactMap { $0 }.joined(separator: " - "))
+                                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .padding(.vertical, 8)
+                                Divider().overlay(Cumbre.rule)
+                            }
+                        } else { ProgressView().padding(.top, 30) }
+                    } else {
+                        if let list = users {
+                            let shown = openList == "admins" ? list.filter { $0.isAdmin } : list
+                            ForEach(shown, id: \.uid) { u in
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
+                                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                        if u.isAdmin {
+                                            Text("ADMIN").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+                                        }
+                                    }
+                                    Spacer()
+                                    Text(String((u.createdAt ?? "").prefix(10)))
+                                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .padding(.vertical, 8)
+                                Divider().overlay(Cumbre.rule)
+                            }
+                        } else { ProgressView().padding(.top, 30) }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle(openList == "notes" ? "Notas" : (openList == "admins" ? "Admins" : "Usuarios"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func card(_ label: String, _ value: Int64, action: @escaping () -> Void = {}) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text("\(value)").font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
+                Text(label).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 16)
+            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -793,13 +867,59 @@ private struct AdminLogsTab: View {
 /// Tab PUSH — envío manual de notificación (espejo de PushTab).
 private struct AdminPushTab: View {
     @ObservedObject var vm: AdminViewModel
-    @State private var target = ""
+    @State private var targetUid: String? = nil
+    @State private var targetLabel: String? = nil
+    @State private var query = ""
+    @State private var results: [PublicProfile] = []
+    @State private var searchTask: Task<Void, Never>? = nil
     @State private var title = ""
     @State private var body_ = ""
+    @State private var confirmAll = false
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                field("UID DESTINO (opcional · vacío = todos)", $target, "uid")
+                if let uid = targetUid {
+                    HStack(spacing: 8) {
+                        Text("PARA: " + (targetLabel ?? uid))
+                            .font(Cumbre.mono(11, .bold)).tracking(0.6)
+                            .foregroundStyle(Cumbre.terra)
+                        Button("✕ QUITAR") { targetUid = nil; targetLabel = nil }
+                            .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                            .buttonStyle(.plain)
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("DESTINATARIO").eyebrow()
+                        TextField("Buscar por @usuario o nombre…", text: $query)
+                            .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                            .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            .onChange(of: query) { _, q in
+                                searchTask?.cancel()
+                                let t = q.trimmingCharacters(in: .whitespaces)
+                                guard t.count >= 2 else { results = []; return }
+                                searchTask = Task {
+                                    try? await Task.sleep(nanoseconds: 250_000_000)
+                                    guard !Task.isCancelled else { return }
+                                    results = (try? await AppDependencies.shared.container.searchUsers.invoke(query: t)) ?? []
+                                }
+                            }
+                        ForEach(results.prefix(6), id: \.uid) { u in
+                            Button {
+                                targetUid = u.uid
+                                targetLabel = u.username.map { "@" + $0 } ?? u.displayName
+                                query = ""; results = []
+                            } label: {
+                                Text(u.username.map { "@" + $0 } ?? (u.displayName ?? u.uid))
+                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 10).padding(.vertical, 8)
+                                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            }.buttonStyle(.plain)
+                        }
+                        Text("Sin destinatario → se enviará a TODOS los usuarios.")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+                }
                 field("TÍTULO", $title, "Título")
                 VStack(alignment: .leading, spacing: 6) {
                     Text("MENSAJE").eyebrow()
@@ -808,14 +928,23 @@ private struct AdminPushTab: View {
                         .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                 }
                 Button {
-                    vm.sendPush(targetUid: target.trimmingCharacters(in: .whitespaces).isEmpty ? nil : target,
-                                title: title, body: body_)
+                    if targetUid == nil { confirmAll = true }
+                    else { vm.sendPush(targetUid: targetUid, title: title, body: body_) }
                 } label: {
                     HStack { if vm.pushBusy { ProgressView().tint(.white) }
-                        Text("ENVIAR PUSH").font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                        Text(targetUid == nil ? "ENVIAR A TODOS LOS USUARIOS" : "ENVIAR PUSH")
+                            .font(Cumbre.mono(13, .bold)).tracking(0.8) }
                     .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
                 }.buttonStyle(.plain)
                 .disabled(vm.pushBusy || title.isEmpty || body_.isEmpty)
+                .alert("¿Enviar a TODOS?", isPresented: $confirmAll) {
+                    Button("Cancelar", role: .cancel) {}
+                    Button("Sí, a todos", role: .destructive) {
+                        vm.sendPush(targetUid: nil, title: title, body: body_)
+                    }
+                } message: {
+                    Text("El push llegará a todos los usuarios de Cumbre.")
+                }
                 if let r = vm.pushResult {
                     Text(r).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
                 }
@@ -877,7 +1006,17 @@ private struct GestionarTab: View {
                 }
             }
         }
-        .sheet(item: $selected) { s in SchoolBlocksManageSheet(school: s) }
+        .fullScreenCover(item: $selected) { s in
+            NavigationStack {
+                SchoolDetailView(school: s)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("CERRAR") { selected = nil }
+                                .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                    }
+            }
+        }
     }
 }
 

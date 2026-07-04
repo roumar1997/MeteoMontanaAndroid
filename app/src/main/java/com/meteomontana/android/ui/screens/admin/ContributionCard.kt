@@ -255,9 +255,9 @@ internal fun ContributionCard(
                     Spacer(Modifier.height(Spacing.xs))
                     vias.forEach { v ->
                         val orig = v.targetLineId?.let { id -> oldFace?.lines?.firstOrNull { it.id == id } }
-                        val newTxt = listOfNotNull(v.name, v.grade, v.startType).joinToString(" · ")
+                        val newTxt = listOfNotNull(v.name, v.grade, v.startType, v.description).joinToString(" · ")
                         if (orig != null) {
-                            val origTxt = listOfNotNull(orig.name, orig.grade, orig.startType?.toString()).joinToString(" · ")
+                            val origTxt = listOfNotNull(orig.name, orig.grade, orig.startType?.toString(), orig.lineDescription).joinToString(" · ")
                             Text("• $origTxt  →  $newTxt",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface)
@@ -557,7 +557,8 @@ internal fun ContributionCard(
 internal data class ProposedVia(
     val name: String?, val grade: String?, val startType: String?,
     val points: List<androidx.compose.ui.geometry.Offset>,
-    val photoUrl: String?, val targetLineId: String?
+    val photoUrl: String?, val targetLineId: String?,
+    val description: String? = null
 )
 
 /** Badge del tipo en claro (antes se mostraba el código a pelo). */
@@ -637,7 +638,8 @@ internal fun parseProposedVias(bloquesJson: String?): List<ProposedVia> {
                 startType = o.optString("startType").takeIf { it.isNotEmpty() && it != "null" },
                 points = com.meteomontana.android.ui.screens.topo.parseLineStroke(o.optString("linePath")).points,
                 photoUrl = o.optString("photoUrl").takeIf { it.isNotEmpty() && it != "null" },
-                targetLineId = o.optString("targetLineId").takeIf { it.isNotEmpty() && it != "null" }
+                targetLineId = o.optString("targetLineId").takeIf { it.isNotEmpty() && it != "null" },
+                description = o.optString("description").takeIf { it.isNotEmpty() && it != "null" }
             )
         }
     } catch (_: Throwable) { emptyList() }

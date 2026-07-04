@@ -100,7 +100,10 @@ internal fun GestionarTab(
     onLoadSchools: () -> Unit,
     onFetchSchoolBlocks: (String) -> Unit,
     onDeleteBlock: (String, String) -> Unit,
-    onUpdateBlock: (String, String, com.meteomontana.android.data.api.dto.CreateBlockRequest, (Boolean) -> Unit) -> Unit
+    onUpdateBlock: (String, String, com.meteomontana.android.data.api.dto.CreateBlockRequest, (Boolean) -> Unit) -> Unit,
+    /** Abre el DETALLE real de la escuela (mapa nuevo; como admin puedes
+     *  editar/mover/borrar todo desde ahí). */
+    onOpenSchool: (String) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
     var selectedSchool by remember {
@@ -149,10 +152,7 @@ internal fun GestionarTab(
 
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(filtered) { school ->
-                    SchoolListRow(school) {
-                        onFetchSchoolBlocks(school.id)
-                        selectedSchool = school
-                    }
+                    SchoolListRow(school) { onOpenSchool(school.id) }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
             }

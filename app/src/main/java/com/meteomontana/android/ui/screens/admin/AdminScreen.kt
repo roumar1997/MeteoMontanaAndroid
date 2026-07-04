@@ -105,6 +105,10 @@ private enum class AdminTab(val label: String) {
 @Composable
 fun AdminScreen(
     onBack: () -> Unit,
+    /** GESTIONAR: abre el detalle real de la escuela (admin edita desde ahí). */
+    onOpenSchool: (String) -> Unit = {},
+    /** STATS: abre el perfil público de un usuario. */
+    onOpenUser: (String) -> Unit = {},
     viewModel: AdminViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -160,6 +164,7 @@ fun AdminScreen(
                 onRejectContribution = viewModel::rejectContribution
             )
             AdminTab.Gestionar -> GestionarTab(
+                onOpenSchool = onOpenSchool,
                 allSchools = state.allSchools,
                 loading = state.schoolsLoading,
                 schoolBlocks = state.schoolBlocks,
@@ -176,10 +181,28 @@ fun AdminScreen(
                 onRemoveContent = { id -> viewModel.resolveContentReport(id, "REMOVE") },
                 onIgnoreContent = { id -> viewModel.resolveContentReport(id, "IGNORE") }
             )
-            AdminTab.Stats -> StatsTab(state.stats)
+            AdminTab.Stats -> StatsTab(
+                stats = state.stats,
+                users = viewModel.adminUsers.collectAsState().value,
+                notes = viewModel.adminNotes.collectAsState().value,
+                onLoadUsers = viewModel::loadAdminUsers,
+                onLoadNotes = viewModel::loadAdminNotes,
+                onOpenUserProfile = onOpenUser,
+                onOpenSchool = onOpenSchool,
+                onGoToTab = { name ->
+                    tab = when (name) {
+                        "gestionar" -> AdminTab.Gestionar
+                        "propuestas" -> AdminTab.Propuestas
+                        else -> AdminTab.Activity
+                    }
+                }
+            )
             AdminTab.Activity -> ActivityTab(state.logs)
             AdminTab.Push -> PushTab(
                 busy = state.pushBusy,
+                userResults = viewModel.userResults.collectAsState().value,
+                onSearchUser = viewModel::searchPushTarget,
+                onClearSearch = viewModel::clearPushTargets,
                 result = state.pushResult,
                 onSend = viewModel::sendPush
             )

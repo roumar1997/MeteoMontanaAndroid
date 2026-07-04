@@ -94,6 +94,7 @@ class AdminViewModelTest {
         mockk(relaxed = true),  // getPendingReportsUseCase
         mockk(relaxed = true),  // resolveReportUseCase
         mockk(relaxed = true),  // moderationApi
+        mockk(relaxed = true),  // searchUsers
         getBlocks, updateBlockUC, deleteBlockUC, getSchoolsUseCase
     )
 

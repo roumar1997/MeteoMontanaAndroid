@@ -67,6 +67,7 @@ class AdminViewModel @Inject constructor(
     private val getPendingReportsUseCase: GetPendingReportsUseCase,
     private val resolveReportUseCase: ResolveReportUseCase,
     private val moderationApi: com.meteomontana.android.data.api.KtorModerationApi,
+    private val searchUsers: com.meteomontana.android.domain.usecase.social.SearchUsersUseCase,
     private val getBlocks: GetBlocksUseCase,
     private val updateBlockUseCase: UpdateBlockUseCase,
     private val deleteBlockUseCase: DeleteBlockUseCase,
@@ -181,6 +182,36 @@ class AdminViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { resolveReportUseCase(id, action) }
             load()
+        }
+    }
+
+    /** Buscador de destinatario del push (por @usuario o nombre). */
+    private val _userResults = kotlinx.coroutines.flow.MutableStateFlow<List<com.meteomontana.android.domain.model.PublicProfile>>(emptyList())
+    val userResults: kotlinx.coroutines.flow.StateFlow<List<com.meteomontana.android.domain.model.PublicProfile>> = _userResults
+    private var searchJob: kotlinx.coroutines.Job? = null
+    fun searchPushTarget(q: String) {
+        searchJob?.cancel()
+        if (q.trim().length < 2) { _userResults.value = emptyList(); return }
+        searchJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(250)
+            _userResults.value = runCatching { searchUsers(q.trim()) }.getOrDefault(emptyList())
+        }
+    }
+    fun clearPushTargets() { _userResults.value = emptyList() }
+
+    /** Listas de STATS (usuarios / notas), bajo demanda. */
+    private val _adminUsers = kotlinx.coroutines.flow.MutableStateFlow<List<com.meteomontana.android.data.api.AdminUserRowDto>?>(null)
+    val adminUsers: kotlinx.coroutines.flow.StateFlow<List<com.meteomontana.android.data.api.AdminUserRowDto>?> = _adminUsers
+    private val _adminNotes = kotlinx.coroutines.flow.MutableStateFlow<List<com.meteomontana.android.data.api.AdminNoteRowDto>?>(null)
+    val adminNotes: kotlinx.coroutines.flow.StateFlow<List<com.meteomontana.android.data.api.AdminNoteRowDto>?> = _adminNotes
+    fun loadAdminUsers() {
+        viewModelScope.launch {
+            _adminUsers.value = runCatching { moderationApi.getAdminUsers() }.getOrDefault(emptyList())
+        }
+    }
+    fun loadAdminNotes() {
+        viewModelScope.launch {
+            _adminNotes.value = runCatching { moderationApi.getAdminNotes() }.getOrDefault(emptyList())
         }
     }
 
