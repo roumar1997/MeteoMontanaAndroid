@@ -369,6 +369,9 @@ private struct SchoolMapSection: View {
     @State private var editLinesBlock: Block?
     @State private var assignSectorBlock: Block?
     @State private var mapZoom: Double = 14   // para mostrar el nombre del sector al acercar
+    // Cámara conservada al recrear el MapView (entrar/salir de fullscreen).
+    @State private var savedCenter: CLLocationCoordinate2D?
+    @State private var savedZoom: Double?
     // Foco explícito al pulsar un parking en la lista (recentra el mapa ahí).
     @State private var focusCoord: CLLocationCoordinate2D?
     @State private var focusToken = 0
@@ -535,8 +538,8 @@ private struct SchoolMapSection: View {
     private func mapArea(height: CGFloat) -> some View {
         ZStack(alignment: .bottomTrailing) {
                     MapLibreView(
-                        center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-                        zoom: 14,
+                        center: savedCenter ?? CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
+                        zoom: savedZoom ?? 14,
                         markers: markers,
                         style: mapStyle,
                         // Encuadre inicial con TODOS los elementos (parkings/sectores/
@@ -544,8 +547,9 @@ private struct SchoolMapSection: View {
                         // fijo en zoom 14 sobre la escuela, dejando fuera sectores a
                         // km. Mi ubicación solo entra en el encuadre si ya está cerca
                         // (ver userMarkerIfNearby en MapLibreView.swift).
-                        autoFitToMarkers: true,
+                        autoFitToMarkers: savedZoom == nil,
                         onZoomChange: { mapZoom = $0 },
+                        onCameraChange: { c, z in savedCenter = c; savedZoom = z },
                         onTapMarker: { id in
                             if correctionMode && !corrActive {
                                 selectCorrectionTarget(id)

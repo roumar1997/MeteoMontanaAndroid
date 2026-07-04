@@ -123,6 +123,8 @@ struct MapLibreView: UIViewRepresentable {
     var autoFitToMarkers: Bool = false
     /// Notifica el nivel de zoom actual (para mostrar/ocultar etiquetas).
     var onZoomChange: ((Double) -> Void)? = nil
+    /// Notifica centro+zoom al moverse (para restaurar la cámara si el view se recrea).
+    var onCameraChange: ((CLLocationCoordinate2D, Double) -> Void)? = nil
     /// Se llama al tocar un marcador (por id).
     var onTapMarker: ((String) -> Void)? = nil
     /// Si está presente, un tap en el mapa (no en un marcador) devuelve la
@@ -203,10 +205,9 @@ struct MapLibreView: UIViewRepresentable {
                     minLat = min(minLat, c.latitude); maxLat = max(maxLat, c.latitude)
                     minLon = min(minLon, c.longitude); maxLon = max(maxLon, c.longitude)
                 }
-                let bounds = MLNCoordinateBounds(
-                    sw: CLLocationCoordinate2D(latitude: minLat, longitude: minLon),
-                    ne: CLLocationCoordinate2D(latitude: maxLat, longitude: maxLon))
-                map.setVisibleCoordinateBounds(bounds,
+                map.setVisibleCoordinateBounds(
+                    context.coordinator.inflated(minLat: minLat, maxLat: maxLat,
+                                                 minLon: minLon, maxLon: maxLon),
                     edgePadding: UIEdgeInsets(top: 60, left: 50, bottom: 60, right: 50),
                     animated: true)
             } else if let coord = focusCoordinate {
@@ -330,6 +331,17 @@ struct MapLibreView: UIViewRepresentable {
             return distKm <= maxUserLocationIncludeKm ? [userMarker] : []
         }
 
+        /// Infla unos bounds con margen proporcional y un MÍNIMO absoluto: con
+        /// puntos casi coincidentes, fitBounds se iba a zoom extremo.
+        func inflated(minLat: Double, maxLat: Double,
+                      minLon: Double, maxLon: Double) -> MLNCoordinateBounds {
+            let latSpan = max((maxLat - minLat) * 0.30, 0.004)
+            let lonSpan = max((maxLon - minLon) * 0.30, 0.005)
+            return MLNCoordinateBounds(
+                sw: CLLocationCoordinate2D(latitude: minLat - latSpan, longitude: minLon - lonSpan),
+                ne: CLLocationCoordinate2D(latitude: maxLat + latSpan, longitude: maxLon + lonSpan))
+        }
+
         private func fit(_ map: MLNMapView, to markers: [CumbreMarker]) {
             guard !markers.isEmpty else { return }
             let lats = markers.map { $0.coordinate.latitude }
@@ -339,16 +351,12 @@ struct MapLibreView: UIViewRepresentable {
             // Encuadre degenerado (1 escuela o todas muy juntas, p.ej. al filtrar por
             // favoritas): fitBounds podría disparar un zoom inestable y "pillar" el
             // mapa. En ese caso centramos con un zoom fijo cómodo.
-            if markers.count == 1 || (maxLat - minLat < 0.03 && maxLon - minLon < 0.03) {
-                let c = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2,
-                                               longitude: (minLon + maxLon) / 2)
-                map.setCenter(c, zoomLevel: 12, animated: true)
+            if markers.count == 1 {
+                map.setCenter(markers[0].coordinate, zoomLevel: 14, animated: true)
                 return
             }
-            let bounds = MLNCoordinateBounds(
-                sw: CLLocationCoordinate2D(latitude: minLat, longitude: minLon),
-                ne: CLLocationCoordinate2D(latitude: maxLat, longitude: maxLon))
-            map.setVisibleCoordinateBounds(bounds,
+            map.setVisibleCoordinateBounds(
+                inflated(minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon),
                 edgePadding: UIEdgeInsets(top: 48, left: 48, bottom: 48, right: 48),
                 animated: true)
         }
@@ -382,6 +390,7 @@ struct MapLibreView: UIViewRepresentable {
 
         func mapView(_ mapView: MLNMapView, regionDidChangeAnimated animated: Bool) {
             parent.onZoomChange?(mapView.zoomLevel)
+            parent.onCameraChange?(mapView.centerCoordinate, mapView.zoomLevel)
         }
 
         // Encuadre inicial a ≥2 coords (corrección viejo+nuevo). Se hace aquí —

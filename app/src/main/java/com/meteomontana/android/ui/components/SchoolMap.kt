@@ -82,6 +82,21 @@ private enum class MapStyleOption(val labelResId: Int) {
     TOPO(R.string.map_topo)
 }
 
+/**
+ * Bounds con margen proporcional y MÍNIMO absoluto: con puntos casi
+ * coincidentes, newLatLngBounds se iba a zoom extremo (mapa borroso).
+ */
+private fun inflatedBounds(points: List<LatLng>): LatLngBounds {
+    val minLat = points.minOf { it.latitude }; val maxLat = points.maxOf { it.latitude }
+    val minLon = points.minOf { it.longitude }; val maxLon = points.maxOf { it.longitude }
+    val latSpan = maxOf((maxLat - minLat) * 0.30, 0.004)
+    val lonSpan = maxOf((maxLon - minLon) * 0.30, 0.005)
+    return LatLngBounds.Builder()
+        .include(LatLng(minLat - latSpan, minLon - lonSpan))
+        .include(LatLng(maxLat + latSpan, maxLon + lonSpan))
+        .build()
+}
+
 private fun styleJsonFor(style: MapStyleOption): String = when (style) {
     MapStyleOption.SATELLITE -> """{"version":8,"sources":{"sat":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"sat","type":"raster","source":"sat"}]}"""
     MapStyleOption.TOPO      -> """{"version":8,"sources":{"topo":{"type":"raster","tiles":["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"topo","type":"raster","source":"topo"}]}"""
@@ -447,9 +462,9 @@ private fun InnerMap(
                     map.animateCamera(CameraUpdateFactory.newLatLngZoom(
                         LatLng(parking.lat, parking.lon), 14.3))
                 } else {
-                    val bb = LatLngBounds.Builder().include(LatLng(parking.lat, parking.lon))
-                    near.forEach { bb.include(LatLng(it.lat, it.lon)) }
-                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(bb.build(), 130))
+                    val pts = listOf(LatLng(parking.lat, parking.lon)) +
+                        near.map { LatLng(it.lat, it.lon) }
+                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(inflatedBounds(pts), 60))
                 }
             }
         }
@@ -473,11 +488,10 @@ private fun InnerMap(
                                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(
                                     LatLng(tapped.lat, tapped.lon), 15.0))
                             } else {
-                                val bb = LatLngBounds.Builder()
-                                    .include(LatLng(tapped.lat, tapped.lon))
-                                stones.forEach { bb.include(LatLng(it.lat, it.lon)) }
+                                val pts = listOf(LatLng(tapped.lat, tapped.lon)) +
+                                    stones.map { LatLng(it.lat, it.lon) }
                                 map.animateCamera(
-                                    CameraUpdateFactory.newLatLngBounds(bb.build(), 130))
+                                    CameraUpdateFactory.newLatLngBounds(inflatedBounds(pts), 60))
                             }
                         }
                     }
