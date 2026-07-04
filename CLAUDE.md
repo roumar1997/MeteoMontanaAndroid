@@ -542,6 +542,20 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04 (moderación)** — Release **2.10** (vc32, build 43): moderación
+UGC completa (requisito App Store 1.2, envío CANCELADO para incluirla):
+denunciar comentarios/notas (bandera) y usuarios (menú ⋯ del perfil) +
+BLOQUEO (filtrado server-side de comentarios/notas + corte de chat en ambos
+sentidos). Backend V50 content_reports (con snapshot) + user_blocks; push a
+admins en denuncia nueva. Pestaña admin DENUNCIAS unifica contenido+quedadas
+(iOS la estrena). Sembrado de datos de prueba en prod con usuario ficticio
+tester-cumbre-ugc-1 (@chorreras_tester) minteando custom token con el
+serviceAccountKey local → signInWithCustomToken (JIT /me falla sin email,
+pero los POST funcionan). PENDIENTE Fase 2 admin: GESTIONAR con mapa nuevo
+completo en modo admin, diff de propuestas con foto ANTES/DESPUÉS lado a
+lado y todos los campos, STATS pulsables (cada cifra abre su lista), push
+con buscador de destinatario, paridad iOS del panel.
+
 **2026-07-04 (cierre)** — [build final iOS: 42, SOLO iPhone — TARGETED_DEVICE_FAMILY=1; ASC exigía capturas de iPad 13" y la app no tiene diseño de tablet]  Release final del día: **2.9.7 (vc31 / build 41)**.
 AAB `cumbre-2.9.7-vc31.aab` entregado para Play y build 41 en TestFlight (el
 que va a revisión de App Store). Últimos retoques: tocar sector nunca aleja
