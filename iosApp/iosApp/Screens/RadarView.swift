@@ -36,7 +36,7 @@ struct RadarView: View {
     @State private var playing = true          // autoplay al abrir
     @State private var opacity: Double = 1.0   // 100% por defecto
     @State private var opacityPanel = false
-    @State private var mapStyle: MapStyleKind = .topo
+    @State private var mapStyle: MapStyleKind = .satellite   // satélite por defecto
     @State private var showSchools = true
     @State private var zoomLevel: Double = 4.6
 

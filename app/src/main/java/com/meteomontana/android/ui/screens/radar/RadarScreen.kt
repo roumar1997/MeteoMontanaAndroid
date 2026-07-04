@@ -99,7 +99,7 @@ fun RadarScreen(
     var layersPanel by remember { mutableStateOf(false) }
     var selectedSchool by remember { mutableStateOf<School?>(null) }
     var showSchools by remember { mutableStateOf(true) }
-    var isSatellite by remember { mutableStateOf(false) }
+    var isSatellite by remember { mutableStateOf(true) }   // satélite por defecto
     val labelsVisible = remember { mutableStateOf(false) }
     // A escala país 191 pines taparían España entera: solo con zoom cercano.
     val pinsVisible = remember { mutableStateOf(false) }
@@ -219,7 +219,7 @@ fun RadarScreen(
                     mapViewRef.value = this
                     getMapAsync { map ->
                         mapRef.value = map
-                        val styleJson = if (isDarkTheme) DARK_RASTER_STYLE else OSM_RASTER_STYLE
+                        val styleJson = SATELLITE_RASTER_STYLE   // satelite por defecto
                         map.setStyle(Style.Builder().fromJson(styleJson)) {
                             // España entera de inicio; el usuario decide el zoom.
                             map.cameraPosition =
