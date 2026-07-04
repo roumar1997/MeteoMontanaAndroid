@@ -542,6 +542,13 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04 (noche 4)** — Release **2.9.5** (vc29, build 40): tocar
+sector/parking usa ZOOM FIJO centrado (15.0/14.5) — los fitBounds calculados
+oscilaban entre extremos según los datos; z-order de marcadores (piedras
+debajo, Z/P/escuela encima); iconos iOS ~25% más pequeños y Z de Android
+más grande (68 px). Lección de la tarde: los encuadres por bounds en mapas
+pequeños son imprevisibles — zoom fijo siempre que se pueda.
+
 **2026-07-04 (noche 3)** — Release **2.9.4** (vc28, build 39): bounds con
 margen mínimo (inflatedBounds ~450 m) en todos los encuadres — tocar un
 sector con piedras pegadas hacía fitBounds sobre un área diminuta → zoom
