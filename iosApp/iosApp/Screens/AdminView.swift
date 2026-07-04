@@ -406,7 +406,10 @@ private struct BoulderReviewView: View {
             if isNewBoulder {
                 // Piedra nueva: foto propuesta + sus líneas.
                 if let photo = contribution.photoUrl, !photo.isEmpty {
-                    TopoPhotoView(photoUrl: photo, lines: newLines)
+                    ZoomableTopo(photoUrl: photo, lines: newLines)
+                } else if !newLines.isEmpty {
+                    Text("SIN FOTO — el proponente no adjuntó imagen")
+                        .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
                 }
                 ForEach(Array(newLines.enumerated()), id: \.offset) { _, l in
                     Text("NUEVA · \(lineSummary(l.name, l.grade, l.startType))")
@@ -429,7 +432,7 @@ private struct BoulderReviewView: View {
                     if let op = oldPhoto, !op.isEmpty {
                         Text(photoChanged ? "FOTO ACTUAL" : "ACTUAL")
                             .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-                        TopoPhotoView(photoUrl: op, lines: (oldFace?.lines ?? []).map { TopoLineVM($0) })
+                        ZoomableTopo(photoUrl: op, lines: (oldFace?.lines ?? []).map { TopoLineVM($0) })
                     }
                     // PROPUESTA
                     Text(photoChanged ? "FOTO PROPUESTA (NUEVA)" : "PROPUESTA")
@@ -437,7 +440,7 @@ private struct BoulderReviewView: View {
                     if let pp = proposalPhoto, !pp.isEmpty {
                         let keep = photoChanged ? [] :
                             (oldFace?.lines ?? []).filter { !targetIds.contains($0.id) }.map { TopoLineVM($0) }
-                        TopoPhotoView(photoUrl: pp, lines: keep + group.vias.map { $0.line })
+                        ZoomableTopo(photoUrl: pp, lines: keep + group.vias.map { $0.line })
                     }
                     // Texto: original → propuesta por vía.
                     ForEach(Array(group.vias.enumerated()), id: \.offset) { _, v in
@@ -461,6 +464,40 @@ private struct BoulderReviewView: View {
             return "EDITA / AÑADE VÍAS DE «\(nm)»"
         }
         return isEditLine ? "CORRIGE VÍA(S) DE «\(nm)»" : "AÑADE VÍAS A «\(nm)»"
+    }
+}
+
+/// Topo pulsable: tocar la foto la abre a pantalla completa con las vías
+/// pintadas encima (para revisar cómo las trazó el proponente).
+private struct ZoomableTopo: View {
+    let photoUrl: String
+    let lines: [TopoLineVM]
+    @State private var open = false
+    var body: some View {
+        TopoPhotoView(photoUrl: photoUrl, lines: lines)
+            .overlay(alignment: .bottomTrailing) {
+                Text("TOCA PARA AMPLIAR")
+                    .font(Cumbre.mono(8, .bold)).foregroundStyle(.white)
+                    .padding(.horizontal, 5).padding(.vertical, 3)
+                    .background(Color.black.opacity(0.55))
+                    .padding(4)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { open = true }
+            .fullScreenCover(isPresented: $open) {
+                ZStack(alignment: .topTrailing) {
+                    Color.black.ignoresSafeArea()
+                        .onTapGesture { open = false }
+                    VStack {
+                        Spacer()
+                        TopoPhotoView(photoUrl: photoUrl, lines: lines)
+                        Spacer()
+                    }
+                    Button("✕ CERRAR") { open = false }
+                        .font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
+                        .padding(16)
+                }
+            }
     }
 }
 

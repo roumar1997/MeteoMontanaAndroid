@@ -202,7 +202,7 @@ private fun ChatSheetHeader(name: String, avatarUrl: String?, onClose: () -> Uni
             modifier = Modifier.align(Alignment.Center)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = onOpenProfile)
-                .padding(horizontal = 8.dp, vertical = 2.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {

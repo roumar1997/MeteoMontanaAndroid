@@ -226,7 +226,7 @@ internal fun ContributionCard(
                         Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
                             style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(Spacing.xs))
-                        TopoPhotoCanvas(
+                        ZoomableTopo(
                             photoUrl = oldPhoto,
                             lines = (oldFace?.lines ?: emptyList()).toTopoLines()
                         )
@@ -248,7 +248,7 @@ internal fun ContributionCard(
                     }
                     val propostaPhoto = facePhotoKey ?: oldPhoto ?: ""
                     if (propostaPhoto.isNotEmpty()) {
-                        TopoPhotoCanvas(photoUrl = propostaPhoto, lines = proposedLines)
+                        ZoomableTopo(photoUrl = propostaPhoto, lines = proposedLines)
                     }
 
                     // Texto: qué cambia en cada vía (original → propuesta).
@@ -272,7 +272,12 @@ internal fun ContributionCard(
                 val newPhoto = c.photoUrl
                 if (!newPhoto.isNullOrBlank()) {
                     Spacer(Modifier.height(Spacing.sm))
-                    TopoPhotoCanvas(photoUrl = newPhoto, lines = parseBloquesJson(c.bloquesJson))
+                    ZoomableTopo(photoUrl = newPhoto, lines = parseBloquesJson(c.bloquesJson))
+                } else if (parseBloquesJson(c.bloquesJson).isNotEmpty()) {
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text("SIN FOTO — el proponente no adjuntó imagen",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 c.bloquesJson?.takeIf { it.isNotBlank() }?.let { BloquesSummary(it) }
             }
@@ -807,3 +812,42 @@ internal fun Contribution.toFakeBlock(): com.meteomontana.android.domain.model.B
     )
 }
 
+
+/**
+ * Topo pulsable: tocar la foto la abre a pantalla completa con las vías
+ * pintadas encima (para que el admin vea bien cómo las trazó el proponente).
+ */
+@Composable
+private fun ZoomableTopo(photoUrl: String, lines: List<TopoLine>) {
+    var open by remember { mutableStateOf(false) }
+    androidx.compose.foundation.layout.Box {
+        TopoPhotoCanvas(photoUrl = photoUrl, lines = lines,
+            modifier = Modifier.clickable { open = true })
+        Text("TOCA PARA AMPLIAR", style = EyebrowTextStyle, color = Color.White,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(Spacing.xs)
+                .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(2.dp))
+                .padding(horizontal = 6.dp, vertical = 3.dp))
+    }
+    if (open) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { open = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            androidx.compose.foundation.layout.Box(
+                Modifier.fillMaxSize().background(Color.Black).clickable { open = false }
+            ) {
+                TopoPhotoCanvas(photoUrl = photoUrl, lines = lines,
+                    modifier = Modifier.align(Alignment.Center))
+                Text("✕ CERRAR", style = EyebrowTextStyle, color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(Spacing.md)
+                        .clickable { open = false }
+                        .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(2.dp))
+                        .padding(horizontal = 8.dp, vertical = 6.dp))
+            }
+        }
+    }
+}
