@@ -464,7 +464,9 @@ private fun InnerMap(
                 } else {
                     val pts = listOf(LatLng(parking.lat, parking.lon)) +
                         near.map { LatLng(it.lat, it.lon) }
-                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(inflatedBounds(pts), 60))
+                    val cLat = pts.sumOf { it.latitude } / pts.size
+                    val cLon = pts.sumOf { it.longitude } / pts.size
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(cLat, cLon), 14.5))
                 }
             }
         }
@@ -484,15 +486,14 @@ private fun InnerMap(
                     if (stones.isNotEmpty()) collapsedSectors = collapsedSectors - tapped.id
                     mapRef.value?.let { map ->
                         runCatching {
-                            if (stones.isEmpty()) {
-                                map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                    LatLng(tapped.lat, tapped.lon), 15.0))
-                            } else {
-                                val pts = listOf(LatLng(tapped.lat, tapped.lon)) +
-                                    stones.map { LatLng(it.lat, it.lon) }
-                                map.animateCamera(
-                                    CameraUpdateFactory.newLatLngBounds(inflatedBounds(pts), 60))
-                            }
+                            // Zoom FIJO y predecible: los encuadres calculados
+                            // se iban a los extremos según cómo estén los datos.
+                            val pts = listOf(LatLng(tapped.lat, tapped.lon)) +
+                                stones.map { LatLng(it.lat, it.lon) }
+                            val cLat = pts.sumOf { it.latitude } / pts.size
+                            val cLon = pts.sumOf { it.longitude } / pts.size
+                            map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                LatLng(cLat, cLon), 15.0))
                         }
                     }
                 }
@@ -1287,7 +1288,14 @@ private fun placeMarkers(
         )
     }
 
-    blocks.forEach { b ->
+    // Orden de pintado: piedras primero, PARKING/ZONE/SCHOOL después → los
+    // sectores no quedan tapados por las piedras.
+    val paintOrder = blocks.sortedBy { b ->
+        when (b.type.uppercase()) {
+            "BLOCK" -> 0; "PARKING" -> 1; "ZONE" -> 2; else -> 3
+        }
+    }
+    paintOrder.forEach { b ->
         // Si este marker está siendo movido (es el original), lo pintamos semitransparente.
         val isOriginalBeingMoved = ghost != null && (
             (ghost.originalId == null && b.id == "__SCHOOL__") ||

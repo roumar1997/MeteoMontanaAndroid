@@ -565,15 +565,16 @@ private struct SchoolMapSection: View {
                                         // Encuadra el sector con sus piedras
                                         // (expandiéndolas), como el parking.
                                         miniBlock = b
+                                        // Zoom FIJO centrado entre sector y piedras
+                                        // (los encuadres calculados se iban a extremos).
                                         let stones = blocks.filter { $0.sectorBlockId == b.id }
-                                        if stones.isEmpty {
-                                            focusFit = []
-                                            focusCoord = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
-                                        } else {
-                                            collapsedSectors.remove(b.id)
-                                            focusFit = [CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)]
-                                                + stones.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-                                        }
+                                        collapsedSectors.remove(b.id)
+                                        let pts = [CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)]
+                                            + stones.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+                                        let cLat = pts.map { $0.latitude }.reduce(0, +) / Double(pts.count)
+                                        let cLon = pts.map { $0.longitude }.reduce(0, +) / Double(pts.count)
+                                        focusFit = []
+                                        focusCoord = CLLocationCoordinate2D(latitude: cLat, longitude: cLon)
                                         focusToken += 1
                                     default:
                                         // Piedra: centra suave y abre su ficha.
@@ -1040,6 +1041,15 @@ private struct SchoolMapSection: View {
                 // Nombre del sector visible al acercar (sin tener que pulsarlo).
                 showName: b.type.uppercased() == "ZONE" && !b.name.isEmpty && mapZoom >= 13.5))
         }
+        // Orden de pintado: piedras primero → sectores/parkings/escuela ENCIMA
+        // (no quedan tapados por los pines de piedra).
+        ms.sort { a, b in
+            func rank(_ k: MarkerKind) -> Int {
+                switch k { case .block: return 0; case .parking: return 1
+                case .zone: return 2; case .school: return 3; default: return 4 }
+            }
+            return rank(a.kind) < rank(b.kind)
+        }
         // Mi ubicación (punto azul) para orientarme en el sector.
         if let u = userCoord {
             ms.append(CumbreMarker(id: "__USER__", coordinate: u, title: "", kind: .user,
@@ -1094,13 +1104,12 @@ private struct SchoolMapSection: View {
             if b.type.uppercased() == "ZONE" { collapsedSectors.remove(b.id) }
             if let sid = b.sectorBlockId { collapsedSectors.remove(sid) }
         }
-        if near.isEmpty {
-            focusFit = []
-            focusCoord = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)
-        } else {
-            focusFit = [CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)]
-                + near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-        }
+        let pts = [CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)]
+            + near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+        let cLat = pts.map { $0.latitude }.reduce(0, +) / Double(pts.count)
+        let cLon = pts.map { $0.longitude }.reduce(0, +) / Double(pts.count)
+        focusFit = []
+        focusCoord = CLLocationCoordinate2D(latitude: cLat, longitude: cLon)
         focusToken += 1
     }
 
