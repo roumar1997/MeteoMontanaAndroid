@@ -542,6 +542,15 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04 (noche 3)** — Release **2.9.4** (vc28, build 39): bounds con
+margen mínimo (inflatedBounds ~450 m) en todos los encuadres — tocar un
+sector con piedras pegadas hacía fitBounds sobre un área diminuta → zoom
+extremo; iOS conserva la cámara al entrar/salir de fullscreen (onCameraChange
+→ el MapView recreado arranca donde estabas, sin auto-fit) y su encuadre
+inicial da contexto; **Android: pestañas keep-alive como iOS** — las 5 tabs
+viven compuestas en un host único "tabs" (zIndex/alpha, lazy por visita) →
+sin flash ni recreación de mapas al cambiar de pestaña.
+
 **2026-07-04 (noche 2)** — Release **2.9.3** (vc27, build 38): botón de
 ubicación DENTRO de la botonera del mapa (34 dp compacta; separada se
 solapaba/desbordaba de los 280 dp), iconos reales en Android (GpsFixed,
