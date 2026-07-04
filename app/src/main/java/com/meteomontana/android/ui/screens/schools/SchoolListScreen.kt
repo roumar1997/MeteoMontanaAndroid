@@ -163,7 +163,7 @@ fun SchoolListScreen(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text(stringResource(R.string.common_search) + "…") },
+                        placeholder = { Text("Busca tu escuela o vía/bloque…") },
                         singleLine = true,
                         shape = MaterialTheme.shapes.small,
                         colors = TextFieldDefaults.colors(
@@ -204,7 +204,8 @@ fun SchoolListScreen(
                                             color = MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1)
                                         Text(
-                                            listOf(h.blockName.takeIf { h.lineName != null }, h.schoolName)
+                                            listOf(h.blockName.takeIf { h.lineName != null },
+                                                   h.sectorName, h.schoolName)
                                                 .filterNotNull().filter { it.isNotBlank() }
                                                 .joinToString(" · "),
                                             style = MaterialTheme.typography.labelMedium,

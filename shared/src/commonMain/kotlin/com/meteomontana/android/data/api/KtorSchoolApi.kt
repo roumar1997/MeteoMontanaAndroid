@@ -84,5 +84,6 @@ data class LineSearchHitDto(
     val blockName: String = "",
     val lineId: String? = null,
     val lineName: String? = null,
-    val grade: String? = null
+    val grade: String? = null,
+    val sectorName: String? = null
 )

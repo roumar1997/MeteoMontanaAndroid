@@ -235,7 +235,15 @@ fun MainScreen(
             NavHost(
                 navController = navController,
                 startDestination = Tab.Schools.route,
+                // Sin crossfade entre pestañas: durante el fundido convivían la
+                // pantalla saliente (mapa congelado = "imagen fantasma") y la
+                // entrante aún sin pintar. Corte limpio sobre fondo Cumbre.
+                enterTransition = { androidx.compose.animation.EnterTransition.None },
+                exitTransition = { androidx.compose.animation.ExitTransition.None },
+                popEnterTransition = { androidx.compose.animation.EnterTransition.None },
+                popExitTransition = { androidx.compose.animation.ExitTransition.None },
                 modifier = Modifier.weight(1f)
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 composable(Tab.Weather.route) {
                     WeatherScreen(

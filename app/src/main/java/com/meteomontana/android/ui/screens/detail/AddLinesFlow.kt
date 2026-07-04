@@ -169,20 +169,21 @@ internal fun AddLinesFlow(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> if (uri != null) updateFace { it.copy(newPhotoUri = uri) } }
 
-    Dialog(
+    // ModalBottomSheet como el resto de fichas (antes era un Dialog flotante y
+    // la parte de abajo quedaba rara, con la pantalla asomando por detrás).
+    androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.94f)   // tarjeta a pantalla (casi) completa, como el resto
-                .padding(horizontal = Spacing.md)
-                .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                .fillMaxHeight(0.94f)
                 .verticalScroll(rememberScrollState())
-                .padding(Spacing.md)
+                .padding(horizontal = Spacing.md)
+                .padding(bottom = Spacing.md)
         ) {
             Text(stringResource(R.string.add_lines_title),
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),

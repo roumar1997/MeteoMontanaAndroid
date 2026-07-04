@@ -664,9 +664,16 @@ private struct SchoolMapSection: View {
                     if !waitingTap && !correctionMode {
                         // Botonera lateral (maqueta B): topo↔satélite de un toque
                         // + capas con la FORMA real del marcador.
-                        HStack {
-                            Spacer()
-                            VStack(spacing: 8) {
+                        VStack {
+                            HStack {
+                                Spacer()
+                                VStack(spacing: 8) {
+                                sideButton(active: true) {
+                                    recenterOnSchool()
+                                } content: {
+                                    Image(systemName: "scope")
+                                        .font(.system(size: 16)).foregroundStyle(Cumbre.ink)
+                                }
                                 sideButton(active: true) {
                                     mapStyle = (mapStyle == .satellite) ? .topo : .satellite
                                 } content: {
@@ -682,9 +689,11 @@ private struct SchoolMapSection: View {
                                 sideButton(active: !hiddenTypes.contains("ZONE")) {
                                     toggleLayer("ZONE")
                                 } content: { zoneShape }
+                                }
                             }
+                            Spacer()
                         }
-                        .frame(maxHeight: .infinity, alignment: .center)
+                        .padding(.top, fullscreenMap ? 104 : 50)
                         .padding(.trailing, 10)
                         .frame(height: height)
                     }
@@ -791,6 +800,17 @@ private struct SchoolMapSection: View {
             }
         }
         return Array(out.prefix(8))
+    }
+
+    /// Vuelve al encuadre inicial de la escuela (todos los marcadores).
+    private func recenterOnSchool() {
+        var coords = [CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)]
+        coords += blocks.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+        if coords.count >= 2 { focusFit = coords } else {
+            focusFit = []
+            focusCoord = coords[0]
+        }
+        focusToken += 1
     }
 
     private func toggleLayer(_ type: String) {

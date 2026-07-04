@@ -303,9 +303,12 @@ struct MapLibreView: UIViewRepresentable {
             // apply ni con cambio de estilo: ahí respetamos el centrado inicial).
             guard parent.autoFitToMarkers else { return }
             let ids = Set(markers.filter { $0.id != "__USER__" }.map { $0.id })
-            if force { lastFittedIds = ids; return }
-            if ids != lastFittedIds && !ids.isEmpty {
-                lastFittedIds = ids
+            if force { lastFittedIds.formUnion(ids); return }
+            // Solo re-encuadra si hay ids NUNCA VISTOS (llegaron datos nuevos).
+            // Ocultar/mostrar una capa (subconjunto de lo ya visto) no debe
+            // pegar saltos de zoom.
+            if !ids.subtracting(lastFittedIds).isEmpty {
+                lastFittedIds.formUnion(ids)
                 fit(map, to: markers.filter { $0.id != "__USER__" })
             }
         }

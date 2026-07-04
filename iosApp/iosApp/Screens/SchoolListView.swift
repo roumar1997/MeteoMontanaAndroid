@@ -457,7 +457,7 @@ struct SchoolListView: View {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text((h.lineName ?? h.blockName) + (h.grade.map { " · \($0)" } ?? ""))
                                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(1)
-                                Text([h.lineName != nil ? h.blockName : nil, h.schoolName]
+                                Text([h.lineName != nil ? h.blockName : nil, h.sectorName, h.schoolName]
                                         .compactMap { $0 }.filter { !$0.isEmpty }
                                         .joined(separator: " · "))
                                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
@@ -691,7 +691,7 @@ private struct SearchField: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink3)
-            TextField("Buscar escuela…", text: $text)
+            TextField("Busca tu escuela o vía/bloque…", text: $text)
                 .foregroundStyle(Cumbre.ink)
                 .autocorrectionDisabled()
             if !text.isEmpty {

@@ -42,6 +42,7 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.ui.draw.alpha
@@ -749,10 +750,27 @@ private fun InnerMap(
             // apagado = capa oculta.
             if (!waitingMapTap && !correctionMode && !wallTracing) {
                 Column(
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(Spacing.sm),
+                    // ARRIBA a la derecha, bajo PROPONER — centrada se solapaba
+                    // con el botón de ubicación (abajo a la derecha).
+                    modifier = Modifier.align(Alignment.TopEnd)
+                        .padding(top = 52.dp, end = Spacing.sm, bottom = Spacing.sm),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Re-centrar en la escuela (vuelta al encuadre inicial).
+                    SideMapButton(active = true, onClick = {
+                        mapRef.value?.let { map ->
+                            fitSchoolBoundsCameraUpdate(visibleMarkers, null)?.let { update ->
+                                runCatching { map.animateCamera(update) }
+                            }
+                        }
+                    }) {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Outlined.CenterFocusStrong,
+                            contentDescription = "Centrar en la escuela",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp))
+                    }
                     SideMapButton(active = true, onClick = {
                         applyStyle(if (currentStyle == MapStyleOption.SATELLITE)
                             MapStyleOption.TOPO else MapStyleOption.SATELLITE)
