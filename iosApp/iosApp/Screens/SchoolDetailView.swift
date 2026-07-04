@@ -435,15 +435,21 @@ private struct SchoolMapSection: View {
             }
             maybeAutoOpen()
             headingProvider.start()
-            // Mi ubicación, refrescada cada 5 s mientras el mapa está abierto
-            // (antes era un fix único → el punto se quedaba clavado al entrar).
-            while expanded, !Task.isCancelled {
-                if AppDependencies.shared.locationBridge.hasPermission(),
-                   let loc = try? await AppDependencies.shared.container.locationProvider?.current() {
-                    userCoord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon)
+            // Mi ubicación en CONTINUO mientras el mapa está abierto: el GPS se
+            // mantiene caliente y afina en segundos (los fixes sueltos cada 5 s
+            // salían "perdidísimos" en montaña).
+            if AppDependencies.shared.locationBridge.hasPermission() {
+                AppDependencies.shared.locationBridge.startStream { loc in
+                    DispatchQueue.main.async {
+                        userCoord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon)
+                    }
                 }
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
+            // Mantener el task vivo hasta plegar el mapa; al salir, se apaga.
+            while expanded, !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
+            AppDependencies.shared.locationBridge.stopStream()
         }
         // Deep-link desde el diario: despliega el mapa al entrar.
         .onAppear {

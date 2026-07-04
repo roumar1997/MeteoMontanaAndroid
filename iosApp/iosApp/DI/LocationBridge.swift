@@ -49,11 +49,29 @@ final class LocationBridge: NSObject, IosLocationBridge, CLLocationManagerDelega
         manager.requestWhenInUseAuthorization()
     }
 
+    // ── Seguimiento CONTINUO (mapa de escuela abierto) ──────────────────
+    // requestLocation() cada 5 s daba fixes pobres en montaña (el GPS se
+    // enfría entre peticiones). startUpdatingLocation mantiene el chip
+    // caliente y afina en segundos, como las apps de mapas.
+    private var streamCallback: ((UserLocation) -> Void)?
+
+    func startStream(callback: @escaping (UserLocation) -> Void) {
+        streamCallback = callback
+        manager.startUpdatingLocation()
+    }
+
+    func stopStream() {
+        streamCallback = nil
+        manager.stopUpdatingLocation()
+    }
+
     // MARK: - CLLocationManagerDelegate
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last else { resolvePending(nil); return }
-        resolvePending(UserLocation(lat: loc.coordinate.latitude, lon: loc.coordinate.longitude))
+        let u = UserLocation(lat: loc.coordinate.latitude, lon: loc.coordinate.longitude)
+        streamCallback?(u)
+        resolvePending(u)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
