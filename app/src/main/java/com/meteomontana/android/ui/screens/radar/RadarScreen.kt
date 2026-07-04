@@ -207,7 +207,14 @@ fun RadarScreen(
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
-                MapView(context).apply {
+                // textureMode: MapLibre por defecto pinta en un SurfaceView, que
+                // vive en una capa aparte del sistema — al cambiar de pestaña se
+                // queda su último frame "fantasma" hasta que la nueva pantalla
+                // termina de componer. Con TextureView el mapa se compone como
+                // una vista normal y la transición es limpia.
+                val opts = org.maplibre.android.maps.MapLibreMapOptions
+                    .createFromAttributes(context).textureMode(true)
+                MapView(context, opts).apply {
                     onCreate(null)
                     mapViewRef.value = this
                     getMapAsync { map ->

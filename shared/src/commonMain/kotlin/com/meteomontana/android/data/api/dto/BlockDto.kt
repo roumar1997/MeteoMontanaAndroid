@@ -35,7 +35,8 @@ data class BlockLineDto(
     val photoPath: String? = null,
     val faceOrder: Int = 0,
     val avgStars: Float? = null,
-    val myStars: Int? = null
+    val myStars: Int? = null,
+    val description: String? = null
 )
 
 @Serializable
@@ -52,7 +53,29 @@ data class CreateBlockLineRequest(
     val startType: String? = null,
     val linePath: String? = null,
     val photoPath: String? = null,
-    val faceOrder: Int = 0
+    val faceOrder: Int = 0,
+    val description: String? = null
+)
+
+/** Comentario de la comunidad en una piedra (lineId=null) o en una vía. */
+@Serializable
+data class LineCommentDto(
+    val id: String,
+    val blockId: String,
+    val lineId: String? = null,
+    val author: String,
+    val uid: String,
+    val createdAt: String? = null,
+    val text: String,
+    val upvotesCount: Int = 0,
+    val downvotesCount: Int = 0,
+    val myVote: Int = 0
+)
+
+@Serializable
+data class CreateLineCommentRequest(
+    val lineId: String? = null,
+    val text: String
 )
 
 @Serializable

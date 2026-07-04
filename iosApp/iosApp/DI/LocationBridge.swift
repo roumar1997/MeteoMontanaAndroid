@@ -17,7 +17,9 @@ final class LocationBridge: NSObject, IosLocationBridge, CLLocationManagerDelega
     override init() {
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyKilometer
+        // NearestTenMeters (antes Kilometer → el punto azul caía a 500 m-1 km
+        // en el monte; mismo bug que Android con BALANCED_POWER).
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
     }
 
     func hasPermission() -> Bool {
@@ -29,8 +31,11 @@ final class LocationBridge: NSObject, IosLocationBridge, CLLocationManagerDelega
 
     func current(callback: @escaping (UserLocation?) -> Void) {
         guard hasPermission() else { callback(nil); return }
-        // Última ubicación cacheada por el sistema, si la hay (rápido).
-        if let loc = manager.location {
+        // Última ubicación cacheada, solo si es reciente y precisa (si no,
+        // puede ser una posición vieja a cientos de metros).
+        if let loc = manager.location,
+           loc.timestamp.timeIntervalSinceNow > -60,
+           loc.horizontalAccuracy >= 0, loc.horizontalAccuracy <= 100 {
             callback(UserLocation(lat: loc.coordinate.latitude, lon: loc.coordinate.longitude))
             return
         }

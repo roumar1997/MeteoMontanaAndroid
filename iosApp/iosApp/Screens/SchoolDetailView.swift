@@ -374,6 +374,13 @@ private struct SchoolMapSection: View {
     @State private var focusToken = 0
     // Encuadre de bounds (parking + su zona) — tiene prioridad sobre focusCoord.
     @State private var focusFit: [CLLocationCoordinate2D] = []
+    // Capas ocultas por el usuario (leyenda pulsable): PARKING/BLOCK/ZONE.
+    @State private var hiddenTypes: Set<String> = []
+    // Mapa a pantalla completa (estilo Radar).
+    @State private var fullscreenMap = false
+    // Buscador de vías/bloques de la escuela.
+    @State private var searchQuery = ""
+    @State private var searchHighlight: String?
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -406,144 +413,11 @@ private struct SchoolMapSection: View {
             .buttonStyle(.plain)
 
             if expanded {
-                ZStack(alignment: .bottomTrailing) {
-                    MapLibreView(
-                        center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-                        zoom: 14,
-                        markers: markers,
-                        style: mapStyle,
-                        // Encuadre inicial con TODOS los elementos (parkings/sectores/
-                        // piedras), por muy separados que estén — antes el mapa abría
-                        // fijo en zoom 14 sobre la escuela, dejando fuera sectores a
-                        // km. Mi ubicación solo entra en el encuadre si ya está cerca
-                        // (ver userMarkerIfNearby en MapLibreView.swift).
-                        autoFitToMarkers: true,
-                        onZoomChange: { mapZoom = $0 },
-                        onTapMarker: { id in
-                            if correctionMode && !corrActive {
-                                selectCorrectionTarget(id)
-                            } else if !waitingTap && !correctionMode {
-                                // Parking/zona → mini-ficha flotante (el mapa se
-                                // sigue viendo); piedras → su ficha completa.
-                                if let b = blocks.first(where: { $0.id == id }) {
-                                    switch b.type.uppercased() {
-                                    case "PARKING":
-                                        miniBlock = b
-                                        flyToParkingZone(b)
-                                    case "ZONE":
-                                        // Encuadra el sector con sus piedras
-                                        // (expandiéndolas), como el parking.
-                                        miniBlock = b
-                                        let stones = blocks.filter { $0.sectorBlockId == b.id }
-                                        if stones.isEmpty {
-                                            focusFit = []
-                                            focusCoord = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
-                                        } else {
-                                            collapsedSectors.remove(b.id)
-                                            focusFit = [CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)]
-                                                + stones.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-                                        }
-                                        focusToken += 1
-                                    default:
-                                        // Piedra: centra suave y abre su ficha.
-                                        focusFit = []
-                                        focusCoord = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
-                                        focusToken += 1
-                                        selectedBlock = b
-                                    }
-                                }
-                            }
-                        },
-                        onMapTap: (waitingTap || (correctionMode && corrActive)) ? { coord in
-                            if waitingTap {
-                                waitingTap = false
-                                if proposeType == "BOULDER" { boulderCoord = coord } else { formCoord = coord }
-                            } else {
-                                corrNew = coord
-                            }
-                        } : nil,
-                        polylines: wallPolylines,
-                        // Foco explícito al pulsar un parking en la lista (recentra
-                        // el mapa ahí). Debe ir DESPUÉS de polylines: el init
-                        // memberwise de Swift exige el mismo orden que la
-                        // declaración del struct aunque los args vayan con nombre.
-                        focusCoordinate: focusCoord,
-                        focusToken: focusToken,
-                        focusFitCoordinates: focusFit
-                    )
-                    .frame(height: 280)
-
-                    // Chips topográfico / satélite (esquina superior izquierda).
-                    if !waitingTap && !correctionMode {
-                        VStack { HStack { MapStyleChips(selection: $mapStyle); Spacer() }; Spacer() }
-                            .frame(height: 280)
-                    }
-
-                    if waitingTap {
-                        // Banner "PULSA EN EL MAPA" (parking/sector/piedra).
-                        mapBanner("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN",
-                                  cancel: { waitingTap = false })
-                    } else if correctionMode {
-                        mapBanner(correctionBannerText,
-                                  accept: (corrActive && corrNew != nil) ? { Task { await submitCorrection() } } : nil,
-                                  cancel: cancelCorrection)
-                    } else {
-                        // Botón "+ PROPONER": pill flotante ARRIBA a la derecha —
-                        // abajo lo tapaba la mini-ficha de parking/sector.
-                        VStack {
-                            HStack {
-                                Spacer()
-                                Button { showTypePicker = true } label: {
-                                    Text(NSLocalizedString("detail_propose", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 14).padding(.vertical, 9)
-                                        .background(Cumbre.terra)
-                                        .clipShape(RoundedRectangle(cornerRadius: 11))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            Spacer()
-                        }
-                        .padding(10)
-                        .frame(height: 280)
-                    }
-
-                    // Botón "dónde estoy": centra el mapa en tu posición para
-                    // ver qué piedras/sectores tienes alrededor al moverte.
-                    if let u = userCoord, miniBlock == nil, !waitingTap, !correctionMode {
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Button {
-                                    focusFit = []
-                                    focusCoord = u
-                                    focusToken += 1
-                                } label: {
-                                    Image(systemName: "location.fill")
-                                        .font(.system(size: 15))
-                                        .foregroundStyle(Color(parkingColor))
-                                        .frame(width: 40, height: 40)
-                                        .background(Cumbre.bg)
-                                        .clipShape(Circle())
-                                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(10)
-                        .frame(height: 280)
-                    }
-
-                    // Mini-ficha flotante de parking/sector: informa y da CÓMO
-                    // LLEGAR sin tapar el mapa.
-                    if let mb = miniBlock, !waitingTap, !correctionMode {
-                        VStack { Spacer(); miniBlockCard(mb) }
-                            .frame(height: 280)
-                            .frame(maxWidth: .infinity)
-                    }
+                searchBar
+                if !fullscreenMap {
+                    mapArea(height: 280)
                 }
-                legend
+                legendToggles
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).
                 parkingsList
@@ -555,10 +429,14 @@ private struct SchoolMapSection: View {
                 blocks = await loadBlocksOnlineOrOffline()
             }
             maybeAutoOpen()
-            // Mi ubicación (para verme mientras ando por el sector).
-            if AppDependencies.shared.locationBridge.hasPermission(),
-               let loc = try? await AppDependencies.shared.container.locationProvider?.current() {
-                userCoord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon)
+            // Mi ubicación, refrescada cada 5 s mientras el mapa está abierto
+            // (antes era un fix único → el punto se quedaba clavado al entrar).
+            while expanded, !Task.isCancelled {
+                if AppDependencies.shared.locationBridge.hasPermission(),
+                   let loc = try? await AppDependencies.shared.container.locationProvider?.current() {
+                    userCoord = CLLocationCoordinate2D(latitude: loc.lat, longitude: loc.lon)
+                }
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
         }
         // Deep-link desde el diario: despliega el mapa al entrar.
@@ -574,7 +452,7 @@ private struct SchoolMapSection: View {
                 block: b,
                 sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
                 schoolName: school.name,
-                highlightVia: openVia,
+                highlightVia: searchHighlight ?? openVia,
                 onEditLines: { editLinesBlock = b },
                 onAssignSector: { assignSectorBlock = b },
                 onDelete: isAdmin ? {
@@ -647,6 +525,349 @@ private struct SchoolMapSection: View {
         } message: {
             Text("Esta acción no se puede deshacer.")
         }
+    }
+
+    /// Mapa con todos sus overlays. Compartido entre el modo tarjeta (280 pt)
+    /// y pantalla completa (estilo Radar).
+    @ViewBuilder
+    private func mapArea(height: CGFloat) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+                    MapLibreView(
+                        center: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
+                        zoom: 14,
+                        markers: markers,
+                        style: mapStyle,
+                        // Encuadre inicial con TODOS los elementos (parkings/sectores/
+                        // piedras), por muy separados que estén — antes el mapa abría
+                        // fijo en zoom 14 sobre la escuela, dejando fuera sectores a
+                        // km. Mi ubicación solo entra en el encuadre si ya está cerca
+                        // (ver userMarkerIfNearby en MapLibreView.swift).
+                        autoFitToMarkers: true,
+                        onZoomChange: { mapZoom = $0 },
+                        onTapMarker: { id in
+                            // Clúster → encuadrar sus piedras (equivale a acercar).
+                            if id.hasPrefix("cluster-"), let idx = Int(id.dropFirst(8)),
+                               idx < stoneClusters.count {
+                                let grp = stoneClusters[idx]
+                                focusFit = grp.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+                                focusToken += 1
+                                return
+                            }
+                            if correctionMode && !corrActive {
+                                selectCorrectionTarget(id)
+                            } else if !waitingTap && !correctionMode {
+                                // Parking/zona → mini-ficha flotante (el mapa se
+                                // sigue viendo); piedras → su ficha completa.
+                                if let b = blocks.first(where: { $0.id == id }) {
+                                    switch b.type.uppercased() {
+                                    case "PARKING":
+                                        miniBlock = b
+                                        flyToParkingZone(b)
+                                    case "ZONE":
+                                        // Encuadra el sector con sus piedras
+                                        // (expandiéndolas), como el parking.
+                                        miniBlock = b
+                                        let stones = blocks.filter { $0.sectorBlockId == b.id }
+                                        if stones.isEmpty {
+                                            focusFit = []
+                                            focusCoord = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
+                                        } else {
+                                            collapsedSectors.remove(b.id)
+                                            focusFit = [CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)]
+                                                + stones.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+                                        }
+                                        focusToken += 1
+                                    default:
+                                        // Piedra: centra suave y abre su ficha.
+                                        focusFit = []
+                                        focusCoord = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
+                                        focusToken += 1
+                                        openBlockSheet(b)
+                                    }
+                                }
+                            }
+                        },
+                        onMapTap: (waitingTap || (correctionMode && corrActive)) ? { coord in
+                            if waitingTap {
+                                waitingTap = false
+                                if proposeType == "BOULDER" { boulderCoord = coord } else { formCoord = coord }
+                            } else {
+                                corrNew = coord
+                            }
+                        } : nil,
+                        polylines: wallPolylines,
+                        // Foco explícito al pulsar un parking en la lista (recentra
+                        // el mapa ahí). Debe ir DESPUÉS de polylines: el init
+                        // memberwise de Swift exige el mismo orden que la
+                        // declaración del struct aunque los args vayan con nombre.
+                        focusCoordinate: focusCoord,
+                        focusToken: focusToken,
+                        focusFitCoordinates: focusFit
+                    )
+                    .frame(height: height)
+
+                    // Chips topográfico / satélite (esquina superior izquierda).
+                    if !waitingTap && !correctionMode {
+                        VStack { HStack { MapStyleChips(selection: $mapStyle); Spacer() }; Spacer() }
+                            .frame(height: height)
+                    }
+
+                    if waitingTap {
+                        // Banner "PULSA EN EL MAPA" (parking/sector/piedra).
+                        mapBanner("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN",
+                                  cancel: { waitingTap = false })
+                    } else if correctionMode {
+                        mapBanner(correctionBannerText,
+                                  accept: (corrActive && corrNew != nil) ? { Task { await submitCorrection() } } : nil,
+                                  cancel: cancelCorrection)
+                    } else {
+                        // Botón "+ PROPONER": pill flotante ARRIBA a la derecha —
+                        // abajo lo tapaba la mini-ficha de parking/sector.
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button {
+                                    if fullscreenMap {
+                                        fullscreenMap = false
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { showTypePicker = true }
+                                    } else { showTypePicker = true }
+                                } label: {
+                                    Text(NSLocalizedString("detail_propose", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 14).padding(.vertical, 9)
+                                        .background(Cumbre.terra)
+                                        .clipShape(RoundedRectangle(cornerRadius: 11))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            Spacer()
+                        }
+                        .padding(10)
+                        .frame(height: height)
+                    }
+
+                    // Ampliar / salir de pantalla completa — ARRIBA a la izquierda
+                    // (debajo de los chips de estilo) + botonera lateral en fullscreen.
+                    if !waitingTap && !correctionMode {
+                        VStack {
+                            HStack {
+                                Button { fullscreenMap.toggle() } label: {
+                                    Image(systemName: fullscreenMap
+                                          ? "arrow.down.right.and.arrow.up.left"
+                                          : "arrow.up.left.and.arrow.down.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(Cumbre.ink)
+                                        .frame(width: 40, height: 40)
+                                        .background(Cumbre.bg)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                                Spacer()
+                            }
+                            .padding(.top, fullscreenMap ? 100 : 52)
+                            Spacer()
+                        }
+                        .padding(10)
+                        .frame(height: height)
+                    }
+                    if fullscreenMap && !waitingTap && !correctionMode {
+                        // Toggles de capas (estilo Radar): P / piedra / zona.
+                        VStack(spacing: 8) {
+                            layerButton("P", Color(parkingColor), "PARKING")
+                            layerButton("B", Color(blockColor), "BLOCK")
+                            layerButton("Z", Color(zoneColor), "ZONE")
+                        }
+                        .frame(maxHeight: .infinity, alignment: .center)
+                        .padding(.trailing, 10)
+                        .frame(height: height)
+                    }
+
+                    // Botón "dónde estoy": centra el mapa en tu posición para
+                    // ver qué piedras/sectores tienes alrededor al moverte.
+                    if let u = userCoord, miniBlock == nil, !waitingTap, !correctionMode {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Button {
+                                    focusFit = []
+                                    focusCoord = u
+                                    focusToken += 1
+                                } label: {
+                                    Image(systemName: "location.fill")
+                                        .font(.system(size: 15))
+                                        .foregroundStyle(Color(parkingColor))
+                                        .frame(width: 40, height: 40)
+                                        .background(Cumbre.bg)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(10)
+                        .frame(height: height)
+                    }
+
+                    // Mini-ficha flotante de parking/sector: informa y da CÓMO
+                    // LLEGAR sin tapar el mapa.
+                    if let mb = miniBlock, !waitingTap, !correctionMode {
+                        VStack { Spacer(); miniBlockCard(mb) }
+                            .frame(height: height)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+    }
+
+    /// Buscador de vías/bloques (como el buscador de escuelas de la lista).
+    @ViewBuilder
+    private var searchBar: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            TextField("Buscar vías/bloques…", text: $searchQuery)
+                .textFieldStyle(.plain)
+                .font(.system(size: 14))
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .background(Cumbre.paper)
+                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            let q = searchQuery.trimmingCharacters(in: .whitespaces)
+            if q.count >= 2 {
+                let hits = searchHits(q)
+                if hits.isEmpty {
+                    Text("Sin resultados en esta escuela")
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(hits, id: \.id) { h in
+                            Button {
+                                searchQuery = ""
+                                searchHighlight = h.viaName
+                                selectedBlock = h.block
+                            } label: {
+                                HStack {
+                                    Text(h.label).font(.system(size: 14))
+                                        .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    Spacer()
+                                    Text(h.sub).font(.system(size: 12))
+                                        .foregroundStyle(Cumbre.ink3).lineLimit(1)
+                                }
+                                .padding(.horizontal, 12).padding(.vertical, 9)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .background(Cumbre.paper)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                }
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 4)
+        .fullScreenCover(isPresented: $fullscreenMap) {
+            ZStack(alignment: .bottomTrailing) {
+                Color.black.ignoresSafeArea()
+                mapArea(height: UIScreen.main.bounds.height)
+                    .ignoresSafeArea()
+            }
+        }
+    }
+
+    private struct SearchHit { let id: String; let label: String; let sub: String; let viaName: String?; let block: Block }
+    private func searchHits(_ q: String) -> [SearchHit] {
+        var out: [SearchHit] = []
+        for b in blocks where b.type.uppercased() == "BLOCK" {
+            for l in b.lines where l.name.localizedCaseInsensitiveContains(q) {
+                let grade = (l.grade?.isEmpty == false) ? " · \(l.grade!)" : ""
+                out.append(SearchHit(id: l.id, label: l.name + grade, sub: b.name, viaName: l.name, block: b))
+            }
+            if b.name.localizedCaseInsensitiveContains(q) {
+                out.append(SearchHit(id: b.id, label: b.name, sub: "\(b.lines.count) vías", viaName: nil, block: b))
+            }
+        }
+        return Array(out.prefix(8))
+    }
+
+    /// Piedras (POINT) agrupadas por cercanía al zoom actual (≈44 px).
+    private var stoneClusters: [[Block]] {
+        let stones = blocks.filter { b in
+            guard b.type.uppercased() == "BLOCK", !hiddenTypes.contains("BLOCK") else { return false }
+            if b.geometry.uppercased() == "LINE", parseWallPath(b.path).count >= 2 { return false }
+            if let sid = b.sectorBlockId, collapsedSectors.contains(sid) { return false }
+            return true
+        }
+        guard stones.count >= 2 else { return [] }
+        let threshold = 44.0 * 360.0 / (256.0 * pow(2.0, mapZoom))
+        var groups: [[Block]] = []
+        for st in stones {
+            let cosLat = max(0.2, cos(st.lat * .pi / 180))
+            if let gi = groups.firstIndex(where: { g in
+                abs(g[0].lat - st.lat) < threshold && abs(g[0].lon - st.lon) * cosLat < threshold
+            }) {
+                groups[gi].append(st)
+            } else {
+                groups.append([st])
+            }
+        }
+        return groups.filter { $0.count >= 2 }
+    }
+
+    /// Leyenda pulsable: cada icono alterna la visibilidad de su capa.
+    private var legendToggles: some View {
+        HStack(spacing: 10) {
+            legendToggle("Parking", "PARKING", Color(parkingColor))
+            legendToggle("Piedra", "BLOCK", Color(blockColor))
+            legendToggle("Zona", "ZONE", Color(zoneColor))
+            Spacer()
+        }
+        .padding(.horizontal, 16).padding(.top, 8)
+    }
+    /// Botón circular de capa para la botonera lateral en pantalla completa.
+    private func layerButton(_ letter: String, _ c: Color, _ type: String) -> some View {
+        let active = !hiddenTypes.contains(type)
+        return Button {
+            if active { hiddenTypes.insert(type) } else { hiddenTypes.remove(type) }
+        } label: {
+            Text(letter)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(active ? .white : Cumbre.ink3)
+                .frame(width: 40, height: 40)
+                .background(active ? c : Cumbre.bg)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(active ? c : Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Abre la ficha de una piedra; si estamos en pantalla completa, primero
+    /// cierra el cover (los sheets de la vista de debajo no pueden presentarse
+    /// mientras hay un fullScreenCover delante).
+    private func openBlockSheet(_ b: Block) {
+        if fullscreenMap {
+            fullscreenMap = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { selectedBlock = b }
+        } else {
+            selectedBlock = b
+        }
+    }
+
+    private func legendToggle(_ t: String, _ type: String, _ c: Color) -> some View {
+        let active = !hiddenTypes.contains(type)
+        return Button {
+            if active { hiddenTypes.insert(type) } else { hiddenTypes.remove(type) }
+        } label: {
+            HStack(spacing: 5) {
+                Circle().fill(active ? c : Color.gray.opacity(0.35))
+                    .frame(width: 11, height: 11)
+                    .overlay(Circle().stroke(.white, lineWidth: 1))
+                Text(t).font(Cumbre.mono(10, active ? .bold : .regular))
+                    .foregroundStyle(active ? Cumbre.ink2 : Cumbre.ink3)
+            }
+            .padding(.horizontal, 8).padding(.vertical, 5)
+            .background(Cumbre.paper)
+            .overlay(Rectangle().stroke(active ? c.opacity(0.5) : Cumbre.rule, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func afterSubmit() {
@@ -791,6 +1012,7 @@ private struct SchoolMapSection: View {
             // Solo PIEDRAS: un parking/zona con path corrupto no debe estirarse
             // en una línea (se veía azul, color del tipo).
             guard b.type.uppercased() == "BLOCK", b.geometry.uppercased() == "LINE" else { return nil }
+            if hiddenTypes.contains("BLOCK") { return nil }
             if let sid = b.sectorBlockId, collapsedSectors.contains(sid) { return nil }
             let pts = parseWallPath(b.path)
             guard pts.count >= 2 else { return nil }
@@ -813,7 +1035,23 @@ private struct SchoolMapSection: View {
             id: school.id,
             coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
             title: school.name, kind: .school, color: schoolColor)]
+        // Clustering: piedras que se apilarían a este zoom → círculo con contador.
+        let clusters = stoneClusters
+        let clusteredIds = Set(clusters.flatMap { $0 }.map { $0.id })
+        for (i, grp) in clusters.enumerated() {
+            let cLat = grp.map { $0.lat }.reduce(0, +) / Double(grp.count)
+            let cLon = grp.map { $0.lon }.reduce(0, +) / Double(grp.count)
+            ms.append(CumbreMarker(
+                id: "cluster-\(i)",
+                coordinate: CLLocationCoordinate2D(latitude: cLat, longitude: cLon),
+                title: "\(grp.count) piedras", kind: .cluster,
+                color: blockColor, score: grp.count))
+        }
         for b in blocks {
+            // Capa apagada en la leyenda → no se pinta.
+            if hiddenTypes.contains(b.type.uppercased()) { continue }
+            // Piedra absorbida por un clúster → la representa el contador.
+            if clusteredIds.contains(b.id) { continue }
             // Piedra oculta si pertenece a un sector colapsado.
             if b.type.uppercased() == "BLOCK", let sid = b.sectorBlockId, collapsedSectors.contains(sid) {
                 continue
@@ -922,7 +1160,7 @@ private struct SchoolMapSection: View {
                 }
                 Spacer(minLength: 4)
                 if isAdmin {
-                    Button { selectedBlock = mb; miniBlock = nil } label: {
+                    Button { miniBlock = nil; openBlockSheet(mb) } label: {
                         Image(systemName: "pencil").font(.system(size: 15)).foregroundStyle(Cumbre.ink2).padding(4)
                     }.buttonStyle(.plain)
                     Button { confirmDeleteMini = true } label: {
@@ -1244,6 +1482,8 @@ struct BlockInfoSheet: View {
     @State private var projectLines: Set<String> = []  // vías marcadas como PROYECTO
     @State private var togglingProject: String?         // vía de proyecto guardándose ahora
     @State private var showDeleteConfirm = false
+    // Comentarios de la piedra/vías (un fetch por piedra; los hilos filtran).
+    @StateObject private var commentsStore = LineCommentsStore()
 
     private var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
@@ -1361,12 +1601,26 @@ struct BlockInfoSheet: View {
                                             myStars: Int(l.myStars?.int32Value ?? 0)
                                         ) { stars in onRateLine?(l.id, stars) }
                                     }
+                                    // Descripción/beta de la vía (si la tiene).
+                                    if let d = l.lineDescription, !d.isEmpty {
+                                        Text(d).font(.system(size: 12))
+                                            .foregroundStyle(Cumbre.ink3)
+                                    }
+                                    // Comentarios de ESTA vía (desplegable).
+                                    LineCommentsThreadView(store: commentsStore,
+                                                           blockId: block.id, lineId: l.id)
                                     } // VStack
                                 }
                             }
                           }
                           .id(faceIdx)
                         }
+                    }
+
+                    // Comentarios de la piedra entera (desplegable).
+                    if block.type.uppercased() == "BLOCK" {
+                        LineCommentsThreadView(store: commentsStore,
+                                               blockId: block.id, lineId: nil)
                     }
 
                     // Coordenadas (espejo de BlockDetailDialog).
@@ -1415,6 +1669,7 @@ struct BlockInfoSheet: View {
                 .padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
+            .task { await commentsStore.load(blockId: block.id) }
             .navigationTitle(block.name.isEmpty ? typeLabel : block.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

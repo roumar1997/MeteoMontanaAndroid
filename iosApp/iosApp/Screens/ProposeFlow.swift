@@ -49,6 +49,8 @@ struct BoulderBlockForm: Identifiable {
     /// Foto (cara) a la que pertenece esta vía. Al corregir una piedra multi-foto,
     /// mantiene cada vía en SU cara (no las mezcla todas en la portada).
     var facePhoto: String? = nil
+    /// Beta/detalle opcional de la vía (se muestra en su ficha).
+    var descriptionText: String = ""
 }
 
 /// Serializa los bloques al formato que espera el backend (espejo de
@@ -67,7 +69,8 @@ func buildBloquesJson(_ blocks: [BoulderBlockForm]) -> String {
                 // (en vez de añadir) — permite editar varias en una sola propuesta.
                 "targetLineId": b.existingLineId as Any? ?? NSNull(),
                 // Cara (foto) a la que pertenece → el backend la mantiene en su cara.
-                "photoUrl": b.facePhoto as Any? ?? NSNull()]
+                "photoUrl": b.facePhoto as Any? ?? NSNull(),
+                "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText]
     }
     return (try? JSONSerialization.data(withJSONObject: arr))
         .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
@@ -98,7 +101,8 @@ func buildFacesBloquesJson(_ faces: [BoulderFaceForm], photoByFace: [UUID: Strin
                         "startType": b.startType as Any? ?? NSNull(),
                         "linePath": linePath,
                         "targetLineId": b.existingLineId as Any? ?? NSNull(),
-                        "photoUrl": facePhoto as Any? ?? NSNull()])
+                        "photoUrl": facePhoto as Any? ?? NSNull(),
+                        "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText])
             idx += 1
         }
     }
@@ -642,6 +646,11 @@ struct BoulderBlockRow: View {
                     }.buttonStyle(.plain)
                 }
             }
+            // Descripción opcional (beta, salida, detalle a especificar).
+            TextField("Descripción (opcional)", text: $block.descriptionText, axis: .vertical)
+                .font(.system(size: 13))
+                .lineLimit(1...3)
+                .padding(8).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
             if !block.line.isEmpty {
                 Text("✓ línea (\(block.line.count))").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ok)
             }
@@ -946,7 +955,8 @@ struct EditLinesSheet: View {
                                          startType: startTypeForUi(l.startType),
                                          line: TopoParse.points(l.linePath),
                                          existingLineId: l.id,
-                                         facePhoto: f.photoPath ?? block.photoPath)
+                                         facePhoto: f.photoPath ?? block.photoPath,
+                                         descriptionText: l.lineDescription ?? "")
                     }
                 }
                 // Abre la cara que contiene la vía del deep-link, si la hay.

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -405,10 +406,15 @@ private fun InnerMap(
     // Sectores colapsados: sus piedras se ocultan (tocar la zona alterna).
     var collapsedSectors by remember { mutableStateOf(setOf<String>()) }
     val collapsedState by androidx.compose.runtime.rememberUpdatedState(collapsedSectors)
+    // Capas ocultas por el usuario (toggles de la leyenda): PARKING/BLOCK/ZONE.
+    var hiddenTypes by remember { mutableStateOf(setOf<String>()) }
+    // Mapa a pantalla completa (estilo Radar: el mapa es la pantalla).
+    var fullscreenMap by remember { mutableStateOf(false) }
 
-    val visibleMarkers = remember(blocks, schoolMarker, collapsedSectors) {
+    val visibleMarkers = remember(blocks, schoolMarker, collapsedSectors, hiddenTypes) {
         listOf(schoolMarker) + blocks.filter { b ->
-            !(b.type == "BLOCK" && b.sectorBlockId != null && b.sectorBlockId in collapsedSectors)
+            b.type.uppercase() !in hiddenTypes &&
+                !(b.type == "BLOCK" && b.sectorBlockId != null && b.sectorBlockId in collapsedSectors)
         }
     }
 
@@ -498,8 +504,13 @@ private fun InnerMap(
     val previewState = androidx.compose.runtime.rememberUpdatedState(activePreview)
     androidx.compose.runtime.LaunchedEffect(mapRef.value) {
         val map = mapRef.value ?: return@LaunchedEffect
+        var lastClusterZoom = map.cameraPosition.zoom
         map.addOnCameraIdleListener {
-            if (map.annotations.isEmpty() && visibleState.value.isNotEmpty()) {
+            val zoomChanged = kotlin.math.abs(map.cameraPosition.zoom - lastClusterZoom) > 0.4
+            if (zoomChanged || (map.annotations.isEmpty() && visibleState.value.isNotEmpty())) {
+                // Re-pinta al cambiar el zoom (los clústeres dependen de él) y
+                // como vigilante anti-desapariciones del SDK.
+                lastClusterZoom = map.cameraPosition.zoom
                 placeMarkers(ctx, map, visibleState.value, ghostState.value,
                     userLoc, previewState.value) { tapped ->
                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
@@ -511,30 +522,33 @@ private fun InnerMap(
 
     MapViewLifecycleEffect(mapViewRef) { mapRef.value = null }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-
-        // Selector de estilo
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            MapStyleOption.entries.forEach { option ->
-                StyleChip(stringResource(option.labelResId), currentStyle == option) {
-                    if (currentStyle != option) {
-                        currentStyle = option
-                        mapViewRef.value?.getMapAsync { map ->
-                            map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
-                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview) { tapped ->
-                                    if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
-                                    else onBlockTap(tapped)
-                                }
-                            }
-                        }
+    // Cámara guardada al entrar/salir de pantalla completa (el MapView se
+    // recrea al cambiar de contenedor; sin esto perderías el encuadre).
+    var savedCamera by remember { mutableStateOf<CameraPosition?>(null) }
+    val toggleFullscreen: () -> Unit = {
+        savedCamera = mapRef.value?.cameraPosition
+        fullscreenMap = !fullscreenMap
+    }
+    val applyStyle: (MapStyleOption) -> Unit = { option ->
+        if (currentStyle != option) {
+            currentStyle = option
+            mapViewRef.value?.getMapAsync { map ->
+                map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
+                    placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview) { tapped ->
+                        if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+                        else onBlockTap(tapped)
                     }
                 }
             }
         }
+    }
+    // Toggle de capa (leyenda pulsable): oculta/enseña parkings, piedras o zonas.
+    val toggleLayer: (String) -> Unit = { type ->
+        hiddenTypes = if (type in hiddenTypes) hiddenTypes - type else hiddenTypes + type
+    }
 
+    // Banners del flujo de propuesta (compartidos entre modo normal y fullscreen).
+    val flowBanners: @Composable () -> Unit = {
         // Banner contextual con estado preciso del flujo.
         if (waitingMapTap || correctionMode) {
             val bannerText = when {
@@ -610,11 +624,14 @@ private fun InnerMap(
                 }
             }
         }
+    }
 
-        // MapView con botón "+ PROPONER" superpuesto
-        Box(modifier = Modifier.fillMaxWidth().height(280.dp)) {
+    // MapView con overlays (+ PROPONER, expandir/cerrar, mini-ficha, dónde
+    // estoy). Compartido entre el modo tarjeta (280 dp) y pantalla completa.
+    val mapBox: @Composable (Modifier) -> Unit = { boxModifier ->
+        Box(modifier = boxModifier) {
             AndroidView(
-                modifier = Modifier.fillMaxWidth().height(280.dp),
+                modifier = Modifier.fillMaxSize(),
                 factory = { context ->
                     MapView(context).apply {
                         onCreate(null)
@@ -641,12 +658,17 @@ private fun InnerMap(
                                     if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
                                     else onBlockTap(tapped)
                                 }
-                                // Encuadre inicial con TODOS los elementos (solo al abrir el
-                                // mapa por primera vez; los re-pintados posteriores —al
-                                // colapsar un sector, cambiar de estilo…— no vuelven a mover
-                                // la cámara).
-                                fitSchoolBoundsCameraUpdate(visibleMarkers, userLoc)?.let { update ->
-                                    runCatching { map.moveCamera(update) }
+                                // Encuadre inicial con TODOS los elementos, salvo que
+                                // vengamos de entrar/salir de pantalla completa (ahí se
+                                // restaura la cámara que tenía el usuario).
+                                val restored = savedCamera
+                                if (restored != null) {
+                                    map.cameraPosition = restored
+                                    savedCamera = null
+                                } else {
+                                    fitSchoolBoundsCameraUpdate(visibleMarkers, userLoc)?.let { update ->
+                                        runCatching { map.moveCamera(update) }
+                                    }
                                 }
                             }
                             map.uiSettings.apply {
@@ -692,6 +714,53 @@ private fun InnerMap(
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
+            }
+
+            // Ampliar / salir de pantalla completa — ARRIBA a la izquierda.
+            Box(
+                modifier = Modifier.align(Alignment.TopStart)
+                    .padding(Spacing.sm)
+                    .size(40.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.background)
+                    .border(1.dp, MaterialTheme.colorScheme.outline,
+                        androidx.compose.foundation.shape.CircleShape)
+                    .clickable(onClick = toggleFullscreen),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(if (fullscreenMap) "✕" else "⤢",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium)
+            }
+
+            // Botonera lateral (solo fullscreen, estilo Radar): estilo del mapa
+            // + toggles de capas (los iconos de la leyenda, pulsables: apagado
+            // = capa oculta).
+            if (fullscreenMap) {
+                Column(
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Topográfico ↔ Satélite de un toque (como en Radar).
+                    Box(
+                        modifier = Modifier.size(40.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(MaterialTheme.colorScheme.background)
+                            .border(1.dp, MaterialTheme.colorScheme.outline,
+                                androidx.compose.foundation.shape.CircleShape)
+                            .clickable {
+                                applyStyle(if (currentStyle == MapStyleOption.SATELLITE)
+                                    MapStyleOption.TOPO else MapStyleOption.SATELLITE)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("🗺", style = MaterialTheme.typography.titleMedium)
+                    }
+                    LayerToggleButton("P", Color(0xFF1A56DB), "PARKING" !in hiddenTypes) { toggleLayer("PARKING") }
+                    LayerToggleButton("B", Terra, "BLOCK" !in hiddenTypes) { toggleLayer("BLOCK") }
+                    LayerToggleButton("Z", Color(0xFF2F7D4F), "ZONE" !in hiddenTypes) { toggleLayer("ZONE") }
+                }
             }
 
             // Botón "dónde estoy": centra el mapa en tu posición para ver qué
@@ -741,6 +810,48 @@ private fun InnerMap(
                         .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
                 )
             }
+        }
+    }
+
+    // ── Pantalla completa: el mapa ES la pantalla (estilo Radar) ─────────
+    if (fullscreenMap) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = toggleFullscreen,
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                mapBox(Modifier.fillMaxSize())
+                Column(
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                        .padding(bottom = Spacing.xl)
+                ) { flowBanners() }
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+
+        // Selector de estilo + toggles de capas (leyenda pulsable)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            MapStyleOption.entries.forEach { option ->
+                StyleChip(stringResource(option.labelResId), currentStyle == option) {
+                    applyStyle(option)
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            LayerToggleButton("P", Color(0xFF1A56DB), "PARKING" !in hiddenTypes) { toggleLayer("PARKING") }
+            LayerToggleButton("B", Terra, "BLOCK" !in hiddenTypes) { toggleLayer("BLOCK") }
+            LayerToggleButton("Z", Color(0xFF2F7D4F), "ZONE" !in hiddenTypes) { toggleLayer("ZONE") }
+        }
+
+        flowBanners()
+
+        if (!fullscreenMap) {
+            mapBox(Modifier.fillMaxWidth().height(280.dp))
         }
 
         // ── Lista de parkings ────────────────────────────────────────────
@@ -1079,6 +1190,29 @@ private fun CumbreSuccessDialog(
 // Mapa de markers activos para poder mapear marker → Block al tocar
 private val markerBlockMap = mutableMapOf<Long, Block>()
 private val polylineBlockMap = mutableMapOf<Long, Block>()
+// Marker de clúster → centro al que acercar la cámara al tocarlo.
+private val clusterTargetMap = mutableMapOf<Long, LatLng>()
+
+/**
+ * Agrupa piedras que a este zoom caerían unas encima de otras (≈44 px).
+ * Greedy y suficiente para decenas de piedras: cada piedra entra en el primer
+ * grupo cuyo origen tiene cerca; si no hay ninguno, abre grupo nuevo.
+ */
+private fun clusterStones(stones: List<Block>, zoom: Double): List<List<Block>> {
+    if (stones.size < 2) return stones.map { listOf(it) }
+    val thresholdDeg = 44.0 * 360.0 / (256.0 * Math.pow(2.0, zoom))
+    val groups = mutableListOf<MutableList<Block>>()
+    stones.forEach { s ->
+        val cosLat = Math.cos(Math.toRadians(s.lat)).coerceAtLeast(0.2)
+        val g = groups.firstOrNull { grp ->
+            val seed = grp.first()
+            Math.abs(seed.lat - s.lat) < thresholdDeg &&
+                Math.abs(seed.lon - s.lon) * cosLat < thresholdDeg
+        }
+        if (g != null) g.add(s) else groups.add(mutableListOf(s))
+    }
+    return groups
+}
 
 /** Parsea el `path` de un muro ("[[lat,lon],...]") a LatLng. Vacío si no es válido. */
 internal fun parseWallPath(path: String?): List<LatLng> {
@@ -1122,8 +1256,31 @@ private fun placeMarkers(
     map.clear()
     markerBlockMap.clear()
     polylineBlockMap.clear()
+    clusterTargetMap.clear()
 
     val iconFactory = IconFactory.getInstance(ctx)
+
+    // Clustering de piedras (POINT): a zoom lejano, las que caerían apiladas se
+    // agrupan en un círculo con contador; tocar el clúster acerca la cámara.
+    // Muros (LINE), parkings, zonas y escuela no se agrupan.
+    val zoom = map.cameraPosition.zoom
+    val stonePoints = blocks.filter {
+        it.type.equals("BLOCK", true) &&
+            !(it.geometry.equals("LINE", true) && parseWallPath(it.path).size >= 2)
+    }
+    val clusters = clusterStones(stonePoints, zoom).filter { it.size >= 2 }
+    val clusteredIds = clusters.flatten().map { it.id }.toSet()
+    clusters.forEach { grp ->
+        val cLat = grp.sumOf { it.lat } / grp.size
+        val cLon = grp.sumOf { it.lon } / grp.size
+        val marker = map.addMarker(
+            MarkerOptions()
+                .position(LatLng(cLat, cLon))
+                .icon(cachedIcon(iconFactory, "cluster:${grp.size}") { clusterBitmap(grp.size) })
+                .title("${grp.size} piedras")
+        )
+        clusterTargetMap[marker.id] = LatLng(cLat, cLon)
+    }
 
     // Punto azul con la posición del usuario (si la tenemos): así se ve
     // cómo de cerca estás de la escuela y sus sectores.
@@ -1136,6 +1293,8 @@ private fun placeMarkers(
     }
 
     blocks.forEach { b ->
+        // Piedra absorbida por un clúster → no se pinta individual.
+        if (b.id in clusteredIds) return@forEach
         // Si este marker está siendo movido (es el original), lo pintamos semitransparente.
         val isOriginalBeingMoved = ghost != null && (
             (ghost.originalId == null && b.id == "__SCHOOL__") ||
@@ -1218,6 +1377,14 @@ private fun placeMarkers(
     }
 
     map.setOnMarkerClickListener { marker ->
+        // Clúster → acercar la cámara para separar sus piedras.
+        clusterTargetMap[marker.id]?.let { center ->
+            runCatching {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                    center, (map.cameraPosition.zoom + 2.2).coerceAtMost(18.5)))
+            }
+            return@setOnMarkerClickListener true
+        }
         markerBlockMap[marker.id]?.let { onBlockTap(it) }
         true
     }
@@ -1346,6 +1513,32 @@ private fun blockBitmap(label: String): Bitmap = pinBitmapBoulder(
     sizeDp = 22   // ↓ Más pequeñas: en zonas con muchas piedras juntas, no se solapan tanto.
 )
 
+/** Círculo terra con contador para clústeres de piedras juntas. */
+private fun clusterBitmap(count: Int): Bitmap {
+    val size = 76
+    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val c = Canvas(bmp)
+    val cx = size / 2f; val cy = size / 2f
+    // Halo translúcido + círculo sólido + borde blanco (legible sobre satélite).
+    val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor(PIEDRA_COLOR); alpha = 70 }
+    c.drawCircle(cx, cy, 36f, halo)
+    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor(PIEDRA_COLOR) }
+    c.drawCircle(cx, cy, 26f, fill)
+    val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 3f }
+    c.drawCircle(cx, cy, 26f, ring)
+    val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textSize = if (count >= 10) 24f else 28f
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    c.drawText(count.toString(), cx, cy + txt.textSize / 3f, txt)
+    return bmp
+}
+
 /** Pin verde para zonas (tipo ZONE). */
 private fun zoneBitmap(): Bitmap {
     val size = 52
@@ -1367,6 +1560,31 @@ private fun zoneBitmap(): Bitmap {
     }
     c.drawText("Z", cx, cy + 7f, txt)
     return bmp
+}
+
+/**
+ * Icono de la leyenda convertido en toggle: encendido = capa visible; apagado
+ * (gris translúcido) = capa oculta. Mismo botón en la fila de estilos y en la
+ * botonera lateral de pantalla completa.
+ */
+@Composable
+private fun LayerToggleButton(label: String, color: Color, active: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(if (active) color else MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp,
+                if (active) color else MaterialTheme.colorScheme.outline,
+                androidx.compose.foundation.shape.CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label,
+            color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold)
+    }
 }
 
 @Composable

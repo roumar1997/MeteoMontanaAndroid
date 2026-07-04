@@ -57,6 +57,7 @@ enum MarkerKind {
     case user         // punto azul con halo (mi ubicación)
     case score        // diamante coloreado por score (lista de escuelas)
     case dot          // puntito por score (radar a zoom país)
+    case cluster      // círculo terra con contador (piedras agrupadas por zoom)
 }
 
 /// Marcador del mapa. `kind` decide la forma; `label`, `score` y `name`
@@ -84,7 +85,7 @@ struct CumbreMarker: Identifiable {
         switch kind {
         case .parking: return "p"; case .zone: return "z"; case .block: return "b"
         case .school: return "s"; case .user: return "u"; case .score: return "d"
-        case .dot: return "o"
+        case .dot: return "o"; case .cluster: return "c"
         }
     }
 }

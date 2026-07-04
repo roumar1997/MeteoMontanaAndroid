@@ -349,6 +349,22 @@ fun BlockDetailDialog(
                                     onRate = { stars -> onRateLine(line.id, stars) }
                                 )
                             }
+                            // Descripción/beta de la vía (si la tiene).
+                            line.lineDescription?.takeIf { it.isNotBlank() }?.let { d ->
+                                Text(d, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 28.dp, bottom = 2.dp))
+                            }
+                            // Comentarios de ESTA vía (desplegable).
+                            if (!isProposal) {
+                                Box(Modifier.padding(start = 28.dp)) {
+                                    LineCommentsThread(
+                                        blockId = block.id,
+                                        lineId = line.id,
+                                        myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -359,6 +375,16 @@ fun BlockDetailDialog(
                 Spacer(Modifier.height(Spacing.sm))
                 Text(it, style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
+            }
+
+            // Comentarios de la piedra entera (desplegable).
+            if (!isProposal && block.type == "BLOCK") {
+                Spacer(Modifier.height(Spacing.sm))
+                LineCommentsThread(
+                    blockId = block.id,
+                    lineId = null,
+                    myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                )
             }
 
             // Coordenadas

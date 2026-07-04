@@ -106,7 +106,8 @@ internal fun initialEditFaces(block: Block): List<EditFace> =
                         name = l.name, grade = l.grade,
                         startType = startTypeForBoulderUi(l.startType?.toString()),
                         linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
-                        existingLineId = l.id
+                        existingLineId = l.id,
+                        description = l.lineDescription
                     )
                 }.ifEmpty { listOf(BoulderBloqueForm()) }
             )
@@ -793,6 +794,19 @@ internal fun AddLineRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         StartTypeChips(selected = bloque.startType,
             onSelect = { onUpdate(bloque.copy(startType = it)) })
+
+        // Descripción opcional (beta, salida, detalle a especificar).
+        OutlinedTextField(
+            value = bloque.description ?: "",
+            onValueChange = { onUpdate(bloque.copy(description = it.takeIf { t -> t.isNotBlank() })) },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Descripción (opcional)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            maxLines = 3,
+            shape = MaterialTheme.shapes.small,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+        )
 
         if (bloque.linePath.isNotEmpty()) {
             Text(stringResource(R.string.add_lines_route_drawn, bloque.linePath.size),

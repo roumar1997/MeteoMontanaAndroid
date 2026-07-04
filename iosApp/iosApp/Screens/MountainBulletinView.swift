@@ -67,6 +67,9 @@ struct MountainBulletinSection: View {
                         .foregroundStyle(Cumbre.ink2)
                 }
                 .padding(12)
+                // Toda la cabecera tappable (sin esto el hueco del Spacer no
+                // captura toques y hay que acertar en la flechita).
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 

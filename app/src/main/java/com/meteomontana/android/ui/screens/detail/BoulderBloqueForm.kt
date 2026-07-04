@@ -21,7 +21,9 @@ data class BoulderBloqueForm(
     // id de la vía existente que representa esta fila (null = vía nueva). Permite
     // corregir VARIAS vías existentes en una sola propuesta (el backend las
     // distingue por este targetLineId por nodo).
-    val existingLineId: String? = null
+    val existingLineId: String? = null,
+    // Beta/detalle opcional de la vía (se muestra en su ficha).
+    val description: String? = null
 )
 
 /**
@@ -92,4 +94,6 @@ private fun bloqueJson(idx: Int, b: BoulderBloqueForm, photoUrl: String?): JSONO
         if (photoUrl != null) put("photoUrl", photoUrl) else put("photoUrl", JSONObject.NULL)
         // Si la fila es una vía existente, el backend la CORRIGE (no añade).
         if (b.existingLineId != null) put("targetLineId", b.existingLineId) else put("targetLineId", JSONObject.NULL)
+        val desc = b.description?.trim()
+        if (!desc.isNullOrBlank()) put("description", desc) else put("description", JSONObject.NULL)
     }

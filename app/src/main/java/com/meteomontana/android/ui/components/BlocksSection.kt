@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +43,68 @@ fun BlocksSection(
 ) {
     if (schoolLat == null || schoolLon == null || viewModel == null) return
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        // Buscador de vías/bloques de la escuela (como el de escuelas en la
+        // lista): al elegir un resultado se abre su piedra con la vía marcada.
+        var query by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+        androidx.compose.material3.OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            placeholder = { Text("Buscar vías/bloques…") },
+            singleLine = true,
+            shape = MaterialTheme.shapes.small,
+            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                focusedContainerColor   = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+            )
+        )
+        val q = query.trim()
+        if (q.length >= 2) {
+            // Vías cuyo nombre casa + piedras cuyo nombre casa.
+            data class Hit(val label: String, val sub: String, val lineId: String?, val name: String)
+            val hits = buildList {
+                blocks.filter { it.type == "BLOCK" }.forEach { b ->
+                    b.lines.forEach { l ->
+                        if (l.name.contains(q, ignoreCase = true)) add(Hit(
+                            label = l.name + (l.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                            sub = b.name, lineId = l.id, name = l.name))
+                    }
+                    if (b.name.contains(q, ignoreCase = true)) add(Hit(
+                        label = b.name, sub = "${b.lines.size} vías", lineId = null, name = b.name))
+                }
+            }.take(8)
+            if (hits.isEmpty()) {
+                Text("Sin resultados en esta escuela",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp))
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                ) {
+                    hits.forEach { h ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable {
+                                    viewModel.openVia(h.lineId, h.name)
+                                    query = ""
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(h.label, style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
+                                modifier = Modifier.weight(1f))
+                            Text(h.sub, style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
         SchoolMap(
             centerLat     = schoolLat,
             centerLon     = schoolLon,

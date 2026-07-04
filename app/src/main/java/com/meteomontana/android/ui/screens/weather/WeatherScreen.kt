@@ -47,10 +47,15 @@ fun WeatherScreen(
     viewModel: WeatherViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_COARSE_LOCATION)
-
-    LaunchedEffect(locationPermission.status.isGranted) {
-        if (locationPermission.status.isGranted) viewModel.tryLoad()
+    // FINE + COARSE (selector precisa/aproximada de Android 12+).
+    val locationPermission = com.google.accompanist.permissions.rememberMultiplePermissionsState(
+        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+    )
+    val anyGranted = locationPermission.permissions.any {
+        it.status.isGranted
+    }
+    LaunchedEffect(anyGranted) {
+        if (anyGranted) viewModel.tryLoad()
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -63,7 +68,7 @@ fun WeatherScreen(
             }
             WeatherUiState.NeedPermission -> {
                 TopBar(title = stringResource(R.string.weather_title), subtitle = "")
-                PermissionPrompt { locationPermission.launchPermissionRequest() }
+                PermissionPrompt { locationPermission.launchMultiplePermissionRequest() }
             }
             is WeatherUiState.Error -> {
                 TopBar(title = stringResource(R.string.weather_title), subtitle = "")

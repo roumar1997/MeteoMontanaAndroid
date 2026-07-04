@@ -19,6 +19,28 @@ enum MarkerRenderer {
         case .score:   return scoreDiamond(score: m.score, color: m.color,
                                             name: m.showName ? (m.name ?? m.title) : nil)
         case .dot:     return dot(color: m.color)
+        case .cluster: return cluster(count: m.score ?? 0, color: m.color)
+        }
+    }
+
+    // MARK: - Clúster de piedras (círculo terra + halo con el contador)
+
+    private static func cluster(count: Int, color: UIColor) -> UIImage {
+        let size = CGSize(width: 60, height: 60)
+        return UIGraphicsImageRenderer(size: size).image { ctx in
+            color.withAlphaComponent(0.28).setFill()
+            ctx.cgContext.fillEllipse(in: CGRect(x: 2, y: 2, width: 56, height: 56))
+            let inner = CGRect(x: 10, y: 10, width: 40, height: 40)
+            color.setFill()
+            ctx.cgContext.fillEllipse(in: inner)
+            UIColor.white.setStroke()
+            ctx.cgContext.setLineWidth(2.5)
+            ctx.cgContext.strokeEllipse(in: inner)
+            let text = "\(count)" as NSString
+            let font = UIFont.systemFont(ofSize: count >= 10 ? 16 : 19, weight: .bold)
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
+            let ts = text.size(withAttributes: attrs)
+            text.draw(at: CGPoint(x: 30 - ts.width / 2, y: 30 - ts.height / 2), withAttributes: attrs)
         }
     }
 

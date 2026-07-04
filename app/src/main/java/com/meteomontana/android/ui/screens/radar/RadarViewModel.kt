@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.radar
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
@@ -11,9 +12,17 @@ import com.meteomontana.android.data.api.dto.RadarBoundsDto
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.School
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -50,7 +59,8 @@ data class RadarFrameUi(
 class RadarViewModel @Inject constructor(
     private val radarApi: KtorRadarApi,
     private val schoolApi: KtorSchoolApi,
-    private val forecastApi: KtorForecastApi
+    private val forecastApi: KtorForecastApi,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RadarUiState())
@@ -78,17 +88,27 @@ class RadarViewModel @Inject constructor(
                     bounds = dto.bounds,
                     frames = thinned.map { RadarFrameUi(it.ts, it.capturedAt) }
                 )
+                // Descarga de PNGs: de MÁS RECIENTE a más antiguo (lo primero que
+                // se ve es AHORA), 4 en paralelo, y con caché en disco — los
+                // frames son inmutables, así que reabrir el radar solo baja los
+                // nuevos y el play está listo en 1-2 segundos.
                 val opts = BitmapFactory.Options().apply { inSampleSize = 2 }
-                thinned.forEach { ref ->
-                    try {
-                        val png = radarApi.getFramePng(dto.radar, ref.ts)
-                        val bmp = BitmapFactory.decodeByteArray(png, 0, png.size, opts)
-                        _state.value = _state.value.copy(
-                            frames = _state.value.frames.map {
-                                if (it.ts == ref.ts) it.copy(bitmap = bmp) else it
-                            })
-                    } catch (_: Exception) { /* frame perdido: la animación lo salta */ }
-                }
+                val gate = Semaphore(4)
+                thinned.reversed().map { ref ->
+                    async(Dispatchers.IO) {
+                        gate.withPermit {
+                            try {
+                                val png = cachedFramePng(dto.radar, ref.ts)
+                                val bmp = BitmapFactory.decodeByteArray(png, 0, png.size, opts)
+                                _state.value = _state.value.copy(
+                                    frames = _state.value.frames.map {
+                                        if (it.ts == ref.ts) it.copy(bitmap = bmp) else it
+                                    })
+                            } catch (_: Exception) { /* frame perdido: la animación lo salta */ }
+                        }
+                    }
+                }.awaitAll()
+                pruneFrameCache()
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     loading = false,
@@ -97,16 +117,41 @@ class RadarViewModel @Inject constructor(
             }
         }
         if (_state.value.schools.isEmpty()) {
-            viewModelScope.launch {
-                try {
-                    val schools = schoolApi.getSchools().map { it.toDomain() }
-                    _state.value = _state.value.copy(schools = schools)
-                    // Scores del día para colorear los pines (cacheado en el back).
-                    val scores = forecastApi.getTodayScores(schools.map { it.id })
-                        .associate { it.id to it.todayScore }
-                    _state.value = _state.value.copy(scoresById = scores)
-                } catch (_: Exception) { /* sin pines; el radar sigue funcionando */ }
-            }
+            loadSchools()
+        }
+    }
+
+    /** PNG del frame, de la caché de disco si ya se descargó alguna vez. */
+    private suspend fun cachedFramePng(radar: String, ts: String): ByteArray =
+        withContext(Dispatchers.IO) {
+            val dir = File(appContext.cacheDir, "radar").apply { mkdirs() }
+            val f = File(dir, "${radar}_${ts.replace(Regex("[^A-Za-z0-9-]"), "_")}.png")
+            if (f.exists() && f.length() > 0) return@withContext f.readBytes()
+            val png = radarApi.getFramePng(radar, ts)
+            runCatching { f.writeBytes(png) }
+            png
+        }
+
+    /** Borra frames cacheados de hace más de 2 días (retención del backend). */
+    private fun pruneFrameCache() {
+        runCatching {
+            val cutoff = System.currentTimeMillis() - 2L * 24 * 60 * 60 * 1000
+            File(appContext.cacheDir, "radar").listFiles()
+                ?.filter { it.lastModified() < cutoff }
+                ?.forEach { it.delete() }
+        }
+    }
+
+    private fun loadSchools() {
+        viewModelScope.launch {
+            try {
+                val schools = schoolApi.getSchools().map { it.toDomain() }
+                _state.value = _state.value.copy(schools = schools)
+                // Scores del día para colorear los pines (cacheado en el back).
+                val scores = forecastApi.getTodayScores(schools.map { it.id })
+                    .associate { it.id to it.todayScore }
+                _state.value = _state.value.copy(scoresById = scores)
+            } catch (_: Exception) { /* sin pines; el radar sigue funcionando */ }
         }
     }
 }

@@ -324,14 +324,31 @@ struct RadarView: View {
                 .filter { $0.offset >= cut || $0.offset % 3 == 0 }
                 .map { $0.element }
             frames = thinned.map { RadarFrameUi(ts: $0.ts, capturedAt: $0.capturedAt) }
-            for ref in thinned {
-                if let bytes = try? await radarApi.getFramePng(radar: dto.radar, ts: ref.ts) {
-                    if let img = UIImage(data: bytes.toData()),
-                       let idx = frames.firstIndex(where: { $0.ts == ref.ts }) {
-                        frames[idx].image = img
+            // Descarga de MÁS RECIENTE a más antiguo (lo primero que se ve es
+            // AHORA), 4 en paralelo, con caché en disco: los frames son
+            // inmutables → reabrir el radar solo baja los nuevos y el play
+            // está listo en 1-2 segundos (igual que Android).
+            let radar = dto.radar
+            await withTaskGroup(of: (String, UIImage?).self) { group in
+                var pending = Array(thinned.reversed())
+                var running = 0
+                func addNext(_ group: inout TaskGroup<(String, UIImage?)>) {
+                    guard !pending.isEmpty else { return }
+                    let ref = pending.removeFirst()
+                    group.addTask {
+                        let img = await RadarFrameCache.png(radar: radar, ts: ref.ts)
+                        return (ref.ts, img)
                     }
                 }
+                while running < 4 && !pending.isEmpty { addNext(&group); running += 1 }
+                for await (ts, img) in group {
+                    if let img, let idx = frames.firstIndex(where: { $0.ts == ts }) {
+                        frames[idx].image = img
+                    }
+                    addNext(&group)
+                }
             }
+            RadarFrameCache.prune()
             if playing { startAnim() } else { frameIndex = max(readyFrames.count - 1, 0) }
         } catch {
             errorText = "No se pudo cargar el radar. Comprueba tu conexión."
@@ -451,6 +468,48 @@ struct RadarView: View {
         .background(Cumbre.bg)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+    }
+}
+
+/// Caché en disco de frames del radar (inmutables por (radar, ts)). Espejo de
+/// cachedFramePng/pruneFrameCache del RadarViewModel de Android.
+enum RadarFrameCache {
+    private static var dir: URL {
+        let d = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("radar", isDirectory: true)
+        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        return d
+    }
+
+    private static func file(radar: String, ts: String) -> URL {
+        let safe = ts.replacingOccurrences(of: "[^A-Za-z0-9-]", with: "_", options: .regularExpression)
+        return dir.appendingPathComponent("\(radar)_\(safe).png")
+    }
+
+    /// PNG del frame: de disco si ya se bajó; si no, red + guardar.
+    static func png(radar: String, ts: String) async -> UIImage? {
+        let f = file(radar: radar, ts: ts)
+        if let data = try? Data(contentsOf: f), !data.isEmpty {
+            return UIImage(data: data)
+        }
+        guard let bytes = try? await AppDependencies.shared.container.radarApi
+            .getFramePng(radar: radar, ts: ts) else { return nil }
+        let data = bytes.toData()
+        try? data.write(to: f)
+        return UIImage(data: data)
+    }
+
+    /// Borra frames de hace más de 2 días (retención del backend).
+    static func prune() {
+        let cutoff = Date().addingTimeInterval(-2 * 24 * 3600)
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return }
+        for f in files {
+            if let mod = (try? f.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate,
+               mod < cutoff {
+                try? fm.removeItem(at: f)
+            }
+        }
     }
 }
 

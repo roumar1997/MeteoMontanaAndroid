@@ -101,18 +101,25 @@ fun SchoolListScreen(
     var showOnboarding by remember {
         mutableStateOf(!com.meteomontana.android.ui.onboarding.isOnboardingDone(context))
     }
+    // FINE + COARSE: Android 12+ muestra el selector "precisa/aproximada".
+    // Antes solo se pedía COARSE → el GPS nunca se activaba y el punto azul
+    // caía a 500 m-1 km en el monte.
+    val locationPerms = arrayOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )
     val permLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) viewModel.onLocationGranted() }
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants -> if (grants.values.any { it }) viewModel.onLocationGranted() }
     LaunchedEffect(Unit) {
-        if (!showOnboarding) permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (!showOnboarding) permLauncher.launch(locationPerms)
     }
 
     if (showOnboarding) {
         com.meteomontana.android.ui.onboarding.OnboardingOverlay(onFinish = {
             com.meteomontana.android.ui.onboarding.markOnboardingDone(context)
             showOnboarding = false
-            permLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+            permLauncher.launch(locationPerms)
         })
         return
     }

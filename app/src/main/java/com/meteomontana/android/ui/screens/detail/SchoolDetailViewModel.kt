@@ -107,6 +107,12 @@ class SchoolDetailViewModel @Inject constructor(
     val autoOpenVia: StateFlow<String?> = _autoOpenVia.asStateFlow()
     fun consumeAutoOpenVia() { _autoOpenVia.value = null; _autoOpenViaId.value = null }
 
+    /** Buscador de vías/bloques del detalle: abre la piedra que la contiene. */
+    fun openVia(lineId: String?, name: String?) {
+        _autoOpenViaId.value = lineId
+        _autoOpenVia.value = name
+    }
+
     // Deep-link por id ESTABLE de la vía (Fase 8): preferente sobre el nombre —
     // aguanta renombres, reordenes y muros. null = deep-link antiguo por nombre.
     private val _autoOpenViaId = MutableStateFlow(

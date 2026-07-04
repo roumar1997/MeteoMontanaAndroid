@@ -64,7 +64,8 @@ data class BlockLine(
     val photoPath: String? = null,  // foto (cara) sobre la que está dibujada
     val faceOrder: Int = 0,         // orden de su cara dentro de la piedra
     val avgStars: Float? = null,    // media de valoraciones (null = sin votos)
-    val myStars: Int? = null        // valoración del usuario actual (null = no ha votado)
+    val myStars: Int? = null,       // valoración del usuario actual (null = no ha votado)
+    val lineDescription: String? = null  // beta/detalle opcional (nombre no-"description" por NSObject en Swift)
 )
 
 /** Una cara de la piedra: una foto y las vías dibujadas sobre ella. */

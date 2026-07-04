@@ -28,18 +28,33 @@ class AndroidLocationProvider @Inject constructor(
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED
 
-    /** Última ubicación conocida o null si no hay/sin permiso. */
+    private fun hasFine(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Ubicación actual o null si no hay/sin permiso.
+     *
+     * Antes: lastLocation (podía ser una posición VIEJA de otra app) con
+     * BALANCED_POWER (WiFi/antenas, 100 m–1 km, sin encender el GPS) y solo
+     * permiso COARSE → en el monte el punto azul caía a 500 m–1 km (visto en
+     * escuela el 2026-07-04). Ahora: lastLocation solo si es reciente (<60 s)
+     * y precisa (<100 m); si no, fix fresco con GPS de alta precisión.
+     */
     @SuppressLint("MissingPermission")
     override suspend fun current(): UserLocation? {
         if (!hasPermission()) return null
         return try {
-            // currentLocation devuelve null si nunca ha habido ubicación; intentamos getLastLocation
             val last = fused.lastLocation.await()
-            if (last != null) UserLocation(last.latitude, last.longitude)
-            else {
-                val fresh = fused.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null).await()
-                fresh?.let { UserLocation(it.latitude, it.longitude) }
-            }
+            val freshEnough = last != null &&
+                    (System.currentTimeMillis() - last.time) < 60_000 &&
+                    last.accuracy <= 100f
+            if (freshEnough) return UserLocation(last!!.latitude, last.longitude)
+
+            val priority = if (hasFine()) Priority.PRIORITY_HIGH_ACCURACY
+                           else Priority.PRIORITY_BALANCED_POWER_ACCURACY
+            val fresh = fused.getCurrentLocation(priority, null).await()
+            (fresh ?: last)?.let { UserLocation(it.latitude, it.longitude) }
         } catch (_: Throwable) { null }
     }
 }

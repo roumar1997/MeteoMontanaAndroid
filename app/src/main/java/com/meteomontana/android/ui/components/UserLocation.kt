@@ -27,8 +27,14 @@ class UserLocationViewModel @Inject constructor(
     val location: StateFlow<UserLocation?> = _location.asStateFlow()
 
     init {
+        // Refresco continuo mientras el mapa está en pantalla (el VM muere con
+        // ella): antes era un fix único al abrir → caminabas y el punto azul se
+        // quedaba clavado donde entraste, encima con un fix impreciso.
         viewModelScope.launch {
-            _location.value = runCatching { locationProvider.current() }.getOrNull()
+            while (true) {
+                runCatching { locationProvider.current() }.getOrNull()?.let { _location.value = it }
+                kotlinx.coroutines.delay(5_000)
+            }
         }
     }
 }

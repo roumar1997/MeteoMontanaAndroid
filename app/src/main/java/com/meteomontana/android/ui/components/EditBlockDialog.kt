@@ -359,7 +359,8 @@ private fun buildUpdateRequest(
                     name = b.name.ifBlank { "Sin nombre" },
                     grade = b.grade,
                     startType = startTypeBackend,
-                    linePath = LineStroke(b.linePath).toJson()
+                    linePath = LineStroke(b.linePath).toJson(),
+                    description = b.description
                 )
             }
     } else emptyList()

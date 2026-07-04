@@ -190,7 +190,7 @@ private fun MeetupsMapView(
     }
 
     val mapView = remember {
-        MapView(context).apply {
+        MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
             setOnTouchListener { v, event ->
                 when (event.action) {
                     android.view.MotionEvent.ACTION_DOWN ->
