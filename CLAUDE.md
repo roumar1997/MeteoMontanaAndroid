@@ -542,6 +542,18 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04 (tarde)** — Release **2.9.1** (Android vc25, iOS build 36), ronda
+de feedback sobre la 2.9 con maquetas aprobadas: comentarios rediseñados flat
+(solo en vías, no en la piedra), botonera lateral del mapa SIEMPRE con las
+formas reales de los marcadores + topo/satélite de un toque, clustering
+ELIMINADO a petición (se ve todo; capas para limpiar), brújula (cono de
+dirección en el punto azul), buscador GLOBAL de vías/bloques en Escuelas
+(/api/search/lines), ✕ para borrar vías EXISTENTES en el editor (backend
+reconcilia el borrado en piedras POINT si el payload trae targetLineId),
+OPCIONES desplegable en ficha de piedra, estrellas grandes, roca ordenada
+Granito/Caliza/Arenisca. OJO: onDelete de vías existentes estaba capado en
+AMBAS apps porque el backend no borraba omitidas — ya no.
+
 **2026-07-04** — Release **2.9** (Android vc24, iOS build 35): buscador de
 vías/bloques en detalle; fix GPS (solo pedíamos COARSE + balanced en Android y
 kCLLocationAccuracyKilometer en iOS → 500 m-1 km; ahora FINE/HIGH_ACCURACY +
