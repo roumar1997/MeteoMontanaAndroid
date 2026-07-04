@@ -542,7 +542,7 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
-**2026-07-04 (cierre)** — Release final del día: **2.9.7 (vc31 / build 41)**.
+**2026-07-04 (cierre)** — [build final iOS: 42, SOLO iPhone — TARGETED_DEVICE_FAMILY=1; ASC exigía capturas de iPad 13" y la app no tiene diseño de tablet]  Release final del día: **2.9.7 (vc31 / build 41)**.
 AAB `cumbre-2.9.7-vc31.aab` entregado para Play y build 41 en TestFlight (el
 que va a revisión de App Store). Últimos retoques: tocar sector nunca aleja
 (max(zoom,15)), Z ancla como pin (mitad inferior del bitmap transparente),
