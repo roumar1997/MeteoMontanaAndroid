@@ -1139,7 +1139,7 @@ private struct AdminReportsTab: View {
 
     private func resolveMeetup(_ id: String, _ action: String) {
         Task {
-            _ = try? await AppDependencies.shared.container.resolveReport.invoke(reportId: id, action: action)
+            _ = try? await AppDependencies.shared.container.resolveReport.invoke(id: id, action: action)
             await load()
         }
     }
@@ -1176,7 +1176,7 @@ private struct AdminReportsTab: View {
 
     @ViewBuilder private func meetupCard(_ r: MeetupReport) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(reasonLabel(r.reason.name) + " - quedada " + String(r.meetupId.prefix(8)))
+            Text(reasonLabel(String(describing: r.reason)) + " - quedada " + String(r.meetupId.prefix(8)))
                 .font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.bad)
             if let ctx = r.context, !ctx.isEmpty {
                 Text(ctx).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
