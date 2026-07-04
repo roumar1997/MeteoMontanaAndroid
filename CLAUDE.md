@@ -542,11 +542,16 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
-**2026-07-04 (cierre)** — AAB **2.9.6 (vc30)** entregado para Play (incluye:
-tocar sector nunca aleja — max(zoom,15) — y la Z ancla como pin con el globo
-arriba, sin pisar la piedra vecina; bitmap de zona con mitad inferior
-transparente = ancla en la punta). iOS quedó en build 40 (validado por
-Rodrigo).
+**2026-07-04 (cierre)** — Release final del día: **2.9.7 (vc31 / build 41)**.
+AAB `cumbre-2.9.7-vc31.aab` entregado para Play y build 41 en TestFlight (el
+que va a revisión de App Store). Últimos retoques: tocar sector nunca aleja
+(max(zoom,15)), Z ancla como pin (mitad inferior del bitmap transparente),
+radar arranca en SATÉLITE por defecto (ambas). Ficha App Store: descripción
+actualizada con radar/boletín/alertas + atribución AEMET/Open-Meteo;
+capturas 6,5" convertidas a 1284×2778 SIN canal alfa (ASC rechaza alfa).
+Decisión de negocio: lanzar GRATIS (la suscripción mensual in-app se puede
+añadir en cualquier momento; lo único irreversible sería pago-por-descarga,
+que no es el modelo).
 
 **2026-07-04 (noche 4)** — Release **2.9.5** (vc29, build 40): tocar
 sector/parking usa ZOOM FIJO centrado (15.0/14.5) — los fitBounds calculados
