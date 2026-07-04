@@ -542,6 +542,19 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04** — Release **2.9** (Android vc24, iOS build 35): buscador de
+vías/bloques en detalle; fix GPS (solo pedíamos COARSE + balanced en Android y
+kCLLocationAccuracyKilometer en iOS → 500 m-1 km; ahora FINE/HIGH_ACCURACY +
+refresco 5 s del punto azul); mapa de escuela con leyenda-toggle de capas,
+pantalla completa estilo Radar y clustering de piedras; comentarios+votos en
+piedras/vías (line_comments V49, patrón notes) + descripción opcional de vía
+(block_lines.description, aceptada también en bloquesJson de contribuciones);
+radar 4 descargas paralelas recientes-primero + caché disco (play en 1-2 s);
+textureMode en MapLibre (imagen residual entre pestañas); términos con
+descargo de ubicaciones aportadas por usuarios. OJO Swift: los data class de
+Kotlin exportan init SIN defaults → añadir un campo a un DTO rompe todas las
+llamadas Swift (AdminView). Pendiente: checklist de Rodrigo → OK → AAB vc24.
+
 **2026-07-03 (noche)** — Release **2.8** (Android vc23, iOS build 33) con
 invitación a quedadas por enlace (/s/q/{id}?i=token HMAC; FOLLOWERS se salta,
 WOMEN nunca) y botón compartir en chat de grupo y detalle. **Push
