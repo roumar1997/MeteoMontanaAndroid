@@ -900,7 +900,7 @@ private struct AdminPushTab: View {
                                 searchTask = Task {
                                     try? await Task.sleep(nanoseconds: 250_000_000)
                                     guard !Task.isCancelled else { return }
-                                    results = (try? await AppDependencies.shared.container.searchUsers.invoke(query: t)) ?? []
+                                    results = (try? await AppDependencies.shared.container.searchUsers.invoke(query: t, limit: 10)) ?? []
                                 }
                             }
                         ForEach(results.prefix(6), id: \.uid) { u in
