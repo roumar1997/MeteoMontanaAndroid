@@ -492,8 +492,10 @@ private fun InnerMap(
                                 stones.map { LatLng(it.lat, it.lon) }
                             val cLat = pts.sumOf { it.latitude } / pts.size
                             val cLon = pts.sumOf { it.longitude } / pts.size
+                            // Nunca ALEJAR: si ya estás más cerca, solo centra.
+                            val targetZoom = maxOf(map.cameraPosition.zoom, 15.0)
                             map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                LatLng(cLat, cLon), 15.0))
+                                LatLng(cLat, cLon), targetZoom))
                         }
                     }
                 }
@@ -1535,7 +1537,10 @@ private fun clusterBitmap(count: Int): Bitmap {
 /** Pin verde para zonas (tipo ZONE). */
 private fun zoneBitmap(): Bitmap {
     val size = 68
-    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    // Altura doble: el dibujo va en la mitad SUPERIOR y la inferior queda
+    // transparente → como el ancla del Marker es el centro del bitmap, el
+    // globo se ve DESPLAZADO hacia arriba (pin real), sin tapar la piedra.
+    val bmp = Bitmap.createBitmap(size, size * 2, Bitmap.Config.ARGB_8888)
     val c = Canvas(bmp)
     val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#3F6B4A") }
     val cx = size / 2f; val cy = size / 2f - 5f; val r = 27f
