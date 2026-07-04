@@ -542,6 +542,12 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04 (cierre)** — AAB **2.9.6 (vc30)** entregado para Play (incluye:
+tocar sector nunca aleja — max(zoom,15) — y la Z ancla como pin con el globo
+arriba, sin pisar la piedra vecina; bitmap de zona con mitad inferior
+transparente = ancla en la punta). iOS quedó en build 40 (validado por
+Rodrigo).
+
 **2026-07-04 (noche 4)** — Release **2.9.5** (vc29, build 40): tocar
 sector/parking usa ZOOM FIJO centrado (15.0/14.5) — los fitBounds calculados
 oscilaban entre extremos según los datos; z-order de marcadores (piedras
