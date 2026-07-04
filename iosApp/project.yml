@@ -86,17 +86,12 @@ targets:
         CFBundleShortVersionString: "2.9.7"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior. 12-25 ya subidos → 26.
-        CFBundleVersion: "41"
+        CFBundleVersion: "42"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         # Fuentes bundladas (mismas familias que Android: Source Serif 4 para
         # nombres/títulos, JetBrains Mono para eyebrows/dígitos).
         UIAppFonts:
@@ -136,7 +131,7 @@ targets:
         # app, el build debe compilar con EXACTAMENTE ese bundle id.
         PRODUCT_BUNDLE_IDENTIFIER: com.meteomontana.ios.3CP2YRJ579
         SWIFT_VERSION: "5.0"
-        TARGETED_DEVICE_FAMILY: "1,2"
+        TARGETED_DEVICE_FAMILY: "1"   # solo iPhone: sin diseño de iPad, fuera el requisito de capturas
         # El framework KMP se compila y embebe con una build phase de Gradle
         # (preBuildScripts), no como dependencia SPM.
         FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
