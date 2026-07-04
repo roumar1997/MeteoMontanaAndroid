@@ -368,7 +368,7 @@ internal fun ContributionCard(
             AndroidView(
                 modifier = Modifier.fillMaxWidth().height(220.dp),
                 factory = { context ->
-                    MapView(context).apply {
+                    MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
                         onCreate(null)
                         mapViewRef.value = this
                         setOnTouchListener { v, event ->

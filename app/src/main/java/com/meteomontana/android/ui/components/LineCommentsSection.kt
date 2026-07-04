@@ -11,6 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -99,14 +104,17 @@ class LineCommentsViewModel @Inject constructor(
 }
 
 /**
- * Hilo desplegable de comentarios. La CABECERA ENTERA es pulsable (lección del
- * boletín AEMET). lineId=null → comentarios de la piedra entera.
+ * Hilo desplegable de comentarios (rediseño maqueta A): sin cajas anidadas —
+ * separadores finos, autor en terra, flechas de voto discretas, papelera para
+ * borrar y envío con icono. La CABECERA ENTERA es pulsable.
+ * lineId=null → comentarios de la piedra entera (etiqueta propia).
  */
 @Composable
 fun LineCommentsThread(
     blockId: String,
     lineId: String?,
     myUid: String?,
+    title: String = "COMENTARIOS",
     viewModel: LineCommentsViewModel = hiltViewModel()
 ) {
     viewModel.load(blockId)
@@ -126,10 +134,16 @@ fun LineCommentsThread(
                 .clip(RoundedCornerShape(2.dp))
                 .clickable { expanded = !expanded }
                 .padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            androidx.compose.material3.Icon(
+                Icons.Outlined.ChatBubbleOutline,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp))
             Text(
-                "💬 COMENTARIOS" + if (mine.isNotEmpty()) " · ${mine.size}" else "",
+                title + if (mine.isNotEmpty()) " · ${mine.size}" else "",
                 style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f)
@@ -146,46 +160,51 @@ fun LineCommentsThread(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 6.dp))
             }
-            mine.forEach { c ->
-                Column(
-                    Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .padding(Spacing.sm)
-                ) {
+            mine.forEachIndexed { idx, c ->
+                if (idx > 0) androidx.compose.material3.HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    thickness = 1.dp)
+                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(c.author, style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        Text(c.author,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                            color = Terra,
                             modifier = Modifier.weight(1f))
                         if (myUid != null && myUid == c.uid) {
-                            Text("BORRAR", style = EyebrowTextStyle,
-                                color = MaterialTheme.colorScheme.error,
+                            androidx.compose.material3.Icon(
+                                Icons.Outlined.DeleteOutline,
+                                contentDescription = "Borrar",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(2.dp))
                                     .clickable { viewModel.delete(c.id) }
-                                    .padding(4.dp))
+                                    .padding(3.dp)
+                                    .size(16.dp))
                         }
                     }
                     Text(c.text, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(Modifier.height(4.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        CommentVoteChip("▲", c.upvotesCount, c.myVote == 1) { viewModel.vote(c.id, 1) }
-                        CommentVoteChip("▼", c.downvotesCount, c.myVote == -1) { viewModel.vote(c.id, -1) }
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        CommentVoteArrow(true, c.upvotesCount, c.myVote == 1) { viewModel.vote(c.id, 1) }
+                        CommentVoteArrow(false, c.downvotesCount, c.myVote == -1) { viewModel.vote(c.id, -1) }
                     }
                 }
             }
-            // Añadir comentario
+            // Añadir comentario: campo + icono de enviar.
             Row(
-                Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 6.dp),
+                Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Escribe un comentario…") },
+                    placeholder = { Text("Escribe un comentario…",
+                        style = MaterialTheme.typography.bodySmall) },
                     maxLines = 3,
                     shape = MaterialTheme.shapes.small,
                     colors = TextFieldDefaults.colors(
@@ -193,39 +212,40 @@ fun LineCommentsThread(
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface
                     )
                 )
-                Box(
+                androidx.compose.material3.Icon(
+                    Icons.AutoMirrored.Outlined.Send,
+                    contentDescription = "Enviar",
+                    tint = if (draft.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Terra,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(if (draft.isBlank()) MaterialTheme.colorScheme.surfaceVariant else Terra)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
                         .clickable(enabled = draft.isNotBlank()) {
                             viewModel.add(blockId, lineId, draft.trim())
                             draft = ""
                         }
-                        .padding(horizontal = Spacing.md, vertical = Spacing.md)
-                ) {
-                    Text("ENVIAR", style = EyebrowTextStyle,
-                        color = if (draft.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Color.White)
-                }
+                        .padding(8.dp)
+                        .size(22.dp))
             }
         }
     }
 }
 
+/** Flecha de voto discreta: solo icono+número; activa = terra. */
 @Composable
-private fun CommentVoteChip(symbol: String, count: Int, active: Boolean, onClick: () -> Unit) {
+private fun CommentVoteArrow(up: Boolean, count: Int, active: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(2.dp))
-            .background(if (active) Terra else MaterialTheme.colorScheme.surface)
-            .border(1.dp, if (active) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.sm, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(symbol, style = MaterialTheme.typography.labelMedium,
-            color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("$count", style = MaterialTheme.typography.labelMedium,
-            color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(if (up) "▲" else "▼",
+            style = MaterialTheme.typography.labelMedium,
+            color = if (active) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("$count",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (active) androidx.compose.ui.text.font.FontWeight.Bold else null,
+            color = if (active) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -652,7 +652,7 @@ struct BoulderBlockRow: View {
                 .lineLimit(1...3)
                 .padding(8).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
             if !block.line.isEmpty {
-                Text("✓ línea (\(block.line.count))").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ok)
+                Text("✓ línea dibujada").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ok)
             }
         }
         .padding(10)
@@ -882,7 +882,7 @@ struct EditLinesSheet: View {
                                     .foregroundStyle(faceBlocks[faceIdx][idx].existingLineId != nil ? Cumbre.ink3 : Cumbre.terra)
                                 BoulderBlockRow(block: $faceBlocks[faceIdx][idx], index: idx,
                                                 number: wallNumber(idx),
-                                                onDelete: faceBlocks[faceIdx][idx].existingLineId == nil ? { faceBlocks[faceIdx].remove(at: idx) } : nil)
+                                                onDelete: { faceBlocks[faceIdx].remove(at: idx) })
                             }
                         }
                     }

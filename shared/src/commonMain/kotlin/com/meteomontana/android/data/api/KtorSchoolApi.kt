@@ -59,6 +59,10 @@ class KtorSchoolApi(private val client: HttpClient) {
             parameter("limit", limit)
         }.body()
 
+    /** Búsqueda GLOBAL de vías/bloques por nombre en todo el catálogo. */
+    suspend fun searchLines(query: String): List<LineSearchHitDto> =
+        client.get("search/lines") { parameter("q", query) }.body()
+
     suspend fun getSchoolById(id: String): SchoolDto = client.get("schools/$id").body()
 
     suspend fun getMonthlyStats(id: String): MonthlyStatsDto =
@@ -69,4 +73,16 @@ class KtorSchoolApi(private val client: HttpClient) {
 data class MonthlyStatsDto(
     val scores: List<Int> = emptyList(),
     val bestRange: String? = null
+)
+
+/** Resultado del buscador GLOBAL de vías/bloques (pantalla de Escuelas). */
+@kotlinx.serialization.Serializable
+data class LineSearchHitDto(
+    val schoolId: String,
+    val schoolName: String = "",
+    val blockId: String,
+    val blockName: String = "",
+    val lineId: String? = null,
+    val lineName: String? = null,
+    val grade: String? = null
 )

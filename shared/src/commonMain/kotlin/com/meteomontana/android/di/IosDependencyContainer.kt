@@ -148,7 +148,8 @@ class IosDependencyContainer(
         authService?.currentIdToken(false)
     }
 
-    private val schoolApi = KtorSchoolApi(httpClient)
+    // Público: iOS lo usa para el buscador global de vías/bloques.
+    val schoolApi = KtorSchoolApi(httpClient)
     private val forecastApi = KtorForecastApi(httpClient)
     val radarApi = KtorRadarApi(httpClient)
     val mountainApi = KtorMountainApi(httpClient)

@@ -66,3 +66,25 @@ final class LocationBridge: NSObject, IosLocationBridge, CLLocationManagerDelega
         cb?(location)
     }
 }
+
+/// Rumbo del móvil (brújula) para el cono de dirección del punto azul.
+/// Cuantizado a 15º para no re-pintar el marcador a 50 Hz.
+final class HeadingProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var heading: Int? = nil
+    private let manager = CLLocationManager()
+
+    override init() {
+        super.init()
+        manager.delegate = self
+    }
+
+    func start() { manager.startUpdatingHeading() }
+    func stop() { manager.stopUpdatingHeading() }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        let deg = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
+        guard deg >= 0 else { return }
+        let q = Int((deg / 15).rounded()) * 15 % 360
+        if q != heading { DispatchQueue.main.async { self.heading = q } }
+    }
+}

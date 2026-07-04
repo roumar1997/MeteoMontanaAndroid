@@ -92,6 +92,9 @@ fun BlockDetailDialog(
     val context = LocalContext.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }
+    // "OPCIONES" plegado: la ficha ya tiene muchos botones; solo CÓMO LLEGAR
+    // queda a la vista y el resto (editar vías, sector, eliminar) va dentro.
+    var optionsOpen by remember { mutableStateOf(false) }
 
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -377,15 +380,8 @@ fun BlockDetailDialog(
                     color = MaterialTheme.colorScheme.onSurface)
             }
 
-            // Comentarios de la piedra entera (desplegable).
-            if (!isProposal && block.type == "BLOCK") {
-                Spacer(Modifier.height(Spacing.sm))
-                LineCommentsThread(
-                    blockId = block.id,
-                    lineId = null,
-                    myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                )
-            }
+            // (Los comentarios viven en cada vía, no en la piedra entera —
+            // decisión de Rodrigo 2026-07-04: evitaba el doble "COMENTARIOS".)
 
             // Coordenadas
             Spacer(Modifier.height(Spacing.sm))
@@ -415,9 +411,35 @@ fun BlockDetailDialog(
                 Text("→ ${stringResource(R.string.common_directions)}", style = EyebrowTextStyle, color = Color.White)
             }
 
+            // Desplegable "OPCIONES": agrupa editar vías / cambiar sector /
+            // editar (admin) / eliminar para no apilar 4 botones.
+            val hasOptions = !isProposal && (
+                (onAddLines != null && block.type == "BLOCK") ||
+                (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) ||
+                onEdit != null || onDelete != null)
+            if (hasOptions) {
+                Spacer(Modifier.height(Spacing.sm))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(2.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                        .clickable { optionsOpen = !optionsOpen }
+                        .padding(horizontal = Spacing.md, vertical = Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("OPCIONES", style = EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f))
+                    Text(if (optionsOpen) "▴" else "▾",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
             // Botón editor por cara (corregir/repintar/añadir + cambiar foto) —
             // solo para BLOCK y si el caller lo permite.
-            if (onAddLines != null && block.type == "BLOCK" && !isProposal) {
+            if (optionsOpen && onAddLines != null && block.type == "BLOCK" && !isProposal) {
                 Spacer(Modifier.height(Spacing.sm))
                 Box(
                     modifier = Modifier
@@ -436,7 +458,7 @@ fun BlockDetailDialog(
             // Botón "+ ASIGNAR / CAMBIAR SECTOR" — BLOCK si la escuela tiene algún
             // sector. Si ya tiene → "CAMBIAR SECTOR" (el picker muestra los demás;
             // si no hay otro, lo avisa). El backend sobrescribe el sector al aprobar.
-            if (onAssignSector != null && block.type == "BLOCK" && !isProposal
+            if (optionsOpen && onAssignSector != null && block.type == "BLOCK" && !isProposal
                     && !availableSectors.isNullOrEmpty()) {
                 Spacer(Modifier.height(Spacing.sm))
                 Box(
@@ -458,7 +480,7 @@ fun BlockDetailDialog(
             // cara de arriba ("EDITAR / CORREGIR VÍAS") ya corrige las existentes.)
 
             // Botón "EDITAR" — admin: mover posición, renombrar, editar líneas
-            if (onEdit != null && !isProposal) {
+            if (optionsOpen && onEdit != null && !isProposal) {
                 Spacer(Modifier.height(Spacing.sm))
                 Box(
                     modifier = Modifier
@@ -475,7 +497,7 @@ fun BlockDetailDialog(
             }
 
             // Botón "BORRAR" — solo si el caller lo permite (admins) y no es propuesta
-            if (onDelete != null && !isProposal) {
+            if (optionsOpen && onDelete != null && !isProposal) {
                 Spacer(Modifier.height(Spacing.sm))
                 Box(
                     modifier = Modifier
@@ -648,7 +670,8 @@ private fun LineStarsRow(
             val filled = i <= localMy
             Text(
                 if (filled) "★" else "☆",
-                style = MaterialTheme.typography.labelMedium,
+                // titleLarge: las estrellas eran labelMedium y costaba acertarles.
+                style = MaterialTheme.typography.titleLarge,
                 color = if (filled) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .clip(CircleShape)

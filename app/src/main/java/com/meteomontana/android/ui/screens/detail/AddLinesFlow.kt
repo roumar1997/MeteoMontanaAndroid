@@ -404,9 +404,11 @@ internal fun AddLinesFlow(
                     displayNumber = number,
                     bloque = b,
                     onUpdate = { upd -> updateBloques { it.toMutableList().also { l -> l[idx] = upd } } },
-                    onDelete = if (b.existingLineId == null) ({
+                    // También las EXISTENTES se pueden borrar: el backend
+                    // reconcilia (las omitidas por el editor se eliminan).
+                    onDelete = {
                         updateBloques { it.toMutableList().also { l -> l.removeAt(idx) } }
-                    }) else null,
+                    },
                     onMoveUp = if (idx > 0) ({
                         updateBloques { it.toMutableList().also {
                             val t = it[idx - 1]; it[idx - 1] = it[idx]; it[idx] = t
@@ -809,7 +811,7 @@ internal fun AddLineRow(
         )
 
         if (bloque.linePath.isNotEmpty()) {
-            Text(stringResource(R.string.add_lines_route_drawn, bloque.linePath.size),
+            Text(stringResource(R.string.add_lines_route_drawn),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary)
         }

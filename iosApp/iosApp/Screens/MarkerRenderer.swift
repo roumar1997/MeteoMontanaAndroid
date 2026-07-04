@@ -15,7 +15,7 @@ enum MarkerRenderer {
         case .zone:    return zone(name: m.showName ? (m.name ?? m.title) : nil)
         case .block:   return block(name: m.name ?? m.title, color: m.color)
         case .school:  return school()
-        case .user:    return userDot()
+        case .user:    return userDot(bearing: m.score)
         case .score:   return scoreDiamond(score: m.score, color: m.color,
                                             name: m.showName ? (m.name ?? m.title) : nil)
         case .dot:     return dot(color: m.color)
@@ -159,10 +159,25 @@ enum MarkerRenderer {
 
     // MARK: - Usuario (punto azul con halo)
 
-    static func userDot() -> UIImage {
-        let size: CGFloat = 48
+    /// Punto azul; con bearing (brújula, grados) añade un cono de dirección.
+    static func userDot(bearing: Int? = nil) -> UIImage {
+        let size: CGFloat = 72
         return render(size) { ctx in
             let c = CGPoint(x: size / 2, y: size / 2)
+            if let bearing {
+                let g = ctx.cgContext
+                let rad = CGFloat(bearing) * .pi / 180
+                g.saveGState()
+                g.translateBy(x: c.x, y: c.y)
+                g.rotate(by: rad)
+                g.move(to: .zero)
+                g.addLine(to: CGPoint(x: -13, y: -32))
+                g.addLine(to: CGPoint(x: 13, y: -32))
+                g.closePath()
+                g.setFillColor(UIColor(red: 30/255, green: 100/255, blue: 220/255, alpha: 0.45).cgColor)
+                g.fillPath()
+                g.restoreGState()
+            }
             fillCircle(ctx, c, 22, UIColor(red: 30/255, green: 100/255, blue: 220/255, alpha: 50/255))
             fillCircle(ctx, c, 12, .white)
             fillCircle(ctx, c, 9, UIColor(red: 30/255, green: 100/255, blue: 220/255, alpha: 1))

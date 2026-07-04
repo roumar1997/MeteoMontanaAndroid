@@ -381,6 +381,8 @@ private struct SchoolMapSection: View {
     // Buscador de vías/bloques de la escuela.
     @State private var searchQuery = ""
     @State private var searchHighlight: String?
+    // Brújula → cono de dirección en el punto azul.
+    @StateObject private var headingProvider = HeadingProvider()
 
     // Colores de marcador por tipo (espejo de Android: parking azul, piedra
     // terra, zona verde; la escuela en tinta oscura).
@@ -417,7 +419,6 @@ private struct SchoolMapSection: View {
                 if !fullscreenMap {
                     mapArea(height: 280)
                 }
-                legendToggles
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).
                 parkingsList
@@ -429,6 +430,7 @@ private struct SchoolMapSection: View {
                 blocks = await loadBlocksOnlineOrOffline()
             }
             maybeAutoOpen()
+            headingProvider.start()
             // Mi ubicación, refrescada cada 5 s mientras el mapa está abierto
             // (antes era un fix único → el punto se quedaba clavado al entrar).
             while expanded, !Task.isCancelled {
@@ -545,14 +547,6 @@ private struct SchoolMapSection: View {
                         autoFitToMarkers: true,
                         onZoomChange: { mapZoom = $0 },
                         onTapMarker: { id in
-                            // Clúster → encuadrar sus piedras (equivale a acercar).
-                            if id.hasPrefix("cluster-"), let idx = Int(id.dropFirst(8)),
-                               idx < stoneClusters.count {
-                                let grp = stoneClusters[idx]
-                                focusFit = grp.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-                                focusToken += 1
-                                return
-                            }
                             if correctionMode && !corrActive {
                                 selectCorrectionTarget(id)
                             } else if !waitingTap && !correctionMode {
@@ -606,11 +600,6 @@ private struct SchoolMapSection: View {
                     )
                     .frame(height: height)
 
-                    // Chips topográfico / satélite (esquina superior izquierda).
-                    if !waitingTap && !correctionMode {
-                        VStack { HStack { MapStyleChips(selection: $mapStyle); Spacer() }; Spacer() }
-                            .frame(height: height)
-                    }
 
                     if waitingTap {
                         // Banner "PULSA EN EL MAPA" (parking/sector/piedra).
@@ -624,6 +613,7 @@ private struct SchoolMapSection: View {
                         // Botón "+ PROPONER": pill flotante ARRIBA a la derecha —
                         // abajo lo tapaba la mini-ficha de parking/sector.
                         VStack {
+                            if fullscreenMap { Spacer().frame(height: 54) }
                             HStack {
                                 Spacer()
                                 Button {
@@ -665,18 +655,34 @@ private struct SchoolMapSection: View {
                                 .buttonStyle(.plain)
                                 Spacer()
                             }
-                            .padding(.top, fullscreenMap ? 100 : 52)
+                            .padding(.top, fullscreenMap ? 54 : 0)
                             Spacer()
                         }
                         .padding(10)
                         .frame(height: height)
                     }
-                    if fullscreenMap && !waitingTap && !correctionMode {
-                        // Toggles de capas (estilo Radar): P / piedra / zona.
-                        VStack(spacing: 8) {
-                            layerButton("P", Color(parkingColor), "PARKING")
-                            layerButton("B", Color(blockColor), "BLOCK")
-                            layerButton("Z", Color(zoneColor), "ZONE")
+                    if !waitingTap && !correctionMode {
+                        // Botonera lateral (maqueta B): topo↔satélite de un toque
+                        // + capas con la FORMA real del marcador.
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 8) {
+                                sideButton(active: true) {
+                                    mapStyle = (mapStyle == .satellite) ? .topo : .satellite
+                                } content: {
+                                    Image(systemName: "square.3.layers.3d")
+                                        .font(.system(size: 16)).foregroundStyle(Cumbre.ink)
+                                }
+                                sideButton(active: !hiddenTypes.contains("PARKING")) {
+                                    toggleLayer("PARKING")
+                                } content: { parkingShape }
+                                sideButton(active: !hiddenTypes.contains("BLOCK")) {
+                                    toggleLayer("BLOCK")
+                                } content: { stoneShape }
+                                sideButton(active: !hiddenTypes.contains("ZONE")) {
+                                    toggleLayer("ZONE")
+                                } content: { zoneShape }
+                            }
                         }
                         .frame(maxHeight: .infinity, alignment: .center)
                         .padding(.trailing, 10)
@@ -787,55 +793,45 @@ private struct SchoolMapSection: View {
         return Array(out.prefix(8))
     }
 
-    /// Piedras (POINT) agrupadas por cercanía al zoom actual (≈44 px).
-    private var stoneClusters: [[Block]] {
-        let stones = blocks.filter { b in
-            guard b.type.uppercased() == "BLOCK", !hiddenTypes.contains("BLOCK") else { return false }
-            if b.geometry.uppercased() == "LINE", parseWallPath(b.path).count >= 2 { return false }
-            if let sid = b.sectorBlockId, collapsedSectors.contains(sid) { return false }
-            return true
-        }
-        guard stones.count >= 2 else { return [] }
-        let threshold = 44.0 * 360.0 / (256.0 * pow(2.0, mapZoom))
-        var groups: [[Block]] = []
-        for st in stones {
-            let cosLat = max(0.2, cos(st.lat * .pi / 180))
-            if let gi = groups.firstIndex(where: { g in
-                abs(g[0].lat - st.lat) < threshold && abs(g[0].lon - st.lon) * cosLat < threshold
-            }) {
-                groups[gi].append(st)
-            } else {
-                groups.append([st])
-            }
-        }
-        return groups.filter { $0.count >= 2 }
+    private func toggleLayer(_ type: String) {
+        if hiddenTypes.contains(type) { hiddenTypes.remove(type) } else { hiddenTypes.insert(type) }
     }
 
-    /// Leyenda pulsable: cada icono alterna la visibilidad de su capa.
-    private var legendToggles: some View {
-        HStack(spacing: 10) {
-            legendToggle("Parking", "PARKING", Color(parkingColor))
-            legendToggle("Piedra", "BLOCK", Color(blockColor))
-            legendToggle("Zona", "ZONE", Color(zoneColor))
-            Spacer()
-        }
-        .padding(.horizontal, 16).padding(.top, 8)
-    }
-    /// Botón circular de capa para la botonera lateral en pantalla completa.
-    private func layerButton(_ letter: String, _ c: Color, _ type: String) -> some View {
-        let active = !hiddenTypes.contains(type)
-        return Button {
-            if active { hiddenTypes.insert(type) } else { hiddenTypes.remove(type) }
-        } label: {
-            Text(letter)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(active ? .white : Cumbre.ink3)
+    /// Botón circular de la botonera lateral; apagado = capa oculta.
+    private func sideButton<C: View>(active: Bool, action: @escaping () -> Void,
+                                     @ViewBuilder content: () -> C) -> some View {
+        Button(action: action) {
+            content()
                 .frame(width: 40, height: 40)
-                .background(active ? c : Cumbre.bg)
+                .background(Cumbre.bg)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(active ? c : Cumbre.rule, lineWidth: 1))
+                .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                .opacity(active ? 1 : 0.4)
         }
         .buttonStyle(.plain)
+    }
+
+    /// P cuadrada azul — la forma real del marcador de parking.
+    private var parkingShape: some View {
+        Text("P").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+            .frame(width: 22, height: 22)
+            .background(Color(parkingColor))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    /// Polígono irregular terra — la forma real del marcador de piedra.
+    private var stoneShape: some View {
+        StonePolygon().fill(Color(blockColor))
+            .overlay(StonePolygon().stroke(.white, lineWidth: 1.2))
+            .frame(width: 24, height: 22)
+    }
+
+    /// Círculo verde con Z — la forma real del marcador de zona.
+    private var zoneShape: some View {
+        Text("Z").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+            .frame(width: 22, height: 22)
+            .background(Color(zoneColor))
+            .clipShape(Circle())
     }
 
     /// Abre la ficha de una piedra; si estamos en pantalla completa, primero
@@ -848,26 +844,6 @@ private struct SchoolMapSection: View {
         } else {
             selectedBlock = b
         }
-    }
-
-    private func legendToggle(_ t: String, _ type: String, _ c: Color) -> some View {
-        let active = !hiddenTypes.contains(type)
-        return Button {
-            if active { hiddenTypes.insert(type) } else { hiddenTypes.remove(type) }
-        } label: {
-            HStack(spacing: 5) {
-                Circle().fill(active ? c : Color.gray.opacity(0.35))
-                    .frame(width: 11, height: 11)
-                    .overlay(Circle().stroke(.white, lineWidth: 1))
-                Text(t).font(Cumbre.mono(10, active ? .bold : .regular))
-                    .foregroundStyle(active ? Cumbre.ink2 : Cumbre.ink3)
-            }
-            .padding(.horizontal, 8).padding(.vertical, 5)
-            .background(Cumbre.paper)
-            .overlay(Rectangle().stroke(active ? c.opacity(0.5) : Cumbre.rule, lineWidth: 1))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     private func afterSubmit() {
@@ -1035,23 +1011,9 @@ private struct SchoolMapSection: View {
             id: school.id,
             coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
             title: school.name, kind: .school, color: schoolColor)]
-        // Clustering: piedras que se apilarían a este zoom → círculo con contador.
-        let clusters = stoneClusters
-        let clusteredIds = Set(clusters.flatMap { $0 }.map { $0.id })
-        for (i, grp) in clusters.enumerated() {
-            let cLat = grp.map { $0.lat }.reduce(0, +) / Double(grp.count)
-            let cLon = grp.map { $0.lon }.reduce(0, +) / Double(grp.count)
-            ms.append(CumbreMarker(
-                id: "cluster-\(i)",
-                coordinate: CLLocationCoordinate2D(latitude: cLat, longitude: cLon),
-                title: "\(grp.count) piedras", kind: .cluster,
-                color: blockColor, score: grp.count))
-        }
         for b in blocks {
-            // Capa apagada en la leyenda → no se pinta.
+            // Capa apagada (botonera lateral) → no se pinta.
             if hiddenTypes.contains(b.type.uppercased()) { continue }
-            // Piedra absorbida por un clúster → la representa el contador.
-            if clusteredIds.contains(b.id) { continue }
             // Piedra oculta si pertenece a un sector colapsado.
             if b.type.uppercased() == "BLOCK", let sid = b.sectorBlockId, collapsedSectors.contains(sid) {
                 continue
@@ -1072,7 +1034,8 @@ private struct SchoolMapSection: View {
         }
         // Mi ubicación (punto azul) para orientarme en el sector.
         if let u = userCoord {
-            ms.append(CumbreMarker(id: "__USER__", coordinate: u, title: "", kind: .user))
+            ms.append(CumbreMarker(id: "__USER__", coordinate: u, title: "", kind: .user,
+                                   score: headingProvider.heading))
         }
         // Fantasma de la nueva posición al corregir.
         if let nw = corrNew {
@@ -1484,6 +1447,8 @@ struct BlockInfoSheet: View {
     @State private var showDeleteConfirm = false
     // Comentarios de la piedra/vías (un fetch por piedra; los hilos filtran).
     @StateObject private var commentsStore = LineCommentsStore()
+    // Desplegable OPCIONES: agrupa editar vías / sector / eliminar.
+    @State private var optionsOpen = false
 
     private var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
@@ -1617,11 +1582,7 @@ struct BlockInfoSheet: View {
                         }
                     }
 
-                    // Comentarios de la piedra entera (desplegable).
-                    if block.type.uppercased() == "BLOCK" {
-                        LineCommentsThreadView(store: commentsStore,
-                                               blockId: block.id, lineId: nil)
-                    }
+                    // (Comentarios solo en cada vía, no en la piedra entera.)
 
                     // Coordenadas (espejo de BlockDetailDialog).
                     Text(String(format: "%.5f, %.5f", block.lat, block.lon))
@@ -1629,8 +1590,26 @@ struct BlockInfoSheet: View {
 
                     DirectionsButton(lat: block.lat, lon: block.lon, label: block.name).padding(.top, 8)
 
+                    // Desplegable OPCIONES (editar vías / sector / eliminar).
+                    if onEditLines != nil || onAssignSector != nil || onDelete != nil {
+                        Button { withAnimation { optionsOpen.toggle() } } label: {
+                            HStack {
+                                Text("OPCIONES").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                    .foregroundStyle(Cumbre.ink)
+                                Spacer()
+                                Image(systemName: optionsOpen ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            }
+                            .padding(.vertical, 12).padding(.horizontal, 12)
+                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 8)
+                    }
+
                     // Editor unificado de vías (corregir existentes + añadir nuevas).
-                    if block.type.uppercased() == "BLOCK", let onEditLines {
+                    if optionsOpen, block.type.uppercased() == "BLOCK", let onEditLines {
                         Button { dismiss(); onEditLines() } label: {
                             Text(block.lines.isEmpty ? NSLocalizedString("block_add_routes", comment: "") : NSLocalizedString("block_edit_routes", comment: ""))
                                 .font(Cumbre.mono(12, .bold)).tracking(0.6)
@@ -1642,7 +1621,7 @@ struct BlockInfoSheet: View {
                     // Asignar / cambiar sector (piedra, si la escuela tiene algún
                     // sector). Si ya tiene sector → "CAMBIAR SECTOR" (el picker
                     // muestra los demás; si no hay otro, lo avisa).
-                    if block.type.uppercased() == "BLOCK", let onAssignSector, !sectors.isEmpty {
+                    if optionsOpen, block.type.uppercased() == "BLOCK", let onAssignSector, !sectors.isEmpty {
                         Button { dismiss(); onAssignSector() } label: {
                             Text(block.sectorBlockId == nil ? NSLocalizedString("propose_assign_sector", comment: "") : NSLocalizedString("propose_change_sector", comment: ""))
                                 .font(Cumbre.mono(12, .bold)).tracking(0.6)
@@ -1652,7 +1631,7 @@ struct BlockInfoSheet: View {
                     }
 
                     // Admin: eliminar este bloque (piedra/zona/parking).
-                    if let onDelete {
+                    if optionsOpen, let onDelete {
                         Button(role: .destructive) { showDeleteConfirm = true } label: {
                             Text("ELIMINAR").font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.bad).frame(maxWidth: .infinity).padding(.vertical, 12)
@@ -2549,5 +2528,22 @@ private func shortDate(_ iso: String) -> String {
     NavigationStack {
         SchoolDetailView(school: School(id: "x", name: "Demo", location: "Demo", region: "Aragón",
                                         style: "Boulder", rockType: "Caliza", lat: 0, lon: 0, source: nil))
+    }
+}
+
+/// Polígono irregular con la silueta del marcador de piedra (botonera).
+struct StonePolygon: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w = rect.width, h = rect.height
+        p.move(to: CGPoint(x: 0.16*w, y: 0.78*h))
+        p.addLine(to: CGPoint(x: 0.07*w, y: 0.42*h))
+        p.addLine(to: CGPoint(x: 0.30*w, y: 0.13*h))
+        p.addLine(to: CGPoint(x: 0.72*w, y: 0.08*h))
+        p.addLine(to: CGPoint(x: 0.94*w, y: 0.38*h))
+        p.addLine(to: CGPoint(x: 0.86*w, y: 0.74*h))
+        p.addLine(to: CGPoint(x: 0.54*w, y: 0.92*h))
+        p.closeSubpath()
+        return p
     }
 }

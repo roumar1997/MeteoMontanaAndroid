@@ -67,6 +67,8 @@ fun SchoolListScreen(
     onChats: () -> Unit = {},
     onDonate: () -> Unit = {},
     onCompare: (List<String>) -> Unit = {},
+    /** Resultado del buscador global de vías/bloques → abre la escuela en esa vía. */
+    onViaHit: (schoolId: String, viaId: String?, viaName: String?) -> Unit = { s, _, _ -> onSchoolClick(s) },
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -80,6 +82,7 @@ fun SchoolListScreen(
     val selectedDays by viewModel.selectedDays.collectAsState()
     val rangeScores by viewModel.rangeScores.collectAsState()
     val chatUnread by viewModel.chatUnread.collectAsState()
+    val viaHits by viewModel.viaHits.collectAsState()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
@@ -168,6 +171,51 @@ fun SchoolListScreen(
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface
                         )
                     )
+                }
+            }
+
+            // Resultados del buscador GLOBAL de vías/bloques (mismo campo).
+            if (filters.query.trim().length >= 2 && viaHits.isNotEmpty()) {
+                item {
+                    Column(Modifier.padding(horizontal = Spacing.lg)) {
+                        Text("VÍAS Y BLOQUES",
+                            style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp))
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.shapes.small)
+                                .border(1.dp, MaterialTheme.colorScheme.outline,
+                                    MaterialTheme.shapes.small)
+                        ) {
+                            viaHits.forEach { h ->
+                                Row(
+                                    Modifier.fillMaxWidth()
+                                        .clickable { onViaHit(h.schoolId, h.lineId, h.lineName ?: h.blockName) }
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            (h.lineName ?: h.blockName) +
+                                                (h.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1)
+                                        Text(
+                                            listOf(h.blockName.takeIf { h.lineName != null }, h.schoolName)
+                                                .filterNotNull().filter { it.isNotBlank() }
+                                                .joinToString(" · "),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1)
+                                    }
+                                    Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

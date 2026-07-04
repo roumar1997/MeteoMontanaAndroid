@@ -92,7 +92,13 @@ final class SchoolListViewModel: ObservableObject {
     }
 
     var styles: [String] { uniqueValues(schools.map { $0.style }) }
-    var rocks: [String] { uniqueValues(schools.map { $0.rockType }) }
+    // Granito, Caliza y Arenisca primero (las mas buscadas); el resto alfabetico.
+    var rocks: [String] {
+        let all = uniqueValues(schools.map { $0.rockType })
+        let priority = ["Granito", "Caliza", "Arenisca"]
+        let first = priority.compactMap { p in all.first { $0.caseInsensitiveCompare(p) == .orderedSame } }
+        return first + all.filter { r in !first.contains(r) }
+    }
     var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || showMode != .all }
     func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; showMode = .all }
 
@@ -334,6 +340,9 @@ struct SchoolListView: View {
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     SearchField(text: $vm.query)
+                    if !viaHits.isEmpty && vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
+                        viaHitsSection
+                    }
 
                     // Hint del mapa — justo antes del toggle "VER MAPA"
                     FirstTimeHint(
@@ -396,7 +405,18 @@ struct SchoolListView: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(item: $navSchool) { SchoolDetailView(school: $0) }
+            .navigationDestination(item: $navSchool) { SchoolDetailView(school: $0, openVia: navVia) }
+            .onChange(of: vm.query) { _, q in
+                viaSearchTask?.cancel()
+                let trimmed = q.trimmingCharacters(in: .whitespaces)
+                guard trimmed.count >= 2 else { viaHits = []; return }
+                viaSearchTask = Task {
+                    try? await Task.sleep(nanoseconds: 350_000_000)
+                    guard !Task.isCancelled else { return }
+                    let hits = (try? await AppDependencies.shared.container.schoolApi.searchLines(query: trimmed)) ?? []
+                    if !Task.isCancelled { viaHits = hits }
+                }
+            }
             .overlay(alignment: .bottom) {
                 if vm.compareSelection.count >= 1 {
                     CompareBar(count: vm.compareSelection.count,
@@ -415,6 +435,48 @@ struct SchoolListView: View {
 
     @State private var showCompare = false
     @State private var navSchool: School?
+    // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
+    @State private var navVia: String?
+    @State private var viaHits: [LineSearchHitDto] = []
+    @State private var viaSearchTask: Task<Void, Never>?
+
+    /// Resultados del buscador global (vías/bloques de TODO el catálogo).
+    private var viaHitsSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("VÍAS Y BLOQUES").font(Cumbre.mono(10, .bold)).tracking(1.2)
+                .foregroundStyle(Cumbre.ink3)
+            VStack(spacing: 0) {
+                ForEach(Array(viaHits.enumerated()), id: \.offset) { _, h in
+                    Button {
+                        if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
+                            navVia = h.lineId ?? h.lineName ?? h.blockName
+                            navSchool = school
+                        }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text((h.lineName ?? h.blockName) + (h.grade.map { " · \($0)" } ?? ""))
+                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                                Text([h.lineName != nil ? h.blockName : nil, h.schoolName]
+                                        .compactMap { $0 }.filter { !$0.isEmpty }
+                                        .joined(separator: " · "))
+                                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                        }
+                        .padding(.horizontal, 12).padding(.vertical, 9)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .background(Cumbre.paper)
+            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        }
+        .padding(.horizontal, 16).padding(.vertical, 4)
+    }
 }
 
 // School (clase Kotlin) Identifiable por su id — para navigationDestination(item:).

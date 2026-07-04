@@ -101,7 +101,7 @@ fun FullScreenMapDialog(
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { context ->
-                    MapView(context).apply {
+                    MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
                         onCreate(null)
                         mapViewRef.value = this
                         setOnTouchListener { v, event ->
@@ -434,12 +434,30 @@ internal fun bitmapForBlock(block: Block, isProposal: Boolean): Bitmap {
  * Bitmap circular con relleno [colorInt], borde blanco, letra centrada.
  * Para PARKING/ZONE.
  */
-/** Punto azul "mi ubicación": disco azul con borde blanco y halo suave. */
-internal fun userDotBitmap(): Bitmap {
-    val sizePx = 48
+/**
+ * Punto azul "mi ubicación": disco azul con borde blanco y halo suave. Con
+ * [headingDeg] (brújula) añade un cono de dirección hacia donde apunta el
+ * móvil — para orientarse buscando la piedra.
+ */
+internal fun userDotBitmap(headingDeg: Float? = null): Bitmap {
+    val sizePx = 72
     val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
     val cx = sizePx / 2f
+    if (headingDeg != null) {
+        // Cono translúcido apuntando al rumbo (norte = arriba).
+        canvas.save()
+        canvas.rotate(headingDeg, cx, cx)
+        val cone = android.graphics.Path().apply {
+            moveTo(cx, cx)
+            lineTo(cx - 13f, cx - 32f)
+            lineTo(cx + 13f, cx - 32f)
+            close()
+        }
+        canvas.drawPath(cone, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.argb(120, 30, 100, 220) })
+        canvas.restore()
+    }
     val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.argb(50, 30, 100, 220) }
     canvas.drawCircle(cx, cx, 22f, halo)
     val border = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE }

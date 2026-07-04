@@ -248,6 +248,9 @@ fun MainScreen(
                 composable(Tab.Schools.route) {
                     SchoolListScreen(
                         onSchoolClick = { id -> navController.navigate(Routes.schoolDetail(id)) },
+                        onViaHit = { schoolId, viaId, viaName ->
+                            navController.navigate(Routes.schoolDetail(schoolId, via = viaName, viaId = viaId))
+                        },
                         onProfileClick = { openSheet(Routes.PROFILE) },
                         onSubmitSchool = { openSheet(Routes.SUBMIT_SCHOOL) },
                         onSearchUsers = { openSheet(Routes.SEARCH_USERS) },

@@ -354,7 +354,7 @@
     <string name="add_lines_reorder_hide_routes">▾ ocultar vías</string>
     <string name="add_lines_reorder_show_routes">▸ ver vías</string>
     <string name="add_lines_reorder_no_image">Esta foto aún no tiene imagen.</string>
-    <string name="add_lines_route_drawn">✓ Línea dibujada (%1$d puntos)</string>
+    <string name="add_lines_route_drawn">✓ Línea dibujada</string>
     <string name="add_lines_route_name_placeholder">Nombre (opcional)</string>
     <string name="add_lines_grade_placeholder">Grado</string>
 

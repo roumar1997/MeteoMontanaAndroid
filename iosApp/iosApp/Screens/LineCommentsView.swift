@@ -71,8 +71,10 @@ struct LineCommentsThreadView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Button { withAnimation { expanded.toggle() } } label: {
-                HStack {
-                    Text("💬 COMENTARIOS" + (mine.isEmpty ? "" : " · \(mine.count)"))
+                HStack(spacing: 6) {
+                    Image(systemName: "bubble.right")
+                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                    Text("COMENTARIOS" + (mine.isEmpty ? "" : " · \(mine.count)"))
                         .font(Cumbre.mono(10, .bold)).tracking(1.0)
                         .foregroundStyle(Cumbre.ink3)
                     Spacer()
@@ -89,33 +91,35 @@ struct LineCommentsThreadView: View {
                     Text("Sé el primero en comentar.")
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 }
-                ForEach(mine, id: \.id) { c in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(c.author).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                ForEach(Array(mine.enumerated()), id: \.element.id) { idx, c in
+                    if idx > 0 { Divider().overlay(Cumbre.rule) }
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 8) {
+                            Text(c.author)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Cumbre.terra)
                             Spacer()
                             if Auth.auth().currentUser?.uid == c.uid {
-                                Button("BORRAR") { Task { await store.delete(commentId: c.id) } }
-                                    .font(Cumbre.mono(9, .bold))
-                                    .foregroundStyle(Cumbre.bad)
-                                    .buttonStyle(.plain)
+                                Button { Task { await store.delete(commentId: c.id) } } label: {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         Text(c.text).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                        HStack(spacing: 8) {
-                            voteChip("▲", Int(c.upvotesCount), c.myVote == 1) {
+                        HStack(spacing: 16) {
+                            voteChip(true, Int(c.upvotesCount), c.myVote == 1) {
                                 Task { await store.vote(commentId: c.id, value: 1) }
                             }
-                            voteChip("▼", Int(c.downvotesCount), c.myVote == -1) {
+                            voteChip(false, Int(c.downvotesCount), c.myVote == -1) {
                                 Task { await store.vote(commentId: c.id, value: -1) }
                             }
                         }
                     }
-                    .padding(10)
-                    .background(Cumbre.bg)
-                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    .padding(.vertical, 7)
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     TextField("Escribe un comentario…", text: $draft, axis: .vertical)
                         .textFieldStyle(.plain)
                         .font(.system(size: 14))
@@ -129,11 +133,11 @@ struct LineCommentsThreadView: View {
                         draft = ""
                         Task { await store.add(blockId: blockId, lineId: lineId, text: t) }
                     } label: {
-                        Text("ENVIAR").font(Cumbre.mono(11, .bold)).tracking(0.6)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12).padding(.vertical, 10)
-                            .background(draft.trimmingCharacters(in: .whitespaces).isEmpty
-                                        ? Color.gray.opacity(0.4) : Cumbre.terra)
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 17))
+                            .foregroundStyle(draft.trimmingCharacters(in: .whitespaces).isEmpty
+                                             ? Cumbre.ink3 : Cumbre.terra)
+                            .padding(6)
                     }
                     .buttonStyle(.plain)
                     .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -143,16 +147,16 @@ struct LineCommentsThreadView: View {
         }
     }
 
-    private func voteChip(_ symbol: String, _ count: Int, _ active: Bool, action: @escaping () -> Void) -> some View {
+    private func voteChip(_ up: Bool, _ count: Int, _ active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 3) {
-                Text(symbol).font(.system(size: 11))
-                Text("\(count)").font(Cumbre.mono(11))
+                Image(systemName: up ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
+                    .font(.system(size: 9))
+                Text("\(count)").font(Cumbre.mono(11, active ? .bold : .regular))
             }
-            .foregroundStyle(active ? .white : Cumbre.ink3)
-            .padding(.horizontal, 8).padding(.vertical, 3)
-            .background(active ? Cumbre.terra : Cumbre.paper)
-            .overlay(Rectangle().stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+            .foregroundStyle(active ? Cumbre.terra : Cumbre.ink3)
+            .padding(.horizontal, 4).padding(.vertical, 2)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
