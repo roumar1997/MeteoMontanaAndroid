@@ -3,6 +3,7 @@ import Shared
 import CoreLocation
 import UIKit
 import PhotosUI
+import FirebaseAuth
 
 // Block (clase Kotlin) Identifiable por su id — para .sheet(item:).
 extension Block: Identifiable {}
@@ -2304,6 +2305,9 @@ struct NotesSectionView: View {
     @State private var pickedImage: UIImage?
     // Plegada por defecto: con muchas notas la pantalla se hacía eterna.
     @State private var expanded = false
+    // Moderación: denunciar notas ajenas + ocultar al instante.
+    @ObservedObject private var moderation = ModerationStore.shared
+    @State private var reportNote: Note? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -2418,10 +2422,10 @@ struct NotesSectionView: View {
 
 private struct NoteRowView: View {
     let note: Note
-    var canReport: Bool = false
-    var onReport: () -> Void = {}
     let onPhotoTap: () -> Void
     var onVote: (Int) -> Void = { _ in }
+    var canReport: Bool = false
+    var onReport: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
