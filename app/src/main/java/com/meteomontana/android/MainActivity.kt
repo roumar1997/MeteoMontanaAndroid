@@ -37,7 +37,13 @@ class MainActivity : ComponentActivity() {
     // tirar IllegalStateException o no mostrar el diálogo → el permiso de
     // notificaciones nunca se concede y NO llega ninguna push (Android 13+).
     private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* resultado ignorado */ }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            // Encadenado de permisos: Android solo muestra UN diálogo a la vez;
+            // hasta que este no se responde, el de ubicación se descartaba en
+            // silencio (había que cerrar y reabrir la app). La puerta avisa a
+            // las pantallas de que ya pueden pedir el suyo.
+            PermissionsGate.open.value = true
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash Screen API: pinta fondo papel + montaña al instante en vez de
@@ -106,9 +112,24 @@ class MainActivity : ComponentActivity() {
             val granted = ContextCompat.checkSelfPermission(
                 this, "android.permission.POST_NOTIFICATIONS"
             ) == PackageManager.PERMISSION_GRANTED
-            if (!granted) notificationPermissionLauncher.launch("android.permission.POST_NOTIFICATIONS")
+            if (!granted) {
+                notificationPermissionLauncher.launch("android.permission.POST_NOTIFICATIONS")
+            } else {
+                PermissionsGate.open.value = true
+            }
+        } else {
+            PermissionsGate.open.value = true
         }
     }
+}
+
+/**
+ * Puerta del encadenado de permisos: se abre cuando el diálogo de
+ * notificaciones ya está respondido (o no aplica) → entonces las pantallas
+ * pueden pedir ubicación sin que Android lo descarte.
+ */
+object PermissionsGate {
+    val open = kotlinx.coroutines.flow.MutableStateFlow(false)
 }
 
 data class DeepLinkTarget(val targetType: String, val targetId: String?)

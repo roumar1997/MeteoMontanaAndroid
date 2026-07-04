@@ -55,6 +55,7 @@ import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.TerraBg
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
+import kotlinx.coroutines.flow.first
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -115,7 +116,17 @@ fun SchoolListScreen(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants -> if (grants.values.any { it }) viewModel.onLocationGranted() }
     LaunchedEffect(Unit) {
-        if (!showOnboarding) permLauncher.launch(locationPerms)
+        if (showOnboarding) return@LaunchedEffect
+        // Espera a que el diálogo de notificaciones esté respondido (Android
+        // solo muestra un permiso a la vez) y pide ubicación. Se pide aunque
+        // ya haya APROXIMADA concedida: así el sistema ofrece una vez la
+        // mejora a PRECISA a quien venía de versiones viejas.
+        com.meteomontana.android.PermissionsGate.open.first { it }
+        val fineGranted = androidx.core.content.ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!fineGranted) permLauncher.launch(locationPerms)
+        else viewModel.onLocationGranted()
     }
 
     if (showOnboarding) {
