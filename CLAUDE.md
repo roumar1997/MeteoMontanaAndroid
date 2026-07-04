@@ -542,6 +542,14 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-04 (noche 2)** — Release **2.9.3** (vc27, build 38): botón de
+ubicación DENTRO de la botonera del mapa (34 dp compacta; separada se
+solapaba/desbordaba de los 280 dp), iconos reales en Android (GpsFixed,
+OpenInFull), zoom al tocar piedra/zona capado a 15.2/15.0 (Esri se queda sin
+resolución y el mapa "desaparecía"), y capa background color papel en TODOS
+los estilos raster — el flash azul al abrir Radar era el fondo por defecto de
+MapLibre mientras cargaban los tiles.
+
 **2026-07-04 (noche)** — Release **2.9.2** (vc26, build 37): botonera del mapa
 arriba-derecha (se solapaba con ubicación) + botón re-centrar escuela; iOS ya
 no salta el zoom al ocultar capas (auto-fit solo con marcadores NUEVOS —
