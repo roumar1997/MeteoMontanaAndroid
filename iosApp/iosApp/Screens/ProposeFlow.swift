@@ -1020,11 +1020,11 @@ struct EditLinesSheet: View {
             for b in faceVias {
                 var v = b
                 if let p = movedPhoto { v.facePhoto = p }   // mover a la foto nueva
-                if v.existingLineId != nil {
-                    payload.append(v)                        // existentes SIEMPRE
-                } else if v.grade != nil || !v.name.isEmpty || !v.line.isEmpty {
-                    payload.append(v)                        // nuevas con contenido
-                }
+                // Vía con ALGÚN dato (nombre, grado o trazo) → se conserva/corrige.
+                // Completamente vacía → se OMITE: si era existente el backend la
+                // borra (reconcilia omitidas), evitando vías fantasma imborrables.
+                let hasData = v.grade != nil || !v.name.isEmpty || !v.line.isEmpty
+                if hasData { payload.append(v) }
             }
         }
         guard !payload.isEmpty else { sending = false; dismiss(); onDone(false); return }

@@ -262,7 +262,8 @@ private fun LineChip(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(modifier = Modifier.width(12.dp).height(12.dp).clip(CircleShape).background(color))
-        Text(line.name,
+        // Vía sin nombre → placeholder para que el chip sea visible y borrable.
+        Text(line.name.ifBlank { "(sin datos)" },
             color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge)
         if (!line.grade.isNullOrBlank()) {

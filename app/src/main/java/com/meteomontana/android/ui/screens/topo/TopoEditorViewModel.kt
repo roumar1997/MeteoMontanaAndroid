@@ -128,12 +128,20 @@ class TopoEditorViewModel @Inject constructor(
                     lon = block.lon,
                     photoPath = block.photoPath,
                     description = block.description,
-                    lines = _state.value.lines.map { l ->
-                        CreateBlockLineRequest(
-                            name = l.name, grade = l.grade, startType = l.startType,
-                            linePath = l.stroke.toJson()
-                        )
-                    }
+                    // Descarta vías COMPLETAMENTE vacías (sin nombre, grado ni
+                    // trazo): no aportan nada y, si se colaran, no se pueden
+                    // borrar bien (chip minúsculo). Así se limpian al guardar.
+                    lines = _state.value.lines
+                        .filter { l ->
+                            l.name.isNotBlank() || !l.grade.isNullOrBlank() ||
+                                l.stroke.points.isNotEmpty()
+                        }
+                        .map { l ->
+                            CreateBlockLineRequest(
+                                name = l.name, grade = l.grade, startType = l.startType,
+                                linePath = l.stroke.toJson()
+                            )
+                        }
                 )
                 val updated = updateBlock(block.id, req)
                 _state.value = _state.value.copy(saving = false, block = updated, savedOk = true)
