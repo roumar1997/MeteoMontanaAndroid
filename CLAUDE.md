@@ -542,6 +542,10 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-05 (2)** — Backend: **denuncia de un ADMIN = moderación directa**
+(el comentario/nota se borra al instante, la denuncia queda resuelta como
+auditoría, sin cola ni push; USER sin acción automática). En prod.
+
 **2026-07-05** — Release **2.10.4** (vc36, build 48, EL de las tiendas):
 compartir perfiles (backend /s/u/{username|uid} + botón en perfil ajeno y
 "Compartir mi perfil"; deep link "user" ya existía del push); zonas de toque
