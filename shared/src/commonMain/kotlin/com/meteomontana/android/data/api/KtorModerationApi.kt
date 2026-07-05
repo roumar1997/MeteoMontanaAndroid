@@ -28,6 +28,28 @@ data class ContentReportDto(
 @Serializable
 data class ReportRequest(val targetType: String, val targetId: String, val reason: String)
 
+/** Fila de denuncia en el historial de moderación de un usuario. */
+@Serializable
+data class ModReportRowDto(
+    val type: String,
+    val reason: String,
+    val snapshot: String? = null,
+    val createdAt: String? = null
+)
+
+/** Resumen de moderación de un usuario (consola de admin). */
+@Serializable
+data class UserModerationDto(
+    val uid: String,
+    val username: String? = null,
+    val displayName: String? = null,
+    val banned: Boolean = false,
+    val suspendedUntil: String? = null,
+    val warnings: Int = 0,
+    val reportCount: Long = 0,
+    val reports: List<ModReportRowDto> = emptyList()
+)
+
 /**
  * Moderación UGC (requisito App Store): denunciar comentarios/notas/usuarios,
  * bloquear usuarios, y la cola de revisión del admin.
@@ -84,6 +106,35 @@ class KtorModerationApi(private val client: HttpClient) {
 
     suspend fun getAdminNotes(): List<AdminNoteRowDto> =
         try { client.get("admin/notes").body() } catch (_: Throwable) { emptyList() }
+
+    // ── Consola de moderación de usuarios (admin) ──────────────────────────
+    // Todas tragan la excepción (idempotentes, sin crash en iOS) y devuelven el
+    // resumen actualizado (o null si falla) para refrescar la ficha.
+
+    suspend fun getUserModeration(uid: String): UserModerationDto? =
+        try { client.get("admin/users/$uid/moderation").body() } catch (_: Throwable) { null }
+
+    suspend fun warnUser(uid: String, reason: String?): UserModerationDto? =
+        try {
+            client.post("admin/users/$uid/warn") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("reason" to (reason ?: "")))
+            }.body()
+        } catch (_: Throwable) { null }
+
+    suspend fun suspendUser(uid: String, days: Int): UserModerationDto? =
+        try {
+            client.post("admin/users/$uid/suspend") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("days" to days))
+            }.body()
+        } catch (_: Throwable) { null }
+
+    suspend fun banUser2(uid: String): UserModerationDto? =
+        try { client.post("admin/users/$uid/ban").body() } catch (_: Throwable) { null }
+
+    suspend fun unbanUser2(uid: String): UserModerationDto? =
+        try { client.post("admin/users/$uid/unban").body() } catch (_: Throwable) { null }
 }
 
 /** Fila de usuario para el panel de admin (STATS pulsables). */

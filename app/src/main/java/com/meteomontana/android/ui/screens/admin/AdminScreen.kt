@@ -179,7 +179,9 @@ fun AdminScreen(
                 onResolve = { id -> viewModel.resolveReport(id, "resolve") },
                 onDismiss = { id -> viewModel.resolveReport(id, "dismiss") },
                 onRemoveContent = { id -> viewModel.resolveContentReport(id, "REMOVE") },
-                onIgnoreContent = { id -> viewModel.resolveContentReport(id, "IGNORE") }
+                onIgnoreContent = { id -> viewModel.resolveContentReport(id, "IGNORE") },
+                onDeleteMeetup = { id -> viewModel.deleteReportedMeetup(id) },
+                onOpenAuthor = { uid -> viewModel.openUserModeration(uid) }
             )
             AdminTab.Stats -> StatsTab(
                 stats = state.stats,
@@ -207,6 +209,21 @@ fun AdminScreen(
                 onSend = viewModel::sendPush
             )
         }
+    }
+
+    // Ficha de moderación de usuario (VER AUTOR) — sobre cualquier pestaña.
+    val userMod by viewModel.userMod.collectAsState()
+    val userModLoading by viewModel.userModLoading.collectAsState()
+    if (userMod != null || userModLoading) {
+        UserModerationSheet(
+            mod = userMod,
+            loading = userModLoading,
+            onWarn = { viewModel.warnUser(it) },
+            onSuspend = { uid, days -> viewModel.suspendUser(uid, days) },
+            onBan = { viewModel.banUser(it) },
+            onUnban = { viewModel.unbanUser(it) },
+            onDismiss = { viewModel.closeUserModeration() }
+        )
     }
 }
 

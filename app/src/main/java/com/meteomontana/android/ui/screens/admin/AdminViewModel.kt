@@ -223,6 +223,43 @@ class AdminViewModel @Inject constructor(
         }
     }
 
+    // ── Consola de moderación de un usuario (VER AUTOR) ────────────────────
+    private val _userMod = kotlinx.coroutines.flow.MutableStateFlow<com.meteomontana.android.data.api.UserModerationDto?>(null)
+    val userMod: kotlinx.coroutines.flow.StateFlow<com.meteomontana.android.data.api.UserModerationDto?> = _userMod
+    private val _userModLoading = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val userModLoading: kotlinx.coroutines.flow.StateFlow<Boolean> = _userModLoading
+
+    fun openUserModeration(uid: String) {
+        _userMod.value = null
+        _userModLoading.value = true
+        viewModelScope.launch {
+            _userMod.value = moderationApi.getUserModeration(uid)
+            _userModLoading.value = false
+        }
+    }
+    fun closeUserModeration() { _userMod.value = null }
+
+    fun warnUser(uid: String) {
+        viewModelScope.launch { moderationApi.warnUser(uid, null)?.let { _userMod.value = it } }
+    }
+    fun suspendUser(uid: String, days: Int) {
+        viewModelScope.launch { moderationApi.suspendUser(uid, days)?.let { _userMod.value = it } }
+    }
+    fun banUser(uid: String) {
+        viewModelScope.launch { moderationApi.banUser2(uid)?.let { _userMod.value = it } }
+    }
+    fun unbanUser(uid: String) {
+        viewModelScope.launch { moderationApi.unbanUser2(uid)?.let { _userMod.value = it } }
+    }
+
+    /** Denuncia de QUEDADA: eliminar la quedada denunciada (además de resolver). */
+    fun deleteReportedMeetup(reportId: String) {
+        viewModelScope.launch {
+            runCatching { resolveReportUseCase(reportId, "delete") }
+            load()
+        }
+    }
+
     fun sendPush(targetUid: String?, title: String, body: String) {
         _state.update { it.copy(pushBusy = true, pushResult = null) }
         viewModelScope.launch {

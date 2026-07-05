@@ -396,7 +396,9 @@ internal fun DenunciasTab(
     onResolve: (String) -> Unit,
     onDismiss: (String) -> Unit,
     onRemoveContent: (String) -> Unit = {},
-    onIgnoreContent: (String) -> Unit = {}
+    onIgnoreContent: (String) -> Unit = {},
+    onDeleteMeetup: (String) -> Unit = {},
+    onOpenAuthor: (String) -> Unit = {}
 ) {
     if (reports.isEmpty() && contentReports.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -417,7 +419,8 @@ internal fun DenunciasTab(
             items(contentReports, key = { "c-" + it.id }) { r ->
                 ContentReportCard(r,
                     onRemove = { onRemoveContent(r.id) },
-                    onIgnore = { onIgnoreContent(r.id) })
+                    onIgnore = { onIgnoreContent(r.id) },
+                    onOpenAuthor = { r.authorUid?.let(onOpenAuthor) })
                 Spacer(Modifier.height(Spacing.sm))
             }
         }
@@ -430,7 +433,9 @@ internal fun DenunciasTab(
             }
             items(reports, key = { it.id }) { report ->
                 ReportCard(report = report, onResolve = { onResolve(report.id) },
-                    onDismiss = { onDismiss(report.id) })
+                    onDismiss = { onDismiss(report.id) },
+                    onDelete = { onDeleteMeetup(report.id) },
+                    onOpenAuthor = { report.reportedUid?.let(onOpenAuthor) })
                 Spacer(Modifier.height(Spacing.sm))
             }
         }
@@ -442,7 +447,8 @@ internal fun DenunciasTab(
 private fun ContentReportCard(
     r: com.meteomontana.android.data.api.ContentReportDto,
     onRemove: () -> Unit,
-    onIgnore: () -> Unit
+    onIgnore: () -> Unit,
+    onOpenAuthor: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -489,6 +495,18 @@ private fun ContentReportCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        // Ver al AUTOR del contenido (historial de denuncias + consecuencias).
+        if (r.authorUid != null) {
+            Box(Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(2.dp))
+                .clickable(onClick = onOpenAuthor)
+                .padding(vertical = Spacing.xs),
+                contentAlignment = Alignment.Center) {
+                Text("VER AUTOR ▸",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = com.meteomontana.android.ui.theme.Terra)
+            }
+        }
     }
 }
 
@@ -496,8 +514,11 @@ private fun ContentReportCard(
 private fun ReportCard(
     report: MeetupReport,
     onResolve: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit = {},
+    onOpenAuthor: () -> Unit = {}
 ) {
+    var confirmDelete by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -545,20 +566,56 @@ private fun ReportCard(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        // Botones
+        // Acción principal: ELIMINAR la quedada denunciada (con confirmación).
+        Box(Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(2.dp))
+            .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))
+            .clickable { confirmDelete = true }
+            .padding(vertical = Spacing.sm),
+            contentAlignment = Alignment.Center) {
+            Text("ELIMINAR QUEDADA",
+                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.height(Spacing.xs))
+        // Ver al organizador denunciado (historial + consecuencias).
+        if (report.reportedUid != null) {
+            Box(Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(2.dp))
+                .clickable(onClick = onOpenAuthor)
+                .padding(vertical = Spacing.xs),
+                contentAlignment = Alignment.Center) {
+                Text("VER AUTOR ▸",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = com.meteomontana.android.ui.theme.Terra)
+            }
+            Spacer(Modifier.height(Spacing.xs))
+        }
+        // Cerrar la denuncia sin borrar la quedada.
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(
-                onClick = onResolve,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier.weight(1f)
-            ) { Text("RESOLVER") }
             androidx.compose.material3.OutlinedButton(
-                onClick = onDismiss,
-                modifier = Modifier.weight(1f)
+                onClick = onResolve, modifier = Modifier.weight(1f)
+            ) { Text("OK, REVISADA") }
+            androidx.compose.material3.OutlinedButton(
+                onClick = onDismiss, modifier = Modifier.weight(1f)
             ) { Text("DESESTIMAR") }
         }
+    }
+
+    if (confirmDelete) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("¿Eliminar la quedada?") },
+            text = { Text("Se borrará para todos los participantes. La denuncia quedará resuelta.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDelete = false; onDelete() }) {
+                    Text("ELIMINAR", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDelete = false }) { Text("CANCELAR") }
+            }
+        )
     }
 }
 
@@ -567,4 +624,109 @@ private fun reasonLabel(reason: String) = when (reason) {
     "INAPPROPRIATE" -> "Contenido inapropiado"
     "HARASSMENT" -> "Acoso"
     else -> "Otro"
+}
+
+/**
+ * Ficha de moderación de un usuario (se abre con "VER AUTOR"). Muestra su
+ * historial de denuncias y deja aplicar consecuencias: aviso, suspensión
+ * temporal o baneo de login (reversible).
+ */
+@Composable
+internal fun UserModerationSheet(
+    mod: com.meteomontana.android.data.api.UserModerationDto?,
+    loading: Boolean,
+    onWarn: (String) -> Unit,
+    onSuspend: (String, Int) -> Unit,
+    onBan: (String) -> Unit,
+    onUnban: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                .padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            if (loading || mod == null) {
+                Box(Modifier.fillMaxWidth().padding(Spacing.lg), Alignment.Center) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+                return@Column
+            }
+            val name = mod.username?.let { "@$it" } ?: (mod.displayName ?: mod.uid.take(10))
+            Text(name, style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+            // Estado + contadores
+            Text(buildString {
+                append("${mod.reportCount} denuncia(s) · ${mod.warnings} aviso(s)")
+                if (mod.banned) append(" · BANEADO")
+                mod.suspendedUntil?.let { append(" · suspendido hasta ${it.take(10)}") }
+            }, style = MaterialTheme.typography.labelMedium,
+                color = if (mod.banned) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant)
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            Text("HISTORIAL DE DENUNCIAS", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (mod.reports.isEmpty()) {
+                Text("Sin denuncias de contenido registradas.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                mod.reports.take(8).forEach { rep ->
+                    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                        Text("${rep.type} · ${reasonLabel(rep.reason)}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error)
+                        rep.snapshot?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface, maxLines = 2)
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            Text("CONSECUENCIAS", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Aviso
+            ModActionButton("ENVIAR AVISO", MaterialTheme.colorScheme.primary) { onWarn(mod.uid) }
+            // Suspensión temporal
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                ModActionButton("SUSPENDER 7 D", MaterialTheme.colorScheme.primary,
+                    Modifier.weight(1f)) { onSuspend(mod.uid, 7) }
+                ModActionButton("SUSPENDER 30 D", MaterialTheme.colorScheme.primary,
+                    Modifier.weight(1f)) { onSuspend(mod.uid, 30) }
+            }
+            // Baneo / desbaneo
+            if (mod.banned) {
+                ModActionButton("DESBANEAR", MaterialTheme.colorScheme.primary) { onUnban(mod.uid) }
+            } else {
+                ModActionButton("BANEAR CUENTA", MaterialTheme.colorScheme.error) { onBan(mod.uid) }
+            }
+
+            Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp))
+                .clickable(onClick = onDismiss).padding(vertical = Spacing.sm),
+                contentAlignment = Alignment.Center) {
+                Text("CERRAR", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModActionButton(label: String, color: androidx.compose.ui.graphics.Color,
+                            modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(modifier.fillMaxWidth()
+        .clip(RoundedCornerShape(2.dp))
+        .border(1.dp, color, RoundedCornerShape(2.dp))
+        .clickable(onClick = onClick)
+        .padding(vertical = Spacing.sm),
+        contentAlignment = Alignment.Center) {
+        Text(label, style = com.meteomontana.android.ui.theme.EyebrowTextStyle, color = color)
+    }
 }
