@@ -1301,6 +1301,7 @@ private struct AdminReportsTab: View {
             .padding(16)
         }
         .background(Cumbre.bg)
+        .refreshable { await load() }   // tirar para refrescar la cola
         .task { await load() }
         .sheet(item: $modTarget) { t in
             UserModerationSheet(uid: t.uid)

@@ -116,9 +116,21 @@ fun AdminScreen(
     val state by viewModel.state.collectAsState()
     var tab by remember { mutableStateOf(AdminTab.Propuestas) }
 
-    // Refresca al entrar (el VM sobrevive a la navegación; sin esto, las propuestas
-    // nuevas no aparecen hasta matar la app).
-    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.load() }
+    // Refresca CADA vez que el panel vuelve a primer plano (el VM sobrevive a la
+    // navegación → con LaunchedEffect(Unit) solo cargaba una vez y las denuncias/
+    // propuestas nuevas no aparecían hasta reiniciar la app).
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.load()
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+    // Y al entrar en la pestaña DENUNCIAS, recarga por si acabas de denunciar.
+    androidx.compose.runtime.LaunchedEffect(tab) {
+        if (tab == AdminTab.Denuncias) viewModel.load()
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
