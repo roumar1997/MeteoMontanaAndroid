@@ -1419,6 +1419,7 @@ private struct UserModerationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var mod: UserModerationDto? = nil
     @State private var loading = true
+    @State private var reason = ""
 
     var body: some View {
         NavigationStack {
@@ -1451,27 +1452,49 @@ private struct UserModerationSheet: View {
                             }
                         }
 
+                        // Acciones ya aplicadas (auditoría con motivo).
+                        if !m.actions.isEmpty {
+                            Divider().overlay(Cumbre.rule)
+                            Text("ACCIONES APLICADAS")
+                                .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+                            ForEach(Array(m.actions.prefix(8).enumerated()), id: \.offset) { _, act in
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(actionLabel(act.action) + (act.createdAt.map { " · " + String($0.prefix(10)) } ?? ""))
+                                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                    if let rs = act.reason, !rs.isEmpty {
+                                        Text("Motivo: \(rs)").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    if let s = act.snapshot, !s.isEmpty {
+                                        Text(s).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(2)
+                                    }
+                                }
+                            }
+                        }
+
                         Divider().overlay(Cumbre.rule)
                         Text("CONSECUENCIAS")
                             .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+                        TextField("Motivo (se guarda para pruebas)", text: $reason, axis: .vertical)
+                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                            .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                         actionButton("ENVIAR AVISO", Cumbre.terra) {
-                            apply { (try? await api().warnUser(uid: uid, reason: nil)) ?? nil }
+                            apply { (try? await api().warnUser(uid: uid, reason: reasonOrNil())) ?? nil }
                         }
                         HStack(spacing: 8) {
                             actionButton("SUSPENDER 7 D", Cumbre.terra) {
-                                apply { (try? await api().suspendUser(uid: uid, days: 7)) ?? nil }
+                                apply { (try? await api().suspendUser(uid: uid, days: 7, reason: reasonOrNil())) ?? nil }
                             }
                             actionButton("SUSPENDER 30 D", Cumbre.terra) {
-                                apply { (try? await api().suspendUser(uid: uid, days: 30)) ?? nil }
+                                apply { (try? await api().suspendUser(uid: uid, days: 30, reason: reasonOrNil())) ?? nil }
                             }
                         }
                         if m.banned {
                             actionButton("DESBANEAR", Cumbre.terra) {
-                                apply { (try? await api().unbanUser2(uid: uid)) ?? nil }
+                                apply { (try? await api().unbanUser2(uid: uid, reason: reasonOrNil())) ?? nil }
                             }
                         } else {
                             actionButton("BANEAR CUENTA", Cumbre.bad) {
-                                apply { (try? await api().banUser2(uid: uid)) ?? nil }
+                                apply { (try? await api().banUser2(uid: uid, reason: reasonOrNil())) ?? nil }
                             }
                         }
                     }
@@ -1498,6 +1521,18 @@ private struct UserModerationSheet: View {
     }
 
     private func api() -> KtorModerationApi { AppDependencies.shared.container.moderationApi }
+
+    private func reasonOrNil() -> String? {
+        let t = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
+    }
+    private func actionLabel(_ a: String) -> String {
+        switch a {
+        case "WARN": return "Aviso"; case "SUSPEND": return "Suspensión"
+        case "BAN": return "Baneo"; case "UNBAN": return "Desbaneo"
+        case "DELETE_NOTE": return "Nota borrada"; case "DELETE_COMMENT": return "Comentario borrado"
+        case "DELETE_MEETUP": return "Quedada borrada"; default: return a }
+    }
 
     private func reload() async {
         loading = true

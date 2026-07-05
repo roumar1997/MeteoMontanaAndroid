@@ -218,10 +218,10 @@ fun AdminScreen(
         UserModerationSheet(
             mod = userMod,
             loading = userModLoading,
-            onWarn = { viewModel.warnUser(it) },
-            onSuspend = { uid, days -> viewModel.suspendUser(uid, days) },
-            onBan = { viewModel.banUser(it) },
-            onUnban = { viewModel.unbanUser(it) },
+            onWarn = { uid, reason -> viewModel.warnUser(uid, reason) },
+            onSuspend = { uid, days, reason -> viewModel.suspendUser(uid, days, reason) },
+            onBan = { uid, reason -> viewModel.banUser(uid, reason) },
+            onUnban = { uid, reason -> viewModel.unbanUser(uid, reason) },
             onDismiss = { viewModel.closeUserModeration() }
         )
     }

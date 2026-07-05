@@ -635,12 +635,14 @@ private fun reasonLabel(reason: String) = when (reason) {
 internal fun UserModerationSheet(
     mod: com.meteomontana.android.data.api.UserModerationDto?,
     loading: Boolean,
-    onWarn: (String) -> Unit,
-    onSuspend: (String, Int) -> Unit,
-    onBan: (String) -> Unit,
-    onUnban: (String) -> Unit,
+    onWarn: (String, String?) -> Unit,
+    onSuspend: (String, Int, String?) -> Unit,
+    onBan: (String, String?) -> Unit,
+    onUnban: (String, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var reason by remember { mutableStateOf("") }
+    fun r(): String? = reason.trim().ifBlank { null }
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         Column(
             Modifier.fillMaxWidth()
@@ -689,23 +691,53 @@ internal fun UserModerationSheet(
                 }
             }
 
+            // Historial de acciones ya aplicadas (auditoría con motivo).
+            if (mod.actions.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                Text("ACCIONES APLICADAS", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                mod.actions.take(8).forEach { act ->
+                    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                        Text("${modActionLabel(act.action)}${act.createdAt?.let { " · ${it.take(10)}" } ?: ""}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        act.reason?.takeIf { it.isNotBlank() }?.let {
+                            Text("Motivo: $it", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        act.snapshot?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+                        }
+                    }
+                }
+            }
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Text("CONSECUENCIAS", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Motivo (opcional) — se guarda con la acción para justificar/revocar.
+            OutlinedTextField(
+                value = reason, onValueChange = { reason = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Motivo (se guarda para pruebas)",
+                    style = MaterialTheme.typography.bodySmall) },
+                textStyle = MaterialTheme.typography.bodyMedium,
+                maxLines = 2)
             // Aviso
-            ModActionButton("ENVIAR AVISO", MaterialTheme.colorScheme.primary) { onWarn(mod.uid) }
+            ModActionButton("ENVIAR AVISO", MaterialTheme.colorScheme.primary) { onWarn(mod.uid, r()) }
             // Suspensión temporal
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 ModActionButton("SUSPENDER 7 D", MaterialTheme.colorScheme.primary,
-                    Modifier.weight(1f)) { onSuspend(mod.uid, 7) }
+                    Modifier.weight(1f)) { onSuspend(mod.uid, 7, r()) }
                 ModActionButton("SUSPENDER 30 D", MaterialTheme.colorScheme.primary,
-                    Modifier.weight(1f)) { onSuspend(mod.uid, 30) }
+                    Modifier.weight(1f)) { onSuspend(mod.uid, 30, r()) }
             }
             // Baneo / desbaneo
             if (mod.banned) {
-                ModActionButton("DESBANEAR", MaterialTheme.colorScheme.primary) { onUnban(mod.uid) }
+                ModActionButton("DESBANEAR", MaterialTheme.colorScheme.primary) { onUnban(mod.uid, r()) }
             } else {
-                ModActionButton("BANEAR CUENTA", MaterialTheme.colorScheme.error) { onBan(mod.uid) }
+                ModActionButton("BANEAR CUENTA", MaterialTheme.colorScheme.error) { onBan(mod.uid, r()) }
             }
 
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp))
@@ -716,6 +748,12 @@ internal fun UserModerationSheet(
             }
         }
     }
+}
+
+private fun modActionLabel(a: String) = when (a) {
+    "WARN" -> "Aviso"; "SUSPEND" -> "Suspensión"; "BAN" -> "Baneo"; "UNBAN" -> "Desbaneo"
+    "DELETE_NOTE" -> "Nota borrada"; "DELETE_COMMENT" -> "Comentario borrado"
+    "DELETE_MEETUP" -> "Quedada borrada"; else -> a
 }
 
 @Composable

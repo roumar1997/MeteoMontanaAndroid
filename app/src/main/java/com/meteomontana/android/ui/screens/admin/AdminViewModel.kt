@@ -239,17 +239,17 @@ class AdminViewModel @Inject constructor(
     }
     fun closeUserModeration() { _userMod.value = null }
 
-    fun warnUser(uid: String) {
-        viewModelScope.launch { moderationApi.warnUser(uid, null)?.let { _userMod.value = it } }
+    fun warnUser(uid: String, reason: String?) {
+        viewModelScope.launch { moderationApi.warnUser(uid, reason)?.let { _userMod.value = it } }
     }
-    fun suspendUser(uid: String, days: Int) {
-        viewModelScope.launch { moderationApi.suspendUser(uid, days)?.let { _userMod.value = it } }
+    fun suspendUser(uid: String, days: Int, reason: String?) {
+        viewModelScope.launch { moderationApi.suspendUser(uid, days, reason)?.let { _userMod.value = it } }
     }
-    fun banUser(uid: String) {
-        viewModelScope.launch { moderationApi.banUser2(uid)?.let { _userMod.value = it } }
+    fun banUser(uid: String, reason: String?) {
+        viewModelScope.launch { moderationApi.banUser2(uid, reason)?.let { _userMod.value = it } }
     }
-    fun unbanUser(uid: String) {
-        viewModelScope.launch { moderationApi.unbanUser2(uid)?.let { _userMod.value = it } }
+    fun unbanUser(uid: String, reason: String?) {
+        viewModelScope.launch { moderationApi.unbanUser2(uid, reason)?.let { _userMod.value = it } }
     }
 
     /** Denuncia de QUEDADA: eliminar la quedada denunciada (además de resolver). */

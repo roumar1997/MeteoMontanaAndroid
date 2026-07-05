@@ -37,6 +37,15 @@ data class ModReportRowDto(
     val createdAt: String? = null
 )
 
+/** Una acción de moderación ya aplicada (auditoría con motivo). */
+@Serializable
+data class ModActionRowDto(
+    val action: String,           // WARN/SUSPEND/BAN/UNBAN/DELETE_NOTE/DELETE_COMMENT
+    val reason: String? = null,
+    val snapshot: String? = null,
+    val createdAt: String? = null
+)
+
 /** Resumen de moderación de un usuario (consola de admin). */
 @Serializable
 data class UserModerationDto(
@@ -47,7 +56,8 @@ data class UserModerationDto(
     val suspendedUntil: String? = null,
     val warnings: Int = 0,
     val reportCount: Long = 0,
-    val reports: List<ModReportRowDto> = emptyList()
+    val reports: List<ModReportRowDto> = emptyList(),
+    val actions: List<ModActionRowDto> = emptyList()
 )
 
 /**
@@ -122,20 +132,33 @@ class KtorModerationApi(private val client: HttpClient) {
             }.body()
         } catch (_: Throwable) { null }
 
-    suspend fun suspendUser(uid: String, days: Int): UserModerationDto? =
+    suspend fun suspendUser(uid: String, days: Int, reason: String? = null): UserModerationDto? =
         try {
             client.post("admin/users/$uid/suspend") {
                 contentType(ContentType.Application.Json)
-                setBody(mapOf("days" to days))
+                setBody(SuspendRequest(days, reason ?: ""))
             }.body()
         } catch (_: Throwable) { null }
 
-    suspend fun banUser2(uid: String): UserModerationDto? =
-        try { client.post("admin/users/$uid/ban").body() } catch (_: Throwable) { null }
+    suspend fun banUser2(uid: String, reason: String? = null): UserModerationDto? =
+        try {
+            client.post("admin/users/$uid/ban") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("reason" to (reason ?: "")))
+            }.body()
+        } catch (_: Throwable) { null }
 
-    suspend fun unbanUser2(uid: String): UserModerationDto? =
-        try { client.post("admin/users/$uid/unban").body() } catch (_: Throwable) { null }
+    suspend fun unbanUser2(uid: String, reason: String? = null): UserModerationDto? =
+        try {
+            client.post("admin/users/$uid/unban") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("reason" to (reason ?: "")))
+            }.body()
+        } catch (_: Throwable) { null }
 }
+
+@Serializable
+private data class SuspendRequest(val days: Int, val reason: String)
 
 /** Fila de usuario para el panel de admin (STATS pulsables). */
 @Serializable
