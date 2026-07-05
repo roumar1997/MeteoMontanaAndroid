@@ -544,6 +544,8 @@ difíciles, y qué se dejó a medias.
 
 **2026-07-05 (3)** — Release **2.10.5** (vc37, build 49, EL de las tiendas — el envío con build 48 se canceló para incluirlo): botón UNIRME de quedadas FIJO abajo sin scroll (Android: anclado bajo la LazyColumn; iOS: safeAreaInset), mismo trato para AFORO COMPLETO / No Mixto; organizador/salir siguen inline.
 
+**2026-07-05 (moderación)** — Release **2.11.0** (vc39, build 51) + backend V51/V52. Consola de moderación de admin: denuncia de quedada con **ELIMINAR QUEDADA** (resolve action delete) + VER AUTOR; ficha de usuario con contador de denuncias, **AVISO / SUSPENDER 7-30d / BANEAR** (login reversible, deshabilita en Firebase Auth) + **suspensión** que bloquea crear contenido (UserModerationService.ensureCanPost en CreateNote/CreateMeetup/LineComment). **Registro auditable con MOTIVO** (V52 moderation_actions): cada acción y cada borrado de nota/comentario guarda motivo + snapshot para justificar/revocar. CRASH-FIX previo (build 50/vc38): denunciar algo ya denunciado (409) crasheaba iOS por excepción no @Throws — guard try/catch en toda KtorModerationApi/reportMeetup (idempotente). OJO BUILD: Railway hace mvnw -DskipTests package que SÍ compila tests; añadir un parámetro a un constructor de use case rompe el build si un test lo instancia (CreateMeetupUseCaseTest) — verificar con mvnw test-compile antes de push, no solo compile.
+
 **2026-07-05 (2)** — Backend: **denuncia de un ADMIN = moderación directa**
 (el comentario/nota se borra al instante, la denuncia queda resuelta como
 auditoría, sin cola ni push; USER sin acción automática). En prod.
