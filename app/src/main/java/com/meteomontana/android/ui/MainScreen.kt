@@ -168,6 +168,8 @@ fun MainScreen(
                 // Enlace de invitación a una quedada: abre su detalle (el join
                 // usará el token pendiente si lo hay).
                 "meetup" -> deepLink.targetId?.let { openSheet(Routes.meetupDetail(it)) }
+                // Push de denuncia nueva → abre el panel de admin.
+                "admin_reports" -> openFullScreen(Routes.ADMIN)
                 "submission", "contribution" -> openSheet(Routes.MY_SUBMISSIONS)
                 "notifications" -> openSheet(Routes.NOTIFICATIONS)
                 "follow_request" -> openSheet(Routes.FOLLOW_REQUESTS)

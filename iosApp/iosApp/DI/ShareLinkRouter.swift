@@ -15,7 +15,8 @@ final class ShareLinkRouter: ObservableObject {
         var viaId: String? = nil
         var meetupId: String? = nil
         var userHandle: String? = nil
-        var id: String { (school?.id ?? "") + (viaId ?? "") + (meetupId ?? "") + (userHandle ?? "") }
+        var openAdminReports: Bool = false   // push de denuncia → panel DENUNCIAS
+        var id: String { (school?.id ?? "") + (viaId ?? "") + (meetupId ?? "") + (userHandle ?? "") + (openAdminReports ? "admin" : "") }
     }
 
     @Published var target: Target? = nil

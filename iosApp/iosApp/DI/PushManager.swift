@@ -37,4 +37,34 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .badge, .sound])
     }
+
+    /// TOCAR la notificación → navegar al destino según su `targetType`
+    /// (antes no había handler: cualquier notificación abría Escuelas).
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        let info = response.notification.request.content.userInfo
+        let type = info["targetType"] as? String
+        let id = info["targetId"] as? String
+        DispatchQueue.main.async {
+            switch type {
+            case "admin_reports":
+                ShareLinkRouter.shared.target = ShareLinkRouter.Target(openAdminReports: true)
+            case "user":
+                if let id, !id.isEmpty { ShareLinkRouter.shared.target = ShareLinkRouter.Target(userHandle: id) }
+            case "meetup":
+                if let id, !id.isEmpty { ShareLinkRouter.shared.target = ShareLinkRouter.Target(meetupId: id) }
+            case "school", "school_detail":
+                if let id, !id.isEmpty {
+                    Task {
+                        if let s = try? await AppDependencies.shared.container.getSchoolById.invoke(id: id) {
+                            ShareLinkRouter.shared.target = ShareLinkRouter.Target(school: s)
+                        }
+                    }
+                }
+            default: break
+            }
+        }
+        completionHandler()
+    }
 }

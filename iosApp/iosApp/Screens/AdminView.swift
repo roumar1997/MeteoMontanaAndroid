@@ -88,6 +88,8 @@ private enum ContribFilter: String, CaseIterable {
 }
 
 struct AdminView: View {
+    /// Si viene true (desde el push de una denuncia) abre en la pestaña DENUNCIAS.
+    var openDenuncias: Bool = false
     @StateObject private var vm = AdminViewModel()
     @State private var rejecting: RejectTarget?
     @State private var filter: ContribFilter = .todas
@@ -130,6 +132,7 @@ struct AdminView: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
+        .onAppear { if openDenuncias { tab = .denuncias } }
         .navigationTitle("Admin")
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.load() }

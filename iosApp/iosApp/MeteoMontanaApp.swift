@@ -75,6 +75,9 @@ struct MeteoMontanaApp: App {
                             } else if let handle = t.userHandle {
                                 // El endpoint /api/users/{...} acepta uid o username.
                                 PublicProfileView(uid: handle)
+                            } else if t.openAdminReports {
+                                // Push de denuncia → panel de admin en DENUNCIAS.
+                                AdminView(openDenuncias: true)
                             }
                         }
                         .toolbar {
