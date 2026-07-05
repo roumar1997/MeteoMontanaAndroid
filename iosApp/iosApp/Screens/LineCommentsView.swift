@@ -105,15 +105,17 @@ struct LineCommentsThreadView: View {
                             if Auth.auth().currentUser?.uid == c.uid {
                                 Button { Task { await store.delete(commentId: c.id) } } label: {
                                     Image(systemName: "trash")
-                                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                        .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                                        .padding(10).contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                             } else {
                                 // Comentario ajeno → bandera de denuncia.
                                 Button { reportTarget = c } label: {
                                     Image(systemName: "flag")
-                                        .font(.system(size: 12))
+                                        .font(.system(size: 13))
                                         .foregroundStyle(Cumbre.ink3.opacity(0.7))
+                                        .padding(10).contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -172,7 +174,7 @@ struct LineCommentsThreadView: View {
                 Text("\(count)").font(Cumbre.mono(11, active ? .bold : .regular))
             }
             .foregroundStyle(active ? Cumbre.terra : Cumbre.ink3)
-            .padding(.horizontal, 4).padding(.vertical, 2)
+            .padding(.horizontal, 12).padding(.vertical, 9)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

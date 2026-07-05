@@ -250,6 +250,17 @@ struct PublicProfileView: View {
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            // Compartir el perfil: enlace /s/u/ que abre la app (o lleva a la store).
+            ToolbarItem(placement: .topBarTrailing) {
+                let handle = vm.profile?.username ?? uid
+                let label = vm.profile?.username.map { "@" + $0 }
+                    ?? vm.profile?.displayName ?? "este escalador"
+                ShareLink(item: URL(string: "https://api.climbingteams.com/s/u/\(handle)")!,
+                          subject: Text("Perfil de \(label) en Cumbre"),
+                          message: Text("Perfil de \(label) en Cumbre:")) {
+                    Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink2)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { showReport = true } label: {

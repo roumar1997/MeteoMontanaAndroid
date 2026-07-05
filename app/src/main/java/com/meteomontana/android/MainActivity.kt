@@ -90,6 +90,8 @@ class MainActivity : ComponentActivity() {
                         if (school != null && line != null)
                             pendingDeepLink.value = DeepLinkTarget("via", "$school|$line")
                     }
+                    // Perfil compartido: /s/u/{username o uid}.
+                    "u" -> seg.getOrNull(2)?.let { pendingDeepLink.value = DeepLinkTarget("user", it) }
                 }
                 intent.data = null   // no re-navegar en recreaciones
                 return

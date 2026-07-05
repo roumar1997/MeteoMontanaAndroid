@@ -170,11 +170,12 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
                         Icons.Outlined.Flag,
                         contentDescription = "Denunciar",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        // Zona de toque amplia (~40dp): con 15dp costaba acertar.
                         modifier = Modifier
                             .clip(RoundedCornerShape(2.dp))
                             .clickable(onClick = onReport)
-                            .padding(2.dp)
-                            .size(15.dp))
+                            .padding(11.dp)
+                            .size(18.dp))
                 }
             }
             // Voto de utilidad: tocar de nuevo tu voto lo retira.
@@ -196,7 +197,7 @@ private fun VoteChip(label: String, active: Boolean, onClick: () -> Unit) {
             .border(1.dp, if (active) terra else MaterialTheme.colorScheme.outline,
                 RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .padding(horizontal = 14.dp, vertical = 9.dp)
     ) {
         Text(label, style = MaterialTheme.typography.labelMedium,
             color = if (active) terra else MaterialTheme.colorScheme.onSurfaceVariant)

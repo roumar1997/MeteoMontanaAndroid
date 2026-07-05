@@ -72,6 +72,9 @@ struct MeteoMontanaApp: App {
                                 SchoolDetailView(school: school, openVia: t.viaId)
                             } else if let meetupId = t.meetupId {
                                 MeetupDetailView(meetupId: meetupId)
+                            } else if let handle = t.userHandle {
+                                // El endpoint /api/users/{...} acepta uid o username.
+                                PublicProfileView(uid: handle)
                             }
                         }
                         .toolbar {

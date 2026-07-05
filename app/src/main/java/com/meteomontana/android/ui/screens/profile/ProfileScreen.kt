@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Download
@@ -213,7 +214,9 @@ private fun Content(
                 onWeekendAlert = onWeekendAlert,
                 onSubmissions = onSubmissions,
                 showRequests = !profile.isPublic,
-                onOpenFollowRequests = onOpenFollowRequests
+                onOpenFollowRequests = onOpenFollowRequests,
+                shareHandle = profile.username ?: profile.uid,
+                shareLabel = profile.username?.let { "@$it" } ?: (profile.displayName ?: "mi perfil")
             )
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -402,10 +405,18 @@ private fun ProfileMenu(
     onWeekendAlert: () -> Unit,
     onSubmissions: () -> Unit,
     showRequests: Boolean,
-    onOpenFollowRequests: () -> Unit
+    onOpenFollowRequests: () -> Unit,
+    shareHandle: String? = null,
+    shareLabel: String = ""
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     Column(Modifier.fillMaxWidth()) {
+        if (shareHandle != null) {
+            MenuRow(Icons.Outlined.Share, "Compartir mi perfil") {
+                com.meteomontana.android.ui.share.shareProfile(ctx, shareHandle, shareLabel)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        }
         MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)

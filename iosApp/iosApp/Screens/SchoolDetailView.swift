@@ -2467,9 +2467,10 @@ private struct NoteRowView: View {
                 if canReport {
                     Button(action: onReport) {
                         Image(systemName: "flag")
-                            .font(.system(size: 12))
+                            .font(.system(size: 13))
                             .foregroundStyle(Cumbre.ink3.opacity(0.7))
-                            .padding(4)
+                            .padding(10)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -2486,7 +2487,7 @@ private struct NoteRowView: View {
             Text(label)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(active ? Cumbre.terra : Cumbre.ink2)
-                .padding(.horizontal, 8).padding(.vertical, 3)
+                .padding(.horizontal, 14).padding(.vertical, 9)
                 .background(active ? Cumbre.terraBg : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8)

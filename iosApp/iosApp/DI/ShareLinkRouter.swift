@@ -14,7 +14,8 @@ final class ShareLinkRouter: ObservableObject {
         var school: School? = nil
         var viaId: String? = nil
         var meetupId: String? = nil
-        var id: String { (school?.id ?? "") + (viaId ?? "") + (meetupId ?? "") }
+        var userHandle: String? = nil
+        var id: String { (school?.id ?? "") + (viaId ?? "") + (meetupId ?? "") + (userHandle ?? "") }
     }
 
     @Published var target: Target? = nil
@@ -42,6 +43,10 @@ final class ShareLinkRouter: ObservableObject {
                 .queryItems?.first(where: { $0.name == "i" })?.value
             PendingMeetupInvite.shared.set(meetupId: meetupId, token: token)
             target = Target(meetupId: meetupId)
+            return true
+        case "u":
+            // Perfil compartido: /s/u/{username o uid} — el backend acepta ambos.
+            target = Target(userHandle: seg[2])
             return true
         default:
             return false

@@ -312,6 +312,24 @@ struct AccountView: View {
 
     private var menuLinks: some View {
         VStack(spacing: 0) {
+            // Compartir mi perfil: enlace /s/u/ que abre la app o lleva a la store.
+            if let p = vm.profile {
+                let handle = (p.username?.isEmpty == false ? p.username! : p.uid)
+                let label = p.username.map { "@" + $0 } ?? (p.displayName ?? "mi perfil")
+                ShareLink(item: URL(string: "https://api.climbingteams.com/s/u/\(handle)")!,
+                          message: Text("Perfil de \(label) en Cumbre:")) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "square.and.arrow.up").font(.system(size: 16))
+                            .foregroundStyle(Cumbre.terra).frame(width: 24)
+                        Text("Compartir mi perfil").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 12))
+                            .foregroundStyle(Cumbre.ink3)
+                    }
+                    .padding(.vertical, 13).padding(.horizontal, 16)
+                }
+                Divider().overlay(Cumbre.rule)
+            }
             menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
             menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
             menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())

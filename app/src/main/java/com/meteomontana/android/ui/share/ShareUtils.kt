@@ -57,6 +57,15 @@ fun shareSchool(
     shareText(context, text, "Compartir escuela")
 }
 
+/** Comparte un perfil con su enlace /s/u/ (lo abre la app o lleva a la store). */
+fun shareProfile(context: Context, handle: String, displayLabel: String) {
+    val text = buildString {
+        append("Perfil de $displayLabel en Cumbre:\n")
+        append("https://api.climbingteams.com/s/u/$handle")
+    }
+    shareText(context, text, "Compartir perfil")
+}
+
 private fun shareText(context: Context, text: String, title: String) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"

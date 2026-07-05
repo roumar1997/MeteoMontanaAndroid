@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
@@ -166,6 +167,19 @@ fun PublicProfileScreen(
             Text("Perfil", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f))
+            // Compartir perfil (también el propio): enlace /s/u/ que abre la app.
+            val profileHandle = (state as? PublicProfileUiState.Success)?.profile
+                ?.let { it.username ?: it.uid }
+            if (profileHandle != null) {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                IconButton(onClick = {
+                    com.meteomontana.android.ui.share.shareProfile(ctx, profileHandle, profileName)
+                }) {
+                    Icon(androidx.compose.material.icons.Icons.Outlined.Share,
+                        contentDescription = "Compartir perfil",
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
+            }
             // ⋯: denunciar / bloquear (solo perfiles ajenos)
             if (profileUid != null && profileUid != myUid) {
                 androidx.compose.foundation.layout.Box {

@@ -184,8 +184,8 @@ fun LineCommentsThread(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(2.dp))
                                     .clickable { viewModel.delete(c.id) }
-                                    .padding(3.dp)
-                                    .size(16.dp))
+                                    .padding(10.dp)
+                                    .size(18.dp))
                         } else {
                             // Comentario ajeno → bandera de denuncia (discreta).
                             androidx.compose.material3.Icon(
@@ -195,8 +195,8 @@ fun LineCommentsThread(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(2.dp))
                                     .clickable { reportTarget = c }
-                                    .padding(3.dp)
-                                    .size(16.dp))
+                                    .padding(10.dp)
+                                    .size(18.dp))
                         }
                     }
                     Text(c.text, style = MaterialTheme.typography.bodyMedium,
@@ -265,7 +265,7 @@ private fun CommentVoteArrow(up: Boolean, count: Int, active: Boolean, onClick: 
         modifier = Modifier
             .clip(RoundedCornerShape(2.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 12.dp, vertical = 9.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
