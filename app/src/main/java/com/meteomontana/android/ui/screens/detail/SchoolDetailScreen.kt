@@ -286,7 +286,10 @@ private fun Content(
             }
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
-        item { NotesSection(notes = notes, onPublish = onPublishNote) }
+        item {
+            NotesSection(notes = notes, onPublish = onPublishNote,
+                onVote = { n, v -> viewModel.voteNote(n, v) })
+        }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
         // (Guardar offline movido al toolbar superior, como en iOS.)
         item {
