@@ -352,7 +352,7 @@ private struct SchoolMapSection: View {
     @State private var formCoord: CLLocationCoordinate2D?
     @State private var proposeType = "PARKING"
     @State private var showSuccess = false
-    @State private var mapStyle: MapStyleKind = .topo
+    @State private var mapStyle: MapStyleKind = .satellite  // paridad con Android
     @State private var boulderCoord: CLLocationCoordinate2D?
     // Corregir posición: seleccionar un marcador y fijar su nueva posición.
     @State private var correctionMode = false
@@ -500,30 +500,6 @@ private struct SchoolMapSection: View {
                 if ok { afterSubmit() }
             }
         }
-        .sheet(isPresented: $showTypePicker) {
-            ContributionTypePicker { type in
-                showTypePicker = false
-                switch type {
-                case "PARKING", "SECTOR", "BOULDER": proposeType = type; waitingTap = true
-                case "CORRECTION": correctionMode = true; corrActive = false; corrNew = nil
-                default: break
-                }
-            }
-        }
-        .sheet(item: coordItem) { item in
-            ContributionFormSheet(type: proposeType, schoolId: school.id, coord: item.coord) { ok in
-                formCoord = nil
-                if ok { afterSubmit() }
-            }
-        }
-        .sheet(item: boulderCoordItem) { item in
-            BoulderFormSheet(schoolId: school.id, coord: item.coord,
-                             sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
-                boulderCoord = nil
-                if ok { afterSubmit() }
-            }
-        }
-        .sheet(isPresented: $showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
         .alert("¿Eliminar «\(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
             Button("ELIMINAR", role: .destructive) {
                 guard let mb = miniBlock else { return }
@@ -629,10 +605,9 @@ private struct SchoolMapSection: View {
                             HStack {
                                 Spacer()
                                 Button {
-                                    if fullscreenMap {
-                                        fullscreenMap = false
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { showTypePicker = true }
-                                    } else { showTypePicker = true }
+                                    // Ya no salimos de pantalla completa: el selector
+                                    // se presenta desde mapArea (dentro del cover).
+                                    showTypePicker = true
                                 } label: {
                                     Text(NSLocalizedString("detail_propose", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.6)
                                         .foregroundStyle(.white)
@@ -729,6 +704,34 @@ private struct SchoolMapSection: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
+                // Sheets del flujo de PROPONER anclados al mapa: como mapArea se
+                // usa igual en tarjeta y en pantalla completa (solo hay una
+                // instancia activa a la vez), el selector/formularios se
+                // presentan en el contexto correcto SIN salir de pantalla completa.
+                .sheet(isPresented: $showTypePicker) {
+                    ContributionTypePicker { type in
+                        showTypePicker = false
+                        switch type {
+                        case "PARKING", "SECTOR", "BOULDER": proposeType = type; waitingTap = true
+                        case "CORRECTION": correctionMode = true; corrActive = false; corrNew = nil
+                        default: break
+                        }
+                    }
+                }
+                .sheet(item: coordItem) { item in
+                    ContributionFormSheet(type: proposeType, schoolId: school.id, coord: item.coord) { ok in
+                        formCoord = nil
+                        if ok { afterSubmit() }
+                    }
+                }
+                .sheet(item: boulderCoordItem) { item in
+                    BoulderFormSheet(schoolId: school.id, coord: item.coord,
+                                     sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
+                        boulderCoord = nil
+                        if ok { afterSubmit() }
+                    }
+                }
+                .sheet(isPresented: $showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
     }
 
     /// Buscador de vías/bloques (como el buscador de escuelas de la lista).
