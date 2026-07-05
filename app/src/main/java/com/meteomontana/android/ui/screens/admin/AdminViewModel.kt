@@ -239,17 +239,27 @@ class AdminViewModel @Inject constructor(
     }
     fun closeUserModeration() { _userMod.value = null }
 
+    /** Aviso de resultado de una acción de moderación (para un Toast). */
+    private val _modMsg = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val modMsg: kotlinx.coroutines.flow.StateFlow<String?> = _modMsg
+    fun clearModMsg() { _modMsg.value = null }
+
+    private fun applyModResult(res: com.meteomontana.android.data.api.UserModerationDto?, okMsg: String) {
+        if (res != null) { _userMod.value = res; _modMsg.value = okMsg }
+        else _modMsg.value = "No se pudo (revisa conexión o permisos)"
+    }
+
     fun warnUser(uid: String, reason: String?) {
-        viewModelScope.launch { moderationApi.warnUser(uid, reason)?.let { _userMod.value = it } }
+        viewModelScope.launch { applyModResult(moderationApi.warnUser(uid, reason), "Aviso enviado") }
     }
     fun suspendUser(uid: String, days: Int, reason: String?) {
-        viewModelScope.launch { moderationApi.suspendUser(uid, days, reason)?.let { _userMod.value = it } }
+        viewModelScope.launch { applyModResult(moderationApi.suspendUser(uid, days, reason), "Suspendido $days día(s)") }
     }
     fun banUser(uid: String, reason: String?) {
-        viewModelScope.launch { moderationApi.banUser2(uid, reason)?.let { _userMod.value = it } }
+        viewModelScope.launch { applyModResult(moderationApi.banUser2(uid, reason), "Cuenta baneada") }
     }
     fun unbanUser(uid: String, reason: String?) {
-        viewModelScope.launch { moderationApi.unbanUser2(uid, reason)?.let { _userMod.value = it } }
+        viewModelScope.launch { applyModResult(moderationApi.unbanUser2(uid, reason), "Baneo retirado") }
     }
 
     /** Denuncia de QUEDADA: eliminar la quedada denunciada (además de resolver). */

@@ -398,7 +398,8 @@ internal fun DenunciasTab(
     onRemoveContent: (String) -> Unit = {},
     onIgnoreContent: (String) -> Unit = {},
     onDeleteMeetup: (String) -> Unit = {},
-    onOpenAuthor: (String) -> Unit = {}
+    onOpenAuthor: (String) -> Unit = {},
+    onOpenMeetup: (String) -> Unit = {}
 ) {
     if (reports.isEmpty() && contentReports.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -435,7 +436,8 @@ internal fun DenunciasTab(
                 ReportCard(report = report, onResolve = { onResolve(report.id) },
                     onDismiss = { onDismiss(report.id) },
                     onDelete = { onDeleteMeetup(report.id) },
-                    onOpenAuthor = { report.reportedUid?.let(onOpenAuthor) })
+                    onOpenAuthor = { report.reportedUid?.let(onOpenAuthor) },
+                    onOpenMeetup = { onOpenMeetup(report.meetupId) })
                 Spacer(Modifier.height(Spacing.sm))
             }
         }
@@ -516,7 +518,8 @@ private fun ReportCard(
     onResolve: () -> Unit,
     onDismiss: () -> Unit,
     onDelete: () -> Unit = {},
-    onOpenAuthor: () -> Unit = {}
+    onOpenAuthor: () -> Unit = {},
+    onOpenMeetup: () -> Unit = {}
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
     Column(
@@ -566,7 +569,20 @@ private fun ReportCard(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        // Acción principal: ELIMINAR la quedada denunciada (con confirmación).
+        // Ver la quedada ENTERA (nombre, escuela, participantes) para juzgar
+        // por qué la denunciaron antes de decidir.
+        Box(Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(2.dp))
+            .background(com.meteomontana.android.ui.theme.Terra)
+            .clickable(onClick = onOpenMeetup)
+            .padding(vertical = Spacing.sm),
+            contentAlignment = Alignment.Center) {
+            Text("VER QUEDADA ▸",
+                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = Color.White)
+        }
+        Spacer(Modifier.height(Spacing.xs))
+        // Acción: ELIMINAR la quedada denunciada (con confirmación).
         Box(Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(2.dp))
             .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))

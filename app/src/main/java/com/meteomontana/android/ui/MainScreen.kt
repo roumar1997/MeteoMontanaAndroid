@@ -270,67 +270,67 @@ fun MainScreen(
                                 ) { content() }
                             }
                         }
-                        tabContainer(Tab.Weather.route) {
-                    WeatherScreen(
-                        onDayClick = { schoolId, lat, lon, idx ->
-                            if (schoolId != null) openSheet(Routes.dayDetail(schoolId, idx))
-                            else openSheet(Routes.dayDetailByLocation(lat, lon, idx))
-                        }
-                    )
+                        tabContainer(Tab.Weather.route) {
+                    WeatherScreen(
+                        onDayClick = { schoolId, lat, lon, idx ->
+                            if (schoolId != null) openSheet(Routes.dayDetail(schoolId, idx))
+                            else openSheet(Routes.dayDetailByLocation(lat, lon, idx))
+                        }
+                    )
                 }
-                        tabContainer(Tab.Schools.route) {
-                    SchoolListScreen(
+                        tabContainer(Tab.Schools.route) {
+                    SchoolListScreen(
                         onSchoolClick = { id -> navController.navigate(Routes.schoolDetail(id)) },
                         onViaHit = { schoolId, viaId, viaName ->
                             navController.navigate(Routes.schoolDetail(schoolId, via = viaName, viaId = viaId))
-                        },
-                        onProfileClick = { openSheet(Routes.PROFILE) },
-                        onSubmitSchool = { openSheet(Routes.SUBMIT_SCHOOL) },
-                        onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
-                        onNotifications = { openSheet(Routes.NOTIFICATIONS) },
-                        onChats = { openSheet(Routes.CHAT_LIST) },
-                        onCompare = { ids -> openSheet(Routes.compare(ids)) }
-                    )
+                        },
+                        onProfileClick = { openSheet(Routes.PROFILE) },
+                        onSubmitSchool = { openSheet(Routes.SUBMIT_SCHOOL) },
+                        onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
+                        onNotifications = { openSheet(Routes.NOTIFICATIONS) },
+                        onChats = { openSheet(Routes.CHAT_LIST) },
+                        onCompare = { ids -> openSheet(Routes.compare(ids)) }
+                    )
                 }
-                        tabContainer(Tab.Radar.route) {
-                    RadarScreen(onSchoolDetail = { id -> navController.navigate(Routes.schoolDetail(id)) })
+                        tabContainer(Tab.Radar.route) {
+                    RadarScreen(onSchoolDetail = { id -> navController.navigate(Routes.schoolDetail(id)) })
                 }
-                        tabContainer(Tab.Profile.route) {
-                    // Perfil como pestaña: mismo contenido que el sheet, pero sin CERRAR.
-                    com.meteomontana.android.ui.screens.profile.ProfileScreen(
-                        onBack = {},
-                        showClose = false,
-                        onEdit = { openSheet(Routes.EDIT_PROFILE) },
-                        onSubmissions = { openSheet(Routes.MY_SUBMISSIONS) },
-                        onAdmin = { openFullScreen(Routes.ADMIN) },
-                        onSavedSchools = { openSheet(Routes.SAVED_SCHOOLS) },
-                        onWeekendAlert = { openSheet(Routes.WEEKEND_ALERT) },
-                        onOpenFollowers = {
-                            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-                                openSheet(Routes.followList(uid, "followers"))
-                            }
-                        },
-                        onOpenFollowing = {
-                            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-                                openSheet(Routes.followList(uid, "following"))
-                            }
-                        },
-                        onOpenFollowRequests = { openSheet(Routes.FOLLOW_REQUESTS) },
-                        onOpenSchoolEntries = { schoolName -> openSheet(Routes.journalSectors(schoolName)) },
-                        onOpenBoulders = { openSheet(Routes.journalEntries("discipline:BOULDER")) },
-                        onOpenRoutes = { openSheet(Routes.journalEntries("discipline:ROUTE")) },
-                        onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
-                        onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
-                        onOpenProjects = { openSheet(Routes.projects(null)) }
-                    )
+                        tabContainer(Tab.Profile.route) {
+                    // Perfil como pestaña: mismo contenido que el sheet, pero sin CERRAR.
+                    com.meteomontana.android.ui.screens.profile.ProfileScreen(
+                        onBack = {},
+                        showClose = false,
+                        onEdit = { openSheet(Routes.EDIT_PROFILE) },
+                        onSubmissions = { openSheet(Routes.MY_SUBMISSIONS) },
+                        onAdmin = { openFullScreen(Routes.ADMIN) },
+                        onSavedSchools = { openSheet(Routes.SAVED_SCHOOLS) },
+                        onWeekendAlert = { openSheet(Routes.WEEKEND_ALERT) },
+                        onOpenFollowers = {
+                            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                                openSheet(Routes.followList(uid, "followers"))
+                            }
+                        },
+                        onOpenFollowing = {
+                            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                                openSheet(Routes.followList(uid, "following"))
+                            }
+                        },
+                        onOpenFollowRequests = { openSheet(Routes.FOLLOW_REQUESTS) },
+                        onOpenSchoolEntries = { schoolName -> openSheet(Routes.journalSectors(schoolName)) },
+                        onOpenBoulders = { openSheet(Routes.journalEntries("discipline:BOULDER")) },
+                        onOpenRoutes = { openSheet(Routes.journalEntries("discipline:ROUTE")) },
+                        onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
+                        onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
+                        onOpenProjects = { openSheet(Routes.projects(null)) }
+                    )
                 }
-                        tabContainer(Tab.Meetups.route) {
-                    MeetupsScreen(
-                        onMeetupClick = { id -> openSheet(Routes.meetupDetail(id)) },
-                        onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
-                        onCreateMeetup = { openSheet(Routes.CREATE_MEETUP) },
-                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) }
-                    )
+                        tabContainer(Tab.Meetups.route) {
+                    MeetupsScreen(
+                        onMeetupClick = { id -> openSheet(Routes.meetupDetail(id)) },
+                        onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
+                        onCreateMeetup = { openSheet(Routes.CREATE_MEETUP) },
+                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) }
+                    )
                 }
                     }
                 }
@@ -353,7 +353,8 @@ fun MainScreen(
                 composable(Routes.ADMIN) {
                     AdminScreen(onBack = { navController.popBackStack() },
                         onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) },
-                        onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) })
+                        onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
+                        onOpenMeetup = { id -> openSheet(Routes.meetupDetail(id)) })
                 }
                 composable(
                     route = Routes.TOPO_EDITOR,

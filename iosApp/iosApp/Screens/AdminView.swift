@@ -1266,11 +1266,13 @@ private struct BlockManageSheet: View {
 
 // MARK: - Tab DENUNCIAS (contenido + quedadas) — espejo de DenunciasTab.kt
 private struct ModTarget: Identifiable { let id = UUID(); let uid: String }
+private struct MeetupTarget: Identifiable { let id = UUID(); let meetupId: String }
 
 private struct AdminReportsTab: View {
     @State private var contentReports: [ContentReportDto] = []
     @State private var meetupReports: [MeetupReport] = []
     @State private var modTarget: ModTarget? = nil
+    @State private var meetupTarget: MeetupTarget? = nil
 
     var body: some View {
         ScrollView {
@@ -1302,6 +1304,17 @@ private struct AdminReportsTab: View {
         .task { await load() }
         .sheet(item: $modTarget) { t in
             UserModerationSheet(uid: t.uid)
+        }
+        .fullScreenCover(item: $meetupTarget) { t in
+            NavigationStack {
+                MeetupDetailView(meetupId: t.meetupId)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("CERRAR") { meetupTarget = nil }
+                                .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                    }
+            }
         }
     }
 
@@ -1370,6 +1383,13 @@ private struct AdminReportsTab: View {
             if let ctx = r.context, !ctx.isEmpty {
                 Text(ctx).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
             }
+            // Ver la quedada entera para juzgar por qué la denunciaron.
+            Button { meetupTarget = MeetupTarget(meetupId: r.meetupId) } label: {
+                Text("VER QUEDADA ▸").font(Cumbre.mono(11, .bold)).tracking(0.5)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity).padding(.vertical, 9)
+                    .background(Cumbre.terra)
+            }.buttonStyle(.plain)
             // Acción principal: ELIMINAR la quedada denunciada.
             Button { resolveMeetup(r.id, "delete") } label: {
                 Text("ELIMINAR QUEDADA").font(Cumbre.mono(11, .bold)).tracking(0.5)

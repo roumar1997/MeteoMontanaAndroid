@@ -109,6 +109,8 @@ fun AdminScreen(
     onOpenSchool: (String) -> Unit = {},
     /** STATS: abre el perfil público de un usuario. */
     onOpenUser: (String) -> Unit = {},
+    /** DENUNCIAS: abre la ficha completa de una quedada para juzgarla. */
+    onOpenMeetup: (String) -> Unit = {},
     viewModel: AdminViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -181,7 +183,8 @@ fun AdminScreen(
                 onRemoveContent = { id -> viewModel.resolveContentReport(id, "REMOVE") },
                 onIgnoreContent = { id -> viewModel.resolveContentReport(id, "IGNORE") },
                 onDeleteMeetup = { id -> viewModel.deleteReportedMeetup(id) },
-                onOpenAuthor = { uid -> viewModel.openUserModeration(uid) }
+                onOpenAuthor = { uid -> viewModel.openUserModeration(uid) },
+                onOpenMeetup = onOpenMeetup
             )
             AdminTab.Stats -> StatsTab(
                 stats = state.stats,
@@ -208,6 +211,16 @@ fun AdminScreen(
                 result = state.pushResult,
                 onSend = viewModel::sendPush
             )
+        }
+    }
+
+    // Aviso (Toast) tras una acción de moderación.
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val modMsg by viewModel.modMsg.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(modMsg) {
+        modMsg?.let {
+            android.widget.Toast.makeText(ctx, it, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.clearModMsg()
         }
     }
 
