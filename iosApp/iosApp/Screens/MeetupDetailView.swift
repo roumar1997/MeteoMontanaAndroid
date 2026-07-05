@@ -372,7 +372,7 @@ struct MeetupDetailView: View {
 
                             Divider()
 
-                            // ── Join/leave/delete ──
+                            // ── Organizador / salir (UNIRME va FIJO abajo, sin scroll) ──
                             Group {
                                 if isCreator {
                                     VStack(spacing: 8) {
@@ -403,46 +403,6 @@ struct MeetupDetailView: View {
                                     }
                                     .buttonStyle(.bordered)
                                     .disabled(vm.leaving)
-                                    .padding(16)
-                                } else if meetup.isFull {
-                                    Text("AFORO COMPLETO")
-                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                        .tracking(1.8)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(Cumbre.ink.opacity(0.06))
-                                        .foregroundColor(Cumbre.ink.opacity(0.5))
-                                        .clipShape(RoundedRectangle(cornerRadius: 2))
-                                        .padding(16)
-                                } else if meetup.privacy == "WOMEN" && myGender != "WOMAN" {
-                                    VStack(spacing: 6) {
-                                        Image(systemName: "lock.fill").foregroundColor(Cumbre.ink.opacity(0.4))
-                                        Text("Esta quedada es No Mixto")
-                                            .font(.subheadline).fontWeight(.medium)
-                                        Text("Para unirte necesitas indicar tu genero como Mujer en tu perfil (Perfil > Editar perfil > Genero).")
-                                            .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
-                                            .multilineTextAlignment(.center)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(16)
-                                } else {
-                                    Button {
-                                        Task { await vm.join(id: meetupId) }
-                                    } label: {
-                                        HStack {
-                                            if vm.joining { ProgressView().scaleEffect(0.7).tint(.white) }
-                                            else {
-                                                Text(NSLocalizedString("meetup_detail_join", comment: ""))
-                                                    .font(.system(size: 13, weight: .bold))
-                                            }
-                                        }
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 12)
-                                        .background(Cumbre.terra)
-                                        .clipShape(RoundedRectangle(cornerRadius: 2))
-                                    }
-                                    .disabled(vm.joining)
                                     .padding(16)
                                 }
                             }
@@ -478,6 +438,56 @@ struct MeetupDetailView: View {
                             }
 
                             Spacer(minLength: 80)
+                        }
+                    }
+                    // ── UNIRME fijo (siempre visible al llegar por invitación) ──
+                    .safeAreaInset(edge: .bottom) {
+                        if !isCreator && !meetup.joined {
+                            VStack(spacing: 0) {
+                                Divider().overlay(Cumbre.rule)
+                                Group {
+                                    if meetup.isFull {
+                                        Text("AFORO COMPLETO")
+                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                            .tracking(1.8)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                            .background(Cumbre.ink.opacity(0.06))
+                                            .foregroundColor(Cumbre.ink.opacity(0.5))
+                                            .clipShape(RoundedRectangle(cornerRadius: 2))
+                                    } else if meetup.privacy == "WOMEN" && myGender != "WOMAN" {
+                                        VStack(spacing: 6) {
+                                            Image(systemName: "lock.fill").foregroundColor(Cumbre.ink.opacity(0.4))
+                                            Text("Esta quedada es No Mixto")
+                                                .font(.subheadline).fontWeight(.medium)
+                                            Text("Para unirte necesitas indicar tu genero como Mujer en tu perfil (Perfil > Editar perfil > Genero).")
+                                                .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
+                                                .multilineTextAlignment(.center)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                    } else {
+                                        Button {
+                                            Task { await vm.join(id: meetupId) }
+                                        } label: {
+                                            HStack {
+                                                if vm.joining { ProgressView().scaleEffect(0.7).tint(.white) }
+                                                else {
+                                                    Text(NSLocalizedString("meetup_detail_join", comment: ""))
+                                                        .font(.system(size: 13, weight: .bold))
+                                                }
+                                            }
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                            .background(Cumbre.terra)
+                                            .clipShape(RoundedRectangle(cornerRadius: 2))
+                                        }
+                                        .disabled(vm.joining)
+                                    }
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 10)
+                            }
+                            .background(Cumbre.bg)
                         }
                     }
                 }

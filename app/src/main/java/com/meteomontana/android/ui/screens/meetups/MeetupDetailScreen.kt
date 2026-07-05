@@ -229,7 +229,8 @@ fun MeetupDetailScreen(
                 val meetup = state.meetup!!
                 val isCreator = meetup.creatorUid == myUid
 
-                LazyColumn {
+                Column(Modifier.fillMaxSize()) {
+                LazyColumn(Modifier.weight(1f)) {
                     // Foto
                     if (meetup.photoUrl != null) {
                         item {
@@ -393,49 +394,27 @@ fun MeetupDetailScreen(
                         )
                     }
 
-                    // ── Unirse / salir ──
-                    item {
+                    // ── Organizador / salir (unirse va FIJO abajo, sin scroll) ──
+                    if (isCreator || meetup.joined) item {
                         HorizontalDivider()
                         Box(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-                            when {
-                                isCreator -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                    Text("Eres el organizador",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    OutlinedButton(
-                                        onClick = { showDeleteConfirm = true },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.error),
-                                        border = androidx.compose.foundation.BorderStroke(
-                                            1.dp, MaterialTheme.colorScheme.error),
-                                        shape = RoundedCornerShape(2.dp)
-                                    ) { Text(stringResource(R.string.meetup_detail_delete).uppercase()) }
-                                }
-                                meetup.joined -> OutlinedButton(onClick = { showLeaveConfirm = true },
-                                    enabled = !state.leaving, modifier = Modifier.fillMaxWidth()) {
-                                    if (state.leaving) CircularProgressIndicator(Modifier.size(16.dp))
-                                    else Text(stringResource(R.string.meetup_detail_leave))
-                                }
-                                meetup.isFull -> Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant).padding(Spacing.sm),
-                                    contentAlignment = Alignment.Center) {
-                                    Text("AFORO COMPLETO", style = EyebrowTextStyle,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                meetup.privacy == "WOMEN" && viewModel.myGender.collectAsState().value != "WOMAN" -> {
-                                    Text("Solo pueden unirse personas con género Mujer en su perfil.\nVe a Perfil → Editar perfil → Género.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                else -> Button(onClick = { viewModel.join(meetupId) }, enabled = !state.joining,
+                            if (isCreator) Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Text("Eres el organizador",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                OutlinedButton(
+                                    onClick = { showDeleteConfirm = true },
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                    shape = RoundedCornerShape(2.dp)) {
-                                    if (state.joining) CircularProgressIndicator(Modifier.size(16.dp),
-                                        color = MaterialTheme.colorScheme.onPrimary)
-                                    else Text(stringResource(R.string.meetup_detail_join))
-                                }
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp, MaterialTheme.colorScheme.error),
+                                    shape = RoundedCornerShape(2.dp)
+                                ) { Text(stringResource(R.string.meetup_detail_delete).uppercase()) }
+                            } else OutlinedButton(onClick = { showLeaveConfirm = true },
+                                enabled = !state.leaving, modifier = Modifier.fillMaxWidth()) {
+                                if (state.leaving) CircularProgressIndicator(Modifier.size(16.dp))
+                                else Text(stringResource(R.string.meetup_detail_leave))
                             }
                         }
                     }
@@ -461,6 +440,37 @@ fun MeetupDetailScreen(
                         HorizontalDivider()
                     }
                     item { Spacer(Modifier.height(80.dp)) }
+                }
+                // ── UNIRME fijo (siempre visible, sin scroll) ──
+                if (!isCreator && !meetup.joined) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    Box(Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+                        when {
+                            meetup.isFull -> Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant).padding(Spacing.sm),
+                                contentAlignment = Alignment.Center) {
+                                Text("AFORO COMPLETO", style = EyebrowTextStyle,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            meetup.privacy == "WOMEN" && viewModel.myGender.collectAsState().value != "WOMAN" -> {
+                                Text("Solo pueden unirse personas con género Mujer en su perfil.\nVe a Perfil → Editar perfil → Género.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            else -> Button(onClick = { viewModel.join(meetupId) }, enabled = !state.joining,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(2.dp)) {
+                                if (state.joining) CircularProgressIndicator(Modifier.size(16.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary)
+                                else Text(stringResource(R.string.meetup_detail_join))
+                            }
+                        }
+                    }
+                }
                 }
             }
         }
