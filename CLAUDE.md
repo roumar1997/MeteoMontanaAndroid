@@ -542,6 +542,8 @@ Registro terso por sesión — el detalle línea a línea vive en `git log`. Sol
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
 
+**2026-07-05 (3)** — Release **2.10.5** (vc37, build 49, EL de las tiendas — el envío con build 48 se canceló para incluirlo): botón UNIRME de quedadas FIJO abajo sin scroll (Android: anclado bajo la LazyColumn; iOS: safeAreaInset), mismo trato para AFORO COMPLETO / No Mixto; organizador/salir siguen inline.
+
 **2026-07-05 (2)** — Backend: **denuncia de un ADMIN = moderación directa**
 (el comentario/nota se borra al instante, la denuncia queda resuelta como
 auditoría, sin cola ni push; USER sin acción automática). En prod.
