@@ -73,11 +73,18 @@ class KtorMeetupApi(private val client: HttpClient) {
             setBody(mapOf("gearJson" to gearJson))
         }.body()
 
+    // Denunciar es idempotente de cara al usuario: si ya la denunció el backend
+    // responde 409 y Ktor (expectSuccess) lanza. Esa excepción NO declarada
+    // @Throws CRASHEA iOS (Kotlin/Native aborta al cruzar a Swift) y en Android
+    // caía en un catch mudo ("no pasa nada"). La tragamos: denunciar dos veces
+    // = ya está denunciado, se muestra la misma confirmación.
     suspend fun reportMeetup(meetupId: String, req: ReportRequestDto) {
-        client.post("meetups/$meetupId/report") {
-            contentType(ContentType.Application.Json)
-            setBody(req)
-        }
+        try {
+            client.post("meetups/$meetupId/report") {
+                contentType(ContentType.Application.Json)
+                setBody(req)
+            }
+        } catch (_: Throwable) { /* ya denunciada / sin red: idempotente */ }
     }
 
     // OJO: si el usuario NO tiene alerta configurada, el backend devuelve un

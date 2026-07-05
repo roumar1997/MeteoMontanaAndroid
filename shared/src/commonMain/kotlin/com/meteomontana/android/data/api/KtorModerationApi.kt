@@ -34,36 +34,56 @@ data class ReportRequest(val targetType: String, val targetId: String, val reaso
  */
 class KtorModerationApi(private val client: HttpClient) {
 
+    // OJO Kotlin/Native: con expectSuccess=true, un 409 (ya denunciado / ya
+    // bloqueado) lanza una excepción NO declarada @Throws → CRASHEA iOS al
+    // cruzar a Swift (y en Android caía en un catch mudo). Todas estas
+    // acciones son idempotentes, así que tragamos el error: denunciar/bloquear
+    // dos veces = ya estaba hecho.
     suspend fun report(targetType: String, targetId: String, reason: String) {
-        client.post("reports") {
-            contentType(ContentType.Application.Json)
-            setBody(ReportRequest(targetType, targetId, reason))
-        }
+        try {
+            client.post("reports") {
+                contentType(ContentType.Application.Json)
+                setBody(ReportRequest(targetType, targetId, reason))
+            }
+        } catch (_: Throwable) { /* ya denunciado / sin red: idempotente */ }
     }
 
-    suspend fun blockUser(uid: String) { client.post("users/$uid/block") }
+    suspend fun blockUser(uid: String) {
+        try { client.post("users/$uid/block") } catch (_: Throwable) {}
+    }
 
-    suspend fun unblockUser(uid: String) { client.delete("users/$uid/block") }
+    suspend fun unblockUser(uid: String) {
+        try { client.delete("users/$uid/block") } catch (_: Throwable) {}
+    }
 
     /** Uids que tengo bloqueados (para pintar "Desbloquear" y filtrar en local). */
-    suspend fun getBlocked(): Set<String> = client.get("me/blocked").body()
+    suspend fun getBlocked(): Set<String> =
+        try { client.get("me/blocked").body() } catch (_: Throwable) { emptySet() }
 
     // ── Admin ────────────────────────────────────────────────────────────
 
     suspend fun getContentReports(): List<ContentReportDto> =
-        client.get("admin/content-reports").body()
+        try { client.get("admin/content-reports").body() } catch (_: Throwable) { emptyList() }
 
-    /** action: REMOVE (borra el contenido) / IGNORE. */
-    suspend fun resolveContentReport(id: String, action: String): ContentReportDto =
-        client.post("admin/content-reports/$id/resolve") {
-            contentType(ContentType.Application.Json)
-            setBody(mapOf("action" to action))
-        }.body()
+    /**
+     * action: REMOVE (borra el contenido) / IGNORE. Devuelve null si el backend
+     * falla (p.ej. ya resuelta) en vez de crashear iOS; el caller la quita de
+     * la lista igual.
+     */
+    suspend fun resolveContentReport(id: String, action: String): ContentReportDto? =
+        try {
+            client.post("admin/content-reports/$id/resolve") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("action" to action))
+            }.body()
+        } catch (_: Throwable) { null }
 
     /** Listas del panel de admin (STATS pulsables). */
-    suspend fun getAdminUsers(): List<AdminUserRowDto> = client.get("admin/users").body()
+    suspend fun getAdminUsers(): List<AdminUserRowDto> =
+        try { client.get("admin/users").body() } catch (_: Throwable) { emptyList() }
 
-    suspend fun getAdminNotes(): List<AdminNoteRowDto> = client.get("admin/notes").body()
+    suspend fun getAdminNotes(): List<AdminNoteRowDto> =
+        try { client.get("admin/notes").body() } catch (_: Throwable) { emptyList() }
 }
 
 /** Fila de usuario para el panel de admin (STATS pulsables). */
