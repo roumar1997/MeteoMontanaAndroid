@@ -355,7 +355,15 @@ struct BoulderFormSheet: View {
         var photoByFace: [UUID: String?] = [:]
         for (i, face) in faces.enumerated() {
             if let photo = face.photo {
-                photoByFace[face.id] = try? await StorageUploader.uploadBoulderPhoto(photo, schoolId: schoolId, index: i)
+                // Si la subida falla NO seguimos: antes se ponía nil en silencio y
+                // esa cara se colapsaba en la FOTO 1 con las demás. Mejor abortar
+                // y que el usuario reintente, sin mezclar caras.
+                guard let url = try? await StorageUploader.uploadBoulderPhoto(photo, schoolId: schoolId, index: i) else {
+                    sending = false
+                    sendError = "No se pudo subir la foto \(i + 1). Revisa la conexión y reinténtalo (si no, las caras se mezclarían en una sola)."
+                    return
+                }
+                photoByFace[face.id] = url
             } else {
                 photoByFace[face.id] = nil
             }
@@ -1003,9 +1011,13 @@ struct EditLinesSheet: View {
         //    marca esas caras como "foto cambiada".
         var newFacePhoto: [Int: String] = [:]
         for (i, img) in facePicked {
-            if let url = try? await StorageUploader.uploadBoulderPhoto(img, schoolId: schoolId, index: i) {
-                newFacePhoto[i] = url
+            // No seguir si una foto cambiada no sube (evita mezclar caras).
+            guard let url = try? await StorageUploader.uploadBoulderPhoto(img, schoolId: schoolId, index: i) else {
+                sending = false
+                sendError = "No se pudo subir la foto \(i + 1). Revisa la conexión y reinténtalo."
+                return
             }
+            newFacePhoto[i] = url
         }
         // 2) Construye el payload por cara. Si la cara cambió de foto, se envían
         //    TODAS sus vías (existentes como corrección + nuevas) con la foto nueva

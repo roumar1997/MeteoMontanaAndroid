@@ -498,12 +498,20 @@ internal fun AddLinesFlow(
                             scope.launch {
                                 // 1) Sube la foto nueva de las caras que se cambiaron.
                                 val urlByFace = HashMap<Int, String>()
+                                var uploadFailed = -1
                                 faces.forEachIndexed { i, f ->
                                     val uri = f.newPhotoUri
-                                    if (uri != null) {
-                                        viewModel.uploadBoulderPhoto(FileRef(uri.toString()))
-                                            .getOrNull()?.let { urlByFace[i] = it }
+                                    if (uri != null && uploadFailed < 0) {
+                                        val url = viewModel.uploadBoulderPhoto(FileRef(uri.toString())).getOrNull()
+                                        if (url == null) uploadFailed = i else urlByFace[i] = url
                                     }
+                                }
+                                // Si una foto no subió NO seguimos: antes esa cara quedaba
+                                // sin foto y se colapsaba en la FOTO 1 con las demás.
+                                if (uploadFailed >= 0) {
+                                    error = "No se pudo subir la foto ${uploadFailed + 1}. Revisa la conexión y reinténtalo (si no, las caras se mezclarían en una sola)."
+                                    sending = false
+                                    return@launch
                                 }
                                 // 2) Estado COMPLETO: todas las vías en su orden, cada una
                                 //    con la foto de su cara. Se omiten solo las filas NUEVAS
