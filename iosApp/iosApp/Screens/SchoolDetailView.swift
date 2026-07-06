@@ -459,47 +459,6 @@ private struct SchoolMapSection: View {
         .task {
             isAdmin = ((try? await AppDependencies.shared.container.getMyProfile.invoke())?.isAdmin) ?? false
         }
-        .sheet(item: $selectedBlock) { b in
-            BlockInfoSheet(
-                block: b,
-                sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
-                schoolName: school.name,
-                highlightVia: searchHighlight ?? openVia,
-                onEditLines: { editLinesBlock = b },
-                onAssignSector: { assignSectorBlock = b },
-                onDelete: isAdmin ? {
-                    let id = b.id
-                    selectedBlock = nil
-                    Task {
-                        try? await AppDependencies.shared.container.deleteBlock.invoke(blockId: id)
-                        await reloadBlocks()
-                    }
-                } : nil,
-                onRateLine: { lineId, stars in
-                    Task {
-                        let rateLine = AppDependencies.shared.container.rateLine
-                        if stars > 0 {
-                            _ = try? await rateLine.rate(blockId: b.id, lineId: lineId, stars: Int32(stars))
-                        } else {
-                            _ = try? await rateLine.unrate(blockId: b.id, lineId: lineId)
-                        }
-                        await reloadBlocks()
-                    }
-                })
-        }
-        .sheet(item: $editLinesBlock) { b in
-            EditLinesSheet(block: b, schoolId: school.id, focusVia: openVia) { ok in
-                editLinesBlock = nil
-                if ok { afterSubmit() }
-            }
-        }
-        .sheet(item: $assignSectorBlock) { b in
-            AssignSectorSheet(block: b, schoolId: school.id,
-                              sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
-                assignSectorBlock = nil
-                if ok { afterSubmit() }
-            }
-        }
         .alert("¿Eliminar «\(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
             Button("ELIMINAR", role: .destructive) {
                 guard let mb = miniBlock else { return }
@@ -732,6 +691,49 @@ private struct SchoolMapSection: View {
                     }
                 }
                 .sheet(isPresented: $showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
+                // Ficha de piedra y sus acciones — también ancladas al mapa para
+                // que se presenten sobre la pantalla completa sin tener que salir.
+                .sheet(item: $selectedBlock) { b in
+                    BlockInfoSheet(
+                        block: b,
+                        sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
+                        schoolName: school.name,
+                        highlightVia: searchHighlight ?? openVia,
+                        onEditLines: { editLinesBlock = b },
+                        onAssignSector: { assignSectorBlock = b },
+                        onDelete: isAdmin ? {
+                            let id = b.id
+                            selectedBlock = nil
+                            Task {
+                                try? await AppDependencies.shared.container.deleteBlock.invoke(blockId: id)
+                                await reloadBlocks()
+                            }
+                        } : nil,
+                        onRateLine: { lineId, stars in
+                            Task {
+                                let rateLine = AppDependencies.shared.container.rateLine
+                                if stars > 0 {
+                                    _ = try? await rateLine.rate(blockId: b.id, lineId: lineId, stars: Int32(stars))
+                                } else {
+                                    _ = try? await rateLine.unrate(blockId: b.id, lineId: lineId)
+                                }
+                                await reloadBlocks()
+                            }
+                        })
+                }
+                .sheet(item: $editLinesBlock) { b in
+                    EditLinesSheet(block: b, schoolId: school.id, focusVia: openVia) { ok in
+                        editLinesBlock = nil
+                        if ok { afterSubmit() }
+                    }
+                }
+                .sheet(item: $assignSectorBlock) { b in
+                    AssignSectorSheet(block: b, schoolId: school.id,
+                                      sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
+                        assignSectorBlock = nil
+                        if ok { afterSubmit() }
+                    }
+                }
     }
 
     /// Buscador de vías/bloques (como el buscador de escuelas de la lista).
@@ -853,16 +855,10 @@ private struct SchoolMapSection: View {
             .clipShape(Circle())
     }
 
-    /// Abre la ficha de una piedra; si estamos en pantalla completa, primero
-    /// cierra el cover (los sheets de la vista de debajo no pueden presentarse
-    /// mientras hay un fullScreenCover delante).
+    /// Abre la ficha de una piedra. Ya NO sale de pantalla completa: el sheet
+    /// cuelga de mapArea, así que se presenta sobre el cover.
     private func openBlockSheet(_ b: Block) {
-        if fullscreenMap {
-            fullscreenMap = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { selectedBlock = b }
-        } else {
-            selectedBlock = b
-        }
+        selectedBlock = b
     }
 
     private func afterSubmit() {
