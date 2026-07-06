@@ -21,11 +21,19 @@ enum StorageUploader {
     /// límite de tamaño de las reglas de Storage y la subida se DENIEGA — pasaba
     /// con la 2ª foto de una piedra multi-cara aunque hubiera 5G.
     private static func downscaled(_ image: UIImage, maxDimension: CGFloat = 2048) -> UIImage {
-        let longSide = max(image.size.width, image.size.height)
+        // OJO: image.size está en PUNTOS y UIGraphicsImageRenderer usa por defecto
+        // la escala del dispositivo (2x/3x), así que sin forzar scale=1 el
+        // resultado salía a 2048×3 px → MÁS grande → seguía pasando el límite de
+        // 5 MB de Storage. Trabajamos en píxeles reales y con scale=1.
+        let pxW = image.size.width * image.scale
+        let pxH = image.size.height * image.scale
+        let longSide = max(pxW, pxH)
         guard longSide > maxDimension else { return image }
-        let scale = maxDimension / longSide
-        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let ratio = maxDimension / longSide
+        let newSize = CGSize(width: pxW * ratio, height: pxH * ratio)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
         return renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
     }
 
