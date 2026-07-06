@@ -16,9 +16,22 @@ import UIKit
 enum StorageUploader {
     enum UploadError: Error { case notAuthenticated, encode }
 
+    /// Reduce la imagen a `maxDimension` px en su lado largo (nunca amplía). Sin
+    /// esto, una foto del móvil a resolución completa (12MP, varios MB) supera el
+    /// límite de tamaño de las reglas de Storage y la subida se DENIEGA — pasaba
+    /// con la 2ª foto de una piedra multi-cara aunque hubiera 5G.
+    private static func downscaled(_ image: UIImage, maxDimension: CGFloat = 2048) -> UIImage {
+        let longSide = max(image.size.width, image.size.height)
+        guard longSide > maxDimension else { return image }
+        let scale = maxDimension / longSide
+        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: newSize)) }
+    }
+
     /// Sube un JPEG comprimido a `path` y devuelve la URL de descarga.
     static func uploadJPEG(_ image: UIImage, path: String, quality: CGFloat = 0.8) async throws -> String {
-        guard let data = image.jpegData(compressionQuality: quality) else {
+        guard let data = downscaled(image).jpegData(compressionQuality: quality) else {
             throw UploadError.encode
         }
         let ref = Storage.storage().reference().child(path)
