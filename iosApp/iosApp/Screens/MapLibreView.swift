@@ -121,6 +121,12 @@ struct MapLibreView: UIViewRepresentable {
     /// del fitBounds de Android al cambiar filtros). El primer encuadre no se
     /// fuerza (se respeta el centrado inicial en el usuario).
     var autoFitToMarkers: Bool = false
+    /// Si true, re-encuadra SIEMPRE que cambie el conjunto de ids (crezca O
+    /// encoja). Lo activa la LISTA de escuelas: al BAJAR el radio de distancia el
+    /// conjunto es un subconjunto de lo ya visto y, con la lógica normal (solo
+    /// ids nuevos), el mapa no encogía el zoom. Los mapas de DETALLE lo dejan en
+    /// false: ahí ocultar una capa (subconjunto) NO debe pegar saltos de zoom.
+    var refitOnAnyChange: Bool = false
     /// Notifica el nivel de zoom actual (para mostrar/ocultar etiquetas).
     var onZoomChange: ((Double) -> Void)? = nil
     /// Notifica centro+zoom al moverse (para restaurar la cámara si el view se recrea).
@@ -304,13 +310,30 @@ struct MapLibreView: UIViewRepresentable {
             // apply ni con cambio de estilo: ahí respetamos el centrado inicial).
             guard parent.autoFitToMarkers else { return }
             let ids = Set(markers.filter { $0.id != "__USER__" }.map { $0.id })
-            if force { lastFittedIds.formUnion(ids); return }
-            // Solo re-encuadra si hay ids NUNCA VISTOS (llegaron datos nuevos).
-            // Ocultar/mostrar una capa (subconjunto de lo ya visto) no debe
-            // pegar saltos de zoom.
-            if !ids.subtracting(lastFittedIds).isEmpty {
-                lastFittedIds.formUnion(ids)
-                fit(map, to: markers.filter { $0.id != "__USER__" })
+            // Primer apply / cambio de estilo: registrar la base sin re-encuadrar
+            // (se respeta el centrado inicial). En modo refitOnAnyChange la base
+            // debe ser EXACTA (reemplaza) para diffear bien el siguiente cambio.
+            if force {
+                if parent.refitOnAnyChange { lastFittedIds = ids }
+                else { lastFittedIds.formUnion(ids) }
+                return
+            }
+            if parent.refitOnAnyChange {
+                // Lista de escuelas: re-encuadra si el CONJUNTO cambia (crece O
+                // encoge) — p. ej. subir/bajar el radio de distancia. Reemplaza,
+                // no acumula, para detectar también cuando el conjunto se reduce.
+                if ids != lastFittedIds {
+                    lastFittedIds = ids
+                    fit(map, to: markers.filter { $0.id != "__USER__" })
+                }
+            } else {
+                // Detalle de escuela: solo re-encuadra si hay ids NUNCA VISTOS
+                // (llegaron datos nuevos). Ocultar/mostrar una capa (subconjunto
+                // de lo ya visto) no debe pegar saltos de zoom.
+                if !ids.subtracting(lastFittedIds).isEmpty {
+                    lastFittedIds.formUnion(ids)
+                    fit(map, to: markers.filter { $0.id != "__USER__" })
+                }
             }
         }
 
