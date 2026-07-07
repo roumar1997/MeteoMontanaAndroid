@@ -12,9 +12,11 @@ import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -27,6 +29,9 @@ data class ChatUiState(
     val canWrite: Boolean = false,
     val messages: List<ChatService.ChatMessage> = emptyList(),
     val loading: Boolean = true,
+    /** true si la ventana en vivo llegó llena → puede haber mensajes anteriores
+     *  que cargar (muestra el botón "Mensajes anteriores"). */
+    val canLoadMore: Boolean = false,
     /** Mensaje al que estoy respondiendo (cita), o null. */
     val replyingTo: ChatService.ChatMessage? = null
 )
@@ -55,6 +60,18 @@ class ChatViewModel @Inject constructor(
     private val pending = mutableListOf<ChatService.ChatMessage>()
     private var lastServer: List<ChatService.ChatMessage> = emptyList()
 
+    // Ventana en vivo de mensajes. Empieza en MESSAGE_PAGE (50) y crece +50 al
+    // pulsar "Mensajes anteriores": el listener re-suscribe con una ventana mayor.
+    private val messageLimit = MutableStateFlow(ChatService.MESSAGE_PAGE)
+    /** Nº de mensajes crudos (antes del filtro cleared) de la última emisión;
+     *  si iguala al límite pedido, es que hay (posiblemente) más antiguos. */
+    private var lastRawCount = 0
+
+    /** Carga otra página de mensajes anteriores (aumenta la ventana en vivo). */
+    fun loadOlder() {
+        messageLimit.value += ChatService.MESSAGE_PAGE
+    }
+
     /** ¿Existe ya la conversación (está en mi lista de chats)? Decide si saltarse
      *  startConversation. OJO: NO se basa en que haya mensajes cargados — offline
      *  los mensajes pueden no estar cacheados aunque la conversación exista. */
@@ -69,7 +86,10 @@ class ChatViewModel @Inject constructor(
         }
         val merged = (lastServer + pending).sortedBy { it.createdAtMillis ?: Long.MAX_VALUE }
         val canWrite = _state.value.canWrite || lastServer.isNotEmpty() || conversationExists
-        _state.value = _state.value.copy(messages = merged, canWrite = canWrite, loading = false)
+        val canLoadMore = lastRawCount >= messageLimit.value
+        _state.value = _state.value.copy(
+            messages = merged, canWrite = canWrite, loading = false, canLoadMore = canLoadMore
+        )
     }
 
     init {
@@ -86,10 +106,12 @@ class ChatViewModel @Inject constructor(
 
             // Mensajes del servidor + mis conversaciones (para el cleared_<me> y para
             // saber si la conversación existe).
+            @OptIn(ExperimentalCoroutinesApi::class)
             kotlinx.coroutines.flow.combine(
-                chatService.observeMessages(convId),
+                messageLimit.flatMapLatest { chatService.observeMessages(convId, it) },
                 chatService.observeMyConversations()
             ) { msgs, convs ->
+                lastRawCount = msgs.size
                 conversationExists = convs.any { it.id == convId }
                 val cleared = convs.firstOrNull { it.id == convId }?.clearedAtMillis
                 if (cleared == null) msgs

@@ -12,6 +12,8 @@ final class GroupChatVM: ObservableObject {
     @Published var canWrite = true
     @Published var draft = ""
     @Published var loading = true
+    /// true si la ventana en vivo llegó llena → hay mensajes anteriores por cargar.
+    @Published var canLoadMore = false
     @Published var replyingTo: ChatServiceChatMessage?
     // Quedada asociada (si la conversación es de una quedada).
     @Published var meetupId: String?
@@ -31,6 +33,8 @@ final class GroupChatVM: ObservableObject {
     private let getMeetupByConv = AppDependencies.shared.container.getMeetupByConversation
     private var task: Task<Void, Never>?
     private var convTask: Task<Void, Never>?
+    // Ventana en vivo creciente: empieza en 50 y +50 al pulsar "Mensajes anteriores".
+    private var messageLimit = 50
     var me: String { AppDependencies.shared.authBridge.currentUid() ?? "" }
 
     private static let mutedKey = "muted_conv_ids"
@@ -50,7 +54,7 @@ final class GroupChatVM: ObservableObject {
     }
 
     func start() {
-        guard task == nil, let chat else { loading = false; return }
+        guard convTask == nil, let chat else { if chat == nil { loading = false }; return }
         // Quedada asociada (para el título → detalle y el botón "Cómo llegar").
         Task { [weak self] in
             guard let self else { return }
@@ -72,15 +76,7 @@ final class GroupChatVM: ObservableObject {
                 }
             }
         }
-        task = Task { [weak self] in
-            for await msgs in chat.observeMessages(convId: self?.convId ?? "") {
-                guard let self else { return }
-                await self.resolveNames(msgs.map { $0.fromUid })
-                self.messages = msgs
-                self.loading = false
-                try? await chat.markRead(convId: self.convId)
-            }
-        }
+        subscribeMessages()
         convTask = Task { [weak self] in
             for await convs in chat.observeMyConversations() {
                 guard let self else { return }
@@ -91,6 +87,30 @@ final class GroupChatVM: ObservableObject {
                 self.canWrite = parts.contains(self.me)
             }
         }
+    }
+
+    /// (Re)suscribe el listener de mensajes con la ventana actual.
+    private func subscribeMessages() {
+        guard let chat else { return }
+        let cid = convId
+        let lim = Int32(messageLimit)
+        task?.cancel()
+        task = Task { [weak self] in
+            for await msgs in chat.observeMessages(convId: cid, limit: lim) {
+                guard let self else { return }
+                await self.resolveNames(msgs.map { $0.fromUid })
+                self.messages = msgs
+                self.canLoadMore = msgs.count >= self.messageLimit
+                self.loading = false
+                try? await chat.markRead(convId: cid)
+            }
+        }
+    }
+
+    /// Carga otra página de mensajes anteriores (aumenta la ventana en vivo).
+    func loadOlder() {
+        messageLimit += 50
+        subscribeMessages()
     }
 
     private func resolveNames(_ uids: [String]) async {
@@ -246,6 +266,13 @@ struct GroupChatView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 8) {
+                            if vm.canLoadMore {
+                                Button { vm.loadOlder() } label: {
+                                    Text("Mensajes anteriores")
+                                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                }
+                                .padding(.vertical, 6)
+                            }
                             ForEach(vm.messages, id: \.id) { m in
                                 GroupMessageRow(m: m, me: vm.me,
                                                 senderName: vm.nameFor(m.fromUid),
@@ -256,7 +283,9 @@ struct GroupChatView: View {
                         .padding(16)
                     }
                     .scrollDismissesKeyboard(.interactively)
-                    .onChange(of: vm.messages.count) { _ in scrollToLast(proxy) }
+                    // Solo baja al fondo cuando llega un mensaje NUEVO (cambia el
+                    // último id), no al cargar antiguos (que añaden por arriba).
+                    .onChange(of: vm.messages.last?.id) { _ in scrollToLast(proxy) }
                     .onChange(of: vm.loading) { _ in scrollToLast(proxy) }
                     .onChange(of: inputFocused) { f in if f { scrollToLast(proxy) } }
                     .onAppear { scrollToLast(proxy) }

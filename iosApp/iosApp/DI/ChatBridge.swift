@@ -60,10 +60,10 @@ final class ChatBridge: NSObject, IosChatBridge {
         return ChatListenerHandle(reg)
     }
 
-    func observeMessages(convId: String, onChange: @escaping ([IosMsgDto]) -> Void) -> IosChatListener {
+    func observeMessages(convId: String, limit: Int32, onChange: @escaping ([IosMsgDto]) -> Void) -> IosChatListener {
         let reg = convs.document(convId).collection("messages")
             .order(by: "createdAt")
-            .limit(toLast: 200)
+            .limit(toLast: Int(limit))
             .addSnapshotListener { snap, _ in
                 let list: [IosMsgDto] = snap?.documents.map { doc in
                     let d = doc.data()

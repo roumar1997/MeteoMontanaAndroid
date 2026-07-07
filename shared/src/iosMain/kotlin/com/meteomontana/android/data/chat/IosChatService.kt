@@ -59,7 +59,7 @@ data class IosMsgDto(
  */
 interface IosChatBridge {
     fun observeConversations(onChange: (List<IosConvDto>) -> Unit): IosChatListener
-    fun observeMessages(convId: String, onChange: (List<IosMsgDto>) -> Unit): IosChatListener
+    fun observeMessages(convId: String, limit: Int, onChange: (List<IosMsgDto>) -> Unit): IosChatListener
     fun sendMessage(
         otherUid: String, text: String,
         replyToId: String?, replyText: String?, replyFromUid: String?,
@@ -91,8 +91,8 @@ class IosChatService(
         awaitClose { listener.remove() }
     }
 
-    override fun observeMessages(convId: String): Flow<List<ChatService.ChatMessage>> = callbackFlow {
-        val listener = bridge.observeMessages(convId) { dtos -> trySend(dtos.map { it.toModel() }) }
+    override fun observeMessages(convId: String, limit: Int): Flow<List<ChatService.ChatMessage>> = callbackFlow {
+        val listener = bridge.observeMessages(convId, limit) { dtos -> trySend(dtos.map { it.toModel() }) }
         awaitClose { listener.remove() }
     }
 

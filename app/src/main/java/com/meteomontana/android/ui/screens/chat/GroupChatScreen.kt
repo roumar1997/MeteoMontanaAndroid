@@ -93,9 +93,11 @@ import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.push.MutedChatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -111,6 +113,8 @@ data class GroupChatUiState(
     val myUid: String = "",
     val canWrite: Boolean = false,
     val loading: Boolean = true,
+    /** true si la ventana en vivo llegó llena → hay mensajes anteriores por cargar. */
+    val canLoadMore: Boolean = false,
     val replyingTo: ChatService.ChatMessage? = null,
     // Datos de la quedada asociada (si esta conversación es de una quedada).
     val meetupId: String? = null,
@@ -147,6 +151,15 @@ class GroupChatViewModel @Inject constructor(
 
     private val nameCache = mutableMapOf<String, String>()
 
+    // Ventana en vivo creciente (igual que el chat 1-a-1): empieza en 50 y +50 al
+    // pulsar "Mensajes anteriores". Recorta las lecturas de Firestore al abrir.
+    private val messageLimit = MutableStateFlow(ChatService.MESSAGE_PAGE)
+
+    /** Carga otra página de mensajes anteriores (aumenta la ventana en vivo). */
+    fun loadOlder() {
+        messageLimit.value += ChatService.MESSAGE_PAGE
+    }
+
     init {
         // Quedada asociada a esta conversación (para abrir su detalle desde el
         // título y para el botón "Cómo llegar"). Si no es de una quedada, no pasa nada.
@@ -180,12 +193,14 @@ class GroupChatViewModel @Inject constructor(
                 )
             }
         }
-        // Mensajes del grupo.
+        // Mensajes del grupo (ventana creciente).
         viewModelScope.launch {
-            chatService.observeMessages(convId).collect { msgs ->
+            @OptIn(ExperimentalCoroutinesApi::class)
+            messageLimit.flatMapLatest { chatService.observeMessages(convId, it) }.collect { msgs ->
                 resolveNames(msgs.map { it.fromUid })
                 _state.value = _state.value.copy(
-                    messages = msgs, memberNames = nameCache.toMap(), loading = false
+                    messages = msgs, memberNames = nameCache.toMap(), loading = false,
+                    canLoadMore = msgs.size >= messageLimit.value
                 )
                 runCatching { chatService.markRead(convId) }
             }
@@ -455,6 +470,12 @@ fun GroupChatScreen(
                     nameFor = { uid -> if (uid == state.myUid) "Tú" else state.memberNames[uid] ?: "" },
                     onReply = { viewModel.startReply(msg) }
                 )
+            }
+            // reverseLayout: se pinta arriba del todo; cargar antiguos no mueve el scroll.
+            if (state.canLoadMore) {
+                item(key = "load_older") {
+                    LoadOlderRow(onClick = { viewModel.loadOlder() })
+                }
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)

@@ -111,6 +111,13 @@ fun ChatScreen(
                     onReply = { viewModel.startReply(msg) }
                 )
             }
+            // reverseLayout: este item se pinta ARRIBA del todo (final de la lista
+            // invertida). Cargar antiguos no mueve el scroll (se añaden por arriba).
+            if (state.canLoadMore) {
+                item(key = "load_older") {
+                    LoadOlderRow(onClick = { viewModel.loadOlder() })
+                }
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
@@ -191,6 +198,25 @@ fun ChatScreen(
                 }
             }
         }
+    }
+}
+
+/** Fila "Mensajes anteriores" en la cima del historial: carga otra página al pulsar. */
+@Composable
+internal fun LoadOlderRow(onClick: () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            stringResource(R.string.chat_load_older),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
     }
 }
 

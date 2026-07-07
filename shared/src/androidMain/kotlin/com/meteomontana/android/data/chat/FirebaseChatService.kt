@@ -52,10 +52,10 @@ class FirebaseChatService(
         awaitClose { listener.remove() }
     }
 
-    override fun observeMessages(convId: String): Flow<List<ChatService.ChatMessage>> = callbackFlow {
+    override fun observeMessages(convId: String, limit: Int): Flow<List<ChatService.ChatMessage>> = callbackFlow {
         val listener = convsCol.document(convId).collection("messages")
             .orderBy("createdAt", Query.Direction.ASCENDING)
-            .limitToLast(200)
+            .limitToLast(limit.toLong())
             .addSnapshotListener { snap, err ->
                 if (err != null) { close(err); return@addSnapshotListener }
                 val msgs = snap?.documents?.map { d ->

@@ -161,6 +161,7 @@
     <string name="chat_new">Nuevo mensaje</string>
     <string name="chat_new_group">Nuevo grupo</string>
     <string name="chat_write">Escribe un mensaje</string>
+    <string name="chat_load_older">Mensajes anteriores</string>
     <string name="chat_delete_confirm">¿Borrar esta conversación? Solo se borra para ti.</string>
     <string name="chat_mark_unread">Marcar no leído</string>
     <string name="chat_empty">Sin mensajes todavía</string>

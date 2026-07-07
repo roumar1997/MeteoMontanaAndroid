@@ -10,6 +10,8 @@ final class ChatVM: ObservableObject {
     @Published var messages: [ChatServiceChatMessage] = []
     @Published var draft = ""
     @Published var loading = true
+    /// true si la ventana en vivo llegó llena → hay mensajes anteriores por cargar.
+    @Published var canLoadMore = false
     /// Mensaje al que estoy respondiendo (cita), o nil.
     @Published var replyingTo: ChatServiceChatMessage?
 
@@ -24,6 +26,8 @@ final class ChatVM: ObservableObject {
     // mensaje real del servidor con el mismo contenido.
     private var pendingOutgoing: [ChatServiceChatMessage] = []
     private var clearedAt: Int64 = 0   // mi cleared_<me> en millis (0 = no borrada)
+    // Ventana en vivo creciente: empieza en 50 y +50 al pulsar "Mensajes anteriores".
+    private var messageLimit = 50
     var me: String { AppDependencies.shared.authBridge.currentUid() ?? "" }
     private var convId: String { chat?.convIdFor(uidA: me, uidB: otherUid) ?? "" }
 
@@ -33,17 +37,8 @@ final class ChatVM: ObservableObject {
     }
 
     func start() {
-        guard task == nil, let chat else { loading = false; return }
-        let cid = convId
-        task = Task { [weak self] in
-            for await msgs in chat.observeMessages(convId: cid) {
-                guard let self else { return }
-                self.rawMessages = msgs
-                self.recompute()
-                self.loading = false
-                try? await chat.markRead(convId: cid)
-            }
-        }
+        guard convTask == nil, let chat else { if chat == nil { loading = false }; return }
+        subscribeMessages()
         // Observa mis conversaciones para conocer mi cleared_<me> y ocultar el
         // historial anterior a un "borrado para mí".
         convTask = Task { [weak self] in
@@ -60,6 +55,31 @@ final class ChatVM: ObservableObject {
     }
 
     private var conversationExists = false
+
+    /// (Re)suscribe el listener de mensajes con la ventana actual. Al crecer la
+    /// ventana (loadOlder) se cancela el anterior y se re-suscribe con más límite.
+    private func subscribeMessages() {
+        guard let chat else { return }
+        let cid = convId
+        let lim = Int32(messageLimit)
+        task?.cancel()
+        task = Task { [weak self] in
+            for await msgs in chat.observeMessages(convId: cid, limit: lim) {
+                guard let self else { return }
+                self.rawMessages = msgs
+                self.canLoadMore = msgs.count >= self.messageLimit
+                self.recompute()
+                self.loading = false
+                try? await chat.markRead(convId: cid)
+            }
+        }
+    }
+
+    /// Carga otra página de mensajes anteriores (aumenta la ventana en vivo).
+    func loadOlder() {
+        messageLimit += 50
+        subscribeMessages()
+    }
 
     private func recompute() {
         let server = clearedAt <= 0 ? rawMessages
@@ -147,6 +167,14 @@ struct ChatView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 8) {
+                            // Cargar mensajes anteriores (arriba del historial).
+                            if vm.canLoadMore {
+                                Button { vm.loadOlder() } label: {
+                                    Text("Mensajes anteriores")
+                                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                }
+                                .padding(.vertical, 6)
+                            }
                             ForEach(vm.messages, id: \.id) { m in
                                 MessageRow(m: m, me: vm.me, otherName: vm.otherName,
                                            onReply: { vm.startReply(m) }).id(m.id)
@@ -155,10 +183,10 @@ struct ChatView: View {
                         .padding(16)
                     }
                     .scrollDismissesKeyboard(.interactively)
-                    // Baja al último mensaje cuando: llegan/cambian mensajes,
-                    // termina la carga, o aparece el teclado (para que no tape
-                    // los últimos mensajes ni lo que te acaban de escribir).
-                    .onChange(of: vm.messages.count) { _ in scrollToLast(proxy) }
+                    // Baja al último mensaje cuando: llega un mensaje NUEVO (cambia el
+                    // último id — no al cargar antiguos, que solo añade por arriba),
+                    // termina la carga, o aparece el teclado.
+                    .onChange(of: vm.messages.last?.id) { _ in scrollToLast(proxy) }
                     .onChange(of: vm.loading) { _ in scrollToLast(proxy) }
                     .onChange(of: inputFocused) { focused in if focused { scrollToLast(proxy) } }
                     .onAppear { scrollToLast(proxy) }

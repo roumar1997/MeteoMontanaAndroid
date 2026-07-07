@@ -40,7 +40,19 @@ interface ChatService {
 
     fun observeMyConversations(): Flow<List<Conversation>>
 
-    fun observeMessages(convId: String): Flow<List<ChatMessage>>
+    /**
+     * Observa los últimos [limit] mensajes de la conversación (ventana en vivo).
+     * Para "cargar mensajes anteriores" se vuelve a llamar con un [limit] mayor:
+     * el listener re-suscribe con una ventana más grande (patrón de ventana
+     * creciente). Empezar en [MESSAGE_PAGE] recorta las lecturas de Firestore al
+     * abrir un chat (antes leía siempre 200 de golpe).
+     */
+    fun observeMessages(convId: String, limit: Int): Flow<List<ChatMessage>>
+
+    companion object {
+        /** Tamaño de la ventana inicial y del incremento al cargar antiguos. */
+        const val MESSAGE_PAGE: Int = 50
+    }
 
     /** Envía a un chat 1-a-1. Los params reply* van null si no es una respuesta. */
     @Throws(Exception::class)
