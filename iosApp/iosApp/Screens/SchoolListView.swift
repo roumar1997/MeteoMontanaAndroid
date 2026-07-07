@@ -737,6 +737,7 @@ private struct MapToggleAndPanel: View {
                     MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
                                  markers: markers, style: mapStyle,
                                  autoFitToMarkers: true,
+                                 refitOnAnyChange: true,
                                  onZoomChange: { zoom = $0 },
                                  onTapMarker: { id in
                                      popup = vm.filtered.first { $0.id == id }
