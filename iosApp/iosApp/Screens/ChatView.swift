@@ -38,6 +38,7 @@ final class ChatVM: ObservableObject {
 
     func start() {
         guard convTask == nil, let chat else { if chat == nil { loading = false }; return }
+        let cid = convId
         subscribeMessages()
         // Observa mis conversaciones para conocer mi cleared_<me> y ocultar el
         // historial anterior a un "borrado para mí".
