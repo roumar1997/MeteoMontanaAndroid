@@ -535,12 +535,21 @@ bloques, stats, logs, push manual).
   `gearJson` de quedadas, magic bytes en fotos, rotar contraseñas BD Railway.
 - APNs (push iOS con app cerrada) — capability lista, falta activarla junto
   con la revisión de App Store.
+- **Monetización — ANTES de poner la app de pago/suscripción: contratar la
+  API COMERCIAL de Open-Meteo** (o mover la previsión por horas a AEMET). La
+  API gratis de Open-Meteo es **solo uso no comercial** (CC-BY-NC); cobrar sin
+  su plan comercial incumpliría la licencia. AEMET (radar/boletín) sí permite
+  uso comercial con atribución (ya la tienes). Ver [[project_paid_openmeteo]].
+- iOS: sacar a la App Store una versión con el **build 62 (2.12.0)** — lo de
+  compartir vía solo está en TestFlight; 2.11.8 (pública) no lo lleva.
 
 ## Historial (resumido)
 
 Registro terso por sesión — el detalle línea a línea vive en `git log`. Solo
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
+
+**2026-07-09 (2, release)** — Release **2.12.0** a producción. iOS: se subió build **60→61→62** a TestFlight vía workflow "iOS PROD .ipa (manual)" (2.11.8 estaba cerrado como train en App Store → bump `CFBundleShortVersion` a **2.12.0**). Android AAB de release **vc49** firmado con `meteomontana-release.jks` (keystore + pass en `project_play_release.md`) → subido a Producción de Play, **en revisión** (publicación automática al aprobar). Se pulió el compartir vía: la imagen ahora **lista TODAS las líneas** de la cara (nº que coincide con el badge + nombre + grado) con **estado HECHO/PROYECTO** (leído de los sets ticked/project del detalle), y el texto que acompaña recupera el **deep-link `/s/v/{schoolId}/{lineId}`** (abre la app en la piedra, antes solo iba a descarga) + "Mira este bloque: «vía» grado / piedra·escuela·**sector**". Copy "Vela"→"Míralo". Paridad Android (`ShareLineImage.kt`, `BlockDetailDialog`) / iOS (`ShareLineImage.swift`, `SchoolDetailView`). **iOS App Store 2.11.8 quedó PÚBLICA** (primera salida a tienda; la ficha web carga, la descarga en dispositivo tarda hasta 24h en propagar). Lo de hoy (build 62) sigue solo en TestFlight → falta crear versión de tienda con ese build. OJO: las versiones de App Store las gestiona la cuenta **Álvaro Fanjul** (2.11.8 pública, 2.12.1 en revisión), separado de los builds que subo yo a TestFlight.
 
 **2026-07-09** — Compartir vía como IMAGEN (Android **+ iOS**, paridad): al tocar el icono de compartir de una vía se genera un PNG **1080×1920** (formato historia) con la FOTO real de la cara + sus líneas dibujadas y cabecera Cumbre (nombre/grado/piedra·escuela). Se comparte por el share sheet normal (`image/png` / `UIActivityViewController`) → Instagram (→Historia), WhatsApp, etc.; si la vía no tiene foto/dibujo cae al texto de siempre. **Android**: `ShareLineImage.kt` (`shareLineAsImage` suspend, foto con Coil, reusa `renderTopo`/`gradeArgb`/`parseLineStroke` + `DrawOp` sobre `Canvas` nativo); `BlockDetailDialog.shareVia`. **iOS**: `ShareLineImage.swift` (`UIGraphicsImageRenderer` scale=1, reusa `GradeColor`/`ImageCache`/`TopoParse`, dibujo espejo de `TopoPhotoView.drawSolidLine`); botón en `SchoolDetailView` (antes `ShareLink` de texto). PENDIENTE (opcional): botón directo a Instagram Stories (`com.instagram.share.ADD_TO_STORY`) requiere un Facebook App ID registrado. **Mergeado a `main`** (Android **vc48**, iOS **build 60**), ambos CI verdes. Falta lo que NO se puede hacer desde la sesión web: **TestFlight** = arrancar a mano el workflow "iOS PROD .ipa (manual)" (la integración de GitHub no puede dispatch: 403); **AAB de Play** = compilarlo en local con el keystore de subida (no hay workflow de release Android). App Store 2.11.8 estaba en "Publicar manualmente" → hay que marcar automático/pulsar Publicar.
 
