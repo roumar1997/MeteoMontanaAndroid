@@ -32,7 +32,7 @@ enum ShareLineImage {
             let link = "\(base)s/v/\(block.schoolId)/\(line.id)"
             var where_ = block.name
             if let s = schoolName, !s.isEmpty { where_ += " · \(s)" }
-            let text = "🧗 \(block.name) en Cumbre\n📍 \(where_)\n👉 Vela en la app:\n\(link)"
+            let text = "🧗 \(block.name) en Cumbre\n📍 \(where_)\n👉 Míralo en la app:\n\(link)"
             await present([image, text])
         } else {
             await present([shareLineText(block: block, line: line, schoolName: schoolName)])
@@ -285,7 +285,7 @@ enum ShareLineImage {
         let link = "\(base)s/v/\(block.schoolId)/\(line.id)"
         return "🧗 Mira \(article) \(kind): «\(line.name)»\(grade)\n"
             + "📍 \(place)\n"
-            + "👉 Vela en Cumbre (foto con la línea dibujada):\n\(link)"
+            + "👉 Míralo en Cumbre (foto con la línea dibujada):\n\(link)"
     }
 
     // MARK: - Share sheet

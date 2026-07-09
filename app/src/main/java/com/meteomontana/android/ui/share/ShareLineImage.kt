@@ -98,7 +98,7 @@ suspend fun shareLineAsImage(
         putExtra(Intent.EXTRA_STREAM, uri)
         putExtra(
             Intent.EXTRA_TEXT,
-            "🧗 ${block.name} en Cumbre\n📍 $where\n👉 Vela en la app:\n$link"
+            "🧗 ${block.name} en Cumbre\n📍 $where\n👉 Míralo en la app:\n$link"
         )
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }

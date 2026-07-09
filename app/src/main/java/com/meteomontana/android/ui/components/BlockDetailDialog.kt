@@ -739,7 +739,7 @@ private fun shareLine(
     val link = "${base}s/v/${block.schoolId}/${line.id}"
     val text = "🧗 Mira $article $kind: «${line.name}»$grade\n" +
         "📍 $where\n" +
-        "👉 Vela en Cumbre (foto con la línea dibujada):\n" +
+        "👉 Míralo en Cumbre (foto con la línea dibujada):\n" +
         link
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"
