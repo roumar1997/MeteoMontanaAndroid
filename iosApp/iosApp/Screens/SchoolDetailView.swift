@@ -1535,9 +1535,12 @@ struct BlockInfoSheet: View {
                                         if let st = l.startType, !st.isEmpty {
                                             Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                         }
-                                        // Compartir esta vía/bloque: enlace que abre la app
-                                        // directamente en esta piedra (espejo de Android).
-                                        ShareLink(item: shareLineText(l)) {
+                                        // Compartir esta vía como IMAGEN (foto + líneas,
+                                        // formato historia) → Instagram/WhatsApp; si no tiene
+                                        // foto/dibujo cae al texto (espejo de Android).
+                                        Button {
+                                            Task { await ShareLineImage.share(block: block, line: l, schoolName: schoolName) }
+                                        } label: {
                                             Image(systemName: "square.and.arrow.up")
                                                 .font(.system(size: 16, weight: .medium))
                                                 .foregroundStyle(Cumbre.ink2)
@@ -1742,21 +1745,6 @@ struct BlockInfoSheet: View {
         }
     }
 
-    /// Texto para compartir una vía/bloque (según disciplina) con el enlace
-    /// que abre la app directamente en esta piedra. Espejo de Android.
-    private func shareLineText(_ line: BlockLine) -> String {
-        let isRoute = block.discipline.uppercased() == "ROUTE"
-        let kind = isRoute ? "vía" : "bloque"
-        let article = isRoute ? "esta" : "este"
-        let grade = (line.grade?.isEmpty == false) ? " \(line.grade!)" : ""
-        var place = block.name
-        if let s = schoolName, !s.isEmpty { place += " · \(s)" }
-        let base = AppConfig.apiBaseUrl.replacingOccurrences(of: "api/", with: "")
-        let link = "\(base)s/v/\(block.schoolId)/\(line.id)"
-        return "🧗 Mira \(article) \(kind): «\(line.name)»\(grade)\n"
-            + "📍 \(place)\n"
-            + "👉 Vela en Cumbre (foto con la línea dibujada):\n\(link)"
-    }
 
     /// Marca/DESMARCA la vía en tu diario (toggle). Si no estaba hecha la añade
     /// (POST, o cola sin red); si ya estaba, la quita (borra la subida y/o la
