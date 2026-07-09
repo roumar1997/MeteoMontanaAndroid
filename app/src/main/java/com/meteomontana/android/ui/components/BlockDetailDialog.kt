@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +49,7 @@ import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.gradeStyle
+import kotlinx.coroutines.launch
 
 /**
  * Dialog con detalles de un bloque/parking/zona seleccionado en el mapa:
@@ -90,6 +92,7 @@ fun BlockDetailDialog(
     val tickedLines = remember { mutableStateListOf<String>().apply { addAll(initiallyTicked) } }   // vías hechas
     val projectLines = remember { mutableStateListOf<String>().apply { addAll(initiallyProjects) } } // vías proyecto
     val context = LocalContext.current
+    val shareScope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }
     // "OPCIONES" plegado: la ficha ya tiene muchos botones; solo CÓMO LLEGAR
@@ -278,7 +281,7 @@ fun BlockDetailDialog(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier
                                             .clip(CircleShape)
-                                            .clickable { shareLine(context, block, line, schoolName) }
+                                            .clickable { shareVia(shareScope, context, block, line, schoolName) }
                                             .padding(5.dp)
                                             .size(22.dp)
                                     )
@@ -690,6 +693,27 @@ private fun LineStarsRow(
                 modifier = Modifier.padding(start = 4.dp)
             )
         }
+    }
+}
+
+/**
+ * Comparte una vía: intenta generar la IMAGEN (foto + líneas dibujadas, formato
+ * historia) para que en el menú salga Instagram/WhatsApp con la foto ya adjunta;
+ * si la vía no tiene foto o dibujo, cae al compartir de texto de siempre.
+ * Descargar la foto es `suspend`, por eso se lanza en una corrutina.
+ */
+private fun shareVia(
+    scope: kotlinx.coroutines.CoroutineScope,
+    context: android.content.Context,
+    block: Block,
+    line: com.meteomontana.android.domain.model.BlockLine,
+    schoolName: String
+) {
+    scope.launch {
+        val shared = runCatching {
+            com.meteomontana.android.ui.share.shareLineAsImage(context, block, line, schoolName)
+        }.getOrDefault(false)
+        if (!shared) shareLine(context, block, line, schoolName)
     }
 }
 
