@@ -31,6 +31,7 @@ private const val INK = 0xFF1A1A1A.toInt()
 private const val INK_SOFT = 0xFF6B6B6B.toInt()
 private const val RULE = 0xFFE2DCD2.toInt()
 private const val TERRA = 0xFFC0532B.toInt()
+private const val GREEN = 0xFF1FA84E.toInt()   // "HECHO" (= verde de grado)
 
 private const val PLAY_URL = "https://play.google.com/store/apps/details?id=com.meteomontana.android"
 private const val APPSTORE_URL = "https://apps.apple.com/app/id6785776686"
@@ -52,7 +53,9 @@ suspend fun shareLineAsImage(
     context: Context,
     block: Block,
     line: BlockLine,
-    schoolName: String
+    schoolName: String,
+    tickedIds: Set<String> = emptySet(),
+    projectIds: Set<String> = emptySet()
 ): Boolean {
     // 1. Localiza la cara (foto + líneas) a la que pertenece esta vía.
     val face = block.facesOrDerived().firstOrNull { f -> f.lines.any { it.id == line.id } }
@@ -74,19 +77,28 @@ suspend fun shareLineAsImage(
     val photoBmp = (result as? SuccessResult)?.drawable?.toBitmap() ?: return false
 
     // 3. Compón la imagen y compártela.
-    val bmp = renderLineCard(block, line, schoolName, linesToDraw, photoBmp)
+    val bmp = renderLineCard(block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     val file = File(dir, "via.png")
     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
     val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "vía" else "bloque"
+    // Enlace que ABRE la app directamente en esta piedra (landing /s/v/... con
+    // Open Graph → "abrir en app" o descargar si no la tienen). Recupera el
+    // deep-link que el compartir de texto ya tenía.
+    val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
+    val link = "${base}s/v/${block.schoolId}/${line.id}"
+    val where = buildString {
+        append(block.name)
+        if (schoolName.isNotBlank()) append(" · ").append(schoolName)
+    }
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)
         putExtra(
             Intent.EXTRA_TEXT,
-            "🧗 ${line.name} en Cumbre\n\nDescarga Cumbre:\nAndroid: $PLAY_URL\niOS: $APPSTORE_URL"
+            "🧗 ${block.name} en Cumbre\n📍 $where\n👉 Vela en la app:\n$link"
         )
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
@@ -103,7 +115,9 @@ private fun renderLineCard(
     line: BlockLine,
     schoolName: String,
     lines: List<BlockLine>,
-    photo: Bitmap
+    photo: Bitmap,
+    tickedIds: Set<String>,
+    projectIds: Set<String>
 ): Bitmap {
     val w = 1080
     val h = 1920
@@ -130,43 +144,89 @@ private fun renderLineCard(
         }
     )
 
-    // Nombre de la vía (serif grande, hasta 2 líneas).
+    // Nombre de la PIEDRA (serif grande, hasta 2 líneas).
     val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = INK; textSize = 88f
+        color = INK; textSize = 78f
         typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
     }
-    val nameLines = wrapText(line.name.ifBlank { block.name }, titlePaint, w - 2 * pad, maxLines = 2)
-    var y = pad + 150f
+    val nameLines = wrapText(block.name.ifBlank { line.name }, titlePaint, w - 2 * pad, maxLines = 2)
+    var y = pad + 140f
     nameLines.forEach { l ->
         c.drawText(l, pad, y, titlePaint)
-        y += 96f
+        y += 86f
     }
 
-    // Grado (badge coloreado) + piedra · escuela.
-    val grade = line.grade?.takeIf { it.isNotBlank() }
-    var subX = pad
-    if (grade != null) {
-        val (gArgb, _, gDark) = gradeArgb(grade)
-        val gPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = INK; textSize = 40f; isFakeBoldText = true
+    // Escuela.
+    if (schoolName.isNotBlank()) {
+        c.drawText(
+            schoolName, pad, y - 4f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 38f }
+        )
+        y += 44f
+    }
+
+    // ── Lista de líneas ─────────────────────────────────────────────────────
+    // Número (círculo del color del grado, = badge de la foto) · nombre · grado
+    // · estado (HECHO / PROYECTO). Se listan TODAS las vías dibujadas.
+    y += 10f
+    val maxRows = 8
+    val rowH = 56f
+    lines.take(maxRows).forEachIndexed { idx, bl ->
+        val (gArgb, _, gDark) = gradeArgb(bl.grade)
+        val cx = pad + 22f
+        val cyc = y + 12f
+        c.drawCircle(cx, cyc, 24f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE })
+        c.drawCircle(cx, cyc, 21f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = gArgb.toInt() })
+        c.drawText(
+            "${idx + 1}", cx, cyc + 11f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = if (gDark) INK else Color.WHITE; textSize = 30f
+                isFakeBoldText = true; textAlign = Paint.Align.CENTER
+            }
+        )
+
+        // Estado a la derecha (se dibuja antes para reservar su ancho).
+        val statusPair = when {
+            tickedIds.contains(bl.id) -> "HECHO" to GREEN
+            projectIds.contains(bl.id) -> "PROYECTO" to TERRA
+            else -> null
         }
-        val gw = gPaint.measureText(grade)
-        val badge = RectF(subX, y - 42f, subX + gw + 40f, y + 12f)
-        c.drawRoundRect(badge, 6f, 6f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = gArgb.toInt() })
-        gPaint.color = if (gDark) INK else Color.WHITE
-        gPaint.textAlign = Paint.Align.CENTER
-        c.drawText(grade, badge.centerX(), y - 2f, gPaint)
-        subX = badge.right + 20f
+        var rightLimit = w - pad
+        if (statusPair != null) {
+            val (label, col) = statusPair
+            val sPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = col; textSize = 30f; isFakeBoldText = true
+                letterSpacing = 0.12f; textAlign = Paint.Align.RIGHT
+                typeface = Typeface.MONOSPACE
+            }
+            c.drawText(label, w - pad, y + 20f, sPaint)
+            rightLimit = w - pad - sPaint.measureText(label) - 24f
+        }
+
+        // Nombre + grado (recortado para no pisar el estado).
+        var tx = pad + 56f
+        val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 42f }
+        val name = bl.name.ifBlank { "Vía ${idx + 1}" }
+        val gradeTxt = bl.grade?.takeIf { it.isNotBlank() }
+        val gradePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = INK_SOFT; textSize = 36f; isFakeBoldText = true
+        }
+        val gradeW = if (gradeTxt != null) gradePaint.measureText(gradeTxt) + 18f else 0f
+        val nameMax = rightLimit - tx - gradeW
+        val nameShown = ellipsize(name, namePaint, nameMax)
+        c.drawText(nameShown, tx, y + 22f, namePaint)
+        tx += namePaint.measureText(nameShown) + 18f
+        if (gradeTxt != null) c.drawText(gradeTxt, tx, y + 22f, gradePaint)
+        y += rowH
     }
-    val where = buildString {
-        append(block.name)
-        if (schoolName.isNotBlank()) append(" · ").append(schoolName)
+    if (lines.size > maxRows) {
+        c.drawText(
+            "+${lines.size - maxRows} vías más", pad + 56f, y + 20f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 34f }
+        )
+        y += rowH
     }
-    c.drawText(
-        where, subX, y - 6f,
-        Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 38f }
-    )
-    y += 40f
+    y += 10f
 
     // ── Foto con las líneas ─────────────────────────────────────────────────
     val footerH = 130f
@@ -276,6 +336,15 @@ private fun drawOpNative(op: DrawOp, c: Canvas, dx: Float, dy: Float) {
             }
         )
     }
+}
+
+/** Recorta un texto a una sola línea que quepa en `maxWidth`, con "…" si sobra. */
+private fun ellipsize(text: String, paint: Paint, maxWidth: Float): String {
+    if (maxWidth <= 0f) return ""
+    if (paint.measureText(text) <= maxWidth) return text
+    var t = text
+    while (t.isNotEmpty() && paint.measureText("$t…") > maxWidth) t = t.dropLast(1)
+    return "$t…"
 }
 
 /** Parte un texto en como mucho `maxLines` líneas que quepan en `maxWidth`. */

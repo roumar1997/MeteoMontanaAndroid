@@ -281,7 +281,7 @@ fun BlockDetailDialog(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier
                                             .clip(CircleShape)
-                                            .clickable { shareVia(shareScope, context, block, line, schoolName) }
+                                            .clickable { shareVia(shareScope, context, block, line, schoolName, tickedLines.toSet(), projectLines.toSet()) }
                                             .padding(5.dp)
                                             .size(22.dp)
                                     )
@@ -707,11 +707,15 @@ private fun shareVia(
     context: android.content.Context,
     block: Block,
     line: com.meteomontana.android.domain.model.BlockLine,
-    schoolName: String
+    schoolName: String,
+    tickedIds: Set<String>,
+    projectIds: Set<String>
 ) {
     scope.launch {
         val shared = runCatching {
-            com.meteomontana.android.ui.share.shareLineAsImage(context, block, line, schoolName)
+            com.meteomontana.android.ui.share.shareLineAsImage(
+                context, block, line, schoolName, tickedIds, projectIds
+            )
         }.getOrDefault(false)
         if (!shared) shareLine(context, block, line, schoolName)
     }

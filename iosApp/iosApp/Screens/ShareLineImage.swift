@@ -19,11 +19,20 @@ enum ShareLineImage {
     private static let inkSoft = UIColor(rgb: 0x6B6B6B)
     private static let rule = UIColor(rgb: 0xE2DCD2)
     private static let terra = UIColor(rgb: 0xC0532B)
+    private static let green = UIColor(rgb: 0x1FA84E)   // "HECHO" (= verde de grado)
 
     /// Punto de entrada: compone la imagen (o cae a texto) y presenta el share sheet.
-    static func share(block: Block, line: BlockLine, schoolName: String?) async {
-        if let image = await renderCard(block: block, line: line, schoolName: schoolName) {
-            let text = "🧗 \(line.name) en Cumbre\n\nDescarga Cumbre:\nAndroid: \(playUrl)\niOS: \(appStoreUrl)"
+    static func share(block: Block, line: BlockLine, schoolName: String?,
+                      tickedIds: Set<String> = [], projectIds: Set<String> = []) async {
+        if let image = await renderCard(block: block, line: line, schoolName: schoolName,
+                                        tickedIds: tickedIds, projectIds: projectIds) {
+            // Enlace que ABRE la app directamente en esta piedra (recupera el
+            // deep-link que el compartir de texto ya tenía).
+            let base = AppConfig.apiBaseUrl.replacingOccurrences(of: "api/", with: "")
+            let link = "\(base)s/v/\(block.schoolId)/\(line.id)"
+            var where_ = block.name
+            if let s = schoolName, !s.isEmpty { where_ += " · \(s)" }
+            let text = "🧗 \(block.name) en Cumbre\n📍 \(where_)\n👉 Vela en la app:\n\(link)"
             await present([image, text])
         } else {
             await present([shareLineText(block: block, line: line, schoolName: schoolName)])
@@ -32,7 +41,8 @@ enum ShareLineImage {
 
     // MARK: - Render
 
-    private static func renderCard(block: Block, line: BlockLine, schoolName: String?) async -> UIImage? {
+    private static func renderCard(block: Block, line: BlockLine, schoolName: String?,
+                                   tickedIds: Set<String>, projectIds: Set<String>) async -> UIImage? {
         // 1. Localiza la cara (foto + líneas) a la que pertenece esta vía.
         let face = block.facesOrDerived().first { f in f.lines.contains { $0.id == line.id } }
         let photoUrl = face?.photoPath ?? line.photoPath ?? block.photoPath
@@ -46,13 +56,15 @@ enum ShareLineImage {
 
         // 3. Compón la card en px reales (scale = 1).
         return await MainActor.run {
-            drawCard(block: block, line: line, schoolName: schoolName, lines: lines, photo: photo)
+            drawCard(block: block, line: line, schoolName: schoolName, lines: lines, photo: photo,
+                     tickedIds: tickedIds, projectIds: projectIds)
         }
     }
 
     @MainActor
     private static func drawCard(block: Block, line: BlockLine, schoolName: String?,
-                                 lines: [TopoLineVM], photo: UIImage) -> UIImage {
+                                 lines: [TopoLineVM], photo: UIImage,
+                                 tickedIds: Set<String>, projectIds: Set<String>) -> UIImage {
         let w: CGFloat = 1080, h: CGFloat = 1920, pad: CGFloat = 72
         let availW = w - 2 * pad
         let format = UIGraphicsImageRendererFormat()
@@ -72,14 +84,14 @@ enum ShareLineImage {
             drawText("\(kind) EN CUMBRE", at: CGRect(x: pad, y: 60, width: availW, height: 44),
                      font: mono(30, bold: true), color: terra, kern: 4, align: .left)
 
-            // Nombre de la vía (serif grande, hasta 2 líneas con elipsis).
-            let name = line.name.isEmpty ? block.name : line.name
-            let titleFont = serif(72)
+            // Nombre de la PIEDRA (serif grande, hasta 2 líneas con elipsis).
+            let name = block.name.isEmpty ? line.name : block.name
+            let titleFont = serif(66)
             let para = NSMutableParagraphStyle()
             para.lineBreakMode = .byTruncatingTail
             let titleAttrs: [NSAttributedString.Key: Any] =
                 [.font: titleFont, .foregroundColor: ink, .paragraphStyle: para]
-            let maxTitleH: CGFloat = 210
+            let maxTitleH: CGFloat = 190
             let measured = (name as NSString).boundingRect(
                 with: CGSize(width: availW, height: maxTitleH),
                 options: [.usesLineFragmentOrigin, .usesFontLeading],
@@ -89,29 +101,67 @@ enum ShareLineImage {
                                     options: [.usesLineFragmentOrigin, .usesFontLeading],
                                     attributes: titleAttrs, context: nil)
 
-            // Grado (badge coloreado) + piedra · escuela.
-            var subX = pad
-            let subY = 130 + titleH + 24
-            if let grade = line.grade, !grade.isEmpty {
-                let gStyle = GradeColor.style(grade)
-                let gFont = UIFont.systemFont(ofSize: 34, weight: .bold)
-                let gw = (grade as NSString).size(withAttributes: [.font: gFont]).width + 40
-                let badge = CGRect(x: subX, y: subY, width: gw, height: 54)
-                UIColor(gStyle.stroke).setFill()
-                UIBezierPath(roundedRect: badge, cornerRadius: 6).fill()
-                drawText(grade, at: badge, font: gFont,
-                         color: gStyle.dark ? ink : .white, kern: 0, align: .center, vCenter: true)
-                subX = badge.maxX + 20
+            // Escuela.
+            var listY = 130 + titleH + 12
+            if let s = schoolName, !s.isEmpty {
+                drawText(s, at: CGRect(x: pad, y: listY, width: availW, height: 48),
+                         font: UIFont.systemFont(ofSize: 34), color: inkSoft, kern: 0, align: .left)
+                listY += 52
             }
-            var where_ = block.name
-            if let s = schoolName, !s.isEmpty { where_ += " · \(s)" }
-            drawText(where_, at: CGRect(x: subX, y: subY, width: w - subX - pad, height: 54),
-                     font: UIFont.systemFont(ofSize: 34), color: inkSoft, kern: 0,
-                     align: .left, vCenter: true)
+
+            // ── Lista de líneas ─────────────────────────────────────────────
+            // Número (círculo del color del grado, = badge de la foto) · nombre
+            // · grado · estado (HECHO / PROYECTO). Se listan TODAS las vías.
+            listY += 8
+            let maxRows = 8
+            let rowH: CGFloat = 56
+            for (idx, l) in lines.prefix(maxRows).enumerated() {
+                let style = GradeColor.style(l.grade)
+                let cx = pad + 22, cyc = listY + 12
+                fillCircle(cg, CGPoint(x: cx, y: cyc), 24, .white)
+                fillCircle(cg, CGPoint(x: cx, y: cyc), 21, UIColor(style.stroke))
+                drawCentered("\(idx + 1)", at: CGPoint(x: cx, y: cyc), size: 30,
+                             color: style.dark ? ink : .white)
+
+                // Estado a la derecha (reserva su ancho).
+                var rightLimit = w - pad
+                let status: (String, UIColor)? =
+                    tickedIds.contains(l.id) ? ("HECHO", green)
+                    : projectIds.contains(l.id) ? ("PROYECTO", terra) : nil
+                if let (label, col) = status {
+                    let sFont = mono(30, bold: true)
+                    let sw = (label as NSString).size(withAttributes: [.font: sFont, .kern: 1.2]).width
+                    drawText(label, at: CGRect(x: w - pad - sw - 6, y: listY, width: sw + 6, height: 48),
+                             font: sFont, color: col, kern: 1.2, align: .right)
+                    rightLimit = w - pad - sw - 30
+                }
+
+                // Nombre + grado (recortado para no pisar el estado).
+                let nameFont = UIFont.systemFont(ofSize: 40)
+                let gradeFont = UIFont.systemFont(ofSize: 34, weight: .bold)
+                let gradeTxt = (l.grade?.isEmpty == false) ? l.grade! : nil
+                let gradeW: CGFloat = gradeTxt != nil
+                    ? (gradeTxt! as NSString).size(withAttributes: [.font: gradeFont]).width + 18 : 0
+                let tx = pad + 56
+                let nm = (l.name?.isEmpty == false) ? l.name! : "Vía \(idx + 1)"
+                drawText(nm, at: CGRect(x: tx, y: listY, width: rightLimit - tx - gradeW, height: 48),
+                         font: nameFont, color: ink, kern: 0, align: .left)
+                if let g = gradeTxt {
+                    drawText(g, at: CGRect(x: rightLimit - gradeW + 4, y: listY, width: gradeW, height: 48),
+                             font: gradeFont, color: inkSoft, kern: 0, align: .left)
+                }
+                listY += rowH
+            }
+            if lines.count > maxRows {
+                drawText("+\(lines.count - maxRows) vías más",
+                         at: CGRect(x: pad + 56, y: listY, width: availW - 56, height: 48),
+                         font: UIFont.systemFont(ofSize: 32), color: inkSoft, kern: 0, align: .left)
+                listY += rowH
+            }
 
             // ── Foto con las líneas ─────────────────────────────────────────
             let footerTop = h - 130
-            let photoTop = subY + 90
+            let photoTop = listY + 14
             let availH = footerTop - photoTop - 20
             let ratio = min(max(photo.size.width / max(photo.size.height, 1), 0.55), 2.2)
             var rectW = availW, rectH = rectW / ratio

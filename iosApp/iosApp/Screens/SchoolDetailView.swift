@@ -1539,7 +1539,7 @@ struct BlockInfoSheet: View {
                                         // formato historia) → Instagram/WhatsApp; si no tiene
                                         // foto/dibujo cae al texto (espejo de Android).
                                         Button {
-                                            Task { await ShareLineImage.share(block: block, line: l, schoolName: schoolName) }
+                                            Task { await ShareLineImage.share(block: block, line: l, schoolName: schoolName, tickedIds: tickedLines, projectIds: projectLines) }
                                         } label: {
                                             Image(systemName: "square.and.arrow.up")
                                                 .font(.system(size: 16, weight: .medium))
