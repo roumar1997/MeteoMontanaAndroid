@@ -281,7 +281,11 @@ fun BlockDetailDialog(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier
                                             .clip(CircleShape)
-                                            .clickable { shareVia(shareScope, context, block, line, schoolName, tickedLines.toSet(), projectLines.toSet()) }
+                                            .clickable {
+                                                val sectorName = availableSectors
+                                                    ?.firstOrNull { it.id == block.sectorBlockId }?.name
+                                                shareVia(shareScope, context, block, line, schoolName, tickedLines.toSet(), projectLines.toSet(), sectorName)
+                                            }
                                             .padding(5.dp)
                                             .size(22.dp)
                                     )
@@ -709,15 +713,16 @@ private fun shareVia(
     line: com.meteomontana.android.domain.model.BlockLine,
     schoolName: String,
     tickedIds: Set<String>,
-    projectIds: Set<String>
+    projectIds: Set<String>,
+    sectorName: String?
 ) {
     scope.launch {
         val shared = runCatching {
             com.meteomontana.android.ui.share.shareLineAsImage(
-                context, block, line, schoolName, tickedIds, projectIds
+                context, block, line, schoolName, tickedIds, projectIds, sectorName
             )
         }.getOrDefault(false)
-        if (!shared) shareLine(context, block, line, schoolName)
+        if (!shared) shareLine(context, block, line, schoolName, sectorName)
     }
 }
 
@@ -726,7 +731,8 @@ private fun shareLine(
     context: android.content.Context,
     block: Block,
     line: com.meteomontana.android.domain.model.BlockLine,
-    schoolName: String
+    schoolName: String,
+    sectorName: String?
 ) {
     val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "vía" else "bloque"
     val article = if (kind == "vía") "esta" else "este"
@@ -734,6 +740,7 @@ private fun shareLine(
     val where = buildString {
         append(block.name)
         if (schoolName.isNotBlank()) append(" · ").append(schoolName)
+        if (!sectorName.isNullOrBlank()) append(" · ").append(sectorName)
     }
     val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
     val link = "${base}s/v/${block.schoolId}/${line.id}"

@@ -55,7 +55,8 @@ suspend fun shareLineAsImage(
     line: BlockLine,
     schoolName: String,
     tickedIds: Set<String> = emptySet(),
-    projectIds: Set<String> = emptySet()
+    projectIds: Set<String> = emptySet(),
+    sectorName: String? = null
 ): Boolean {
     // 1. Localiza la cara (foto + líneas) a la que pertenece esta vía.
     val face = block.facesOrDerived().firstOrNull { f -> f.lines.any { it.id == line.id } }
@@ -89,21 +90,39 @@ suspend fun shareLineAsImage(
     // deep-link que el compartir de texto ya tenía.
     val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
     val link = "${base}s/v/${block.schoolId}/${line.id}"
-    val where = buildString {
-        append(block.name)
-        if (schoolName.isNotBlank()) append(" · ").append(schoolName)
-    }
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(
-            Intent.EXTRA_TEXT,
-            "🧗 ${block.name} en Cumbre\n📍 $where\n👉 Míralo en la app:\n$link"
-        )
+        putExtra(Intent.EXTRA_TEXT, shareText(block, line, schoolName, sectorName, link))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(intent, "Compartir $kind"))
     return true
+}
+
+/**
+ * Texto que acompaña al compartir: tipo (bloque/vía) + nombre de la vía + grado,
+ * y debajo piedra · escuela · sector, más el enlace que abre la app en la piedra.
+ */
+private fun shareText(
+    block: Block,
+    line: BlockLine,
+    schoolName: String,
+    sectorName: String?,
+    link: String
+): String {
+    val isRoute = block.discipline.equals("ROUTE", ignoreCase = true)
+    val kind = if (isRoute) "vía" else "bloque"
+    val article = if (isRoute) "esta" else "este"
+    val grade = line.grade?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
+    val place = buildString {
+        append(block.name)
+        if (schoolName.isNotBlank()) append(" · ").append(schoolName)
+        if (!sectorName.isNullOrBlank()) append(" · ").append(sectorName)
+    }
+    return "🧗 Mira $article $kind: «${line.name}»$grade\n" +
+        "📍 $place\n" +
+        "👉 Míralo en la app:\n$link"
 }
 
 /** topoAspectRatio de TopoPhotoCanvas: recorta el ratio a un rango razonable. */

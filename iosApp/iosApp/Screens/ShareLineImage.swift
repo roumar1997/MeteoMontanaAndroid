@@ -23,19 +23,16 @@ enum ShareLineImage {
 
     /// Punto de entrada: compone la imagen (o cae a texto) y presenta el share sheet.
     static func share(block: Block, line: BlockLine, schoolName: String?,
-                      tickedIds: Set<String> = [], projectIds: Set<String> = []) async {
+                      tickedIds: Set<String> = [], projectIds: Set<String> = [],
+                      sectorName: String? = nil) async {
         if let image = await renderCard(block: block, line: line, schoolName: schoolName,
                                         tickedIds: tickedIds, projectIds: projectIds) {
-            // Enlace que ABRE la app directamente en esta piedra (recupera el
-            // deep-link que el compartir de texto ya tenía).
-            let base = AppConfig.apiBaseUrl.replacingOccurrences(of: "api/", with: "")
-            let link = "\(base)s/v/\(block.schoolId)/\(line.id)"
-            var where_ = block.name
-            if let s = schoolName, !s.isEmpty { where_ += " · \(s)" }
-            let text = "🧗 \(block.name) en Cumbre\n📍 \(where_)\n👉 Míralo en la app:\n\(link)"
+            let text = shareLineText(block: block, line: line, schoolName: schoolName,
+                                     sectorName: sectorName, appWording: true)
             await present([image, text])
         } else {
-            await present([shareLineText(block: block, line: line, schoolName: schoolName)])
+            await present([shareLineText(block: block, line: line, schoolName: schoolName,
+                                         sectorName: sectorName)])
         }
     }
 
@@ -273,19 +270,24 @@ enum ShareLineImage {
         UIFont(name: "SourceSerif4-Bold", size: size) ?? .systemFont(ofSize: size, weight: .bold)
     }
 
-    /// Texto de fallback (sin foto/dibujo) — espejo de `shareLineText` de la vista.
-    private static func shareLineText(block: Block, line: BlockLine, schoolName: String?) -> String {
+    /// Texto que acompaña al compartir (imagen o fallback): tipo + nombre de la
+    /// vía + grado, y piedra · escuela · sector, más el enlace que abre la app.
+    /// `appWording=true` cuando ya va una imagen adjunta (el texto no describe la foto).
+    private static func shareLineText(block: Block, line: BlockLine, schoolName: String?,
+                                      sectorName: String? = nil, appWording: Bool = false) -> String {
         let isRoute = block.discipline.uppercased() == "ROUTE"
         let kind = isRoute ? "vía" : "bloque"
         let article = isRoute ? "esta" : "este"
         let grade = (line.grade?.isEmpty == false) ? " \(line.grade!)" : ""
         var place = block.name
         if let s = schoolName, !s.isEmpty { place += " · \(s)" }
+        if let sec = sectorName, !sec.isEmpty { place += " · \(sec)" }
         let base = AppConfig.apiBaseUrl.replacingOccurrences(of: "api/", with: "")
         let link = "\(base)s/v/\(block.schoolId)/\(line.id)"
+        let cta = appWording ? "👉 Míralo en la app:" : "👉 Míralo en Cumbre (foto con la línea dibujada):"
         return "🧗 Mira \(article) \(kind): «\(line.name)»\(grade)\n"
             + "📍 \(place)\n"
-            + "👉 Míralo en Cumbre (foto con la línea dibujada):\n\(link)"
+            + "\(cta)\n\(link)"
     }
 
     // MARK: - Share sheet
