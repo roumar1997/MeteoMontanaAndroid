@@ -223,12 +223,14 @@ jobs:
           # altool lee la key de ~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8
           # --verbose da mensajes claros: app inexistente, bundle id, permisos, etc.
           # OJO: altool a veces imprime ERROR pero devuelve exit 0 (falso verde),
-          # así que capturamos la salida y fallamos a mano si hay ERROR.
+          # y también imprime "ERROR: ... WILL RETRY" en reintentos de red que
+          # acaban bien (falso rojo el 2026-07-10). El único veredicto fiable es
+          # la línea final: exigimos "UPLOAD SUCCEEDED" explícito.
           set -o pipefail
           xcrun altool --upload-app -f "$IPA" -t ios \
             --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --verbose 2>&1 | tee /tmp/altool.log || true
-          if grep -qiE "ERROR:|UPLOAD FAILED|Cannot determine the Apple ID" /tmp/altool.log; then
-            echo "::error::altool reportó un error real en la subida (ver log de arriba)."
+          if ! grep -qi "UPLOAD SUCCEEDED" /tmp/altool.log; then
+            echo "::error::altool no reportó UPLOAD SUCCEEDED (ver log de arriba)."
             exit 1
           fi
           echo "Subida a App Store Connect OK."
