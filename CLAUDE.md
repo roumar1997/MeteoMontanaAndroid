@@ -515,8 +515,9 @@ Usado en Admin para ver dónde está una propuesta. "✕ CERRAR" en esquina supe
 
 ## Estado actual
 
-App Android + iOS a paridad completa en producción, con testers reales en
-Play (prueba cerrada) y TestFlight. Backend Spring Boot en Railway
+**🚀 APP LANZADA AL PÚBLICO (2026-07-10)**: Cumbre **2.12 pública en Google
+Play (producción 100%) y en App Store (España/UE incluidas)**. Android + iOS
+a paridad completa. Backend Spring Boot en Railway
 (producción + staging separados, ver sección Entornos arriba). Features
 completas: catálogo de escuelas + forecast + mapa + score, piedras/muros con
 vías y modalidad Bloque/Vía, contribuciones con revisión admin, diario
@@ -528,26 +529,31 @@ contextual, comparador de escuelas, admin completo (propuestas, gestión de
 bloques, stats, logs, push manual).
 
 **🔜 Pendiente / acciones de Rodrigo (no bloqueante):**
-- App Store: capturas de pantalla (mínimo 3, iPhone 6,5") + enviar a
-  revisión con el build actual. Ver `APP_STORE_CHECKLIST.md`.
-- Play Store: revisar progreso de la prueba cerrada (12 testers / 14 días).
-- Seguridad (menor, ver revisión 2026-07-02): límite de tamaño a
-  `gearJson` de quedadas, magic bytes en fotos, rotar contraseñas BD Railway.
-- APNs (push iOS con app cerrada) — capability lista, falta activarla junto
-  con la revisión de App Store.
-- **Monetización — ANTES de poner la app de pago/suscripción: contratar la
-  API COMERCIAL de Open-Meteo** (o mover la previsión por horas a AEMET). La
-  API gratis de Open-Meteo es **solo uso no comercial** (CC-BY-NC); cobrar sin
-  su plan comercial incumpliría la licencia. AEMET (radar/boletín) sí permite
-  uso comercial con atribución (ya la tienes). Ver [[project_paid_openmeteo]].
-- iOS: sacar a la App Store una versión con el **build 62 (2.12.0)** — lo de
-  compartir vía solo está en TestFlight; 2.11.8 (pública) no lo lleva.
+- App Store: responder el **cuestionario de redes sociales** de la
+  clasificación por edades (banner azul en la ficha) — límite 2026-09-07.
+- Play Console: **descartar** el cambio residual "Prueba abierta / dejar de
+  sincronizar países" en Resumen de publicación (menú ⋮ → descartar).
+- Seguridad (menor): rotar contraseñas BD Railway + `DB_POOL_SIZE=25` en
+  prod + `INVITE_SECRET` en Railway. Límites de `gearJson` → ver
+  `MejorasFuturas.md` Bloque 1 (magic bytes ya hechos 2026-07-07).
+- Mejora continua post-lanzamiento: **`MejorasFuturas.md`** (plan completo
+  priorizado tras la revisión de arquitectura del 2026-07-09).
+- **Monetización — ANTES de poner la app de pago/suscripción** (checklist
+  completo en `MejorasFuturas.md` §6.4): (1) contratar la API COMERCIAL de
+  Open-Meteo (la gratis es CC-BY-NC, solo válida mientras la app no genere
+  ingresos; el cambio es SOLO backend — las apps no llaman a Open-Meteo,
+  no requiere release en tiendas); (2) DSA a "comerciante" en App Store
+  Connect (verificación ~días, datos públicos en la ficha UE); (3) firmar
+  el Acuerdo para apps de pago (Apple) / cuenta de comercio (Play).
+- APNs (push iOS con app cerrada) — capability lista, falta activarla.
 
 ## Historial (resumido)
 
 Registro terso por sesión — el detalle línea a línea vive en `git log`. Solo
 se apunta lo que no es obvio por el código: decisiones, causas raíz de bugs
 difíciles, y qué se dejó a medias.
+
+**2026-07-10 (LANZAMIENTO PÚBLICO)** — 🚀 **Cumbre pública en las DOS tiendas**: Play (2.12.0, producción 100%, aprobada en ~12h) y App Store (2.12.1, cuenta Álvaro). **CAUSA RAÍZ del "app no disponible en tu país o región" en España**: la app estaba aprobada y viva fuera de la UE, pero **faltaba la declaración del DSA** (Reglamento de Servicios Digitales) — desde feb-2025 Apple retira de los 27 storefronts UE toda app sin declaración de comerciante. Fix: App Store Connect → Negocio → banner rojo → "No soy comerciante" (sin verificación, efecto en horas/48h). LECCIÓN: *app aprobada pero invisible solo en la UE = revisar DSA en Negocio*. Si algún día se monetiza → cambiar a "comerciante" (datos verificados y públicos). También: fallo del CI iOS del 9-jul era **cuota de artifacts de Actions llena** (el build compilaba bien) → pendiente `retention-days: 7` en workflows. **Revisión de arquitectura completa** (4 análisis paralelos: UI 6.5, shared KMP 6.5, backend 6, seguridad 7, ingeniería 6.5) → plan completo priorizado en **`MejorasFuturas.md`** (nuevo doc raíz). **Capacidad medida con prueba de carga real** (backend compilado + Postgres + 191 escuelas + forecast_cache sembrada, en contenedor 4 vCPU): escala lineal hasta **~1.200 req/s con p95 12 ms**, techo ~1.585 req/s, **0 errores en 152k requests** ≈ ~6.000 usuarios activos simultáneos / decenas de miles diarios por instancia. Detalle en `SCALING.md` del repo API. Verificado: apps NO llaman a Open-Meteo directamente (solo backend) → contratar el plan comercial no requiere release.
 
 **2026-07-09 (2, release)** — Release **2.12.0** a producción. iOS: se subió build **60→61→62** a TestFlight vía workflow "iOS PROD .ipa (manual)" (2.11.8 estaba cerrado como train en App Store → bump `CFBundleShortVersion` a **2.12.0**). Android AAB de release **vc49** firmado con `meteomontana-release.jks` (keystore + pass en `project_play_release.md`) → subido a Producción de Play, **en revisión** (publicación automática al aprobar). Se pulió el compartir vía: la imagen ahora **lista TODAS las líneas** de la cara (nº que coincide con el badge + nombre + grado) con **estado HECHO/PROYECTO** (leído de los sets ticked/project del detalle), y el texto que acompaña recupera el **deep-link `/s/v/{schoolId}/{lineId}`** (abre la app en la piedra, antes solo iba a descarga) + "Mira este bloque: «vía» grado / piedra·escuela·**sector**". Copy "Vela"→"Míralo". Paridad Android (`ShareLineImage.kt`, `BlockDetailDialog`) / iOS (`ShareLineImage.swift`, `SchoolDetailView`). **iOS App Store 2.11.8 quedó PÚBLICA** (primera salida a tienda; la ficha web carga, la descarga en dispositivo tarda hasta 24h en propagar). Lo de hoy (build 62) sigue solo en TestFlight → falta crear versión de tienda con ese build. OJO: las versiones de App Store las gestiona la cuenta **Álvaro Fanjul** (2.11.8 pública, 2.12.1 en revisión), separado de los builds que subo yo a TestFlight.
 

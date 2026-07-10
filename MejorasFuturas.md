@@ -625,13 +625,27 @@
 - Ver 2.4.5. `main` de ambos repos: requerir CI verde + prohibir force-push.
   En el backend considerar exigirlo también para `develop`.
 
-### 6.4 Monetización — recordatorio legal
+### 6.4 Monetización — checklist previo obligatorio (legal + tiendas)
 
-- **ANTES de cobrar** (suscripción o pago): contratar la **API comercial de
-  Open-Meteo** o migrar la previsión horaria a AEMET. La API gratis es
-  CC-BY-NC (solo uso no comercial). Ya está apuntado en CLAUDE.md — se repite
-  aquí porque es la única cosa de esta lista que puede convertirse en
-  problema legal, no técnico.
+Los 3 pasos ANTES de activar cualquier cobro (suscripción, pago, anuncios),
+en este orden:
+
+1. **API comercial de Open-Meteo** (o migrar la previsión horaria a AEMET).
+   La API gratis es CC-BY-NC — válida SOLO mientras la app no genere ningún
+   ingreso (hoy cumple: gratis, sin anuncios, con atribución). El cambio es
+   **solo backend** (verificado 2026-07-10: las apps nunca llaman a
+   Open-Meteo; solo `OpenMeteoClient`/`OpenMeteoArchiveClient`): leer env
+   `OPENMETEO_API_KEY` → si existe, host `customer-api.open-meteo.com` +
+   `&apikey=` (mismo patrón que `AEMET_API_KEY`). **No requiere subir
+   versión a ninguna tienda** — efecto inmediato para todas las apps
+   instaladas. Consumo actual ~96 llamadas/día fijas (prefetch batch) → el
+   plan comercial más barato sobra.
+2. **DSA a "comerciante"** en App Store Connect → Negocio (hoy declarado
+   "no comerciante", 2026-07-10). Exige dirección/teléfono/email verificados
+   por Apple (~días) que se publican en la ficha de la UE.
+3. **Acuerdo para apps de pago** (App Store Connect → Negocio → Acuerdos,
+   está en "Nuevo" sin firmar) + datos bancarios/fiscales. Equivalente en
+   Play: cuenta de comercio (Play Console → Monetizar → Empezar).
 
 ### 6.5 Observabilidad mínima
 
