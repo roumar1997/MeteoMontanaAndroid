@@ -292,6 +292,10 @@ object UseCasesModule {
     fun provideSearchUsersUseCase(repo: SocialRepository) = SearchUsersUseCase(repo)
 
     @Provides @Singleton
+    fun provideGetTopContributorsUseCase(repo: SocialRepository) =
+        com.meteomontana.android.domain.usecase.social.GetTopContributorsUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetFollowersUseCase(repo: SocialRepository) = GetFollowersUseCase(repo)
 
     @Provides @Singleton

@@ -337,6 +337,7 @@ struct AccountView: View {
                 }
                 Divider().overlay(Cumbre.rule)
             }
+            menuRow("Comunidad", "trophy", CommunityView())
             menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
             menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
             menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())

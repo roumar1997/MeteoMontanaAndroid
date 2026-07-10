@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
@@ -74,6 +75,7 @@ fun ProfileScreen(
     onOpenFollowers: () -> Unit = {},
     onOpenFollowing: () -> Unit = {},
     onOpenFollowRequests: () -> Unit = {},
+    onOpenCommunity: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenBoulders: () -> Unit = {},
     onOpenRoutes: () -> Unit = {},
@@ -216,6 +218,7 @@ private fun Content(
                 onSubmissions = onSubmissions,
                 showRequests = !profile.isPublic,
                 onOpenFollowRequests = onOpenFollowRequests,
+                onOpenCommunity = onOpenCommunity,
                 shareHandle = profile.username ?: profile.uid,
                 shareLabel = profile.username?.let { "@$it" } ?: (profile.displayName ?: "mi perfil"),
                 shareDisplayName = profile.displayName ?: profile.username ?: "Escalador/a",
@@ -412,6 +415,7 @@ private fun ProfileMenu(
     onSubmissions: () -> Unit,
     showRequests: Boolean,
     onOpenFollowRequests: () -> Unit,
+    onOpenCommunity: () -> Unit = {},
     shareHandle: String? = null,
     shareLabel: String = "",
     shareDisplayName: String = "",
@@ -436,6 +440,8 @@ private fun ProfileMenu(
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         }
+        MenuRow(Icons.Outlined.EmojiEvents, "Comunidad", onOpenCommunity)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)

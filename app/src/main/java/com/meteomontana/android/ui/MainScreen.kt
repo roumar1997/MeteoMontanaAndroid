@@ -318,6 +318,7 @@ fun MainScreen(
                             }
                         },
                         onOpenFollowRequests = { openSheet(Routes.FOLLOW_REQUESTS) },
+                        onOpenCommunity = { openSheet(Routes.COMMUNITY) },
                         onOpenSchoolEntries = { schoolName -> openSheet(Routes.journalSectors(schoolName)) },
                         onOpenBoulders = { openSheet(Routes.journalEntries("discipline:BOULDER")) },
                         onOpenRoutes = { openSheet(Routes.journalEntries("discipline:ROUTE")) },
@@ -436,6 +437,7 @@ fun MainScreen(
                                 }
                             },
                             onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
+                            onOpenCommunity = { sheetNav.navigate(Routes.COMMUNITY) },
                             onOpenSchoolEntries = { schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName)) },
                             onOpenBoulders = { sheetNav.navigate(Routes.journalEntries("discipline:BOULDER")) },
                             onOpenRoutes = { sheetNav.navigate(Routes.journalEntries("discipline:ROUTE")) },
@@ -631,6 +633,12 @@ fun MainScreen(
                     }
                     composable(Routes.SEARCH_USERS) {
                         SearchUsersScreen(
+                            onBack = popSheetOrDismiss,
+                            onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
+                        )
+                    }
+                    composable(Routes.COMMUNITY) {
+                        com.meteomontana.android.ui.screens.users.CommunityScreen(
                             onBack = popSheetOrDismiss,
                             onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
                         )

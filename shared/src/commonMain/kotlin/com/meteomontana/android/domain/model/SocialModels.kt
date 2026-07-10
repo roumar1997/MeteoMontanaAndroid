@@ -28,6 +28,15 @@ data class PublicProfile(
     val isPublic: Boolean = false
 )
 
+/** Fila del ranking de mayores contribuidores (pantalla Comunidad). */
+data class TopContributor(
+    val uid: String,
+    val username: String?,
+    val displayName: String?,
+    val photoUrl: String?,
+    val approvedCount: Long
+)
+
 data class FollowStatus(
     val followers: Long,
     val following: Long,
