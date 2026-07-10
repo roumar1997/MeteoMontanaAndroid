@@ -17,14 +17,16 @@ enum ShareProfileImage {
 
     /// Punto de entrada: compone la card y presenta el share sheet.
     static func share(handle: String, displayLabel: String, username: String?,
-                      photoUrl: String?, topGrade: String?, bio: String?) async {
+                      photoUrl: String?, topGrade: String?, bio: String?,
+                      boulders: Int? = nil, routes: Int? = nil, schools: Int? = nil) async {
         var avatar: UIImage? = nil
         if let url = photoUrl, !url.isEmpty {
             avatar = await ImageCache.image(url)
         }
         let image = await MainActor.run {
             drawCard(displayLabel: displayLabel, username: username,
-                     avatar: avatar, topGrade: topGrade, bio: bio)
+                     avatar: avatar, topGrade: topGrade, bio: bio,
+                     boulders: boulders, routes: routes, schools: schools)
         }
         let text = "Perfil de \(displayLabel) en Cumbre:\n"
             + "https://api.climbingteams.com/s/u/\(handle)"
@@ -35,7 +37,8 @@ enum ShareProfileImage {
 
     @MainActor
     private static func drawCard(displayLabel: String, username: String?,
-                                 avatar: UIImage?, topGrade: String?, bio: String?) -> UIImage {
+                                 avatar: UIImage?, topGrade: String?, bio: String?,
+                                 boulders: Int?, routes: Int?, schools: Int?) -> UIImage {
         let w: CGFloat = 1080, h: CGFloat = 1920
         let cx = w / 2
         let format = UIGraphicsImageRendererFormat()
@@ -122,6 +125,26 @@ enum ShareProfileImage {
                 y += 30
             }
 
+            // Fila de stats: BLOQUES · VÍAS · ESCUELAS (solo con dato > 0).
+            // OJO Swift: construir el array paso a paso (una expresión larga
+            // dispara "unable to type-check in reasonable time").
+            var statCols: [(String, String)] = []
+            if let b = boulders, b > 0 { statCols.append(("\(b)", "BLOQUES")) }
+            if let r = routes, r > 0 { statCols.append(("\(r)", "VÍAS")) }
+            if let s = schools, s > 0 { statCols.append(("\(s)", "ESCUELAS")) }
+            if !statCols.isEmpty {
+                y += 20
+                let colW = (w - 240) / CGFloat(statCols.count)
+                for (i, col) in statCols.enumerated() {
+                    let colCx = 120 + colW * CGFloat(i) + colW / 2
+                    drawCenteredText(col.0, cx: colCx, y: y,
+                                     font: serif(72), color: ink, kern: 0)
+                    drawCenteredText(col.1, cx: colCx, y: y + 92,
+                                     font: mono(26, bold: false), color: inkSoft, kern: 3)
+                }
+                y += 190
+            }
+
             // Bio (hasta 3 líneas, centrada).
             if let b = bio, !b.isEmpty {
                 let bioPara = NSMutableParagraphStyle()
@@ -136,7 +159,7 @@ enum ShareProfileImage {
             }
 
             // Pie: CTA + marca.
-            drawCenteredText("Descarga Cumbre y sígueme", cx: cx, y: h - 230,
+            drawCenteredText("Descarga Cumbre", cx: cx, y: h - 230,
                              font: UIFont.systemFont(ofSize: 42), color: ink, kern: 0)
             drawCenteredText("⛰ CUMBRE", cx: cx, y: h - 150,
                              font: mono(36, bold: true), color: terra, kern: 4)

@@ -258,12 +258,16 @@ struct PublicProfileView: View {
                     ?? vm.profile?.displayName ?? "este escalador"
                 Button {
                     Task {
+                        let st = vm.stats
                         await ShareProfileImage.share(
                             handle: handle, displayLabel: label,
                             username: vm.profile?.username,
                             photoUrl: vm.profile?.photoUrl,
                             topGrade: vm.profile?.topGrade,
-                            bio: vm.profile?.bio)
+                            bio: vm.profile?.bio,
+                            boulders: st.map { Int($0.boulderCount) },
+                            routes: st.map { Int($0.routeCount) },
+                            schools: st.map { Int($0.schoolCount) })
                     }
                 } label: {
                     Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink2)

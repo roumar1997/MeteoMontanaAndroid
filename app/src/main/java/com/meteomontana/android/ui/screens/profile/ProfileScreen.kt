@@ -225,7 +225,8 @@ private fun Content(
                 shareUsername = profile.username,
                 sharePhotoUrl = profile.photoUrl,
                 shareTopGrade = profile.topGrade,
-                shareBio = profile.bio
+                shareBio = profile.bio,
+                shareStats = stats
             )
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -422,7 +423,8 @@ private fun ProfileMenu(
     shareUsername: String? = null,
     sharePhotoUrl: String? = null,
     shareTopGrade: String? = null,
-    shareBio: String? = null
+    shareBio: String? = null,
+    shareStats: com.meteomontana.android.domain.model.JournalStats? = null
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -434,7 +436,10 @@ private fun ProfileMenu(
                     com.meteomontana.android.ui.share.shareProfileAsImage(
                         ctx, shareHandle, shareLabel,
                         username = shareUsername, photoUrl = sharePhotoUrl,
-                        topGrade = shareTopGrade, bio = shareBio
+                        topGrade = shareTopGrade, bio = shareBio,
+                        boulders = shareStats?.boulderCount,
+                        routes = shareStats?.routeCount,
+                        schools = shareStats?.schoolCount
                     )
                 }
             }

@@ -41,7 +41,10 @@ suspend fun shareProfileAsImage(
     username: String?,
     photoUrl: String?,
     topGrade: String?,
-    bio: String?
+    bio: String?,
+    boulders: Int? = null,
+    routes: Int? = null,
+    schools: Int? = null
 ) {
     // Avatar (opcional): descarga en software para poder dibujarlo.
     val avatar: Bitmap? = photoUrl?.takeIf { it.isNotBlank() }?.let { url ->
@@ -51,7 +54,7 @@ suspend fun shareProfileAsImage(
         (result as? SuccessResult)?.drawable?.toBitmap()
     }
 
-    val bmp = renderProfileCard(displayLabel, username, avatar, topGrade, bio)
+    val bmp = renderProfileCard(displayLabel, username, avatar, topGrade, bio, boulders, routes, schools)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     val file = File(dir, "perfil.png")
     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -73,7 +76,10 @@ private fun renderProfileCard(
     username: String?,
     avatar: Bitmap?,
     topGrade: String?,
-    bio: String?
+    bio: String?,
+    boulders: Int?,
+    routes: Int?,
+    schools: Int?
 ): Bitmap {
     val w = 1080
     val h = 1920
@@ -165,6 +171,31 @@ private fun renderProfileCard(
         y += 40f
     }
 
+    // Fila de stats: BLOQUES · VÍAS · ESCUELAS (solo las que tengan dato > 0).
+    val statCols = listOfNotNull(
+        boulders?.takeIf { it > 0 }?.let { "$it" to "BLOQUES" },
+        routes?.takeIf { it > 0 }?.let { "$it" to "VÍAS" },
+        schools?.takeIf { it > 0 }?.let { "$it" to "ESCUELAS" }
+    )
+    if (statCols.isNotEmpty()) {
+        y += 20f
+        val colW = (w - 240f) / statCols.size
+        val numPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = INK; textSize = 76f; textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+        }
+        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = INK_SOFT; textSize = 28f; typeface = Typeface.MONOSPACE
+            letterSpacing = 0.16f; textAlign = Paint.Align.CENTER
+        }
+        statCols.forEachIndexed { i, (num, label) ->
+            val colCx = 120f + colW * i + colW / 2f
+            c.drawText(num, colCx, y + 60f, numPaint)
+            c.drawText(label, colCx, y + 110f, labelPaint)
+        }
+        y += 190f
+    }
+
     // Bio (hasta 3 líneas, centrada).
     if (!bio.isNullOrBlank()) {
         val bioPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -177,7 +208,7 @@ private fun renderProfileCard(
     }
 
     // Pie: CTA + marca.
-    c.drawText("Descarga Cumbre y sígueme", cx, h - 200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText("Descarga Cumbre", cx, h - 200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = INK; textSize = 44f; textAlign = Paint.Align.CENTER
     })
     c.drawText("⛰ CUMBRE", cx, h - 110f, Paint(Paint.ANTI_ALIAS_FLAG).apply {

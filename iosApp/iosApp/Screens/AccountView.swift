@@ -319,10 +319,14 @@ struct AccountView: View {
                 let label = p.username.map { "@" + $0 } ?? (p.displayName ?? "mi perfil")
                 Button {
                     Task {
+                        let st = vm.stats
                         await ShareProfileImage.share(
                             handle: handle, displayLabel: label,
                             username: p.username, photoUrl: p.photoUrl,
-                            topGrade: p.topGrade, bio: p.bio)
+                            topGrade: p.topGrade, bio: p.bio,
+                            boulders: st.map { Int($0.boulderCount) },
+                            routes: st.map { Int($0.routeCount) },
+                            schools: st.map { Int($0.schoolCount) })
                     }
                 } label: {
                     HStack(spacing: 12) {
