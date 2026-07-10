@@ -151,3 +151,6 @@ jobs:
         with:
           name: ios-app-unsigned-ipa
           path: MeteoMontana-unsigned.ipa
+          # Sin esto, cada .ipa vive 90 días y llena los 0,5 GB de Actions
+          # (causa del "Artifact storage quota has been hit" del 9-jul).
+          retention-days: 7
