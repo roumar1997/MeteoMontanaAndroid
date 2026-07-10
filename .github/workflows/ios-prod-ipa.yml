@@ -252,6 +252,7 @@ jobs:
           name: ios-app-store-ipa
           path: build/export/*.ipa
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Upload dSYM (símbolos para traducir crashes)
         if: always()
@@ -260,3 +261,6 @@ jobs:
           name: ios-dsyms
           path: build/MeteoMontana.xcarchive/dSYMs/**
           if-no-files-found: warn
+          # 30 días: los dSYM sirven para traducir crashes de esa versión
+          # mientras esté en revisión/reciente; luego ya no hacen falta aquí.
+          retention-days: 30

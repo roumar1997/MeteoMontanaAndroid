@@ -14,6 +14,16 @@ data class PublicProfileDto(
     val isPublic: Boolean = false
 )
 
+/** Fila del ranking de contribuidores (GET /api/community/top-contributors). */
+@Serializable
+data class TopContributorDto(
+    val uid: String,
+    val username: String? = null,
+    val displayName: String? = null,
+    val photoUrl: String? = null,
+    val approvedCount: Long = 0
+)
+
 @Serializable
 data class FollowStatusDto(
     val followers: Long,

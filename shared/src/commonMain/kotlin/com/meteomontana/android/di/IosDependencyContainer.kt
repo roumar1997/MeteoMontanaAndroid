@@ -234,6 +234,8 @@ class IosDependencyContainer(
         com.meteomontana.android.help.HelpCatalog.byKey(key)
 
     val searchUsers = SearchUsersUseCase(socialRepository)
+    val getTopContributors =
+        com.meteomontana.android.domain.usecase.social.GetTopContributorsUseCase(socialRepository)
     val getPublicProfile = GetPublicProfileUseCase(socialRepository, profileCache)
     val getFollowStatus = GetFollowStatusUseCase(socialRepository)
     val followUser = FollowUserUseCase(socialRepository)

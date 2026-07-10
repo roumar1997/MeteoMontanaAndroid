@@ -33,8 +33,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meteomontana.android.domain.model.Block
@@ -175,22 +177,23 @@ private fun TopBar(
         }
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(start = Spacing.xs).weight(1f))
         com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
         if (onDirections != null) {
-            IconButton(onClick = onDirections) {
+            IconButton(onClick = onDirections, modifier = Modifier.size(38.dp)) {
                 Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
         if (onShare != null) {
-            IconButton(onClick = onShare) {
+            IconButton(onClick = onShare, modifier = Modifier.size(38.dp)) {
                 Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
         if (showSaveOffline) {
-            IconButton(onClick = onToggleSaveOffline) {
+            IconButton(onClick = onToggleSaveOffline, modifier = Modifier.size(38.dp)) {
                 Icon(
                     imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
                     contentDescription = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
@@ -200,7 +203,7 @@ private fun TopBar(
             }
         }
         if (showFavorite) {
-            IconButton(onClick = onToggleFavorite) {
+            IconButton(onClick = onToggleFavorite, modifier = Modifier.size(38.dp)) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",

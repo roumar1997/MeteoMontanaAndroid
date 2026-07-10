@@ -38,6 +38,13 @@ class SearchUsersUseCase(private val repo: SocialRepository) {
         repo.searchUsers(query, limit)
 }
 
+/** Ranking de mayores contribuidores (pantalla Comunidad). */
+class GetTopContributorsUseCase(private val repo: SocialRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(limit: Int = 20): List<com.meteomontana.android.domain.model.TopContributor> =
+        repo.getTopContributors(limit)
+}
+
 class GetFollowersUseCase(private val repo: SocialRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(uid: String): List<PublicProfile> = repo.getFollowers(uid)

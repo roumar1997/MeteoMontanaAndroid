@@ -312,12 +312,23 @@ struct AccountView: View {
 
     private var menuLinks: some View {
         VStack(spacing: 0) {
-            // Compartir mi perfil: enlace /s/u/ que abre la app o lleva a la store.
+            // Compartir mi perfil: imagen 1080×1920 (formato historia) →
+            // Instagram Stories, WhatsApp... + enlace /s/u/ (paridad Android).
             if let p = vm.profile {
                 let handle = (p.username?.isEmpty == false ? p.username! : p.uid)
                 let label = p.username.map { "@" + $0 } ?? (p.displayName ?? "mi perfil")
-                ShareLink(item: URL(string: "https://api.climbingteams.com/s/u/\(handle)")!,
-                          message: Text("Perfil de \(label) en Cumbre:")) {
+                Button {
+                    Task {
+                        let st = vm.stats
+                        await ShareProfileImage.share(
+                            handle: handle, displayLabel: label,
+                            username: p.username, photoUrl: p.photoUrl,
+                            topGrade: p.topGrade, bio: p.bio,
+                            boulders: st.map { Int($0.boulderCount) },
+                            routes: st.map { Int($0.routeCount) },
+                            schools: st.map { Int($0.schoolCount) })
+                    }
+                } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "square.and.arrow.up").font(.system(size: 16))
                             .foregroundStyle(Cumbre.terra).frame(width: 24)
@@ -330,6 +341,7 @@ struct AccountView: View {
                 }
                 Divider().overlay(Cumbre.rule)
             }
+            menuRow("Comunidad", "trophy", CommunityView())
             menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
             menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
             menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())

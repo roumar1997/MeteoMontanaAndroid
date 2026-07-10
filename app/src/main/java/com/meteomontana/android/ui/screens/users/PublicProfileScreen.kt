@@ -172,8 +172,21 @@ fun PublicProfileScreen(
                 ?.let { it.username ?: it.uid }
             if (profileHandle != null) {
                 val ctx = androidx.compose.ui.platform.LocalContext.current
+                val shareScope = androidx.compose.runtime.rememberCoroutineScope()
+                val prof = (state as? PublicProfileUiState.Success)?.profile
+                val profStats = (state as? PublicProfileUiState.Success)?.stats
                 IconButton(onClick = {
-                    com.meteomontana.android.ui.share.shareProfile(ctx, profileHandle, profileName)
+                    // Imagen 1080×1920 (historia) → Instagram Stories, WhatsApp...
+                    shareScope.launch {
+                        com.meteomontana.android.ui.share.shareProfileAsImage(
+                            ctx, profileHandle, profileName,
+                            username = prof?.username, photoUrl = prof?.photoUrl,
+                            topGrade = prof?.topGrade, bio = prof?.bio,
+                            boulders = profStats?.boulderCount,
+                            routes = profStats?.routeCount,
+                            schools = profStats?.schoolCount
+                        )
+                    }
                 }) {
                     Icon(androidx.compose.material.icons.Icons.Outlined.Share,
                         contentDescription = "Compartir perfil",

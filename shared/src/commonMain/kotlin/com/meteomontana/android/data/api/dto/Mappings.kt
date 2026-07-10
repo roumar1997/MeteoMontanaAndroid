@@ -31,6 +31,7 @@ import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.SchoolScore
 import com.meteomontana.android.domain.model.SchoolStats
 import com.meteomontana.android.domain.model.Submission
+import com.meteomontana.android.domain.model.TopContributor
 
 // School
 fun SchoolDto.toDomain() = School(
@@ -128,6 +129,7 @@ fun DayCellDto.toDomain() = DayCell(date, avgScore, label)
 fun PrivateProfileDto.toDomain() = PrivateProfile(uid, email, username, displayName, photoUrl, bio, topGrade, isPublic, isAdmin, isPremium, gender, gearJson)
 fun PublicProfileDto.toDomain() = PublicProfile(uid, username, displayName, photoUrl, bio, topGrade, locked, isPublic)
 fun FollowStatusDto.toDomain() = FollowStatus(followers, following, iFollowThem, theyFollowMe, requestPending)
+fun TopContributorDto.toDomain() = TopContributor(uid, username, displayName, photoUrl, approvedCount)
 fun NotificationDto.toDomain() = Notification(id, type, title, body, targetType, targetId, readAt, createdAt)
 fun InboxDto.toDomain() = Inbox(unreadCount, items.map { it.toDomain() })
 

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
@@ -73,6 +75,7 @@ fun ProfileScreen(
     onOpenFollowers: () -> Unit = {},
     onOpenFollowing: () -> Unit = {},
     onOpenFollowRequests: () -> Unit = {},
+    onOpenCommunity: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenBoulders: () -> Unit = {},
     onOpenRoutes: () -> Unit = {},
@@ -121,6 +124,7 @@ fun ProfileScreen(
                 onOpenFollowers = onOpenFollowers,
                 onOpenFollowing = onOpenFollowing,
                 onOpenFollowRequests = onOpenFollowRequests,
+                onOpenCommunity = onOpenCommunity,
                 onOpenSchoolEntries = onOpenSchoolEntries,
                 onOpenBoulders = onOpenBoulders,
                 onOpenRoutes = onOpenRoutes,
@@ -176,6 +180,7 @@ private fun Content(
     onOpenFollowers: () -> Unit,
     onOpenFollowing: () -> Unit,
     onOpenFollowRequests: () -> Unit,
+    onOpenCommunity: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit,
     onOpenBoulders: () -> Unit,
     onOpenRoutes: () -> Unit,
@@ -215,8 +220,15 @@ private fun Content(
                 onSubmissions = onSubmissions,
                 showRequests = !profile.isPublic,
                 onOpenFollowRequests = onOpenFollowRequests,
+                onOpenCommunity = onOpenCommunity,
                 shareHandle = profile.username ?: profile.uid,
-                shareLabel = profile.username?.let { "@$it" } ?: (profile.displayName ?: "mi perfil")
+                shareLabel = profile.username?.let { "@$it" } ?: (profile.displayName ?: "mi perfil"),
+                shareDisplayName = profile.displayName ?: profile.username ?: "Escalador/a",
+                shareUsername = profile.username,
+                sharePhotoUrl = profile.photoUrl,
+                shareTopGrade = profile.topGrade,
+                shareBio = profile.bio,
+                shareStats = stats
             )
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -406,17 +418,37 @@ private fun ProfileMenu(
     onSubmissions: () -> Unit,
     showRequests: Boolean,
     onOpenFollowRequests: () -> Unit,
+    onOpenCommunity: () -> Unit = {},
     shareHandle: String? = null,
-    shareLabel: String = ""
+    shareLabel: String = "",
+    shareDisplayName: String = "",
+    shareUsername: String? = null,
+    sharePhotoUrl: String? = null,
+    shareTopGrade: String? = null,
+    shareBio: String? = null,
+    shareStats: com.meteomontana.android.domain.model.JournalStats? = null
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     Column(Modifier.fillMaxWidth()) {
         if (shareHandle != null) {
             MenuRow(Icons.Outlined.Share, "Compartir mi perfil") {
-                com.meteomontana.android.ui.share.shareProfile(ctx, shareHandle, shareLabel)
+                // Imagen 1080×1920 (formato historia) → Instagram Stories, WhatsApp...
+                scope.launch {
+                    com.meteomontana.android.ui.share.shareProfileAsImage(
+                        ctx, shareHandle, shareLabel,
+                        username = shareUsername, photoUrl = sharePhotoUrl,
+                        topGrade = shareTopGrade, bio = shareBio,
+                        boulders = shareStats?.boulderCount,
+                        routes = shareStats?.routeCount,
+                        schools = shareStats?.schoolCount
+                    )
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         }
+        MenuRow(Icons.Outlined.EmojiEvents, "Comunidad", onOpenCommunity)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)

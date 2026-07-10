@@ -2,6 +2,7 @@ package com.meteomontana.android.data.api
 
 import com.meteomontana.android.data.api.dto.FollowStatusDto
 import com.meteomontana.android.data.api.dto.PublicProfileDto
+import com.meteomontana.android.data.api.dto.TopContributorDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -18,6 +19,12 @@ class KtorSocialApi(private val client: HttpClient) {
         }.body()
 
     suspend fun getUserProfile(uid: String): PublicProfileDto = client.get("users/$uid").body()
+
+    /** Ranking de mayores contribuidores (aprobadas). Endpoint público. */
+    suspend fun getTopContributors(limit: Int = 20): List<TopContributorDto> =
+        client.get("community/top-contributors") {
+            parameter("limit", limit)
+        }.body()
 
     suspend fun follow(uid: String) { client.post("users/$uid/follow") }
 
