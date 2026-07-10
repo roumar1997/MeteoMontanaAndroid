@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -216,7 +217,12 @@ private fun Content(
                 showRequests = !profile.isPublic,
                 onOpenFollowRequests = onOpenFollowRequests,
                 shareHandle = profile.username ?: profile.uid,
-                shareLabel = profile.username?.let { "@$it" } ?: (profile.displayName ?: "mi perfil")
+                shareLabel = profile.username?.let { "@$it" } ?: (profile.displayName ?: "mi perfil"),
+                shareDisplayName = profile.displayName ?: profile.username ?: "Escalador/a",
+                shareUsername = profile.username,
+                sharePhotoUrl = profile.photoUrl,
+                shareTopGrade = profile.topGrade,
+                shareBio = profile.bio
             )
         }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -407,13 +413,26 @@ private fun ProfileMenu(
     showRequests: Boolean,
     onOpenFollowRequests: () -> Unit,
     shareHandle: String? = null,
-    shareLabel: String = ""
+    shareLabel: String = "",
+    shareDisplayName: String = "",
+    shareUsername: String? = null,
+    sharePhotoUrl: String? = null,
+    shareTopGrade: String? = null,
+    shareBio: String? = null
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     Column(Modifier.fillMaxWidth()) {
         if (shareHandle != null) {
             MenuRow(Icons.Outlined.Share, "Compartir mi perfil") {
-                com.meteomontana.android.ui.share.shareProfile(ctx, shareHandle, shareLabel)
+                // Imagen 1080×1920 (formato historia) → Instagram Stories, WhatsApp...
+                scope.launch {
+                    com.meteomontana.android.ui.share.shareProfileAsImage(
+                        ctx, shareHandle, shareLabel,
+                        username = shareUsername, photoUrl = sharePhotoUrl,
+                        topGrade = shareTopGrade, bio = shareBio
+                    )
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         }

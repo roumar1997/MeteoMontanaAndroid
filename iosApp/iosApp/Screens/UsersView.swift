@@ -250,14 +250,22 @@ struct PublicProfileView: View {
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Compartir el perfil: enlace /s/u/ que abre la app (o lleva a la store).
+            // Compartir el perfil: imagen 1080×1920 (formato historia) →
+            // Instagram Stories, WhatsApp... + enlace /s/u/ (paridad Android).
             ToolbarItem(placement: .topBarTrailing) {
                 let handle = vm.profile?.username ?? uid
                 let label = vm.profile?.username.map { "@" + $0 }
                     ?? vm.profile?.displayName ?? "este escalador"
-                ShareLink(item: URL(string: "https://api.climbingteams.com/s/u/\(handle)")!,
-                          subject: Text("Perfil de \(label) en Cumbre"),
-                          message: Text("Perfil de \(label) en Cumbre:")) {
+                Button {
+                    Task {
+                        await ShareProfileImage.share(
+                            handle: handle, displayLabel: label,
+                            username: vm.profile?.username,
+                            photoUrl: vm.profile?.photoUrl,
+                            topGrade: vm.profile?.topGrade,
+                            bio: vm.profile?.bio)
+                    }
+                } label: {
                     Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink2)
                 }
             }
