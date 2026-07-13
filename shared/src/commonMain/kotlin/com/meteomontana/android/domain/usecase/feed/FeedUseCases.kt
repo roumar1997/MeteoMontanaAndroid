@@ -41,15 +41,17 @@ class GetFeedPostUseCase(private val repo: FeedRepository) {
 }
 
 /** Publica un ascenso (TICK / PROJECT_DONE). Ids String (UUID) tal cual;
- *  [discipline] = "BOULDER" | "ROUTE" (modalidad de la piedra), opcional. */
+ *  [discipline] = "BOULDER" | "ROUTE" (modalidad de la piedra), opcional;
+ *  [caption] = descripción del autor (opcional, max 500). */
 class PublishFeedPostUseCase(private val repo: FeedRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(
         blockId: String,
         lineId: String?,
         kind: String,
-        discipline: String? = null
-    ): Long = repo.publish(blockId, lineId, kind, discipline)
+        discipline: String? = null,
+        caption: String? = null
+    ): Long = repo.publish(blockId, lineId, kind, discipline, caption)
 }
 
 class DeleteFeedPostUseCase(private val repo: FeedRepository) {

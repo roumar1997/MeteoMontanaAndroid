@@ -36,8 +36,8 @@
     <string name="tab_meetups">Quedadas</string>
     <string name="tab_community">Comunidad</string>
 
-    <!-- Feed Comunidad -->
-    <string name="feed_title">Comunidad</string>
+    <!-- Feed (antes Comunidad) -->
+    <string name="feed_title">Feed</string>
     <string name="feed_tab_explore">Explorar</string>
     <string name="feed_tab_following">Siguiendo</string>
     <string name="feed_tab_mine">Mías</string>
@@ -91,6 +91,13 @@
     <string name="feed_posts_section">Publicaciones</string>
     <string name="feed_posts_empty">Sin publicaciones todavía.</string>
     <string name="feed_load_more">CARGAR MÁS</string>
+    <string name="feed_caption_hint">Añade una descripción (opcional)</string>
+    <string name="feed_my_posts_section">Mis publicaciones</string>
+    <string name="submissions_tab_proposals">PROPUESTAS</string>
+    <string name="submissions_tab_contributions">CONTRIBUCIONES</string>
+    <string name="submissions_empty_proposals">Sin propuestas todavía</string>
+    <string name="submissions_empty_contributions">Sin contribuciones todavía</string>
+    <string name="submissions_empty_message">Desde el mapa de una escuela (+ PROPONER) o con "+ Enviar escuela" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado.</string>
 
     <!-- Login -->
     <string name="login_title">CUMBRE</string>

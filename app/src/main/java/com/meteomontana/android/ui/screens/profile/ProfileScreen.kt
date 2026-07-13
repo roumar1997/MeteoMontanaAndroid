@@ -82,6 +82,9 @@ fun ProfileScreen(
     onOpenAllSchools: () -> Unit = {},
     onOpenMaxGrade: () -> Unit = {},
     onOpenProjects: () -> Unit = {},
+    // Sección "Mis publicaciones" (feed propio, scope=mine):
+    onOpenFeedUser: (String) -> Unit = {},
+    onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit = { _, _, _ -> },
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -130,6 +133,8 @@ fun ProfileScreen(
                 onOpenAllSchools = onOpenAllSchools,
                 onOpenMaxGrade = onOpenMaxGrade,
                 onOpenProjects = onOpenProjects,
+                onOpenFeedUser = onOpenFeedUser,
+                onOpenFeedSchool = onOpenFeedSchool,
                 onSignOut = viewModel::signOut,
                 onDeleteAccount = { viewModel.deleteAccount() }
             )
@@ -185,6 +190,8 @@ private fun Content(
     onOpenAllSchools: () -> Unit,
     onOpenMaxGrade: () -> Unit,
     onOpenProjects: () -> Unit,
+    onOpenFeedUser: (String) -> Unit = {},
+    onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit = { _, _, _ -> },
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit = {}
 ) {
@@ -207,6 +214,19 @@ private fun Content(
         item { Header(profile, topGrade = stats.maxGrade, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects) }
+        // "Mis publicaciones": tu propio feed (scope=mine), reutiliza
+        // UserFeedSection/FeedPostCard con CARGAR MÁS. Column normal dentro
+        // de un item del LazyColumn (sin scroll anidado).
+        item {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                com.meteomontana.android.ui.screens.community.UserFeedSection(
+                    onOpenUser = onOpenFeedUser,
+                    onOpenSchool = onOpenFeedSchool,
+                    titleRes = R.string.feed_my_posts_section,
+                    ownProfile = true
+                )
+            }
+        }
         item { AddBlockButton(onClick = onAddBlock) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         // Menú con iconos terracota (filas tipo iOS).
@@ -453,7 +473,9 @@ private fun ProfileMenu(
         // Ajuste "Publicar ascensos en el feed": Preguntar / Siempre / Nunca.
         FeedPublishSettingRow()
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_proposals), onSubmissions)
+        // Entrada única "Mis contribuciones" (antes "Mis propuestas"): abre la
+        // pantalla unificada PROPUESTAS ⇄ CONTRIBUCIONES.
+        MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_contributions), onSubmissions)
         if (showRequests) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             MenuRow(Icons.Outlined.PersonAdd, stringResource(R.string.profile_follow_requests), onOpenFollowRequests)

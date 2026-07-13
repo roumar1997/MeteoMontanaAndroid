@@ -155,7 +155,9 @@ struct FeedPostDetailView: View {
                         onToggleLike: { vm.toggleLike() },
                         onOpenComments: {},
                         onDelete: {},
-                        onReport: post.mine ? nil : { reportPost = true })
+                        onReport: post.mine ? nil : { reportPost = true },
+                        // Detalle: la caption se ve ENTERA.
+                        captionMaxLines: nil)
                     Text("COMENTARIOS")
                         .font(Cumbre.mono(10, .bold)).tracking(1.8)
                         .foregroundStyle(Cumbre.terra)

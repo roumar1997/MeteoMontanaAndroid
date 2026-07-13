@@ -45,10 +45,12 @@ struct PendingFeedTick: Identifiable {
 struct FeedPublishSheet: View {
     let lineLabel: String
     let wasProject: Bool
-    let onPublish: (_ always: Bool) -> Void
+    let onPublish: (_ always: Bool, _ caption: String?) -> Void
     let onDiaryOnly: () -> Void
 
     @State private var always = false
+    // Descripción opcional del autor (viaja como "caption", max 500).
+    @State private var caption = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -61,6 +63,20 @@ struct FeedPublishSheet: View {
             Text(lineLabel)
                 .font(.system(size: 16, weight: .bold)).foregroundStyle(Cumbre.ink2)
                 .padding(.top, 2)
+
+            // Descripción opcional del post (paridad con FeedPublishSheet de
+            // SchoolMap.kt: placeholder + límite 500).
+            TextField("Añade una descripción (opcional)", text: $caption, axis: .vertical)
+                .lineLimit(2...4)
+                .font(.system(size: 14))
+                .foregroundStyle(Cumbre.ink)
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(Cumbre.paper)
+                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                .onChange(of: caption) { _, new in
+                    if new.count > 500 { caption = String(new.prefix(500)) }
+                }
+                .padding(.top, 16)
 
             // Checkbox "Publicar siempre sin preguntar".
             Button { always.toggle() } label: {
@@ -81,7 +97,10 @@ struct FeedPublishSheet: View {
             .padding(.top, 16)
 
             // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
-            Button { onPublish(always) } label: {
+            Button {
+                let c = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+                onPublish(always, c.isEmpty ? nil : c)
+            } label: {
                 Text("PUBLICAR EN EL FEED")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
                     .foregroundStyle(.white)
@@ -108,7 +127,8 @@ struct FeedPublishSheet: View {
         }
         .padding(.horizontal, 16).padding(.top, 20)
         .background(Cumbre.bg.ignoresSafeArea())
-        .presentationDetents([.height(300)])
+        // Más alta que antes: ahora incluye el campo de descripción.
+        .presentationDetents([.height(400)])
     }
 }
 

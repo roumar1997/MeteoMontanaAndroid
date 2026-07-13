@@ -449,7 +449,9 @@ internal fun FeedPostCard(
     onOpenComments: () -> Unit,
     onDelete: () -> Unit,
     /** Denunciar el post (solo posts ajenos); null = sin bandera. */
-    onReport: (() -> Unit)? = null
+    onReport: (() -> Unit)? = null,
+    /** Líneas máximas de la caption (Int.MAX_VALUE en el detalle = entera). */
+    captionMaxLines: Int = 3
 ) {
     val shape = RoundedCornerShape(2.dp)
     Column(
@@ -521,10 +523,14 @@ internal fun FeedPostCard(
             }
         }
 
-        // ── Texto: «vía · grado — piedra · escuela» ──
+        // ── Texto: «vía · grado · inicio — piedra · escuela» ──
+        // Tipo de inicio (Sentado/Pie/Lance/Trav.) junto al grado — mismo
+        // mapeo que el editor de topos (StartTypeLabel.kt).
+        val startLabel = com.meteomontana.android.ui.components.startTypeLabel(post.startType)
         val title = buildString {
             append(post.lineName ?: post.blockName ?: "")
             post.grade?.takeIf { it.isNotBlank() }?.let { append(" · ").append(it) }
+            startLabel?.let { append(" · ").append(it) }
         }
         val place = buildString {
             post.blockName?.takeIf { it.isNotBlank() && post.lineName != null }?.let { append(it) }
@@ -554,6 +560,18 @@ internal fun FeedPostCard(
                 Text(
                     place, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            // Descripción del autor (caption): recortada en la tarjeta, entera
+            // en el detalle (tap en la tarjeta lo abre).
+            post.caption?.takeIf { it.isNotBlank() }?.let { caption ->
+                Text(
+                    caption,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = captionMaxLines,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }

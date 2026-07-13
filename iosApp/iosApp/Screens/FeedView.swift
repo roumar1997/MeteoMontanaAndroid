@@ -62,10 +62,23 @@ func feedRelativeTime(_ createdAt: String) -> String {
     return "hace \(minutes / (60 * 24)) días"
 }
 
-/// Título «vía · grado» del post (paridad con FeedPostCard de Android).
+/// Tipo de inicio → etiqueta legible (mismo mapeo que StartTypeLabel.kt de
+/// Android: SIT/STAND/JUMP/TRAV). nil si no se reconoce.
+func feedStartTypeLabel(_ startType: String?) -> String? {
+    switch startType?.uppercased() {
+    case "SIT": return "Sentado"
+    case "STAND": return "Pie"
+    case "JUMP": return "Lance"
+    case "TRAV": return "Trav."
+    default: return nil
+    }
+}
+
+/// Título «vía · grado · inicio» del post (paridad con FeedPostCard de Android).
 func feedPostTitle(_ post: FeedPost) -> String {
     var t = post.lineName ?? post.blockName ?? ""
     if let g = post.grade, !g.isEmpty { t += " · \(g)" }
+    if let s = feedStartTypeLabel(post.startType) { t += " · \(s)" }
     return t
 }
 
@@ -239,7 +252,8 @@ func copyPost(_ p: FeedPost, likedByMe: Bool? = nil, likeCount: Int64? = nil,
         likeCount: likeCount ?? p.likeCount,
         likedByMe: likedByMe ?? p.likedByMe,
         commentCount: commentCount ?? p.commentCount,
-        mine: p.mine)
+        mine: p.mine,
+        startType: p.startType, caption: p.caption)
 }
 
 // MARK: - Vista principal
@@ -342,7 +356,7 @@ struct FeedView: View {
 
     private var header: some View {
         HStack {
-            Text("Comunidad")
+            Text("Feed")
                 .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
             Spacer()
             HelpButton(topicKey: "community")
@@ -520,6 +534,8 @@ struct FeedPostCard: View {
     let onDelete: () -> Void
     /// Denunciar el post (solo posts ajenos); nil = sin bandera.
     var onReport: (() -> Void)? = nil
+    /// Líneas máximas de la caption (nil en el detalle = entera).
+    var captionMaxLines: Int? = 3
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -599,6 +615,14 @@ struct FeedPostCard: View {
                 if !place.isEmpty {
                     Text(place)
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                // Descripción del autor (caption): recortada en la tarjeta,
+                // entera en el detalle (captionMaxLines = nil).
+                if let caption = post.caption, !caption.isEmpty {
+                    Text(caption)
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                        .lineLimit(captionMaxLines)
+                        .padding(.top, 4)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

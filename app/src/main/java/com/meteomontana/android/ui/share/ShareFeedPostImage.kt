@@ -103,7 +103,10 @@ private suspend fun renderPostToUri(context: Context, post: FeedPost): Uri? {
         val request = ImageRequest.Builder(context).data(url).allowHardware(false).build()
         (context.imageLoader.execute(request) as? SuccessResult)?.drawable?.toBitmap()
     }
-    val bmp = renderPostCard(post, photo)
+    // Etiqueta traducida del tipo de inicio (mismo mapeo que el editor de topos).
+    val startLabel = com.meteomontana.android.ui.components.startTypeLabelRes(post.startType)
+        ?.let(context::getString)
+    val bmp = renderPostCard(post, photo, startLabel)
     return runCatching {
         val dir = File(context.cacheDir, "share").apply { mkdirs() }
         val file = File(dir, "feed-post.png")
@@ -123,7 +126,7 @@ private fun kindEyebrow(post: FeedPost): String = when (post.kind) {
     }
 }
 
-private fun renderPostCard(post: FeedPost, photo: Bitmap?): Bitmap {
+private fun renderPostCard(post: FeedPost, photo: Bitmap?, startLabel: String? = null): Bitmap {
     val w = 1080
     val h = 1920
     val pad = 72f
@@ -151,6 +154,7 @@ private fun renderPostCard(post: FeedPost, photo: Bitmap?): Bitmap {
     val title = buildString {
         append(post.lineName ?: post.blockName ?: "")
         post.grade?.takeIf { it.isNotBlank() }?.let { append(" · ").append(it) }
+        startLabel?.let { append(" · ").append(it) }
     }.ifBlank { "Ascenso" }
     val titleLines = wrapTextShare(title, titlePaint, w - 2 * pad, maxLines = 2)
     var y = pad + 140f

@@ -35,6 +35,61 @@ private struct StatusBadge: View {
     }
 }
 
+// MARK: - Mis contribuciones (pantalla unificada)
+
+/// Entrada única del menú del perfil: segmented PROPUESTAS ⇄ CONTRIBUCIONES
+/// (patrón del toggle TIEMPO ⇄ RADAR) con las listas existentes debajo.
+/// PROPUESTAS = escuelas nuevas (submissions); CONTRIBUCIONES = mejoras de
+/// escuelas (contributions). Espejo de MySubmissionsScreen.kt.
+struct MyContributionsUnifiedView: View {
+    @State private var showContributions = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            MyContributionsToggle(showContributions: showContributions) {
+                showContributions = $0
+            }
+            .padding(.vertical, 8)
+            if showContributions {
+                MyContributionsView()
+            } else {
+                MySubmissionsView()
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+    }
+}
+
+/// Cápsula segmented PROPUESTAS ⇄ CONTRIBUCIONES — mismo estilo que
+/// WeatherRadarToggle (MainTabView.swift).
+private struct MyContributionsToggle: View {
+    let showContributions: Bool
+    let onSelect: (_ contributions: Bool) -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            segment("PROPUESTAS", active: !showContributions) { onSelect(false) }
+            segment("CONTRIBUCIONES", active: showContributions) { onSelect(true) }
+        }
+        .background(Cumbre.paper)
+        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func segment(_ label: String, active: Bool,
+                         action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(Cumbre.mono(10, .bold)).tracking(1.8)
+                .foregroundStyle(active ? .white : Cumbre.ink3)
+                .padding(.horizontal, 18).padding(.vertical, 9)
+                .background(active ? Cumbre.terra : Color.clear)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Mis propuestas de escuela
 
 @MainActor
@@ -55,9 +110,10 @@ final class MySubmissionsViewModel: ObservableObject {
 struct MySubmissionsView: View {
     @StateObject private var vm = MySubmissionsViewModel()
     var body: some View {
-        listScaffold(title: NSLocalizedString("profile_my_proposals", comment: ""), loading: vm.loading, empty: vm.items.isEmpty,
+        // Título "Mis contribuciones" (la pantalla unificada engloba las dos listas).
+        listScaffold(title: "Mis contribuciones", loading: vm.loading, empty: vm.items.isEmpty,
                      emptyText: "Sin propuestas todavía", emptyIcon: "mappin.and.ellipse",
-                     emptyHint: "Con \"+ Enviar escuela\" o + PROPONER en el mapa de una escuela puedes proponer cosas. Aquí verás su estado.") {
+                     emptyHint: "Desde el mapa de una escuela (+ PROPONER) o con \"+ Enviar escuela\" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado.") {
             ForEach(vm.items, id: \.id) { s in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -112,8 +168,8 @@ struct MyContributionsView: View {
     @StateObject private var vm = MyContributionsViewModel()
     var body: some View {
         listScaffold(title: "Mis contribuciones", loading: vm.loading, empty: vm.items.isEmpty,
-                     emptyText: "Sin mejoras todavía", emptyIcon: "mappin.and.ellipse",
-                     emptyHint: "Desde el mapa de una escuela (+ PROPONER) puedes añadir parkings, piedras, vías o sectores.") {
+                     emptyText: "Sin contribuciones todavía", emptyIcon: "mappin.and.ellipse",
+                     emptyHint: "Desde el mapa de una escuela (+ PROPONER) o con \"+ Enviar escuela\" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado.") {
             ForEach(vm.items, id: \.id) { c in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {

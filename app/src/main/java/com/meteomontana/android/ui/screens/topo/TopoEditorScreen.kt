@@ -61,12 +61,8 @@ import androidx.compose.ui.graphics.PathEffect
 
 private val GRADES = listOf("4", "5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c", "6c+",
     "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+")
-private val START_TYPE_KEYS = listOf(
-    "SIT" to R.string.topo_editor_start_sit,
-    "STAND" to R.string.topo_editor_start_stand,
-    "JUMP" to R.string.topo_editor_start_jump,
-    "TRAV" to R.string.topo_editor_start_trav
-)
+// Mapeo compartido tipo de inicio → etiqueta (ui/components/StartTypeLabel.kt).
+private val START_TYPE_KEYS = com.meteomontana.android.ui.components.START_TYPE_LABELS
 
 /**
  * Editor topo. ViewModel carga el bloque por id via GET /api/blocks/{id}.

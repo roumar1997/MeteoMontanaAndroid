@@ -154,7 +154,8 @@ struct NotificationsView: View {
                 case .school(let id): SchoolDetailLoaderView(schoolId: id)
                 case .user(let uid): PublicProfileView(uid: uid)
                 case .chat(let uid, let name): ChatView(otherUid: uid, otherName: name)
-                case .submissions: MySubmissionsView()
+                // Pantalla unificada "Mis contribuciones" (PROPUESTAS ⇄ CONTRIBUCIONES).
+                case .submissions: MyContributionsUnifiedView()
                 case .followRequests: FollowRequestsView()
                 case .feedPost(let id): FeedPostDetailView(postIdString: id)
                 }

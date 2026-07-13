@@ -108,7 +108,9 @@ class SchoolDetailViewModel @Inject constructor(
     fun publishTickToFeed(
         block: Block,
         line: com.meteomontana.android.domain.model.BlockLine,
-        wasProject: Boolean
+        wasProject: Boolean,
+        /** Descripción opcional del autor (hoja de publicar; ALWAYS = sin caption). */
+        caption: String? = null
     ) {
         val kind = if (wasProject) com.meteomontana.android.domain.usecase.feed.FeedKind.PROJECT_DONE
         else com.meteomontana.android.domain.usecase.feed.FeedKind.TICK
@@ -116,7 +118,9 @@ class SchoolDetailViewModel @Inject constructor(
         val discipline = if (block.discipline.equals("ROUTE", ignoreCase = true)) "ROUTE" else "BOULDER"
         viewModelScope.launch {
             runCatching {
-                publishFeedPost(block.id, line.id.takeIf { it.isNotBlank() }, kind, discipline)
+                publishFeedPost(
+                    block.id, line.id.takeIf { it.isNotBlank() }, kind, discipline, caption
+                )
             }
         }
     }

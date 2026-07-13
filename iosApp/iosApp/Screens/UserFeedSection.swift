@@ -2,8 +2,9 @@ import SwiftUI
 import Shared
 
 // Sección "PUBLICACIONES" del perfil público: posts del usuario en el feed
-// Comunidad (GET /api/feed?scope=user&uid=…). El backend devuelve lista vacía
-// si el perfil es privado y no le sigues. Espejo de UserFeedSection.kt.
+// (GET /api/feed?scope=user&uid=…). El backend devuelve lista vacía si el
+// perfil es privado y no le sigues. Con uid = nil (perfil PROPIO, pestaña
+// Perfil) usa scope=mine. Espejo de UserFeedSection.kt.
 
 @MainActor
 final class UserFeedViewModel: ObservableObject {
@@ -14,14 +15,16 @@ final class UserFeedViewModel: ObservableObject {
 
     private let container = AppDependencies.shared.container
     private let pageSize = 10
-    let uid: String
+    /// nil = perfil propio → scope "mine" (sin uid).
+    let uid: String?
+    private var scope: String { uid != nil ? "user" : "mine" }
 
-    init(uid: String) { self.uid = uid }
+    init(uid: String?) { self.uid = uid }
 
     func load() async {
         do {
             let page = try await container.getFeedPage.invoke(
-                scope: "user", before: nil, limit: Int32(pageSize), uid: uid)
+                scope: scope, before: nil, limit: Int32(pageSize), uid: uid)
             posts = page
             endReached = page.count < pageSize
         } catch {
@@ -35,13 +38,26 @@ final class UserFeedViewModel: ObservableObject {
         loadingMore = true
         do {
             let page = try await container.getFeedPage.invoke(
-                scope: "user", before: KotlinLong(value: lastId),
+                scope: scope, before: KotlinLong(value: lastId),
                 limit: Int32(pageSize), uid: uid)
             let known = Set(posts.map { $0.id })
             posts += page.filter { !known.contains($0.id) }
             endReached = page.count < pageSize
         } catch {}
         loadingMore = false
+    }
+
+    /// Borra un post propio (optimista: lo quita de la lista y llama al server).
+    func deletePost(_ post: FeedPost) {
+        let previous = posts
+        posts = previous.filter { $0.id != post.id }
+        Task {
+            do {
+                try await container.deleteFeedPost.invoke(postId: post.id)
+            } catch {
+                posts = previous
+            }
+        }
     }
 
     func toggleLike(_ post: FeedPost) {
@@ -90,16 +106,26 @@ final class UserFeedViewModel: ObservableObject {
 }
 
 struct UserFeedSection: View {
-    let uid: String
+    /// nil = perfil propio (scope=mine).
+    let uid: String?
+    /// Título de la sección (perfil propio usa "MIS PUBLICACIONES").
+    let title: String
+    /// true en el perfil PROPIO: recarga al volver a primer plano (post nuevo
+    /// tras marcar una vía) y permite borrar los posts propios con confirmación.
+    let ownProfile: Bool
     @StateObject private var vm: UserFeedViewModel
     @ObservedObject private var moderation = ModerationStore.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var commentsPost: FeedPost? = nil
     @State private var reportPost: FeedPost? = nil
+    @State private var deleteCandidate: FeedPost? = nil
     @State private var navTarget: FeedNav? = nil
 
-    init(uid: String) {
+    init(uid: String?, title: String = "PUBLICACIONES", ownProfile: Bool = false) {
         self.uid = uid
+        self.title = title
+        self.ownProfile = ownProfile
         _vm = StateObject(wrappedValue: UserFeedViewModel(uid: uid))
     }
 
@@ -110,6 +136,22 @@ struct UserFeedSection: View {
             }
         }
         .task { await vm.load() }
+        // Perfil propio: refresca al volver a primer plano (patrón ON_RESUME
+        // de Android — el post nuevo aparece tras marcar una vía).
+        .onChange(of: scenePhase) { _, phase in
+            if ownProfile, phase == .active { Task { await vm.load() } }
+        }
+        .alert("Eliminar publicación", isPresented: Binding(
+            get: { deleteCandidate != nil },
+            set: { if !$0 { deleteCandidate = nil } })) {
+            Button("Cancelar", role: .cancel) { deleteCandidate = nil }
+            Button("Eliminar", role: .destructive) {
+                if let p = deleteCandidate { vm.deletePost(p) }
+                deleteCandidate = nil
+            }
+        } message: {
+            Text("¿Eliminar esta publicación del feed?")
+        }
         .navigationDestination(item: $navTarget) { t in
             switch t {
             case .school(let id, let via): SchoolLoaderView(schoolId: id, openVia: via)
@@ -143,7 +185,7 @@ struct UserFeedSection: View {
     @ViewBuilder private var sectionBody: some View {
         let visible = vm.posts.filter { !moderation.hiddenIds.contains(String($0.id)) }
         VStack(alignment: .leading, spacing: 12) {
-            Text("PUBLICACIONES").eyebrow()
+            Text(title).eyebrow()
                 .frame(maxWidth: .infinity, alignment: .leading)
             if visible.isEmpty {
                 Text("Sin publicaciones todavía.")
@@ -158,7 +200,7 @@ struct UserFeedSection: View {
                         onOpenUser: { navTarget = .user($0) },
                         onToggleLike: { vm.toggleLike(post) },
                         onOpenComments: { commentsPost = post },
-                        onDelete: {},
+                        onDelete: { if post.mine { deleteCandidate = post } },
                         onReport: post.mine ? nil : { reportPost = post })
                 }
                 if !vm.endReached {

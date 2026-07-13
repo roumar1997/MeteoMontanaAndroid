@@ -35,7 +35,11 @@ data class FeedPost(
     val likeCount: Long,
     val likedByMe: Boolean,
     val commentCount: Long,
-    val mine: Boolean
+    val mine: Boolean,
+    /** "SIT" | "STAND" | "JUMP" | "TRAV" | null (tipo de inicio de la vía, en vivo). */
+    val startType: String? = null,
+    /** Descripción del autor (max 500) o null. */
+    val caption: String? = null
 )
 
 data class FeedComment(

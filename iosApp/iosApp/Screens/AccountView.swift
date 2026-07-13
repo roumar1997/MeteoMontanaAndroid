@@ -247,6 +247,10 @@ struct AccountView: View {
     /// ESCUELAS, y desde dentro se puede borrar.
     @ViewBuilder private var diarySection: some View {
         AccountJournalStatsNav(vm: vm)
+        // "Mis publicaciones": tu propio feed (scope=mine), reutiliza
+        // UserFeedSection con recarga al volver a primer plano y borrado
+        // con confirmación — paridad con ProfileScreen.kt.
+        UserFeedSection(uid: nil, title: "MIS PUBLICACIONES", ownProfile: true)
         Button { showAddBlock = true } label: {
             // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
             Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
@@ -347,8 +351,9 @@ struct AccountView: View {
             menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
             // Ajuste "Publicar ascensos en el feed": Preguntar / Siempre / Nunca.
             FeedPublishSettingRow()
-            menuRow(NSLocalizedString("profile_my_proposals", comment: ""), "mappin.and.ellipse", MySubmissionsView())
-            menuRow("Mis contribuciones", "square.and.pencil", MyContributionsView())
+            // Entrada única "Mis contribuciones": pantalla unificada con
+            // segmented PROPUESTAS ⇄ CONTRIBUCIONES (paridad Android).
+            menuRow("Mis contribuciones", "mappin.and.ellipse", MyContributionsUnifiedView())
             menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
             // Panel de admin: solo si el perfil es admin. Muestra un aviso con el
             // nº de propuestas/contribuciones pendientes de revisar.

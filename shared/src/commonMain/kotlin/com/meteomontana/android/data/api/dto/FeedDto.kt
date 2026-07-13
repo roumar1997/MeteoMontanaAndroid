@@ -37,7 +37,11 @@ data class FeedPostDto(
     val likeCount: Long = 0,
     val likedByMe: Boolean = false,
     val commentCount: Long = 0,
-    val mine: Boolean = false
+    val mine: Boolean = false,
+    /** "SIT" | "STAND" | "JUMP" | "TRAV" | null (tipo de inicio de la vía, en vivo). */
+    val startType: String? = null,
+    /** Descripción del autor (max 500) o null. */
+    val caption: String? = null
 )
 
 @Serializable
@@ -63,7 +67,9 @@ data class PublishFeedRequest(
     val lineId: String? = null,
     val kind: String,
     /** "BOULDER" | "ROUTE" (modalidad de la piedra); opcional. */
-    val discipline: String? = null
+    val discipline: String? = null,
+    /** Descripción del autor (opcional, max 500). */
+    val caption: String? = null
 )
 
 /** POST /api/feed/{id}/comments */
@@ -90,7 +96,8 @@ fun FeedPostDto.toDomain() = FeedPost(
     discipline = discipline, rockType = rockType,
     photoPath = photoPath, linePath = linePath,
     likeCount = likeCount, likedByMe = likedByMe,
-    commentCount = commentCount, mine = mine
+    commentCount = commentCount, mine = mine,
+    startType = startType, caption = caption
 )
 
 fun FeedCommentDto.toDomain() = FeedComment(

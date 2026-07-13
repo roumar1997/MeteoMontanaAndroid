@@ -29,7 +29,7 @@
 "tab_weather" = "Tiempo";
 "tab_schools" = "Escuelas";
 "tab_meetups" = "Quedadas";
-"tab_community" = "Comunidad";
+"tab_community" = "Feed";
 
 /* Login */
 "login_tagline" = "Tiempo para escalar";

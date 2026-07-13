@@ -2,6 +2,7 @@ package com.meteomontana.android.ui.screens.submissions
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,10 +51,22 @@ fun MySubmissionsScreen(
                 Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text(stringResource(R.string.profile_my_proposals), style = MaterialTheme.typography.headlineLarge,
+            Text(stringResource(R.string.profile_my_contributions), style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+
+        // Conmutador segmented PROPUESTAS ⇄ CONTRIBUCIONES (mismo patrón visual
+        // que el toggle TIEMPO ⇄ RADAR). PROPUESTAS = escuelas nuevas
+        // (submissions); CONTRIBUCIONES = mejoras de escuelas (contributions).
+        var showContributions by androidx.compose.runtime.saveable.rememberSaveable {
+            androidx.compose.runtime.mutableStateOf(false)
+        }
+        SubmissionsToggle(
+            showContributions = showContributions,
+            onSelect = { showContributions = it },
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
 
         when (val s = state) {
             MySubmissionsUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -62,27 +76,24 @@ fun MySubmissionsScreen(
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }
             is MySubmissionsUiState.Success -> {
-                if (s.submissions.isEmpty() && s.contributions.isEmpty()) {
+                val empty = if (showContributions) s.contributions.isEmpty() else s.submissions.isEmpty()
+                if (empty) {
                     com.meteomontana.android.ui.components.EmptyState(
                         icon = Icons.Outlined.AddLocationAlt,
-                        title = "Sin propuestas todavía",
-                        message = "Desde el mapa de una escuela (+ PROPONER) o con \"+ Enviar escuela\" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado."
+                        title = stringResource(
+                            if (showContributions) R.string.submissions_empty_contributions
+                            else R.string.submissions_empty_proposals
+                        ),
+                        message = stringResource(R.string.submissions_empty_message)
                     )
                 } else {
                     LazyColumn {
-                        if (s.contributions.isNotEmpty()) {
-                            item {
-                                SectionHeader("MEJORAS DE ESCUELAS")
-                            }
+                        if (showContributions) {
                             items(s.contributions) { c ->
                                 ContributionRow(c)
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                             }
-                        }
-                        if (s.submissions.isNotEmpty()) {
-                            item {
-                                SectionHeader("ESCUELAS NUEVAS")
-                            }
+                        } else {
                             items(s.submissions) { sub ->
                                 SubmissionRow(sub)
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -91,6 +102,42 @@ fun MySubmissionsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Cápsula segmented PROPUESTAS ⇄ CONTRIBUCIONES (patrón WeatherRadarToggle). */
+@Composable
+private fun SubmissionsToggle(
+    showContributions: Boolean,
+    onSelect: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+        ) {
+            @Composable
+            fun segment(label: String, active: Boolean, onClick: () -> Unit) {
+                Text(
+                    label,
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = if (active) androidx.compose.ui.graphics.Color.White
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .background(
+                            if (active) MaterialTheme.colorScheme.primary
+                            else androidx.compose.ui.graphics.Color.Transparent
+                        )
+                        .clickable(onClick = onClick)
+                        .padding(horizontal = 18.dp, vertical = 9.dp)
+                )
+            }
+            segment(stringResource(R.string.submissions_tab_proposals), !showContributions) { onSelect(false) }
+            segment(stringResource(R.string.submissions_tab_contributions), showContributions) { onSelect(true) }
         }
     }
 }
@@ -127,17 +174,6 @@ private fun SubmissionRow(s: Submission) {
         }
         StatusChip(s.status)
     }
-}
-
-@Composable
-private fun SectionHeader(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    )
 }
 
 @Composable
