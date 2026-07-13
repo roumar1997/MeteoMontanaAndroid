@@ -22,10 +22,13 @@ private final class CameraCoordinator: NSObject, UIImagePickerControllerDelegate
         didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
     ) {
         if let img = info[.originalImage] as? UIImage {
-            // La cámara frontal, con "Reflejar cámara frontal" de Ajustes,
-            // devuelve la imagen ESPEJADA (codificado en imageOrientation) →
-            // el usuario la quiere SIN espejo. normalizedUnmirrored la quita.
-            onCapture(img.normalizedUnmirrored())
+            // UIImagePickerController SIEMPRE devuelve el selfie de la cámara
+            // FRONTAL en espejo (comportamiento histórico de iOS, distinto de
+            // la app Cámara y ajeno a "Reflejar cámara frontal") — y el espejo
+            // viene horneado en los píxeles, no en imageOrientation. Lo
+            // volteamos para que salga como una foto normal. La trasera no.
+            let isFront = picker.cameraDevice == .front
+            onCapture(img.baked(flipHorizontally: isFront))
         }
         picker.dismiss(animated: true)
     }
@@ -65,21 +68,16 @@ func presentSystemCamera(onCapture: @escaping (UIImage) -> Void) {
 }
 
 extension UIImage {
-    /// Devuelve la imagen SIN espejo, horneada a orientación `.up`. Si la
-    /// orientación es una variante `*Mirrored` (selfie con "Reflejar cámara
-    /// frontal") se voltea para quitar el espejo; si no, solo se hornea. El
-    /// resultado nunca sale reflejado (la cámara trasera no se ve afectada:
-    /// su orientación no es Mirrored).
-    func normalizedUnmirrored() -> UIImage {
-        let mirrored: Bool
-        switch imageOrientation {
-        case .upMirrored, .downMirrored, .leftMirrored, .rightMirrored: mirrored = true
-        default: mirrored = false
-        }
+    /// Hornea la orientación a `.up` en los píxeles y, si `flipHorizontally`,
+    /// voltea en horizontal para QUITAR el espejo del selfie de la cámara
+    /// frontal (el picker lo devuelve reflejado con la orientación ya normal,
+    /// así que no basta con mirar imageOrientation — hay que voltear siempre
+    /// que la captura sea frontal). La cámara trasera pasa `false` y no cambia.
+    func baked(flipHorizontally: Bool) -> UIImage {
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = scale
         return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
-            if mirrored {
+            if flipHorizontally {
                 ctx.cgContext.translateBy(x: size.width, y: 0)
                 ctx.cgContext.scaleBy(x: -1, y: 1)
             }
