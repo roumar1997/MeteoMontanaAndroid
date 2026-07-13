@@ -52,20 +52,19 @@ struct FeedPublishSheet: View {
     @State private var always = false
     // Descripción opcional del autor (viaja como "caption", max 500).
     @State private var caption = ""
-    // Foto de celebración: SIEMPRE hecha en el momento con la cámara del
-    // sistema (el usuario cambia frontal/trasera en la propia cámara).
-    @State private var photo: UIImage? = nil
-    @State private var showCamera = false
+    // Foto de celebración: hecha en el momento con la cámara del sistema. Se
+    // guarda en un ObservableObject (no @State) porque la cámara se presenta
+    // por UIKit y un @State captado en el callback no refrescaba la hoja.
+    @StateObject private var photoStore = CapturedPhotoStore()
     @State private var showCameraDenied = false
 
     private func requestCamera() {
         CameraAccess.request { granted in
             guard granted else { showCameraDenied = true; return }
-            // Pequeño respiro antes de presentar el fullScreenCover de la
-            // cámara desde dentro de la hoja: reduce el parpadeo (abrir/cerrar)
-            // de presentar un modal sobre otro. La captura de la foto la hace
-            // CameraPicker (SwiftUI) de forma fiable.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showCamera = true }
+            // Presentación por UIKit (sin el parpadeo del fullScreenCover dentro
+            // de la hoja). La foto capturada va al ObservableObject, que sí
+            // refresca la miniatura.
+            presentSystemCamera { img in photoStore.image = img }
         }
     }
 
@@ -97,7 +96,7 @@ struct FeedPublishSheet: View {
 
             // Foto de celebración (opcional): fila para abrir la cámara o
             // miniatura 88×110 con ✕ para quitarla + "REPETIR FOTO".
-            if let photo {
+            if let photo = photoStore.image {
                 HStack(spacing: 12) {
                     ZStack(alignment: .topTrailing) {
                         Image(uiImage: photo)
@@ -108,7 +107,7 @@ struct FeedPublishSheet: View {
                             .overlay(RoundedRectangle(cornerRadius: 6)
                                 .stroke(Cumbre.rule, lineWidth: 1))
                         // ✕ quita la foto (se puede volver a hacer otra).
-                        Button { self.photo = nil } label: {
+                        Button { photoStore.image = nil } label: {
                             Text("✕")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(.white)
@@ -170,7 +169,7 @@ struct FeedPublishSheet: View {
             // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
             Button {
                 let c = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-                onPublish(always, c.isEmpty ? nil : c, photo)
+                onPublish(always, c.isEmpty ? nil : c, photoStore.image)
             } label: {
                 Text("PUBLICAR EN EL FEED")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
@@ -199,12 +198,7 @@ struct FeedPublishSheet: View {
         .padding(.horizontal, 16).padding(.top, 20)
         .background(Cumbre.bg.ignoresSafeArea())
         // Más alta que antes: descripción + fila/miniatura de foto.
-        .presentationDetents([.height(photo == nil ? 480 : 560)])
-        // Cámara del sistema (frontal/trasera dentro). SwiftUI actualiza `photo`.
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraPicker { img in photo = img }
-                .ignoresSafeArea()
-        }
+        .presentationDetents([.height(photoStore.image == nil ? 480 : 560)])
         // Permiso denegado: llevar a Ajustes (iOS no re-pregunta).
         .alert("Cumbre necesita acceso a la cámara", isPresented: $showCameraDenied) {
             Button("Cancelar", role: .cancel) {}

@@ -8,51 +8,72 @@ import Shared
 // celebración" de Android (FeedPublishSheet en SchoolMap.kt +
 // FullScreenPhotoDialog.kt).
 
-// MARK: - Cámara del sistema (UIImagePickerController vía SwiftUI)
+// MARK: - Cámara del sistema (presentada por UIKit + estado observable)
 
-/// Picker de CÁMARA envuelto en SwiftUI. Se presenta con `.fullScreenCover`
-/// desde la hoja de publicar. IMPORTANTE: este wrapper SwiftUI es el que
-/// actualiza de forma fiable el `@State photo` de la hoja al capturar —
-/// presentarlo por UIKit (probado en builds 71/72) NO refrescaba ese estado
-/// y la foto se perdía (salía la publicación sin foto).
-struct CameraPicker: UIViewControllerRepresentable {
+/// Contenedor observable de la foto capturada. Es una CLASE (referencia) a
+/// propósito: al presentar la cámara por UIKit (fuera del árbol SwiftUI), un
+/// `@State` (valor) captado en el closure del callback NO refresca la vista
+/// (builds 71/72 → la publicación salía SIN foto). Un ObservableObject sí
+/// propaga el cambio a la hoja. Y presentar por UIKit evita el parpadeo del
+/// fullScreenCover-dentro-de-sheet.
+@MainActor
+final class CapturedPhotoStore: ObservableObject {
+    @Published var image: UIImage?
+}
+
+/// Delegate del picker, retenido por el propio picker (associated object) para
+/// que viva mientras la cámara está abierta.
+private final class CameraCoordinator: NSObject, UIImagePickerControllerDelegate,
+                                       UINavigationControllerDelegate {
     let onCapture: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
+    init(onCapture: @escaping (UIImage) -> Void) { self.onCapture = onCapture }
 
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
+    func imagePickerController(
+        _ picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+    ) {
+        if let img = info[.originalImage] as? UIImage {
+            // La cámara FRONTAL del picker devuelve el selfie volteado respecto
+            // a la vista previa (efecto espejo horneado en los píxeles). Lo
+            // volteamos para que quede como se vio. La trasera no se toca.
+            let isFront = picker.cameraDevice == .front
+            onCapture(img.baked(flipHorizontally: isFront))
+        }
+        picker.dismiss(animated: true)
     }
 
-    func updateUIViewController(_ picker: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate,
-                             UINavigationControllerDelegate {
-        let parent: CameraPicker
-        init(_ parent: CameraPicker) { self.parent = parent }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            if let img = info[.originalImage] as? UIImage {
-                // La cámara FRONTAL del picker devuelve el selfie volteado
-                // respecto a la vista previa (efecto espejo horneado en los
-                // píxeles). Lo volteamos para que quede como se vio. Trasera no.
-                let isFront = picker.cameraDevice == .front
-                parent.onCapture(img.baked(flipHorizontally: isFront))
-            }
-            parent.dismiss()
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
-        }
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
     }
+}
+
+private var cameraCoordinatorKey: UInt8 = 0
+
+/// View-controller superior actualmente presentado (para presentar sobre él).
+@MainActor
+private func topPresentedViewController() -> UIViewController? {
+    let keyWindow = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .flatMap { $0.windows }
+        .first { $0.isKeyWindow }
+    var top = keyWindow?.rootViewController
+    while let presented = top?.presentedViewController { top = presented }
+    return top
+}
+
+/// Presenta la cámara del sistema por UIKit (sin el parpadeo del
+/// fullScreenCover-dentro-de-sheet). El callback debe actualizar un
+/// ObservableObject (ver CapturedPhotoStore) para que la vista se refresque.
+@MainActor
+func presentSystemCamera(onCapture: @escaping (UIImage) -> Void) {
+    guard UIImagePickerController.isSourceTypeAvailable(.camera),
+          let presenter = topPresentedViewController() else { return }
+    let picker = UIImagePickerController()
+    picker.sourceType = .camera
+    let coord = CameraCoordinator(onCapture: onCapture)
+    picker.delegate = coord
+    objc_setAssociatedObject(picker, &cameraCoordinatorKey, coord, .OBJC_ASSOCIATION_RETAIN)
+    presenter.present(picker, animated: true)
 }
 
 extension UIImage {
