@@ -50,7 +50,7 @@ final class FeedPostDetailViewModel: ObservableObject {
                 let count = liked
                     ? try await container.likeFeedPost.invoke(postId: p.id)
                     : try await container.unlikeFeedPost.invoke(postId: p.id)
-                if let cur = post { post = copyPost(cur, likeCount: count) }
+                if let cur = post { post = copyPost(cur, likeCount: count.int64Value) }
             } catch {
                 post = p   // revertir el optimismo
             }

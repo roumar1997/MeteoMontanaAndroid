@@ -180,7 +180,7 @@ final class FeedViewModel: ObservableObject {
                 let count = liked
                     ? try await container.likeFeedPost.invoke(postId: post.id)
                     : try await container.unlikeFeedPost.invoke(postId: post.id)
-                updatePost(post.id) { copyPost($0, likedByMe: liked, likeCount: count) }
+                updatePost(post.id) { copyPost($0, likedByMe: liked, likeCount: count.int64Value) }
             } catch {
                 // Revertir el optimismo si falló.
                 updatePost(post.id) {
