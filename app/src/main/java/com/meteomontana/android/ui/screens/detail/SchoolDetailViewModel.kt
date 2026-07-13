@@ -94,8 +94,32 @@ class SchoolDetailViewModel @Inject constructor(
     private val deleteJournalEntry: com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase,
     private val journalDoneStore: com.meteomontana.android.data.local.JournalDoneStore,
     private val journalProjectStore: com.meteomontana.android.data.local.JournalProjectStore,
-    private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase
+    private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase,
+    private val publishFeedPost: com.meteomontana.android.domain.usecase.feed.PublishFeedPostUseCase
 ) : ViewModel() {
+
+    /**
+     * Publica el tick en el feed Comunidad (fire-and-forget: si falla no
+     * bloquea ni deshace el diario). kind = PROJECT_DONE si la vía estaba en
+     * proyectos y pasa a hecha; TICK en el resto. Los ids del backend son
+     * VARCHAR (UUID) → se mandan como String tal cual (convertirlos a Long
+     * con toLongOrNull hacía que NUNCA se publicara — bug probado en móvil).
+     */
+    fun publishTickToFeed(
+        block: Block,
+        line: com.meteomontana.android.domain.model.BlockLine,
+        wasProject: Boolean
+    ) {
+        val kind = if (wasProject) com.meteomontana.android.domain.usecase.feed.FeedKind.PROJECT_DONE
+        else com.meteomontana.android.domain.usecase.feed.FeedKind.TICK
+        // Modalidad de la piedra (misma distinción Bloque/Vía del detalle).
+        val discipline = if (block.discipline.equals("ROUTE", ignoreCase = true)) "ROUTE" else "BOULDER"
+        viewModelScope.launch {
+            runCatching {
+                publishFeedPost(block.id, line.id.takeIf { it.isNotBlank() }, kind, discipline)
+            }
+        }
+    }
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
 

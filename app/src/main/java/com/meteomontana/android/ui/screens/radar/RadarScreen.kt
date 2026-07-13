@@ -128,8 +128,15 @@ fun RadarScreen(
     }
 
     // Animación: avanza mientras `playing`; al llegar al final se queda en AHORA.
-    LaunchedEffect(playing, readyFrames.size) {
-        if (!playing || readyFrames.size < 2) return@LaunchedEffect
+    // OJO saltos: los PNGs se descargan de MÁS RECIENTE a más antiguo → la
+    // lista de frames listos crece por DELANTE mientras descarga. Animar sobre
+    // un ÍNDICE de esa lista mutante hacía que la hora saltara (16, 15, 17…):
+    // el frame de un índice cambiaba de identidad con cada llegada, y además
+    // el efecto (con size en la key) se reiniciaba a mitad de reproducción.
+    // Fix: NO animar hasta que la secuencia esté completa (framesLoading=false,
+    // lista ya estable) — mientras tanto se enseña fijo el frame más reciente.
+    LaunchedEffect(playing, state.framesLoading) {
+        if (!playing || state.framesLoading || readyFrames.size < 2) return@LaunchedEffect
         if (frameIndex >= readyFrames.size - 1) frameIndex = 0
         while (playing && frameIndex < readyFrames.size - 1) {
             delay(420)
@@ -137,9 +144,13 @@ fun RadarScreen(
         }
         playing = false
     }
-    // Frames nuevos sin animación en marcha → enseñar el último.
-    LaunchedEffect(readyFrames.size) {
-        if (!playing && readyFrames.isNotEmpty()) frameIndex = readyFrames.size - 1
+    // Mientras descargan (o sin animación en marcha) → enseñar SIEMPRE el más
+    // reciente (índice size-1): su identidad es estable aunque la lista crezca
+    // por delante, así la hora mostrada no baila.
+    LaunchedEffect(readyFrames.size, state.framesLoading) {
+        if ((state.framesLoading || !playing) && readyFrames.isNotEmpty()) {
+            frameIndex = readyFrames.size - 1
+        }
     }
 
     // Capa del radar: se CREA una vez (por estilo) y luego los cambios de
@@ -241,10 +252,12 @@ fun RadarScreen(
                 }
             })
 
-        // Título flotante
+        // Título flotante. Baja 48dp: el conmutador TIEMPO⇄RADAR de la primera
+        // pestaña flota arriba-centro (MainScreen) y en móviles estrechos
+        // pisaba este rótulo — el título queda en una "fila" propia debajo.
         Column(
             modifier = Modifier.align(Alignment.TopStart)
-                .statusBarsPadding().padding(Spacing.sm)
+                .statusBarsPadding().padding(top = 48.dp).padding(Spacing.sm)
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f))
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))

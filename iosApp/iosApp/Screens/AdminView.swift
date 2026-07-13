@@ -1270,12 +1270,14 @@ private struct BlockManageSheet: View {
 // MARK: - Tab DENUNCIAS (contenido + quedadas) — espejo de DenunciasTab.kt
 private struct ModTarget: Identifiable { let id = UUID(); let uid: String }
 private struct MeetupTarget: Identifiable { let id = UUID(); let meetupId: String }
+private struct FeedPostTarget: Identifiable { let id = UUID(); let postId: String }
 
 private struct AdminReportsTab: View {
     @State private var contentReports: [ContentReportDto] = []
     @State private var meetupReports: [MeetupReport] = []
     @State private var modTarget: ModTarget? = nil
     @State private var meetupTarget: MeetupTarget? = nil
+    @State private var feedPostTarget: FeedPostTarget? = nil
 
     var body: some View {
         ScrollView {
@@ -1315,6 +1317,19 @@ private struct AdminReportsTab: View {
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
                             Button("CERRAR") { meetupTarget = nil }
+                                .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                    }
+            }
+        }
+        // Denuncias del feed: VER POST abre el detalle del post (para
+        // FEED_COMMENT también; el snapshot ya enseña el texto del comentario).
+        .fullScreenCover(item: $feedPostTarget) { t in
+            NavigationStack {
+                FeedPostDetailView(postIdString: t.postId)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("CERRAR") { feedPostTarget = nil }
                                 .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
                         }
                     }
@@ -1366,6 +1381,15 @@ private struct AdminReportsTab: View {
                         .font(Cumbre.mono(11, .bold)).tracking(0.5).foregroundStyle(Cumbre.ink3)
                         .frame(maxWidth: .infinity).padding(.vertical, 9)
                         .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+            // VER POST: denuncias del feed (post o comentario) — patrón VER QUEDADA.
+            if r.targetType == "FEED_POST" || r.targetType == "FEED_COMMENT" {
+                Button { feedPostTarget = FeedPostTarget(postId: r.targetId) } label: {
+                    Text("VER POST ▸").font(Cumbre.mono(11, .bold)).tracking(0.5)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 9)
+                        .background(Cumbre.terra)
                 }.buttonStyle(.plain)
             }
             if let author = r.authorUid {
@@ -1426,7 +1450,13 @@ private struct AdminReportsTab: View {
     }
 
     private func kindLabel(_ t: String) -> String {
-        switch t { case "COMMENT": return "COMENTARIO"; case "NOTE": return "NOTA"; default: return "USUARIO" }
+        switch t {
+        case "COMMENT": return "COMENTARIO"
+        case "NOTE": return "NOTA"
+        case "FEED_POST": return "POST DEL FEED"
+        case "FEED_COMMENT": return "COMENTARIO DEL FEED"
+        default: return "USUARIO"
+        }
     }
     private func reasonLabel(_ r: String) -> String {
         switch r.uppercased() {

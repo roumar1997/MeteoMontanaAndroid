@@ -36,6 +36,10 @@ enum class RadarDay { HOY, AYER }
  */
 data class RadarUiState(
     val loading: Boolean = true,
+    /** true mientras quedan PNGs de frames por descargar (llegan de más
+     *  reciente a más antiguo → la lista "lista" crece por DELANTE; el player
+     *  no debe animar hasta que la secuencia esté completa o saltaría). */
+    val framesLoading: Boolean = false,
     val error: String? = null,
     val radar: String = "",
     val bounds: RadarBoundsDto? = null,
@@ -84,6 +88,7 @@ class RadarViewModel @Inject constructor(
                 val thinned = dto.frames.filterIndexed { i, _ -> i >= cut || i % 3 == 0 }
                 _state.value = _state.value.copy(
                     loading = false,
+                    framesLoading = true,
                     radar = dto.radar,
                     bounds = dto.bounds,
                     frames = thinned.map { RadarFrameUi(it.ts, it.capturedAt) }
@@ -108,10 +113,13 @@ class RadarViewModel @Inject constructor(
                         }
                     }
                 }.awaitAll()
+                // Secuencia completa: el player ya puede animar sin saltos.
+                _state.value = _state.value.copy(framesLoading = false)
                 pruneFrameCache()
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     loading = false,
+                    framesLoading = false,
                     error = "No se pudo cargar el radar. Comprueba tu conexión."
                 )
             }

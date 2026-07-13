@@ -1468,6 +1468,9 @@ struct BlockInfoSheet: View {
     @State private var projectLines: Set<String> = []  // vías marcadas como PROYECTO
     @State private var togglingProject: String?         // vía de proyecto guardándose ahora
     @State private var showDeleteConfirm = false
+    // Tick pendiente de confirmar: hoja "Publicar en el feed" (desmarcar sigue
+    // siendo toggle directo, sin hoja). Espejo del flujo de SchoolMap.kt.
+    @State private var pendingTick: PendingFeedTick? = nil
     // Comentarios de la piedra/vías (un fetch por piedra; los hilos filtran).
     @StateObject private var commentsStore = LineCommentsStore()
     // Desplegable OPCIONES: agrupa editar vías / sector / eliminar.
@@ -1571,7 +1574,10 @@ struct BlockInfoSheet: View {
                                             .disabled(tickingLine != nil || togglingProject != nil)
                                         }
                                         // Tic: marca/desmarca la vía en tu diario (toggle).
-                                        Button { Task { await toggle(l, index: idx) } } label: {
+                                        // Al MARCAR, según la preferencia "Publicar
+                                        // ascensos en el feed": ASK → hoja de publicar;
+                                        // ALWAYS → publica directo; NEVER → solo diario.
+                                        Button { onTickTapped(l, index: idx) } label: {
                                             if tickingLine == l.id {
                                                 ProgressView().scaleEffect(0.7).frame(width: 28, height: 28)
                                             } else {
@@ -1681,6 +1687,25 @@ struct BlockInfoSheet: View {
                 ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) }
             }
             .task { await loadDone() }
+            // Hoja de publicar el tick en el feed Comunidad (estilo Cumbre).
+            // Cerrar la hoja = no marcar nada.
+            .sheet(item: $pendingTick) { pt in
+                FeedPublishSheet(
+                    lineLabel: feedTickLabel(pt.line, index: pt.index),
+                    wasProject: pt.wasProject,
+                    onPublish: { always in
+                        if always { FeedPublishPrefs.mode = .always }
+                        pendingTick = nil
+                        Task {
+                            await toggle(pt.line, index: pt.index)
+                            publishTickToFeed(pt.line, wasProject: pt.wasProject)
+                        }
+                    },
+                    onDiaryOnly: {
+                        pendingTick = nil
+                        Task { await toggle(pt.line, index: pt.index) }
+                    })
+            }
             // Deep-link del diario: hace scroll a la cara que contiene la vía
             // pulsada (sin reordenar las caras → FOTO 1, FOTO 2… en su orden).
             .onAppear {
@@ -1745,6 +1770,48 @@ struct BlockInfoSheet: View {
         }
     }
 
+
+    /// Toque en el tic: desmarcar va directo; marcar pasa por la preferencia
+    /// "Publicar ascensos en el feed" (ASK/ALWAYS/NEVER) — espejo de Android.
+    private func onTickTapped(_ line: BlockLine, index: Int) {
+        if tickedLines.contains(line.id) {
+            Task { await toggle(line, index: index) }
+            return
+        }
+        // wasProject ANTES del toggle (marcar la quita de proyectos).
+        let wasProject = projectLines.contains(line.id)
+        switch FeedPublishPrefs.mode {
+        case .ask:
+            pendingTick = PendingFeedTick(line: line, index: index, wasProject: wasProject)
+        case .always:
+            Task {
+                await toggle(line, index: index)
+                publishTickToFeed(line, wasProject: wasProject)
+            }
+        case .never:
+            Task { await toggle(line, index: index) }
+        }
+    }
+
+    /// Etiqueta "vía · grado" de la hoja de publicar.
+    private func feedTickLabel(_ line: BlockLine, index: Int) -> String {
+        var label = line.name.isEmpty ? "Vía \(index + 1)" : line.name
+        if let g = line.grade, !g.isEmpty { label += " · \(g)" }
+        return label
+    }
+
+    /// Publica el tick en el feed Comunidad (fire-and-forget: si falla no
+    /// bloquea ni deshace el diario). kind = PROJECT_DONE si la vía estaba en
+    /// proyectos; TICK en el resto. Ids del backend = String (UUID) tal cual.
+    private func publishTickToFeed(_ line: BlockLine, wasProject: Bool) {
+        let kind = wasProject ? "PROJECT_DONE" : "TICK"
+        let discipline = block.discipline.uppercased() == "ROUTE" ? "ROUTE" : "BOULDER"
+        let lineId: String? = line.id.isEmpty ? nil : line.id
+        Task {
+            _ = try? await AppDependencies.shared.container.publishFeedPost.invoke(
+                blockId: block.id, lineId: lineId, kind: kind, discipline: discipline)
+        }
+    }
 
     /// Marca/DESMARCA la vía en tu diario (toggle). Si no estaba hecha la añade
     /// (POST, o cola sin red); si ya estaba, la quita (borra la subida y/o la

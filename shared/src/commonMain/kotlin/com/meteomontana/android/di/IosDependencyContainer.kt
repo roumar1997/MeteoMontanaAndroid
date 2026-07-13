@@ -158,6 +158,7 @@ class IosDependencyContainer(
     private val profileApi = KtorProfileApi(httpClient)
     private val notificationApi = KtorNotificationApi(httpClient)
     private val socialApi = KtorSocialApi(httpClient)
+    private val feedApi = com.meteomontana.android.data.api.KtorFeedApi(httpClient)
     private val submissionApi = KtorSubmissionApi(httpClient)
     private val contributionApi = KtorContributionApi(httpClient)
 
@@ -172,6 +173,7 @@ class IosDependencyContainer(
     private val profileRepository = KtorProfileRepository(profileApi)
     private val notificationsRepository = KtorNotificationsRepository(notificationApi)
     private val socialRepository = KtorSocialRepository(socialApi)
+    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi)
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
@@ -246,6 +248,18 @@ class IosDependencyContainer(
     val getMyFollowRequests = GetMyFollowRequestsUseCase(socialRepository)
     val acceptFollowRequest = AcceptFollowRequestUseCase(socialRepository)
     val rejectFollowRequest = RejectFollowRequestUseCase(socialRepository)
+
+    // Feed social "Comunidad" (pestaña nueva): página del feed, publicar/borrar
+    // ascensos, likes y comentarios. Patrón exacto de Social.
+    val getFeedPage = com.meteomontana.android.domain.usecase.feed.GetFeedPageUseCase(feedRepository)
+    val getFeedPost = com.meteomontana.android.domain.usecase.feed.GetFeedPostUseCase(feedRepository)
+    val publishFeedPost = com.meteomontana.android.domain.usecase.feed.PublishFeedPostUseCase(feedRepository)
+    val deleteFeedPost = com.meteomontana.android.domain.usecase.feed.DeleteFeedPostUseCase(feedRepository)
+    val likeFeedPost = com.meteomontana.android.domain.usecase.feed.LikeFeedPostUseCase(feedRepository)
+    val unlikeFeedPost = com.meteomontana.android.domain.usecase.feed.UnlikeFeedPostUseCase(feedRepository)
+    val getFeedComments = com.meteomontana.android.domain.usecase.feed.GetFeedCommentsUseCase(feedRepository)
+    val addFeedComment = com.meteomontana.android.domain.usecase.feed.AddFeedCommentUseCase(feedRepository)
+    val deleteFeedComment = com.meteomontana.android.domain.usecase.feed.DeleteFeedCommentUseCase(feedRepository)
 
     // Mis propuestas de escuela y mis contribuciones de mejora (estado pending/
     // approved/rejected) — accesibles desde el perfil.

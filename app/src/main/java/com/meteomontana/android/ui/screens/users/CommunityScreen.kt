@@ -75,6 +75,8 @@ class CommunityViewModel @Inject constructor(
 fun CommunityScreen(
     onBack: () -> Unit,
     onUserClick: (String) -> Unit,
+    /** false cuando se embebe (chip RANKING de la pestaña Comunidad): sin cabecera. */
+    showHeader: Boolean = true,
     viewModel: CommunityViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -82,7 +84,9 @@ fun CommunityScreen(
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
-        com.meteomontana.android.ui.components.SheetHeader("Comunidad", onClose = onBack)
+        if (showHeader) {
+            com.meteomontana.android.ui.components.SheetHeader("Comunidad", onClose = onBack)
+        }
         Text(
             "MAYORES CONTRIBUIDORES",
             style = EyebrowTextStyle,

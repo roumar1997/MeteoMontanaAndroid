@@ -341,10 +341,12 @@ struct AccountView: View {
                 }
                 Divider().overlay(Cumbre.rule)
             }
-            menuRow("Comunidad", "trophy", CommunityView())
+            // "Comunidad" se mudó a su propia pestaña (feed social + ranking).
             menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
             menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
             menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
+            // Ajuste "Publicar ascensos en el feed": Preguntar / Siempre / Nunca.
+            FeedPublishSettingRow()
             menuRow(NSLocalizedString("profile_my_proposals", comment: ""), "mappin.and.ellipse", MySubmissionsView())
             menuRow("Mis contribuciones", "square.and.pencil", MyContributionsView())
             menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())

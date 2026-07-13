@@ -1,9 +1,9 @@
 package com.meteomontana.android.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.List
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -12,15 +12,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
  * Rutas de la app y configuración de tabs.
  */
 sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
-    data object Weather  : Tab("weather",  "Tiempo",   Icons.Outlined.Cloud)
+    // La primera pestaña se llama "Radar" (su vista principal es el radar);
+    // dentro, el conmutador TIEMPO ⇄ RADAR da acceso a la previsión.
+    data object Weather  : Tab("weather",  "Radar",    Icons.Outlined.Radar)
     data object Schools  : Tab("schools",  "Escuelas", Icons.Outlined.List)
     data object Meetups  : Tab("meetups",  "Quedadas", Icons.Outlined.Groups)
-    data object Radar    : Tab("radar",    "Radar",    Icons.Outlined.Radar)
+    data object Community : Tab("community", "Comunidad", Icons.Outlined.People)
     data object Profile  : Tab("profile-tab", "Perfil", Icons.Outlined.Person)
 }
 
-// Radar propio (AEMET + backend Cumbre) y Perfil como pestaña desde 2026-07-03.
-val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Radar, Tab.Meetups, Tab.Profile)
+// Perfil como pestaña desde 2026-07-03; Comunidad (feed social + ranking)
+// desde 2026-07-10. El Radar es la vista principal de la primera pestaña
+// (conmutador TIEMPO ⇄ RADAR dentro) — 5 pestañas.
+val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Meetups, Tab.Community, Tab.Profile)
 
 object Routes {
     const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}&viaId={viaId}"
@@ -36,7 +40,6 @@ object Routes {
     const val MY_SUBMISSIONS = "submissions/me"
     const val SUBMIT_SCHOOL = "submissions/new"
     const val SEARCH_USERS = "users/search"
-    const val COMMUNITY = "users/community"
     const val NOTIFICATIONS = "notifications"
     const val PUBLIC_PROFILE = "users/{uid}"
     fun publicProfile(uid: String) = "users/$uid"
@@ -78,6 +81,10 @@ object Routes {
     const val WEEKEND_ALERT = "weekend-alert"
     const val COMPARE = "compare/{ids}"
     fun compare(ids: List<String>) = "compare/${ids.joinToString(",")}"
+
+    // Detalle de un post del feed Comunidad (push/campanita "feed_post").
+    const val FEED_POST = "feed/{postId}"
+    fun feedPost(postId: String) = "feed/$postId"
 
     const val MEETUP_DETAIL = "meetups/{meetupId}"
     fun meetupDetail(id: String) = "meetups/$id"

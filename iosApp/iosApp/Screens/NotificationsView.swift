@@ -79,6 +79,8 @@ final class NotificationsViewModel: ObservableObject {
         // active APNs. El título de la notif de chat es el nombre del remitente.
         case "chat", "message": return .chat(tid, n.title)
         case "submission", "contribution": return .submissions
+        // Actividad del feed Comunidad (likes/comentarios) → detalle del post.
+        case "feed_post": return .feedPost(tid)
         default: return nil
         }
     }
@@ -91,6 +93,7 @@ enum NotifTarget: Identifiable, Hashable {
     case chat(String, String)   // (otherUid, otherName)
     case submissions
     case followRequests
+    case feedPost(String)
     var id: String {
         switch self {
         case .school(let s): return "school-\(s)"
@@ -98,6 +101,7 @@ enum NotifTarget: Identifiable, Hashable {
         case .chat(let u, _): return "chat-\(u)"
         case .submissions: return "submissions"
         case .followRequests: return "follow-requests"
+        case .feedPost(let p): return "feed-post-\(p)"
         }
     }
 }
@@ -152,6 +156,7 @@ struct NotificationsView: View {
                 case .chat(let uid, let name): ChatView(otherUid: uid, otherName: name)
                 case .submissions: MySubmissionsView()
                 case .followRequests: FollowRequestsView()
+                case .feedPost(let id): FeedPostDetailView(postIdString: id)
                 }
             }
             .toolbar {

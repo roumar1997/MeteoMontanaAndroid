@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -75,7 +76,6 @@ fun ProfileScreen(
     onOpenFollowers: () -> Unit = {},
     onOpenFollowing: () -> Unit = {},
     onOpenFollowRequests: () -> Unit = {},
-    onOpenCommunity: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenBoulders: () -> Unit = {},
     onOpenRoutes: () -> Unit = {},
@@ -124,7 +124,6 @@ fun ProfileScreen(
                 onOpenFollowers = onOpenFollowers,
                 onOpenFollowing = onOpenFollowing,
                 onOpenFollowRequests = onOpenFollowRequests,
-                onOpenCommunity = onOpenCommunity,
                 onOpenSchoolEntries = onOpenSchoolEntries,
                 onOpenBoulders = onOpenBoulders,
                 onOpenRoutes = onOpenRoutes,
@@ -180,7 +179,6 @@ private fun Content(
     onOpenFollowers: () -> Unit,
     onOpenFollowing: () -> Unit,
     onOpenFollowRequests: () -> Unit,
-    onOpenCommunity: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit,
     onOpenBoulders: () -> Unit,
     onOpenRoutes: () -> Unit,
@@ -220,7 +218,6 @@ private fun Content(
                 onSubmissions = onSubmissions,
                 showRequests = !profile.isPublic,
                 onOpenFollowRequests = onOpenFollowRequests,
-                onOpenCommunity = onOpenCommunity,
                 shareHandle = profile.username ?: profile.uid,
                 shareLabel = profile.username?.let { "@$it" } ?: (profile.displayName ?: "mi perfil"),
                 shareDisplayName = profile.displayName ?: profile.username ?: "Escalador/a",
@@ -418,7 +415,6 @@ private fun ProfileMenu(
     onSubmissions: () -> Unit,
     showRequests: Boolean,
     onOpenFollowRequests: () -> Unit,
-    onOpenCommunity: () -> Unit = {},
     shareHandle: String? = null,
     shareLabel: String = "",
     shareDisplayName: String = "",
@@ -447,13 +443,15 @@ private fun ProfileMenu(
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         }
-        MenuRow(Icons.Outlined.EmojiEvents, "Comunidad", onOpenCommunity)
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        // "Comunidad" se mudó a su propia pestaña (feed social + ranking).
         MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        // Ajuste "Publicar ascensos en el feed": Preguntar / Siempre / Nunca.
+        FeedPublishSettingRow()
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_proposals), onSubmissions)
         if (showRequests) {
@@ -465,6 +463,83 @@ private fun ProfileMenu(
             com.meteomontana.android.ui.components.resetAllHints(ctx)
             android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
         }
+    }
+}
+
+/**
+ * Fila de ajuste "Publicar ascensos en el feed": muestra el valor actual y
+ * abre un diálogo con Preguntar / Siempre / Nunca (FeedPublishPrefs).
+ */
+@Composable
+private fun FeedPublishSettingRow() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var mode by remember {
+        androidx.compose.runtime.mutableStateOf(
+            com.meteomontana.android.data.local.FeedPublishPrefs.get(ctx))
+    }
+    var showDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val labelOf: @Composable (com.meteomontana.android.data.local.FeedPublishMode) -> String = {
+        stringResource(
+            when (it) {
+                com.meteomontana.android.data.local.FeedPublishMode.ASK -> R.string.feed_pref_ask
+                com.meteomontana.android.data.local.FeedPublishMode.ALWAYS -> R.string.feed_pref_always
+                com.meteomontana.android.data.local.FeedPublishMode.NEVER -> R.string.feed_pref_never
+            }
+        )
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable { showDialog = true }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Icon(Icons.Outlined.People, contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        Text(stringResource(R.string.profile_feed_publish), style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+        Text(labelOf(mode), style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(Icons.Outlined.ChevronRight, contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+    }
+    if (showDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(stringResource(R.string.profile_feed_publish)) },
+            text = {
+                Column {
+                    com.meteomontana.android.data.local.FeedPublishMode.entries.forEach { m ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable {
+                                    com.meteomontana.android.data.local.FeedPublishPrefs.set(ctx, m)
+                                    mode = m
+                                    showDialog = false
+                                }
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            androidx.compose.material3.RadioButton(
+                                selected = mode == m,
+                                onClick = {
+                                    com.meteomontana.android.data.local.FeedPublishPrefs.set(ctx, m)
+                                    mode = m
+                                    showDialog = false
+                                }
+                            )
+                            Text(labelOf(m), style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDialog = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
     }
 }
 

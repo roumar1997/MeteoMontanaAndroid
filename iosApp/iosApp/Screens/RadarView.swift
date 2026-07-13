@@ -22,6 +22,16 @@ struct RadarFrameUi: Identifiable {
 }
 
 struct RadarView: View {
+    /// Baja el rótulo "Lluvia en directo" cuando el radar vive embebido en la
+    /// primera pestaña (deja hueco al conmutador TIEMPO ⇄ RADAR flotante).
+    var titleTopInset: CGFloat = 0
+
+    /// Init explícito: el memberwise queda fileprivate por las propiedades
+    /// private de abajo y no serviría desde otros ficheros.
+    init(titleTopInset: CGFloat = 0) {
+        self.titleTopInset = titleTopInset
+    }
+
     private let radarApi = AppDependencies.shared.container.radarApi
     private let getSchools = AppDependencies.shared.container.getSchools
     private let getTodayScores = AppDependencies.shared.container.getTodayScores
@@ -114,6 +124,8 @@ struct RadarView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .padding(10)
+                // Hueco para el conmutador TIEMPO ⇄ RADAR flotante (embebido).
+                .padding(.top, titleTopInset)
                 Spacer()
             }
 

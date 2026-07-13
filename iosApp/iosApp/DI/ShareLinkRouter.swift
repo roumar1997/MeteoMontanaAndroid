@@ -16,6 +16,7 @@ final class ShareLinkRouter: ObservableObject {
         var meetupId: String? = nil
         var userHandle: String? = nil
         var openAdminReports: Bool = false   // push de denuncia → panel DENUNCIAS
+        var feedPostId: String? = nil        // push "feed_post" → detalle del post
         var id: String {
             var parts: [String] = []
             parts.append(school?.id ?? "")
@@ -23,6 +24,7 @@ final class ShareLinkRouter: ObservableObject {
             parts.append(meetupId ?? "")
             parts.append(userHandle ?? "")
             parts.append(openAdminReports ? "admin" : "")
+            parts.append(feedPostId ?? "")
             return parts.joined(separator: "|")
         }
     }
