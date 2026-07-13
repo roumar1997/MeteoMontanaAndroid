@@ -172,6 +172,8 @@ fun UserFeedSection(
     /** true en el perfil PROPIO: recarga en ON_RESUME (post nuevo tras marcar
      *  una vía) y permite borrar los posts propios. */
     ownProfile: Boolean = false,
+    /** false cuando la sección vive en una pantalla dedicada con su propio título. */
+    showTitle: Boolean = true,
     viewModel: UserFeedViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -195,7 +197,7 @@ fun UserFeedSection(
 
     if (state.loading) return
     Column(Modifier.fillMaxWidth()) {
-        Text(
+        if (showTitle) Text(
             stringResource(titleRes).uppercase(),
             style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.primary,

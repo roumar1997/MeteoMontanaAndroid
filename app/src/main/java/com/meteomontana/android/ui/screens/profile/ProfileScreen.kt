@@ -82,9 +82,8 @@ fun ProfileScreen(
     onOpenAllSchools: () -> Unit = {},
     onOpenMaxGrade: () -> Unit = {},
     onOpenProjects: () -> Unit = {},
-    // Sección "Mis publicaciones" (feed propio, scope=mine):
-    onOpenFeedUser: (String) -> Unit = {},
-    onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit = { _, _, _ -> },
+    // Fila "Mis publicaciones" → pantalla dedicada con el feed propio (scope=mine).
+    onOpenMyPosts: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -133,8 +132,7 @@ fun ProfileScreen(
                 onOpenAllSchools = onOpenAllSchools,
                 onOpenMaxGrade = onOpenMaxGrade,
                 onOpenProjects = onOpenProjects,
-                onOpenFeedUser = onOpenFeedUser,
-                onOpenFeedSchool = onOpenFeedSchool,
+                onOpenMyPosts = onOpenMyPosts,
                 onSignOut = viewModel::signOut,
                 onDeleteAccount = { viewModel.deleteAccount() }
             )
@@ -190,8 +188,7 @@ private fun Content(
     onOpenAllSchools: () -> Unit,
     onOpenMaxGrade: () -> Unit,
     onOpenProjects: () -> Unit,
-    onOpenFeedUser: (String) -> Unit = {},
-    onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit = { _, _, _ -> },
+    onOpenMyPosts: () -> Unit = {},
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit = {}
 ) {
@@ -214,19 +211,9 @@ private fun Content(
         item { Header(profile, topGrade = stats.maxGrade, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects) }
-        // "Mis publicaciones": tu propio feed (scope=mine), reutiliza
-        // UserFeedSection/FeedPostCard con CARGAR MÁS. Column normal dentro
-        // de un item del LazyColumn (sin scroll anidado).
-        item {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                com.meteomontana.android.ui.screens.community.UserFeedSection(
-                    onOpenUser = onOpenFeedUser,
-                    onOpenSchool = onOpenFeedSchool,
-                    titleRes = R.string.feed_my_posts_section,
-                    ownProfile = true
-                )
-            }
-        }
+        // "Mis publicaciones": fila pulsable (patrón SchoolEntryRow) que abre
+        // la pantalla dedicada con el feed propio (scope=mine).
+        item { MyPostsRow(onClick = onOpenMyPosts) }
         item { AddBlockButton(onClick = onAddBlock) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         // Menú con iconos terracota (filas tipo iOS).
@@ -648,6 +635,23 @@ private fun AddBlockButton(onClick: () -> Unit) {
         Text(stringResource(R.string.profile_add_block), color = Color.White,
             style = MaterialTheme.typography.labelLarge)
     }
+}
+
+@Composable
+private fun MyPostsRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(stringResource(R.string.feed_my_posts_section),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground)
+        Text("›", style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
 @Composable

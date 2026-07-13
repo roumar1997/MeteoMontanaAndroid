@@ -1693,13 +1693,13 @@ struct BlockInfoSheet: View {
                 FeedPublishSheet(
                     lineLabel: feedTickLabel(pt.line, index: pt.index),
                     wasProject: pt.wasProject,
-                    onPublish: { always, caption in
+                    onPublish: { always, caption, photo in
                         if always { FeedPublishPrefs.mode = .always }
                         pendingTick = nil
                         Task {
                             await toggle(pt.line, index: pt.index)
                             publishTickToFeed(pt.line, wasProject: pt.wasProject,
-                                              caption: caption)
+                                              caption: caption, photo: photo)
                         }
                     },
                     onDiaryOnly: {
@@ -1805,14 +1805,31 @@ struct BlockInfoSheet: View {
     /// bloquea ni deshace el diario). kind = PROJECT_DONE si la vía estaba en
     /// proyectos; TICK en el resto. Ids del backend = String (UUID) tal cual.
     private func publishTickToFeed(_ line: BlockLine, wasProject: Bool,
-                                   caption: String? = nil) {
+                                   caption: String? = nil, photo: UIImage? = nil) {
         let kind = wasProject ? "PROJECT_DONE" : "TICK"
         let discipline = block.discipline.uppercased() == "ROUTE" ? "ROUTE" : "BOULDER"
         let lineId: String? = line.id.isEmpty ? nil : line.id
         Task {
-            _ = try? await AppDependencies.shared.container.publishFeedPost.invoke(
+            let container = AppDependencies.shared.container
+            guard let postId = try? await container.publishFeedPost.invoke(
                 blockId: block.id, lineId: lineId, kind: kind, discipline: discipline,
                 caption: caption)
+            else { return }
+            // Foto de celebración (opcional): comprimir (máx 1024 px, JPEG 0.8,
+            // mismo pipeline que StorageUploader) y subirla como multipart. Si
+            // falla, el post queda publicado sin foto (aviso discreto).
+            guard let photo else { return }
+            guard let data = feedPhotoJPEGData(photo) else {
+                await showFeedPhotoUploadFailedAlert()
+                return
+            }
+            do {
+                _ = try await container.uploadFeedPhoto.invoke(
+                    postId: postId.int64Value, bytes: data.toKotlinByteArray(),
+                    contentType: "image/jpeg")
+            } catch {
+                await showFeedPhotoUploadFailedAlert()
+            }
         }
     }
 

@@ -89,6 +89,9 @@ object Routes {
     const val FEED_POST = "feed/{postId}"
     fun feedPost(postId: String) = "feed/$postId"
 
+    // "Mis publicaciones": pantalla dedicada con el feed propio (scope=mine).
+    const val MY_POSTS = "profile/my-posts"
+
     const val MEETUP_DETAIL = "meetups/{meetupId}"
     fun meetupDetail(id: String) = "meetups/$id"
     const val CREATE_MEETUP = "meetups/new"

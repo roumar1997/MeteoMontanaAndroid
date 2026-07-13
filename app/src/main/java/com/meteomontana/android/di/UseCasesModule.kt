@@ -334,6 +334,10 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.feed.PublishFeedPostUseCase(repo)
 
     @Provides @Singleton
+    fun provideUploadFeedPhotoUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.UploadFeedPhotoUseCase(repo)
+
+    @Provides @Singleton
     fun provideDeleteFeedPostUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
         com.meteomontana.android.domain.usecase.feed.DeleteFeedPostUseCase(repo)
 

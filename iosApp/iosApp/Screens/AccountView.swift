@@ -247,10 +247,22 @@ struct AccountView: View {
     /// ESCUELAS, y desde dentro se puede borrar.
     @ViewBuilder private var diarySection: some View {
         AccountJournalStatsNav(vm: vm)
-        // "Mis publicaciones": tu propio feed (scope=mine), reutiliza
-        // UserFeedSection con recarga al volver a primer plano y borrado
-        // con confirmación — paridad con ProfileScreen.kt.
-        UserFeedSection(uid: nil, title: "MIS PUBLICACIONES", ownProfile: true)
+        // "Mis publicaciones": fila pulsable (patrón de las filas del diario)
+        // que abre la pantalla dedicada con el feed propio (scope=mine) —
+        // paridad con MyPostsRow de ProfileScreen.kt.
+        NavigationLink(destination: MyPostsView()) {
+            HStack {
+                Text("Mis publicaciones")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Cumbre.ink)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
         Button { showAddBlock = true } label: {
             // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
             Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)

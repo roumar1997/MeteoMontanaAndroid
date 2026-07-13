@@ -2,4 +2,6 @@
 <paths>
     <!-- Imágenes temporales de "compartir condiciones" -->
     <cache-path name="share" path="share/" />
+    <!-- Fotos de celebración del feed (cámara → TakePicture) -->
+    <cache-path name="feed" path="feed/" />
 </paths>

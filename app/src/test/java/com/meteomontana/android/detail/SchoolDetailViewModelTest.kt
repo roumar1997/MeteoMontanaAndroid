@@ -159,7 +159,8 @@ class SchoolDetailViewModelTest {
             every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
         },
         mockk(relaxed = true),  // rateLineUseCase
-        mockk(relaxed = true)   // publishFeedPost (feed Comunidad)
+        mockk(relaxed = true),  // publishFeedPost (feed Comunidad)
+        mockk(relaxed = true)   // uploadFeedPhoto (foto de celebración)
     )
 
     @Test fun `load con todo OK produce Success con forecast y sin error`() = runTest {

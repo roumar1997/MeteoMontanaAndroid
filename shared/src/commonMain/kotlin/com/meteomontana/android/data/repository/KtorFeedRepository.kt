@@ -15,6 +15,8 @@ class KtorFeedRepository(private val api: KtorFeedApi) : FeedRepository {
         blockId: String, lineId: String?, kind: String, discipline: String?, caption: String?
     ): Long =
         api.publish(PublishFeedRequest(blockId, lineId, kind, discipline, caption)).id
+    override suspend fun uploadPhoto(postId: Long, bytes: ByteArray, contentType: String): String? =
+        api.uploadPhoto(postId, bytes, contentType).photoUrl
     override suspend fun deletePost(postId: Long) = api.deletePost(postId)
     override suspend fun like(postId: Long): Long = api.like(postId).likeCount
     override suspend fun unlike(postId: Long): Long = api.unlike(postId).likeCount

@@ -6,14 +6,19 @@ import com.meteomontana.android.data.api.dto.FeedLikeCountDto
 import com.meteomontana.android.data.api.dto.FeedPostDto
 import com.meteomontana.android.data.api.dto.FeedPostIdDto
 import com.meteomontana.android.data.api.dto.PublishFeedRequest
+import com.meteomontana.android.data.api.dto.FeedPhotoUrlDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 
 /** Feed social "Comunidad" (todo con Bearer). Patrón exacto de KtorSocialApi. */
@@ -47,6 +52,25 @@ class KtorFeedApi(private val client: HttpClient) {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
+
+    /**
+     * Sube la foto de celebración de un post propio (multipart, campo "file",
+     * JPEG máx 5MB). Devuelve la URL firmada de la foto.
+     */
+    suspend fun uploadPhoto(
+        postId: Long,
+        bytes: ByteArray,
+        contentType: String = "image/jpeg"
+    ): FeedPhotoUrlDto =
+        client.submitFormWithBinaryData(
+            url = "feed/$postId/photo",
+            formData = formData {
+                append("file", bytes, Headers.build {
+                    append(HttpHeaders.ContentType, contentType)
+                    append(HttpHeaders.ContentDisposition, "filename=\"celebration.jpg\"")
+                })
+            }
+        ).body()
 
     suspend fun deletePost(postId: Long) { client.delete("feed/$postId") }
 

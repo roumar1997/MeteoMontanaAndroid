@@ -66,17 +66,29 @@ enum ShareFeedPostImage {
     // MARK: - Render
 
     private static func renderCard(post: FeedPost) async -> UIImage {
-        // Foto (si la hay), con la caché de disco de siempre.
-        var photo: UIImage? = nil
+        // Fotos (si las hay), con la caché de disco de siempre.
+        var topoPhoto: UIImage? = nil
         if let p = post.photoPath, !p.isEmpty {
-            photo = await ImageCache.image(p)
+            topoPhoto = await ImageCache.image(p)
         }
-        let ph = photo
-        return await MainActor.run { drawCard(post: post, photo: ph) }
+        var celebration: UIImage? = nil
+        if let u = post.photoUrl, !u.isEmpty {
+            celebration = await ImageCache.image(u)
+        }
+        // Mismo layout que la tarjeta: sin topo, la foto de celebración es la
+        // imagen principal (sin trazo); con topo, va como miniatura en la esquina.
+        let photo = topoPhoto ?? celebration
+        let corner = topoPhoto != nil ? celebration : nil
+        let drawLine = topoPhoto != nil
+        return await MainActor.run {
+            drawCard(post: post, photo: photo, drawLine: drawLine, corner: corner)
+        }
     }
 
     @MainActor
-    private static func drawCard(post: FeedPost, photo: UIImage?) -> UIImage {
+    private static func drawCard(post: FeedPost, photo: UIImage?,
+                                 drawLine shouldDrawLine: Bool = true,
+                                 corner: UIImage? = nil) -> UIImage {
         let w: CGFloat = 1080, h: CGFloat = 1920, pad: CGFloat = 72
         let availW = w - 2 * pad
         let format = UIGraphicsImageRendererFormat()
@@ -151,10 +163,35 @@ enum ShareFeedPostImage {
                 let dw = photo.size.width * scale, dh = photo.size.height * scale
                 photo.draw(in: CGRect(x: photoRect.midX - dw / 2, y: photoRect.midY - dh / 2,
                                       width: dw, height: dh))
-                drawLine(cg, post: post, in: photoRect)
+                if shouldDrawLine { drawLine(cg, post: post, in: photoRect) }
                 cg.restoreGState()
                 rule.setStroke()
                 let pb = UIBezierPath(rect: photoRect); pb.lineWidth = 3; pb.stroke()
+
+                // Miniatura de la foto de celebración (esquina superior derecha
+                // del topo, mismo layout que la tarjeta: ~88×110 con borde papel).
+                if let corner {
+                    let miniW = rectW * 0.26
+                    let miniH = miniW * 110.0 / 88.0
+                    let margin: CGFloat = 20
+                    let mini = CGRect(x: photoRect.maxX - margin - miniW,
+                                      y: photoRect.minY + margin,
+                                      width: miniW, height: miniH)
+                    let radius: CGFloat = 14
+                    let clipPath = UIBezierPath(roundedRect: mini, cornerRadius: radius)
+                    cg.saveGState()
+                    clipPath.addClip()
+                    // Aspect-fill (centerCrop) dentro de la miniatura.
+                    let cScale = max(mini.width / corner.size.width,
+                                     mini.height / corner.size.height)
+                    let cw = corner.size.width * cScale, ch = corner.size.height * cScale
+                    corner.draw(in: CGRect(x: mini.midX - cw / 2, y: mini.midY - ch / 2,
+                                           width: cw, height: ch))
+                    cg.restoreGState()
+                    paper.setStroke()
+                    let mb = UIBezierPath(roundedRect: mini, cornerRadius: radius)
+                    mb.lineWidth = 6; mb.stroke()
+                }
             } else if let g = post.grade, !g.isEmpty {
                 // Sin foto: tarjeta de datos centrada (grado enorme en terra).
                 let gFont = serif(260)

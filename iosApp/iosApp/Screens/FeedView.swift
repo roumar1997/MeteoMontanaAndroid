@@ -253,7 +253,7 @@ func copyPost(_ p: FeedPost, likedByMe: Bool? = nil, likeCount: Int64? = nil,
         likedByMe: likedByMe ?? p.likedByMe,
         commentCount: commentCount ?? p.commentCount,
         mine: p.mine,
-        startType: p.startType, caption: p.caption)
+        startType: p.startType, caption: p.caption, photoUrl: p.photoUrl)
 }
 
 // MARK: - Vista principal
@@ -537,6 +537,14 @@ struct FeedPostCard: View {
     /// Líneas máximas de la caption (nil en el detalle = entera).
     var captionMaxLines: Int? = 3
 
+    /// Foto de celebración ampliada a pantalla completa (tap en la miniatura).
+    @State private var showFullPhoto = false
+
+    private var celebrationUrl: String? {
+        guard let u = post.photoUrl, !u.isEmpty else { return nil }
+        return u
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerRow
@@ -548,6 +556,11 @@ struct FeedPostCard: View {
         .background(Cumbre.paper)
         .clipShape(RoundedRectangle(cornerRadius: 2))
         .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+        .fullScreenCover(isPresented: $showFullPhoto) {
+            if let url = celebrationUrl {
+                FullScreenPhotoView(photoUrl: url) { showFullPhoto = false }
+            }
+        }
     }
 
     // ── Cabecera: avatar + nombre + eyebrow del tipo + tiempo relativo ──
@@ -580,13 +593,29 @@ struct FeedPostCard: View {
         return String(post.author.uid.prefix(6))
     }
 
-    // ── Imagen: foto de la cara con SOLO la línea de esta vía ──
+    // ── Imagen: foto de la cara con SOLO la línea de esta vía. La foto de
+    // celebración (si la hay) va como miniatura superpuesta arriba-derecha;
+    // sin topo, la celebración ES la imagen principal ──
     @ViewBuilder private var topoImage: some View {
         if let photo = post.photoPath, !photo.isEmpty {
-            Button {
-                if let sid = post.schoolId { onOpenSchool(sid, post.lineId, post.lineName) }
-            } label: {
-                TopoPhotoView(photoUrl: photo, lines: postLines)
+            ZStack(alignment: .topTrailing) {
+                Button {
+                    if let sid = post.schoolId { onOpenSchool(sid, post.lineId, post.lineName) }
+                } label: {
+                    TopoPhotoView(photoUrl: photo, lines: postLines)
+                }
+                .buttonStyle(.plain)
+                if let celebration = celebrationUrl {
+                    Button { showFullPhoto = true } label: {
+                        FeedCelebrationThumb(photoUrl: celebration)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(8)
+                }
+            }
+        } else if let celebration = celebrationUrl {
+            Button { showFullPhoto = true } label: {
+                FeedMainCelebrationImage(photoUrl: celebration)
             }
             .buttonStyle(.plain)
         }
