@@ -210,10 +210,7 @@ private fun Content(
         // TOPE/ADMIN y seguidores) — paridad con AccountView de iOS.
         item { Header(profile, topGrade = stats.maxGrade, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
-        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects) }
-        // "Mis publicaciones": fila pulsable (patrón SchoolEntryRow) que abre
-        // la pantalla dedicada con el feed propio (scope=mine).
-        item { MyPostsRow(onClick = onOpenMyPosts) }
+        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts) }
         item { AddBlockButton(onClick = onAddBlock) }
         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
         // Menú con iconos terracota (filas tipo iOS).
@@ -580,7 +577,8 @@ private fun StatsRow(
     onRoutes: () -> Unit,
     onSchools: () -> Unit,
     onMax: () -> Unit,
-    onProjects: () -> Unit
+    onProjects: () -> Unit,
+    onMyPosts: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -597,10 +595,12 @@ private fun StatsRow(
             StatCell(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
             StatCell(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
         }
-        // Fila 3: PROYECTOS — misma celda pulsable que el resto (mismo caché
-        // offline: viene en la misma llamada de stats).
+        // Fila 3: PROYECTOS + MIS PUBLICACIONES — mismas celdas pulsables que
+        // el resto (decisión de Rodrigo: publicaciones con el estilo de stats,
+        // no como fila de menú). Publicaciones no tiene contador barato → "›".
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f).clickable(onClick = onProjects))
+            StatCell(stringResource(R.string.feed_my_posts_section), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
         }
     }
 }
@@ -635,23 +635,6 @@ private fun AddBlockButton(onClick: () -> Unit) {
         Text(stringResource(R.string.profile_add_block), color = Color.White,
             style = MaterialTheme.typography.labelLarge)
     }
-}
-
-@Composable
-private fun MyPostsRow(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(stringResource(R.string.feed_my_posts_section),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground)
-        Text("›", style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
 @Composable

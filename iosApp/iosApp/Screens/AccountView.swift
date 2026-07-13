@@ -247,22 +247,6 @@ struct AccountView: View {
     /// ESCUELAS, y desde dentro se puede borrar.
     @ViewBuilder private var diarySection: some View {
         AccountJournalStatsNav(vm: vm)
-        // "Mis publicaciones": fila pulsable (patrón de las filas del diario)
-        // que abre la pantalla dedicada con el feed propio (scope=mine) —
-        // paridad con MyPostsRow de ProfileScreen.kt.
-        NavigationLink(destination: MyPostsView()) {
-            HStack {
-                Text("Mis publicaciones")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Cumbre.ink)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-            }
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
         Button { showAddBlock = true } label: {
             // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
             Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
@@ -480,11 +464,16 @@ private struct AccountJournalStatsNav: View {
                     cell(s.maxBoulderGrade ?? "—", "MÁX BLOQUE")
                     cell(s.maxRouteGrade ?? "—", "MÁX VÍA")
                 }
-                // Proyectos: misma celda pulsable que el resto, mismo caché
-                // offline (viene en la misma llamada de stats).
-                NavigationLink(destination: ProjectsView()) {
-                    cell("\(s.projectCount)", "PROYECTOS")
-                }.buttonStyle(.plain)
+                // Proyectos + Mis publicaciones: mismas celdas pulsables que el
+                // resto (decisión de Rodrigo: publicaciones con estilo de stats).
+                HStack(spacing: 8) {
+                    NavigationLink(destination: ProjectsView()) {
+                        cell("\(s.projectCount)", "PROYECTOS")
+                    }.buttonStyle(.plain)
+                    NavigationLink(destination: MyPostsView()) {
+                        cell("›", "MIS PUBLICACIONES")
+                    }.buttonStyle(.plain)
+                }
             }
         }
     }
