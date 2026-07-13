@@ -21,16 +21,19 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,7 +77,6 @@ import com.meteomontana.android.ui.screens.meetups.MeetupAlertScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupDetailScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupsScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
-import kotlinx.coroutines.launch
 
 /** Ruta raíz (vacía) del NavHost interno del sheet: el sheet se abre vacío y se
  *  navega al destino real; al volver a ella se cierra la tarjeta. */
@@ -169,26 +171,24 @@ fun MainScreen(
     // repetir la animación arriba-abajo en cada paso ni atrás. Al volver a la
     // raíz, la tarjeta baja. Un solo sheet → sin apilar ModalBottomSheets.
     val sheetNav = rememberNavController()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sheetVisible by remember { androidx.compose.runtime.mutableStateOf(false) }
     // Ruta pendiente de navegar en el sheet. NO podemos navegar el sheetNav aquí:
     // su grafo lo registra el NavHost interno, que solo existe cuando el sheet es
     // visible. Guardamos la ruta, mostramos el sheet, y un LaunchedEffect DENTRO
     // del contenido del sheet (con el NavHost ya compuesto) hace la navegación.
     var pendingSheetRoute by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
 
     // Abre el sheet en un destino.
     val openSheet: (String) -> Unit = { route ->
         pendingSheetRoute = route
         sheetVisible = true
     }
-    // Baja la tarjeta y limpia el backstack del sheetNav.
+    // Oculta el overlay y limpia el backstack del sheetNav. Ya no hay
+    // ModalBottomSheet: basta con bajar la bandera (AnimatedVisibility hace la
+    // animación de salida) y resetear el NavHost interno a su raíz.
     val dismissSheet: () -> Unit = {
+        sheetVisible = false
         sheetNav.popBackStack(SHEET_ROOT, inclusive = false)
-        scope.launch { sheetState.hide() }.invokeOnCompletion {
-            sheetVisible = false
-        }
     }
     // Atrás dentro del sheet: si hay pila interna por encima de la primera
     // pantalla, desliza atrás (lateral); si no, baja la tarjeta.
@@ -214,14 +214,12 @@ fun MainScreen(
         if (deepLink != null) {
             when (deepLink.targetType) {
                 "school", "school_detail" ->
-                    deepLink.targetId?.let { navController.navigate(Routes.schoolDetail(it)) { launchSingleTop = true } }
+                    deepLink.targetId?.let { openSheet(Routes.schoolDetail(it)) }
                 // Enlace compartido de una vía/bloque: "escuela|lineId".
                 "via" -> deepLink.targetId?.let { packed ->
                     val school = packed.substringBefore('|')
                     val lineId = packed.substringAfter('|', "")
-                    navController.navigate(
-                        Routes.schoolDetail(school, viaId = lineId.ifBlank { null })
-                    ) { launchSingleTop = true }
+                    openSheet(Routes.schoolDetail(school, viaId = lineId.ifBlank { null }))
                 }
                 "user"        -> deepLink.targetId?.let { openSheet(Routes.publicProfile(it)) }
                 "chat", "message" -> deepLink.targetId?.let { openSheet(Routes.chat(it)) }
@@ -275,7 +273,12 @@ fun MainScreen(
                                         if (selected) MaterialTheme.colorScheme.primaryContainer
                                         else androidx.compose.ui.graphics.Color.Transparent
                                     )
-                                    .clickable { if (!selected) selectedTab = tab.route }
+                                    .clickable {
+                                        // Con el overlay abierto, pulsar una
+                                        // pestaña lo cierra y cambia de tab.
+                                        if (sheetVisible) dismissSheet()
+                                        if (!selected) selectedTab = tab.route
+                                    }
                                     // Con 4 tabs no caben los 4 rótulos: solo el
                                     // seleccionado enseña su nombre (estilo iOS).
                                     .padding(
@@ -377,7 +380,7 @@ fun MainScreen(
                                     .graphicsLayer { alpha = if (weatherShowsRadar) 1f else 0f }
                             ) {
                                 RadarScreen(onSchoolDetail = { id ->
-                                    navController.navigate(Routes.schoolDetail(id))
+                                    openSheet(Routes.schoolDetail(id))
                                 })
                                 WeatherRadarToggle(
                                     showRadar = true,
@@ -394,9 +397,9 @@ fun MainScreen(
                 }
                         tabContainer(Tab.Schools.route) {
                     SchoolListScreen(
-                        onSchoolClick = { id -> navController.navigate(Routes.schoolDetail(id)) },
+                        onSchoolClick = { id -> openSheet(Routes.schoolDetail(id)) },
                         onViaHit = { schoolId, viaId, viaName ->
-                            navController.navigate(Routes.schoolDetail(schoolId, via = viaName, viaId = viaId))
+                            openSheet(Routes.schoolDetail(schoolId, via = viaName, viaId = viaId))
                         },
                         onProfileClick = { openSheet(Routes.PROFILE) },
                         onSubmitSchool = { openSheet(Routes.SUBMIT_SCHOOL) },
@@ -440,9 +443,7 @@ fun MainScreen(
                     // Feed social Comunidad (SIGUIENDO | TODOS | RANKING).
                     com.meteomontana.android.ui.screens.community.FeedScreen(
                         onOpenSchool = { schoolId, lineId, lineName ->
-                            navController.navigate(
-                                Routes.schoolDetail(schoolId, via = lineName, viaId = lineId)
-                            )
+                            openSheet(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
                         },
                         onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
                         onSearchUsers = { openSheet(Routes.SEARCH_USERS) }
@@ -456,27 +457,30 @@ fun MainScreen(
                         onOpenAlert = { openSheet(Routes.MEETUP_ALERT) }
                     )
                 }
+                        // ── Overlay estilo Apple, DENTRO del contenido ──
+                        // Vive encima de las pestañas (zIndex 2) pero por DEBAJO de
+                        // la cápsula de tabs (slot bottomBar del Scaffold, siempre
+                        // encima del contenido) → la barra queda visible y pulsable.
+                        // En función aparte para evitar la ambigüedad de overload de
+                        // AnimatedVisibility con el ColumnScope que lo envuelve.
+                        SheetOverlay(
+                            sheetVisible = sheetVisible,
+                            onHide = { sheetVisible = false },
+                            pendingSheetRoute = pendingSheetRoute,
+                            onPendingConsumed = { pendingSheetRoute = null },
+                            sheetNav = sheetNav,
+                            navController = navController,
+                            openSheet = openSheet,
+                            openFullScreen = openFullScreen,
+                            popSheetOrDismiss = popSheetOrDismiss
+                        )
                     }
-                }
-                composable(
-                    route = Routes.SCHOOL_DETAIL,
-                    arguments = listOf(
-                        navArgument("schoolId") { type = NavType.StringType },
-                        navArgument("via") { type = NavType.StringType; nullable = true; defaultValue = null },
-                        navArgument("viaId") { type = NavType.StringType; nullable = true; defaultValue = null }
-                    )
-                ) {
-                    val schoolId = it.arguments?.getString("schoolId") ?: ""
-                    SchoolDetailScreen(
-                        onBack = { navController.popBackStack() },
-                        onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) },
-                        onMyProposals = { openSheet(Routes.MY_SUBMISSIONS) },
-                        onDayClick = { idx -> openSheet(Routes.dayDetail(schoolId, idx)) }
-                    )
                 }
                 composable(Routes.ADMIN) {
                     AdminScreen(onBack = { navController.popBackStack() },
-                        onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) },
+                        // El detalle de escuela vive ahora en el overlay del host
+                        // de pestañas: salimos de admin (full screen) y lo abrimos.
+                        onOpenSchool = { id -> navController.popBackStack(); openSheet(Routes.schoolDetail(id)) },
                         onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
                         onOpenMeetup = { id -> openSheet(Routes.meetupDetail(id)) },
                         onOpenFeedPost = { id -> openSheet(Routes.feedPost(id)) })
@@ -491,17 +495,39 @@ fun MainScreen(
         }
     }
 
-    // ── La tarjeta (sheet) con su NavHost interno de deslizado lateral ──
-    if (sheetVisible) {
-        ModalBottomSheet(
-            onDismissRequest = dismissSheet,
-            sheetState = sheetState,
-            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-            containerColor = MaterialTheme.colorScheme.background,
-            dragHandle = null
+    // El overlay daba el "atrás" via ModalBottomSheet; ahora se maneja a mano.
+    BackHandler(enabled = sheetVisible) { popSheetOrDismiss() }
+}
+
+/**
+ * Overlay del host de pestañas: se anima de entrada/salida (slide + fade) y aloja
+ * el NavHost interno. En función propia para que AnimatedVisibility resuelva al
+ * overload sin receptor (no al de ColumnScope del contenedor que lo envuelve).
+ */
+@Composable
+private fun SheetOverlay(
+    sheetVisible: Boolean,
+    onHide: () -> Unit,
+    pendingSheetRoute: String?,
+    onPendingConsumed: () -> Unit,
+    sheetNav: androidx.navigation.NavHostController,
+    navController: androidx.navigation.NavHostController,
+    openSheet: (String) -> Unit,
+    openFullScreen: (String) -> Unit,
+    popSheetOrDismiss: () -> Unit
+) {
+    AnimatedVisibility(
+        visible = sheetVisible,
+        enter = slideInHorizontally(tween(280)) { it } + fadeIn(tween(280)),
+        exit = slideOutHorizontally(tween(280)) { it } + fadeOut(tween(280)),
+        modifier = Modifier.fillMaxSize().zIndex(2f)
+    ) {
+        Box(
+            Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // Navega al destino pendiente UNA VEZ que el NavHost interno ya está
-            // compuesto (grafo registrado). Se consume poniéndolo a null.
+            // Navega al destino pendiente una vez el NavHost interno está
+            // compuesto (grafo registrado).
             androidx.compose.runtime.LaunchedEffect(pendingSheetRoute) {
                 val r = pendingSheetRoute
                 if (r != null) {
@@ -509,19 +535,41 @@ fun MainScreen(
                         popUpTo(SHEET_ROOT) { inclusive = false }
                         launchSingleTop = true
                     }
-                    pendingSheetRoute = null
+                    onPendingConsumed()
                 }
             }
-            // Auto-cierre: si el NavHost interno vuelve a SHEET_ROOT (por back
-            // del sistema u otro pop) y NO hay ruta pendiente, cerramos el sheet.
-            // Esto evita la pantalla en blanco sin interferir con la apertura.
+            // Auto-cierre: si el NavHost interno vuelve a SHEET_ROOT (back del
+            // sistema u otro pop) y NO hay ruta pendiente, ocultamos el overlay.
             val sheetEntry by sheetNav.currentBackStackEntryAsState()
             androidx.compose.runtime.LaunchedEffect(sheetEntry) {
                 if (sheetEntry?.destination?.route == SHEET_ROOT && pendingSheetRoute == null) {
-                    dismissSheet()
+                    onHide()
                 }
             }
-            Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f)) {
+            SheetNavHost(
+                sheetNav = sheetNav,
+                navController = navController,
+                openSheet = openSheet,
+                openFullScreen = openFullScreen,
+                popSheetOrDismiss = popSheetOrDismiss
+            )
+        }
+    }
+}
+
+/**
+ * NavHost interno del overlay (antes vivía dentro del ModalBottomSheet). Desliza
+ * lateralmente entre pantallas (Perfil, Chats, detalle de escuela, etc.) como iOS.
+ * Se extrae a una función aparte para no anidar en exceso dentro de MainScreen.
+ */
+@Composable
+private fun SheetNavHost(
+    sheetNav: androidx.navigation.NavHostController,
+    navController: androidx.navigation.NavHostController,
+    openSheet: (String) -> Unit,
+    openFullScreen: (String) -> Unit,
+    popSheetOrDismiss: () -> Unit
+) {
                 NavHost(
                     navController = sheetNav,
                     startDestination = SHEET_ROOT,
@@ -532,6 +580,27 @@ fun MainScreen(
                     popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) },
                     popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) }
                 ) {
+                    // Detalle de escuela: ahora vive en el overlay (con la barra
+                    // de pestañas visible), no como pantalla completa aparte.
+                    composable(
+                        route = Routes.SCHOOL_DETAIL,
+                        arguments = listOf(
+                            navArgument("schoolId") { type = NavType.StringType },
+                            navArgument("via") { type = NavType.StringType; nullable = true; defaultValue = null },
+                            navArgument("viaId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                        )
+                    ) { entry ->
+                        val schoolId = entry.arguments?.getString("schoolId") ?: ""
+                        SchoolDetailScreen(
+                            onBack = popSheetOrDismiss,
+                            // El editor de topos SÍ es pantalla completa (sin barra):
+                            // navegamos en el navController principal sin cerrar el
+                            // overlay, para volver al detalle al terminar.
+                            onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) },
+                            onMyProposals = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
+                            onDayClick = { idx -> sheetNav.navigate(Routes.dayDetail(schoolId, idx)) }
+                        )
+                    }
                     composable(
                         SHEET_ROOT,
                         enterTransition = { EnterTransition.None },
@@ -574,7 +643,7 @@ fun MainScreen(
                             onBack = popSheetOrDismiss,
                             onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             onOpenSchool = { schoolId, lineId, lineName ->
-                                openFullScreen(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
                             }
                         )
                     }
@@ -590,7 +659,7 @@ fun MainScreen(
                     composable(Routes.SAVED_SCHOOLS) {
                         SavedSchoolsScreen(
                             onBack = popSheetOrDismiss,
-                            onOpen = { id -> openFullScreen(Routes.schoolDetail(id)) }
+                            onOpen = { id -> sheetNav.navigate(Routes.schoolDetail(id)) }
                         )
                     }
                     composable(Routes.WEEKEND_ALERT) {
@@ -599,7 +668,7 @@ fun MainScreen(
                     composable(Routes.COMPARE) {
                         com.meteomontana.android.ui.screens.compare.CompareScreen(
                             onBack = popSheetOrDismiss,
-                            onSchoolDetail = { id -> openFullScreen(Routes.schoolDetail(id)) }
+                            onSchoolDetail = { id -> sheetNav.navigate(Routes.schoolDetail(id)) }
                         )
                     }
 
@@ -628,7 +697,7 @@ fun MainScreen(
                     ) {
                         JournalEntriesScreen(
                             onBack = popSheetOrDismiss,
-                            onOpenSchool = { id, via, viaId -> openFullScreen(Routes.schoolDetail(id, via, viaId)) }
+                            onOpenSchool = { id, via, viaId -> sheetNav.navigate(Routes.schoolDetail(id, via, viaId)) }
                         )
                     }
                     composable(
@@ -665,7 +734,7 @@ fun MainScreen(
                                     )
                                 )
                             },
-                            onOpenSchool = { id, via, viaId -> openFullScreen(Routes.schoolDetail(id, via, viaId)) }
+                            onOpenSchool = { id, via, viaId -> sheetNav.navigate(Routes.schoolDetail(id, via, viaId)) }
                         )
                     }
 
@@ -699,7 +768,7 @@ fun MainScreen(
                             // Sección Publicaciones (feed) del perfil:
                             onOpenUserProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             onOpenFeedSchool = { schoolId, lineId, lineName ->
-                                openFullScreen(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
                             }
                         )
                     }
@@ -762,7 +831,7 @@ fun MainScreen(
                         NotificationsScreen(
                             onBack = popSheetOrDismiss,
                             onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            onOpenSchool = { id -> openFullScreen(Routes.schoolDetail(id)) },
+                            onOpenSchool = { id -> sheetNav.navigate(Routes.schoolDetail(id)) },
                             onOpenSubmissions = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
                             onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
                             onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
@@ -778,7 +847,7 @@ fun MainScreen(
                             onBack = popSheetOrDismiss,
                             onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             onOpenSchool = { schoolId, lineId, lineName ->
-                                openFullScreen(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
                             }
                         )
                     }
@@ -798,7 +867,7 @@ fun MainScreen(
                             meetupId = meetupId,
                             onBack = popSheetOrDismiss,
                             onOpenChat = { convId -> sheetNav.navigate(Routes.groupChat(convId)) },
-                            onOpenSchool = { id -> openFullScreen(Routes.schoolDetail(id)) },
+                            onOpenSchool = { id -> sheetNav.navigate(Routes.schoolDetail(id)) },
                             onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
                         )
                     }
@@ -815,7 +884,4 @@ fun MainScreen(
                         MeetupAlertScreen(onBack = popSheetOrDismiss)
                     }
                 }
-            }
-        }
-    }
 }
