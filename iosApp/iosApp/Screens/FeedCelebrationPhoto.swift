@@ -8,47 +8,82 @@ import Shared
 // celebración" de Android (FeedPublishSheet en SchoolMap.kt +
 // FullScreenPhotoDialog.kt).
 
-// MARK: - Cámara del sistema (UIImagePickerController .camera)
+// MARK: - Cámara del sistema (presentada por UIKit, no por SwiftUI)
 
-/// Picker de CÁMARA (la foto se hace en el momento; el usuario cambia
-/// frontal/trasera dentro de la propia cámara). No existe otro picker de
-/// cámara en la app (el resto usan PhotosPicker de galería) → este es el
-/// wrapper reutilizable.
-struct CameraPicker: UIViewControllerRepresentable {
+/// Delegate del picker, retenido por el propio picker (associated object) para
+/// que viva mientras la cámara está abierta.
+private final class CameraCoordinator: NSObject, UIImagePickerControllerDelegate,
+                                       UINavigationControllerDelegate {
     let onCapture: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
+    init(onCapture: @escaping (UIImage) -> Void) { self.onCapture = onCapture }
 
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
+    func imagePickerController(
+        _ picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+    ) {
+        if let img = info[.originalImage] as? UIImage {
+            // La cámara frontal, con "Reflejar cámara frontal" de Ajustes,
+            // devuelve la imagen ESPEJADA (codificado en imageOrientation) →
+            // el usuario la quiere SIN espejo. normalizedUnmirrored la quita.
+            onCapture(img.normalizedUnmirrored())
+        }
+        picker.dismiss(animated: true)
     }
 
-    func updateUIViewController(_ picker: UIImagePickerController, context: Context) {}
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+    }
+}
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
+private var cameraCoordinatorKey: UInt8 = 0
 
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate,
-                             UINavigationControllerDelegate {
-        let parent: CameraPicker
-        init(_ parent: CameraPicker) { self.parent = parent }
+/// View-controller superior actualmente presentado (para presentar sobre él).
+@MainActor
+private func topPresentedViewController() -> UIViewController? {
+    let keyWindow = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .flatMap { $0.windows }
+        .first { $0.isKeyWindow }
+    var top = keyWindow?.rootViewController
+    while let presented = top?.presentedViewController { top = presented }
+    return top
+}
 
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-        ) {
-            if let img = info[.originalImage] as? UIImage {
-                // Se guarda TAL CUAL la captura iOS: la cámara frontal produce
-                // la imagen SIN espejo (como una foto normal, no como la vista
-                // previa reflejada). El usuario la quiere así, sin voltear.
-                parent.onCapture(img)
-            }
-            parent.dismiss()
+/// Presenta la cámara del sistema DIRECTAMENTE por UIKit sobre el
+/// view-controller superior. Evita el `fullScreenCover`-dentro-de-`sheet` de
+/// SwiftUI, que se abría y cerraba al instante (carrera de modales anidados).
+@MainActor
+func presentSystemCamera(onCapture: @escaping (UIImage) -> Void) {
+    guard UIImagePickerController.isSourceTypeAvailable(.camera),
+          let presenter = topPresentedViewController() else { return }
+    let picker = UIImagePickerController()
+    picker.sourceType = .camera
+    let coord = CameraCoordinator(onCapture: onCapture)
+    picker.delegate = coord
+    objc_setAssociatedObject(picker, &cameraCoordinatorKey, coord, .OBJC_ASSOCIATION_RETAIN)
+    presenter.present(picker, animated: true)
+}
+
+extension UIImage {
+    /// Devuelve la imagen SIN espejo, horneada a orientación `.up`. Si la
+    /// orientación es una variante `*Mirrored` (selfie con "Reflejar cámara
+    /// frontal") se voltea para quitar el espejo; si no, solo se hornea. El
+    /// resultado nunca sale reflejado (la cámara trasera no se ve afectada:
+    /// su orientación no es Mirrored).
+    func normalizedUnmirrored() -> UIImage {
+        let mirrored: Bool
+        switch imageOrientation {
+        case .upMirrored, .downMirrored, .leftMirrored, .rightMirrored: mirrored = true
+        default: mirrored = false
         }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = scale
+        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            if mirrored {
+                ctx.cgContext.translateBy(x: size.width, y: 0)
+                ctx.cgContext.scaleBy(x: -1, y: 1)
+            }
+            draw(in: CGRect(origin: .zero, size: size))
         }
     }
 }
