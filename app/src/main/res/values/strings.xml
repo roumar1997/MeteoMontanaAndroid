@@ -57,6 +57,9 @@
     <string name="feed_like">Me gusta</string>
     <string name="feed_comments_title">Comentarios</string>
     <string name="feed_comment_hint">Escribe un comentario…</string>
+    <string name="feed_reply">Responder</string>
+    <string name="feed_replying_to">Respondiendo a %1$s</string>
+    <string name="feed_comment_like">Me gusta</string>
     <string name="feed_comments_empty">Sé el primero en comentar.</string>
     <string name="feed_delete_post">Eliminar publicación</string>
     <string name="feed_delete_post_confirm">¿Eliminar esta publicación del feed?</string>

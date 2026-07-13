@@ -261,6 +261,8 @@ class IosDependencyContainer(
     val getFeedComments = com.meteomontana.android.domain.usecase.feed.GetFeedCommentsUseCase(feedRepository)
     val addFeedComment = com.meteomontana.android.domain.usecase.feed.AddFeedCommentUseCase(feedRepository)
     val deleteFeedComment = com.meteomontana.android.domain.usecase.feed.DeleteFeedCommentUseCase(feedRepository)
+    val likeFeedComment = com.meteomontana.android.domain.usecase.feed.LikeFeedCommentUseCase(feedRepository)
+    val unlikeFeedComment = com.meteomontana.android.domain.usecase.feed.UnlikeFeedCommentUseCase(feedRepository)
 
     // Mis propuestas de escuela y mis contribuciones de mejora (estado pending/
     // approved/rejected) — accesibles desde el perfil.

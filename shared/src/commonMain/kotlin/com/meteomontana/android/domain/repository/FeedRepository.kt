@@ -29,6 +29,10 @@ interface FeedRepository {
     suspend fun like(postId: Long): Long
     suspend fun unlike(postId: Long): Long
     suspend fun getComments(postId: Long): List<FeedComment>
-    suspend fun addComment(postId: Long, text: String): FeedComment
+    /** [parentId] = comentario respondido (puede ser una respuesta); null = raíz. */
+    suspend fun addComment(postId: Long, text: String, parentId: String? = null): FeedComment
     suspend fun deleteComment(commentId: String)
+    /** Like a un comentario; devuelve el likeCount actualizado. */
+    suspend fun likeComment(commentId: String): Long
+    suspend fun unlikeComment(commentId: String): Long
 }

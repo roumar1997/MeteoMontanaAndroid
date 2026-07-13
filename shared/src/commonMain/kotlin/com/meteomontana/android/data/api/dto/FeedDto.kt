@@ -54,7 +54,12 @@ data class FeedCommentDto(
     val author: FeedAuthorDto? = null,
     val text: String,
     val createdAt: String,
-    val mine: Boolean = false
+    val mine: Boolean = false,
+    /** Likes del comentario (V57). */
+    val likeCount: Long = 0,
+    val likedByMe: Boolean = false,
+    /** Comentario al que responde (puede ser una respuesta); null = raíz. */
+    val parentId: String? = null
 )
 
 /**
@@ -74,9 +79,9 @@ data class PublishFeedRequest(
     val caption: String? = null
 )
 
-/** POST /api/feed/{id}/comments */
+/** POST /api/feed/{id}/comments. [parentId] = comentario respondido (null = raíz). */
 @Serializable
-data class AddFeedCommentRequest(val text: String)
+data class AddFeedCommentRequest(val text: String, val parentId: String? = null)
 
 @Serializable
 data class FeedPostIdDto(val id: Long)
@@ -108,5 +113,6 @@ fun FeedPostDto.toDomain() = FeedPost(
 
 fun FeedCommentDto.toDomain() = FeedComment(
     id = id, postId = postId, uid = uid, author = author?.toDomain(),
-    text = text, createdAt = createdAt, mine = mine
+    text = text, createdAt = createdAt, mine = mine,
+    likeCount = likeCount, likedByMe = likedByMe, parentId = parentId
 )

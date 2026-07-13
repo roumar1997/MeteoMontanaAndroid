@@ -51,5 +51,10 @@ data class FeedComment(
     val author: FeedAuthor?,
     val text: String,
     val createdAt: String,
-    val mine: Boolean
+    val mine: Boolean,
+    /** Likes del comentario (V57). */
+    val likeCount: Long = 0,
+    val likedByMe: Boolean = false,
+    /** Comentario al que responde (puede ser una respuesta); null = raíz. */
+    val parentId: String? = null
 )

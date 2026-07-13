@@ -32,7 +32,9 @@ import com.meteomontana.android.domain.usecase.feed.DeleteFeedCommentUseCase
 import com.meteomontana.android.domain.usecase.feed.FeedScope
 import com.meteomontana.android.domain.usecase.feed.GetFeedCommentsUseCase
 import com.meteomontana.android.domain.usecase.feed.GetFeedPageUseCase
+import com.meteomontana.android.domain.usecase.feed.LikeFeedCommentUseCase
 import com.meteomontana.android.domain.usecase.feed.LikeFeedPostUseCase
+import com.meteomontana.android.domain.usecase.feed.UnlikeFeedCommentUseCase
 import com.meteomontana.android.domain.usecase.feed.UnlikeFeedPostUseCase
 import com.meteomontana.android.ui.components.ModerationViewModel
 import com.meteomontana.android.ui.components.ReportDialog
@@ -68,6 +70,8 @@ class UserFeedViewModel @Inject constructor(
     private val getComments: GetFeedCommentsUseCase,
     private val addCommentUseCase: AddFeedCommentUseCase,
     private val deleteCommentUseCase: DeleteFeedCommentUseCase,
+    private val likeCommentUseCase: LikeFeedCommentUseCase,
+    private val unlikeCommentUseCase: UnlikeFeedCommentUseCase,
     private val deletePostUseCase: com.meteomontana.android.domain.usecase.feed.DeleteFeedPostUseCase
 ) : ViewModel() {
 
@@ -146,8 +150,8 @@ class UserFeedViewModel @Inject constructor(
     suspend fun loadComments(postId: Long): Result<List<FeedComment>> =
         runCatching { getComments(postId) }
 
-    suspend fun addComment(postId: Long, text: String): Result<FeedComment> =
-        runCatching { addCommentUseCase(postId, text) }.onSuccess {
+    suspend fun addComment(postId: Long, text: String, parentId: String?): Result<FeedComment> =
+        runCatching { addCommentUseCase(postId, text, parentId) }.onSuccess {
             updatePost(postId) { it.copy(commentCount = it.commentCount + 1) }
         }
 
@@ -155,6 +159,10 @@ class UserFeedViewModel @Inject constructor(
         runCatching { deleteCommentUseCase(commentId) }.onSuccess {
             updatePost(postId) { it.copy(commentCount = (it.commentCount - 1).coerceAtLeast(0)) }
         }
+
+    /** Like/unlike de un comentario; devuelve el likeCount actualizado. */
+    suspend fun toggleCommentLike(commentId: String, like: Boolean): Result<Long> =
+        runCatching { if (like) likeCommentUseCase(commentId) else unlikeCommentUseCase(commentId) }
 }
 
 /**
@@ -249,6 +257,7 @@ fun UserFeedSection(
             loadComments = viewModel::loadComments,
             addComment = viewModel::addComment,
             deleteComment = viewModel::deleteComment,
+            toggleCommentLike = viewModel::toggleCommentLike,
             onOpenUser = onOpenUser,
             onDismiss = { commentsPost = null }
         )

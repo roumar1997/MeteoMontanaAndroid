@@ -57,13 +57,33 @@ final class FeedPostDetailViewModel: ObservableObject {
         }
     }
 
-    func addComment(_ text: String) async -> Bool {
+    func addComment(_ text: String, _ parentId: String?) async -> Bool {
         guard let p = post else { return false }
-        guard let created = try? await container.addFeedComment.invoke(postId: p.id, text: text)
+        guard let created = try? await container.addFeedComment.invoke(
+            postId: p.id, text: text, parentId: parentId)
         else { return false }
         comments.append(created)
         if let cur = post { post = copyPost(cur, commentCount: cur.commentCount + 1) }
         return true
+    }
+
+    /// Like/unlike de un comentario, optimista (revierte si el server falla).
+    func toggleCommentLike(_ comment: FeedComment) {
+        let liked = !comment.likedByMe
+        func patch(_ transform: (FeedComment) -> FeedComment) {
+            comments = comments.map { $0.id == comment.id ? transform($0) : $0 }
+        }
+        patch { copyCommentLike($0, liked: liked, count: max($0.likeCount + (liked ? 1 : -1), 0)) }
+        Task {
+            do {
+                let count = liked
+                    ? try await container.likeFeedComment.invoke(commentId: comment.id)
+                    : try await container.unlikeFeedComment.invoke(commentId: comment.id)
+                patch { copyCommentLike($0, liked: liked, count: count.int64Value) }
+            } catch {
+                patch { _ in comment }
+            }
+        }
     }
 }
 
@@ -77,6 +97,7 @@ struct FeedPostDetailView: View {
     @State private var navTarget: FeedNav? = nil
     @State private var text = ""
     @State private var sending = false
+    @State private var replyTo: FeedComment? = nil
 
     init(postIdString: String) {
         _vm = StateObject(wrappedValue: FeedPostDetailViewModel(postIdString: postIdString))
@@ -168,16 +189,40 @@ struct FeedPostDetailView: View {
                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
                             .padding(.vertical, 12)
                     }
-                    ForEach(visible, id: \.id) { comment in
+                    ForEach(feedThreadOrder(visible), id: \.id) { comment in
                         FeedCommentRow(
                             comment: comment,
                             onOpenUser: { navTarget = .user($0) },
                             onDelete: nil,
-                            onReport: comment.mine ? nil : { reportComment = comment })
+                            onReport: comment.mine ? nil : { reportComment = comment },
+                            isReply: comment.parentId != nil,
+                            onToggleLike: { vm.toggleCommentLike(comment) },
+                            onReply: {
+                                replyTo = comment
+                                // Mención automática (estilo Instagram).
+                                if let u = comment.author?.username {
+                                    let mention = "@" + u + " "
+                                    if !text.hasPrefix(mention) { text = mention + text }
+                                }
+                            })
                         Divider().overlay(Cumbre.rule)
                     }
                 }
                 .padding(12)
+            }
+            // Banner "Respondiendo a X" con ✕ (vuelve a comentario raíz).
+            if let target = replyTo {
+                HStack {
+                    Text("Respondiendo a " + (feedAuthorLabel(target.author) ?? ""))
+                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                    Spacer()
+                    Button { replyTo = nil } label: {
+                        Text("✕").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
             }
             // Campo de respuesta inline.
             HStack(spacing: 8) {
@@ -193,7 +238,10 @@ struct FeedPostDetailView: View {
                     guard !t.isEmpty, !sending else { return }
                     sending = true
                     Task {
-                        if await vm.addComment(t) { text = "" }
+                        if await vm.addComment(t, replyTo?.id) {
+                            text = ""
+                            replyTo = nil
+                        }
                         sending = false
                     }
                 } label: {

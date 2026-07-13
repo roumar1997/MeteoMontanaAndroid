@@ -49,7 +49,9 @@ import com.meteomontana.android.domain.model.FeedPost
 import com.meteomontana.android.domain.usecase.feed.AddFeedCommentUseCase
 import com.meteomontana.android.domain.usecase.feed.GetFeedCommentsUseCase
 import com.meteomontana.android.domain.usecase.feed.GetFeedPostUseCase
+import com.meteomontana.android.domain.usecase.feed.LikeFeedCommentUseCase
 import com.meteomontana.android.domain.usecase.feed.LikeFeedPostUseCase
+import com.meteomontana.android.domain.usecase.feed.UnlikeFeedCommentUseCase
 import com.meteomontana.android.domain.usecase.feed.UnlikeFeedPostUseCase
 import com.meteomontana.android.ui.components.ModerationViewModel
 import com.meteomontana.android.ui.components.ReportDialog
@@ -80,7 +82,9 @@ class FeedPostDetailViewModel @Inject constructor(
     private val getComments: GetFeedCommentsUseCase,
     private val addCommentUseCase: AddFeedCommentUseCase,
     private val likePost: LikeFeedPostUseCase,
-    private val unlikePost: UnlikeFeedPostUseCase
+    private val unlikePost: UnlikeFeedPostUseCase,
+    private val likeCommentUseCase: LikeFeedCommentUseCase,
+    private val unlikeCommentUseCase: UnlikeFeedCommentUseCase
 ) : ViewModel() {
 
     // toLongOrNull: un id no numérico (p.ej. targetId inesperado desde admin)
@@ -137,15 +141,36 @@ class FeedPostDetailViewModel @Inject constructor(
         }
     }
 
-    suspend fun addComment(text: String): Boolean {
+    suspend fun addComment(text: String, parentId: String?): Boolean {
         val post = _state.value.post ?: return false
-        return runCatching { addCommentUseCase(post.id, text) }
+        return runCatching { addCommentUseCase(post.id, text, parentId) }
             .onSuccess { created ->
                 _state.value = _state.value.copy(
                     comments = _state.value.comments + created,
                     post = _state.value.post?.copy(commentCount = post.commentCount + 1)
                 )
             }.isSuccess
+    }
+
+    /** Like/unlike de un comentario, optimista (revierte si el server falla). */
+    fun toggleCommentLike(comment: FeedComment) {
+        val liked = !comment.likedByMe
+        fun patch(transform: (FeedComment) -> FeedComment) {
+            _state.value = _state.value.copy(
+                comments = _state.value.comments.map { if (it.id == comment.id) transform(it) else it }
+            )
+        }
+        patch {
+            it.copy(likedByMe = liked,
+                likeCount = (it.likeCount + if (liked) 1 else -1).coerceAtLeast(0))
+        }
+        viewModelScope.launch {
+            runCatching {
+                if (liked) likeCommentUseCase(comment.id) else unlikeCommentUseCase(comment.id)
+            }
+                .onSuccess { count -> patch { it.copy(likeCount = count) } }
+                .onFailure { patch { comment } }
+        }
     }
 }
 
@@ -170,6 +195,7 @@ fun FeedPostDetailScreen(
     var reportComment by remember { mutableStateOf<FeedComment?>(null) }
     var text by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
+    var replyTo by remember { mutableStateOf<FeedComment?>(null) }
 
     // 404 → toast + cerrar (no hay nada que enseñar).
     LaunchedEffect(state.notFound) {
@@ -253,14 +279,49 @@ fun FeedPostDetailScreen(
                                 )
                             }
                         }
-                        items(visible, key = { it.id }) { comment ->
+                        items(threadOrder(visible), key = { it.id }) { comment ->
                             FeedCommentRow(
                                 comment = comment,
                                 onOpenUser = onOpenUser,
                                 onDelete = null,
-                                onReport = if (!comment.mine) ({ reportComment = comment }) else null
+                                onReport = if (!comment.mine) ({ reportComment = comment }) else null,
+                                isReply = comment.parentId != null,
+                                onToggleLike = { viewModel.toggleCommentLike(comment) },
+                                onReply = {
+                                    replyTo = comment
+                                    val mention = comment.author?.username?.let { "@$it " } ?: ""
+                                    if (mention.isNotEmpty() && !text.startsWith(mention)) {
+                                        text = mention + text
+                                    }
+                                }
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        }
+                    }
+                    // Banner "Respondiendo a X" con ✕ (vuelve a comentario raíz).
+                    replyTo?.let { target ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                stringResource(
+                                    R.string.feed_replying_to,
+                                    target.author?.displayName
+                                        ?: target.author?.username?.let { "@$it" } ?: ""
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                "✕",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .clickable { replyTo = null }
+                                    .padding(8.dp)
+                            )
                         }
                     }
                     // Campo de respuesta inline.
@@ -283,7 +344,10 @@ fun FeedPostDetailScreen(
                                 if (t.isEmpty() || sending) return@IconButton
                                 sending = true
                                 scope.launch {
-                                    if (viewModel.addComment(t)) text = ""
+                                    if (viewModel.addComment(t, replyTo?.id)) {
+                                        text = ""
+                                        replyTo = null
+                                    }
                                     sending = false
                                 }
                             },

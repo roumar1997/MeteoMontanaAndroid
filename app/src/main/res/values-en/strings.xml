@@ -21,6 +21,9 @@
     <string name="feed_like">Like</string>
     <string name="feed_comments_title">Comments</string>
     <string name="feed_comment_hint">Write a comment…</string>
+    <string name="feed_reply">Reply</string>
+    <string name="feed_replying_to">Replying to %1$s</string>
+    <string name="feed_comment_like">Like</string>
     <string name="feed_comments_empty">Be the first to comment.</string>
     <string name="feed_delete_post">Delete post</string>
     <string name="feed_delete_post_confirm">Delete this post from the feed?</string>

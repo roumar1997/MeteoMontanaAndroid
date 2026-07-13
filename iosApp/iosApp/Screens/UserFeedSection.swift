@@ -89,11 +89,22 @@ final class UserFeedViewModel: ObservableObject {
         try? await container.getFeedComments.invoke(postId: postId)
     }
 
-    func addComment(_ postId: Int64, _ text: String) async -> FeedComment? {
-        guard let created = try? await container.addFeedComment.invoke(postId: postId, text: text)
+    func addComment(_ postId: Int64, _ text: String, _ parentId: String?) async -> FeedComment? {
+        guard let created = try? await container.addFeedComment.invoke(
+            postId: postId, text: text, parentId: parentId)
         else { return nil }
         updatePost(postId) { copyPost($0, commentCount: $0.commentCount + 1) }
         return created
+    }
+
+    /// Like/unlike de un comentario; devuelve el likeCount actualizado (nil si falló).
+    func toggleCommentLike(_ commentId: String, _ like: Bool) async -> Int64? {
+        do {
+            let count = like
+                ? try await container.likeFeedComment.invoke(commentId: commentId)
+                : try await container.unlikeFeedComment.invoke(commentId: commentId)
+            return count.int64Value
+        } catch { return nil }
     }
 
     func deleteComment(_ postId: Int64, _ commentId: String) async -> Bool {
@@ -167,8 +178,9 @@ struct UserFeedSection: View {
             FeedCommentsSheet(
                 post: post,
                 loadComments: { await vm.loadComments($0) },
-                addComment: { await vm.addComment($0, $1) },
+                addComment: { await vm.addComment($0, $1, $2) },
                 deleteComment: { await vm.deleteComment($0, $1) },
+                toggleCommentLike: { await vm.toggleCommentLike($0, $1) },
                 onOpenUser: { u in
                     commentsPost = nil
                     navTarget = .user(u)

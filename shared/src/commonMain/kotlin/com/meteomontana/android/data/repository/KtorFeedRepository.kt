@@ -22,7 +22,9 @@ class KtorFeedRepository(private val api: KtorFeedApi) : FeedRepository {
     override suspend fun unlike(postId: Long): Long = api.unlike(postId).likeCount
     override suspend fun getComments(postId: Long): List<FeedComment> =
         api.getComments(postId).map { it.toDomain() }
-    override suspend fun addComment(postId: Long, text: String): FeedComment =
-        api.addComment(postId, text).toDomain()
+    override suspend fun addComment(postId: Long, text: String, parentId: String?): FeedComment =
+        api.addComment(postId, text, parentId).toDomain()
     override suspend fun deleteComment(commentId: String) = api.deleteComment(commentId)
+    override suspend fun likeComment(commentId: String): Long = api.likeComment(commentId).likeCount
+    override suspend fun unlikeComment(commentId: String): Long = api.unlikeComment(commentId).likeCount
 }

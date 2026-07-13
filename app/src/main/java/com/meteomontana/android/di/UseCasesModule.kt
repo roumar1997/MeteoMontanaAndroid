@@ -361,6 +361,14 @@ object UseCasesModule {
     fun provideDeleteFeedCommentUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
         com.meteomontana.android.domain.usecase.feed.DeleteFeedCommentUseCase(repo)
 
+    @Provides @Singleton
+    fun provideLikeFeedCommentUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.LikeFeedCommentUseCase(repo)
+
+    @Provides @Singleton
+    fun provideUnlikeFeedCommentUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.UnlikeFeedCommentUseCase(repo)
+
     // Meetups (quedadas)
     @Provides @Singleton
     fun provideGetMeetupsUseCase(

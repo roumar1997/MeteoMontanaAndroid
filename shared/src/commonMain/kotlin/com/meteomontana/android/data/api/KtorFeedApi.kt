@@ -89,7 +89,20 @@ class KtorFeedApi(private val client: HttpClient) {
             setBody(AddFeedCommentRequest(text))
         }.body()
 
+    /** Responde a un comentario (o a una respuesta). */
+    suspend fun addComment(postId: Long, text: String, parentId: String?): FeedCommentDto =
+        client.post("feed/$postId/comments") {
+            contentType(ContentType.Application.Json)
+            setBody(AddFeedCommentRequest(text, parentId))
+        }.body()
+
     suspend fun deleteComment(commentId: String) {
         client.delete("feed/comments/$commentId")
     }
+
+    suspend fun likeComment(commentId: String): FeedLikeCountDto =
+        client.post("feed/comments/$commentId/like").body()
+
+    suspend fun unlikeComment(commentId: String): FeedLikeCountDto =
+        client.delete("feed/comments/$commentId/like").body()
 }

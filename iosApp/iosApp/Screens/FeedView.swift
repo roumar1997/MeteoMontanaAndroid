@@ -222,11 +222,22 @@ final class FeedViewModel: ObservableObject {
         try? await container.getFeedComments.invoke(postId: postId)
     }
 
-    func addComment(_ postId: Int64, _ text: String) async -> FeedComment? {
-        guard let created = try? await container.addFeedComment.invoke(postId: postId, text: text)
+    func addComment(_ postId: Int64, _ text: String, _ parentId: String?) async -> FeedComment? {
+        guard let created = try? await container.addFeedComment.invoke(
+            postId: postId, text: text, parentId: parentId)
         else { return nil }
         updatePost(postId) { copyPost($0, commentCount: $0.commentCount + 1) }
         return created
+    }
+
+    /// Like/unlike de un comentario; devuelve el likeCount actualizado (nil si falló).
+    func toggleCommentLike(_ commentId: String, _ like: Bool) async -> Int64? {
+        do {
+            let count = like
+                ? try await container.likeFeedComment.invoke(commentId: commentId)
+                : try await container.unlikeFeedComment.invoke(commentId: commentId)
+            return count.int64Value
+        } catch { return nil }
     }
 
     func deleteComment(_ postId: Int64, _ commentId: String) async -> Bool {
@@ -320,8 +331,9 @@ struct FeedView: View {
             FeedCommentsSheet(
                 post: post,
                 loadComments: { await vm.loadComments($0) },
-                addComment: { await vm.addComment($0, $1) },
+                addComment: { await vm.addComment($0, $1, $2) },
                 deleteComment: { await vm.deleteComment($0, $1) },
+                toggleCommentLike: { await vm.toggleCommentLike($0, $1) },
                 onOpenUser: { uid in
                     commentsPost = nil
                     navTarget = .user(uid)
@@ -734,11 +746,51 @@ struct FeedPostCard: View {
 
 // MARK: - Hoja de comentarios (patrón de los comentarios de vías)
 
+/// Copia de un FeedComment con el estado de like cambiado (los data class de
+/// Kotlin llegan a Swift sin copy con defaults).
+func copyCommentLike(_ c: FeedComment, liked: Bool, count: Int64) -> FeedComment {
+    FeedComment(
+        id: c.id, postId: c.postId, uid: c.uid, author: c.author,
+        text: c.text, createdAt: c.createdAt, mine: c.mine,
+        likeCount: count, likedByMe: liked, parentId: c.parentId)
+}
+
+/// Ordena los comentarios en hilos: cada raíz seguido de TODAS sus respuestas
+/// (también las de respuestas, aplanadas bajo el mismo raíz, estilo Instagram)
+/// en orden cronológico. Respuestas sin raíz visible van al final.
+func feedThreadOrder(_ list: [FeedComment]) -> [FeedComment] {
+    let byId = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+    func rootId(_ c: FeedComment) -> String {
+        var cur = c
+        var guardCount = 0
+        while let p = cur.parentId, guardCount < 50 {
+            guard let parent = byId[p] else { return p }
+            cur = parent
+            guardCount += 1
+        }
+        return cur.id
+    }
+    let roots = list.filter { $0.parentId == nil }
+    let replies = Dictionary(grouping: list.filter { $0.parentId != nil }, by: rootId)
+    let rootIds = Set(roots.map { $0.id })
+    var out: [FeedComment] = []
+    for r in roots {
+        out.append(r)
+        out.append(contentsOf: replies[r.id] ?? [])
+    }
+    for (rid, group) in replies where !rootIds.contains(rid) {
+        out.append(contentsOf: group)
+    }
+    return out
+}
+
 struct FeedCommentsSheet: View {
     let post: FeedPost
     let loadComments: (Int64) async -> [FeedComment]?
-    let addComment: (Int64, String) async -> FeedComment?
+    let addComment: (Int64, String, String?) async -> FeedComment?
     let deleteComment: (Int64, String) async -> Bool
+    /// (commentId, like) → likeCount actualizado, nil si falló.
+    let toggleCommentLike: (String, Bool) async -> Int64?
     let onOpenUser: (String) -> Void
 
     @ObservedObject private var moderation = ModerationStore.shared
@@ -747,6 +799,27 @@ struct FeedCommentsSheet: View {
     @State private var text = ""
     @State private var sending = false
     @State private var reportComment: FeedComment? = nil
+    /// Comentario al que se está respondiendo (banner sobre el campo).
+    @State private var replyTo: FeedComment? = nil
+
+    private func patchComment(_ id: String, _ transform: (FeedComment) -> FeedComment) {
+        comments = comments?.map { $0.id == id ? transform($0) : $0 }
+    }
+
+    private func toggleLike(_ comment: FeedComment) {
+        let liked = !comment.likedByMe
+        // Optimista (como el like del post); si el server falla, se revierte.
+        patchComment(comment.id) {
+            copyCommentLike($0, liked: liked, count: max($0.likeCount + (liked ? 1 : -1), 0))
+        }
+        Task {
+            if let count = await toggleCommentLike(comment.id, liked) {
+                patchComment(comment.id) { copyCommentLike($0, liked: liked, count: count) }
+            } else {
+                patchComment(comment.id) { _ in comment }
+            }
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -757,6 +830,7 @@ struct FeedCommentsSheet: View {
                 .padding(.horizontal, 16).padding(.vertical, 10)
             Divider().overlay(Cumbre.rule)
             commentsList
+            replyBanner
             inputRow
         }
         .background(Cumbre.bg.ignoresSafeArea())
@@ -789,7 +863,7 @@ struct FeedCommentsSheet: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(16)
                     }
-                    ForEach(visible, id: \.id) { comment in
+                    ForEach(feedThreadOrder(visible), id: \.id) { comment in
                         FeedCommentRow(
                             comment: comment,
                             onOpenUser: onOpenUser,
@@ -800,7 +874,17 @@ struct FeedCommentsSheet: View {
                                     }
                                 }
                             } : nil,
-                            onReport: comment.mine ? nil : { reportComment = comment })
+                            onReport: comment.mine ? nil : { reportComment = comment },
+                            isReply: comment.parentId != nil,
+                            onToggleLike: { toggleLike(comment) },
+                            onReply: {
+                                replyTo = comment
+                                // Mención automática (estilo Instagram).
+                                if let u = comment.author?.username {
+                                    let mention = "@" + u + " "
+                                    if !text.hasPrefix(mention) { text = mention + text }
+                                }
+                            })
                         Divider().overlay(Cumbre.rule)
                     }
                 }
@@ -808,6 +892,22 @@ struct FeedCommentsSheet: View {
         } else {
             ProgressView().frame(maxWidth: .infinity).padding(32)
             Spacer()
+        }
+    }
+
+    @ViewBuilder private var replyBanner: some View {
+        if let target = replyTo {
+            HStack {
+                Text("Respondiendo a " + (feedAuthorLabel(target.author) ?? ""))
+                    .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                Spacer()
+                Button { replyTo = nil } label: {
+                    Text("✕").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
         }
     }
 
@@ -825,9 +925,10 @@ struct FeedCommentsSheet: View {
                 guard !t.isEmpty, !sending else { return }
                 sending = true
                 Task {
-                    if let created = await addComment(post.id, t) {
+                    if let created = await addComment(post.id, t, replyTo?.id) {
                         comments = (comments ?? []) + [created]
                         text = ""
+                        replyTo = nil
                     }
                     sending = false
                 }
@@ -850,6 +951,10 @@ struct FeedCommentRow: View {
     var onDelete: (() -> Void)? = nil
     /// Denunciar comentario ajeno; nil = sin bandera.
     var onReport: (() -> Void)? = nil
+    /// true = respuesta (se indenta bajo su comentario raíz).
+    var isReply: Bool = false
+    var onToggleLike: (() -> Void)? = nil
+    var onReply: (() -> Void)? = nil
 
     private var authorUid: String? { comment.author?.uid ?? comment.uid }
 
@@ -872,6 +977,32 @@ struct FeedCommentRow: View {
                 }
                 Text(comment.text)
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                // Acciones: like (corazón + contador) y responder.
+                HStack(spacing: 4) {
+                    if let onToggleLike {
+                        Button(action: onToggleLike) {
+                            HStack(spacing: 4) {
+                                Image(systemName: comment.likedByMe ? "heart.fill" : "heart")
+                                    .font(.system(size: 12))
+                                if comment.likeCount > 0 {
+                                    Text("\(comment.likeCount)").font(Cumbre.mono(10))
+                                }
+                            }
+                            .foregroundStyle(comment.likedByMe ? Cumbre.terra : Cumbre.ink3)
+                            .padding(.horizontal, 6).padding(.vertical, 6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if let onReply {
+                        Button(action: onReply) {
+                            Text("RESPONDER")
+                                .font(Cumbre.mono(10, .bold)).tracking(1.2)
+                                .foregroundStyle(Cumbre.ink3)
+                                .padding(.horizontal, 6).padding(.vertical, 6)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
             Spacer()
             if let onDelete {
@@ -892,6 +1023,8 @@ struct FeedCommentRow: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.leading, isReply ? 44 : 16)
+        .padding(.trailing, 16)
+        .padding(.vertical, 10)
     }
 }

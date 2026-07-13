@@ -199,6 +199,7 @@ fun FeedScreen(
             loadComments = viewModel::loadComments,
             addComment = viewModel::addComment,
             deleteComment = viewModel::deleteComment,
+            toggleCommentLike = viewModel::toggleCommentLike,
             onOpenUser = onOpenUser,
             onDismiss = { commentsPost = null }
         )
@@ -708,8 +709,10 @@ internal fun FeedPostCard(
 internal fun FeedCommentsSheet(
     post: FeedPost,
     loadComments: suspend (Long) -> Result<List<FeedComment>>,
-    addComment: suspend (Long, String) -> Result<FeedComment>,
+    addComment: suspend (Long, String, String?) -> Result<FeedComment>,
     deleteComment: suspend (Long, String) -> Result<Unit>,
+    /** (commentId, like) → likeCount actualizado. */
+    toggleCommentLike: suspend (String, Boolean) -> Result<Long>,
     onOpenUser: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -717,6 +720,26 @@ internal fun FeedCommentsSheet(
     var comments by remember { mutableStateOf<List<FeedComment>?>(null) }
     var text by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
+    // Comentario al que se está respondiendo (banner sobre el campo).
+    var replyTo by remember { mutableStateOf<FeedComment?>(null) }
+
+    fun patchComment(id: String, transform: (FeedComment) -> FeedComment) {
+        comments = comments?.map { if (it.id == id) transform(it) else it }
+    }
+
+    fun toggleLike(comment: FeedComment) {
+        val liked = !comment.likedByMe
+        // Optimista (como el like del post); si el server falla, se revierte.
+        patchComment(comment.id) {
+            it.copy(likedByMe = liked,
+                likeCount = (it.likeCount + if (liked) 1 else -1).coerceAtLeast(0))
+        }
+        scope.launch {
+            toggleCommentLike(comment.id, liked)
+                .onSuccess { count -> patchComment(comment.id) { it.copy(likeCount = count) } }
+                .onFailure { patchComment(comment.id) { comment } }
+        }
+    }
     // Denuncia de comentario ajeno (target FEED_COMMENT).
     val moderation: com.meteomontana.android.ui.components.ModerationViewModel = hiltViewModel()
     val hiddenIds by moderation.hiddenIds.collectAsState()
@@ -756,7 +779,7 @@ internal fun FeedCommentsSheet(
                             )
                         }
                     }
-                    items(list.filter { it.id !in hiddenIds }, key = { it.id }) { comment ->
+                    items(threadOrder(list.filter { it.id !in hiddenIds }), key = { it.id }) { comment ->
                         FeedCommentRow(
                             comment = comment,
                             onOpenUser = onOpenUser,
@@ -767,10 +790,48 @@ internal fun FeedCommentsSheet(
                                     }
                                 }
                             }) else null,
-                            onReport = if (!comment.mine) ({ reportComment = comment }) else null
+                            onReport = if (!comment.mine) ({ reportComment = comment }) else null,
+                            isReply = comment.parentId != null,
+                            onToggleLike = { toggleLike(comment) },
+                            onReply = {
+                                replyTo = comment
+                                // Mención automática (estilo Instagram) para que se
+                                // vea a quién contestas también dentro del hilo.
+                                val mention = comment.author?.username?.let { "@$it " } ?: ""
+                                if (mention.isNotEmpty() && !text.startsWith(mention)) {
+                                    text = mention + text
+                                }
+                            }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                     }
+                }
+            }
+            // Banner "Respondiendo a X" con ✕ para volver a comentario raíz.
+            replyTo?.let { target ->
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        stringResource(
+                            R.string.feed_replying_to,
+                            target.author?.displayName
+                                ?: target.author?.username?.let { "@$it" } ?: ""
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "✕",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .clickable { replyTo = null }
+                            .padding(8.dp)
+                    )
                 }
             }
             // Campo de texto + enviar.
@@ -793,9 +854,10 @@ internal fun FeedCommentsSheet(
                         if (t.isEmpty() || sending) return@IconButton
                         sending = true
                         scope.launch {
-                            addComment(post.id, t).onSuccess { created ->
+                            addComment(post.id, t, replyTo?.id).onSuccess { created ->
                                 comments = (comments ?: emptyList()) + created
                                 text = ""
+                                replyTo = null
                             }
                             sending = false
                         }
@@ -828,16 +890,45 @@ internal fun FeedCommentsSheet(
     }
 }
 
+/**
+ * Ordena los comentarios en hilos: cada comentario raíz seguido de TODAS sus
+ * respuestas (también las respuestas a respuestas, aplanadas bajo el mismo
+ * raíz, estilo Instagram) en orden cronológico. Respuestas cuyo raíz no está
+ * visible (borrado/oculto) van al final.
+ */
+internal fun threadOrder(list: List<FeedComment>): List<FeedComment> {
+    val byId = list.associateBy { it.id }
+    fun rootIdOf(c: FeedComment): String {
+        var cur = c
+        var guard = 0
+        while (cur.parentId != null && guard++ < 50) cur = byId[cur.parentId!!] ?: return cur.parentId!!
+        return cur.id
+    }
+    val roots = list.filter { it.parentId == null }
+    val replies = list.filter { it.parentId != null }.groupBy(::rootIdOf)
+    val rootIds = roots.map { it.id }.toSet()
+    return buildList {
+        roots.forEach { r -> add(r); replies[r.id]?.forEach { add(it) } }
+        replies.forEach { (rootId, group) -> if (rootId !in rootIds) addAll(group) }
+    }
+}
+
 @Composable
 internal fun FeedCommentRow(
     comment: FeedComment,
     onOpenUser: (String) -> Unit,
     onDelete: (() -> Unit)?,
     /** Denunciar comentario ajeno; null = sin bandera. */
-    onReport: (() -> Unit)? = null
+    onReport: (() -> Unit)? = null,
+    /** true = respuesta (se indenta bajo su comentario raíz). */
+    isReply: Boolean = false,
+    onToggleLike: (() -> Unit)? = null,
+    onReply: (() -> Unit)? = null
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth()
+            .padding(start = if (isReply) 44.dp else 16.dp, end = 16.dp)
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -877,6 +968,50 @@ internal fun FeedCommentRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
+            // Acciones del comentario: like (corazón + contador) y responder.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (onToggleLike != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .clickable(onClick = onToggleLike)
+                            .padding(horizontal = 6.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            if (comment.likedByMe) Icons.Filled.Favorite
+                            else Icons.Outlined.FavoriteBorder,
+                            contentDescription = stringResource(R.string.feed_comment_like),
+                            tint = if (comment.likedByMe) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        if (comment.likeCount > 0) {
+                            Text(
+                                "${comment.likeCount}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (comment.likedByMe) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                if (onReply != null) {
+                    Text(
+                        stringResource(R.string.feed_reply).uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .clickable(onClick = onReply)
+                            .padding(horizontal = 6.dp, vertical = 6.dp)
+                    )
+                }
+            }
         }
         if (onDelete != null) {
             IconButton(onClick = onDelete, modifier = Modifier.size(40.dp)) {

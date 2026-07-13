@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -109,6 +110,8 @@ fun BlockDetailDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.94f)   // tarjeta a pantalla (casi) completa, como el resto de sheets
+                // Sin esto el teclado tapa el campo/botón de comentar una vía.
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.md)
                 // Holgura abajo para que los últimos botones (p.ej. OPCIONES

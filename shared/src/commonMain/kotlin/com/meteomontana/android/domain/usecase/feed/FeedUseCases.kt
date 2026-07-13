@@ -89,8 +89,20 @@ class GetFeedCommentsUseCase(private val repo: FeedRepository) {
 
 class AddFeedCommentUseCase(private val repo: FeedRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(postId: Long, text: String): FeedComment =
-        repo.addComment(postId, text)
+    suspend operator fun invoke(postId: Long, text: String, parentId: String? = null): FeedComment =
+        repo.addComment(postId, text, parentId)
+}
+
+/** Da like a un comentario; devuelve el likeCount actualizado. */
+class LikeFeedCommentUseCase(private val repo: FeedRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(commentId: String): Long = repo.likeComment(commentId)
+}
+
+/** Quita el like a un comentario; devuelve el likeCount actualizado. */
+class UnlikeFeedCommentUseCase(private val repo: FeedRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(commentId: String): Long = repo.unlikeComment(commentId)
 }
 
 class DeleteFeedCommentUseCase(private val repo: FeedRepository) {
