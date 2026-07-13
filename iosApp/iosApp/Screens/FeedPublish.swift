@@ -55,14 +55,17 @@ struct FeedPublishSheet: View {
     // Foto de celebración: SIEMPRE hecha en el momento con la cámara del
     // sistema (el usuario cambia frontal/trasera en la propia cámara).
     @State private var photo: UIImage? = nil
+    @State private var showCamera = false
     @State private var showCameraDenied = false
 
     private func requestCamera() {
         CameraAccess.request { granted in
             guard granted else { showCameraDenied = true; return }
-            // Presentación DIRECTA por UIKit (no fullScreenCover dentro de la
-            // hoja): así la cámara ya no se abre y se cierra al instante.
-            presentSystemCamera { img in photo = img }
+            // Pequeño respiro antes de presentar el fullScreenCover de la
+            // cámara desde dentro de la hoja: reduce el parpadeo (abrir/cerrar)
+            // de presentar un modal sobre otro. La captura de la foto la hace
+            // CameraPicker (SwiftUI) de forma fiable.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showCamera = true }
         }
     }
 
@@ -197,6 +200,11 @@ struct FeedPublishSheet: View {
         .background(Cumbre.bg.ignoresSafeArea())
         // Más alta que antes: descripción + fila/miniatura de foto.
         .presentationDetents([.height(photo == nil ? 480 : 560)])
+        // Cámara del sistema (frontal/trasera dentro). SwiftUI actualiza `photo`.
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker { img in photo = img }
+                .ignoresSafeArea()
+        }
         // Permiso denegado: llevar a Ajustes (iOS no re-pregunta).
         .alert("Cumbre necesita acceso a la cámara", isPresented: $showCameraDenied) {
             Button("Cancelar", role: .cancel) {}

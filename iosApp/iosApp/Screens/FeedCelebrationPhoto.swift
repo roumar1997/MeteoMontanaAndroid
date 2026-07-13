@@ -8,63 +8,51 @@ import Shared
 // celebración" de Android (FeedPublishSheet en SchoolMap.kt +
 // FullScreenPhotoDialog.kt).
 
-// MARK: - Cámara del sistema (presentada por UIKit, no por SwiftUI)
+// MARK: - Cámara del sistema (UIImagePickerController vía SwiftUI)
 
-/// Delegate del picker, retenido por el propio picker (associated object) para
-/// que viva mientras la cámara está abierta.
-private final class CameraCoordinator: NSObject, UIImagePickerControllerDelegate,
-                                       UINavigationControllerDelegate {
+/// Picker de CÁMARA envuelto en SwiftUI. Se presenta con `.fullScreenCover`
+/// desde la hoja de publicar. IMPORTANTE: este wrapper SwiftUI es el que
+/// actualiza de forma fiable el `@State photo` de la hoja al capturar —
+/// presentarlo por UIKit (probado en builds 71/72) NO refrescaba ese estado
+/// y la foto se perdía (salía la publicación sin foto).
+struct CameraPicker: UIViewControllerRepresentable {
     let onCapture: (UIImage) -> Void
-    init(onCapture: @escaping (UIImage) -> Void) { self.onCapture = onCapture }
+    @Environment(\.dismiss) private var dismiss
 
-    func imagePickerController(
-        _ picker: UIImagePickerController,
-        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-    ) {
-        if let img = info[.originalImage] as? UIImage {
-            // UIImagePickerController SIEMPRE devuelve el selfie de la cámara
-            // FRONTAL en espejo (comportamiento histórico de iOS, distinto de
-            // la app Cámara y ajeno a "Reflejar cámara frontal") — y el espejo
-            // viene horneado en los píxeles, no en imageOrientation. Lo
-            // volteamos para que salga como una foto normal. La trasera no.
-            let isFront = picker.cameraDevice == .front
-            onCapture(img.baked(flipHorizontally: isFront))
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ picker: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate,
+                             UINavigationControllerDelegate {
+        let parent: CameraPicker
+        init(_ parent: CameraPicker) { self.parent = parent }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let img = info[.originalImage] as? UIImage {
+                // La cámara FRONTAL del picker devuelve el selfie volteado
+                // respecto a la vista previa (efecto espejo horneado en los
+                // píxeles). Lo volteamos para que quede como se vio. Trasera no.
+                let isFront = picker.cameraDevice == .front
+                parent.onCapture(img.baked(flipHorizontally: isFront))
+            }
+            parent.dismiss()
         }
-        picker.dismiss(animated: true)
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
-
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        picker.dismiss(animated: true)
-    }
-}
-
-private var cameraCoordinatorKey: UInt8 = 0
-
-/// View-controller superior actualmente presentado (para presentar sobre él).
-@MainActor
-private func topPresentedViewController() -> UIViewController? {
-    let keyWindow = UIApplication.shared.connectedScenes
-        .compactMap { $0 as? UIWindowScene }
-        .flatMap { $0.windows }
-        .first { $0.isKeyWindow }
-    var top = keyWindow?.rootViewController
-    while let presented = top?.presentedViewController { top = presented }
-    return top
-}
-
-/// Presenta la cámara del sistema DIRECTAMENTE por UIKit sobre el
-/// view-controller superior. Evita el `fullScreenCover`-dentro-de-`sheet` de
-/// SwiftUI, que se abría y cerraba al instante (carrera de modales anidados).
-@MainActor
-func presentSystemCamera(onCapture: @escaping (UIImage) -> Void) {
-    guard UIImagePickerController.isSourceTypeAvailable(.camera),
-          let presenter = topPresentedViewController() else { return }
-    let picker = UIImagePickerController()
-    picker.sourceType = .camera
-    let coord = CameraCoordinator(onCapture: onCapture)
-    picker.delegate = coord
-    objc_setAssociatedObject(picker, &cameraCoordinatorKey, coord, .OBJC_ASSOCIATION_RETAIN)
-    presenter.present(picker, animated: true)
 }
 
 extension UIImage {
