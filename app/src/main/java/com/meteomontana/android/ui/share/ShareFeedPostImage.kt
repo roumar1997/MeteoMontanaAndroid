@@ -223,7 +223,7 @@ private fun renderPostCard(
             val ops = renderTopo(
                 listOf(
                     TopoLineData(
-                        name = post.lineName, grade = post.grade, startType = null,
+                        name = post.lineName, grade = post.grade, startType = post.startType,
                         points = points.map { it.x to it.y },
                         strokeWidthPx = 5f * s
                     )
