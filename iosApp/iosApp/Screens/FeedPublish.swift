@@ -60,7 +60,12 @@ struct FeedPublishSheet: View {
 
     private func requestCamera() {
         CameraAccess.request { granted in
-            if granted { showCamera = true } else { showCameraDenied = true }
+            guard granted else { showCameraDenied = true; return }
+            // Presentar el fullScreenCover de la cámara justo tras el callback,
+            // estando ya dentro de la hoja (sheet), a veces hace que iOS lo
+            // descarte al instante (se abre y se cierra). Esperar un tick a que
+            // la presentación asiente lo evita.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { showCamera = true }
         }
     }
 

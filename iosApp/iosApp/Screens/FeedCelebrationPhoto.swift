@@ -39,26 +39,12 @@ struct CameraPicker: UIViewControllerRepresentable {
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
             if let img = info[.originalImage] as? UIImage {
-                // Selfies: iOS muestra la vista previa en ESPEJO pero guarda la
-                // foto sin él → "no es lo que vi". Guardamos como la vista
-                // previa (mismo criterio que Instagram); la trasera no se toca.
-                let mirrored = picker.cameraDevice == .front
-                    ? Self.mirroredHorizontally(img) : img
-                parent.onCapture(mirrored)
+                // Se guarda TAL CUAL la captura iOS: la cámara frontal produce
+                // la imagen SIN espejo (como una foto normal, no como la vista
+                // previa reflejada). El usuario la quiere así, sin voltear.
+                parent.onCapture(img)
             }
             parent.dismiss()
-        }
-
-        /// Voltea la imagen horizontalmente HORNEANDO el flip en los píxeles
-        /// (con solo cambiar imageOrientation, el JPEG final lo perdería).
-        private static func mirroredHorizontally(_ img: UIImage) -> UIImage {
-            let format = UIGraphicsImageRendererFormat.default()
-            format.scale = img.scale
-            return UIGraphicsImageRenderer(size: img.size, format: format).image { ctx in
-                ctx.cgContext.translateBy(x: img.size.width, y: 0)
-                ctx.cgContext.scaleBy(x: -1, y: 1)
-                img.draw(in: CGRect(origin: .zero, size: img.size))
-            }
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
