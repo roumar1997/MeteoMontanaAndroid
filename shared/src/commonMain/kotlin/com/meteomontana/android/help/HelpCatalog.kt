@@ -126,6 +126,19 @@ object HelpCatalog {
                 HelpItem("Unirse / salir", "Con UNIRSE entras a la quedada y al chat. Puedes salir en cualquier momento.", icon = "person"),
                 HelpItem("Chat del grupo", "Toca el icono de chat arriba a la derecha para ir al chat.", icon = "chat")
             )
+        ),
+        HelpTopic(
+            key = "community",
+            title = "Comunidad",
+            intro = "El feed social de Cumbre: cuando alguien marca una vía como hecha (y decide publicarla) aparece aquí, con la foto de la piedra y su línea dibujada.",
+            items = listOf(
+                HelpItem("Vistas", "SIGUIENDO muestra la actividad de la gente a la que sigues; TODOS la de toda la comunidad; MÍAS tus publicaciones; RANKING el ranking de contribuidores.", icon = "filter"),
+                HelpItem("Publicar un ascenso", "Al marcar una vía como hecha puedes publicarla en el feed o guardarla solo en tu diario. En Perfil puedes elegir Preguntar / Siempre / Nunca.", icon = "tick"),
+                HelpItem("Me gusta y comentarios", "Toca el corazón para dar me gusta y el bocadillo para comentar un ascenso.", icon = "chat"),
+                HelpItem("Abrir la piedra", "Toca la foto o el nombre de la vía para abrir su piedra en la escuela.", icon = "map"),
+                HelpItem("Compartir", "Con el icono de compartir generas una imagen del ascenso lista para historias o WhatsApp.", icon = "star"),
+                HelpItem("Denunciar", "La bandera denuncia una publicación o comentario inapropiado; un admin lo revisa.", icon = "info")
+            )
         )
     )
 
@@ -238,6 +251,19 @@ object HelpCatalog {
                 HelpItem("Description", "If you're the organizer you can add details (gear, level, meeting point) with the pencil.", icon = "edit"),
                 HelpItem("Join / leave", "With JOIN you enter the meetup and its chat. You can leave at any time.", icon = "person"),
                 HelpItem("Group chat", "Tap the chat icon at the top right to go to the chat.", icon = "chat")
+            )
+        ),
+        HelpTopic(
+            key = "community",
+            title = "Community",
+            intro = "Cumbre's social feed: when someone ticks a route (and chooses to post it) it shows up here, with the boulder photo and its line drawn on top.",
+            items = listOf(
+                HelpItem("Views", "FOLLOWING shows activity from people you follow; ALL from the whole community; MINE your posts; RANKING the contributor leaderboard.", icon = "filter"),
+                HelpItem("Post a send", "When you tick a route you can post it to the feed or keep it in your journal only. In Profile you can choose Ask / Always / Never.", icon = "tick"),
+                HelpItem("Likes and comments", "Tap the heart to like and the bubble to comment on a send.", icon = "chat"),
+                HelpItem("Open the boulder", "Tap the photo or the route name to open its boulder in the school.", icon = "map"),
+                HelpItem("Share", "The share icon generates an image of the send ready for stories or WhatsApp.", icon = "star"),
+                HelpItem("Report", "The flag reports an inappropriate post or comment; an admin reviews it.", icon = "info")
             )
         )
     )

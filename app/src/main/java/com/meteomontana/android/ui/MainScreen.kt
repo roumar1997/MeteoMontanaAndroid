@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -79,6 +80,53 @@ import kotlinx.coroutines.launch
  *  navega al destino real; al volver a ella se cierra la tarjeta. */
 private const val SHEET_ROOT = "sheet_root"
 
+/**
+ * Conmutador TIEMPO ⇄ RADAR de la primera pestaña (segmented estilo Cumbre:
+ * cápsula con borde Rule, segmento activo Terra).
+ */
+@Composable
+private fun WeatherRadarToggle(
+    showRadar: Boolean,
+    onSelect: (radar: Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+        ) {
+            @Composable
+            fun segment(label: String, active: Boolean, onClick: () -> Unit) {
+                Text(
+                    label,
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = if (active) androidx.compose.ui.graphics.Color.White
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .background(
+                            if (active) MaterialTheme.colorScheme.primary
+                            else androidx.compose.ui.graphics.Color.Transparent
+                        )
+                        .clickable(onClick = onClick)
+                        .padding(horizontal = 18.dp, vertical = 9.dp)
+                )
+            }
+            segment(
+                androidx.compose.ui.res.stringResource(
+                    com.meteomontana.android.R.string.weather_toggle_weather),
+                !showRadar
+            ) { onSelect(false) }
+            segment(
+                androidx.compose.ui.res.stringResource(
+                    com.meteomontana.android.R.string.weather_toggle_radar),
+                showRadar
+            ) { onSelect(true) }
+        }
+    }
+}
+
 
 /** Ruta del host de pestañas (las 5 viven compuestas dentro). */
 private const val TABS_HOST = "tabs"
@@ -99,6 +147,19 @@ fun MainScreen(
     // en el NavHost, apilada sobre el host "tabs".
     var selectedTab by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf(Tab.Schools.route)
+    }
+    // La primera pestaña ("Radar") aloja Radar + Tiempo (conmutador
+    // TIEMPO ⇄ RADAR). true = Radar visible — ES la vista por defecto (la
+    // pestaña se llama Radar). Sobrevive al cambio de pestaña (keep-alive)
+    // y a recreaciones (saveable).
+    var weatherShowsRadar by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(true)
+    }
+    // Compat: la antigua pestaña "radar" ya no existe — cualquier estado/enlace
+    // que apuntara a ella cae en Tiempo con el Radar abierto.
+    if (selectedTab == "radar") {
+        selectedTab = Tab.Weather.route
+        weatherShowsRadar = true
     }
 
     // ── Sheet único estilo Apple ──
@@ -171,6 +232,10 @@ fun MainScreen(
                 // Push de denuncia nueva → abre el panel de admin.
                 "admin_reports" -> openFullScreen(Routes.ADMIN)
                 "submission", "contribution" -> openSheet(Routes.MY_SUBMISSIONS)
+                // Push de actividad del feed Comunidad → detalle del post.
+                "feed_post" -> deepLink.targetId?.let { openSheet(Routes.feedPost(it)) }
+                // Deep link antiguo a la pestaña Radar → Tiempo en modo radar.
+                "radar" -> { selectedTab = Tab.Weather.route; weatherShowsRadar = true }
                 "notifications" -> openSheet(Routes.NOTIFICATIONS)
                 "follow_request" -> openSheet(Routes.FOLLOW_REQUESTS)
                 "compare" -> deepLink.targetId?.let { openSheet("compare/$it") }
@@ -235,7 +300,8 @@ fun MainScreen(
     ) { padding ->
         // En Radar el mapa ocupa TODA la pantalla y la cápsula de tabs flota
         // encima (el player del radar ya deja hueco). En el resto, padding normal.
-        val effectivePadding = if (currentRoute == TABS_HOST && selectedTab == Tab.Radar.route)
+        val effectivePadding = if (currentRoute == TABS_HOST &&
+            selectedTab == Tab.Weather.route && weatherShowsRadar)
             androidx.compose.foundation.layout.PaddingValues(0.dp) else padding
         androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize().padding(effectivePadding)) {
             com.meteomontana.android.ui.components.NetworkBanner()
@@ -273,12 +339,58 @@ fun MainScreen(
                             }
                         }
                         tabContainer(Tab.Weather.route) {
-                    WeatherScreen(
-                        onDayClick = { schoolId, lat, lon, idx ->
-                            if (schoolId != null) openSheet(Routes.dayDetail(schoolId, idx))
-                            else openSheet(Routes.dayDetailByLocation(lat, lon, idx))
+                    // Tiempo + Radar conviven en la primera pestaña (conmutador
+                    // TIEMPO ⇄ RADAR). Mismo truco keep-alive que las tabs: las
+                    // dos capas quedan compuestas (el radar entra lazy la primera
+                    // vez) y el toggle solo alterna visibilidad — sin recrear el
+                    // mapa del radar ni flashes.
+                    var radarVisited by androidx.compose.runtime.saveable.rememberSaveable {
+                        androidx.compose.runtime.mutableStateOf(false)
+                    }
+                    if (weatherShowsRadar) radarVisited = true
+                    Box(Modifier.fillMaxSize()) {
+                        // ── Capa TIEMPO ──
+                        Box(
+                            Modifier.fillMaxSize()
+                                .zIndex(if (!weatherShowsRadar) 1f else 0f)
+                                .graphicsLayer { alpha = if (!weatherShowsRadar) 1f else 0f }
+                        ) {
+                            androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
+                                WeatherRadarToggle(
+                                    showRadar = false,
+                                    onSelect = { weatherShowsRadar = it },
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                                WeatherScreen(
+                                    onDayClick = { schoolId, lat, lon, idx ->
+                                        if (schoolId != null) openSheet(Routes.dayDetail(schoolId, idx))
+                                        else openSheet(Routes.dayDetailByLocation(lat, lon, idx))
+                                    }
+                                )
+                            }
                         }
-                    )
+                        // ── Capa RADAR (mapa a pantalla completa) ──
+                        if (radarVisited) {
+                            Box(
+                                Modifier.fillMaxSize()
+                                    .zIndex(if (weatherShowsRadar) 1f else 0f)
+                                    .graphicsLayer { alpha = if (weatherShowsRadar) 1f else 0f }
+                            ) {
+                                RadarScreen(onSchoolDetail = { id ->
+                                    navController.navigate(Routes.schoolDetail(id))
+                                })
+                                WeatherRadarToggle(
+                                    showRadar = true,
+                                    onSelect = { weatherShowsRadar = it },
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .statusBarsPadding()
+                                        .padding(top = 8.dp)
+                                        .zIndex(2f)
+                                )
+                            }
+                        }
+                    }
                 }
                         tabContainer(Tab.Schools.route) {
                     SchoolListScreen(
@@ -293,9 +405,6 @@ fun MainScreen(
                         onChats = { openSheet(Routes.CHAT_LIST) },
                         onCompare = { ids -> openSheet(Routes.compare(ids)) }
                     )
-                }
-                        tabContainer(Tab.Radar.route) {
-                    RadarScreen(onSchoolDetail = { id -> navController.navigate(Routes.schoolDetail(id)) })
                 }
                         tabContainer(Tab.Profile.route) {
                     // Perfil como pestaña: mismo contenido que el sheet, pero sin CERRAR.
@@ -318,13 +427,24 @@ fun MainScreen(
                             }
                         },
                         onOpenFollowRequests = { openSheet(Routes.FOLLOW_REQUESTS) },
-                        onOpenCommunity = { openSheet(Routes.COMMUNITY) },
                         onOpenSchoolEntries = { schoolName -> openSheet(Routes.journalSectors(schoolName)) },
                         onOpenBoulders = { openSheet(Routes.journalEntries("discipline:BOULDER")) },
                         onOpenRoutes = { openSheet(Routes.journalEntries("discipline:ROUTE")) },
                         onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
                         onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
                         onOpenProjects = { openSheet(Routes.projects(null)) }
+                    )
+                }
+                        tabContainer(Tab.Community.route) {
+                    // Feed social Comunidad (SIGUIENDO | TODOS | RANKING).
+                    com.meteomontana.android.ui.screens.community.FeedScreen(
+                        onOpenSchool = { schoolId, lineId, lineName ->
+                            navController.navigate(
+                                Routes.schoolDetail(schoolId, via = lineName, viaId = lineId)
+                            )
+                        },
+                        onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
+                        onSearchUsers = { openSheet(Routes.SEARCH_USERS) }
                     )
                 }
                         tabContainer(Tab.Meetups.route) {
@@ -357,7 +477,8 @@ fun MainScreen(
                     AdminScreen(onBack = { navController.popBackStack() },
                         onOpenSchool = { id -> navController.navigate(Routes.schoolDetail(id)) },
                         onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
-                        onOpenMeetup = { id -> openSheet(Routes.meetupDetail(id)) })
+                        onOpenMeetup = { id -> openSheet(Routes.meetupDetail(id)) },
+                        onOpenFeedPost = { id -> openSheet(Routes.feedPost(id)) })
                 }
                 composable(
                     route = Routes.TOPO_EDITOR,
@@ -437,7 +558,6 @@ fun MainScreen(
                                 }
                             },
                             onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
-                            onOpenCommunity = { sheetNav.navigate(Routes.COMMUNITY) },
                             onOpenSchoolEntries = { schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName)) },
                             onOpenBoulders = { sheetNav.navigate(Routes.journalEntries("discipline:BOULDER")) },
                             onOpenRoutes = { sheetNav.navigate(Routes.journalEntries("discipline:ROUTE")) },
@@ -563,7 +683,12 @@ fun MainScreen(
                             onOpenMaxGrade = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "grade-max", uid = uid)) },
                             onOpenSchools = { uid -> sheetNav.navigate(Routes.journalSchools(uid)) },
                             onOpenSchoolEntries = { uid, schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName, uid)) },
-                            onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) }
+                            onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) },
+                            // Sección Publicaciones (feed) del perfil:
+                            onOpenUserProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
+                            onOpenFeedSchool = { schoolId, lineId, lineName ->
+                                openFullScreen(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                            }
                         )
                     }
                     composable(
@@ -628,7 +753,21 @@ fun MainScreen(
                             onOpenSchool = { id -> openFullScreen(Routes.schoolDetail(id)) },
                             onOpenSubmissions = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
                             onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
-                            onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) }
+                            onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
+                            onOpenFeedPost = { postId -> sheetNav.navigate(Routes.feedPost(postId)) }
+                        )
+                    }
+                    // Detalle de un post del feed Comunidad (push/campanita).
+                    composable(
+                        route = Routes.FEED_POST,
+                        arguments = listOf(navArgument("postId") { type = NavType.StringType })
+                    ) {
+                        com.meteomontana.android.ui.screens.community.FeedPostDetailScreen(
+                            onBack = popSheetOrDismiss,
+                            onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
+                            onOpenSchool = { schoolId, lineId, lineName ->
+                                openFullScreen(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                            }
                         )
                     }
                     composable(Routes.SEARCH_USERS) {
@@ -637,13 +776,6 @@ fun MainScreen(
                             onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
                         )
                     }
-                    composable(Routes.COMMUNITY) {
-                        com.meteomontana.android.ui.screens.users.CommunityScreen(
-                            onBack = popSheetOrDismiss,
-                            onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
-                        )
-                    }
-
                     // ── Quedadas (sheets) ──
                     composable(
                         route = Routes.MEETUP_DETAIL,

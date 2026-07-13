@@ -145,6 +145,7 @@ fun NotificationsScreen(
     onOpenSubmissions: () -> Unit = {},
     onOpenChat: (String) -> Unit = {},
     onOpenFollowRequests: () -> Unit = {},
+    onOpenFeedPost: (String) -> Unit = {},
     viewModel: NotificationsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -244,6 +245,8 @@ fun NotificationsScreen(
                                         "submission", "contribution" -> onOpenSubmissions()
                                         "chat", "message" -> tid?.let(onOpenChat)
                                         "follow_request" -> onOpenFollowRequests()
+                                        // Actividad del feed Comunidad → detalle del post.
+                                        "feed_post"     -> tid?.let(onOpenFeedPost)
                                         else            -> {}
                                     }
                                 }

@@ -54,6 +54,9 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
                 if let id, !id.isEmpty { ShareLinkRouter.shared.target = ShareLinkRouter.Target(userHandle: id) }
             case "meetup":
                 if let id, !id.isEmpty { ShareLinkRouter.shared.target = ShareLinkRouter.Target(meetupId: id) }
+            case "feed_post":
+                // Actividad del feed Comunidad → detalle del post.
+                if let id, !id.isEmpty { ShareLinkRouter.shared.target = ShareLinkRouter.Target(feedPostId: id) }
             case "school", "school_detail":
                 if let id, !id.isEmpty {
                     Task {

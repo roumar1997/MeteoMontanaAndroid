@@ -369,6 +369,9 @@ private fun InnerMap(
     var confirmDeleteMini by remember { mutableStateOf<Block?>(null) }
     // Vía objetivo del deep-link del diario → el detalle abre por su foto/cara.
     var highlightVia by remember { mutableStateOf<String?>(null) }
+    // Tick pendiente de confirmar: diálogo con el checkbox "Publicar en el feed"
+    // (desmarcar sigue siendo toggle directo, sin diálogo).
+    var pendingTick by remember { mutableStateOf<PendingTick?>(null) }
     var addingLinesTo by remember { mutableStateOf<Block?>(null) }
     // Estado ELEVADO del editor de edición (AddLinesFlow controlado): sobrevive
     // mientras el diálogo se oculta para trazar el muro en el mapa.
@@ -1028,11 +1031,35 @@ private fun InnerMap(
             }) else null,
             onTickLine = if (block.type == "BLOCK") ({ line, idx ->
                 val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
-                // Toggle: marca/desmarca en el diario. SIN diálogo de "propuesta"
-                // (el ✓ de la fila es el feedback); así no parece una propuesta ni
-                // navega a "solicitudes".
-                viewModel.viewModelScope.launch {
-                    viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                if (doneLineIds.contains(line.id)) {
+                    // DESMARCAR: toggle directo, sin diálogo (como siempre).
+                    viewModel.viewModelScope.launch {
+                        viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                    }
+                } else {
+                    // MARCAR: según la preferencia "Publicar ascensos en el feed":
+                    // ASK → hoja de publicar; ALWAYS → publica directo sin
+                    // preguntar; NEVER → solo diario, sin hoja.
+                    val wasProject = projectLineIds.contains(line.id)
+                    when (com.meteomontana.android.data.local.FeedPublishPrefs.get(ctx)) {
+                        com.meteomontana.android.data.local.FeedPublishMode.ASK ->
+                            pendingTick = PendingTick(
+                                block = block, line = line, index = idx,
+                                schoolName = schoolName, sectorName = sectorName,
+                                wasProject = wasProject
+                            )
+                        com.meteomontana.android.data.local.FeedPublishMode.ALWAYS ->
+                            viewModel.viewModelScope.launch {
+                                val r = viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                                if (r.getOrNull() == true) {
+                                    viewModel.publishTickToFeed(block, line, wasProject)
+                                }
+                            }
+                        com.meteomontana.android.data.local.FeedPublishMode.NEVER ->
+                            viewModel.viewModelScope.launch {
+                                viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                            }
+                    }
                 }
             }) else null,
             onToggleProject = if (block.type == "BLOCK") ({ line, idx ->
@@ -1066,6 +1093,36 @@ private fun InnerMap(
                 viewModel.deleteBlock(id) {}
             }) else null,
             onDismiss = { selectedBlock = null; highlightVia = null }
+        )
+    }
+
+    // Hoja de publicar el tick (estilo Cumbre): PUBLICAR EN EL FEED (primario
+    // Terra) / Solo en mi diario / "Publicar siempre sin preguntar" (pasa la
+    // preferencia a ALWAYS al publicar). Cerrar la hoja = no marcar nada.
+    pendingTick?.let { pt ->
+        FeedPublishSheet(
+            lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
+                (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+            wasProject = pt.wasProject,
+            onPublish = { always ->
+                if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
+                    ctx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
+                pendingTick = null
+                viewModel.viewModelScope.launch {
+                    val r = viewModel.toggleLine(
+                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
+                    if (r.getOrNull() == true) {
+                        viewModel.publishTickToFeed(pt.block, pt.line, pt.wasProject)
+                    }
+                }
+            },
+            onDiaryOnly = {
+                pendingTick = null
+                viewModel.viewModelScope.launch {
+                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
+                }
+            },
+            onDismiss = { pendingTick = null }
         )
     }
 
@@ -1816,6 +1873,117 @@ private fun MiniBlockCard(
             ) {
                 Text(if (collapsed) "VER PIEDRAS" else "OCULTAR PIEDRAS",
                     style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onBackground)
+            }
+        }
+    }
+}
+
+/** Tick pendiente de confirmar (hoja "Publicar en el feed"). */
+private data class PendingTick(
+    val block: Block,
+    val line: com.meteomontana.android.domain.model.BlockLine,
+    val index: Int,
+    val schoolName: String,
+    val sectorName: String?,
+    val wasProject: Boolean
+)
+
+/**
+ * Hoja de publicar un ascenso (estilo Cumbre: fondo Paper, borde Rule, eyebrow
+ * mono, primario Terra). Tres acciones: PUBLICAR EN EL FEED (primario), "Solo
+ * en mi diario" (texto) y el checkbox "Publicar siempre sin preguntar" (solo
+ * aplica si se publica). Cerrar la hoja = no marcar nada.
+ */
+@androidx.compose.runtime.Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+private fun FeedPublishSheet(
+    lineLabel: String,
+    wasProject: Boolean,
+    onPublish: (always: Boolean) -> Unit,
+    onDiaryOnly: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var always by remember { mutableStateOf(false) }
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            Modifier.fillMaxWidth()
+                .padding(horizontal = Spacing.md)
+                .padding(bottom = Spacing.lg)
+        ) {
+            // Eyebrow del tipo de logro.
+            Text(
+                stringResource(
+                    if (wasProject) R.string.feed_kind_project_done else R.string.feed_kind_tick
+                ),
+                style = EyebrowTextStyle,
+                color = Terra
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.feed_mark_done_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                lineLabel,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(Spacing.md))
+            // Checkbox "Publicar siempre sin preguntar".
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(2.dp))
+                    .border(1.dp, if (always) Terra else MaterialTheme.colorScheme.outline,
+                        RoundedCornerShape(2.dp))
+                    .clickable { always = !always }
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Text(if (always) "☑" else "☐",
+                    color = if (always) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.feed_publish_always),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (always) Terra else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(Spacing.md))
+            // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
+            Box(
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Terra)
+                    .clickable { onPublish(always) }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    stringResource(R.string.feed_publish_action),
+                    style = EyebrowTextStyle,
+                    color = Color.White
+                )
+            }
+            Spacer(Modifier.height(Spacing.sm))
+            // Secundario: solo diario.
+            Box(
+                Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(2.dp))
+                    .clickable(onClick = onDiaryOnly)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    stringResource(R.string.feed_publish_diary_only),
+                    style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

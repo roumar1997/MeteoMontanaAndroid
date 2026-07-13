@@ -320,6 +320,43 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideRejectFollowRequestUseCase(repo: SocialRepository) = RejectFollowRequestUseCase(repo)
 
+    // Feed social "Comunidad"
+    @Provides @Singleton
+    fun provideGetFeedPageUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.GetFeedPageUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetFeedPostUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.GetFeedPostUseCase(repo)
+
+    @Provides @Singleton
+    fun providePublishFeedPostUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.PublishFeedPostUseCase(repo)
+
+    @Provides @Singleton
+    fun provideDeleteFeedPostUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.DeleteFeedPostUseCase(repo)
+
+    @Provides @Singleton
+    fun provideLikeFeedPostUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.LikeFeedPostUseCase(repo)
+
+    @Provides @Singleton
+    fun provideUnlikeFeedPostUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.UnlikeFeedPostUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetFeedCommentsUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.GetFeedCommentsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideAddFeedCommentUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.AddFeedCommentUseCase(repo)
+
+    @Provides @Singleton
+    fun provideDeleteFeedCommentUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
+        com.meteomontana.android.domain.usecase.feed.DeleteFeedCommentUseCase(repo)
+
     // Meetups (quedadas)
     @Provides @Singleton
     fun provideGetMeetupsUseCase(

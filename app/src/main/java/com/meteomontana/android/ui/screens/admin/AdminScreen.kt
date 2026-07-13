@@ -111,6 +111,8 @@ fun AdminScreen(
     onOpenUser: (String) -> Unit = {},
     /** DENUNCIAS: abre la ficha completa de una quedada para juzgarla. */
     onOpenMeetup: (String) -> Unit = {},
+    /** DENUNCIAS: abre el detalle de un post del feed (FEED_POST/FEED_COMMENT). */
+    onOpenFeedPost: (String) -> Unit = {},
     viewModel: AdminViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -196,7 +198,8 @@ fun AdminScreen(
                 onIgnoreContent = { id -> viewModel.resolveContentReport(id, "IGNORE") },
                 onDeleteMeetup = { id -> viewModel.deleteReportedMeetup(id) },
                 onOpenAuthor = { uid -> viewModel.openUserModeration(uid) },
-                onOpenMeetup = onOpenMeetup
+                onOpenMeetup = onOpenMeetup,
+                onOpenFeedPost = onOpenFeedPost
             )
             AdminTab.Stats -> StatsTab(
                 stats = state.stats,

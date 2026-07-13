@@ -129,4 +129,10 @@ object RepositoryModule {
     @Provides @Singleton
     fun provideSocialRepository(api: KtorSocialApi): SocialRepository =
         KtorSocialRepository(api)
+
+    @Provides @Singleton
+    fun provideFeedRepository(
+        api: com.meteomontana.android.data.api.KtorFeedApi
+    ): com.meteomontana.android.domain.repository.FeedRepository =
+        com.meteomontana.android.data.repository.KtorFeedRepository(api)
 }

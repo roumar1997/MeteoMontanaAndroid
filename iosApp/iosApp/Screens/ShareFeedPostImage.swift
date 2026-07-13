@@ -1,0 +1,255 @@
+import SwiftUI
+import UIKit
+import Shared
+
+/// Comparte un post del feed como IMAGEN 1080×1920 (formato historia): foto de
+/// la cara con SOLO la línea del post + cabecera Cumbre (tipo de logro, vía y
+/// grado, piedra · escuela y autor). Espejo de `ShareFeedPostImage.kt`.
+///
+/// Si el post no tiene foto/trazo se comparte igualmente una tarjeta de datos
+/// (grado enorme en terra). El texto que acompaña es mínimo y SIN deep link.
+enum ShareFeedPostImage {
+
+    /// Facebook App ID para Instagram Stories (`instagram-stories://`).
+    /// ⚠️ PENDIENTE: cuando Rodrigo registre la app en developers.facebook.com,
+    /// pegar aquí el App ID (solo dígitos). Mientras esté VACÍO, el botón
+    /// "HISTORIAS" no se muestra en la UI.
+    static let facebookAppId = ""
+
+    /// true si podemos ofrecer "COMPARTIR EN HISTORIAS".
+    static var canShareToStories: Bool { !facebookAppId.isEmpty }
+
+    /* ── Paleta Cumbre fija (light), = ShareLineImage ─────────────────────── */
+    private static let paper = UIColor(rgb: 0xFAF7F2)
+    private static let ink = UIColor(rgb: 0x1A1A1A)
+    private static let inkSoft = UIColor(rgb: 0x6B6B6B)
+    private static let rule = UIColor(rgb: 0xE2DCD2)
+    private static let terra = UIColor(rgb: 0xC0532B)
+
+    /// Punto de entrada: compone la imagen y presenta el share sheet.
+    static func share(post: FeedPost) async {
+        let image = await renderCard(post: post)
+        await present([image, plainText(post)])
+    }
+
+    /// Directo a Instagram Stories. Solo llamar si `canShareToStories`.
+    static func shareToStories(post: FeedPost) async {
+        guard canShareToStories else { return }
+        let image = await renderCard(post: post)
+        guard let data = image.pngData(),
+              let url = URL(string: "instagram-stories://share?source_application=\(facebookAppId)")
+        else { return }
+        await MainActor.run {
+            UIPasteboard.general.setItems(
+                [["com.instagram.sharedSticker.backgroundImage": data]],
+                options: [.expirationDate: Date().addingTimeInterval(300)])
+            UIApplication.shared.open(url, options: [:]) { ok in
+                if !ok { Task { await share(post: post) } }
+            }
+        }
+    }
+
+    /// Texto plano de acompañamiento — SIN enlace (decisión del usuario).
+    private static func plainText(_ post: FeedPost) -> String {
+        let title = feedPostTitle(post)
+        var parts: [String] = []
+        if !title.isEmpty { parts.append("🧗 " + title) }
+        let place = feedPostPlace(post)
+        if !place.isEmpty { parts.append(place) }
+        return parts.joined(separator: "\n")
+    }
+
+    private static func kindEyebrow(_ post: FeedPost) -> String {
+        feedKindLabel(post.kind, post.discipline)
+    }
+
+    // MARK: - Render
+
+    private static func renderCard(post: FeedPost) async -> UIImage {
+        // Foto (si la hay), con la caché de disco de siempre.
+        var photo: UIImage? = nil
+        if let p = post.photoPath, !p.isEmpty {
+            photo = await ImageCache.image(p)
+        }
+        let ph = photo
+        return await MainActor.run { drawCard(post: post, photo: ph) }
+    }
+
+    @MainActor
+    private static func drawCard(post: FeedPost, photo: UIImage?) -> UIImage {
+        let w: CGFloat = 1080, h: CGFloat = 1920, pad: CGFloat = 72
+        let availW = w - 2 * pad
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1   // px reales
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format)
+
+        return renderer.image { rctx in
+            let cg = rctx.cgContext
+            paper.setFill(); cg.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            rule.setStroke()
+            let border = UIBezierPath(rect: CGRect(x: 16, y: 16, width: w - 32, height: h - 32))
+            border.lineWidth = 3; border.stroke()
+
+            // ── Cabecera: eyebrow del tipo de logro ──
+            drawText(kindEyebrow(post), at: CGRect(x: pad, y: pad, width: availW, height: 44),
+                     font: mono(34, bold: true), color: terra, kern: 5, align: .left)
+
+            // Vía + grado (serif grande, hasta 2 líneas).
+            let title = feedPostTitle(post).isEmpty ? "Ascenso" : feedPostTitle(post)
+            let titleFont = serif(78)
+            let para = NSMutableParagraphStyle()
+            para.lineBreakMode = .byTruncatingTail
+            let titleAttrs: [NSAttributedString.Key: Any] =
+                [.font: titleFont, .foregroundColor: ink, .paragraphStyle: para]
+            let maxTitleH: CGFloat = 190
+            let measured = (title as NSString).boundingRect(
+                with: CGSize(width: availW, height: maxTitleH),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: titleAttrs, context: nil).height
+            let titleH = min(ceil(measured), maxTitleH)
+            (title as NSString).draw(with: CGRect(x: pad, y: pad + 60, width: availW, height: titleH),
+                                     options: [.usesLineFragmentOrigin, .usesFontLeading],
+                                     attributes: titleAttrs, context: nil)
+            var y = pad + 60 + titleH + 14
+
+            // Piedra · escuela (+ roca si viene).
+            let place = feedPostPlace(post)
+            if !place.isEmpty {
+                drawText(place, at: CGRect(x: pad, y: y, width: availW, height: 48),
+                         font: UIFont.systemFont(ofSize: 38), color: inkSoft, kern: 0, align: .left)
+                y += 52
+            }
+
+            // Autor.
+            var authorLabel = ""
+            if let u = post.author.username, !u.isEmpty { authorLabel = "@" + u }
+            else if let d = post.author.displayName, !d.isEmpty { authorLabel = d }
+            if !authorLabel.isEmpty {
+                drawText("por " + authorLabel, at: CGRect(x: pad, y: y, width: availW, height: 44),
+                         font: UIFont.systemFont(ofSize: 36, weight: .bold),
+                         color: terra, kern: 0, align: .left)
+                y += 48
+            }
+            y += 16
+
+            // ── Foto con SOLO la línea del post ──
+            let footerH: CGFloat = 130
+            if let photo {
+                let avail = h - footerH - y - pad
+                let ratio = min(max(photo.size.width / max(photo.size.height, 1), 0.55), 2.2)
+                var rectW = availW, rectH = rectW / ratio
+                if rectH > avail { rectH = avail; rectW = rectH * ratio }
+                let left = (w - rectW) / 2
+                let top = y + (avail - rectH) / 2
+                let photoRect = CGRect(x: left, y: top, width: rectW, height: rectH)
+
+                cg.saveGState()
+                cg.addRect(photoRect); cg.clip()
+                // Foto en modo aspect-fill (centerCrop).
+                let scale = max(photoRect.width / photo.size.width,
+                                photoRect.height / photo.size.height)
+                let dw = photo.size.width * scale, dh = photo.size.height * scale
+                photo.draw(in: CGRect(x: photoRect.midX - dw / 2, y: photoRect.midY - dh / 2,
+                                      width: dw, height: dh))
+                drawLine(cg, post: post, in: photoRect)
+                cg.restoreGState()
+                rule.setStroke()
+                let pb = UIBezierPath(rect: photoRect); pb.lineWidth = 3; pb.stroke()
+            } else if let g = post.grade, !g.isEmpty {
+                // Sin foto: tarjeta de datos centrada (grado enorme en terra).
+                let gFont = serif(260)
+                let attrs: [NSAttributedString.Key: Any] = [.font: gFont, .foregroundColor: terra]
+                let sz = (g as NSString).size(withAttributes: attrs)
+                (g as NSString).draw(at: CGPoint(x: (w - sz.width) / 2, y: (h - sz.height) / 2),
+                                     withAttributes: attrs)
+            }
+
+            // ── Pie de marca ──
+            drawText("⛰ CUMBRE", at: CGRect(x: pad, y: h - 110, width: availW, height: 44),
+                     font: mono(34, bold: true), color: terra, kern: 5, align: .right)
+        }
+    }
+
+    /// Dibuja SOLO la línea del post sobre la foto (espejo de drawLines de
+    /// ShareLineImage con una única vía, badge "1").
+    private static func drawLine(_ cg: CGContext, post: FeedPost, in rect: CGRect) {
+        let points = TopoParse.points(post.linePath)
+        guard !points.isEmpty else { return }
+        let s = rect.width / 380.0
+        let style = GradeColor.style(post.grade)
+        let stroke = UIColor(style.stroke)
+        let pts = points.map {
+            CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
+        }
+        let path = UIBezierPath()
+        path.move(to: pts[0])
+        for p in pts.dropFirst() { path.addLine(to: p) }
+        path.lineCapStyle = .round; path.lineJoinStyle = .round
+        if style.dashed { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
+        if style.dark {
+            path.lineWidth = 9 * s
+            UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
+        }
+        path.lineWidth = 5 * s
+        stroke.setStroke(); path.stroke()
+
+        let textColor: UIColor = style.dark ? .black : .white
+        fillCircle(cg, pts[0], 14 * s, .white)
+        fillCircle(cg, pts[0], 11 * s, stroke)
+        drawCentered("1", at: pts[0], size: 15 * s, color: textColor)
+    }
+
+    // MARK: - Helpers de dibujo (= ShareLineImage; son private allí)
+
+    private static func fillCircle(_ cg: CGContext, _ c: CGPoint, _ r: CGFloat, _ color: UIColor) {
+        cg.setFillColor(color.cgColor)
+        cg.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+    }
+
+    private static func drawCentered(_ text: String, at c: CGPoint, size: CGFloat, color: UIColor) {
+        let font = UIFont.systemFont(ofSize: size, weight: .bold)
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
+        let sz = (text as NSString).size(withAttributes: attrs)
+        (text as NSString).draw(at: CGPoint(x: c.x - sz.width / 2, y: c.y - sz.height / 2),
+                                withAttributes: attrs)
+    }
+
+    private static func drawText(_ text: String, at rect: CGRect, font: UIFont, color: UIColor,
+                                 kern: CGFloat, align: NSTextAlignment) {
+        let para = NSMutableParagraphStyle()
+        para.alignment = align
+        para.lineBreakMode = .byTruncatingTail
+        let attrs: [NSAttributedString.Key: Any] =
+            [.font: font, .foregroundColor: color, .kern: kern, .paragraphStyle: para]
+        (text as NSString).draw(in: rect, withAttributes: attrs)
+    }
+
+    private static func mono(_ size: CGFloat, bold: Bool) -> UIFont {
+        UIFont(name: bold ? "JetBrainsMono-Bold" : "JetBrainsMono-Regular", size: size)
+            ?? .monospacedSystemFont(ofSize: size, weight: bold ? .bold : .regular)
+    }
+
+    private static func serif(_ size: CGFloat) -> UIFont {
+        UIFont(name: "SourceSerif4-Bold", size: size) ?? .systemFont(ofSize: size, weight: .bold)
+    }
+
+    // MARK: - Share sheet (patrón de ShareLineImage.present)
+
+    @MainActor
+    private static func present(_ items: [Any]) {
+        guard let scene = UIApplication.shared.connectedScenes
+                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+              let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+        else { return }
+        var top = root
+        while let presented = top.presentedViewController { top = presented }
+        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        if let pop = vc.popoverPresentationController {
+            pop.sourceView = top.view
+            pop.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.midY,
+                                    width: 0, height: 0)
+            pop.permittedArrowDirections = []
+        }
+        top.present(vc, animated: true)
+    }
+}

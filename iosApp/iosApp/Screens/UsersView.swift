@@ -241,6 +241,11 @@ struct PublicProfileView: View {
                         Text("DIARIO").eyebrow().frame(maxWidth: .infinity, alignment: .leading)
                         JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo, projectsUid: uid)
                     }
+                    // Publicaciones del usuario en el feed Comunidad
+                    // (scope=user; el backend devuelve vacío si es privado
+                    // y no le sigues). Paridad con PublicProfileScreen.kt.
+                    UserFeedSection(uid: uid)
+                        .padding(.top, 16)
                 }
             }
             .frame(maxWidth: .infinity)

@@ -399,7 +399,8 @@ internal fun DenunciasTab(
     onIgnoreContent: (String) -> Unit = {},
     onDeleteMeetup: (String) -> Unit = {},
     onOpenAuthor: (String) -> Unit = {},
-    onOpenMeetup: (String) -> Unit = {}
+    onOpenMeetup: (String) -> Unit = {},
+    onOpenFeedPost: (String) -> Unit = {}
 ) {
     if (reports.isEmpty() && contentReports.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -421,7 +422,8 @@ internal fun DenunciasTab(
                 ContentReportCard(r,
                     onRemove = { onRemoveContent(r.id) },
                     onIgnore = { onIgnoreContent(r.id) },
-                    onOpenAuthor = { r.authorUid?.let(onOpenAuthor) })
+                    onOpenAuthor = { r.authorUid?.let(onOpenAuthor) },
+                    onOpenFeedPost = { onOpenFeedPost(r.targetId) })
                 Spacer(Modifier.height(Spacing.sm))
             }
         }
@@ -450,7 +452,8 @@ private fun ContentReportCard(
     r: com.meteomontana.android.data.api.ContentReportDto,
     onRemove: () -> Unit,
     onIgnore: () -> Unit,
-    onOpenAuthor: () -> Unit = {}
+    onOpenAuthor: () -> Unit = {},
+    onOpenFeedPost: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -463,7 +466,10 @@ private fun ContentReportCard(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
                 when (r.targetType) {
-                    "COMMENT" -> "COMENTARIO"; "NOTE" -> "NOTA"; else -> "USUARIO"
+                    "COMMENT" -> "COMENTARIO"; "NOTE" -> "NOTA"
+                    "FEED_POST" -> "POST DEL FEED"
+                    "FEED_COMMENT" -> "COMENTARIO DEL FEED"
+                    else -> "USUARIO"
                 } + " - " + reasonLabel(r.reason),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
@@ -495,6 +501,21 @@ private fun ContentReportCard(
                 Text("IGNORAR",
                     style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        // Denuncias del feed: VER POST abre el FeedPostDetailScreen (para
+        // FEED_COMMENT también abre el post; el snapshot ya enseña el texto
+        // del comentario). Patrón de VER QUEDADA.
+        if (r.targetType == "FEED_POST" || r.targetType == "FEED_COMMENT") {
+            Box(Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(2.dp))
+                .background(com.meteomontana.android.ui.theme.Terra)
+                .clickable(onClick = onOpenFeedPost)
+                .padding(vertical = Spacing.sm),
+                contentAlignment = Alignment.Center) {
+                Text("VER POST ▸",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = Color.White)
             }
         }
         // Ver al AUTOR del contenido (historial de denuncias + consecuencias).

@@ -1,0 +1,151 @@
+import SwiftUI
+import Shared
+
+// Publicar ascensos en el feed Comunidad — espejo de FeedPublishPrefs.kt y
+// FeedPublishSheet (SchoolMap.kt) de Android.
+
+/// Preferencia "Publicar ascensos en el feed":
+/// - ask (default): al marcar HECHO se abre la hoja de publicar.
+/// - always: publica directo sin preguntar.
+/// - never: ni pregunta ni publica (solo diario).
+enum FeedPublishMode: String, CaseIterable {
+    case ask, always, never
+
+    var label: String {
+        switch self {
+        case .ask: return "Preguntar"
+        case .always: return "Siempre"
+        case .never: return "Nunca"
+        }
+    }
+}
+
+enum FeedPublishPrefs {
+    private static let key = "feed_publish_mode"
+
+    static var mode: FeedPublishMode {
+        get {
+            FeedPublishMode(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .ask
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
+    }
+}
+
+/// Tick pendiente de confirmar (hoja "Publicar en el feed").
+struct PendingFeedTick: Identifiable {
+    let id = UUID()
+    let line: BlockLine
+    let index: Int
+    let wasProject: Bool
+}
+
+/// Hoja de publicar un ascenso (estilo Cumbre): eyebrow del tipo, vía + grado,
+/// checkbox "Publicar siempre sin preguntar", PUBLICAR EN EL FEED (primario
+/// Terra) y SOLO EN MI DIARIO. Cerrar la hoja = no marcar nada.
+struct FeedPublishSheet: View {
+    let lineLabel: String
+    let wasProject: Bool
+    let onPublish: (_ always: Bool) -> Void
+    let onDiaryOnly: () -> Void
+
+    @State private var always = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(wasProject ? "PROYECTO CONSEGUIDO" : "HECHO")
+                .font(Cumbre.mono(10, .bold)).tracking(1.8)
+                .foregroundStyle(Cumbre.terra)
+            Text("¿Marcar como hecha?")
+                .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+                .padding(.top, 4)
+            Text(lineLabel)
+                .font(.system(size: 16, weight: .bold)).foregroundStyle(Cumbre.ink2)
+                .padding(.top, 2)
+
+            // Checkbox "Publicar siempre sin preguntar".
+            Button { always.toggle() } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: always ? "checkmark.square.fill" : "square")
+                        .foregroundStyle(always ? Cumbre.terra : Cumbre.ink3)
+                    Text("Publicar siempre sin preguntar")
+                        .font(.system(size: 14))
+                        .foregroundStyle(always ? Cumbre.terra : Cumbre.ink3)
+                    Spacer()
+                }
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .overlay(RoundedRectangle(cornerRadius: 2)
+                    .stroke(always ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 16)
+
+            // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
+            Button { onPublish(always) } label: {
+                Text("PUBLICAR EN EL FEED")
+                    .font(Cumbre.mono(11, .bold)).tracking(1.4)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Cumbre.terra)
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 16)
+
+            // Secundario: solo diario.
+            Button(action: onDiaryOnly) {
+                Text("SOLO EN MI DIARIO")
+                    .font(Cumbre.mono(11, .bold)).tracking(1.4)
+                    .foregroundStyle(Cumbre.ink3)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 8)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16).padding(.top, 20)
+        .background(Cumbre.bg.ignoresSafeArea())
+        .presentationDetents([.height(300)])
+    }
+}
+
+/// Fila de ajuste "Publicar ascensos en el feed" del Perfil (Preguntar /
+/// Siempre / Nunca) — espejo de FeedPublishSettingRow de ProfileScreen.kt.
+struct FeedPublishSettingRow: View {
+    @State private var mode = FeedPublishPrefs.mode
+
+    var body: some View {
+        Menu {
+            ForEach(FeedPublishMode.allCases, id: \.rawValue) { m in
+                Button {
+                    FeedPublishPrefs.mode = m
+                    mode = m
+                } label: {
+                    if m == mode {
+                        Label(m.label, systemImage: "checkmark")
+                    } else {
+                        Text(m.label)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "person.2").font(.system(size: 16))
+                    .foregroundStyle(Cumbre.terra).frame(width: 24)
+                Text("Publicar ascensos en el feed")
+                    .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                Spacer()
+                Text(mode.label)
+                    .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink3)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}

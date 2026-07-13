@@ -141,6 +141,10 @@ fun PublicProfileScreen(
     onOpenSchools: (String) -> Unit = {},
     onOpenSchoolEntries: (uid: String, schoolName: String) -> Unit = { _, _ -> },
     onOpenProjects: (String) -> Unit = {},
+    /** Abrir OTRO perfil (autor de un comentario del feed). */
+    onOpenUserProfile: (String) -> Unit = {},
+    /** Abrir la piedra de un post del feed (pantalla completa). */
+    onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit = { _, _, _ -> },
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -240,7 +244,9 @@ fun PublicProfileScreen(
                 onOpenMaxGrade = { onOpenMaxGrade(s.profile.uid) },
                 onOpenSchools = { onOpenSchools(s.profile.uid) },
                 onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) },
-                onOpenProjects = { onOpenProjects(s.profile.uid) }
+                onOpenProjects = { onOpenProjects(s.profile.uid) },
+                onOpenUserProfile = onOpenUserProfile,
+                onOpenFeedSchool = onOpenFeedSchool
             )
         }
     }
@@ -271,7 +277,9 @@ private fun Body(
     onOpenMaxGrade: () -> Unit = {},
     onOpenSchools: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
-    onOpenProjects: () -> Unit = {}
+    onOpenProjects: () -> Unit = {},
+    onOpenUserProfile: (String) -> Unit = {},
+    onOpenFeedSchool: (String, String?, String?) -> Unit = { _, _, _ -> }
 ) {
     val p = s.profile
     val locked = p.locked
@@ -378,6 +386,15 @@ private fun Body(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
             }
+        }
+        if (!locked) {
+            // Publicaciones del usuario en el feed Comunidad (scope=user).
+            // El backend devuelve vacío si es privado y no le sigues.
+            Spacer(Modifier.height(16.dp))
+            com.meteomontana.android.ui.screens.community.UserFeedSection(
+                onOpenUser = onOpenUserProfile,
+                onOpenSchool = onOpenFeedSchool
+            )
         }
         if (locked) {
             Spacer(Modifier.height(32.dp))

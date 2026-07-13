@@ -158,7 +158,8 @@ class SchoolDetailViewModelTest {
         mockk<com.meteomontana.android.data.local.JournalProjectStore>(relaxed = true) {
             every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
         },
-        mockk(relaxed = true)  // rateLineUseCase
+        mockk(relaxed = true),  // rateLineUseCase
+        mockk(relaxed = true)   // publishFeedPost (feed Comunidad)
     )
 
     @Test fun `load con todo OK produce Success con forecast y sin error`() = runTest {
