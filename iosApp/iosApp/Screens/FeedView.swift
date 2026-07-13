@@ -625,7 +625,7 @@ struct FeedPostCard: View {
         let points = TopoParse.points(post.linePath)
         guard !points.isEmpty else { return [] }
         return [TopoLineVM(id: post.lineId ?? "feed", name: post.lineName,
-                           grade: post.grade, startType: nil, points: points)]
+                           grade: post.grade, startType: post.startType, points: points)]
     }
 
     // ── Texto: «vía · grado — piedra · escuela · roca» ──

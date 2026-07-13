@@ -234,6 +234,24 @@ enum ShareFeedPostImage {
         fillCircle(cg, pts[0], 14 * s, .white)
         fillCircle(cg, pts[0], 11 * s, stroke)
         drawCentered("1", at: pts[0], size: 15 * s, color: textColor)
+        // Círculo del tipo de inicio en la base de la línea (= ShareLineImage).
+        if let label = startLabel(post.startType), pts.count > 1 {
+            let last = pts[pts.count - 1]
+            fillCircle(cg, last, 14 * s, style.dark ? .black : .white)
+            fillCircle(cg, last, 11 * s, stroke)
+            drawCentered(label, at: last, size: 9 * s, color: textColor)
+        }
+    }
+
+    /// Abreviatura del tipo de inicio (= startLabel de ShareLineImage, que es private allí).
+    private static func startLabel(_ t: String?) -> String? {
+        switch t?.uppercased() {
+        case "PIE", "STAND": return "PIE"
+        case "SIT": return "SIT"
+        case "LANCE", "JUMP": return "LAN"
+        case "TRAV": return "TRV"
+        default: return nil
+        }
     }
 
     // MARK: - Helpers de dibujo (= ShareLineImage; son private allí)

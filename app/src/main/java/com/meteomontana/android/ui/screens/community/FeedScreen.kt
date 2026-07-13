@@ -519,7 +519,7 @@ internal fun FeedPostCard(
                     lines = if (points.isNotEmpty()) listOf(
                         TopoLine(
                             name = post.lineName, grade = post.grade,
-                            startType = null, points = points
+                            startType = post.startType, points = points
                         )
                     ) else emptyList()
                 )
