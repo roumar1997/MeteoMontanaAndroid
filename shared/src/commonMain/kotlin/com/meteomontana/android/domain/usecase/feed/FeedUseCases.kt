@@ -54,6 +54,17 @@ class PublishFeedPostUseCase(private val repo: FeedRepository) {
     ): Long = repo.publish(blockId, lineId, kind, discipline, caption)
 }
 
+/** Sube la foto de celebración (JPEG comprimido) de un post propio.
+ *  Devuelve la URL firmada de la foto (o null si el backend no la manda). */
+class UploadFeedPhotoUseCase(private val repo: FeedRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(
+        postId: Long,
+        bytes: ByteArray,
+        contentType: String = "image/jpeg"
+    ): String? = repo.uploadPhoto(postId, bytes, contentType)
+}
+
 class DeleteFeedPostUseCase(private val repo: FeedRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(postId: Long) = repo.deletePost(postId)

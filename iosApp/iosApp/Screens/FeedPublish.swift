@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Shared
 
 // Publicar ascensos en el feed Comunidad — espejo de FeedPublishPrefs.kt y
@@ -45,12 +46,23 @@ struct PendingFeedTick: Identifiable {
 struct FeedPublishSheet: View {
     let lineLabel: String
     let wasProject: Bool
-    let onPublish: (_ always: Bool, _ caption: String?) -> Void
+    let onPublish: (_ always: Bool, _ caption: String?, _ photo: UIImage?) -> Void
     let onDiaryOnly: () -> Void
 
     @State private var always = false
     // Descripción opcional del autor (viaja como "caption", max 500).
     @State private var caption = ""
+    // Foto de celebración: SIEMPRE hecha en el momento con la cámara del
+    // sistema (el usuario cambia frontal/trasera en la propia cámara).
+    @State private var photo: UIImage? = nil
+    @State private var showCamera = false
+    @State private var showCameraDenied = false
+
+    private func requestCamera() {
+        CameraAccess.request { granted in
+            if granted { showCamera = true } else { showCameraDenied = true }
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -78,6 +90,60 @@ struct FeedPublishSheet: View {
                 }
                 .padding(.top, 16)
 
+            // Foto de celebración (opcional): fila para abrir la cámara o
+            // miniatura 88×110 con ✕ para quitarla + "REPETIR FOTO".
+            if let photo {
+                HStack(spacing: 12) {
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 88, height: 110)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(RoundedRectangle(cornerRadius: 6)
+                                .stroke(Cumbre.rule, lineWidth: 1))
+                        // ✕ quita la foto (se puede volver a hacer otra).
+                        Button { self.photo = nil } label: {
+                            Text("✕")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 22, height: 22)
+                                .background(Color.black.opacity(0.55))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(4)
+                    }
+                    Button(action: requestCamera) {
+                        Text("REPETIR FOTO")
+                            .font(Cumbre.mono(10, .bold)).tracking(1.8)
+                            .foregroundStyle(Cumbre.terra)
+                            .padding(8)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                .padding(.top, 16)
+            } else {
+                Button(action: requestCamera) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "camera")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Cumbre.terra)
+                        Text("Añadir foto de celebración")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Cumbre.ink2)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 16)
+            }
+
             // Checkbox "Publicar siempre sin preguntar".
             Button { always.toggle() } label: {
                 HStack(spacing: 10) {
@@ -99,7 +165,7 @@ struct FeedPublishSheet: View {
             // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
             Button {
                 let c = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-                onPublish(always, c.isEmpty ? nil : c)
+                onPublish(always, c.isEmpty ? nil : c, photo)
             } label: {
                 Text("PUBLICAR EN EL FEED")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
@@ -127,8 +193,24 @@ struct FeedPublishSheet: View {
         }
         .padding(.horizontal, 16).padding(.top, 20)
         .background(Cumbre.bg.ignoresSafeArea())
-        // Más alta que antes: ahora incluye el campo de descripción.
-        .presentationDetents([.height(400)])
+        // Más alta que antes: descripción + fila/miniatura de foto.
+        .presentationDetents([.height(photo == nil ? 480 : 560)])
+        // Cámara del sistema a pantalla completa (frontal/trasera dentro).
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker { img in photo = img }
+                .ignoresSafeArea()
+        }
+        // Permiso denegado: llevar a Ajustes (iOS no re-pregunta).
+        .alert("Cumbre necesita acceso a la cámara", isPresented: $showCameraDenied) {
+            Button("Cancelar", role: .cancel) {}
+            Button("AJUSTES") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+        } message: {
+            Text("Activa el permiso de cámara en Ajustes para añadir la foto de celebración.")
+        }
     }
 }
 

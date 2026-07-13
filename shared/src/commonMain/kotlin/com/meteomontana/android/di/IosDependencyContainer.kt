@@ -254,6 +254,7 @@ class IosDependencyContainer(
     val getFeedPage = com.meteomontana.android.domain.usecase.feed.GetFeedPageUseCase(feedRepository)
     val getFeedPost = com.meteomontana.android.domain.usecase.feed.GetFeedPostUseCase(feedRepository)
     val publishFeedPost = com.meteomontana.android.domain.usecase.feed.PublishFeedPostUseCase(feedRepository)
+    val uploadFeedPhoto = com.meteomontana.android.domain.usecase.feed.UploadFeedPhotoUseCase(feedRepository)
     val deleteFeedPost = com.meteomontana.android.domain.usecase.feed.DeleteFeedPostUseCase(feedRepository)
     val likeFeedPost = com.meteomontana.android.domain.usecase.feed.LikeFeedPostUseCase(feedRepository)
     val unlikeFeedPost = com.meteomontana.android.domain.usecase.feed.UnlikeFeedPostUseCase(feedRepository)

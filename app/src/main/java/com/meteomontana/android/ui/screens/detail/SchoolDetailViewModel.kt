@@ -95,7 +95,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val journalDoneStore: com.meteomontana.android.data.local.JournalDoneStore,
     private val journalProjectStore: com.meteomontana.android.data.local.JournalProjectStore,
     private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase,
-    private val publishFeedPost: com.meteomontana.android.domain.usecase.feed.PublishFeedPostUseCase
+    private val publishFeedPost: com.meteomontana.android.domain.usecase.feed.PublishFeedPostUseCase,
+    private val uploadFeedPhoto: com.meteomontana.android.domain.usecase.feed.UploadFeedPhotoUseCase
 ) : ViewModel() {
 
     /**
@@ -110,17 +111,30 @@ class SchoolDetailViewModel @Inject constructor(
         line: com.meteomontana.android.domain.model.BlockLine,
         wasProject: Boolean,
         /** Descripción opcional del autor (hoja de publicar; ALWAYS = sin caption). */
-        caption: String? = null
+        caption: String? = null,
+        /** URI local (content://) de la foto de celebración hecha en la hoja, o null. */
+        photoUri: String? = null,
+        /** Aviso discreto si la foto no se pudo subir (el post queda sin foto). */
+        onPhotoUploadFailed: (() -> Unit)? = null
     ) {
         val kind = if (wasProject) com.meteomontana.android.domain.usecase.feed.FeedKind.PROJECT_DONE
         else com.meteomontana.android.domain.usecase.feed.FeedKind.TICK
         // Modalidad de la piedra (misma distinción Bloque/Vía del detalle).
         val discipline = if (block.discipline.equals("ROUTE", ignoreCase = true)) "ROUTE" else "BOULDER"
         viewModelScope.launch {
-            runCatching {
+            val postId = runCatching {
                 publishFeedPost(
                     block.id, line.id.takeIf { it.isNotBlank() }, kind, discipline, caption
                 )
+            }.getOrNull() ?: return@launch
+            // Foto de celebración (opcional): comprimir (mismo pipeline que las
+            // fotos de perfil/piedras, muy por debajo de los 5MB del backend) y
+            // subirla como multipart. Si falla, el post queda sin foto.
+            if (photoUri != null) {
+                runCatching {
+                    val bytes = fileReader.readImageCompressed(FileRef(photoUri))
+                    uploadFeedPhoto(postId, bytes)
+                }.onFailure { onPhotoUploadFailed?.invoke() }
             }
         }
     }

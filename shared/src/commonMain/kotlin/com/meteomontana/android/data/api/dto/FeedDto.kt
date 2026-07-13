@@ -41,7 +41,9 @@ data class FeedPostDto(
     /** "SIT" | "STAND" | "JUMP" | "TRAV" | null (tipo de inicio de la vía, en vivo). */
     val startType: String? = null,
     /** Descripción del autor (max 500) o null. */
-    val caption: String? = null
+    val caption: String? = null,
+    /** URL firmada de la foto de celebración o null (campo nuevo, retrocompatible). */
+    val photoUrl: String? = null
 )
 
 @Serializable
@@ -82,6 +84,10 @@ data class FeedPostIdDto(val id: Long)
 @Serializable
 data class FeedLikeCountDto(val likeCount: Long)
 
+/** Respuesta de POST /api/feed/{id}/photo. */
+@Serializable
+data class FeedPhotoUrlDto(val photoUrl: String? = null)
+
 // ── Mapping DTO → dominio ────────────────────────────────────────────────────
 
 fun FeedAuthorDto.toDomain() = FeedAuthor(
@@ -97,7 +103,7 @@ fun FeedPostDto.toDomain() = FeedPost(
     photoPath = photoPath, linePath = linePath,
     likeCount = likeCount, likedByMe = likedByMe,
     commentCount = commentCount, mine = mine,
-    startType = startType, caption = caption
+    startType = startType, caption = caption, photoUrl = photoUrl
 )
 
 fun FeedCommentDto.toDomain() = FeedComment(

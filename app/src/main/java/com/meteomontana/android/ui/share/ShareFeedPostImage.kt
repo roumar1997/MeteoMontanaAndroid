@@ -98,15 +98,21 @@ private fun plainText(post: FeedPost): String {
 
 /** Pinta la imagen del post y la deja en cache/share; null solo si falla el PNG. */
 private suspend fun renderPostToUri(context: Context, post: FeedPost): Uri? {
-    // Foto (si la hay) descargada en software para poder dibujarla.
-    val photo: Bitmap? = post.photoPath?.takeIf { it.isNotBlank() }?.let { url ->
+    // Fotos (si las hay) descargadas en software para poder dibujarlas.
+    suspend fun fetch(url: String): Bitmap? {
         val request = ImageRequest.Builder(context).data(url).allowHardware(false).build()
-        (context.imageLoader.execute(request) as? SuccessResult)?.drawable?.toBitmap()
+        return (context.imageLoader.execute(request) as? SuccessResult)?.drawable?.toBitmap()
     }
+    val topoPhoto: Bitmap? = post.photoPath?.takeIf { it.isNotBlank() }?.let { fetch(it) }
+    val celebration: Bitmap? = post.photoUrl?.takeIf { it.isNotBlank() }?.let { fetch(it) }
+    // Mismo layout que la tarjeta: sin topo, la foto de celebración es la
+    // imagen principal; con topo, va como miniatura en la esquina.
+    val photo = topoPhoto ?: celebration
+    val corner = if (topoPhoto != null) celebration else null
     // Etiqueta traducida del tipo de inicio (mismo mapeo que el editor de topos).
     val startLabel = com.meteomontana.android.ui.components.startTypeLabelRes(post.startType)
         ?.let(context::getString)
-    val bmp = renderPostCard(post, photo, startLabel)
+    val bmp = renderPostCard(post, photo, startLabel, drawLine = topoPhoto != null, corner = corner)
     return runCatching {
         val dir = File(context.cacheDir, "share").apply { mkdirs() }
         val file = File(dir, "feed-post.png")
@@ -126,7 +132,15 @@ private fun kindEyebrow(post: FeedPost): String = when (post.kind) {
     }
 }
 
-private fun renderPostCard(post: FeedPost, photo: Bitmap?, startLabel: String? = null): Bitmap {
+private fun renderPostCard(
+    post: FeedPost,
+    photo: Bitmap?,
+    startLabel: String? = null,
+    /** false cuando la imagen principal es la foto de celebración (sin trazo). */
+    drawLine: Boolean = true,
+    /** Foto de celebración en miniatura (esquina superior derecha), o null. */
+    corner: Bitmap? = null
+): Bitmap {
     val w = 1080
     val h = 1920
     val pad = 72f
@@ -203,7 +217,7 @@ private fun renderPostCard(post: FeedPost, photo: Bitmap?, startLabel: String? =
         c.clipRect(dst)
         c.drawBitmap(photo, src, dst, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
 
-        val points = parseLineStroke(post.linePath).points
+        val points = if (drawLine) parseLineStroke(post.linePath).points else emptyList()
         if (points.isNotEmpty()) {
             val s = rectW / 380f
             val ops = renderTopo(
@@ -226,6 +240,30 @@ private fun renderPostCard(post: FeedPost, photo: Bitmap?, startLabel: String? =
         c.drawRect(dst, Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE; strokeWidth = 3f; color = RULE
         })
+
+        // Miniatura de la foto de celebración (esquina superior derecha del
+        // topo, mismo layout que la tarjeta: ~88x110dp con borde papel).
+        if (corner != null) {
+            val miniW = rectW * 0.26f
+            val miniH = miniW * 110f / 88f
+            val margin = 20f
+            val mini = RectF(
+                dst.right - margin - miniW, dst.top + margin,
+                dst.right - margin, dst.top + margin + miniH
+            )
+            val radius = 14f
+            val path = android.graphics.Path().apply {
+                addRoundRect(mini, radius, radius, android.graphics.Path.Direction.CW)
+            }
+            c.save()
+            c.clipPath(path)
+            val srcMini = centerCropSrcShare(corner.width, corner.height, miniW / miniH)
+            c.drawBitmap(corner, srcMini, mini, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+            c.restore()
+            c.drawRoundRect(mini, radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE; strokeWidth = 6f; color = PAPER
+            })
+        }
     } else {
         // Sin foto: tarjeta de datos centrada (grado enorme en terra).
         post.grade?.takeIf { it.isNotBlank() }?.let { g ->

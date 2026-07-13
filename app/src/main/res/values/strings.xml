@@ -93,6 +93,10 @@
     <string name="feed_load_more">CARGAR MÁS</string>
     <string name="feed_caption_hint">Añade una descripción (opcional)</string>
     <string name="feed_my_posts_section">Mis publicaciones</string>
+    <string name="feed_add_celebration_photo">Añadir foto de celebración</string>
+    <string name="feed_retake_celebration_photo">REPETIR FOTO</string>
+    <string name="feed_celebration_photo">Foto de celebración</string>
+    <string name="feed_photo_upload_failed">No se pudo subir la foto; publicado sin ella</string>
     <string name="submissions_tab_proposals">PROPUESTAS</string>
     <string name="submissions_tab_contributions">CONTRIBUCIONES</string>
     <string name="submissions_empty_proposals">Sin propuestas todavía</string>

@@ -505,6 +505,9 @@ internal fun FeedPostCard(
         // ── Imagen: foto de la cara con SOLO la línea de esta vía ──
         val points = remember(post.linePath) { parseLineStroke(post.linePath).points }
         val hasTopo = !post.photoPath.isNullOrBlank()
+        val celebrationUrl = post.photoUrl?.takeIf { it.isNotBlank() }
+        // Foto de celebración ampliada a pantalla completa (tap en la miniatura).
+        var fullPhoto by remember { mutableStateOf<String?>(null) }
         if (hasTopo) {
             Box(
                 Modifier.fillMaxWidth().clickable {
@@ -520,7 +523,36 @@ internal fun FeedPostCard(
                         )
                     ) else emptyList()
                 )
+                // Miniatura de la foto de celebración superpuesta arriba-derecha.
+                if (celebrationUrl != null) {
+                    AsyncImage(
+                        model = celebrationUrl,
+                        contentDescription = stringResource(R.string.feed_celebration_photo),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .size(width = 88.dp, height = 110.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .border(2.dp, MaterialTheme.colorScheme.background, RoundedCornerShape(6.dp))
+                            .clickable { fullPhoto = celebrationUrl }
+                    )
+                }
             }
+        } else if (celebrationUrl != null) {
+            // Sin topo: la foto de celebración ES la imagen principal.
+            AsyncImage(
+                model = celebrationUrl,
+                contentDescription = stringResource(R.string.feed_celebration_photo),
+                contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth().clickable { fullPhoto = celebrationUrl }
+            )
+        }
+        fullPhoto?.let { url ->
+            com.meteomontana.android.ui.components.FullScreenPhotoDialog(
+                photoUrl = url,
+                onDismiss = { fullPhoto = null }
+            )
         }
 
         // ── Texto: «vía · grado · inicio — piedra · escuela» ──

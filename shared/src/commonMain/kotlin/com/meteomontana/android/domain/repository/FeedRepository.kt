@@ -22,6 +22,8 @@ interface FeedRepository {
         discipline: String? = null,
         caption: String? = null
     ): Long
+    /** Sube la foto de celebración de un post propio; devuelve su URL firmada. */
+    suspend fun uploadPhoto(postId: Long, bytes: ByteArray, contentType: String = "image/jpeg"): String?
     suspend fun deletePost(postId: Long)
     /** Devuelve el likeCount actualizado. */
     suspend fun like(postId: Long): Long

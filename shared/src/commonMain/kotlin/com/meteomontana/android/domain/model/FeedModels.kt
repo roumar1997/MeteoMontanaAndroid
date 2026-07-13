@@ -39,7 +39,9 @@ data class FeedPost(
     /** "SIT" | "STAND" | "JUMP" | "TRAV" | null (tipo de inicio de la vía, en vivo). */
     val startType: String? = null,
     /** Descripción del autor (max 500) o null. */
-    val caption: String? = null
+    val caption: String? = null,
+    /** URL firmada de la foto de celebración o null. */
+    val photoUrl: String? = null
 )
 
 data class FeedComment(

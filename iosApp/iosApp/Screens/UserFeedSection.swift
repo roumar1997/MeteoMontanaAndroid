@@ -113,6 +113,9 @@ struct UserFeedSection: View {
     /// true en el perfil PROPIO: recarga al volver a primer plano (post nuevo
     /// tras marcar una vía) y permite borrar los posts propios con confirmación.
     let ownProfile: Bool
+    /// false cuando la sección vive en una pantalla dedicada con su propio
+    /// título (MyPostsView) — paridad con showTitle de UserFeedSection.kt.
+    let showTitle: Bool
     @StateObject private var vm: UserFeedViewModel
     @ObservedObject private var moderation = ModerationStore.shared
     @Environment(\.scenePhase) private var scenePhase
@@ -122,10 +125,12 @@ struct UserFeedSection: View {
     @State private var deleteCandidate: FeedPost? = nil
     @State private var navTarget: FeedNav? = nil
 
-    init(uid: String?, title: String = "PUBLICACIONES", ownProfile: Bool = false) {
+    init(uid: String?, title: String = "PUBLICACIONES", ownProfile: Bool = false,
+         showTitle: Bool = true) {
         self.uid = uid
         self.title = title
         self.ownProfile = ownProfile
+        self.showTitle = showTitle
         _vm = StateObject(wrappedValue: UserFeedViewModel(uid: uid))
     }
 
@@ -185,8 +190,10 @@ struct UserFeedSection: View {
     @ViewBuilder private var sectionBody: some View {
         let visible = vm.posts.filter { !moderation.hiddenIds.contains(String($0.id)) }
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).eyebrow()
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if showTitle {
+                Text(title).eyebrow()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             if visible.isEmpty {
                 Text("Sin publicaciones todavía.")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
@@ -218,5 +225,24 @@ struct UserFeedSection: View {
                 }
             }
         }
+    }
+}
+
+/// Pantalla dedicada "Mis publicaciones" (perfil propio): tus posts del feed
+/// (scope=mine) con likes/comentarios/borrar y CARGAR MÁS. Reutiliza
+/// UserFeedSection; se abre desde la fila del perfil. Espejo de
+/// MyPostsScreen.kt de Android.
+struct MyPostsView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                UserFeedSection(uid: nil, ownProfile: true, showTitle: false)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle("Mis publicaciones")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

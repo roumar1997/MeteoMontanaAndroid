@@ -57,6 +57,10 @@
     <string name="feed_load_more">LOAD MORE</string>
     <string name="feed_caption_hint">Add a description (optional)</string>
     <string name="feed_my_posts_section">My posts</string>
+    <string name="feed_add_celebration_photo">Add celebration photo</string>
+    <string name="feed_retake_celebration_photo">RETAKE PHOTO</string>
+    <string name="feed_celebration_photo">Celebration photo</string>
+    <string name="feed_photo_upload_failed">The photo could not be uploaded; posted without it</string>
     <string name="profile_my_contributions">My contributions</string>
     <string name="submissions_tab_proposals">PROPOSALS</string>
     <string name="submissions_tab_contributions">CONTRIBUTIONS</string>

@@ -47,6 +47,7 @@ import androidx.compose.material.icons.outlined.GpsFixed
 import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.Icon
@@ -1104,7 +1105,7 @@ private fun InnerMap(
             lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
                 (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
             wasProject = pt.wasProject,
-            onPublish = { always, caption ->
+            onPublish = { always, caption, photoUri ->
                 if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
                     ctx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
                 pendingTick = null
@@ -1112,7 +1113,17 @@ private fun InnerMap(
                     val r = viewModel.toggleLine(
                         pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
                     if (r.getOrNull() == true) {
-                        viewModel.publishTickToFeed(pt.block, pt.line, pt.wasProject, caption)
+                        viewModel.publishTickToFeed(
+                            pt.block, pt.line, pt.wasProject, caption,
+                            photoUri = photoUri?.toString(),
+                            onPhotoUploadFailed = {
+                                // Toast discreto: el post queda publicado sin foto.
+                                android.widget.Toast.makeText(
+                                    ctx, R.string.feed_photo_upload_failed,
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
                     }
                 }
             },
@@ -1899,13 +1910,32 @@ private data class PendingTick(
 private fun FeedPublishSheet(
     lineLabel: String,
     wasProject: Boolean,
-    onPublish: (always: Boolean, caption: String?) -> Unit,
+    onPublish: (always: Boolean, caption: String?, photoUri: Uri?) -> Unit,
     onDiaryOnly: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var always by remember { mutableStateOf(false) }
     // Descripción opcional del autor (viaja como "caption", max 500).
     var caption by remember { mutableStateOf("") }
+    // Foto de celebración: SIEMPRE hecha en el momento con la cámara del
+    // sistema (TakePicture sobre un URI del FileProvider; el usuario elige
+    // frontal/trasera en la propia app de cámara). Sin permiso CAMERA en el
+    // Manifest → no hace falta runtime permission para ACTION_IMAGE_CAPTURE.
+    val photoCtx = LocalContext.current
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.TakePicture()
+    ) { ok -> if (ok) photoUri = pendingCameraUri }
+    fun launchCamera() {
+        val dir = java.io.File(photoCtx.cacheDir, "feed").apply { mkdirs() }
+        val file = java.io.File(dir, "celebration-${System.currentTimeMillis()}.jpg")
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            photoCtx, "${photoCtx.packageName}.fileprovider", file
+        )
+        pendingCameraUri = uri
+        runCatching { cameraLauncher.launch(uri) }
+    }
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.background
@@ -1951,6 +1981,70 @@ private fun FeedPublishSheet(
                 shape = RoundedCornerShape(2.dp)
             )
             Spacer(Modifier.height(Spacing.md))
+            // Foto de celebración (opcional): fila para abrir la cámara o
+            // miniatura con ✕ para quitarla/repetir.
+            val currentPhoto = photoUri
+            if (currentPhoto == null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                        .clip(RoundedCornerShape(2.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                        .clickable { launchCamera() }
+                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Icon(
+                        Icons.Outlined.PhotoCamera,
+                        contentDescription = null,
+                        tint = Terra,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        stringResource(R.string.feed_add_celebration_photo),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Box {
+                        coil.compose.AsyncImage(
+                            model = currentPhoto,
+                            contentDescription = stringResource(R.string.feed_celebration_photo),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier.size(width = 88.dp, height = 110.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+                        )
+                        // ✕ quita la foto (se puede volver a hacer otra).
+                        Box(
+                            Modifier.align(Alignment.TopEnd).padding(4.dp)
+                                .size(22.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(Color.Black.copy(alpha = 0.55f))
+                                .clickable { photoUri = null },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("✕", color = Color.White,
+                                style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                    Text(
+                        stringResource(R.string.feed_retake_celebration_photo),
+                        style = EyebrowTextStyle,
+                        color = Terra,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .clickable { launchCamera() }
+                            .padding(Spacing.sm)
+                    )
+                }
+            }
+            Spacer(Modifier.height(Spacing.md))
             // Checkbox "Publicar siempre sin preguntar".
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1976,7 +2070,7 @@ private fun FeedPublishSheet(
                 Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
                     .background(Terra)
-                    .clickable { onPublish(always, caption.trim().ifBlank { null }) }
+                    .clickable { onPublish(always, caption.trim().ifBlank { null }, photoUri) }
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
