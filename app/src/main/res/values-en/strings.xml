@@ -1,7 +1,7 @@
 <resources>
     <!-- Feed Comunidad (EN). El resto de claves cae al default (ES). -->
-    <string name="tab_community">Community</string>
-    <string name="feed_title">Community</string>
+    <string name="tab_community">Feed</string>
+    <string name="feed_title">Feed</string>
     <string name="feed_tab_explore">Explore</string>
     <string name="feed_tab_following">Following</string>
     <string name="feed_tab_mine">Mine</string>
@@ -55,4 +55,17 @@
     <string name="feed_posts_section">Posts</string>
     <string name="feed_posts_empty">No posts yet.</string>
     <string name="feed_load_more">LOAD MORE</string>
+    <string name="feed_caption_hint">Add a description (optional)</string>
+    <string name="feed_my_posts_section">My posts</string>
+    <string name="profile_my_contributions">My contributions</string>
+    <string name="submissions_tab_proposals">PROPOSALS</string>
+    <string name="submissions_tab_contributions">CONTRIBUTIONS</string>
+    <string name="submissions_empty_proposals">No proposals yet</string>
+    <string name="submissions_empty_contributions">No contributions yet</string>
+    <string name="submissions_empty_message">From a school map (+ PROPOSE) or with "+ Submit school" you can propose parkings, boulders, sectors or new schools. You\'ll see their status here.</string>
+    <!-- Tipo de inicio (mismas claves que el editor de topos) -->
+    <string name="topo_editor_start_sit">Sit</string>
+    <string name="topo_editor_start_stand">Stand</string>
+    <string name="topo_editor_start_jump">Dyno</string>
+    <string name="topo_editor_start_trav">Trav.</string>
 </resources>

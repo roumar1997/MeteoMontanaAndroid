@@ -1,9 +1,9 @@
 package com.meteomontana.android.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DynamicFeed
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.List
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -17,14 +17,17 @@ sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
     data object Weather  : Tab("weather",  "Radar",    Icons.Outlined.Radar)
     data object Schools  : Tab("schools",  "Escuelas", Icons.Outlined.List)
     data object Meetups  : Tab("meetups",  "Quedadas", Icons.Outlined.Groups)
-    data object Community : Tab("community", "Comunidad", Icons.Outlined.People)
+    // "Feed" (mismo nombre ES/EN); icono de tarjetas apiladas, distinto de
+    // las personas de Quedadas/Perfil. La ruta sigue siendo "community"
+    // (estado guardado / enlaces existentes).
+    data object Community : Tab("community", "Feed", Icons.Outlined.DynamicFeed)
     data object Profile  : Tab("profile-tab", "Perfil", Icons.Outlined.Person)
 }
 
-// Perfil como pestaña desde 2026-07-03; Comunidad (feed social + ranking)
-// desde 2026-07-10. El Radar es la vista principal de la primera pestaña
-// (conmutador TIEMPO ⇄ RADAR dentro) — 5 pestañas.
-val mainTabs = listOf(Tab.Weather, Tab.Schools, Tab.Meetups, Tab.Community, Tab.Profile)
+// Perfil como pestaña desde 2026-07-03; Feed (feed social + ranking) desde
+// 2026-07-10 (renombrado de "Comunidad" el 2026-07-13). Orden:
+// Radar, Feed, Escuelas, Quedadas, Perfil.
+val mainTabs = listOf(Tab.Weather, Tab.Community, Tab.Schools, Tab.Meetups, Tab.Profile)
 
 object Routes {
     const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}&viaId={viaId}"

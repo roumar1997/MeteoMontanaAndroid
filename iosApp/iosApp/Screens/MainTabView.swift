@@ -1,11 +1,11 @@
 import SwiftUI
 
 // Barra de tabs inferior — réplica de MainScreen.kt / NavGraph.kt de Android:
-// Radar (radar + conmutador TIEMPO ⇄ RADAR) · Escuelas · Quedadas ·
-// Comunidad (feed social + ranking) · Perfil. La pestaña Radar suelta
+// Radar (radar + conmutador TIEMPO ⇄ RADAR) · Feed (feed social + ranking,
+// antes "Comunidad") · Escuelas · Quedadas · Perfil. La pestaña Radar suelta
 // desapareció: el radar ES la vista por defecto de la primera pestaña.
 struct MainTabView: View {
-    @State private var tab = 1 // 0=Radar/Tiempo, 1=Escuelas, 2=Quedadas, 3=Comunidad, 4=Perfil
+    @State private var tab = 2 // 0=Radar/Tiempo, 1=Feed, 2=Escuelas, 3=Quedadas, 4=Perfil — arranca en Escuelas
 
     init() {
         // Tab bar con estilo Cumbre: fondo papel, acento terracota.
@@ -21,14 +21,16 @@ struct MainTabView: View {
             WeatherRadarTab()
                 .tabItem { Label("Radar", systemImage: "dot.radiowaves.left.and.right") }
                 .tag(0)
+            // "Feed": icono de tarjetas apiladas (≈ DynamicFeed de Android),
+            // distinto de las personas de Quedadas/Perfil.
+            FeedView()
+                .tabItem { Label(NSLocalizedString("tab_community", comment: ""), systemImage: "square.stack") }
+                .tag(1)
             SchoolListView()
                 .tabItem { Label(NSLocalizedString("tab_schools", comment: ""), systemImage: "list.bullet") }
-                .tag(1)
+                .tag(2)
             MeetupsView()
                 .tabItem { Label(NSLocalizedString("tab_meetups", comment: ""), systemImage: "person.3") }
-                .tag(2)
-            FeedView()
-                .tabItem { Label(NSLocalizedString("tab_community", comment: ""), systemImage: "person.2") }
                 .tag(3)
             AccountView(showClose: false)
                 .tabItem { Label("Perfil", systemImage: "person.crop.circle") }

@@ -1104,7 +1104,7 @@ private fun InnerMap(
             lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
                 (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
             wasProject = pt.wasProject,
-            onPublish = { always ->
+            onPublish = { always, caption ->
                 if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
                     ctx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
                 pendingTick = null
@@ -1112,7 +1112,7 @@ private fun InnerMap(
                     val r = viewModel.toggleLine(
                         pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
                     if (r.getOrNull() == true) {
-                        viewModel.publishTickToFeed(pt.block, pt.line, pt.wasProject)
+                        viewModel.publishTickToFeed(pt.block, pt.line, pt.wasProject, caption)
                     }
                 }
             },
@@ -1899,11 +1899,13 @@ private data class PendingTick(
 private fun FeedPublishSheet(
     lineLabel: String,
     wasProject: Boolean,
-    onPublish: (always: Boolean) -> Unit,
+    onPublish: (always: Boolean, caption: String?) -> Unit,
     onDiaryOnly: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var always by remember { mutableStateOf(false) }
+    // Descripción opcional del autor (viaja como "caption", max 500).
+    var caption by remember { mutableStateOf("") }
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.background
@@ -1935,6 +1937,20 @@ private fun FeedPublishSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(Spacing.md))
+            // Descripción opcional del post.
+            androidx.compose.material3.OutlinedTextField(
+                value = caption,
+                onValueChange = { if (it.length <= 500) caption = it },
+                placeholder = {
+                    Text(stringResource(R.string.feed_caption_hint),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4,
+                shape = RoundedCornerShape(2.dp)
+            )
+            Spacer(Modifier.height(Spacing.md))
             // Checkbox "Publicar siempre sin preguntar".
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1960,7 +1976,7 @@ private fun FeedPublishSheet(
                 Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
                     .background(Terra)
-                    .clickable { onPublish(always) }
+                    .clickable { onPublish(always, caption.trim().ifBlank { null }) }
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {

@@ -55,8 +55,9 @@ data class UserFeedUiState(
 
 /**
  * Posts de UN usuario para su perfil público (GET /api/feed?scope=user&uid=…).
- * El uid sale del SavedStateHandle del destino users/{uid}. El backend
- * devuelve lista vacía si el perfil es privado y no le sigues (nunca 404).
+ * El uid sale del SavedStateHandle del destino users/{uid}; si NO hay uid
+ * (perfil PROPIO, pestaña/hoja Perfil) usa scope=mine. El backend devuelve
+ * lista vacía si el perfil es privado y no le sigues (nunca 404).
  */
 @HiltViewModel
 class UserFeedViewModel @Inject constructor(
@@ -66,10 +67,13 @@ class UserFeedViewModel @Inject constructor(
     private val unlikePost: UnlikeFeedPostUseCase,
     private val getComments: GetFeedCommentsUseCase,
     private val addCommentUseCase: AddFeedCommentUseCase,
-    private val deleteCommentUseCase: DeleteFeedCommentUseCase
+    private val deleteCommentUseCase: DeleteFeedCommentUseCase,
+    private val deletePostUseCase: com.meteomontana.android.domain.usecase.feed.DeleteFeedPostUseCase
 ) : ViewModel() {
 
-    private val uid: String = checkNotNull(savedStateHandle["uid"])
+    // null = perfil propio → scope "mine" (sin uid).
+    private val uid: String? = savedStateHandle.get<String>("uid")
+    private val scope: String = if (uid != null) FeedScope.USER else FeedScope.MINE
 
     private val _state = MutableStateFlow(UserFeedUiState())
     val state: StateFlow<UserFeedUiState> = _state.asStateFlow()
@@ -78,7 +82,7 @@ class UserFeedViewModel @Inject constructor(
 
     fun load() {
         viewModelScope.launch {
-            runCatching { getFeedPage(FeedScope.USER, before = null, limit = PAGE, uid = uid) }
+            runCatching { getFeedPage(scope, before = null, limit = PAGE, uid = uid) }
                 .onSuccess { page ->
                     _state.value = UserFeedUiState(
                         posts = page, loading = false, endReached = page.size < PAGE
@@ -94,7 +98,7 @@ class UserFeedViewModel @Inject constructor(
         val lastId = s.posts.lastOrNull()?.id ?: return
         _state.value = s.copy(loadingMore = true)
         viewModelScope.launch {
-            runCatching { getFeedPage(FeedScope.USER, before = lastId, limit = PAGE, uid = uid) }
+            runCatching { getFeedPage(scope, before = lastId, limit = PAGE, uid = uid) }
                 .onSuccess { page ->
                     val known = _state.value.posts.map { it.id }.toSet()
                     _state.value = _state.value.copy(
@@ -119,6 +123,16 @@ class UserFeedViewModel @Inject constructor(
                         p.copy(likedByMe = post.likedByMe, likeCount = post.likeCount)
                     }
                 }
+        }
+    }
+
+    /** Borra un post propio (optimista: lo quita de la lista y llama al server). */
+    fun deletePost(post: FeedPost) {
+        val previous = _state.value.posts
+        _state.value = _state.value.copy(posts = previous.filter { it.id != post.id })
+        viewModelScope.launch {
+            runCatching { deletePostUseCase(post.id) }
+                .onFailure { _state.value = _state.value.copy(posts = previous) }
         }
     }
 
@@ -153,6 +167,11 @@ class UserFeedViewModel @Inject constructor(
 fun UserFeedSection(
     onOpenUser: (uid: String) -> Unit,
     onOpenSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit,
+    /** Título de la sección (perfil propio usa "Mis publicaciones"). */
+    titleRes: Int = R.string.feed_posts_section,
+    /** true en el perfil PROPIO: recarga en ON_RESUME (post nuevo tras marcar
+     *  una vía) y permite borrar los posts propios. */
+    ownProfile: Boolean = false,
     viewModel: UserFeedViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -160,11 +179,24 @@ fun UserFeedSection(
     val hiddenIds by moderation.hiddenIds.collectAsState()
     var commentsPost by remember { mutableStateOf<FeedPost?>(null) }
     var reportPost by remember { mutableStateOf<FeedPost?>(null) }
+    var deleteCandidate by remember { mutableStateOf<FeedPost?>(null) }
+
+    // Perfil propio: refresca al volver a primer plano (patrón ON_RESUME).
+    if (ownProfile) {
+        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+        androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+            val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.load()
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+    }
 
     if (state.loading) return
     Column(Modifier.fillMaxWidth()) {
         Text(
-            stringResource(R.string.feed_posts_section).uppercase(),
+            stringResource(titleRes).uppercase(),
             style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(vertical = 8.dp)
@@ -186,7 +218,7 @@ fun UserFeedSection(
                         onOpenUser = onOpenUser,
                         onToggleLike = { viewModel.toggleLike(post) },
                         onOpenComments = { commentsPost = post },
-                        onDelete = {},
+                        onDelete = { if (post.mine) deleteCandidate = post },
                         onReport = if (!post.mine) ({ reportPost = post }) else null
                     )
                 }
@@ -217,6 +249,25 @@ fun UserFeedSection(
             deleteComment = viewModel::deleteComment,
             onOpenUser = onOpenUser,
             onDismiss = { commentsPost = null }
+        )
+    }
+
+    deleteCandidate?.let { post ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { deleteCandidate = null },
+            title = { Text(stringResource(R.string.feed_delete_post)) },
+            text = { Text(stringResource(R.string.feed_delete_post_confirm)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.deletePost(post)
+                    deleteCandidate = null
+                }) { Text(stringResource(R.string.common_delete), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { deleteCandidate = null }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
         )
     }
 

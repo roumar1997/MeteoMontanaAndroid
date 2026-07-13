@@ -230,7 +230,9 @@ fun FeedPostDetailScreen(
                                 onToggleLike = { viewModel.toggleLike() },
                                 onOpenComments = {},
                                 onDelete = {},
-                                onReport = if (!post.mine) ({ reportPost = true }) else null
+                                onReport = if (!post.mine) ({ reportPost = true }) else null,
+                                // Detalle: la caption se ve ENTERA.
+                                captionMaxLines = Int.MAX_VALUE
                             )
                         }
                         item {

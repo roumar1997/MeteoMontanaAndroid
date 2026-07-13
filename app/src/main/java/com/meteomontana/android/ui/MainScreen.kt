@@ -432,7 +432,13 @@ fun MainScreen(
                         onOpenRoutes = { openSheet(Routes.journalEntries("discipline:ROUTE")) },
                         onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
                         onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
-                        onOpenProjects = { openSheet(Routes.projects(null)) }
+                        onOpenProjects = { openSheet(Routes.projects(null)) },
+                        onOpenFeedUser = { uid -> openSheet(Routes.publicProfile(uid)) },
+                        onOpenFeedSchool = { schoolId, lineId, lineName ->
+                            navController.navigate(
+                                Routes.schoolDetail(schoolId, via = lineName, viaId = lineId)
+                            )
+                        }
                     )
                 }
                         tabContainer(Tab.Community.route) {
@@ -563,7 +569,11 @@ fun MainScreen(
                             onOpenRoutes = { sheetNav.navigate(Routes.journalEntries("discipline:ROUTE")) },
                             onOpenAllSchools = { sheetNav.navigate(Routes.journalSchools(null)) },
                             onOpenMaxGrade = { sheetNav.navigate(Routes.journalEntries("grade-max")) },
-                            onOpenProjects = { sheetNav.navigate(Routes.projects(null)) }
+                            onOpenProjects = { sheetNav.navigate(Routes.projects(null)) },
+                            onOpenFeedUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
+                            onOpenFeedSchool = { schoolId, lineId, lineName ->
+                                openFullScreen(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                            }
                         )
                     }
                     composable(Routes.EDIT_PROFILE) {

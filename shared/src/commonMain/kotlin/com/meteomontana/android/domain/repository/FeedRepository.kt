@@ -15,7 +15,13 @@ interface FeedRepository {
     suspend fun getPost(postId: Long): FeedPost
     /** Publica un ascenso; devuelve el id del post creado (idempotente en el server).
      *  Ids del backend = String (UUID), se mandan tal cual. */
-    suspend fun publish(blockId: String, lineId: String?, kind: String, discipline: String? = null): Long
+    suspend fun publish(
+        blockId: String,
+        lineId: String?,
+        kind: String,
+        discipline: String? = null,
+        caption: String? = null
+    ): Long
     suspend fun deletePost(postId: Long)
     /** Devuelve el likeCount actualizado. */
     suspend fun like(postId: Long): Long
