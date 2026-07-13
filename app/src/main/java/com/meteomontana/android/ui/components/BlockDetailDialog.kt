@@ -111,7 +111,11 @@ fun BlockDetailDialog(
                 .fillMaxHeight(0.94f)   // tarjeta a pantalla (casi) completa, como el resto de sheets
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.md)
-                .padding(bottom = Spacing.md)
+                // Holgura abajo para que los últimos botones (p.ej. OPCIONES
+                // desplegado) queden por ENCIMA de la cápsula flotante de
+                // pestañas, que ahora está siempre visible y se dibuja sobre
+                // el contenido.
+                .padding(bottom = 100.dp)
         ) {
             // Header
             Row(
