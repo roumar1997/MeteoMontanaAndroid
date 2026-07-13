@@ -32,14 +32,21 @@ private final class CameraCoordinator: NSObject, UIImagePickerControllerDelegate
         _ picker: UIImagePickerController,
         didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
     ) {
+        var captured: UIImage?
         if let img = info[.originalImage] as? UIImage {
             // La cámara FRONTAL del picker devuelve el selfie volteado respecto
             // a la vista previa (efecto espejo horneado en los píxeles). Lo
             // volteamos para que quede como se vio. La trasera no se toca.
-            let isFront = picker.cameraDevice == .front
-            onCapture(img.baked(flipHorizontally: isFront))
+            captured = img.baked(flipHorizontally: picker.cameraDevice == .front)
         }
-        picker.dismiss(animated: true)
+        // Entregar la foto DESPUÉS de cerrar la cámara: si se entrega antes, el
+        // @Published cambia mientras la cámara todavía cubre la hoja y la
+        // miniatura no se refresca hasta el siguiente redibujado (bug: la foto
+        // no aparecía hasta escribir en la descripción).
+        let cb = onCapture
+        picker.dismiss(animated: true) {
+            if let captured { cb(captured) }
+        }
     }
 
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
