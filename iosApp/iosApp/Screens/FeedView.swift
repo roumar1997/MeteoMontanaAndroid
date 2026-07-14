@@ -988,6 +988,7 @@ struct FeedCommentRow: View {
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                 // Acciones: like (corazón + contador) y responder.
                 HStack(spacing: 4) {
+                    // Zona táctil ≥40pt (padding generoso), como las banderas.
                     if let onToggleLike {
                         Button(action: onToggleLike) {
                             HStack(spacing: 4) {
@@ -998,7 +999,8 @@ struct FeedCommentRow: View {
                                 }
                             }
                             .foregroundStyle(comment.likedByMe ? Cumbre.terra : Cumbre.ink3)
-                            .padding(.horizontal, 6).padding(.vertical, 6)
+                            .padding(.horizontal, 10).padding(.vertical, 12)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -1007,7 +1009,8 @@ struct FeedCommentRow: View {
                             Text("RESPONDER")
                                 .font(Cumbre.mono(10, .bold)).tracking(1.2)
                                 .foregroundStyle(Cumbre.ink3)
-                                .padding(.horizontal, 6).padding(.vertical, 6)
+                                .padding(.horizontal, 10).padding(.vertical, 12)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }

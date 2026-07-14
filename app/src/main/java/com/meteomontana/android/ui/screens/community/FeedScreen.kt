@@ -983,13 +983,14 @@ internal fun FeedCommentRow(
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 if (onToggleLike != null) {
+                    // Zona táctil ≥40dp (padding generoso), como las banderas.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier
                             .clip(RoundedCornerShape(2.dp))
                             .clickable(onClick = onToggleLike)
-                            .padding(horizontal = 6.dp, vertical = 6.dp)
+                            .padding(horizontal = 10.dp, vertical = 11.dp)
                     ) {
                         Icon(
                             if (comment.likedByMe) Icons.Filled.Favorite
@@ -1017,7 +1018,7 @@ internal fun FeedCommentRow(
                         modifier = Modifier
                             .clip(RoundedCornerShape(2.dp))
                             .clickable(onClick = onReply)
-                            .padding(horizontal = 6.dp, vertical = 6.dp)
+                            .padding(horizontal = 10.dp, vertical = 11.dp)
                     )
                 }
             }
