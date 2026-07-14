@@ -138,6 +138,10 @@ fun SchoolListScreen(
         return
     }
 
+    // Tras el tutorial: si el perfil aún no tiene username, obligar a elegirlo
+    // (solo sale si username == null en el servidor; reinstalar no lo re-muestra).
+    com.meteomontana.android.ui.onboarding.UsernameGate()
+
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,

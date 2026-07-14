@@ -60,6 +60,13 @@
     <string name="feed_reply">Responder</string>
     <string name="feed_replying_to">Respondiendo a %1$s</string>
     <string name="feed_comment_like">Me gusta</string>
+    <string name="username_gate_title">Elige tu nombre de usuario</string>
+    <string name="username_gate_body">Es tu identidad en Cumbre: aparece en tus comentarios, en el feed y en el enlace de tu perfil. Solo tienes que elegirlo una vez.</string>
+    <string name="username_gate_hint">ej: alvaro_jara</string>
+    <string name="username_gate_rules">3-20 caracteres: minúsculas, números y _</string>
+    <string name="username_gate_taken">Ese nombre de usuario ya está cogido</string>
+    <string name="username_gate_invalid">Formato no válido (3-20: minúsculas, números y _)</string>
+    <string name="username_gate_error">No se pudo guardar. Inténtalo de nuevo.</string>
     <string name="feed_comments_empty">Sé el primero en comentar.</string>
     <string name="feed_delete_post">Eliminar publicación</string>
     <string name="feed_delete_post_confirm">¿Eliminar esta publicación del feed?</string>

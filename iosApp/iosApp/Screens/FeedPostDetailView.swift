@@ -200,9 +200,9 @@ struct FeedPostDetailView: View {
                             onReply: {
                                 replyTo = comment
                                 // Mención automática (estilo Instagram).
-                                if let u = comment.author?.username {
-                                    let mention = "@" + u + " "
-                                    if !text.hasPrefix(mention) { text = mention + text }
+                                let mention = feedReplyMention(comment)
+                                if !mention.isEmpty, !text.hasPrefix(mention) {
+                                    text = mention + text
                                 }
                             })
                         Divider().overlay(Cumbre.rule)

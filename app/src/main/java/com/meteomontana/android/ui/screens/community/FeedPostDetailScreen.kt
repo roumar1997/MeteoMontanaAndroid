@@ -289,7 +289,7 @@ fun FeedPostDetailScreen(
                                 onToggleLike = { viewModel.toggleCommentLike(comment) },
                                 onReply = {
                                     replyTo = comment
-                                    val mention = comment.author?.username?.let { "@$it " } ?: ""
+                                    val mention = replyMention(comment)
                                     if (mention.isNotEmpty() && !text.startsWith(mention)) {
                                         text = mention + text
                                     }

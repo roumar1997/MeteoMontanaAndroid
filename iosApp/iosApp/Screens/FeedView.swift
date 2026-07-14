@@ -746,6 +746,14 @@ struct FeedPostCard: View {
 
 // MARK: - Hoja de comentarios (patrón de los comentarios de vías)
 
+/// Mención a insertar al responder: "@username " o, si el autor no tiene
+/// username, su nombre visible — así RESPONDER siempre cambia algo visible.
+func feedReplyMention(_ c: FeedComment) -> String {
+    if let u = c.author?.username { return "@" + u + " " }
+    if let n = c.author?.displayName { return n + " " }
+    return ""
+}
+
 /// Copia de un FeedComment con el estado de like cambiado (los data class de
 /// Kotlin llegan a Swift sin copy con defaults).
 func copyCommentLike(_ c: FeedComment, liked: Bool, count: Int64) -> FeedComment {
@@ -880,9 +888,9 @@ struct FeedCommentsSheet: View {
                             onReply: {
                                 replyTo = comment
                                 // Mención automática (estilo Instagram).
-                                if let u = comment.author?.username {
-                                    let mention = "@" + u + " "
-                                    if !text.hasPrefix(mention) { text = mention + text }
+                                let mention = feedReplyMention(comment)
+                                if !mention.isEmpty, !text.hasPrefix(mention) {
+                                    text = mention + text
                                 }
                             })
                         Divider().overlay(Cumbre.rule)

@@ -24,6 +24,13 @@
     <string name="feed_reply">Reply</string>
     <string name="feed_replying_to">Replying to %1$s</string>
     <string name="feed_comment_like">Like</string>
+    <string name="username_gate_title">Choose your username</string>
+    <string name="username_gate_body">It is your identity in Cumbre: it shows in your comments, in the feed and in your profile link. You only pick it once.</string>
+    <string name="username_gate_hint">e.g. alvaro_jara</string>
+    <string name="username_gate_rules">3-20 characters: lowercase, digits and _</string>
+    <string name="username_gate_taken">That username is already taken</string>
+    <string name="username_gate_invalid">Invalid format (3-20: lowercase, digits and _)</string>
+    <string name="username_gate_error">Could not save. Try again.</string>
     <string name="feed_comments_empty">Be the first to comment.</string>
     <string name="feed_delete_post">Delete post</string>
     <string name="feed_delete_post_confirm">Delete this post from the feed?</string>

@@ -40,6 +40,10 @@ struct RootView: View {
     // Onboarding de primera apertura (persistido). Espejo de isOnboardingDone.
     // v2: tour ampliado (6 pasos). Subir la versión re-muestra el tour una vez.
     @AppStorage("onboarding_done_v2") private var onboardingDone = false
+    // Gate de username obligatorio tras el tutorial: condición del SERVIDOR
+    // (username == nil en /api/me), no de la instalación — reinstalar no lo
+    // re-muestra si ya lo tienes. nil = perfil aún sin cargar.
+    @State private var needsUsername: Bool? = nil
 
     var body: some View {
         Group {
@@ -50,6 +54,8 @@ struct RootView: View {
                     AppDependencies.shared.locationBridge.requestPermission()
                     onboardingDone = true
                 }
+            } else if needsUsername == true {
+                UsernameGateView { needsUsername = false }
             } else {
                 MainTabView()
             }
@@ -57,7 +63,12 @@ struct RootView: View {
         .preferredColorScheme(theme.colorScheme)
         .task(id: session.user?.uid) {
             guard session.user != nil else { return }
-            _ = try? await AppDependencies.shared.container.getMyProfile.invoke()
+            if let profile = try? await AppDependencies.shared.container.getMyProfile.invoke() {
+                needsUsername = profile.username == nil
+            } else {
+                // Offline: no bloqueamos la app; se reintenta al próximo arranque.
+                needsUsername = false
+            }
         }
     }
 }

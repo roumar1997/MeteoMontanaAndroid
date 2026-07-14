@@ -797,7 +797,7 @@ internal fun FeedCommentsSheet(
                                 replyTo = comment
                                 // Mención automática (estilo Instagram) para que se
                                 // vea a quién contestas también dentro del hilo.
-                                val mention = comment.author?.username?.let { "@$it " } ?: ""
+                                val mention = replyMention(comment)
                                 if (mention.isNotEmpty() && !text.startsWith(mention)) {
                                     text = mention + text
                                 }
@@ -896,6 +896,15 @@ internal fun FeedCommentsSheet(
  * raíz, estilo Instagram) en orden cronológico. Respuestas cuyo raíz no está
  * visible (borrado/oculto) van al final.
  */
+/**
+ * Mención a insertar en el campo al responder: "@username " o, si el autor no
+ * tiene username (p. ej. nunca se lo puso), su nombre visible — así pulsar
+ * RESPONDER siempre produce un cambio visible en el campo.
+ */
+internal fun replyMention(comment: FeedComment): String =
+    comment.author?.username?.let { "@$it " }
+        ?: comment.author?.displayName?.let { "$it " } ?: ""
+
 internal fun threadOrder(list: List<FeedComment>): List<FeedComment> {
     val byId = list.associateBy { it.id }
     fun rootIdOf(c: FeedComment): String {
