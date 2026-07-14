@@ -1060,13 +1060,15 @@ internal fun kindLabel(kind: String, discipline: String? = null): String = strin
     }
 )
 
-/** "hace 2 h" a partir de un createdAt "yyyy-MM-ddTHH:mm:ss" (hora del servidor). */
+/** "hace 2 h" a partir de un createdAt "yyyy-MM-ddTHH:mm:ss" (hora del servidor,
+ *  que es UTC — interpretarla como local sumaba 2h de error en España). */
 @Composable
 internal fun relativeTime(createdAt: String): String {
     val minutes = remember(createdAt) {
         runCatching {
             val t = java.time.LocalDateTime.parse(createdAt.take(19))
-            java.time.Duration.between(t, java.time.LocalDateTime.now()).toMinutes()
+                .toInstant(java.time.ZoneOffset.UTC)
+            java.time.Duration.between(t, java.time.Instant.now()).toMinutes()
                 .coerceAtLeast(0)
         }.getOrDefault(0L)
     }

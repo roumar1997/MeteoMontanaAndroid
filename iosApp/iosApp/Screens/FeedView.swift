@@ -53,7 +53,8 @@ func feedRelativeTime(_ createdAt: String) -> String {
     let df = DateFormatter()
     df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
     df.locale = Locale(identifier: "en_US_POSIX")
-    // Igual que Android: se interpreta en hora local del dispositivo.
+    // La hora del servidor es UTC (interpretarla como local sumaba 2h en España).
+    df.timeZone = TimeZone(identifier: "UTC")
     guard let date = df.date(from: String(createdAt.prefix(19))) else { return "" }
     let minutes = max(Int(Date().timeIntervalSince(date) / 60), 0)
     if minutes < 1 { return "ahora" }
