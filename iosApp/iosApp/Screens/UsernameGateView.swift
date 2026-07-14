@@ -29,7 +29,7 @@ struct UsernameGateView: View {
                 .padding(.top, 8).padding(.bottom, 20)
             HStack(spacing: 6) {
                 Text("@").font(.system(size: 15)).foregroundStyle(Cumbre.ink3)
-                TextField("ej: alvaro_jara", text: $username)
+                TextField("ej: ana_escaladora", text: $username)
                     .font(.system(size: 15))
                     .foregroundStyle(Cumbre.ink)
                     .textInputAutocapitalization(.never)

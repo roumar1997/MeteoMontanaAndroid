@@ -62,7 +62,7 @@
     <string name="feed_comment_like">Me gusta</string>
     <string name="username_gate_title">Elige tu nombre de usuario</string>
     <string name="username_gate_body">Es tu identidad en Cumbre: aparece en tus comentarios, en el feed y en el enlace de tu perfil. Solo tienes que elegirlo una vez.</string>
-    <string name="username_gate_hint">ej: alvaro_jara</string>
+    <string name="username_gate_hint">ej: ana_escaladora</string>
     <string name="username_gate_rules">3-20 caracteres: minúsculas, números y _</string>
     <string name="username_gate_taken">Ese nombre de usuario ya está cogido</string>
     <string name="username_gate_invalid">Formato no válido (3-20: minúsculas, números y _)</string>

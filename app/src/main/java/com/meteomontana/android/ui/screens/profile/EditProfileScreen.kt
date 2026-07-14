@@ -203,7 +203,7 @@ private fun EditForm(
         }
 
         Field("USERNAME", username, { username = it.lowercase().replace(" ", "_") },
-            placeholder = "ej: alvaro_jara")
+            placeholder = "ej: ana_escaladora")
         Field("NOMBRE PARA MOSTRAR", displayName, { displayName = it },
             placeholder = "Alvaro Jara")
         Field("BIO (max 150)", bio, { if (it.length <= 150) bio = it },
