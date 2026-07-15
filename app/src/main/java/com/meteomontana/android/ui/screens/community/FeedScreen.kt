@@ -79,6 +79,11 @@ fun FeedScreen(
     onOpenSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit,
     onOpenUser: (uid: String) -> Unit,
     onSearchUsers: () -> Unit,
+    // Abrir el detalle del post (pantalla PUBLICACIÓN a pantalla completa). Los
+    // comentarios se ven ahí, NO en un ModalBottomSheet: la hoja de Material se
+    // dibuja en su propia ventana y no empuja el campo por encima del teclado
+    // (el texto que escribías quedaba tapado). El detalle sí lo hace bien.
+    onOpenPost: (postId: String) -> Unit,
     viewModel: FeedViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -95,7 +100,6 @@ fun FeedScreen(
     }
 
     // Hoja de comentarios abierta (post seleccionado).
-    var commentsPost by remember { mutableStateOf<FeedPost?>(null) }
     // Confirmación de borrado del post propio.
     var deleteCandidate by remember { mutableStateOf<FeedPost?>(null) }
     // Denuncias (moderación): post pendiente de denunciar + ids ocultados al
@@ -189,23 +193,11 @@ fun FeedScreen(
                 onOpenSchool = onOpenSchool,
                 onOpenUser = onOpenUser,
                 onSearchUsers = onSearchUsers,
-                onOpenComments = { commentsPost = it },
+                onOpenComments = { onOpenPost(it.id.toString()) },
                 onDeletePost = { deleteCandidate = it },
                 onReportPost = { reportPost = it }
             )
         }
-    }
-
-    commentsPost?.let { post ->
-        FeedCommentsSheet(
-            post = post,
-            loadComments = viewModel::loadComments,
-            addComment = viewModel::addComment,
-            deleteComment = viewModel::deleteComment,
-            toggleCommentLike = viewModel::toggleCommentLike,
-            onOpenUser = onOpenUser,
-            onDismiss = { commentsPost = null }
-        )
     }
 
     // Hoja de denuncia de un post ajeno (target nuevo FEED_POST; mismo

@@ -446,7 +446,8 @@ fun MainScreen(
                             openSheet(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
                         },
                         onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
-                        onSearchUsers = { openSheet(Routes.SEARCH_USERS) }
+                        onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
+                        onOpenPost = { postId -> openSheet(Routes.feedPost(postId)) }
                     )
                 }
                         tabContainer(Tab.Meetups.route) {
@@ -472,7 +473,11 @@ fun MainScreen(
                             navController = navController,
                             openSheet = openSheet,
                             openFullScreen = openFullScreen,
-                            popSheetOrDismiss = popSheetOrDismiss
+                            popSheetOrDismiss = popSheetOrDismiss,
+                            // Lo que el Scaffold ya reservó abajo (cápsula de tabs +
+                            // navbar): las pantallas del overlay con teclado se lo
+                            // descuentan al imePadding para pegarse al teclado.
+                            bottomInset = effectivePadding.calculateBottomPadding()
                         )
                     }
                 }
@@ -514,7 +519,8 @@ private fun SheetOverlay(
     navController: androidx.navigation.NavHostController,
     openSheet: (String) -> Unit,
     openFullScreen: (String) -> Unit,
-    popSheetOrDismiss: () -> Unit
+    popSheetOrDismiss: () -> Unit,
+    bottomInset: androidx.compose.ui.unit.Dp = 0.dp
 ) {
     AnimatedVisibility(
         visible = sheetVisible,
@@ -551,7 +557,8 @@ private fun SheetOverlay(
                 navController = navController,
                 openSheet = openSheet,
                 openFullScreen = openFullScreen,
-                popSheetOrDismiss = popSheetOrDismiss
+                popSheetOrDismiss = popSheetOrDismiss,
+                bottomInset = bottomInset
             )
         }
     }
@@ -568,7 +575,8 @@ private fun SheetNavHost(
     navController: androidx.navigation.NavHostController,
     openSheet: (String) -> Unit,
     openFullScreen: (String) -> Unit,
-    popSheetOrDismiss: () -> Unit
+    popSheetOrDismiss: () -> Unit,
+    bottomInset: androidx.compose.ui.unit.Dp = 0.dp
 ) {
                 NavHost(
                     navController = sheetNav,
@@ -805,7 +813,8 @@ private fun SheetNavHost(
                     ) {
                         ChatScreen(
                             onBack = popSheetOrDismiss,
-                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
+                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
+                            bottomInset = bottomInset
                         )
                     }
                     composable(Routes.NEW_GROUP) {
@@ -823,7 +832,8 @@ private fun SheetNavHost(
                     ) {
                         GroupChatScreen(
                             onBack = popSheetOrDismiss,
-                            onOpenMeetup = { meetupId -> sheetNav.navigate(Routes.meetupDetail(meetupId)) }
+                            onOpenMeetup = { meetupId -> sheetNav.navigate(Routes.meetupDetail(meetupId)) },
+                            bottomInset = bottomInset
                         )
                     }
 
@@ -848,7 +858,8 @@ private fun SheetNavHost(
                             onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             onOpenSchool = { schoolId, lineId, lineName ->
                                 sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
-                            }
+                            },
+                            bottomInset = bottomInset
                         )
                     }
                     composable(Routes.SEARCH_USERS) {

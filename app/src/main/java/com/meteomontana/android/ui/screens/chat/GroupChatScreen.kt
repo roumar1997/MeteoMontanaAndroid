@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -277,6 +277,9 @@ class GroupChatViewModel @Inject constructor(
 fun GroupChatScreen(
     onBack: () -> Unit,
     onOpenMeetup: (String) -> Unit = {},
+    // Ver ChatScreen/FeedPostDetailScreen: descuenta lo reservado por el host
+    // para pegar el campo al teclado.
+    bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
     viewModel: GroupChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -286,6 +289,7 @@ fun GroupChatScreen(
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
+        .consumeWindowInsets(androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset))
         .imePadding()
     ) {
         // ── Toolbar del chat (sin SheetHeader para evitar solapamiento) ──
@@ -511,7 +515,6 @@ fun GroupChatScreen(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             }
             Row(modifier = Modifier.fillMaxWidth()
-                .navigationBarsPadding()
                 .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)) {

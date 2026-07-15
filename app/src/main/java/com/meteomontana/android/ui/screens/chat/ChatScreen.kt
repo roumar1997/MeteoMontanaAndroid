@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.isImeVisible
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
@@ -74,6 +74,10 @@ import java.util.Locale
 fun ChatScreen(
     onBack: () -> Unit,
     onOpenProfile: (String) -> Unit = {},
+    // Espacio ya reservado abajo por el host (cápsula de tabs + navbar). Se
+    // descuenta del imePadding para que el campo quede PEGADO al teclado, no
+    // flotando esa altura por encima. Ver FeedPostDetailScreen.
+    bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -82,6 +86,7 @@ fun ChatScreen(
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
+        .consumeWindowInsets(androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset))  // ver bottomInset
         .imePadding()
     ) {
         ChatSheetHeader(
@@ -165,7 +170,6 @@ fun ChatScreen(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             }
             Row(modifier = Modifier.fillMaxWidth()
-                .navigationBarsPadding()
                 .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)) {

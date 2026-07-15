@@ -8,15 +8,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
@@ -187,6 +186,11 @@ fun FeedPostDetailScreen(
     onBack: () -> Unit,
     onOpenUser: (uid: String) -> Unit,
     onOpenSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit,
+    // Espacio ya reservado abajo por el host (cápsula de pestañas + navbar del
+    // Scaffold que envuelve el overlay). Se lo "descontamos" al imePadding para
+    // que el campo de comentario quede PEGADO al teclado, no flotando por encima
+    // esa altura de cápsula. Paridad con iOS.
+    bottomInset: Dp = 0.dp,
     viewModel: FeedPostDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -246,14 +250,15 @@ fun FeedPostDetailScreen(
             }
             state.post != null -> {
                 val post = state.post!!
-                // Un solo inset inferior = MAX(teclado, navbar). Aplicar
-                // navigationBarsPadding() + imePadding() por separado cuenta la
-                // navbar dos veces con edge-to-edge → el campo flotaba muy por
-                // encima del teclado. La unión toma el mayor: con teclado abierto
-                // = altura teclado (que ya cubre la navbar); cerrado = navbar.
+                // El host (Scaffold de pestañas) ya reservó `bottomInset` abajo
+                // (cápsula de tabs + navbar). Se lo declaramos consumido para que
+                // imePadding() añada SOLO lo que falta hasta el teclado (ime −
+                // bottomInset). Sin teclado: 0 extra (el campo queda sobre la
+                // cápsula, como antes). Con teclado: el campo se pega al teclado.
                 Column(
                     Modifier.fillMaxSize()
-                        .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+                        .consumeWindowInsets(PaddingValues(bottom = bottomInset))
+                        .imePadding()
                 ) {
                     LazyColumn(
                         Modifier.fillMaxWidth().weight(1f),
