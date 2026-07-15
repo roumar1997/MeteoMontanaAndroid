@@ -159,6 +159,8 @@ class IosDependencyContainer(
     private val notificationApi = KtorNotificationApi(httpClient)
     private val socialApi = KtorSocialApi(httpClient)
     private val feedApi = com.meteomontana.android.data.api.KtorFeedApi(httpClient)
+    // Subida de fotos Tipo A a R2 vía backend (perfil/piedra/nota/quedada).
+    val photoApi = com.meteomontana.android.data.api.KtorPhotoApi(httpClient)
     private val submissionApi = KtorSubmissionApi(httpClient)
     private val contributionApi = KtorContributionApi(httpClient)
 

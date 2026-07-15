@@ -1,13 +1,16 @@
 package com.meteomontana.android.data.storage
 
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.storage.FirebaseStorage
+import com.meteomontana.android.data.api.KtorPhotoApi
 import com.meteomontana.android.domain.port.PhotoUploader
-import kotlinx.coroutines.tasks.await
 
+/**
+ * Sube las fotos Tipo A al BACKEND (que las guarda en Cloudflare R2, egress
+ * gratis) en vez de directas a Firebase. Mantiene el downscale a 2048 px antes
+ * de subir. El nombre de la clase queda por compatibilidad de wiring; ya no usa
+ * Firebase Storage.
+ */
 class FirebaseStoragePhotoUploader(
-    private val storage: FirebaseStorage,
-    private val auth: FirebaseAuth
+    private val photoApi: KtorPhotoApi
 ) : PhotoUploader {
 
     /**
@@ -39,45 +42,15 @@ class FirebaseStoragePhotoUploader(
         } catch (_: Throwable) { bytes }
     }
 
-    override suspend fun uploadBoulderPhoto(bytes: ByteArray, mimeType: String, schoolId: String): String {
-        val uid = auth.currentUser?.uid ?: error("Usuario no autenticado")
-        val ts = System.currentTimeMillis()
-        val ref = storage.reference.child("piedra-photos-pending/${uid}_${schoolId}_${ts}.jpg")
-        ref.putBytes(downscaleJpeg(bytes)).await()
-        return ref.downloadUrl.await().toString()
-    }
+    override suspend fun uploadBoulderPhoto(bytes: ByteArray, mimeType: String, schoolId: String): String =
+        photoApi.upload("boulder", downscaleJpeg(bytes), schoolId = schoolId)
 
-    override suspend fun uploadNotePhoto(bytes: ByteArray, mimeType: String, schoolId: String): String {
-        val uid = auth.currentUser?.uid ?: error("Usuario no autenticado")
-        val ts = System.currentTimeMillis()
-        val ref = storage.reference.child("note-photos/${uid}_${schoolId}_${ts}.jpg")
-        ref.putBytes(downscaleJpeg(bytes)).await()
-        return ref.downloadUrl.await().toString()
-    }
+    override suspend fun uploadNotePhoto(bytes: ByteArray, mimeType: String, schoolId: String): String =
+        photoApi.upload("note", downscaleJpeg(bytes), schoolId = schoolId)
 
-    override suspend fun uploadMeetupPhoto(bytes: ByteArray, mimeType: String, meetupId: String): String {
-        val uid = auth.currentUser?.uid ?: error("Usuario no autenticado")
-        val ts = System.currentTimeMillis()
-        val ref = storage.reference.child("meetup-photos/${meetupId}_${uid}_${ts}.jpg")
-        ref.putBytes(downscaleJpeg(bytes)).await()
-        return ref.downloadUrl.await().toString()
-    }
+    override suspend fun uploadMeetupPhoto(bytes: ByteArray, mimeType: String, meetupId: String): String =
+        photoApi.upload("meetup", downscaleJpeg(bytes), meetupId = meetupId)
 
-    override suspend fun uploadProfilePhoto(bytes: ByteArray, mimeType: String): String {
-        val uid = auth.currentUser?.uid ?: error("Usuario no autenticado")
-        val ext = when (mimeType) {
-            "image/png"  -> "png"
-            "image/webp" -> "webp"
-            else         -> "jpg"
-        }
-        val path = "profile-photos/${uid}.${ext}"
-        val log = co.touchlab.kermit.Logger.withTag("PhotoUploader")
-        log.i("uploadProfilePhoto path=$path size=${bytes.size}B uid=$uid")
-        val ref = storage.reference.child(path)
-        ref.putBytes(bytes).await()
-        log.i("putBytes ok, fetching downloadUrl")
-        val url = ref.downloadUrl.await().toString()
-        log.i("downloadUrl=$url")
-        return url
-    }
+    override suspend fun uploadProfilePhoto(bytes: ByteArray, mimeType: String): String =
+        photoApi.upload("profile", bytes)   // el perfil ya llega comprimido del picker
 }

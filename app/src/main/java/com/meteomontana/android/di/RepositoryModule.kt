@@ -69,8 +69,9 @@ object RepositoryModule {
         FirebaseChatService(firestore, auth)
 
     @Provides @Singleton
-    fun providePhotoUploader(storage: FirebaseStorage, auth: FirebaseAuth): PhotoUploader =
-        FirebaseStoragePhotoUploader(storage, auth)
+    fun providePhotoUploader(
+        photoApi: com.meteomontana.android.data.api.KtorPhotoApi
+    ): PhotoUploader = FirebaseStoragePhotoUploader(photoApi)
 
     @Provides @Singleton
     fun provideFileReader(@ApplicationContext context: Context): FileReader =
