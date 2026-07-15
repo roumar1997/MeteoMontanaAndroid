@@ -809,6 +809,7 @@ struct FeedCommentsSheet: View {
     @State private var reportComment: FeedComment? = nil
     /// Comentario al que se está respondiendo (banner sobre el campo).
     @State private var replyTo: FeedComment? = nil
+    @FocusState private var commentFocused: Bool
 
     private func patchComment(_ id: String, _ transform: (FeedComment) -> FeedComment) {
         comments = comments?.map { $0.id == id ? transform($0) : $0 }
@@ -926,6 +927,7 @@ struct FeedCommentsSheet: View {
                 .lineLimit(1...3)
                 .font(.system(size: 14))
                 .foregroundStyle(Cumbre.ink)
+                .focused($commentFocused)
                 .padding(.horizontal, 10).padding(.vertical, 9)
                 .background(Cumbre.paper)
                 .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
@@ -933,6 +935,10 @@ struct FeedCommentsSheet: View {
                 let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !t.isEmpty, !sending else { return }
                 sending = true
+                // Resignar el foco antes de vaciar (ver nota en FeedPostDetailView):
+                // con axis:.vertical un `text = ""` con el campo enfocado no limpia
+                // lo visible → el mensaje se quedaba y se podía reenviar.
+                commentFocused = false
                 Task {
                     if let created = await addComment(post.id, t, replyTo?.id) {
                         comments = (comments ?? []) + [created]

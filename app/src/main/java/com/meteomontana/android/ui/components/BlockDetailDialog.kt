@@ -673,7 +673,14 @@ private fun LineStarsRow(
     myStars: Int,
     onRate: (Int) -> Unit
 ) {
-    var localMy by remember(lineId, myStars) { mutableStateOf(myStars) }
+    // Estilo Google Play: las estrellas muestran la MEDIA (amarillo), y son
+    // tocables para votar. Tu toque se ve al instante (optimista) y luego el
+    // dato refrescado recalcula la media.
+    var pending by remember(lineId) { mutableStateOf<Int?>(null) }
+    androidx.compose.runtime.LaunchedEffect(avgStars, myStars) { pending = null }
+    val avgRounded = avgStars?.let { Math.round(it) } ?: 0
+    val shown = pending ?: avgRounded
+    val amber = Color(0xFFF59E0B)
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -681,26 +688,34 @@ private fun LineStarsRow(
         modifier = Modifier.padding(start = 26.dp, top = 2.dp, bottom = 4.dp)
     ) {
         for (i in 1..5) {
-            val filled = i <= localMy
+            val filled = i <= shown
             Text(
                 if (filled) "★" else "☆",
-                // titleLarge: las estrellas eran labelMedium y costaba acertarles.
                 style = MaterialTheme.typography.titleLarge,
-                color = if (filled) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (filled) amber else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .clip(CircleShape)
                     .clickable {
-                        val newStars = if (localMy == i) 0 else i  // tap mismo → borrar voto
-                        localMy = newStars
+                        val newStars = if (myStars == i) 0 else i   // re-tocar tu voto → quitarlo
+                        pending = newStars.takeIf { it > 0 }
                         onRate(newStars)
                     }
             )
         }
+        // Media numérica + marca discreta de tu voto.
         if (avgStars != null && avgStars > 0f) {
             Text(
                 "%.1f".format(avgStars),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+        if (myStars > 0) {
+            Text(
+                "· tu voto ${myStars}★",
+                style = MaterialTheme.typography.labelSmall,
+                color = amber,
                 modifier = Modifier.padding(start = 4.dp)
             )
         }

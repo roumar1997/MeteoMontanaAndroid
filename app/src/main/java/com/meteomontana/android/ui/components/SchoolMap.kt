@@ -462,16 +462,12 @@ private fun InnerMap(
         if (nearZoneIds.isNotEmpty()) collapsedSectors = collapsedSectors - nearZoneIds.toSet()
         mapRef.value?.let { map ->
             runCatching {
-                if (near.isEmpty()) {
-                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                        LatLng(parking.lat, parking.lon), 14.3))
-                } else {
-                    val pts = listOf(LatLng(parking.lat, parking.lon)) +
-                        near.map { LatLng(it.lat, it.lon) }
-                    val cLat = pts.sumOf { it.latitude } / pts.size
-                    val cLon = pts.sumOf { it.longitude } / pts.size
-                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(cLat, cLon), 14.5))
-                }
+                // Centrar SIEMPRE en el propio parking (antes usaba el centroide
+                // parking+piedras y el parking quedaba descentrado). Zoom un poco
+                // más cerca si hay elementos alrededor para dar contexto.
+                val zoom = if (near.isEmpty()) 14.3 else 14.6
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                    LatLng(parking.lat, parking.lon), zoom))
             }
         }
     }

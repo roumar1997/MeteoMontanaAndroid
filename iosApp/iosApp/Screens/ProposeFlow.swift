@@ -327,9 +327,18 @@ struct BoulderFormSheet: View {
         }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
+            let idx = faceIdx
             Task {
+                // loadTransferable a veces devuelve nil (foto en iCloud sin bajar
+                // aún): antes fallaba en silencio y la foto no aparecía.
                 if let data = try? await item.loadTransferable(type: Data.self),
-                   let img = UIImage(data: data) { faces[faceIdx].photo = img }
+                   let img = UIImage(data: data) {
+                    faces[idx].photo = img
+                    sendError = nil
+                } else {
+                    sendError = "No se pudo cargar la foto elegida (¿está en iCloud?). Elígela otra vez."
+                }
+                pickerItem = nil
             }
         }
         .sheet(isPresented: $showEditor) {
@@ -980,8 +989,17 @@ struct EditLinesSheet: View {
             guard let item else { return }
             let idx = faceIdx
             Task {
+                // loadTransferable a veces devuelve nil (foto en iCloud aún sin
+                // descargar, fallo transitorio): antes fallaba EN SILENCIO y la
+                // miniatura no aparecía. Ahora avisamos para reintentar.
                 if let data = try? await item.loadTransferable(type: Data.self),
-                   let img = UIImage(data: data) { facePicked[idx] = img }
+                   let img = UIImage(data: data) {
+                    facePicked[idx] = img
+                    sendError = nil
+                } else {
+                    sendError = "No se pudo cargar la foto elegida (¿está en iCloud?). Elígela otra vez."
+                }
+                pickerItem = nil   // permite volver a elegir la MISMA foto
             }
         }
         .sheet(isPresented: $showEditor) {

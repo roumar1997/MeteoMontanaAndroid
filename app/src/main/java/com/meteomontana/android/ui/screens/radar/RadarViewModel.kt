@@ -16,6 +16,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -99,20 +101,32 @@ class RadarViewModel @Inject constructor(
                 // nuevos y el play está listo en 1-2 segundos.
                 val opts = BitmapFactory.Options().apply { inSampleSize = 2 }
                 val gate = Semaphore(4)
+                // Los bitmaps se acumulan aquí; el estado se emite AGRUPADO cada
+                // ~120 ms (antes se emitía en CADA frame → con los frames cacheados
+                // llegando casi a la vez eran ~40 recomposiciones de golpe = tirón
+                // al abrir). Así el player arranca fluido.
+                val decoded = java.util.concurrent.ConcurrentHashMap<String, android.graphics.Bitmap>()
+                fun applyDecoded() {
+                    _state.value = _state.value.copy(
+                        frames = _state.value.frames.map { f ->
+                            decoded[f.ts]?.let { b -> if (f.bitmap == null) f.copy(bitmap = b) else f } ?: f
+                        })
+                }
+                val emitter = launch {
+                    while (isActive) { delay(120); if (decoded.isNotEmpty()) applyDecoded() }
+                }
                 thinned.reversed().map { ref ->
                     async(Dispatchers.IO) {
                         gate.withPermit {
                             try {
                                 val png = cachedFramePng(dto.radar, ref.ts)
-                                val bmp = BitmapFactory.decodeByteArray(png, 0, png.size, opts)
-                                _state.value = _state.value.copy(
-                                    frames = _state.value.frames.map {
-                                        if (it.ts == ref.ts) it.copy(bitmap = bmp) else it
-                                    })
+                                decoded[ref.ts] = BitmapFactory.decodeByteArray(png, 0, png.size, opts)
                             } catch (_: Exception) { /* frame perdido: la animación lo salta */ }
                         }
                     }
                 }.awaitAll()
+                emitter.cancel()
+                applyDecoded()   // emisión final con todos los frames
                 // Secuencia completa: el player ya puede animar sin saltos.
                 _state.value = _state.value.copy(framesLoading = false)
                 pruneFrameCache()
