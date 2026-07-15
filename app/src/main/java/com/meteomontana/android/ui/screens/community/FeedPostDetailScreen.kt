@@ -324,6 +324,9 @@ fun FeedPostDetailScreen(
                             )
                         }
                     }
+                    // Autocompletado de @menciones (encima del campo).
+                    com.meteomontana.android.ui.components.MentionSuggestions(
+                        text = text, onReplace = { text = it })
                     // Campo de respuesta inline.
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),

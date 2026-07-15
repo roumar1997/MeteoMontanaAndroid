@@ -598,13 +598,14 @@ internal fun FeedPostCard(
             // Descripción del autor (caption): recortada en la tarjeta, entera
             // en el detalle (tap en la tarjeta lo abre).
             post.caption?.takeIf { it.isNotBlank() }?.let { caption ->
-                Text(
-                    caption,
+                com.meteomontana.android.ui.components.MentionText(
+                    text = caption,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = captionMaxLines,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
+                    onOpenUser = onOpenUser
                 )
             }
         }
@@ -834,6 +835,9 @@ internal fun FeedCommentsSheet(
                     )
                 }
             }
+            // Autocompletado de @menciones (encima del campo).
+            com.meteomontana.android.ui.components.MentionSuggestions(
+                text = text, onReplace = { text = it })
             // Campo de texto + enviar.
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
@@ -972,10 +976,11 @@ internal fun FeedCommentRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                comment.text,
+            com.meteomontana.android.ui.components.MentionText(
+                text = comment.text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                onOpenUser = onOpenUser
             )
             // Acciones del comentario: like (corazón + contador) y responder.
             Row(

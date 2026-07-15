@@ -1967,6 +1967,9 @@ private fun FeedPublishSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(Spacing.md))
+            // Autocompletado de @menciones al escribir la descripción.
+            com.meteomontana.android.ui.components.MentionSuggestions(
+                text = caption, onReplace = { if (it.length <= 500) caption = it })
             // Descripción opcional del post.
             androidx.compose.material3.OutlinedTextField(
                 value = caption,

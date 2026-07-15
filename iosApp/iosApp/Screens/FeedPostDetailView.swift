@@ -224,6 +224,7 @@ struct FeedPostDetailView: View {
                 }
                 .padding(.horizontal, 16)
             }
+            MentionSuggestionsView(text: $text)
             // Campo de respuesta inline.
             HStack(spacing: 8) {
                 TextField("Escribe un comentario…", text: $text, axis: .vertical)

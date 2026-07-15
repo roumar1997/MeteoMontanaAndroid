@@ -89,6 +89,8 @@ struct FeedPublishSheet: View {
                 .padding(.horizontal, 12).padding(.vertical, 10)
                 .background(Cumbre.paper)
                 .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+            // Autocompletado de @menciones al escribir la descripción.
+            MentionSuggestionsView(text: $caption)
                 .onChange(of: caption) { _, new in
                     if new.count > 500 { caption = String(new.prefix(500)) }
                 }

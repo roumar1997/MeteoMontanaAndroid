@@ -661,8 +661,7 @@ struct FeedPostCard: View {
                 // Descripción del autor (caption): recortada en la tarjeta,
                 // entera en el detalle (captionMaxLines = nil).
                 if let caption = post.caption, !caption.isEmpty {
-                    Text(caption)
-                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                    MentionText(text: caption, onOpenUser: onOpenUser)
                         .lineLimit(captionMaxLines)
                         .padding(.top, 4)
                 }
@@ -840,6 +839,7 @@ struct FeedCommentsSheet: View {
             Divider().overlay(Cumbre.rule)
             commentsList
             replyBanner
+            MentionSuggestionsView(text: $text)
             inputRow
         }
         .background(Cumbre.bg.ignoresSafeArea())
@@ -984,8 +984,7 @@ struct FeedCommentRow: View {
                     Text(feedRelativeTime(comment.createdAt))
                         .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                 }
-                Text(comment.text)
-                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                MentionText(text: comment.text, onOpenUser: onOpenUser)
                 // Acciones: like (corazón + contador) y responder.
                 HStack(spacing: 4) {
                     // Zona táctil ≥40pt (padding generoso), como las banderas.
