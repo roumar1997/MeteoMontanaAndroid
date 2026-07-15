@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -243,7 +246,15 @@ fun FeedPostDetailScreen(
             }
             state.post != null -> {
                 val post = state.post!!
-                Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
+                // Un solo inset inferior = MAX(teclado, navbar). Aplicar
+                // navigationBarsPadding() + imePadding() por separado cuenta la
+                // navbar dos veces con edge-to-edge → el campo flotaba muy por
+                // encima del teclado. La unión toma el mayor: con teclado abierto
+                // = altura teclado (que ya cubre la navbar); cerrado = navbar.
+                Column(
+                    Modifier.fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+                ) {
                     LazyColumn(
                         Modifier.fillMaxWidth().weight(1f),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)

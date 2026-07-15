@@ -213,6 +213,15 @@ fun RadarScreen(
     val isNow = state.day == RadarDay.HOY &&
             readyFrames.isNotEmpty() && frameIndex == readyFrames.size - 1
 
+    // Scrubber estable durante la carga: la lista COMPLETA (state.frames) tiene
+    // tamaño fijo desde el primer instante; readyFrames crece mientras entran los
+    // PNGs. Si el rango del slider crece a la vez que frameIndex (que lo fija un
+    // effect con lag), el thumb baila ~1 s al abrir. Mientras framesLoading, se
+    // ancla el thumb a la derecha (AHORA) con rango de la lista completa → quieto.
+    val scrubberMax = (if (state.framesLoading) state.frames.size else readyFrames.size)
+        .minus(1).coerceAtLeast(1).toFloat()
+    val scrubberValue = if (state.framesLoading) scrubberMax else frameIndex.toFloat()
+
     // ── El mapa ES la pantalla; todo lo demás flota encima.
     Box(Modifier.fillMaxSize()) {
         AndroidView(
@@ -414,23 +423,24 @@ fun RadarScreen(
                 }
                 Column(Modifier.weight(1f)) {
                     Slider(
-                        value = frameIndex.toFloat(),
+                        value = scrubberValue,
+                        enabled = !state.framesLoading,
                         onValueChange = {
                             playing = false
                             frameIndex = it.toInt()
                                 .coerceIn(0, (readyFrames.size - 1).coerceAtLeast(0))
                         },
-                        valueRange = 0f..(readyFrames.size - 1).coerceAtLeast(1).toFloat(),
+                        valueRange = 0f..scrubberMax,
                         colors = SliderDefaults.colors(
                             thumbColor = Terra, activeTrackColor = Terra,
                             inactiveTrackColor = MaterialTheme.colorScheme.outline
                                 .copy(alpha = 0.4f)))
                     Row(Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(readyFrames.firstOrNull()?.timeLabel ?: "",
+                        Text(state.frames.firstOrNull()?.timeLabel ?: "",
                             style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(readyFrames.lastOrNull()?.timeLabel ?: "",
+                        Text(state.frames.lastOrNull()?.timeLabel ?: "",
                             style = EyebrowTextStyle,
                             color = if (isNow) Terra
                                     else MaterialTheme.colorScheme.onSurfaceVariant)

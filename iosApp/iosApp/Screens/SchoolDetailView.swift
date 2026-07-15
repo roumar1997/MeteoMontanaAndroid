@@ -1110,12 +1110,10 @@ private struct SchoolMapSection: View {
             if b.type.uppercased() == "ZONE" { collapsedSectors.remove(b.id) }
             if let sid = b.sectorBlockId { collapsedSectors.remove(sid) }
         }
-        let pts = [CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)]
-            + near.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-        let cLat = pts.map { $0.latitude }.reduce(0, +) / Double(pts.count)
-        let cLon = pts.map { $0.longitude }.reduce(0, +) / Double(pts.count)
+        // Centrar EN el parking pulsado (no en el centroide del parking + cercanos,
+        // que dejaba el parking descentrado). Paridad con Android.
         focusFit = []
-        focusCoord = CLLocationCoordinate2D(latitude: cLat, longitude: cLon)
+        focusCoord = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)
         focusToken += 1
     }
 
