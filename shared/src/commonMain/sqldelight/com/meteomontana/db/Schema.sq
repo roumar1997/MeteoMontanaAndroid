@@ -63,6 +63,9 @@ upsertMonthly:
 INSERT OR REPLACE INTO MonthlyStats(schoolId, monthsJson, bestRange, fetchedAt)
 VALUES (?, ?, ?, ?);
 
+monthlyDeleteAll:
+DELETE FROM MonthlyStats;
+
 -- ─── SavedSchool queries ─────────────────────────────────────────────────────
 findSchool:
 SELECT * FROM SavedSchool WHERE id = ?;
@@ -154,6 +157,9 @@ upsertProfile:
 INSERT OR REPLACE INTO CachedProfile(uid, username, displayName, photoUrl, bio, topGrade, isPublic, updatedAt)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
+profilesDeleteAll:
+DELETE FROM CachedProfile;
+
 -- ─── Outbox: peticiones encoladas para enviar cuando vuelva la conexión ──────
 CREATE TABLE Outbox (
     id          INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -228,3 +234,6 @@ DELETE FROM CachedMeetup WHERE id = ?;
 
 deleteExpiredMeetups:
 DELETE FROM CachedMeetup WHERE expiresAt <= ?;
+
+meetupsDeleteAll:
+DELETE FROM CachedMeetup;

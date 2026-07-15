@@ -32,6 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -283,6 +285,11 @@ private fun Body(
 ) {
     val p = s.profile
     val locked = p.locked
+    // Foto a pantalla completa con zoom al tocar el avatar (si tiene foto).
+    var zoomPhoto by remember { mutableStateOf<String?>(null) }
+    zoomPhoto?.let { url ->
+        com.meteomontana.android.ui.components.FullScreenPhotoDialog(url) { zoomPhoto = null }
+    }
     Column(modifier = Modifier.fillMaxSize()
         .verticalScroll(rememberScrollState())
         .padding(16.dp)) {
@@ -292,7 +299,8 @@ private fun Body(
             if (p.photoUrl != null) {
                 AsyncImage(model = p.photoUrl, contentDescription = null,
                     modifier = Modifier.size(96.dp).clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                        .clickable { zoomPhoto = p.photoUrl })
             } else {
                 Image(painter = painterResource(R.drawable.logo_cumbre), contentDescription = null,
                     modifier = Modifier.size(96.dp).clip(CircleShape)
@@ -314,16 +322,8 @@ private fun Body(
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }
-            if (!locked && !p.topGrade.isNullOrBlank()) {
-                Spacer(Modifier.height(12.dp))
-                Box(modifier = Modifier
-                    .clip(RoundedCornerShape(2.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)) {
-                    Text("TOPE ${p.topGrade}", style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary)
-                }
-            }
+            // El grado tope ya NO es manual: se muestra automático desde el
+            // diario en la fila de stats (TOPE BLOQUE / TOPE VÍA más abajo).
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                 FollowCount(s.status.followers, stringResource(R.string.profile_followers).uppercase(),
@@ -428,10 +428,16 @@ private fun ActivityStatsRow(
             StatBox(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick)
             StatBox(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick)
         }
-        Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick)
-            StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick)
+        // Grados tope automáticos (del diario). Se oculta el que no tenga datos:
+        // quien solo hace bloque no ve "TOPE VÍA" vacío (y al revés).
+        val hasBoulder = !stats.maxBoulderGrade.isNullOrBlank()
+        val hasRoute = !stats.maxRouteGrade.isNullOrBlank()
+        if (hasBoulder || hasRoute) {
+            Row(modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (hasBoulder) StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade!!, Modifier.weight(1f), onMaxClick)
+                if (hasRoute) StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade!!, Modifier.weight(1f), onMaxClick)
+            }
         }
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {

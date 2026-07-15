@@ -356,6 +356,12 @@ struct RadarView: View {
                 for await (ts, img) in group {
                     if let img, let idx = frames.firstIndex(where: { $0.ts == ts }) {
                         frames[idx].image = img
+                        // Mientras cargan (descarga del más reciente al más
+                        // antiguo, desordenada), fijar la vista en el más reciente
+                        // ("ahora") en vez de la posición 0, que iba saltando/
+                        // retrocediendo según llegaban los frames. El play arranca
+                        // ordenado al terminar (startAnim resetea a 0).
+                        frameIndex = max(readyFrames.count - 1, 0)
                     }
                     addNext(&group)
                 }

@@ -208,12 +208,13 @@ private fun EditForm(
             placeholder = "Alvaro Jara")
         Field("BIO (max 150)", bio, { if (it.length <= 150) bio = it },
             placeholder = "Cuéntate en una línea", height = 80.dp)
-        // GRADO MÁXIMO: ahora se calcula automáticamente desde tu diario.
+        // GRADO MÁXIMO: automático desde el diario (tope de bloque y de vía por
+        // separado). Ya no es manual → no hay campo, solo el aviso.
         Column(modifier = Modifier.fillMaxWidth()) {
             Text("GRADO MÁXIMO",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(if (topGrade.isBlank()) "Se calcula desde tu diario" else "$topGrade · automático",
+            Text("Se calcula solo desde tu diario",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary)
         }

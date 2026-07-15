@@ -104,6 +104,7 @@ final class AccountViewModel: ObservableObject {
     /// (RootView) vuelve a la pantalla de acceso al desaparecer la sesión.
     func deleteMyAccount() async {
         _ = try? await deleteAccount.invoke()
+        AppDependencies.shared.container.localCacheCleaner?.clearServerCaches()
         authBridge.signOut {}
     }
 
@@ -176,6 +177,7 @@ struct AccountView: View {
     @State private var showAddBlock = false
     @State private var showDeleteConfirm = false
     @State private var showHintsReset = false
+    @State private var zoomUrl: String? = nil   // foto de perfil a pantalla completa
 
     private let authBridge = AppDependencies.shared.authBridge
 
@@ -239,6 +241,13 @@ struct AccountView: View {
                 }
             }
             .task { await vm.load() }
+            .fullScreenCover(isPresented: Binding(
+                get: { zoomUrl != nil },
+                set: { if !$0 { zoomUrl = nil } })) {
+                if let url = zoomUrl {
+                    FullScreenPhotoView(photoUrl: url) { zoomUrl = nil }
+                }
+            }
         }
     }
 
@@ -260,6 +269,7 @@ struct AccountView: View {
         // AvatarCircle cachea en disco → se ve offline (igual que el resto de avatares).
         let photo = vm.profile?.photoUrl?.isEmpty == false ? vm.profile?.photoUrl : authBridge.currentPhotoUrl()
         return AvatarCircle(url: photo, size: 88)
+            .onTapGesture { if let p = photo, !p.isEmpty { zoomUrl = p } }
     }
 
     private var names: some View {
@@ -411,6 +421,9 @@ struct AccountView: View {
 
     private var signOutButton: some View {
         Button {
+            // Limpiar cachés del servidor (preserva outbox y guardados offline)
+            // para no arrastrar datos viejos/de otra cuenta al re-loguear.
+            AppDependencies.shared.container.localCacheCleaner?.clearServerCaches()
             authBridge.signOut {}
             dismiss()
         } label: {

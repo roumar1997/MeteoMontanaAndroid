@@ -262,6 +262,14 @@ final class SchoolListViewModel: ObservableObject {
     /// Recarga el contador de no leídas (al cerrar la bandeja de notificaciones).
     func refreshUnread() async { await loadUnread() }
 
+    /// Reintenta cargar la ubicación si aún no la tenemos (p. ej. al primer
+    /// arranque, cuando el permiso se concede DESPUÉS de cargar la lista → sin
+    /// esto salían todas las escuelas ignorando el filtro de 50 km hasta
+    /// reabrir la app; espeja el onLocationGranted() de Android).
+    func refreshLocationIfNeeded() async {
+        if userLat == nil { await loadLocation() }
+    }
+
     private func loadLocation() async {
         guard locationBridge.hasPermission() else { return }
         if let loc = try? await locationProvider?.current() {
@@ -330,6 +338,7 @@ final class SchoolListViewModel: ObservableObject {
 
 struct SchoolListView: View {
     @StateObject private var vm = SchoolListViewModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
@@ -429,6 +438,12 @@ struct SchoolListView: View {
                 CompareView(schools: vm.filtered.filter { vm.compareSelection.contains($0.id) })
             }
             .task { await vm.load() }
+            // Al volver a activo (p. ej. tras aceptar el permiso de ubicación en
+            // el primer arranque) reintenta cargar la ubicación si falta, para
+            // que el filtro de 50 km se aplique sin tener que reabrir la app.
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await vm.refreshLocationIfNeeded() } }
+            }
             .refreshable { await vm.refresh() }
         }
     }

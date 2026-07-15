@@ -182,11 +182,14 @@ struct PublicProfileView: View {
     // Moderación: denunciar / bloquear a este usuario (menú superior).
     @ObservedObject private var moderation = ModerationStore.shared
     @State private var showReport = false
+    @State private var zoomPhoto = false   // foto de perfil a pantalla completa
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
+                // Avatar ampliable con zoom al tocarlo (si tiene foto).
                 AvatarCircle(url: vm.profile?.photoUrl, size: 88)
+                    .onTapGesture { if vm.profile?.photoUrl != nil { zoomPhoto = true } }
                 Text(vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")
                     .font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
                 if let u = vm.profile?.username, !u.isEmpty {
@@ -209,12 +212,8 @@ struct PublicProfileView: View {
                         Text(bio).font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
                             .multilineTextAlignment(.center).padding(.horizontal, 24)
                     }
-                    if let g = vm.profile?.topGrade, !g.isEmpty {
-                        Text("TOPE \(g.uppercased())").font(Cumbre.mono(10, .bold)).tracking(1.0)
-                            .foregroundStyle(Cumbre.terra)
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
-                    }
+                    // El grado tope ya NO es manual: se ve automático (MÁX BLOQUE /
+                    // MÁX VÍA del diario) en la sección DIARIO de abajo.
                     if let s = vm.status {
                         HStack(spacing: 24) {
                             NavigationLink(destination: FollowListView(uid: uid, mode: .followers)) {
@@ -254,6 +253,11 @@ struct PublicProfileView: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $zoomPhoto) {
+            if let url = vm.profile?.photoUrl {
+                FullScreenPhotoView(photoUrl: url) { zoomPhoto = false }
+            }
+        }
         .toolbar {
             // Compartir el perfil: imagen 1080×1920 (formato historia) →
             // Instagram Stories, WhatsApp... + enlace /s/u/ (paridad Android).
@@ -472,23 +476,50 @@ struct FollowListView: View {
     let uid: String
     let mode: FollowListMode
     @StateObject private var vm = FollowListViewModel()
+    @State private var query = ""
 
     private var myUid: String? { AppDependencies.shared.authBridge.currentUid() }
     // Solo puedo eliminar seguidores en MI propia lista de "Seguidores".
     private var canRemove: Bool { mode == .followers && uid == myUid }
 
+    /// Lista filtrada por el buscador (nombre o @usuario).
+    private var filtered: [PublicProfile] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return vm.items }
+        return vm.items.filter {
+            ($0.displayName?.lowercased().contains(q) ?? false) ||
+            ($0.username?.lowercased().contains(q) ?? false)
+        }
+    }
+
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            // Buscador dentro de la lista (por nombre o @usuario).
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink3)
+                TextField("Buscar en la lista…", text: $query)
+                    .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+            }
+            .padding(.horizontal, 12).padding(.vertical, 9)
+            .background(Cumbre.paper)
+            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            Divider().overlay(Cumbre.rule)
+
+            Group {
             if vm.loading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if vm.items.isEmpty {
-                Text(mode == .followers ? "Sin seguidores" : "No sigue a nadie")
+            } else if filtered.isEmpty {
+                Text(vm.items.isEmpty
+                     ? (mode == .followers ? "Sin seguidores" : "No sigue a nadie")
+                     : "Nadie coincide con la búsqueda")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(vm.items, id: \.uid) { u in
+                        ForEach(filtered, id: \.uid) { u in
                             HStack(spacing: 8) {
                                 NavigationLink(destination: PublicProfileView(uid: u.uid)) {
                                     UserRow(profile: u)
@@ -508,7 +539,8 @@ struct FollowListView: View {
                     }
                 }
             }
-        }
+            }   // cierra el Group
+        }       // cierra el VStack (buscador + contenido)
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(mode == .followers ? NSLocalizedString("profile_followers", comment: "") : NSLocalizedString("profile_following", comment: ""))
         .navigationBarTitleDisplayMode(.inline)

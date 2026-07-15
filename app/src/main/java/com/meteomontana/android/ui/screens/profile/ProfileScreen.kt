@@ -227,7 +227,7 @@ private fun Content(
                 shareDisplayName = profile.displayName ?: profile.username ?: "Escalador/a",
                 shareUsername = profile.username,
                 sharePhotoUrl = profile.photoUrl,
-                shareTopGrade = profile.topGrade,
+                shareTopGrade = stats.maxGrade,   // automático (antes profile.topGrade manual)
                 shareBio = profile.bio,
                 shareStats = stats
             )
@@ -325,6 +325,11 @@ private fun Header(
     onClickFollowers: () -> Unit = {},
     onClickFollowing: () -> Unit = {}
 ) {
+    // Foto a pantalla completa con zoom al tocar el avatar.
+    var zoomPhoto by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    zoomPhoto?.let { url ->
+        com.meteomontana.android.ui.components.FullScreenPhotoDialog(url) { zoomPhoto = null }
+    }
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -341,6 +346,7 @@ private fun Header(
                     contentDescription = null,
                     modifier = Modifier.size(96.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                        .clickable { zoomPhoto = p.photoUrl }
                 )
             }
         } else {

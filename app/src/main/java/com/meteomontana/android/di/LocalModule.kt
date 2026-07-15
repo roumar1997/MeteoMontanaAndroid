@@ -37,6 +37,10 @@ object LocalModule {
         CachedSchoolsRepository(db)
 
     @Provides @Singleton
+    fun provideLocalCacheCleaner(db: MeteoMontanaDb): com.meteomontana.android.data.local.LocalCacheCleaner =
+        com.meteomontana.android.data.local.LocalCacheCleaner(db)
+
+    @Provides @Singleton
     fun provideOfflineTileManager(@ApplicationContext ctx: Context):
         com.meteomontana.android.data.map.OfflineTileManager =
         com.meteomontana.android.data.map.OfflineTileManager(ctx)

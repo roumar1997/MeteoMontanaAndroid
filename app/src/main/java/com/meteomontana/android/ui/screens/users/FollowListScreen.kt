@@ -26,7 +26,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -186,6 +190,7 @@ fun FollowListScreen(
     viewModel: FollowListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    var query by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
@@ -199,6 +204,16 @@ fun FollowListScreen(
             Text(viewModel.title, style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
+        // Buscador dentro de la lista (por nombre o @usuario).
+        androidx.compose.material3.OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            placeholder = { Text(stringResource(R.string.follow_search_hint)) },
+            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+            singleLine = true,
+            shape = RoundedCornerShape(2.dp)
+        )
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
@@ -209,13 +224,19 @@ fun FollowListScreen(
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }
             is FollowListUiState.Success -> {
-                if (s.items.isEmpty()) {
+                val q = query.trim().lowercase()
+                val visible = if (q.isEmpty()) s.items else s.items.filter {
+                    (it.displayName?.lowercase()?.contains(q) == true) ||
+                    (it.username?.lowercase()?.contains(q) == true)
+                }
+                if (visible.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("Vacío", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (q.isEmpty()) "Vacío" else stringResource(R.string.follow_search_empty),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     LazyColumn {
-                        items(s.items, key = { it.uid }) { u ->
+                        items(visible, key = { it.uid }) { u ->
                             UserRow(
                                 u = u,
                                 onClick = { onUserClick(u.uid) },

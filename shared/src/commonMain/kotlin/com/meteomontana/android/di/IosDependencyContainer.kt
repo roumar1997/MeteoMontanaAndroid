@@ -317,6 +317,10 @@ class IosDependencyContainer(
     // caché; el cálculo lo hace el backend. Null si no hay BD.
     val monthlyStats: MonthlyStatsRepository? = database?.let { MonthlyStatsRepository(it, schoolApi) }
 
+    // Limpieza de cachés al cerrar sesión (preserva outbox y guardados offline).
+    val localCacheCleaner: com.meteomontana.android.data.local.LocalCacheCleaner? =
+        database?.let { com.meteomontana.android.data.local.LocalCacheCleaner(it) }
+
     // Quedadas (meetups): lista, detalle, crear, unirse, salir, expulsar.
     // La caché local (SQLDelight) permite ver la lista offline.
     val getMeetups: GetMeetupsUseCase? = meetupCache?.let { GetMeetupsUseCase(meetupApi, it) }

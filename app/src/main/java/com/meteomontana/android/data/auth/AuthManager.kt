@@ -36,7 +36,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val firebaseAuth: FirebaseAuth
+    private val firebaseAuth: FirebaseAuth,
+    private val cacheCleaner: com.meteomontana.android.data.local.LocalCacheCleaner
 ) {
     sealed interface AuthState {
         data object Loading : AuthState
@@ -120,6 +121,10 @@ class AuthManager @Inject constructor(
         try {
             credentialManager.clearCredentialState(ClearCredentialStateRequest())
         } catch (_: Throwable) {}
+        // Limpiar cachés derivadas del servidor (meses, catálogo, perfiles,
+        // quedadas) para no arrastrar datos viejos/de otra cuenta. Preserva
+        // outbox y guardados offline. Nunca debe tumbar el logout.
+        try { cacheCleaner.clearServerCaches() } catch (_: Throwable) {}
         _authState.value = AuthState.SignedOut
     }
 

@@ -94,7 +94,13 @@ struct EditProfileView: View {
                     avatarPicker
                     field("NOMBRE", text: $vm.displayName, placeholder: "Tu nombre")
                     field("USUARIO", text: $vm.username, placeholder: "usuario", lower: true)
-                    field("GRADO TOPE", text: $vm.topGrade, placeholder: "p. ej. 7b+")
+                    // El grado tope ya NO es manual: se calcula solo desde el diario
+                    // (tope de bloque y de vía por separado). Sin campo editable.
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("GRADO MÁXIMO").eyebrow()
+                        Text("Se calcula solo desde tu diario")
+                            .font(.system(size: 15)).foregroundStyle(Cumbre.terra)
+                    }
                     VStack(alignment: .leading, spacing: 6) {
                         Text("BIO").eyebrow()
                         TextField("Sobre ti…", text: $vm.bio, axis: .vertical)
