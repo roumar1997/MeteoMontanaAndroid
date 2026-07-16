@@ -236,24 +236,43 @@ private fun Content(
     // Deep-link a una piedra/vía (feed o diario): la sección del mapa vive en un
     // item PEREZOSO al fondo de esta lista → hasta que no se compone, el
     // auto-abrir no corre (la ficha solo se abría al scrollear, o tras muchos
-    // segundos). Scroll programático por pasos hasta que el mapa se compone y
-    // consume el deep-link (iOS no lo sufre: su detalle es ScrollView no lazy).
+    // segundos). Scroll programático hasta que el mapa se compone y consume el
+    // deep-link (iOS no lo sufre: su detalle es ScrollView no lazy). El scroll
+    // queda OCULTO tras un velo de carga (abajo) para que no se vea el salto.
     val pendingBlock by viewModel.autoOpenBlockId.collectAsState()
     val pendingVia by viewModel.autoOpenVia.collectAsState()
     val pendingViaId by viewModel.autoOpenViaId.collectAsState()
+    // El velo permanece mientras el deep-link sigue pendiente (cargando bloques/
+    // forecast o scrolleando). Se retira al abrirse la ficha — o al agotar los
+    // intentos (objetivo inexistente: vía renombrada, piedra borrada...).
+    var deepLinkGaveUp by remember { mutableStateOf(false) }
+    val opening = !deepLinkGaveUp &&
+        (pendingBlock != null || pendingVia != null || pendingViaId != null)
     androidx.compose.runtime.LaunchedEffect(forecast, blocks, pendingBlock, pendingVia, pendingViaId) {
         if (pendingBlock == null && pendingVia == null && pendingViaId == null) return@LaunchedEffect
         if (blocks.isEmpty() || forecast == null) return@LaunchedEffect
         var attempts = 0
-        while (attempts++ < 40 &&
+        while (attempts++ < 60 &&
             (viewModel.autoOpenBlockId.value != null ||
              viewModel.autoOpenVia.value != null ||
              viewModel.autoOpenViaId.value != null)
         ) {
-            listState.scrollBy(1200f)
-            kotlinx.coroutines.delay(30)
+            listState.scrollBy(2000f)
+            // Un frame entre pasos: suficiente para componer los items nuevos.
+            androidx.compose.runtime.withFrameNanos { }
+        }
+        if (viewModel.autoOpenBlockId.value != null ||
+            viewModel.autoOpenVia.value != null ||
+            viewModel.autoOpenViaId.value != null
+        ) {
+            // No se encontró el objetivo: retira el velo y vuelve arriba.
+            deepLinkGaveUp = true
+            viewModel.consumeAutoOpenVia()
+            viewModel.consumeAutoOpenBlock()
+            listState.scrollToItem(0)
         }
     }
+    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
     LazyColumn(modifier = Modifier.fillMaxSize(), state = listState) {
         item {
             com.meteomontana.android.ui.components.FirstTimeHint(
@@ -323,6 +342,21 @@ private fun Content(
             MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
         }
         item { Spacer(Modifier.height(40.dp)) }
+    }
+    // Velo de carga del deep-link: tapa la lista (y el scroll programático)
+    // mientras se abre la piedra — la transición queda: entrar → carga breve →
+    // ficha abierta, como en iOS.
+    if (opening) {
+        Box(
+            Modifier.fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            androidx.compose.material3.CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
     }
 }
 
