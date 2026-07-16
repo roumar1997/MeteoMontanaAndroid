@@ -528,6 +528,11 @@ i18n ES/EN completo, alerta de tiempo/quedadas configurable, ayuda/onboarding
 contextual, comparador de escuelas, admin completo (propuestas, gestión de
 bloques, stats, logs, push manual).
 
+**📅 PLAN PARA LA SESIÓN DEL 2026-07-17 (acordado con Rodrigo — ir paso a paso, él pide cada uno):**
+A. Cerrar release 2.18.5: (1) checks finales Xiaomi (compartir 2 posts distintos, piedra nueva con líneas, trazar muro), (2) checks iPhone build 88 (compartir piedra nueva, chat en foreground), (3) subir `Desktop\cumbre-2.18.5-vc64.aab` a Play, (4) ASC versión 2.18.5 con build 88.
+B. Preparar Instagram automático: (5) IG de Cumbre → cuenta profesional, (6) página de Facebook vinculada, (7) Rodrigo pasa plantillas/ejemplos de historias.
+C. Montar automatización (ver memoria `project_n8n_instagram.md`): (8) diseñar plantillas Cumbre, (9) endpoint datos + generador de imágenes en el backend, (10) app de Meta con instagram_content_publish, (11) n8n en Railway + workflow historia diaria condiciones Madrid, (12) workflow posts de piedras nuevas.
+
 **🔜 Pendiente / acciones de Rodrigo (no bloqueante):**
 - App Store: responder el **cuestionario de redes sociales** de la
   clasificación por edades (banner azul en la ficha) — límite 2026-09-07.
