@@ -84,10 +84,17 @@ fun ProfileScreen(
     onOpenProjects: () -> Unit = {},
     // Fila "Mis publicaciones" → pantalla dedicada con el feed propio (scope=mine).
     onOpenMyPosts: () -> Unit = {},
+    /** En la pestaña keep-alive: true cuando la pestaña Perfil está visible.
+     *  Recarga al hacerse visible (los ON_RESUME no saltan al cambiar de tab). */
+    visible: Boolean = true,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
     var addBlockOpen by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(visible) {
+        if (visible) viewModel.load()
+    }
 
     // Recarga el perfil cada vez que la pantalla vuelve a primer plano
     // (p.ej. al cerrar EditarPerfil con foto nueva).

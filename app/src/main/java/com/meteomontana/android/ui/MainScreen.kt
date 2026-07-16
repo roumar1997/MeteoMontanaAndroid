@@ -414,6 +414,10 @@ fun MainScreen(
                     com.meteomontana.android.ui.screens.profile.ProfileScreen(
                         onBack = {},
                         showClose = false,
+                        // Keep-alive: la pestaña no se recompone al volver a ella →
+                        // el perfil quedaba RANCIO tras marcar vías (solo refrescaba
+                        // al reabrir la app). Recarga al hacerse visible la pestaña.
+                        visible = selectedTab == Tab.Profile.route,
                         onEdit = { openSheet(Routes.EDIT_PROFILE) },
                         onSubmissions = { openSheet(Routes.MY_SUBMISSIONS) },
                         onAdmin = { openFullScreen(Routes.ADMIN) },

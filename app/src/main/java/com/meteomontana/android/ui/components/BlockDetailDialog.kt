@@ -94,16 +94,11 @@ fun BlockDetailDialog(
     var showLinePicker by remember { mutableStateOf(false) }
     val tickedLines = remember { mutableStateListOf<String>().apply { addAll(initiallyTicked) } }   // vías hechas
     val projectLines = remember { mutableStateListOf<String>().apply { addAll(initiallyProjects) } } // vías proyecto
-    // El diario puede llegar DESPUÉS de abrirse la ficha (ahora abre en <1s):
-    // cuando llegue, añadimos sus ✓/P a lo que el usuario ya haya tocado.
-    // Solo AÑADE (no quita): si el usuario acaba de desmarcar algo, un valor
-    // viejo del flow no debe re-marcarlo — el flow ya no contendrá esa vía.
-    androidx.compose.runtime.LaunchedEffect(initiallyTicked) {
-        initiallyTicked.forEach { if (it !in tickedLines) tickedLines.add(it) }
-    }
-    androidx.compose.runtime.LaunchedEffect(initiallyProjects) {
-        initiallyProjects.forEach { if (it !in projectLines && it !in tickedLines) projectLines.add(it) }
-    }
+    // NOTA: NO sincronizamos ✓/P con el diario mientras la ficha está abierta.
+    // Se intentó (LaunchedEffect sobre initiallyTicked) y salió mal: el diario
+    // identifica vías POR NOMBRE → dos vías homónimas ("La ola" x2) se marcaban
+    // a la vez en vivo. El estado visual es del usuario; la carrera de guardado
+    // ya la resuelve el parámetro explícito nowDone de onTickLine.
     val context = LocalContext.current
     val shareScope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }
