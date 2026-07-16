@@ -46,7 +46,6 @@ import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.components.BlocksSection
 import com.meteomontana.android.ui.components.MonthlyStatsSection
 import com.meteomontana.android.ui.components.NotesSection
-import com.meteomontana.android.ui.components.forecastBody
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.Spacing
