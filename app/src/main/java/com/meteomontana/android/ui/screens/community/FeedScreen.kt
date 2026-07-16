@@ -510,14 +510,28 @@ internal fun FeedPostCard(
                     post.schoolId?.let { onOpenSchool(it, post.lineId, post.lineName) }
                 }
             ) {
+                // Post de ascenso/vía nueva: SU línea. Post de piedra nueva
+                // (NEW_BLOCK, sin lineId): TODAS las vías de la cara portada
+                // (blockLines, campo del backend — antes la foto salía pelada).
+                val blockLines = remember(post.blockLines) {
+                    post.blockLines.orEmpty().mapNotNull { l ->
+                        val pts = parseLineStroke(l.linePath).points
+                        if (pts.isEmpty()) null
+                        else TopoLine(name = l.name, grade = l.grade,
+                            startType = l.startType, points = pts)
+                    }
+                }
                 TopoPhotoCanvas(
                     photoUrl = post.photoPath!!,
-                    lines = if (points.isNotEmpty()) listOf(
-                        TopoLine(
-                            name = post.lineName, grade = post.grade,
-                            startType = post.startType, points = points
+                    lines = when {
+                        points.isNotEmpty() -> listOf(
+                            TopoLine(
+                                name = post.lineName, grade = post.grade,
+                                startType = post.startType, points = points
+                            )
                         )
-                    ) else emptyList()
+                        else -> blockLines
+                    }
                 )
                 // Miniatura de la foto de celebración superpuesta arriba-derecha.
                 if (celebrationUrl != null) {

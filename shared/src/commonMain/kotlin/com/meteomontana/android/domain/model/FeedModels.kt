@@ -41,7 +41,17 @@ data class FeedPost(
     /** Descripción del autor (max 500) o null. */
     val caption: String? = null,
     /** URL firmada de la foto de celebración o null. */
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    /** Solo NEW_BLOCK: vías de la cara portada (dibujarlas sobre la foto). */
+    val blockLines: List<FeedLine>? = null
+)
+
+/** Vía de la cara portada de un post NEW_BLOCK. */
+data class FeedLine(
+    val name: String?,
+    val grade: String?,
+    val startType: String?,
+    val linePath: String?
 )
 
 data class FeedComment(

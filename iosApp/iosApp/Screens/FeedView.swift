@@ -265,7 +265,8 @@ func copyPost(_ p: FeedPost, likedByMe: Bool? = nil, likeCount: Int64? = nil,
         likedByMe: likedByMe ?? p.likedByMe,
         commentCount: commentCount ?? p.commentCount,
         mine: p.mine,
-        startType: p.startType, caption: p.caption, photoUrl: p.photoUrl)
+        startType: p.startType, caption: p.caption, photoUrl: p.photoUrl,
+        blockLines: p.blockLines)
 }
 
 // MARK: - Vista principal
@@ -636,9 +637,19 @@ struct FeedPostCard: View {
 
     private var postLines: [TopoLineVM] {
         let points = TopoParse.points(post.linePath)
-        guard !points.isEmpty else { return [] }
-        return [TopoLineVM(id: post.lineId ?? "feed", name: post.lineName,
-                           grade: post.grade, startType: post.startType, points: points)]
+        if !points.isEmpty {
+            return [TopoLineVM(id: post.lineId ?? "feed", name: post.lineName,
+                               grade: post.grade, startType: post.startType, points: points)]
+        }
+        // Piedra nueva (NEW_BLOCK, sin lineId): todas las vías de la cara
+        // portada (blockLines del backend — antes la foto salía sin líneas).
+        guard let lines = post.blockLines else { return [] }
+        return lines.enumerated().compactMap { idx, l in
+            let pts = TopoParse.points(l.linePath)
+            guard !pts.isEmpty else { return nil }
+            return TopoLineVM(id: "feed-\(idx)", name: l.name,
+                              grade: l.grade, startType: l.startType, points: pts)
+        }
     }
 
     // ── Texto: «vía · grado — piedra · escuela · roca» ──

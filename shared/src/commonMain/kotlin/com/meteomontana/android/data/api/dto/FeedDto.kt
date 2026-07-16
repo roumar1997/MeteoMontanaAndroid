@@ -2,6 +2,7 @@ package com.meteomontana.android.data.api.dto
 
 import com.meteomontana.android.domain.model.FeedAuthor
 import com.meteomontana.android.domain.model.FeedComment
+import com.meteomontana.android.domain.model.FeedLine
 import com.meteomontana.android.domain.model.FeedPost
 import kotlinx.serialization.Serializable
 
@@ -43,7 +44,18 @@ data class FeedPostDto(
     /** Descripción del autor (max 500) o null. */
     val caption: String? = null,
     /** URL firmada de la foto de celebración o null (campo nuevo, retrocompatible). */
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    /** Solo NEW_BLOCK: vías de la cara portada para dibujarlas sobre la foto. */
+    val blockLines: List<FeedLineDto>? = null
+)
+
+/** Vía de la cara portada de un post NEW_BLOCK (espejo de FeedLineView del back). */
+@Serializable
+data class FeedLineDto(
+    val name: String? = null,
+    val grade: String? = null,
+    val startType: String? = null,
+    val linePath: String? = null
 )
 
 @Serializable
@@ -108,7 +120,10 @@ fun FeedPostDto.toDomain() = FeedPost(
     photoPath = photoPath, linePath = linePath,
     likeCount = likeCount, likedByMe = likedByMe,
     commentCount = commentCount, mine = mine,
-    startType = startType, caption = caption, photoUrl = photoUrl
+    startType = startType, caption = caption, photoUrl = photoUrl,
+    blockLines = blockLines?.map {
+        FeedLine(name = it.name, grade = it.grade, startType = it.startType, linePath = it.linePath)
+    }
 )
 
 fun FeedCommentDto.toDomain() = FeedComment(

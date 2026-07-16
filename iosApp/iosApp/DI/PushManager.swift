@@ -57,6 +57,21 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
             case "feed_post":
                 // Actividad del feed Comunidad → detalle del post.
                 if let id, !id.isEmpty { ShareLinkRouter.shared.target = ShareLinkRouter.Target(feedPostId: id) }
+            case "chat", "message":
+                // Mensaje 1-a-1 → conversación con el remitente (targetId = su uid;
+                // el title del push es su nombre). Antes caía en default → no navegaba.
+                if let id, !id.isEmpty {
+                    let name = response.notification.request.content.title
+                    ShareLinkRouter.shared.target =
+                        ShareLinkRouter.Target(chatPeerUid: id, chatPeerName: name)
+                }
+            case "group":
+                // Mensaje de grupo → chat del grupo (targetId = convId).
+                if let id, !id.isEmpty {
+                    let name = response.notification.request.content.title
+                    ShareLinkRouter.shared.target =
+                        ShareLinkRouter.Target(groupChatId: id, groupChatName: name)
+                }
             case "school", "school_detail":
                 if let id, !id.isEmpty {
                     Task {

@@ -60,7 +60,11 @@ class PushService : FirebaseMessagingService() {
 
         // PendingIntent que abre MainActivity con extras → MainActivity los lee y navega.
         val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            // SINGLE_TOP + launchMode singleTop: con la app ABIERTA el toque llega
+            // por onNewIntent() a la Activity viva (navega al chat) en vez de
+            // destruir y recrear la app entera (el deep link se perdía).
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("targetType", targetType)
             putExtra("targetId", targetId)
         }

@@ -17,6 +17,10 @@ final class ShareLinkRouter: ObservableObject {
         var userHandle: String? = nil
         var openAdminReports: Bool = false   // push de denuncia → panel DENUNCIAS
         var feedPostId: String? = nil        // push "feed_post" → detalle del post
+        var chatPeerUid: String? = nil       // push "chat"/"message" → conversación 1-a-1
+        var chatPeerName: String? = nil      // nombre del remitente (title del push)
+        var groupChatId: String? = nil       // push "group" → chat de grupo (convId)
+        var groupChatName: String? = nil     // nombre del grupo (title del push)
         var id: String {
             var parts: [String] = []
             parts.append(school?.id ?? "")
@@ -25,6 +29,8 @@ final class ShareLinkRouter: ObservableObject {
             parts.append(userHandle ?? "")
             parts.append(openAdminReports ? "admin" : "")
             parts.append(feedPostId ?? "")
+            parts.append(chatPeerUid ?? "")
+            parts.append(groupChatId ?? "")
             return parts.joined(separator: "|")
         }
     }

@@ -81,6 +81,12 @@ struct MeteoMontanaApp: App {
                             } else if let postId = t.feedPostId {
                                 // Push "feed_post" → detalle del post del feed.
                                 FeedPostDetailView(postIdString: postId)
+                            } else if let peerUid = t.chatPeerUid {
+                                // Push de mensaje 1-a-1 → la conversación.
+                                ChatView(otherUid: peerUid, otherName: t.chatPeerName ?? "")
+                            } else if let convId = t.groupChatId {
+                                // Push de mensaje de grupo → el chat del grupo.
+                                GroupChatView(convId: convId, groupName: t.groupChatName ?? "")
                             }
                         }
                         .toolbar {
