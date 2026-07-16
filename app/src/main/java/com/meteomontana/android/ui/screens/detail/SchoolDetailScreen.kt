@@ -251,21 +251,23 @@ private fun Content(
     androidx.compose.runtime.LaunchedEffect(forecast, blocks, pendingBlock, pendingVia, pendingViaId) {
         if (pendingBlock == null && pendingVia == null && pendingViaId == null) return@LaunchedEffect
         if (blocks.isEmpty() || forecast == null) return@LaunchedEffect
-        var attempts = 0
-        while (attempts++ < 60 &&
-            (viewModel.autoOpenBlockId.value != null ||
-             viewModel.autoOpenVia.value != null ||
-             viewModel.autoOpenViaId.value != null)
-        ) {
-            listState.scrollBy(2000f)
-            // Un frame entre pasos: suficiente para componer los items nuevos.
-            androidx.compose.runtime.withFrameNanos { }
+        fun stillPending() = viewModel.autoOpenBlockId.value != null ||
+            viewModel.autoOpenVia.value != null || viewModel.autoOpenViaId.value != null
+        val opened = kotlinx.coroutines.withTimeoutOrNull(10_000) {
+            // 1) Scroll SOLO hasta que la sección del mapa se compone (si se
+            //    scrollea de más, el item sale del viewport y se destruye
+            //    antes de que su efecto abra la ficha).
+            while (!viewModel.mapSectionReady.value && listState.canScrollForward && stillPending()) {
+                listState.scrollBy(900f)
+                kotlinx.coroutines.delay(30)
+            }
+            // 2) Quieto: espera a que el mapa (expandido) consuma el deep-link
+            //    y abra la ficha (en móviles lentos MapLibre tarda unos segundos).
+            while (stillPending()) kotlinx.coroutines.delay(50)
+            true
         }
-        if (viewModel.autoOpenBlockId.value != null ||
-            viewModel.autoOpenVia.value != null ||
-            viewModel.autoOpenViaId.value != null
-        ) {
-            // No se encontró el objetivo: retira el velo y vuelve arriba.
+        if (opened == null && stillPending()) {
+            // No se encontró/abrió el objetivo: retira el velo y vuelve arriba.
             deepLinkGaveUp = true
             viewModel.consumeAutoOpenVia()
             viewModel.consumeAutoOpenBlock()
