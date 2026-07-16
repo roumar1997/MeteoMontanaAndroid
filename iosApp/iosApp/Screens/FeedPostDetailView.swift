@@ -170,8 +170,8 @@ struct FeedPostDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     FeedPostCard(
                         post: post,
-                        onOpenSchool: { id, _, lineName in
-                            navTarget = .school(id, lineName)
+                        onOpenSchool: { id, _, lineName, blockId in
+                            navTarget = .school(id, lineName ?? blockId)
                         },
                         onOpenUser: { navTarget = .user($0) },
                         onToggleLike: { vm.toggleLike() },

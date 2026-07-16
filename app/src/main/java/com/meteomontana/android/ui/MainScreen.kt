@@ -442,8 +442,8 @@ fun MainScreen(
                         tabContainer(Tab.Community.route) {
                     // Feed social Comunidad (SIGUIENDO | TODOS | RANKING).
                     com.meteomontana.android.ui.screens.community.FeedScreen(
-                        onOpenSchool = { schoolId, lineId, lineName ->
-                            openSheet(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                        onOpenSchool = { schoolId, lineId, lineName, blockId ->
+                            openSheet(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId, blockId = blockId))
                         },
                         onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
                         onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
@@ -595,7 +595,8 @@ private fun SheetNavHost(
                         arguments = listOf(
                             navArgument("schoolId") { type = NavType.StringType },
                             navArgument("via") { type = NavType.StringType; nullable = true; defaultValue = null },
-                            navArgument("viaId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                            navArgument("viaId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                            navArgument("blockId") { type = NavType.StringType; nullable = true; defaultValue = null }
                         )
                     ) { entry ->
                         val schoolId = entry.arguments?.getString("schoolId") ?: ""
@@ -650,8 +651,8 @@ private fun SheetNavHost(
                         com.meteomontana.android.ui.screens.community.MyPostsScreen(
                             onBack = popSheetOrDismiss,
                             onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            onOpenSchool = { schoolId, lineId, lineName ->
-                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                            onOpenSchool = { schoolId, lineId, lineName, blockId ->
+                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId, blockId = blockId))
                             }
                         )
                     }
@@ -775,8 +776,8 @@ private fun SheetNavHost(
                             onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) },
                             // Sección Publicaciones (feed) del perfil:
                             onOpenUserProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            onOpenFeedSchool = { schoolId, lineId, lineName ->
-                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                            onOpenFeedSchool = { schoolId, lineId, lineName, blockId ->
+                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId, blockId = blockId))
                             }
                         )
                     }
@@ -856,8 +857,8 @@ private fun SheetNavHost(
                         com.meteomontana.android.ui.screens.community.FeedPostDetailScreen(
                             onBack = popSheetOrDismiss,
                             onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            onOpenSchool = { schoolId, lineId, lineName ->
-                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
+                            onOpenSchool = { schoolId, lineId, lineName, blockId ->
+                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId, blockId = blockId))
                             },
                             bottomInset = bottomInset
                         )

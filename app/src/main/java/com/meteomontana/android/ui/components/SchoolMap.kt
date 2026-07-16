@@ -161,8 +161,10 @@ fun SchoolMap(
     // Deep-link desde el diario: si hay una vía objetivo (por id o nombre), despliega el mapa.
     val autoOpenVia by viewModel.autoOpenVia.collectAsState()
     val autoOpenViaId by viewModel.autoOpenViaId.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(autoOpenVia, autoOpenViaId) {
-        if (!autoOpenVia.isNullOrBlank() || !autoOpenViaId.isNullOrBlank()) expanded = true
+    val autoOpenBlockIdGate by viewModel.autoOpenBlockId.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(autoOpenVia, autoOpenViaId, autoOpenBlockIdGate) {
+        if (!autoOpenVia.isNullOrBlank() || !autoOpenViaId.isNullOrBlank() ||
+            !autoOpenBlockIdGate.isNullOrBlank()) expanded = true
     }
 
     // Estado del flujo de propuesta
@@ -399,6 +401,14 @@ private fun InnerMap(
     // el id ESTABLE de la vía (aguanta renombres/reordenes/muros); si no, por nombre.
     val autoOpenVia by viewModel.autoOpenVia.collectAsState()
     val autoOpenViaId by viewModel.autoOpenViaId.collectAsState()
+    val autoOpenBlockId by viewModel.autoOpenBlockId.collectAsState()
+    // Deep-link por id de PIEDRA (post "piedra nueva" del feed, sin vía).
+    androidx.compose.runtime.LaunchedEffect(blocks, autoOpenBlockId) {
+        val blockId = autoOpenBlockId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        val target = blocks.firstOrNull { it.id == blockId } ?: return@LaunchedEffect
+        selectedBlock = target
+        viewModel.consumeAutoOpenBlock()
+    }
     androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia, autoOpenViaId) {
         val viaId = autoOpenViaId?.takeIf { it.isNotBlank() }
         val via = autoOpenVia?.takeIf { it.isNotBlank() }

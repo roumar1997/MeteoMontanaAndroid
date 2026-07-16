@@ -185,7 +185,7 @@ class FeedPostDetailViewModel @Inject constructor(
 fun FeedPostDetailScreen(
     onBack: () -> Unit,
     onOpenUser: (uid: String) -> Unit,
-    onOpenSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit,
+    onOpenSchool: (schoolId: String, lineId: String?, lineName: String?, blockId: String?) -> Unit,
     // Espacio ya reservado abajo por el host (cápsula de pestañas + navbar del
     // Scaffold que envuelve el overlay). Se lo "descontamos" al imePadding para
     // que el campo de comentario quede PEGADO al teclado, no flotando por encima

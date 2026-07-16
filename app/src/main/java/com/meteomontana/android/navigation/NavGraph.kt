@@ -30,11 +30,13 @@ sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
 val mainTabs = listOf(Tab.Weather, Tab.Community, Tab.Schools, Tab.Meetups, Tab.Profile)
 
 object Routes {
-    const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}&viaId={viaId}"
-    fun schoolDetail(id: String, via: String? = null, viaId: String? = null): String {
+    const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}&viaId={viaId}&blockId={blockId}"
+    fun schoolDetail(id: String, via: String? = null, viaId: String? = null, blockId: String? = null): String {
         val q = buildList {
             via?.takeIf { it.isNotBlank() }?.let { add("via=${android.net.Uri.encode(it)}") }
             viaId?.takeIf { it.isNotBlank() }?.let { add("viaId=${android.net.Uri.encode(it)}") }
+            // Post de piedra nueva del feed: abre directamente esa piedra.
+            blockId?.takeIf { it.isNotBlank() }?.let { add("blockId=${android.net.Uri.encode(it)}") }
         }
         return "schools/$id" + (if (q.isEmpty()) "" else "?" + q.joinToString("&"))
     }

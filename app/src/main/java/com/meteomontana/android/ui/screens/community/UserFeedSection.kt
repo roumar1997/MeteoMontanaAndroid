@@ -174,7 +174,7 @@ class UserFeedViewModel @Inject constructor(
 @Composable
 fun UserFeedSection(
     onOpenUser: (uid: String) -> Unit,
-    onOpenSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit,
+    onOpenSchool: (schoolId: String, lineId: String?, lineName: String?, blockId: String?) -> Unit,
     /** Título de la sección (perfil propio usa "Mis publicaciones"). */
     titleRes: Int = R.string.feed_posts_section,
     /** true en el perfil PROPIO: recarga en ON_RESUME (post nuevo tras marcar

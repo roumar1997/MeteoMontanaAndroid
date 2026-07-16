@@ -31,7 +31,7 @@ import com.meteomontana.android.R
 fun MyPostsScreen(
     onBack: () -> Unit,
     onOpenUser: (uid: String) -> Unit,
-    onOpenSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit
+    onOpenSchool: (schoolId: String, lineId: String?, lineName: String?, blockId: String?) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)

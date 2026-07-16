@@ -957,6 +957,8 @@ private struct SchoolMapSection: View {
         } ?? blocks.first { b in
             b.lines.contains { $0.name.caseInsensitiveCompare(via) == .orderedSame }
         } ?? blocks.first { $0.name.caseInsensitiveCompare(via) == .orderedSame }
+            // Post "piedra nueva" del feed: openVia trae el ID de la piedra.
+            ?? blocks.first { $0.id == via }
         if let target {
             didAutoOpen = true
             selectedBlock = target

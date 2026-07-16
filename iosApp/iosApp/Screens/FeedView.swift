@@ -494,8 +494,9 @@ struct FeedView: View {
                     ForEach(visible, id: \.id) { post in
                         FeedPostCard(
                             post: post,
-                            onOpenSchool: { id, _, lineName in
-                                navTarget = .school(id, lineName)
+                            onOpenSchool: { id, _, lineName, blockId in
+                                // Post de piedra nueva: sin vía → abre por id de piedra.
+                                navTarget = .school(id, lineName ?? blockId)
                             },
                             onOpenUser: { navTarget = .user($0) },
                             onToggleLike: { vm.toggleLike(post) },
@@ -541,7 +542,9 @@ func feedAuthorLabel(_ author: FeedAuthor?) -> String? {
 
 struct FeedPostCard: View {
     let post: FeedPost
-    let onOpenSchool: (String, String?, String?) -> Void
+    // (schoolId, lineId, lineName, blockId) — blockId abre la piedra en los
+    // posts "piedra nueva" (sin vía).
+    let onOpenSchool: (String, String?, String?, String?) -> Void
     let onOpenUser: (String) -> Void
     let onToggleLike: () -> Void
     let onOpenComments: () -> Void
@@ -614,7 +617,7 @@ struct FeedPostCard: View {
         if let photo = post.photoPath, !photo.isEmpty {
             ZStack(alignment: .topTrailing) {
                 Button {
-                    if let sid = post.schoolId { onOpenSchool(sid, post.lineId, post.lineName) }
+                    if let sid = post.schoolId { onOpenSchool(sid, post.lineId, post.lineName, post.blockId) }
                 } label: {
                     TopoPhotoView(photoUrl: photo, lines: postLines)
                 }
@@ -657,7 +660,7 @@ struct FeedPostCard: View {
         let title = feedPostTitle(post)
         let place = feedPostPlace(post)
         Button {
-            if let sid = post.schoolId { onOpenSchool(sid, post.lineId, post.lineName) }
+            if let sid = post.schoolId { onOpenSchool(sid, post.lineId, post.lineName, post.blockId) }
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 if !title.isEmpty {

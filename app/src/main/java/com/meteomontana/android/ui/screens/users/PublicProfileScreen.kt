@@ -146,7 +146,7 @@ fun PublicProfileScreen(
     /** Abrir OTRO perfil (autor de un comentario del feed). */
     onOpenUserProfile: (String) -> Unit = {},
     /** Abrir la piedra de un post del feed (pantalla completa). */
-    onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit = { _, _, _ -> },
+    onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?, blockId: String?) -> Unit = { _, _, _, _ -> },
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -281,7 +281,7 @@ private fun Body(
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenProjects: () -> Unit = {},
     onOpenUserProfile: (String) -> Unit = {},
-    onOpenFeedSchool: (String, String?, String?) -> Unit = { _, _, _ -> }
+    onOpenFeedSchool: (String, String?, String?, String?) -> Unit = { _, _, _, _ -> }
 ) {
     val p = s.profile
     val locked = p.locked

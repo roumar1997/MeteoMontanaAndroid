@@ -162,6 +162,14 @@ class SchoolDetailViewModel @Inject constructor(
     )
     val autoOpenViaId: StateFlow<String?> = _autoOpenViaId.asStateFlow()
 
+    // Deep-link por id de PIEDRA (posts "piedra nueva" del feed, sin vía):
+    // abre la ficha de esa piedra directamente.
+    private val _autoOpenBlockId = MutableStateFlow(
+        savedStateHandle.get<String>("blockId")?.takeIf { it.isNotBlank() }
+    )
+    val autoOpenBlockId: StateFlow<String?> = _autoOpenBlockId.asStateFlow()
+    fun consumeAutoOpenBlock() { _autoOpenBlockId.value = null }
+
     private val journalJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
 
     /** Diario del usuario (para marcar las vías ya hechas con ✓ persistente). */

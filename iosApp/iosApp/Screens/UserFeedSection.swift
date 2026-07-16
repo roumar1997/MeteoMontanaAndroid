@@ -213,8 +213,8 @@ struct UserFeedSection: View {
                 ForEach(visible, id: \.id) { post in
                     FeedPostCard(
                         post: post,
-                        onOpenSchool: { id, _, lineName in
-                            navTarget = .school(id, lineName)
+                        onOpenSchool: { id, _, lineName, blockId in
+                            navTarget = .school(id, lineName ?? blockId)
                         },
                         onOpenUser: { navTarget = .user($0) },
                         onToggleLike: { vm.toggleLike(post) },

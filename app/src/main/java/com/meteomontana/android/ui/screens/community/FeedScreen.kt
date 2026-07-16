@@ -76,7 +76,8 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun FeedScreen(
-    onOpenSchool: (schoolId: String, lineId: String?, lineName: String?) -> Unit,
+    // blockId: en posts de piedra nueva (sin vía) abre esa piedra directamente.
+    onOpenSchool: (schoolId: String, lineId: String?, lineName: String?, blockId: String?) -> Unit,
     onOpenUser: (uid: String) -> Unit,
     onSearchUsers: () -> Unit,
     // Abrir el detalle del post (pantalla PUBLICACIÓN a pantalla completa). Los
@@ -242,7 +243,7 @@ private fun FeedList(
     state: FeedUiState,
     hiddenIds: Set<String>,
     viewModel: FeedViewModel,
-    onOpenSchool: (String, String?, String?) -> Unit,
+    onOpenSchool: (String, String?, String?, String?) -> Unit,
     onOpenUser: (String) -> Unit,
     onSearchUsers: () -> Unit,
     onOpenComments: (FeedPost) -> Unit,
@@ -439,7 +440,7 @@ private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 internal fun FeedPostCard(
     post: FeedPost,
-    onOpenSchool: (String, String?, String?) -> Unit,
+    onOpenSchool: (String, String?, String?, String?) -> Unit,
     onOpenUser: (String) -> Unit,
     onToggleLike: () -> Unit,
     onOpenComments: () -> Unit,
@@ -507,7 +508,7 @@ internal fun FeedPostCard(
         if (hasTopo) {
             Box(
                 Modifier.fillMaxWidth().clickable {
-                    post.schoolId?.let { onOpenSchool(it, post.lineId, post.lineName) }
+                    post.schoolId?.let { onOpenSchool(it, post.lineId, post.lineName, post.blockId) }
                 }
             ) {
                 // Post de ascenso/vía nueva: SU línea. Post de piedra nueva
@@ -588,7 +589,7 @@ internal fun FeedPostCard(
         }
         Column(
             Modifier.fillMaxWidth()
-                .clickable { post.schoolId?.let { onOpenSchool(it, post.lineId, post.lineName) } }
+                .clickable { post.schoolId?.let { onOpenSchool(it, post.lineId, post.lineName, post.blockId) } }
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             if (title.isNotBlank()) {
