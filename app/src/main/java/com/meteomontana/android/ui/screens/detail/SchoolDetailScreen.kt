@@ -254,6 +254,21 @@ private fun Content(
             hintKey = "detail_tick",
             text = "Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario."
         )
+        // Sección de piedras/mapa: UNA sola definición (lambda) — se pinta en
+        // su sitio de siempre cuando hay forecast, y SIN esperar al forecast
+        // mientras carga o si falla (antes las piedras no existían hasta que
+        // el tiempo llegaba → los deep-links a piedras esperaban de más).
+        val blocksSection: @Composable () -> Unit = {
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                BlocksSection(
+                    blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
+                    schoolLat = school.lat, schoolLon = school.lon,
+                    schoolName = school.name, schoolId = school.id,
+                    viewModel = viewModel, onMyProposals = onMyProposals
+                )
+            }
+        }
         if (forecast != null) {
             com.meteomontana.android.ui.components.ForecastBodyColumn(
                 forecast = forecast,
@@ -263,34 +278,48 @@ private fun Content(
                         mountainBulletin?.let { b ->
                             com.meteomontana.android.ui.components.MountainBulletinSection(b)
                         }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-                        BlocksSection(
-                            blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
-                            schoolLat = school.lat, schoolLon = school.lon,
-                            schoolName = school.name, schoolId = school.id,
-                            viewModel = viewModel, onMyProposals = onMyProposals
-                        )
+                        blocksSection()
                     }
                 },
                 onDayClick = onDayClick
             )
-        } else if (forecastError != null) {
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.lg)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                .padding(Spacing.lg)
-            ) {
-                Column {
-                    Text("Tiempo no disponible",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground)
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(forecastError,
-                        style = MaterialTheme.typography.bodyMedium,
+        } else {
+            if (forecastError != null) {
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Spacing.lg)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                    .padding(Spacing.lg)
+                ) {
+                    Column {
+                        Text("Tiempo no disponible",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground)
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(forecastError,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                // Forecast aún cargando: hueco discreto en su zona.
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.padding(start = Spacing.sm))
+                    Text("Cargando el tiempo…",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            // Piedras y mapa disponibles YA, con el tiempo cargando o caído.
+            blocksSection()
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         NotesSection(notes = notes, onPublish = onPublishNote,

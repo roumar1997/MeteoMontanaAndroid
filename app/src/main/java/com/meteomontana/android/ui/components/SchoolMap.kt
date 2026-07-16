@@ -158,13 +158,59 @@ fun SchoolMap(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    // Deep-link desde el diario: si hay una vía objetivo (por id o nombre), despliega el mapa.
+    // ── Ficha de piedra IZADA a este nivel (no dentro del mapa expandido) ──
+    // Antes vivía en InnerMap: abrir una piedra por deep-link (feed/diario)
+    // exigía expandir el mapa y arrancar MapLibre (segundos en móviles lentos).
+    // Ahora la ficha abre directamente en cuanto hay bloques; el mapa solo se
+    // expande cuando el usuario lo abre (o al trazar un muro desde el editor).
+    var selectedBlock by remember { mutableStateOf<Block?>(null) }
+    // Vía objetivo del deep-link del diario → el detalle abre por su foto/cara.
+    var highlightVia by remember { mutableStateOf<String?>(null) }
+    // Tick pendiente de confirmar (hoja "Publicar en el feed").
+    var pendingTick by remember { mutableStateOf<PendingTick?>(null) }
+    var addingLinesTo by remember { mutableStateOf<Block?>(null) }
+    var editFaces by remember { mutableStateOf<List<com.meteomontana.android.ui.screens.detail.EditFace>>(emptyList()) }
+    var editGeometry by remember { mutableStateOf("POINT") }
+    var editDirection by remember { mutableStateOf("LTR") }
+    var editSelectedFace by remember { mutableStateOf(0) }
+    var editTracedPath by remember { mutableStateOf<List<Pair<Double, Double>>?>(null) }
+    // Trazado de muro del EDITOR (editWallTracing): el mapa lo pinta.
+    var editWallTracing by remember { mutableStateOf(false) }
+    var editWallPreview by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
+    var editingLine by remember {
+        mutableStateOf<Pair<Block, com.meteomontana.android.domain.model.BlockLine>?>(null)
+    }
+    var successMessage by remember { mutableStateOf<String?>(null) }
+
+    // Deep-link por id de PIEDRA (post "piedra nueva" del feed, sin vía):
+    // abre la ficha directamente, SIN expandir el mapa.
+    val autoOpenBlockId by viewModel.autoOpenBlockId.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(blocks, autoOpenBlockId) {
+        val blockId = autoOpenBlockId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        val target = blocks.firstOrNull { it.id == blockId } ?: return@LaunchedEffect
+        selectedBlock = target
+        viewModel.consumeAutoOpenBlock()
+    }
+    // Deep-link por vía (diario, buscador, enlaces): abre la piedra que la
+    // contiene. Preferimos el id ESTABLE; si no, por nombre.
     val autoOpenVia by viewModel.autoOpenVia.collectAsState()
     val autoOpenViaId by viewModel.autoOpenViaId.collectAsState()
-    val autoOpenBlockIdGate by viewModel.autoOpenBlockId.collectAsState()
-    androidx.compose.runtime.LaunchedEffect(autoOpenVia, autoOpenViaId, autoOpenBlockIdGate) {
-        if (!autoOpenVia.isNullOrBlank() || !autoOpenViaId.isNullOrBlank() ||
-            !autoOpenBlockIdGate.isNullOrBlank()) expanded = true
+    androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia, autoOpenViaId) {
+        val viaId = autoOpenViaId?.takeIf { it.isNotBlank() }
+        val via = autoOpenVia?.takeIf { it.isNotBlank() }
+        if (viaId == null && via == null) return@LaunchedEffect
+        if (blocks.isEmpty()) return@LaunchedEffect
+        val byId = viaId?.let { id ->
+            blocks.firstOrNull { b -> b.lines.any { it.id == id } }
+        }
+        val target = byId
+            ?: via?.let { v -> blocks.firstOrNull { b -> b.lines.any { it.name.equals(v, ignoreCase = true) } } }
+            ?: via?.let { v -> blocks.firstOrNull { it.name.equals(v, ignoreCase = true) } }
+        if (target != null) {
+            selectedBlock = target
+            highlightVia = byId?.lines?.firstOrNull { it.id == viaId }?.name ?: via
+            viewModel.consumeAutoOpenVia()
+        }
     }
 
     // Estado del flujo de propuesta
@@ -276,7 +322,16 @@ fun SchoolMap(
                 },
                 onAcceptCorrection = { acceptCorrectionCallback?.invoke() },
                 onWallUndo = { wallUndoCallback?.invoke() },
-                onWallDone = { wallDoneCallback?.invoke() }
+                onWallDone = { wallDoneCallback?.invoke() },
+                // Ficha y trazado del editor viven en ESTE nivel (izados).
+                onBlockSelected = { selectedBlock = it },
+                onDismissBlock = { selectedBlock = null },
+                editWallTracing = editWallTracing,
+                editWallPreview = editWallPreview,
+                onEditWallTap = { lat, lon -> editWallPreview = editWallPreview + (lat to lon) },
+                onEditWallUndo = { editWallPreview = editWallPreview.dropLast(1) },
+                onEditWallDone = { editTracedPath = editWallPreview; editWallTracing = false },
+                onEditWallCancel = { editWallTracing = false }
             )
         }
     }
@@ -317,6 +372,218 @@ fun SchoolMap(
             viewModel       = viewModel
         )
     }
+
+    // ── Ficha de la piedra + editor + hoja de publicar (IZADOS del mapa) ────
+    // Viven aquí (no dentro del mapa expandido) para que los deep-links abran
+    // la ficha sin arrancar MapLibre. Los taps de marker del mapa llegan por
+    // onBlockSelected; el trazado de muro del editor expande el mapa.
+    val fichaCtx = LocalContext.current
+    val fichaIsAdmin = (viewModel.uiState.collectAsState().value
+        as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
+
+    selectedBlock?.let { block ->
+        val sectors = blocks.filter { it.type == "ZONE" }
+        // Vías ya hechas (diario + cola offline pendiente) → marcadas ✓ al abrir.
+        val doneKeys by viewModel.doneViaKeys.collectAsState()
+        val doneLineIds = remember(block, doneKeys) {
+            block.lines.mapIndexedNotNull { idx, line ->
+                val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
+                val key = "${block.schoolId}|${viaName.trim().lowercase()}"
+                if (doneKeys.contains(key)) line.id else null
+            }.toSet()
+        }
+        // Vías marcadas como PROYECTO → mismo mecanismo que doneLineIds.
+        val projectKeys by viewModel.projectViaKeys.collectAsState()
+        val projectLineIds = remember(block, projectKeys) {
+            block.lines.mapIndexedNotNull { idx, line ->
+                val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
+                val key = "${block.schoolId}|${viaName.trim().lowercase()}"
+                if (projectKeys.contains(key)) line.id else null
+            }.toSet()
+        }
+        BlockDetailDialog(
+            block = block,
+            schoolName = schoolName,
+            highlightVia = highlightVia,
+            initiallyTicked = doneLineIds,
+            initiallyProjects = projectLineIds,
+            onAddLines = if (block.type == "BLOCK") ({
+                // Inicializa el estado del editor AQUÍ (no en un LaunchedEffect)
+                // para que abra ya poblado y no haya un frame vacío (el "salto").
+                editFaces = com.meteomontana.android.ui.screens.detail.initialEditFaces(block)
+                editGeometry = block.geometry.ifBlank { "POINT" }
+                editDirection = block.direction.ifBlank { "LTR" }
+                editSelectedFace = 0
+                editTracedPath = null
+                editWallTracing = false
+                editWallPreview = emptyList()
+                addingLinesTo = block
+                // NO cerramos la ficha: el editor abre ENCIMA (su scrim tapa la
+                // ficha) → sin parpadeo del mapa entre diálogos.
+            }) else null,
+            onEditLine = if (block.type == "BLOCK") ({ line ->
+                editingLine = block to line
+            }) else null,
+            onRateLine = if (block.type == "BLOCK") ({ lineId, stars ->
+                viewModel.viewModelScope.launch {
+                    if (stars > 0) viewModel.rateLine(block.id, lineId, stars)
+                    else viewModel.unrateLine(block.id, lineId)
+                }
+            }) else null,
+            onTickLine = if (block.type == "BLOCK") ({ line, idx ->
+                val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
+                if (doneLineIds.contains(line.id)) {
+                    // DESMARCAR: toggle directo, sin diálogo (como siempre).
+                    viewModel.viewModelScope.launch {
+                        viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                    }
+                } else {
+                    val wasProject = projectLineIds.contains(line.id)
+                    when (com.meteomontana.android.data.local.FeedPublishPrefs.get(fichaCtx)) {
+                        com.meteomontana.android.data.local.FeedPublishMode.ASK ->
+                            pendingTick = PendingTick(
+                                block = block, line = line, index = idx,
+                                schoolName = schoolName, sectorName = sectorName,
+                                wasProject = wasProject
+                            )
+                        com.meteomontana.android.data.local.FeedPublishMode.ALWAYS ->
+                            viewModel.viewModelScope.launch {
+                                val r = viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                                if (r.getOrNull() == true) {
+                                    viewModel.publishTickToFeed(block, line, wasProject)
+                                }
+                            }
+                        com.meteomontana.android.data.local.FeedPublishMode.NEVER ->
+                            viewModel.viewModelScope.launch {
+                                viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                            }
+                    }
+                }
+            }) else null,
+            onToggleProject = if (block.type == "BLOCK") ({ line, idx ->
+                val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
+                viewModel.viewModelScope.launch {
+                    viewModel.toggleProject(block, line, idx, schoolName, sectorName)
+                }
+            }) else null,
+            availableSectors = sectors.takeIf { it.isNotEmpty() },
+            onAssignSector = if (block.type == "BLOCK" && sectors.isNotEmpty()) ({ sectorId ->
+                selectedBlock = null
+                viewModel.viewModelScope.launch {
+                    val r = viewModel.submitAssignSectorContribution(
+                        targetBlockId = block.id,
+                        targetLat = block.lat,
+                        targetLon = block.lon,
+                        sectorBlockId = sectorId
+                    )
+                    successMessage = if (r.isSuccess)
+                        if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                    else
+                        "No se pudo enviar la propuesta: ${r.exceptionOrNull()?.message ?: "error"}"
+                }
+            }) else null,
+            onDelete = if (fichaIsAdmin) ({
+                val id = block.id
+                selectedBlock = null
+                viewModel.deleteBlock(id) {}
+            }) else null,
+            onDismiss = { selectedBlock = null; highlightVia = null }
+        )
+    }
+
+    // Hoja de publicar el tick (estilo Cumbre).
+    pendingTick?.let { pt ->
+        FeedPublishSheet(
+            lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
+                (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+            wasProject = pt.wasProject,
+            onPublish = { always, caption, photoUri ->
+                if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
+                    fichaCtx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
+                pendingTick = null
+                viewModel.viewModelScope.launch {
+                    val r = viewModel.toggleLine(
+                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
+                    if (r.getOrNull() == true) {
+                        viewModel.publishTickToFeed(
+                            pt.block, pt.line, pt.wasProject, caption,
+                            photoUri = photoUri?.toString(),
+                            onPhotoUploadFailed = {
+                                android.widget.Toast.makeText(
+                                    fichaCtx, R.string.feed_photo_upload_failed,
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
+                    }
+                }
+            },
+            onDiaryOnly = {
+                pendingTick = null
+                viewModel.viewModelScope.launch {
+                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
+                }
+            },
+            onDismiss = { pendingTick = null }
+        )
+    }
+
+    // Flujo "+ AÑADIR VÍAS" / editar piedra-muro. Se oculta mientras se traza el
+    // muro en el mapa (el estado vive aquí, así no se pierde lo editado).
+    addingLinesTo?.let { block ->
+        if (!editWallTracing) {
+            AddLinesFlow(
+                block = block,
+                viewModel = viewModel,
+                faces = editFaces,
+                onFacesChange = { editFaces = it },
+                selectedFace = editSelectedFace,
+                onSelectedFaceChange = { editSelectedFace = it },
+                geometry = editGeometry,
+                onGeometryChange = { editGeometry = it },
+                direction = editDirection,
+                onDirectionChange = { editDirection = it },
+                tracedPath = editTracedPath,
+                onTraceWall = {
+                    editWallPreview = emptyList(); editWallTracing = true
+                    selectedBlock = null  // deja ver el mapa para trazar
+                    expanded = true       // trazar exige el mapa abierto
+                },
+                onDismiss = { addingLinesTo = null; selectedBlock = null },
+                onSuccess = {
+                    addingLinesTo = null
+                    selectedBlock = null
+                    successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                }
+            )
+        }
+    }
+
+    // Flujo "✎ CORREGIR VÍA" — redibuja una línea concreta
+    editingLine?.let { (block, line) ->
+        com.meteomontana.android.ui.screens.detail.EditLineFlow(
+            block = block,
+            line = line,
+            viewModel = viewModel,
+            onDismiss = { editingLine = null; selectedBlock = null },
+            onSuccess = {
+                editingLine = null
+                selectedBlock = null
+                successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+            }
+        )
+    }
+
+    // Aviso de éxito tras enviar la propuesta.
+    if (successMessage != null) {
+        CumbreSuccessDialog(
+            onClose = { successMessage = null },
+            onMyProposals = {
+                successMessage = null
+                onMyProposals()
+            }
+        )
+    }
 }
 
 // ─── InnerMap ─────────────────────────────────────────────────────────────────
@@ -342,7 +609,18 @@ private fun InnerMap(
     onMarkerTappedForCorrection: (Block) -> Unit,
     onAcceptCorrection: () -> Unit,
     onWallUndo: () -> Unit,
-    onWallDone: () -> Unit
+    onWallDone: () -> Unit,
+    // Ficha de piedra y trazado del EDITOR: izados a SchoolMap (los deep-links
+    // abren la ficha sin arrancar MapLibre). El mapa solo notifica taps y
+    // pinta/alimenta el preview del muro en edición.
+    onBlockSelected: (Block) -> Unit,
+    onDismissBlock: () -> Unit,
+    editWallTracing: Boolean,
+    editWallPreview: List<Pair<Double, Double>>,
+    onEditWallTap: (Double, Double) -> Unit,
+    onEditWallUndo: () -> Unit,
+    onEditWallDone: () -> Unit,
+    onEditWallCancel: () -> Unit
 ) {
     val ctx = LocalContext.current
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
@@ -363,76 +641,22 @@ private fun InnerMap(
     val deviceHeading = rememberDeviceHeading()
     val headingState by androidx.compose.runtime.rememberUpdatedState(deviceHeading)
 
-    // Bloque seleccionado (para popup) y bloque al que añadir vías
-    var selectedBlock by remember { mutableStateOf<Block?>(null) }
     // Mini-ficha flotante de PARKING/ZONA: se pinta sobre el mapa sin taparlo
     // (la ficha grande queda solo para PIEDRAS, que sí tienen contenido).
     var miniBlock by remember { mutableStateOf<Block?>(null) }
     var editingMiniBlock by remember { mutableStateOf<Block?>(null) }
     var confirmDeleteMini by remember { mutableStateOf<Block?>(null) }
-    // Vía objetivo del deep-link del diario → el detalle abre por su foto/cara.
-    var highlightVia by remember { mutableStateOf<String?>(null) }
-    // Tick pendiente de confirmar: diálogo con el checkbox "Publicar en el feed"
-    // (desmarcar sigue siendo toggle directo, sin diálogo).
-    var pendingTick by remember { mutableStateOf<PendingTick?>(null) }
-    var addingLinesTo by remember { mutableStateOf<Block?>(null) }
-    // Estado ELEVADO del editor de edición (AddLinesFlow controlado): sobrevive
-    // mientras el diálogo se oculta para trazar el muro en el mapa.
-    var editFaces by remember { mutableStateOf<List<com.meteomontana.android.ui.screens.detail.EditFace>>(emptyList()) }
-    var editGeometry by remember { mutableStateOf("POINT") }
-    var editDirection by remember { mutableStateOf("LTR") }
-    var editSelectedFace by remember { mutableStateOf(0) }
-    var editTracedPath by remember { mutableStateOf<List<Pair<Double, Double>>?>(null) }
-    // Trazado del muro DESDE el editor: modo activo + polilínea en construcción.
-    var editWallTracing by remember { mutableStateOf(false) }
-    var editWallPreview by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
+    // Snapshots del trazado de muro del EDITOR (estado izado en SchoolMap):
+    // el listener del mapa (registrado una vez en el factory) los lee frescos.
     val editWallTracingState by androidx.compose.runtime.rememberUpdatedState(editWallTracing)
-    val onEditWallTapState by androidx.compose.runtime.rememberUpdatedState<(Double, Double) -> Unit> { lat, lon ->
-        editWallPreview = editWallPreview + (lat to lon)
-    }
-    // El estado del editor se inicializa al pulsar "editar" (en onAddLines), no
-    // aquí, para que el editor abra ya poblado y no haya un frame vacío.
+    val onEditWallTapState by androidx.compose.runtime.rememberUpdatedState(onEditWallTap)
+    val onDismissBlockState by androidx.compose.runtime.rememberUpdatedState(onDismissBlock)
 
     // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
     val isAdminUser = (viewModel.uiState.collectAsState().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
-    // Deep-link del diario: abre la piedra que contiene la vía objetivo. Preferimos
-    // el id ESTABLE de la vía (aguanta renombres/reordenes/muros); si no, por nombre.
-    val autoOpenVia by viewModel.autoOpenVia.collectAsState()
-    val autoOpenViaId by viewModel.autoOpenViaId.collectAsState()
-    val autoOpenBlockId by viewModel.autoOpenBlockId.collectAsState()
-    // Deep-link por id de PIEDRA (post "piedra nueva" del feed, sin vía).
-    androidx.compose.runtime.LaunchedEffect(blocks, autoOpenBlockId) {
-        val blockId = autoOpenBlockId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
-        val target = blocks.firstOrNull { it.id == blockId } ?: return@LaunchedEffect
-        selectedBlock = target
-        viewModel.consumeAutoOpenBlock()
-    }
-    androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia, autoOpenViaId) {
-        val viaId = autoOpenViaId?.takeIf { it.isNotBlank() }
-        val via = autoOpenVia?.takeIf { it.isNotBlank() }
-        if (viaId == null && via == null) return@LaunchedEffect
-        if (blocks.isEmpty()) return@LaunchedEffect
-        // 1) Por id estable.
-        val byId = viaId?.let { id ->
-            blocks.firstOrNull { b -> b.lines.any { it.id == id } }
-        }
-        val target = byId
-            ?: via?.let { v -> blocks.firstOrNull { b -> b.lines.any { it.name.equals(v, ignoreCase = true) } } }
-            ?: via?.let { v -> blocks.firstOrNull { it.name.equals(v, ignoreCase = true) } }
-        if (target != null) {
-            selectedBlock = target
-            // El detalle abre por la foto que contiene esta vía (highlight por nombre).
-            highlightVia = byId?.lines?.firstOrNull { it.id == viaId }?.name ?: via
-            viewModel.consumeAutoOpenVia()
-        }
-    }
     val mapScope = androidx.compose.runtime.rememberCoroutineScope()
-    var editingLine by remember {
-        mutableStateOf<Pair<Block, com.meteomontana.android.domain.model.BlockLine>?>(null)
-    }
-    var successMessage by remember { mutableStateOf<String?>(null) }
 
     // Marker virtual de la escuela (para tap → proponer mover escuela entera).
     val schoolMarker = remember(schoolName, centerLat, centerLon) {
@@ -517,7 +741,7 @@ private fun InnerMap(
                                 LatLng(tapped.lat, tapped.lon), 15.2))
                         }
                     }
-                    selectedBlock = tapped
+                    onBlockSelected(tapped)
                 }
             }
         }
@@ -629,9 +853,9 @@ private fun InnerMap(
         // Sirve para el flujo CREAR (wallTracing) y el de EDITAR (editWallTracing).
         if (wallTracing || editWallTracing) {
             val pv = if (editWallTracing) editWallPreview else wallPreview
-            val onUndo: () -> Unit = if (editWallTracing) ({ editWallPreview = editWallPreview.dropLast(1) }) else onWallUndo
-            val onDone: () -> Unit = if (editWallTracing) ({ editTracedPath = editWallPreview; editWallTracing = false }) else onWallDone
-            val onCancel: () -> Unit = if (editWallTracing) ({ editWallTracing = false }) else onCancelTap
+            val onUndo: () -> Unit = if (editWallTracing) onEditWallUndo else onWallUndo
+            val onDone: () -> Unit = if (editWallTracing) onEditWallDone else onWallDone
+            val onCancel: () -> Unit = if (editWallTracing) onEditWallCancel else onCancelTap
             Column(
                 modifier = Modifier.fillMaxWidth().background(Terra)
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
@@ -727,7 +951,7 @@ private fun InnerMap(
                                     }
                                     else -> {
                                         // Tap fuera de marker → cierra popup
-                                        selectedBlock = null
+                                        onDismissBlockState()
                                         false
                                     }
                                 }
@@ -985,219 +1209,6 @@ private fun InnerMap(
         )
     }
 
-    selectedBlock?.let { block ->
-        val sectors = blocks.filter { it.type == "ZONE" }
-        // Vías ya hechas (diario + cola offline pendiente) → marcadas ✓ al abrir.
-        val doneKeys by viewModel.doneViaKeys.collectAsState()
-        val doneLineIds = remember(block, doneKeys) {
-            block.lines.mapIndexedNotNull { idx, line ->
-                val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
-                val key = "${block.schoolId}|${viaName.trim().lowercase()}"
-                if (doneKeys.contains(key)) line.id else null
-            }.toSet()
-        }
-        // Vías marcadas como PROYECTO → mismo mecanismo que doneLineIds.
-        val projectKeys by viewModel.projectViaKeys.collectAsState()
-        val projectLineIds = remember(block, projectKeys) {
-            block.lines.mapIndexedNotNull { idx, line ->
-                val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
-                val key = "${block.schoolId}|${viaName.trim().lowercase()}"
-                if (projectKeys.contains(key)) line.id else null
-            }.toSet()
-        }
-        BlockDetailDialog(
-            block = block,
-            schoolName = schoolName,
-            highlightVia = highlightVia,
-            initiallyTicked = doneLineIds,
-            initiallyProjects = projectLineIds,
-            onAddLines = if (block.type == "BLOCK") ({
-                // Inicializa el estado del editor AQUÍ (no en un LaunchedEffect)
-                // para que abra ya poblado y no haya un frame vacío (el "salto").
-                editFaces = com.meteomontana.android.ui.screens.detail.initialEditFaces(block)
-                editGeometry = block.geometry.ifBlank { "POINT" }
-                editDirection = block.direction.ifBlank { "LTR" }
-                editSelectedFace = 0
-                editTracedPath = null
-                editWallTracing = false
-                editWallPreview = emptyList()
-                addingLinesTo = block
-                // NO cerramos la ficha: el editor abre ENCIMA (su scrim tapa la
-                // ficha) → sin parpadeo del mapa entre diálogos. Solo al trazar el
-                // muro se oculta la ficha para ver el mapa (ver onTraceWall).
-            }) else null,
-            onEditLine = if (block.type == "BLOCK") ({ line ->
-                editingLine = block to line
-                // Igual que arriba: el editor abre encima sin cerrar la ficha.
-            }) else null,
-            onRateLine = if (block.type == "BLOCK") ({ lineId, stars ->
-                viewModel.viewModelScope.launch {
-                    if (stars > 0) viewModel.rateLine(block.id, lineId, stars)
-                    else viewModel.unrateLine(block.id, lineId)
-                }
-            }) else null,
-            onTickLine = if (block.type == "BLOCK") ({ line, idx ->
-                val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
-                if (doneLineIds.contains(line.id)) {
-                    // DESMARCAR: toggle directo, sin diálogo (como siempre).
-                    viewModel.viewModelScope.launch {
-                        viewModel.toggleLine(block, line, idx, schoolName, sectorName)
-                    }
-                } else {
-                    // MARCAR: según la preferencia "Publicar ascensos en el feed":
-                    // ASK → hoja de publicar; ALWAYS → publica directo sin
-                    // preguntar; NEVER → solo diario, sin hoja.
-                    val wasProject = projectLineIds.contains(line.id)
-                    when (com.meteomontana.android.data.local.FeedPublishPrefs.get(ctx)) {
-                        com.meteomontana.android.data.local.FeedPublishMode.ASK ->
-                            pendingTick = PendingTick(
-                                block = block, line = line, index = idx,
-                                schoolName = schoolName, sectorName = sectorName,
-                                wasProject = wasProject
-                            )
-                        com.meteomontana.android.data.local.FeedPublishMode.ALWAYS ->
-                            viewModel.viewModelScope.launch {
-                                val r = viewModel.toggleLine(block, line, idx, schoolName, sectorName)
-                                if (r.getOrNull() == true) {
-                                    viewModel.publishTickToFeed(block, line, wasProject)
-                                }
-                            }
-                        com.meteomontana.android.data.local.FeedPublishMode.NEVER ->
-                            viewModel.viewModelScope.launch {
-                                viewModel.toggleLine(block, line, idx, schoolName, sectorName)
-                            }
-                    }
-                }
-            }) else null,
-            onToggleProject = if (block.type == "BLOCK") ({ line, idx ->
-                val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
-                viewModel.viewModelScope.launch {
-                    viewModel.toggleProject(block, line, idx, schoolName, sectorName)
-                }
-            }) else null,
-            availableSectors = sectors.takeIf { it.isNotEmpty() },
-            onAssignSector = if (block.type == "BLOCK" && sectors.isNotEmpty()) ({ sectorId ->
-                selectedBlock = null
-                // Usamos viewModelScope para que la llamada no se cancele cuando
-                // la composición del dialog desaparece.
-                viewModel.viewModelScope.launch {
-                    val r = viewModel.submitAssignSectorContribution(
-                        targetBlockId = block.id,
-                        targetLat = block.lat,
-                        targetLon = block.lon,
-                        sectorBlockId = sectorId
-                    )
-                    successMessage = if (r.isSuccess)
-                        if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
-                    else
-                        "No se pudo enviar la propuesta: ${r.exceptionOrNull()?.message ?: "error"}"
-                }
-            }) else null,
-            // Admin: borrar la piedra/zona/parking directamente desde el mapa.
-            onDelete = if (isAdminUser) ({
-                val id = block.id
-                selectedBlock = null
-                viewModel.deleteBlock(id) {}
-            }) else null,
-            onDismiss = { selectedBlock = null; highlightVia = null }
-        )
-    }
-
-    // Hoja de publicar el tick (estilo Cumbre): PUBLICAR EN EL FEED (primario
-    // Terra) / Solo en mi diario / "Publicar siempre sin preguntar" (pasa la
-    // preferencia a ALWAYS al publicar). Cerrar la hoja = no marcar nada.
-    pendingTick?.let { pt ->
-        FeedPublishSheet(
-            lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
-                (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-            wasProject = pt.wasProject,
-            onPublish = { always, caption, photoUri ->
-                if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
-                    ctx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
-                pendingTick = null
-                viewModel.viewModelScope.launch {
-                    val r = viewModel.toggleLine(
-                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
-                    if (r.getOrNull() == true) {
-                        viewModel.publishTickToFeed(
-                            pt.block, pt.line, pt.wasProject, caption,
-                            photoUri = photoUri?.toString(),
-                            onPhotoUploadFailed = {
-                                // Toast discreto: el post queda publicado sin foto.
-                                android.widget.Toast.makeText(
-                                    ctx, R.string.feed_photo_upload_failed,
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        )
-                    }
-                }
-            },
-            onDiaryOnly = {
-                pendingTick = null
-                viewModel.viewModelScope.launch {
-                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
-                }
-            },
-            onDismiss = { pendingTick = null }
-        )
-    }
-
-    // Flujo "+ AÑADIR VÍAS" / editar piedra-muro. Se oculta mientras se traza el
-    // muro en el mapa (el estado vive arriba, así no se pierde lo editado).
-    addingLinesTo?.let { block ->
-        if (!editWallTracing) {
-            AddLinesFlow(
-                block = block,
-                viewModel = viewModel,
-                faces = editFaces,
-                onFacesChange = { editFaces = it },
-                selectedFace = editSelectedFace,
-                onSelectedFaceChange = { editSelectedFace = it },
-                geometry = editGeometry,
-                onGeometryChange = { editGeometry = it },
-                direction = editDirection,
-                onDirectionChange = { editDirection = it },
-                tracedPath = editTracedPath,
-                onTraceWall = {
-                    editWallPreview = emptyList(); editWallTracing = true
-                    selectedBlock = null  // deja ver el mapa para trazar
-                },
-                onDismiss = { addingLinesTo = null; selectedBlock = null },
-                onSuccess = {
-                    addingLinesTo = null
-                    selectedBlock = null
-                    successMessage = if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
-                }
-            )
-        }
-    }
-
-    // Flujo "✎ CORREGIR VÍA" — redibuja una línea concreta
-    editingLine?.let { (block, line) ->
-        com.meteomontana.android.ui.screens.detail.EditLineFlow(
-            block = block,
-            line = line,
-            viewModel = viewModel,
-            onDismiss = { editingLine = null; selectedBlock = null },
-            onSuccess = {
-                editingLine = null
-                selectedBlock = null
-                successMessage = if (isAdminUser) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
-            }
-        )
-    }
-
-    // Aviso de éxito tras enviar la propuesta — mismo estilo que el flujo normal
-    if (successMessage != null) {
-        CumbreSuccessDialog(
-            onClose = { successMessage = null },
-            onMyProposals = {
-                successMessage = null
-                onMyProposals()
-            }
-        )
-    }
 }
 
 /**
