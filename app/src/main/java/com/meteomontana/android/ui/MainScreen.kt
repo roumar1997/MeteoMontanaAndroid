@@ -416,8 +416,10 @@ fun MainScreen(
                         showClose = false,
                         // Keep-alive: la pestaña no se recompone al volver a ella →
                         // el perfil quedaba RANCIO tras marcar vías (solo refrescaba
-                        // al reabrir la app). Recarga al hacerse visible la pestaña.
-                        visible = selectedTab == Tab.Profile.route,
+                        // al reabrir la app). Recarga al hacerse visible la pestaña
+                        // Y al cerrarse el overlay (diario → escuela → desmarcar →
+                        // volver: la pestaña nunca dejó de estar seleccionada).
+                        visible = selectedTab == Tab.Profile.route && !sheetVisible,
                         onEdit = { openSheet(Routes.EDIT_PROFILE) },
                         onSubmissions = { openSheet(Routes.MY_SUBMISSIONS) },
                         onAdmin = { openFullScreen(Routes.ADMIN) },
