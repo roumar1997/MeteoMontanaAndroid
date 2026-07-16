@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -231,7 +232,29 @@ private fun Content(
     onDayClick: (Int) -> Unit = {},
     mountainBulletin: com.meteomontana.android.data.api.MountainBulletinDto? = null
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    // Deep-link a una piedra/vía (feed o diario): la sección del mapa vive en un
+    // item PEREZOSO al fondo de esta lista → hasta que no se compone, el
+    // auto-abrir no corre (la ficha solo se abría al scrollear, o tras muchos
+    // segundos). Scroll programático por pasos hasta que el mapa se compone y
+    // consume el deep-link (iOS no lo sufre: su detalle es ScrollView no lazy).
+    val pendingBlock by viewModel.autoOpenBlockId.collectAsState()
+    val pendingVia by viewModel.autoOpenVia.collectAsState()
+    val pendingViaId by viewModel.autoOpenViaId.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(forecast, blocks, pendingBlock, pendingVia, pendingViaId) {
+        if (pendingBlock == null && pendingVia == null && pendingViaId == null) return@LaunchedEffect
+        if (blocks.isEmpty() || forecast == null) return@LaunchedEffect
+        var attempts = 0
+        while (attempts++ < 40 &&
+            (viewModel.autoOpenBlockId.value != null ||
+             viewModel.autoOpenVia.value != null ||
+             viewModel.autoOpenViaId.value != null)
+        ) {
+            listState.scrollBy(1200f)
+            kotlinx.coroutines.delay(30)
+        }
+    }
+    LazyColumn(modifier = Modifier.fillMaxSize(), state = listState) {
         item {
             com.meteomontana.android.ui.components.FirstTimeHint(
                 hintKey = "detail_offline",
