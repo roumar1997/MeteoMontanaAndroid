@@ -80,7 +80,9 @@ suspend fun shareLineAsImage(
     // 3. Compón la imagen y compártela.
     val bmp = renderLineCard(block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
-    val file = File(dir, "via.png")
+    // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
+    dir.listFiles()?.filter { it.name.startsWith("via") }?.forEach { it.delete() }
+    val file = File(dir, "via-${line.id.ifBlank { block.id }}-${System.currentTimeMillis()}.png")
     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 

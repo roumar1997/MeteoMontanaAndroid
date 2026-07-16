@@ -119,7 +119,10 @@ private suspend fun renderPostToUri(context: Context, post: FeedPost): Uri? {
     val bmp = renderPostCard(post, photo, startLabel, drawLine = topoPhoto != null, corner = corner)
     return runCatching {
         val dir = File(context.cacheDir, "share").apply { mkdirs() }
-        val file = File(dir, "feed-post.png")
+        // Nombre ÚNICO por post: con nombre fijo, el receptor (WhatsApp) cachea
+        // por URI y enseñaba la PRIMERA imagen compartida para siempre.
+        dir.listFiles()?.filter { it.name.startsWith("feed-post") }?.forEach { it.delete() }
+        val file = File(dir, "feed-post-${post.id}-${System.currentTimeMillis()}.png")
         file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     }.getOrNull()
@@ -221,17 +224,33 @@ private fun renderPostCard(
         c.clipRect(dst)
         c.drawBitmap(photo, src, dst, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
 
-        val points = if (drawLine) parseLineStroke(post.linePath).points else emptyList()
-        if (points.isNotEmpty()) {
-            val s = rectW / 380f
+        // Post de ascenso/vía: SU línea. Post de piedra nueva (sin linePath):
+        // TODAS las vías de la cara portada (blockLines) — antes la imagen
+        // compartida salía sin líneas.
+        val s = rectW / 380f
+        val singleLine = if (drawLine) parseLineStroke(post.linePath).points else emptyList()
+        val lineData: List<TopoLineData> = when {
+            singleLine.isNotEmpty() -> listOf(
+                TopoLineData(
+                    name = post.lineName, grade = post.grade, startType = post.startType,
+                    points = singleLine.map { it.x to it.y },
+                    strokeWidthPx = 5f * s
+                )
+            )
+            drawLine -> post.blockLines.orEmpty().mapNotNull { l ->
+                val pts = parseLineStroke(l.linePath).points
+                if (pts.isEmpty()) null
+                else TopoLineData(
+                    name = l.name, grade = l.grade, startType = l.startType,
+                    points = pts.map { it.x to it.y },
+                    strokeWidthPx = 5f * s
+                )
+            }
+            else -> emptyList()
+        }
+        if (lineData.isNotEmpty()) {
             val ops = renderTopo(
-                listOf(
-                    TopoLineData(
-                        name = post.lineName, grade = post.grade, startType = post.startType,
-                        points = points.map { it.x to it.y },
-                        strokeWidthPx = 5f * s
-                    )
-                ),
+                lineData,
                 rectW, rectH,
                 badgeR = (14f * s) to (11f * s),
                 badgeTextPx = (22f * s) to (7f * s),

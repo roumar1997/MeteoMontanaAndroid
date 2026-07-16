@@ -72,12 +72,14 @@ fun BlockDetailDialog(
     isProposal: Boolean = false,
     onAddLines: (() -> Unit)? = null,
     onEditLine: ((com.meteomontana.android.domain.model.BlockLine) -> Unit)? = null,
-    /** Marca una vía como hecha (la suma al diario). null = no mostrar el tic. */
-    onTickLine: ((com.meteomontana.android.domain.model.BlockLine, Int) -> Unit)? = null,
-    /** Ids de vías ya hechas (del diario) para mostrarlas marcadas ✓ al abrir. */
+    /** Marca/desmarca una vía en el diario. El 3er parámetro es el estado
+     *  DESEADO (true = marcar hecha) — lo que el usuario ve al pulsar, para
+     *  que una carga tardía del diario no invierta la acción. null = sin tic. */
+    onTickLine: ((com.meteomontana.android.domain.model.BlockLine, Int, Boolean) -> Unit)? = null,
+    /** Ids de vías ya hechas (del diario) para mostrarlas marcadas ✓. */
     initiallyTicked: Set<String> = emptySet(),
-    /** Marca/desmarca una vía como PROYECTO (la estás probando). null = no mostrar el botón. */
-    onToggleProject: ((com.meteomontana.android.domain.model.BlockLine, Int) -> Unit)? = null,
+    /** Marca/desmarca una vía como PROYECTO (3er parámetro = estado deseado). */
+    onToggleProject: ((com.meteomontana.android.domain.model.BlockLine, Int, Boolean) -> Unit)? = null,
     /** Ids de vías ya marcadas como proyecto, para mostrarlas al abrir. */
     initiallyProjects: Set<String> = emptySet(),
     /** Valorar una vía (1-5 estrellas). null = no mostrar estrellas. */
@@ -92,6 +94,16 @@ fun BlockDetailDialog(
     var showLinePicker by remember { mutableStateOf(false) }
     val tickedLines = remember { mutableStateListOf<String>().apply { addAll(initiallyTicked) } }   // vías hechas
     val projectLines = remember { mutableStateListOf<String>().apply { addAll(initiallyProjects) } } // vías proyecto
+    // El diario puede llegar DESPUÉS de abrirse la ficha (ahora abre en <1s):
+    // cuando llegue, añadimos sus ✓/P a lo que el usuario ya haya tocado.
+    // Solo AÑADE (no quita): si el usuario acaba de desmarcar algo, un valor
+    // viejo del flow no debe re-marcarlo — el flow ya no contendrá esa vía.
+    androidx.compose.runtime.LaunchedEffect(initiallyTicked) {
+        initiallyTicked.forEach { if (it !in tickedLines) tickedLines.add(it) }
+    }
+    androidx.compose.runtime.LaunchedEffect(initiallyProjects) {
+        initiallyProjects.forEach { if (it !in projectLines && it !in tickedLines) projectLines.add(it) }
+    }
     val context = LocalContext.current
     val shareScope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -315,7 +327,7 @@ fun BlockDetailDialog(
                                                 .clickable {
                                                     if (isProject) projectLines.remove(line.id)
                                                     else projectLines.add(line.id)
-                                                    onToggleProject(line, idx)
+                                                    onToggleProject(line, idx, !isProject)
                                                 },
                                             contentAlignment = androidx.compose.ui.Alignment.Center
                                         ) {
@@ -351,7 +363,7 @@ fun BlockDetailDialog(
                                                     // ViewModel hace lo mismo en el servidor).
                                                     projectLines.remove(line.id)
                                                 }
-                                                onTickLine(line, idx)
+                                                onTickLine(line, idx, !done)
                                             }
                                             .padding(horizontal = 6.dp)
                                     )

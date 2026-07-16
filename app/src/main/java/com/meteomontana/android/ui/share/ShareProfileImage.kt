@@ -56,7 +56,9 @@ suspend fun shareProfileAsImage(
 
     val bmp = renderProfileCard(displayLabel, username, avatar, topGrade, bio, boulders, routes, schools)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
-    val file = File(dir, "perfil.png")
+    // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
+    dir.listFiles()?.filter { it.name.startsWith("perfil") }?.forEach { it.delete() }
+    val file = File(dir, "perfil-${System.currentTimeMillis()}.png")
     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 

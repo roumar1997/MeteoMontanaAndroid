@@ -21,7 +21,9 @@ import java.io.File
 fun shareSchoolAsImage(context: Context, school: School, forecast: Forecast?) {
     val bmp = renderConditionsCard(school, forecast)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
-    val file = File(dir, "condiciones.png")
+    // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
+    dir.listFiles()?.filter { it.name.startsWith("condiciones") }?.forEach { it.delete() }
+    val file = File(dir, "condiciones-${System.currentTimeMillis()}.png")
     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     val intent = Intent(Intent.ACTION_SEND).apply {

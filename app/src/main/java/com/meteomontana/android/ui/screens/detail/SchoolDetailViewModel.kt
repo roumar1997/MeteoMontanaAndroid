@@ -274,11 +274,23 @@ class SchoolDetailViewModel @Inject constructor(
         line: com.meteomontana.android.domain.model.BlockLine,
         index: Int,
         schoolName: String,
-        sectorName: String?
+        sectorName: String?,
+        // Estado DESEADO explícito (lo que el usuario ve en la ficha). null =
+        // decidir por doneViaKeys (comportamiento antiguo). Sin esto había una
+        // CARRERA: la ficha abre antes de que cargue el diario → el ✓ visual y
+        // doneViaKeys divergen → "marcar" borraba la entrada vieja en silencio.
+        markDone: Boolean? = null
     ): Result<Boolean> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
         val key = viaKey(block.schoolId, viaName)
-        if (doneViaKeys.value.contains(key)) {
+        val alreadyDone = doneViaKeys.value.contains(key)
+        if (markDone == true && alreadyDone) {
+            // Idempotente: ya estaba hecha (el diario llegó tarde a la ficha).
+            journalDoneStore.add(key)
+            return@runCatching true
+        }
+        val unmark = markDone?.let { !it } ?: alreadyDone
+        if (unmark) {
             // DESMARCAR
             journalDoneStore.remove(key)
             // 1) Si solo estaba ENCOLADA (marcada offline, sin subir) → cancela la
@@ -355,13 +367,20 @@ class SchoolDetailViewModel @Inject constructor(
         line: com.meteomontana.android.domain.model.BlockLine,
         index: Int,
         schoolName: String,
-        sectorName: String?
+        sectorName: String?,
+        /** Estado DESEADO explícito (ver [toggleLine]). null = decidir por flows. */
+        markProject: Boolean? = null
     ): Result<Boolean> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
         val key = viaKey(block.schoolId, viaName)
         if (doneViaKeys.value.contains(key)) return@runCatching false
-
-        if (projectViaKeys.value.contains(key)) {
+        val alreadyProject = projectViaKeys.value.contains(key)
+        if (markProject == true && alreadyProject) {
+            journalProjectStore.add(key)
+            return@runCatching true
+        }
+        val unmarkProject = markProject?.let { !it } ?: alreadyProject
+        if (unmarkProject) {
             // DESMARCAR proyecto
             removeProjectEntry(block.schoolId, key)
             refreshJournal()

@@ -210,39 +210,51 @@ enum ShareFeedPostImage {
         }
     }
 
-    /// Dibuja SOLO la línea del post sobre la foto (espejo de drawLines de
-    /// ShareLineImage con una única vía, badge "1").
+    /// Dibuja las líneas del post sobre la foto: la del ascenso (badge "1") o,
+    /// en posts de piedra nueva (sin linePath), TODAS las vías de la cara
+    /// portada (blockLines) — antes la imagen compartida salía sin líneas.
     private static func drawLine(_ cg: CGContext, post: FeedPost, in rect: CGRect) {
-        let points = TopoParse.points(post.linePath)
-        guard !points.isEmpty else { return }
+        var vias: [(name: String?, grade: String?, startType: String?, pts: [CGPoint])] = []
+        let single = TopoParse.points(post.linePath)
+        if !single.isEmpty {
+            vias.append((post.lineName, post.grade, post.startType, single))
+        } else if let lines = post.blockLines {
+            for l in lines {
+                let p = TopoParse.points(l.linePath)
+                if !p.isEmpty { vias.append((l.name, l.grade, l.startType, p)) }
+            }
+        }
+        guard !vias.isEmpty else { return }
         let s = rect.width / 380.0
-        let style = GradeColor.style(post.grade)
-        let stroke = UIColor(style.stroke)
-        let pts = points.map {
-            CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-        }
-        let path = UIBezierPath()
-        path.move(to: pts[0])
-        for p in pts.dropFirst() { path.addLine(to: p) }
-        path.lineCapStyle = .round; path.lineJoinStyle = .round
-        if style.dashed { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
-        if style.dark {
-            path.lineWidth = 9 * s
-            UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
-        }
-        path.lineWidth = 5 * s
-        stroke.setStroke(); path.stroke()
+        for (idx, via) in vias.enumerated() {
+            let style = GradeColor.style(via.grade)
+            let stroke = UIColor(style.stroke)
+            let pts = via.pts.map {
+                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
+            }
+            let path = UIBezierPath()
+            path.move(to: pts[0])
+            for p in pts.dropFirst() { path.addLine(to: p) }
+            path.lineCapStyle = .round; path.lineJoinStyle = .round
+            if style.dashed { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
+            if style.dark {
+                path.lineWidth = 9 * s
+                UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
+            }
+            path.lineWidth = 5 * s
+            stroke.setStroke(); path.stroke()
 
-        let textColor: UIColor = style.dark ? .black : .white
-        fillCircle(cg, pts[0], 14 * s, .white)
-        fillCircle(cg, pts[0], 11 * s, stroke)
-        drawCentered("1", at: pts[0], size: 15 * s, color: textColor)
-        // Círculo del tipo de inicio en la base de la línea (= ShareLineImage).
-        if let label = startLabel(post.startType), pts.count > 1 {
-            let last = pts[pts.count - 1]
-            fillCircle(cg, last, 14 * s, style.dark ? .black : .white)
-            fillCircle(cg, last, 11 * s, stroke)
-            drawCentered(label, at: last, size: 9 * s, color: textColor)
+            let textColor: UIColor = style.dark ? .black : .white
+            fillCircle(cg, pts[0], 14 * s, .white)
+            fillCircle(cg, pts[0], 11 * s, stroke)
+            drawCentered("\(idx + 1)", at: pts[0], size: 15 * s, color: textColor)
+            // Círculo del tipo de inicio en la base de la línea (= ShareLineImage).
+            if let label = startLabel(via.startType), pts.count > 1 {
+                let last = pts[pts.count - 1]
+                fillCircle(cg, last, 14 * s, style.dark ? .black : .white)
+                fillCircle(cg, last, 11 * s, stroke)
+                drawCentered(label, at: last, size: 9 * s, color: textColor)
+            }
         }
     }
 

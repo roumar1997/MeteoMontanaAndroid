@@ -430,12 +430,15 @@ fun SchoolMap(
                     else viewModel.unrateLine(block.id, lineId)
                 }
             }) else null,
-            onTickLine = if (block.type == "BLOCK") ({ line, idx ->
+            onTickLine = if (block.type == "BLOCK") ({ line, idx, nowDone ->
+                // nowDone = lo que el usuario VE tras pulsar (estado deseado).
+                // Decidir por él, no por doneLineIds: el diario puede llegar
+                // tarde a la ficha y divergir del ✓ visual (borraba entradas).
                 val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
-                if (doneLineIds.contains(line.id)) {
+                if (!nowDone) {
                     // DESMARCAR: toggle directo, sin diálogo (como siempre).
                     viewModel.viewModelScope.launch {
-                        viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                        viewModel.toggleLine(block, line, idx, schoolName, sectorName, markDone = false)
                     }
                 } else {
                     val wasProject = projectLineIds.contains(line.id)
@@ -448,22 +451,22 @@ fun SchoolMap(
                             )
                         com.meteomontana.android.data.local.FeedPublishMode.ALWAYS ->
                             viewModel.viewModelScope.launch {
-                                val r = viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                                val r = viewModel.toggleLine(block, line, idx, schoolName, sectorName, markDone = true)
                                 if (r.getOrNull() == true) {
                                     viewModel.publishTickToFeed(block, line, wasProject)
                                 }
                             }
                         com.meteomontana.android.data.local.FeedPublishMode.NEVER ->
                             viewModel.viewModelScope.launch {
-                                viewModel.toggleLine(block, line, idx, schoolName, sectorName)
+                                viewModel.toggleLine(block, line, idx, schoolName, sectorName, markDone = true)
                             }
                     }
                 }
             }) else null,
-            onToggleProject = if (block.type == "BLOCK") ({ line, idx ->
+            onToggleProject = if (block.type == "BLOCK") ({ line, idx, nowProject ->
                 val sectorName = sectors.firstOrNull { it.id == block.sectorBlockId }?.name
                 viewModel.viewModelScope.launch {
-                    viewModel.toggleProject(block, line, idx, schoolName, sectorName)
+                    viewModel.toggleProject(block, line, idx, schoolName, sectorName, markProject = nowProject)
                 }
             }) else null,
             availableSectors = sectors.takeIf { it.isNotEmpty() },
@@ -503,7 +506,7 @@ fun SchoolMap(
                 pendingTick = null
                 viewModel.viewModelScope.launch {
                     val r = viewModel.toggleLine(
-                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
+                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true)
                     if (r.getOrNull() == true) {
                         viewModel.publishTickToFeed(
                             pt.block, pt.line, pt.wasProject, caption,
@@ -521,7 +524,7 @@ fun SchoolMap(
             onDiaryOnly = {
                 pendingTick = null
                 viewModel.viewModelScope.launch {
-                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName)
+                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true)
                 }
             },
             onDismiss = { pendingTick = null }
