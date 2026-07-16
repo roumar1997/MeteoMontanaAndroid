@@ -65,6 +65,10 @@ final class ShareLinkRouter: ObservableObject {
             // Perfil compartido: /s/u/{username o uid} — el backend acepta ambos.
             target = Target(userHandle: seg[2])
             return true
+        case "p":
+            // Publicación del feed compartida: /s/p/{postId}.
+            target = Target(feedPostId: seg[2])
+            return true
         default:
             return false
         }

@@ -92,6 +92,8 @@ class MainActivity : ComponentActivity() {
                     }
                     // Perfil compartido: /s/u/{username o uid}.
                     "u" -> seg.getOrNull(2)?.let { pendingDeepLink.value = DeepLinkTarget("user", it) }
+                    // Publicación del feed compartida: /s/p/{postId}.
+                    "p" -> seg.getOrNull(2)?.let { pendingDeepLink.value = DeepLinkTarget("feed_post", it) }
                 }
                 intent.data = null   // no re-navegar en recreaciones
                 return

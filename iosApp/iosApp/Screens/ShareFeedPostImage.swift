@@ -56,6 +56,9 @@ enum ShareFeedPostImage {
         if !title.isEmpty { parts.append("🧗 " + title) }
         let place = feedPostPlace(post)
         if !place.isEmpty { parts.append(place) }
+        // Deep link al post: si el receptor tiene Cumbre se abre el detalle
+        // (landing /s/p con Open Graph si no la tiene).
+        parts.append("Míralo en Cumbre: https://api.climbingteams.com/s/p/\(post.id)")
         return parts.joined(separator: "\n")
     }
 

@@ -93,7 +93,11 @@ private fun plainText(post: FeedPost): String {
         post.blockName?.takeIf { it.isNotBlank() && post.lineName != null },
         post.schoolName?.takeIf { it.isNotBlank() }
     ).joinToString(" · ")
-    return listOf("🧗 $title", place).filter { it.isNotBlank() }.joinToString("\n")
+    // Deep link al post: si el receptor tiene Cumbre se abre el detalle
+    // (landing /s/p con Open Graph si no la tiene).
+    val link = "https://api.climbingteams.com/s/p/${post.id}"
+    return listOf("🧗 $title", place, "Míralo en Cumbre: $link")
+        .filter { it.isNotBlank() }.joinToString("\n")
 }
 
 /** Pinta la imagen del post y la deja en cache/share; null solo si falla el PNG. */
