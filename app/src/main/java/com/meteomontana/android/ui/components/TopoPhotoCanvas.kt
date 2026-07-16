@@ -116,7 +116,19 @@ fun TopoPhotoCanvas(
 
         if (lines.any { it.points.isNotEmpty() }) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val ops = renderTopo(lines.map { it.toLineData() }, size.width, size.height)
+                // Tamaños en dp → px (antes iban en px físicos: en móviles de
+                // densidad alta salían minúsculos y distintos de iOS; ahora las
+                // dos apps usan los MISMOS dp/pt: badge 9/7, inicio 10.5/8.5,
+                // trazo 3.5 — espejo de TopoPhotoView.swift).
+                val d = density
+                val ops = renderTopo(
+                    lines.map { it.toLineData().copy(strokeWidthPx = 3.5f * d) },
+                    size.width, size.height,
+                    badgeR = 9f * d to 7f * d,
+                    badgeTextPx = 10f * d to 3.5f * d,
+                    startR = 10.5f * d to 8.5f * d,
+                    startTextPx = 7f * d to 2.5f * d
+                )
                 val nc = drawContext.canvas.nativeCanvas
                 ops.forEach { op -> drawOp(op, nc) }
             }

@@ -144,20 +144,23 @@ struct TopoPhotoView: View {
         path.move(to: pts[0])
         for p in pts.dropFirst() { path.addLine(to: p) }
         let dash: [CGFloat] = style.dashed ? [10, 8] : []
+        // Tamaños unificados con Android (TopoPhotoCanvas.kt): badge 9/7,
+        // inicio 10.5/8.5, trazo 3.5 — antes iOS pintaba ~2.5x más grande
+        // (pt vs px físicos) y tapaba la piedra.
         // Línea blanca: contorno negro para que se vea sobre cualquier foto.
         if style.dark {
             ctx.stroke(path, with: .color(.black.opacity(0.8)),
-                       style: StrokeStyle(lineWidth: 9, lineCap: .round, lineJoin: .round, dash: dash))
+                       style: StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round, dash: dash))
         }
         ctx.stroke(path, with: .color(style.stroke),
-                   style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round, dash: dash))
+                   style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round, dash: dash))
         let textColor: Color = style.dark ? .black : .white
-        badge(ctx, at: pts[0], outer: 12, inner: 9.5, fill: .white, ring: style.stroke,
-              text: "\(number)", textSize: 13, textColor: textColor)
+        badge(ctx, at: pts[0], outer: 9, inner: 7, fill: .white, ring: style.stroke,
+              text: "\(number)", textSize: 10, textColor: textColor)
         if let label = startLabel(line.startType), pts.count > 1 {
-            badge(ctx, at: pts[pts.count - 1], outer: 14, inner: 11,
+            badge(ctx, at: pts[pts.count - 1], outer: 10.5, inner: 8.5,
                   fill: style.dark ? .black : .white, ring: style.stroke,
-                  text: label, textSize: 9, textColor: textColor)
+                  text: label, textSize: 7, textColor: textColor)
         }
     }
 
