@@ -170,11 +170,6 @@ class SchoolDetailViewModel @Inject constructor(
     val autoOpenBlockId: StateFlow<String?> = _autoOpenBlockId.asStateFlow()
     fun consumeAutoOpenBlock() { _autoOpenBlockId.value = null }
 
-    /** true mientras la sección del mapa (SchoolMap) está compuesta. El scroll
-     *  programático del deep-link se detiene en cuanto se enciende (si sigue
-     *  scrolleando, el item se pasa de largo y se DESTRUYE antes de abrir). */
-    val mapSectionReady = MutableStateFlow(false)
-
     private val journalJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
 
     /** Diario del usuario (para marcar las vías ya hechas con ✓ persistente). */

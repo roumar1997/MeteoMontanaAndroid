@@ -11,8 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DownloadDone
@@ -232,133 +231,75 @@ private fun Content(
     onDayClick: (Int) -> Unit = {},
     mountainBulletin: com.meteomontana.android.data.api.MountainBulletinDto? = null
 ) {
-    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-    // Deep-link a una piedra/vía (feed o diario): la sección del mapa vive en un
-    // item PEREZOSO al fondo de esta lista → hasta que no se compone, el
-    // auto-abrir no corre (la ficha solo se abría al scrollear, o tras muchos
-    // segundos). Scroll programático hasta que el mapa se compone y consume el
-    // deep-link (iOS no lo sufre: su detalle es ScrollView no lazy). El scroll
-    // queda OCULTO tras un velo de carga (abajo) para que no se vea el salto.
-    val pendingBlock by viewModel.autoOpenBlockId.collectAsState()
-    val pendingVia by viewModel.autoOpenVia.collectAsState()
-    val pendingViaId by viewModel.autoOpenViaId.collectAsState()
-    // El velo permanece mientras el deep-link sigue pendiente (cargando bloques/
-    // forecast o scrolleando). Se retira al abrirse la ficha — o al agotar los
-    // intentos (objetivo inexistente: vía renombrada, piedra borrada...).
-    var deepLinkGaveUp by remember { mutableStateOf(false) }
-    val opening = !deepLinkGaveUp &&
-        (pendingBlock != null || pendingVia != null || pendingViaId != null)
-    androidx.compose.runtime.LaunchedEffect(forecast, blocks, pendingBlock, pendingVia, pendingViaId) {
-        if (pendingBlock == null && pendingVia == null && pendingViaId == null) return@LaunchedEffect
-        if (blocks.isEmpty() || forecast == null) return@LaunchedEffect
-        fun stillPending() = viewModel.autoOpenBlockId.value != null ||
-            viewModel.autoOpenVia.value != null || viewModel.autoOpenViaId.value != null
-        val opened = kotlinx.coroutines.withTimeoutOrNull(10_000) {
-            // 1) Scroll SOLO hasta que la sección del mapa se compone (si se
-            //    scrollea de más, el item sale del viewport y se destruye
-            //    antes de que su efecto abra la ficha).
-            while (!viewModel.mapSectionReady.value && listState.canScrollForward && stillPending()) {
-                listState.scrollBy(900f)
-                kotlinx.coroutines.delay(30)
-            }
-            // 2) Quieto: espera a que el mapa (expandido) consuma el deep-link
-            //    y abra la ficha (en móviles lentos MapLibre tarda unos segundos).
-            while (stillPending()) kotlinx.coroutines.delay(50)
-            true
-        }
-        if (opened == null && stillPending()) {
-            // No se encontró/abrió el objetivo: retira el velo y vuelve arriba.
-            deepLinkGaveUp = true
-            viewModel.consumeAutoOpenVia()
-            viewModel.consumeAutoOpenBlock()
-            listState.scrollToItem(0)
-        }
-    }
-    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
-    LazyColumn(modifier = Modifier.fillMaxSize(), state = listState) {
-        item {
-            com.meteomontana.android.ui.components.FirstTimeHint(
-                hintKey = "detail_offline",
-                text = "Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras."
-            )
-        }
-        item {
-            com.meteomontana.android.ui.components.FirstTimeHint(
-                hintKey = "detail_propose",
-                text = "Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa."
-            )
-        }
-        item {
-            com.meteomontana.android.ui.components.FirstTimeHint(
-                hintKey = "detail_tick",
-                text = "Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario."
-            )
-        }
+    // Columna NO perezosa (paridad con el ScrollView de iOS): toda la pantalla
+    // se compone al entrar → los deep-links a piedras/vías (feed, diario,
+    // buscador, enlaces) abren la ficha en cuanto cargan los bloques, sin
+    // esperar a que el usuario scrollee. Antes era un LazyColumn y la sección
+    // del mapa (la que abre la ficha) no existía hasta entrar en pantalla —
+    // hicieron falta parches (scroll programático + velo) que esto elimina.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+    ) {
+        com.meteomontana.android.ui.components.FirstTimeHint(
+            hintKey = "detail_offline",
+            text = "Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras."
+        )
+        com.meteomontana.android.ui.components.FirstTimeHint(
+            hintKey = "detail_propose",
+            text = "Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa."
+        )
+        com.meteomontana.android.ui.components.FirstTimeHint(
+            hintKey = "detail_tick",
+            text = "Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario."
+        )
         if (forecast != null) {
-            forecastBody(
+            com.meteomontana.android.ui.components.ForecastBodyColumn(
                 forecast = forecast,
                 afterCurrentWeather = {
-                    // Boletín de montaña AEMET (solo escuelas en un macizo).
-                    mountainBulletin?.let { b ->
-                        item { com.meteomontana.android.ui.components.MountainBulletinSection(b) }
+                    Column {
+                        // Boletín de montaña AEMET (solo escuelas en un macizo).
+                        mountainBulletin?.let { b ->
+                            com.meteomontana.android.ui.components.MountainBulletinSection(b)
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                        BlocksSection(
+                            blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
+                            schoolLat = school.lat, schoolLon = school.lon,
+                            schoolName = school.name, schoolId = school.id,
+                            viewModel = viewModel, onMyProposals = onMyProposals
+                        )
                     }
-                    item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
-                    item { BlocksSection(
-                        blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
-                        schoolLat = school.lat, schoolLon = school.lon,
-                        schoolName = school.name, schoolId = school.id,
-                        viewModel = viewModel, onMyProposals = onMyProposals
-                    ) }
                 },
                 onDayClick = onDayClick
             )
         } else if (forecastError != null) {
-            item {
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.lg)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .padding(Spacing.lg)
-                ) {
-                    Column {
-                        Text("Tiempo no disponible",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground)
-                        Spacer(Modifier.height(Spacing.xs))
-                        Text(forecastError,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.lg)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                .padding(Spacing.lg)
+            ) {
+                Column {
+                    Text("Tiempo no disponible",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground)
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text(forecastError,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
-        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
-        item {
-            NotesSection(notes = notes, onPublish = onPublishNote,
-                onVote = { n, v -> viewModel.voteNote(n, v) })
-        }
-        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+        NotesSection(notes = notes, onPublish = onPublishNote,
+            onVote = { n, v -> viewModel.voteNote(n, v) })
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         // (Guardar offline movido al toolbar superior, como en iOS.)
-        item {
-            val s = viewModel.uiState.collectAsState().value as? SchoolDetailUiState.Success
-            MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
-        }
-        item { Spacer(Modifier.height(40.dp)) }
-    }
-    // Velo de carga del deep-link: tapa la lista (y el scroll programático)
-    // mientras se abre la piedra — la transición queda: entrar → carga breve →
-    // ficha abierta, como en iOS.
-    if (opening) {
-        Box(
-            Modifier.fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-            contentAlignment = androidx.compose.ui.Alignment.Center
-        ) {
-            androidx.compose.material3.CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
+        val s = viewModel.uiState.collectAsState().value as? SchoolDetailUiState.Success
+        MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
+        Spacer(Modifier.height(40.dp))
     }
 }
 

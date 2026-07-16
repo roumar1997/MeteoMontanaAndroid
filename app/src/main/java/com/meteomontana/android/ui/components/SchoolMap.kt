@@ -166,13 +166,6 @@ fun SchoolMap(
         if (!autoOpenVia.isNullOrBlank() || !autoOpenViaId.isNullOrBlank() ||
             !autoOpenBlockIdGate.isNullOrBlank()) expanded = true
     }
-    // Señal para el scroll programático del deep-link (SchoolDetailScreen):
-    // el mapa YA está compuesto → deja de scrollear (si sigue, este item sale
-    // del viewport y se destruye antes de poder abrir la ficha).
-    androidx.compose.runtime.DisposableEffect(Unit) {
-        viewModel.mapSectionReady.value = true
-        onDispose { viewModel.mapSectionReady.value = false }
-    }
 
     // Estado del flujo de propuesta
     var proposeOpen    by remember { mutableStateOf(false) }

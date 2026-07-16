@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ExpandLess
@@ -39,50 +38,58 @@ import com.meteomontana.android.domain.model.Current
 import com.meteomontana.android.domain.model.Forecast
 
 /**
- * Bloque de scoring/forecast reutilizable.
- * Lo usa la pantalla de detalle de escuela y la pantalla Tab Tiempo.
+ * Bloque de scoring/forecast reutilizable — envoltorio perezoso para pantallas
+ * con LazyColumn (pestaña Tiempo). La ÚNICA implementación del layout es
+ * [ForecastBodyColumn]: cualquier cambio futuro se hace ahí y ambas pantallas
+ * lo heredan (no hay dos copias que mantener a la par).
  */
 fun LazyListScope.forecastBody(
     forecast: Forecast,
-    afterCurrentWeather: (LazyListScope.() -> Unit)? = null,
+    afterCurrentWeather: (@Composable () -> Unit)? = null,
     onDayClick: ((Int) -> Unit)? = null
 ) {
-    item {
-        // El desglose "¿por qué este índice?" se abre solo desde el acordeón
-        // de abajo (FactorsAccordion); el hero es solo presentación.
-        var factorsExpanded by rememberSaveable { mutableStateOf(false) }
-        Column {
-            HeroSection(forecast)
-            // Estado de la roca justo bajo el índice: es la pregunta nº1 de un
-            // escalador (¿seca? ¿cuándo?). Antes vivía al final, en BestDayBar.
-            RockStatusBand(forecast.current)
-            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                HourlyHeatmap(hours = forecast.hours)
-            }
-            FactorsAccordion(
-                current = forecast.current,
-                expanded = factorsExpanded,
-                onToggle = { factorsExpanded = !factorsExpanded }
-            )
+    item { ForecastBodyColumn(forecast, afterCurrentWeather, onDayClick) }
+}
+
+/**
+ * Versión NO perezosa (Column) del bloque de forecast — para pantallas eager
+ * como el detalle de escuela (paridad con el ScrollView de iOS: todo se
+ * compone al entrar, los deep-links a piedras/vías abren sin esperar a que
+ * el usuario scrollee). La pestaña Tiempo sigue usando la versión LazyListScope.
+ */
+@Composable
+fun ForecastBodyColumn(
+    forecast: Forecast,
+    afterCurrentWeather: (@Composable () -> Unit)? = null,
+    onDayClick: ((Int) -> Unit)? = null
+) {
+    var factorsExpanded by rememberSaveable { mutableStateOf(false) }
+    Column {
+        HeroSection(forecast)
+        RockStatusBand(forecast.current)
+        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+            HourlyHeatmap(hours = forecast.hours)
         }
-    }
-    item { CurrentWeather(forecast.current) }
-    afterCurrentWeather?.invoke(this)
-    item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-    item { SectionTitle(stringResource(R.string.detail_next_hours)) }
-    item {
+        FactorsAccordion(
+            current = forecast.current,
+            expanded = factorsExpanded,
+            onToggle = { factorsExpanded = !factorsExpanded }
+        )
+        CurrentWeather(forecast.current)
+        afterCurrentWeather?.invoke()
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        SectionTitle(stringResource(R.string.detail_next_hours))
         Box(modifier = Modifier.padding(vertical = 8.dp)) {
             HourlyScoreGrid(hours = forecast.hours)
         }
+        ConditionsGrid(forecast.current)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        SectionTitle(stringResource(R.string.detail_next_days))
+        forecast.days.take(7).forEachIndexed { i, d ->
+            DayRow(day = d, dayIndex = i, onClick = onDayClick?.let { { it(i) } })
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+        }
     }
-    item { ConditionsGrid(forecast.current) }
-    item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-    item { SectionTitle(stringResource(R.string.detail_next_days)) }
-    itemsIndexed(forecast.days.take(7)) { i, d ->
-        DayRow(day = d, dayIndex = i, onClick = onDayClick?.let { { it(i) } })
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-    }
-    // BestDayBar quitado: el score coloreado de cada fila ya lo dice (paridad iOS).
 }
 
 @Composable
