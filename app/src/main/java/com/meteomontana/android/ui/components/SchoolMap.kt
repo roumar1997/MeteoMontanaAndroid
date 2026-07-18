@@ -48,6 +48,7 @@ import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.Icon
@@ -1937,16 +1938,41 @@ private fun FeedPublishSheet(
     var always by remember { mutableStateOf(false) }
     // Descripción opcional del autor (viaja como "caption", max 500).
     var caption by remember { mutableStateOf("") }
-    // Foto de celebración: SIEMPRE hecha en el momento con la cámara del
-    // sistema (TakePicture sobre un URI del FileProvider; el usuario elige
-    // frontal/trasera en la propia app de cámara). Sin permiso CAMERA en el
-    // Manifest → no hace falta runtime permission para ACTION_IMAGE_CAPTURE.
+    // Foto de celebración: cámara del sistema (TakePicture sobre un URI del
+    // FileProvider; sin permiso CAMERA en el Manifest → no hace falta runtime
+    // permission) o elegida de la GALERÍA (Photo Picker, tampoco pide permiso).
+    // OJO robustez (paridad con el blindaje iOS 2026-07-18): los URIs van en
+    // rememberSaveable — con la cámara abierta MIUI mata el proceso a menudo
+    // y un remember simple perdía la foto al volver (se quedaba en null).
     val photoCtx = LocalContext.current
-    var photoUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var photoUri by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf<Uri?>(null)
+    }
+    var pendingCameraUri by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf<Uri?>(null)
+    }
     val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.TakePicture()
-    ) { ok -> if (ok) photoUri = pendingCameraUri }
+    ) { ok ->
+        val pending = pendingCameraUri
+        if (ok && pending != null) {
+            photoUri = pending
+            // Red de seguridad: copia la foto también al carrete del usuario
+            // (MediaStore, sin permisos en API 29+). Aunque algo fallara
+            // después, la foto del grupo existe en Galería. Best effort.
+            saveCelebrationToGallery(photoCtx, pending)
+        } else if (ok) {
+            // NUNCA en silencio: la cámara dijo OK pero el URI pendiente se
+            // perdió (no debería pasar con rememberSaveable) → avisar YA.
+            android.widget.Toast.makeText(
+                photoCtx, R.string.feed_photo_failed, android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+        // ok=false = cancelado por el usuario → sin aviso (es lo esperado).
+    }
+    val galleryLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) photoUri = uri }
     fun launchCamera() {
         val dir = java.io.File(photoCtx.cacheDir, "feed").apply { mkdirs() }
         val file = java.io.File(dir, "celebration-${System.currentTimeMillis()}.jpg")
@@ -1955,6 +1981,16 @@ private fun FeedPublishSheet(
         )
         pendingCameraUri = uri
         runCatching { cameraLauncher.launch(uri) }
+    }
+    fun launchGallery() {
+        runCatching {
+            galleryLauncher.launch(
+                androidx.activity.result.PickVisualMediaRequest(
+                    androidx.activity.result.contract.ActivityResultContracts
+                        .PickVisualMedia.ImageOnly
+                )
+            )
+        }
     }
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -2008,26 +2044,54 @@ private fun FeedPublishSheet(
             // miniatura con ✕ para quitarla/repetir.
             val currentPhoto = photoUri
             if (currentPhoto == null) {
+                // Dos accesos: hacer la foto ahora o elegirla de la galería
+                // (para publicar después sin estar con el móvil en el momento).
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .clickable { launchCamera() }
-                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
-                    Icon(
-                        Icons.Outlined.PhotoCamera,
-                        contentDescription = null,
-                        tint = Terra,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        stringResource(R.string.feed_add_celebration_photo),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                            .clip(RoundedCornerShape(2.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                            .clickable { launchCamera() }
+                            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Icon(
+                            Icons.Outlined.PhotoCamera,
+                            contentDescription = null,
+                            tint = Terra,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            stringResource(R.string.feed_take_photo),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                            .clip(RoundedCornerShape(2.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                            .clickable { launchGallery() }
+                            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Icon(
+                            Icons.Outlined.PhotoLibrary,
+                            contentDescription = null,
+                            tint = Terra,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            stringResource(R.string.feed_pick_from_gallery),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 Row(
@@ -2056,15 +2120,26 @@ private fun FeedPublishSheet(
                                 style = MaterialTheme.typography.labelMedium)
                         }
                     }
-                    Text(
-                        stringResource(R.string.feed_retake_celebration_photo),
-                        style = EyebrowTextStyle,
-                        color = Terra,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(2.dp))
-                            .clickable { launchCamera() }
-                            .padding(Spacing.sm)
-                    )
+                    Column {
+                        Text(
+                            stringResource(R.string.feed_retake_celebration_photo),
+                            style = EyebrowTextStyle,
+                            color = Terra,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(2.dp))
+                                .clickable { launchCamera() }
+                                .padding(Spacing.sm)
+                        )
+                        Text(
+                            stringResource(R.string.feed_pick_from_gallery_caps),
+                            style = EyebrowTextStyle,
+                            color = Terra,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(2.dp))
+                                .clickable { launchGallery() }
+                                .padding(Spacing.sm)
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(Spacing.md))
@@ -2118,6 +2193,33 @@ private fun FeedPublishSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+/**
+ * Copia la foto de celebración al carrete del usuario (álbum Cumbre) — red de
+ * seguridad: aunque la publicación fallara, la foto del grupo existe en
+ * Galería. Solo API 29+ (MediaStore sin permisos); en 26-28 se omite (allí
+ * exigiría WRITE_EXTERNAL_STORAGE runtime y no compensa). Best effort: nunca
+ * rompe el flujo de publicar.
+ */
+private fun saveCelebrationToGallery(context: android.content.Context, source: Uri) {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) return
+    runCatching {
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME,
+                "cumbre-${System.currentTimeMillis()}.jpg")
+            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,
+                android.os.Environment.DIRECTORY_PICTURES + "/Cumbre")
+        }
+        val resolver = context.contentResolver
+        val target = resolver.insert(
+            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+        ) ?: return
+        resolver.openOutputStream(target)?.use { out ->
+            resolver.openInputStream(source)?.use { input -> input.copyTo(out) }
         }
     }
 }

@@ -71,6 +71,10 @@
     <string name="feed_my_posts_section">My posts</string>
     <string name="feed_add_celebration_photo">Add celebration photo</string>
     <string name="feed_retake_celebration_photo">RETAKE PHOTO</string>
+    <string name="feed_take_photo">Take photo</string>
+    <string name="feed_pick_from_gallery">Gallery</string>
+    <string name="feed_pick_from_gallery_caps">GALLERY</string>
+    <string name="feed_photo_failed">The photo was not saved. Try again or pick it from the gallery.</string>
     <string name="feed_celebration_photo">Celebration photo</string>
     <string name="feed_photo_upload_failed">The photo could not be uploaded; posted without it</string>
     <string name="profile_my_contributions">My contributions</string>

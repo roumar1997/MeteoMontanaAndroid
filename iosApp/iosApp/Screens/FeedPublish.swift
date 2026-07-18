@@ -63,9 +63,15 @@ struct FeedPublishSheet: View {
             guard granted else { showCameraDenied = true; return }
             // Presentación por UIKit (sin el parpadeo del fullScreenCover dentro
             // de la hoja). La foto capturada va al ObservableObject, que sí
-            // refresca la miniatura.
-            presentSystemCamera { img in photoStore.image = img }
+            // refresca la miniatura. El lineLabel es la clave del búfer de
+            // rescate (si la hoja se recrea, la recuperada es de ESTA vía).
+            presentSystemCamera(context: lineLabel) { img in photoStore.image = img }
         }
+    }
+
+    /// Elegir de la galería (PHPicker: sin permiso, mismo patrón UIKit).
+    private func requestGallery() {
+        presentSystemPhotoPicker(context: lineLabel) { img in photoStore.image = img }
     }
 
     var body: some View {
@@ -108,8 +114,12 @@ struct FeedPublishSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                             .overlay(RoundedRectangle(cornerRadius: 6)
                                 .stroke(Cumbre.rule, lineWidth: 1))
-                        // ✕ quita la foto (se puede volver a hacer otra).
-                        Button { photoStore.image = nil } label: {
+                        // ✕ quita la foto (y olvida el búfer: quitarla es
+                        // deliberado, que no reaparezca si la hoja se recrea).
+                        Button {
+                            photoStore.image = nil
+                            CapturedPhotoStore.forget()
+                        } label: {
                             Text("✕")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(.white)
@@ -120,33 +130,62 @@ struct FeedPublishSheet: View {
                         .buttonStyle(.plain)
                         .padding(4)
                     }
-                    Button(action: requestCamera) {
-                        Text("REPETIR FOTO")
-                            .font(Cumbre.mono(10, .bold)).tracking(1.8)
-                            .foregroundStyle(Cumbre.terra)
-                            .padding(8)
-                            .contentShape(Rectangle())
+                    VStack(alignment: .leading, spacing: 4) {
+                        Button(action: requestCamera) {
+                            Text("REPETIR FOTO")
+                                .font(Cumbre.mono(10, .bold)).tracking(1.8)
+                                .foregroundStyle(Cumbre.terra)
+                                .padding(8)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        Button(action: requestGallery) {
+                            Text("GALERÍA")
+                                .font(Cumbre.mono(10, .bold)).tracking(1.8)
+                                .foregroundStyle(Cumbre.terra)
+                                .padding(8)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                     Spacer()
                 }
                 .padding(.top, 16)
             } else {
-                Button(action: requestCamera) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "camera")
-                            .font(.system(size: 16))
-                            .foregroundStyle(Cumbre.terra)
-                        Text("Añadir foto de celebración")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Cumbre.ink2)
-                        Spacer()
+                // Dos accesos: hacer la foto ahora o elegirla de la galería
+                // (para publicar después sin estar con el móvil en el momento).
+                HStack(spacing: 8) {
+                    Button(action: requestCamera) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "camera")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Cumbre.terra)
+                            Text("Hacer foto")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Cumbre.ink2)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                        .contentShape(Rectangle())
                     }
-                    .padding(.horizontal, 12).padding(.vertical, 10)
-                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    Button(action: requestGallery) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Cumbre.terra)
+                            Text("Galería")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Cumbre.ink2)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
                 .padding(.top, 16)
             }
 
@@ -171,7 +210,9 @@ struct FeedPublishSheet: View {
             // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
             Button {
                 let c = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-                onPublish(always, c.isEmpty ? nil : c, photoStore.image)
+                let photo = photoStore.image
+                CapturedPhotoStore.forget()   // consumida: no re-adoptar después
+                onPublish(always, c.isEmpty ? nil : c, photo)
             } label: {
                 Text("PUBLICAR EN EL FEED")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
@@ -185,7 +226,10 @@ struct FeedPublishSheet: View {
             .padding(.top, 16)
 
             // Secundario: solo diario.
-            Button(action: onDiaryOnly) {
+            Button {
+                CapturedPhotoStore.forget()
+                onDiaryOnly()
+            } label: {
                 Text("SOLO EN MI DIARIO")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
                     .foregroundStyle(Cumbre.ink3)
@@ -199,6 +243,15 @@ struct FeedPublishSheet: View {
         }
         .padding(.horizontal, 16).padding(.top, 20)
         .background(Cumbre.bg.ignoresSafeArea())
+        // RESCATE: si esta hoja es una RECREACIÓN (SwiftUI la reconstruyó
+        // mientras la cámara estaba abierta), su store nace vacío pero la foto
+        // vive en el búfer global → adoptarla si es de ESTA misma vía.
+        .onAppear {
+            if photoStore.image == nil,
+               let orphan = CapturedPhotoStore.recentOrphan(for: lineLabel) {
+                photoStore.image = orphan
+            }
+        }
         // Más alta que antes: descripción + fila/miniatura de foto.
         .presentationDetents([.height(photoStore.image == nil ? 480 : 560)])
         // Permiso denegado: llevar a Ajustes (iOS no re-pregunta).

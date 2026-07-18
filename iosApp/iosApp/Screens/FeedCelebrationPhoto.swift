@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import PhotosUI
 import Shared
 
 // Foto de celebración del feed — utilidades compartidas (cámara, compresión,
@@ -19,6 +20,35 @@ import Shared
 @MainActor
 final class CapturedPhotoStore: ObservableObject {
     @Published var image: UIImage?
+
+    /// RED DE SEGURIDAD (bug real 2026-07-18): si SwiftUI recrea la hoja de
+    /// publicar mientras la cámara está abierta (la cámara pasa la app por
+    /// .inactive), el closure de captura escribe en el store VIEJO ya muerto y
+    /// la foto "desaparecía" sin error. La última captura se guarda también
+    /// aquí (global, con la vía a la que pertenece) y la hoja recreada la
+    /// adopta al aparecer si la suya está vacía Y es de la MISMA vía.
+    static var lastCaptured: (image: UIImage, context: String, at: Date)?
+
+    /// Ventana en la que una captura huérfana se considera "de esta publicación".
+    static let recoveryWindow: TimeInterval = 180
+
+    static func remember(_ image: UIImage, for context: String) {
+        lastCaptured = (image, context, Date())
+    }
+
+    /// Última captura reciente de ESA vía aún no consumida (nil si no hay,
+    /// es vieja, o era de otra vía — nunca adoptar la foto de otro ascenso).
+    static func recentOrphan(for context: String) -> UIImage? {
+        guard let last = lastCaptured, last.context == context,
+              Date().timeIntervalSince(last.at) < recoveryWindow else { return nil }
+        return last.image
+    }
+
+    /// Olvida el búfer (al publicar, quitar la foto con ✕ o cerrar la hoja),
+    /// para que una publicación posterior no adopte una foto vieja.
+    static func forget() {
+        lastCaptured = nil
+    }
 }
 
 /// Delegate del picker, retenido por el propio picker (associated object) para
@@ -26,18 +56,33 @@ final class CapturedPhotoStore: ObservableObject {
 private final class CameraCoordinator: NSObject, UIImagePickerControllerDelegate,
                                        UINavigationControllerDelegate {
     let onCapture: (UIImage) -> Void
-    init(onCapture: @escaping (UIImage) -> Void) { self.onCapture = onCapture }
+    /// Vía/bloque al que pertenece la captura (clave del búfer de rescate).
+    let context: String
+    init(context: String, onCapture: @escaping (UIImage) -> Void) {
+        self.context = context
+        self.onCapture = onCapture
+    }
 
     func imagePickerController(
         _ picker: UIImagePickerController,
         didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
     ) {
         var captured: UIImage?
-        if let img = info[.originalImage] as? UIImage {
+        if let img = (info[.originalImage] ?? info[.editedImage]) as? UIImage {
             // La cámara FRONTAL del picker devuelve el selfie volteado respecto
             // a la vista previa (efecto espejo horneado en los píxeles). Lo
             // volteamos para que quede como se vio. La trasera no se toca.
             captured = img.baked(flipHorizontally: picker.cameraDevice == .front)
+        }
+        if let captured {
+            // Doble red de seguridad ANTES de cerrar la cámara:
+            // 1) búfer global — sobrevive a que la hoja se recree por debajo.
+            CapturedPhotoStore.remember(captured, for: context)
+            // 2) carrete del usuario — aunque TODO fallara, la foto del grupo
+            //    existe en Fotos y se puede elegir desde la galería. iOS pide
+            //    el permiso "añadir a Fotos" la primera vez; si lo deniegan,
+            //    falla en silencio (la foto sigue llegando por el flujo normal).
+            UIImageWriteToSavedPhotosAlbum(captured, nil, nil, nil)
         }
         // Entregar la foto DESPUÉS de cerrar la cámara: si se entrega antes, el
         // @Published cambia mientras la cámara todavía cubre la hoja y la
@@ -45,7 +90,14 @@ private final class CameraCoordinator: NSObject, UIImagePickerControllerDelegate
         // no aparecía hasta escribir en la descripción).
         let cb = onCapture
         picker.dismiss(animated: true) {
-            if let captured { cb(captured) }
+            if let captured {
+                cb(captured)
+            } else {
+                // NUNCA en silencio: iOS no entregó la imagen (presión de
+                // memoria u otro fallo del picker) → decirlo al momento para
+                // repetir la foto YA, no descubrirlo con la gente ya dispersa.
+                showPhotoCaptureFailedAlert()
+            }
         }
     }
 
@@ -72,15 +124,86 @@ private func topPresentedViewController() -> UIViewController? {
 /// fullScreenCover-dentro-de-sheet). El callback debe actualizar un
 /// ObservableObject (ver CapturedPhotoStore) para que la vista se refresque.
 @MainActor
-func presentSystemCamera(onCapture: @escaping (UIImage) -> Void) {
+func presentSystemCamera(context: String, onCapture: @escaping (UIImage) -> Void) {
     guard UIImagePickerController.isSourceTypeAvailable(.camera),
           let presenter = topPresentedViewController() else { return }
     let picker = UIImagePickerController()
     picker.sourceType = .camera
-    let coord = CameraCoordinator(onCapture: onCapture)
+    let coord = CameraCoordinator(context: context, onCapture: onCapture)
     picker.delegate = coord
     objc_setAssociatedObject(picker, &cameraCoordinatorKey, coord, .OBJC_ASSOCIATION_RETAIN)
     presenter.present(picker, animated: true)
+}
+
+// MARK: - Galería del sistema (PHPicker, sin permiso — el picker corre fuera
+// del proceso y solo entrega lo elegido)
+
+/// Delegate del PHPicker, retenido por el propio picker (mismo patrón que la
+/// cámara). Entrega la imagen tras cerrar; si la carga falla, avisa.
+private final class GalleryCoordinator: NSObject, PHPickerViewControllerDelegate {
+    let onPick: (UIImage) -> Void
+    /// Vía/bloque al que pertenece la foto (clave del búfer de rescate).
+    let context: String
+    init(context: String, onPick: @escaping (UIImage) -> Void) {
+        self.context = context
+        self.onPick = onPick
+    }
+
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        let provider = results.first?.itemProvider
+        let cb = onPick
+        picker.dismiss(animated: true) {
+            guard let provider, provider.canLoadObject(ofClass: UIImage.self) else {
+                // Cerrar sin elegir nada = cancelación normal, sin aviso.
+                if provider != nil { Task { @MainActor in showPhotoCaptureFailedAlert() } }
+                return
+            }
+            let ctx = self.context
+            provider.loadObject(ofClass: UIImage.self) { object, _ in
+                DispatchQueue.main.async {
+                    if let img = object as? UIImage {
+                        // La galería ya tiene el original — solo hace falta el
+                        // búfer anti-recreación de la hoja, no re-guardarla.
+                        CapturedPhotoStore.remember(img, for: ctx)
+                        cb(img)
+                    } else {
+                        // NUNCA en silencio (p.ej. un RAW/formato no cargable).
+                        showPhotoCaptureFailedAlert()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private var galleryCoordinatorKey: UInt8 = 0
+
+/// Presenta el selector de fotos del sistema por UIKit (mismo patrón que
+/// `presentSystemCamera`: sin parpadeo del fullScreenCover dentro de la hoja).
+@MainActor
+func presentSystemPhotoPicker(context: String, onPick: @escaping (UIImage) -> Void) {
+    guard let presenter = topPresentedViewController() else { return }
+    var config = PHPickerConfiguration(photoLibrary: .shared())
+    config.filter = .images
+    config.selectionLimit = 1
+    let picker = PHPickerViewController(configuration: config)
+    let coord = GalleryCoordinator(context: context, onPick: onPick)
+    picker.delegate = coord
+    objc_setAssociatedObject(picker, &galleryCoordinatorKey, coord, .OBJC_ASSOCIATION_RETAIN)
+    presenter.present(picker, animated: true)
+}
+
+/// Aviso inmediato de que la foto NO se capturó/cargó (nunca fallar en
+/// silencio: mejor repetirla con la gente aún reunida).
+@MainActor
+func showPhotoCaptureFailedAlert() {
+    guard let top = topPresentedViewController() else { return }
+    let alert = UIAlertController(
+        title: "La foto no se ha guardado",
+        message: "Inténtalo de nuevo o elígela de la galería.",
+        preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: "OK", style: .default))
+    top.present(alert, animated: true)
 }
 
 extension UIImage {

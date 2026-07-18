@@ -83,10 +83,10 @@ targets:
         UIBackgroundModes:
           - remote-notification
         # Versión espejo de Android (versionName 2.4 / versionCode 18).
-        CFBundleShortVersionString: "2.18.6"
+        CFBundleShortVersionString: "2.18.7"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior. 12-25 ya subidos → 26.
-        CFBundleVersion: "89"
+        CFBundleVersion: "90"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
@@ -119,6 +119,11 @@ targets:
           Para hacer fotos de las vías, escuelas o tu perfil.
         NSPhotoLibraryUsageDescription: >-
           Para elegir fotos de las vías, escuelas o tu perfil.
+        # La foto de celebración hecha desde la app se guarda también en el
+        # carrete (red de seguridad: aunque algo falle, la foto no se pierde).
+        NSPhotoLibraryAddUsageDescription: >-
+          Para guardar en tu carrete la foto de celebración que haces al
+          publicar un ascenso.
         # Encriptación exenta: la app solo usa HTTPS estándar del SO (no algoritmos propios).
         # Evita tener que subir documentación de encriptación a App Store Connect.
         ITSAppUsesNonExemptEncryption: false

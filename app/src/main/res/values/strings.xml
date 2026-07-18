@@ -107,6 +107,10 @@
     <string name="feed_my_posts_section">Mis publicaciones</string>
     <string name="feed_add_celebration_photo">Añadir foto de celebración</string>
     <string name="feed_retake_celebration_photo">REPETIR FOTO</string>
+    <string name="feed_take_photo">Hacer foto</string>
+    <string name="feed_pick_from_gallery">Galería</string>
+    <string name="feed_pick_from_gallery_caps">GALERÍA</string>
+    <string name="feed_photo_failed">La foto no se ha guardado. Inténtalo de nuevo o elígela de la galería.</string>
     <string name="feed_celebration_photo">Foto de celebración</string>
     <string name="feed_photo_upload_failed">No se pudo subir la foto; publicado sin ella</string>
     <string name="submissions_tab_proposals">PROPUESTAS</string>
