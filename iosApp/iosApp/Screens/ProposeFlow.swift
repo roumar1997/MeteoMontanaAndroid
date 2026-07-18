@@ -634,12 +634,15 @@ struct TopoEditorView: View {
                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt, lineJoin: .round,
                                               dash: stripe.dash, dashPhase: stripe.phase))
             } else {
+                // ESTILO GUÍA: discontinua siempre (no tapa la roca).
                 if style.dark {
                     ctx.stroke(path, with: .color(.black.opacity(0.8)),
-                               style: StrokeStyle(lineWidth: lineWidth + 4, lineCap: .round, lineJoin: .round))
+                               style: StrokeStyle(lineWidth: lineWidth + 4, lineCap: .round, lineJoin: .round,
+                                                  dash: TopoShared.dash))
                 }
                 ctx.stroke(path, with: .color(style.stroke),
-                           style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+                           style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round,
+                                              dash: TopoShared.dash))
             }
         }
         // Abanico: badges coincidentes separados en X.

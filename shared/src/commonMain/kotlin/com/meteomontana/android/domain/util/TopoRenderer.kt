@@ -154,19 +154,39 @@ fun fanOffsets(anchors: List<Pair<Float, Float>?>, spacingPx: Float): List<Float
 fun magnetizeStroke(
     drawn: List<Pair<Float, Float>>,
     others: List<List<Pair<Float, Float>>>,
-    threshold: Float = 0.02f
+    threshold: Float = 0.04f
 ): List<Pair<Float, Float>> {
     if (drawn.isEmpty() || others.isEmpty()) return drawn
-    // (índice de vía, índice de vértice) del vértice más cercano bajo umbral.
+    // (vía, vértice) al que imantarse: el punto se compara contra CUALQUIER
+    // TRAMO de las otras vías (no solo sus vértices — antes era casi imposible
+    // acertar con el dedo) y, si cae bajo el umbral, se pega al vértice más
+    // cercano de ese tramo. Así el tramo común sigue siendo EXACTO.
     fun snap(p: Pair<Float, Float>): Pair<Int, Int>? {
         var best: Pair<Int, Int>? = null
         var bestD = threshold * threshold
         others.forEachIndexed { li, pts ->
-            pts.forEachIndexed { vi, v ->
-                val dx = p.first - v.first
-                val dy = p.second - v.second
+            for (si in 0 until pts.size - 1) {
+                val a = pts[si]; val b = pts[si + 1]
+                // Distancia punto→segmento (proyección acotada 0..1).
+                val abx = b.first - a.first; val aby = b.second - a.second
+                val len2 = abx * abx + aby * aby
+                val t = if (len2 < 1e-12f) 0f else
+                    (((p.first - a.first) * abx + (p.second - a.second) * aby) / len2)
+                        .coerceIn(0f, 1f)
+                val qx = a.first + t * abx; val qy = a.second + t * aby
+                val dx = p.first - qx; val dy = p.second - qy
                 val d = dx * dx + dy * dy
-                if (d < bestD) { bestD = d; best = li to vi }
+                if (d < bestD) {
+                    bestD = d
+                    // Vértice más cercano del tramo (para compartir EXACTO).
+                    best = li to (if (t < 0.5f) si else si + 1)
+                }
+            }
+            // Vías de un solo punto: comparar contra ese vértice suelto.
+            if (pts.size == 1) {
+                val dx = p.first - pts[0].first; val dy = p.second - pts[0].second
+                val d = dx * dx + dy * dy
+                if (d < bestD) { bestD = d; best = li to 0 }
             }
         }
         return best
@@ -218,7 +238,12 @@ fun renderTopo(
     badgeR: Pair<Float, Float> = 14f to 11f,
     badgeTextPx: Pair<Float, Float> = 22f to 7f,
     startR: Pair<Float, Float> = 22f to 18f,
-    startTextPx: Pair<Float, Float> = 18f to 6f
+    startTextPx: Pair<Float, Float> = 18f to 6f,
+    /** Guion de TODAS las líneas (on, off) en px — estilo guía: discontinuas
+     *  para no tapar la roca. El caller lo escala (density / canvas 1080). */
+    dashPx: Pair<Float, Float> = 12f to 9f,
+    /** Largo de cada franja de tramo compartido, en px (escalar como dashPx). */
+    stripePx: Float = SHARED_STRIPE_PX
 ): List<DrawOp> {
     val ops = mutableListOf<DrawOp>()
     // Tramos compartidos: segmento → vías que lo comparten (franjas alternas).
@@ -262,21 +287,26 @@ fun renderTopo(
         runs.forEach { run ->
             val isShared = run.sharers.size >= 2
             if (!isShared) {
+                // ESTILO GUÍA: todas las líneas discontinuas (rayitas) — un
+                // trazo macizo tapa la roca (feedback de Rodrigo con la guía
+                // de La Pedriza en la mano).
                 // Outline para que líneas blancas sean visibles sobre la foto
                 if (dark) {
-                    ops += DrawOp.LinePath(run.pts, 0xCC000000L, line.strokeWidthPx + 4f, dashed)
+                    ops += DrawOp.LinePath(run.pts, 0xCC000000L, line.strokeWidthPx + 4f,
+                        dashed = true, dashPattern = dashPx)
                 }
-                ops += DrawOp.LinePath(run.pts, strokeArgb, line.strokeWidthPx, dashed)
+                ops += DrawOp.LinePath(run.pts, strokeArgb, line.strokeWidthPx,
+                    dashed = true, dashPattern = dashPx)
             } else {
-                // Franja: guion de largo SHARED_STRIPE_PX, hueco = franjas de
-                // las otras vías, fase = mi posición en el grupo.
+                // Franja: guion de largo stripePx, hueco = franjas de las
+                // otras vías, fase = mi posición en el grupo.
                 val n = run.sharers.size
                 val k = run.sharers.indexOf(idx).coerceAtLeast(0)
                 ops += DrawOp.LinePath(
                     run.pts, strokeArgb, line.strokeWidthPx,
                     dashed = true,
-                    dashPattern = SHARED_STRIPE_PX to SHARED_STRIPE_PX * (n - 1),
-                    dashPhase = k * SHARED_STRIPE_PX
+                    dashPattern = stripePx to stripePx * (n - 1),
+                    dashPhase = k * stripePx
                 )
             }
         }

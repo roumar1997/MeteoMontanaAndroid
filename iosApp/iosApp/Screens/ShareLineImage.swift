@@ -215,7 +215,8 @@ enum ShareLineImage {
                     path.setLineDash(stripe.dash, count: stripe.dash.count, phase: stripe.phase)
                 } else {
                     path.lineCapStyle = .round
-                    if style.dashed { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
+                    // ESTILO GUÍA: discontinua siempre (no tapa la roca).
+                    path.setLineDash(TopoShared.dash.map { $0 * s }, count: 2, phase: 0)
                     // Línea blanca: contorno negro para verse sobre cualquier foto.
                     if style.dark {
                         path.lineWidth = 9 * s

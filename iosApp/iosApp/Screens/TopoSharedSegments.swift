@@ -10,6 +10,10 @@ enum TopoShared {
     /// = SHARED_STRIPE_PX. Los canvas escalados (share 1080) lo multiplican.
     static let stripe: CGFloat = 22
 
+    /// Guion de TODAS las líneas (estilo guía: discontinuas para no tapar la
+    /// roca) — espejo del dashPx por defecto de renderTopo.
+    static let dash: [CGFloat] = [12, 9]
+
     /// Clave de un punto normalizado, redondeado a 4 decimales (robusto frente
     /// al viaje JSON; el imán copia los valores exactos).
     private static func pointKey(_ p: CGPoint) -> String {
@@ -66,17 +70,35 @@ enum TopoShared {
     }
 
     /// IMÁN del editor: espejo exacto de magnetizeStroke de TopoRenderer.kt.
+    /// v2: se compara contra CUALQUIER TRAMO de las otras vías (no solo sus
+    /// vértices — antes era casi imposible acertar con el dedo) y se pega al
+    /// vértice más cercano de ese tramo (compartir sigue siendo EXACTO).
     static func magnetizeStroke(_ drawn: [CGPoint], others: [[CGPoint]],
-                                threshold: CGFloat = 0.02) -> [CGPoint] {
+                                threshold: CGFloat = 0.04) -> [CGPoint] {
         guard !drawn.isEmpty, !others.isEmpty else { return drawn }
         func snap(_ p: CGPoint) -> (li: Int, vi: Int)? {
             var best: (Int, Int)? = nil
             var bestD = threshold * threshold
             for (li, pts) in others.enumerated() {
-                for (vi, v) in pts.enumerated() {
-                    let dx = p.x - v.x, dy = p.y - v.y
+                if pts.count == 1 {
+                    let dx = p.x - pts[0].x, dy = p.y - pts[0].y
                     let d = dx * dx + dy * dy
-                    if d < bestD { bestD = d; best = (li, vi) }
+                    if d < bestD { bestD = d; best = (li, 0) }
+                    continue
+                }
+                for si in 0..<(pts.count - 1) {
+                    let a = pts[si], b = pts[si + 1]
+                    let abx = b.x - a.x, aby = b.y - a.y
+                    let len2 = abx * abx + aby * aby
+                    let t = len2 < 1e-12 ? 0
+                        : max(0, min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2))
+                    let qx = a.x + t * abx, qy = a.y + t * aby
+                    let dx = p.x - qx, dy = p.y - qy
+                    let d = dx * dx + dy * dy
+                    if d < bestD {
+                        bestD = d
+                        best = (li, t < 0.5 ? si : si + 1)
+                    }
                 }
             }
             return best

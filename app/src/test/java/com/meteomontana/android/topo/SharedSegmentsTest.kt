@@ -64,15 +64,36 @@ class SharedSegmentsTest {
         val a = TopoLineData("A", "6a", null, existing)
         val b = TopoLineData("B", "7a", null,
             listOf(0.05f to 0.95f, existing[1], existing[2], 0.60f to 0.20f))
-        val ops = renderTopo(listOf(a, b), w, h)
+        val ops = renderTopo(listOf(a, b), w, h, stripePx = 22f)
+        // Franja = guion cuyo hueco es múltiplo del largo (22 → hueco 22*(n-1)).
         val stripeRuns = ops.filterIsInstance<DrawOp.LinePath>()
-            .filter { it.dashPattern != null }
+            .filter { it.dashPattern?.first == 22f }
         // Las DOS vías pintan su franja del tramo (cada una con SU color de
         // grado y fase distinta → se intercalan).
         assertEquals(2, stripeRuns.size)
         assertTrue(stripeRuns[0].argb != stripeRuns[1].argb)          // color propio
         assertTrue(stripeRuns[0].dashPhase != stripeRuns[1].dashPhase) // fases alternas
         stripeRuns.forEach { assertEquals(2, it.pts.size) }            // 2 vértices
+    }
+
+    @Test fun `todas las lineas van discontinuas estilo guia`() {
+        val a = TopoLineData("A", "6a", null, existing)
+        val ops = renderTopo(listOf(a), w, h, dashPx = 12f to 9f)
+        val runs = ops.filterIsInstance<DrawOp.LinePath>()
+        assertTrue(runs.isNotEmpty())
+        runs.forEach {
+            assertTrue("Ninguna línea debe ser maciza", it.dashed)
+            assertEquals(12f to 9f, it.dashPattern)
+        }
+    }
+
+    @Test fun `magnetize v2 pega tocando el TRAMO, no solo el vertice`() {
+        // Toque en mitad de un tramo largo (lejos de ambos vértices) → debe
+        // pegarse al vértice más cercano de ese tramo.
+        val longLine = listOf(0.10f to 0.50f, 0.90f to 0.50f)
+        val drawn = listOf(0.35f to 0.51f)   // a 0.01 del tramo, lejos de vértices
+        val out = magnetizeStroke(drawn, listOf(longLine))
+        assertEquals(listOf(0.10f to 0.50f), out)
     }
 
     @Test fun `simplify quita el temblor pero respeta las esquinas`() {

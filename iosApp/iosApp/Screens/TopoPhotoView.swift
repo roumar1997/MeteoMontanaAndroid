@@ -149,7 +149,8 @@ struct TopoPhotoView: View {
         let style = GradeColor.style(line.grade)
         let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         guard !pts.isEmpty else { return }
-        let dash: [CGFloat] = style.dashed ? [10, 8] : []
+        // ESTILO GUÍA: todas las líneas discontinuas (no tapan la roca).
+        let dash: [CGFloat] = TopoShared.dash
         // Tamaños unificados con Android (TopoPhotoCanvas.kt): badge 9/7,
         // inicio 10.5/8.5, trazo 3.5 — antes iOS pintaba ~2.5x más grande
         // (pt vs px físicos) y tapaba la piedra.

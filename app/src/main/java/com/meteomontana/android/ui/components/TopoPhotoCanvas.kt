@@ -127,7 +127,9 @@ fun TopoPhotoCanvas(
                     badgeR = 9f * d to 7f * d,
                     badgeTextPx = 10f * d to 3.5f * d,
                     startR = 10.5f * d to 8.5f * d,
-                    startTextPx = 7f * d to 2.5f * d
+                    startTextPx = 7f * d to 2.5f * d,
+                    dashPx = 12f * d to 9f * d,
+                    stripePx = 22f * d
                 )
                 val nc = drawContext.canvas.nativeCanvas
                 ops.forEach { op -> drawOp(op, nc) }

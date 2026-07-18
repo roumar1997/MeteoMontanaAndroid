@@ -255,7 +255,9 @@ private fun renderPostCard(
                 badgeR = (14f * s) to (11f * s),
                 badgeTextPx = (22f * s) to (7f * s),
                 startR = (22f * s) to (18f * s),
-                startTextPx = (18f * s) to (6f * s)
+                startTextPx = (18f * s) to (6f * s),
+                dashPx = (12f * s) to (9f * s),
+                stripePx = 22f * s
             )
             ops.forEach { drawFeedOp(it, c, dst.left, dst.top) }
         }

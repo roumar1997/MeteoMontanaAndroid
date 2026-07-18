@@ -294,12 +294,16 @@ fun ContributionTopoDialog(
                         )
                     }
                     val nc = drawContext.canvas.nativeCanvas
+                    // density para que rayitas/franjas midan lo mismo que en la ficha.
+                    val dens = drawContext.density.density
                     renderTopo(
                         existing + editorLines, size.width, size.height,
                         badgeR = 16f to 13f,
                         badgeTextPx = 26f to 9f,
                         startR = 26f to 22f,
-                        startTextPx = 20f to 7f
+                        startTextPx = 20f to 7f,
+                        dashPx = 12f * dens to 9f * dens,
+                        stripePx = 22f * dens
                     ).forEach { op -> drawOp(op, nc) }
                 }
               }
