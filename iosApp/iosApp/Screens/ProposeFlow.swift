@@ -511,7 +511,21 @@ struct TopoEditorView: View {
                             blocks[selected].line = []
                         }
                         blocks[selected].line.append(CGPoint(x: nx, y: ny))
-                    }.onEnded { _ in drawingActive = false })
+                    }.onEnded { _ in
+                        drawingActive = false
+                        // IMÁN: al soltar, los puntos cercanos a otra vía se
+                        // ajustan a SUS vértices exactos → el tramo común se
+                        // pinta del color "compartido" (espejo de Android).
+                        guard blocks.indices.contains(selected),
+                              blocks[selected].line.count >= 2 else { return }
+                        let others = blocks.enumerated()
+                            .filter { $0.offset != selected && $0.element.line.count >= 2 }
+                            .map { $0.element.line }
+                        if !others.isEmpty {
+                            blocks[selected].line = TopoShared.magnetizeStroke(
+                                blocks[selected].line, others: others)
+                        }
+                    })
                 }
                 .aspectRatio(ratio, contentMode: .fit)
                 .padding(.horizontal, 12)
@@ -548,10 +562,14 @@ struct TopoEditorView: View {
     }
 
     private func drawLines(_ ctx: GraphicsContext, _ size: CGSize) {
+        // Tramos compartidos entre vías (existentes + en edición) → color propio.
+        let sharedKeys = TopoShared.sharedSegmentKeys(
+            normalLines.map { $0.points } + blocks.map { $0.line })
         // 1. Existentes que NO cambian → NORMALES (sólidas, con número y tipo).
         for (i, line) in normalLines.enumerated() where !line.points.isEmpty {
             drawTopoLine(ctx, size, points: line.points, grade: line.grade,
-                         startType: line.startType, number: i + 1, lineWidth: 5)
+                         startType: line.startType, number: i + 1, lineWidth: 5,
+                         shared: sharedKeys)
         }
         // 2. SOLO la vía vieja que se corrige, difuminada (para distinguirla).
         for line in fadedLines where !line.points.isEmpty {
@@ -565,23 +583,30 @@ struct TopoEditorView: View {
         // 3. Las que se están dibujando (editable), resaltadas.
         for (idx, b) in blocks.enumerated() where !b.line.isEmpty {
             drawTopoLine(ctx, size, points: b.line, grade: b.grade, startType: b.startType,
-                         number: idx + 1, lineWidth: idx == selected ? 8 : 5)
+                         number: idx + 1, lineWidth: idx == selected ? 8 : 5,
+                         shared: sharedKeys)
         }
     }
 
     private func drawTopoLine(_ ctx: GraphicsContext, _ size: CGSize, points: [CGPoint],
-                              grade: String?, startType: String?, number: Int, lineWidth: CGFloat) {
+                              grade: String?, startType: String?, number: Int, lineWidth: CGFloat,
+                              shared: Set<String> = []) {
         let style = GradeColor.style(grade)
         let pts = points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         guard !pts.isEmpty else { return }
-        var path = Path(); path.move(to: pts[0])
-        for p in pts.dropFirst() { path.addLine(to: p) }
-        if style.dark {
-            ctx.stroke(path, with: .color(.black.opacity(0.8)),
-                       style: StrokeStyle(lineWidth: lineWidth + 4, lineCap: .round, lineJoin: .round))
+        // Rachas propias/compartidas (= renderTopo): la compartida en naranja.
+        for run in TopoShared.splitRuns(points, shared: shared) {
+            let runPts = run.pts.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
+            guard runPts.count > 1 else { continue }
+            var path = Path(); path.move(to: runPts[0])
+            for p in runPts.dropFirst() { path.addLine(to: p) }
+            if style.dark && !run.isShared {
+                ctx.stroke(path, with: .color(.black.opacity(0.8)),
+                           style: StrokeStyle(lineWidth: lineWidth + 4, lineCap: .round, lineJoin: .round))
+            }
+            ctx.stroke(path, with: .color(run.isShared ? TopoShared.color : style.stroke),
+                       style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
         }
-        ctx.stroke(path, with: .color(style.stroke),
-                   style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
         // Badge número en el inicio.
         ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 12, y: pts[0].y - 12, width: 24, height: 24)), with: .color(.white))
         ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 9, y: pts[0].y - 9, width: 18, height: 18)), with: .color(style.stroke))

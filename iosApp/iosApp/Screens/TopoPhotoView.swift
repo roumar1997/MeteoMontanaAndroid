@@ -131,29 +131,39 @@ struct TopoPhotoView: View {
         }
         // 2. Existentes normales + propuesta, sólidas y numeradas en continuo.
         let solid = normalLines + lines
+        // Tramos compartidos entre vías → color propio (espejo de renderTopo).
+        let shared = TopoShared.sharedSegmentKeys(solid.map { $0.points })
         for (idx, line) in solid.enumerated() where !line.points.isEmpty {
-            drawSolidLine(ctx, size, line: line, number: idx + 1)
+            drawSolidLine(ctx, size, line: line, number: idx + 1, shared: shared)
         }
     }
 
-    private func drawSolidLine(_ ctx: GraphicsContext, _ size: CGSize, line: TopoLineVM, number: Int) {
+    private func drawSolidLine(_ ctx: GraphicsContext, _ size: CGSize, line: TopoLineVM,
+                               number: Int, shared: Set<String> = []) {
         let style = GradeColor.style(line.grade)
         let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         guard !pts.isEmpty else { return }
-        var path = Path()
-        path.move(to: pts[0])
-        for p in pts.dropFirst() { path.addLine(to: p) }
         let dash: [CGFloat] = style.dashed ? [10, 8] : []
         // Tamaños unificados con Android (TopoPhotoCanvas.kt): badge 9/7,
         // inicio 10.5/8.5, trazo 3.5 — antes iOS pintaba ~2.5x más grande
         // (pt vs px físicos) y tapaba la piedra.
-        // Línea blanca: contorno negro para que se vea sobre cualquier foto.
-        if style.dark {
-            ctx.stroke(path, with: .color(.black.opacity(0.8)),
-                       style: StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round, dash: dash))
+        // La polilínea se trocea en rachas propias/compartidas (= renderTopo):
+        // la racha compartida va del color TopoShared, sólida.
+        for run in TopoShared.splitRuns(line.points, shared: shared) {
+            let runPts = run.pts.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
+            guard runPts.count > 1 else { continue }
+            var path = Path()
+            path.move(to: runPts[0])
+            for p in runPts.dropFirst() { path.addLine(to: p) }
+            // Línea blanca: contorno negro para que se vea sobre cualquier foto.
+            if style.dark && !run.isShared {
+                ctx.stroke(path, with: .color(.black.opacity(0.8)),
+                           style: StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round, dash: dash))
+            }
+            ctx.stroke(path, with: .color(run.isShared ? TopoShared.color : style.stroke),
+                       style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round,
+                                          dash: run.isShared ? [] : dash))
         }
-        ctx.stroke(path, with: .color(style.stroke),
-                   style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round, dash: dash))
         let textColor: Color = style.dark ? .black : .white
         badge(ctx, at: pts[0], outer: 9, inner: 7, fill: .white, ring: style.stroke,
               text: "\(number)", textSize: 10, textColor: textColor)
@@ -178,6 +188,7 @@ struct TopoPhotoView: View {
         switch t?.uppercased() {
         case "PIE", "STAND": return "PIE"
         case "SIT": return "SIT"
+        case "SEMI": return "SEM"
         case "LANCE", "JUMP": return "LAN"
         case "TRAV": return "TRV"
         default: return nil

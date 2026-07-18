@@ -226,23 +226,31 @@ enum ShareFeedPostImage {
         }
         guard !vias.isEmpty else { return }
         let s = rect.width / 380.0
+        // Tramos compartidos entre vías → color propio (espejo de renderTopo).
+        let shared = TopoShared.sharedSegmentKeys(vias.map { $0.pts })
         for (idx, via) in vias.enumerated() {
             let style = GradeColor.style(via.grade)
             let stroke = UIColor(style.stroke)
             let pts = via.pts.map {
                 CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
             }
-            let path = UIBezierPath()
-            path.move(to: pts[0])
-            for p in pts.dropFirst() { path.addLine(to: p) }
-            path.lineCapStyle = .round; path.lineJoinStyle = .round
-            if style.dashed { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
-            if style.dark {
-                path.lineWidth = 9 * s
-                UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
+            for run in TopoShared.splitRuns(via.pts, shared: shared) {
+                let runPts = run.pts.map {
+                    CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
+                }
+                guard runPts.count > 1 else { continue }
+                let path = UIBezierPath()
+                path.move(to: runPts[0])
+                for p in runPts.dropFirst() { path.addLine(to: p) }
+                path.lineCapStyle = .round; path.lineJoinStyle = .round
+                if style.dashed && !run.isShared { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
+                if style.dark && !run.isShared {
+                    path.lineWidth = 9 * s
+                    UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
+                }
+                path.lineWidth = 5 * s
+                (run.isShared ? UIColor(TopoShared.color) : stroke).setStroke(); path.stroke()
             }
-            path.lineWidth = 5 * s
-            stroke.setStroke(); path.stroke()
 
             let textColor: UIColor = style.dark ? .black : .white
             fillCircle(cg, pts[0], 14 * s, .white)

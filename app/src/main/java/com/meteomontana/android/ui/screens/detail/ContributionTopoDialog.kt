@@ -221,7 +221,23 @@ fun ContributionTopoDialog(
                                         lines[selectedIdx]?.add(norm)
                                     }
                                 },
-                                onDragEnd = {}
+                                onDragEnd = {
+                                    // IMÁN: al soltar, los puntos del trazo que
+                                    // pasen cerca de otra vía se ajustan a SUS
+                                    // vértices exactos → el tramo común se
+                                    // detecta y se pinta del color "compartido".
+                                    val current = lines[selectedIdx]
+                                    if (current != null && current.size >= 2) {
+                                        val others =
+                                            existingLines.map { l -> l.points.map { it.x to it.y } } +
+                                                lines.filterKeys { it != selectedIdx }
+                                                    .values.map { pts -> pts.map { it.x to it.y } }
+                                        val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
+                                            current.map { it.x to it.y }, others)
+                                        current.clear()
+                                        snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
+                                    }
+                                }
                             )
                         }
                 ) {
