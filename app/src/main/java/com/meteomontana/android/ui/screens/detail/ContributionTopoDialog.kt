@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -200,6 +201,30 @@ fun ContributionTopoDialog(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
+                        // MODO POR TOQUES: cada toque añade un punto a la línea
+                        // (mucho más preciso que el dedo arrastrando). Convive
+                        // con el trazado a mano: un arrastre REDIBUJA de cero.
+                        .pointerInput(selectedIdx, canvasSize) {
+                            detectTapGestures(onTap = { offset: Offset ->
+                                if (canvasSize.width > 0 && canvasSize.height > 0) {
+                                    val current = lines[selectedIdx] ?: return@detectTapGestures
+                                    current.add(
+                                        Offset(
+                                        offset.x / canvasSize.width,
+                                        offset.y / canvasSize.height
+                                    ))
+                                    // Imán inmediato del punto recién colocado.
+                                    val others =
+                                        existingLines.map { l -> l.points.map { it.x to it.y } } +
+                                            lines.filterKeys { it != selectedIdx }
+                                                .values.map { pts -> pts.map { it.x to it.y } }
+                                    val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
+                                        current.map { it.x to it.y }, others)
+                                    current.clear()
+                                    snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
+                                }
+                            })
+                        }
                         .pointerInput(selectedIdx, canvasSize) {
                             detectDragGestures(
                                 onDragStart = { offset ->
@@ -222,18 +247,21 @@ fun ContributionTopoDialog(
                                     }
                                 },
                                 onDragEnd = {
-                                    // IMÁN: al soltar, los puntos del trazo que
-                                    // pasen cerca de otra vía se ajustan a SUS
-                                    // vértices exactos → el tramo común se
-                                    // detecta y se pinta del color "compartido".
+                                    // Al soltar: 1) SUAVIZADO (quita el temblor
+                                    // del pulso, deja una línea limpia de guía) y
+                                    // 2) IMÁN: los puntos cerca de otra vía se
+                                    // ajustan a SUS vértices exactos → el tramo
+                                    // común se pinta a franjas compartidas.
                                     val current = lines[selectedIdx]
                                     if (current != null && current.size >= 2) {
+                                        val smooth = com.meteomontana.android.domain.util.simplifyStroke(
+                                            current.map { it.x to it.y })
                                         val others =
                                             existingLines.map { l -> l.points.map { it.x to it.y } } +
                                                 lines.filterKeys { it != selectedIdx }
                                                     .values.map { pts -> pts.map { it.x to it.y } }
                                         val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
-                                            current.map { it.x to it.y }, others)
+                                            smooth, others)
                                         current.clear()
                                         snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
                                     }
@@ -279,7 +307,7 @@ fun ContributionTopoDialog(
 
             // ── Hint ────────────────────────────────────────────────────────────
             Text(
-                "Arrastra sobre la foto para trazar la línea del bloque seleccionado",
+                "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido).",
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)

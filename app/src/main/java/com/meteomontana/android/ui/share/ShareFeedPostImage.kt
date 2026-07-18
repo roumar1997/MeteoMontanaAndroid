@@ -339,7 +339,9 @@ private fun drawFeedOp(
             c.drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE; strokeWidth = op.widthPx; color = op.argb.toInt()
                 strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
-                if (op.dashed) pathEffect = android.graphics.DashPathEffect(floatArrayOf(20f, 20f), 0f)
+                val dp = op.dashPattern
+                if (dp != null) pathEffect = android.graphics.DashPathEffect(floatArrayOf(dp.first, dp.second), op.dashPhase)
+                else if (op.dashed) pathEffect = android.graphics.DashPathEffect(floatArrayOf(20f, 20f), 0f)
             })
         }
         is com.meteomontana.android.domain.model.DrawOp.FilledCircle -> c.drawCircle(

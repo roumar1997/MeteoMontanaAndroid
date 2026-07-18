@@ -147,7 +147,13 @@ internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOp(
             op.pts.forEachIndexed { i, (x, y) ->
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
-            val pathEffect = if (op.dashed) PathEffect.dashPathEffect(floatArrayOf(20f, 20f)) else null
+            val pathEffect = when {
+                // Franjas de tramo compartido: guion con fase propia por vía.
+                op.dashPattern != null -> PathEffect.dashPathEffect(
+                    floatArrayOf(op.dashPattern!!.first, op.dashPattern!!.second), op.dashPhase)
+                op.dashed -> PathEffect.dashPathEffect(floatArrayOf(20f, 20f))
+                else -> null
+            }
             drawPath(path, color = Color(op.argb.toInt()), style = Stroke(width = op.widthPx, pathEffect = pathEffect))
         }
         is DrawOp.FilledCircle ->

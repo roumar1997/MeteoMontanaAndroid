@@ -10,12 +10,17 @@ package com.meteomontana.android.domain.model
  */
 sealed class DrawOp {
 
-    /** Traza de línea (ya puede incluir el outline oscuro como op previa). */
+    /** Traza de línea (ya puede incluir el outline oscuro como op previa).
+     *  [dashPattern] (on, off) + [dashPhase]: guion personalizado — lo usan las
+     *  FRANJAS de tramos compartidos (cada vía pinta su color con fase distinta
+     *  y se intercalan). null = sólida, o el guion clásico 20/20 si [dashed]. */
     data class LinePath(
         val pts: List<Pair<Float, Float>>,
         val argb: Long,
         val widthPx: Float,
-        val dashed: Boolean
+        val dashed: Boolean,
+        val dashPattern: Pair<Float, Float>? = null,
+        val dashPhase: Float = 0f
     ) : DrawOp()
 
     /** Círculo relleno. */

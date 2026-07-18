@@ -47,14 +47,14 @@ fun gradeArgb(grade: String?): Triple<Long, Boolean, Boolean> {
 
 // ─── Tramos compartidos entre vías ───────────────────────────────────────────
 // Cuando dos vías comparten camino (el editor "imanta" el trazo a la vía
-// existente y COPIA sus puntos), el tramo común se pinta de un color especial
-// para que no se pisen los colores de grado. La detección es por IGUALDAD de
-// segmentos (mismos dos vértices, en cualquier orden): como el imán copia los
-// puntos exactos, no hay que "adivinar" cercanías al pintar.
+// existente y COPIA sus puntos), el tramo común se pinta a FRANJAS alternas
+// con los colores de las vías que lo comparten (cada vía pinta su color a
+// guiones con fase distinta → se intercalan solos). La detección es por
+// IGUALDAD de segmentos (mismos dos vértices, en cualquier orden): como el
+// imán copia los puntos exactos, no hay que "adivinar" cercanías al pintar.
 
-/** Color del tramo compartido por varias vías (naranja: no choca con la paleta
- *  de grados ni con el rosa discontinuo de proyecto). */
-const val SHARED_SEGMENT_ARGB = 0xFFFF9500L
+/** Largo de cada franja del tramo compartido, en px del canvas. */
+const val SHARED_STRIPE_PX = 22f
 
 private fun pointKey(p: Pair<Float, Float>): String {
     // Redondeo a 4 decimales en coords normalizadas 0..1: robusto frente al
@@ -68,16 +68,78 @@ private fun segmentKey(a: Pair<Float, Float>, b: Pair<Float, Float>): String {
     return if (ka <= kb) "$ka|$kb" else "$kb|$ka"
 }
 
-/** Claves de los segmentos presentes en DOS o más vías (tramos compartidos). */
-fun sharedSegmentKeys(lines: List<TopoLineData>): Set<String> {
-    val count = HashMap<String, Int>()
-    lines.forEach { line ->
-        // Un set por vía: que una vía repita su propio segmento no cuenta.
-        val own = HashSet<String>()
-        line.points.zipWithNext().forEach { (a, b) -> own.add(segmentKey(a, b)) }
-        own.forEach { k -> count[k] = (count[k] ?: 0) + 1 }
+/** Segmento compartido → índices (ordenados) de las vías que lo comparten.
+ *  Solo entradas con 2+ vías. */
+fun sharedSegmentLines(lines: List<TopoLineData>): Map<String, List<Int>> {
+    val byKey = HashMap<String, MutableSet<Int>>()
+    lines.forEachIndexed { idx, line ->
+        line.points.zipWithNext().forEach { (a, b) ->
+            byKey.getOrPut(segmentKey(a, b)) { mutableSetOf() }.add(idx)
+        }
     }
-    return count.filterValues { it >= 2 }.keys
+    return byKey.filterValues { it.size >= 2 }.mapValues { it.value.sorted() }
+}
+
+/** Claves de los segmentos presentes en DOS o más vías (tramos compartidos). */
+fun sharedSegmentKeys(lines: List<TopoLineData>): Set<String> =
+    sharedSegmentLines(lines).keys
+
+/**
+ * SUAVIZADO del trazo a mano (Douglas-Peucker): quita el temblor del pulso y
+ * deja una línea limpia con pocos vértices (como las de las guías). [epsilon]
+ * en coords normalizadas (~0.006 = suave sin comerse curvas reales).
+ */
+fun simplifyStroke(
+    points: List<Pair<Float, Float>>,
+    epsilon: Float = 0.006f
+): List<Pair<Float, Float>> {
+    if (points.size <= 2) return points
+    fun perpDist(p: Pair<Float, Float>, a: Pair<Float, Float>, b: Pair<Float, Float>): Float {
+        val dx = b.first - a.first; val dy = b.second - a.second
+        val len = kotlin.math.sqrt(dx * dx + dy * dy)
+        if (len < 1e-9f) {
+            val ex = p.first - a.first; val ey = p.second - a.second
+            return kotlin.math.sqrt(ex * ex + ey * ey)
+        }
+        return kotlin.math.abs(dy * p.first - dx * p.second + b.first * a.second - b.second * a.first) / len
+    }
+    fun dp(from: Int, to: Int, keep: BooleanArray) {
+        var maxD = 0f; var maxI = -1
+        for (i in from + 1 until to) {
+            val d = perpDist(points[i], points[from], points[to])
+            if (d > maxD) { maxD = d; maxI = i }
+        }
+        if (maxD > epsilon && maxI > 0) {
+            keep[maxI] = true
+            dp(from, maxI, keep); dp(maxI, to, keep)
+        }
+    }
+    val keep = BooleanArray(points.size)
+    keep[0] = true; keep[points.size - 1] = true
+    dp(0, points.size - 1, keep)
+    return points.filterIndexed { i, _ -> keep[i] }
+}
+
+/**
+ * ABANICO de badges: cuando varias vías empiezan/acaban en el MISMO punto,
+ * sus badges se despliegan lado a lado en vez de apilarse. Devuelve, para
+ * cada vía, el desplazamiento X en px de su badge (0 si no hay coincidencia).
+ * [anchors] = punto (normalizado) del badge de cada vía, null si no tiene.
+ */
+fun fanOffsets(anchors: List<Pair<Float, Float>?>, spacingPx: Float): List<Float> {
+    val groups = HashMap<String, MutableList<Int>>()
+    anchors.forEachIndexed { idx, p ->
+        if (p != null) groups.getOrPut(pointKey(p)) { mutableListOf() }.add(idx)
+    }
+    val out = MutableList(anchors.size) { 0f }
+    groups.values.forEach { members ->
+        if (members.size > 1) {
+            members.forEachIndexed { k, idx ->
+                out[idx] = (k - (members.size - 1) / 2f) * spacingPx
+            }
+        }
+    }
+    return out
 }
 
 /**
@@ -159,8 +221,14 @@ fun renderTopo(
     startTextPx: Pair<Float, Float> = 18f to 6f
 ): List<DrawOp> {
     val ops = mutableListOf<DrawOp>()
-    // Tramos compartidos entre vías → color propio (ver sharedSegmentKeys).
-    val shared = sharedSegmentKeys(lines)
+    // Tramos compartidos: segmento → vías que lo comparten (franjas alternas).
+    val shared = sharedSegmentLines(lines)
+    // Abanico de badges: cuando varios inicios/finales coinciden en el mismo
+    // punto, cada badge se desplaza en X para no taparse.
+    val startFan = fanOffsets(
+        lines.map { it.points.firstOrNull() }, badgeR.first * 2f + 4f)
+    val endFan = fanOffsets(
+        lines.map { it.points.lastOrNull() }, startR.first * 2f + 4f)
 
     lines.forEachIndexed { idx, line ->
         if (line.points.isEmpty()) return@forEachIndexed
@@ -168,41 +236,59 @@ fun renderTopo(
         val pts = line.points.map { (nx, ny) -> nx * w to ny * h }
         val textArgb = if (dark) 0xFF000000L else 0xFFFFFFFFL
 
-        // La polilínea se trocea en RACHAS de segmentos propios/compartidos y
-        // cada racha se pinta de su color (grado o SHARED_SEGMENT_ARGB). Con
-        // una sola racha (lo normal) es idéntico a antes.
-        val runs = mutableListOf<Pair<List<Pair<Float, Float>>, Boolean>>()
+        // La polilínea se trocea en RACHAS: segmentos propios (color de grado,
+        // como siempre) y segmentos compartidos (FRANJAS: esta vía pinta su
+        // color a guiones con fase = su posición entre las vías del tramo; las
+        // demás rellenan los huecos → colores alternos, estilo guía).
+        data class Run(val pts: List<Pair<Float, Float>>, val sharers: List<Int>)
+        val runs = mutableListOf<Run>()
         if (line.points.size < 2) {
-            runs.add(pts to false)
+            runs.add(Run(pts, emptyList()))
         } else {
+            fun sharersOf(i: Int): List<Int> =
+                shared[segmentKey(line.points[i], line.points[i + 1])] ?: emptyList()
             var runStart = 0
-            var runShared = segmentKey(line.points[0], line.points[1]) in shared
+            var runSharers = sharersOf(0)
             for (i in 1 until line.points.size - 1) {
-                val segShared = segmentKey(line.points[i], line.points[i + 1]) in shared
-                if (segShared != runShared) {
-                    runs.add(pts.subList(runStart, i + 1).toList() to runShared)
+                val s = sharersOf(i)
+                if (s != runSharers) {
+                    runs.add(Run(pts.subList(runStart, i + 1).toList(), runSharers))
                     runStart = i
-                    runShared = segShared
+                    runSharers = s
                 }
             }
-            runs.add(pts.subList(runStart, pts.size).toList() to runShared)
+            runs.add(Run(pts.subList(runStart, pts.size).toList(), runSharers))
         }
-        runs.forEach { (runPts, isShared) ->
-            val color = if (isShared) SHARED_SEGMENT_ARGB else strokeArgb
-            // Outline para que líneas blancas sean visibles sobre cualquier foto
-            if (dark && !isShared) {
-                ops += DrawOp.LinePath(runPts, 0xCC000000L, line.strokeWidthPx + 4f, dashed)
+        runs.forEach { run ->
+            val isShared = run.sharers.size >= 2
+            if (!isShared) {
+                // Outline para que líneas blancas sean visibles sobre la foto
+                if (dark) {
+                    ops += DrawOp.LinePath(run.pts, 0xCC000000L, line.strokeWidthPx + 4f, dashed)
+                }
+                ops += DrawOp.LinePath(run.pts, strokeArgb, line.strokeWidthPx, dashed)
+            } else {
+                // Franja: guion de largo SHARED_STRIPE_PX, hueco = franjas de
+                // las otras vías, fase = mi posición en el grupo.
+                val n = run.sharers.size
+                val k = run.sharers.indexOf(idx).coerceAtLeast(0)
+                ops += DrawOp.LinePath(
+                    run.pts, strokeArgb, line.strokeWidthPx,
+                    dashed = true,
+                    dashPattern = SHARED_STRIPE_PX to SHARED_STRIPE_PX * (n - 1),
+                    dashPhase = k * SHARED_STRIPE_PX
+                )
             }
-            ops += DrawOp.LinePath(runPts, color, line.strokeWidthPx, dashed && !isShared)
         }
 
-        // Badge numérico en el punto de inicio
-        val (fx, fy) = pts.first()
+        // Badge numérico en el punto de inicio (desplazado si hay abanico)
+        val (fx0, fy) = pts.first()
+        val fx = fx0 + startFan[idx]
         ops += DrawOp.FilledCircle(fx, fy, badgeR.first, 0xFFFFFFFFL)
         ops += DrawOp.FilledCircle(fx, fy, badgeR.second, strokeArgb)
         ops += DrawOp.TextLabel(fx, fy, "${idx + 1}", textArgb, badgeTextPx.first, bold = true, badgeTextPx.second)
 
-        // Badge de tipo de inicio en el punto final
+        // Badge de tipo de inicio en el punto final (desplazado si hay abanico)
         val label = when (line.startType?.uppercase()) {
             "PIE", "STAND"  -> "PIE"
             "SIT"           -> "SIT"
@@ -212,7 +298,8 @@ fun renderTopo(
             else            -> null
         }
         if (label != null) {
-            val (lx, ly) = pts.last()
+            val (lx0, ly) = pts.last()
+            val lx = lx0 + endFan[idx]
             val haloArgb = if (dark) 0xFF000000L else 0xFFFFFFFFL
             ops += DrawOp.FilledCircle(lx, ly, startR.first, haloArgb)
             ops += DrawOp.FilledCircle(lx, ly, startR.second, strokeArgb)

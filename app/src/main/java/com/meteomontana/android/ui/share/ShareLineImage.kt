@@ -335,7 +335,9 @@ private fun drawOpNative(op: DrawOp, c: Canvas, dx: Float, dy: Float) {
             val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE; strokeWidth = op.widthPx; color = op.argb.toInt()
                 strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
-                if (op.dashed) pathEffect = DashPathEffect(floatArrayOf(20f, 20f), 0f)
+                val dp = op.dashPattern
+                if (dp != null) pathEffect = DashPathEffect(floatArrayOf(dp.first, dp.second), op.dashPhase)
+                else if (op.dashed) pathEffect = DashPathEffect(floatArrayOf(20f, 20f), 0f)
             }
             c.drawPath(path, p)
         }

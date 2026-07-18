@@ -226,13 +226,19 @@ enum ShareFeedPostImage {
         }
         guard !vias.isEmpty else { return }
         let s = rect.width / 380.0
-        // Tramos compartidos entre vías → color propio (espejo de renderTopo).
-        let shared = TopoShared.sharedSegmentKeys(vias.map { $0.pts })
+        // Tramos compartidos → FRANJAS por vía; badges en abanico si coinciden.
+        let shared = TopoShared.sharedSegmentLines(vias.map { $0.pts })
+        let startFan = TopoShared.fanOffsets(vias.map { $0.pts.first }, spacing: (14 * 2 + 4) * s)
+        let endFan = TopoShared.fanOffsets(vias.map { $0.pts.last }, spacing: (14 * 2 + 4) * s)
         for (idx, via) in vias.enumerated() {
             let style = GradeColor.style(via.grade)
             let stroke = UIColor(style.stroke)
-            let pts = via.pts.map {
+            var pts = via.pts.map {
                 CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
+            }
+            if !pts.isEmpty {
+                pts[0].x += startFan[idx]
+                if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
             }
             for run in TopoShared.splitRuns(via.pts, shared: shared) {
                 let runPts = run.pts.map {
@@ -242,14 +248,20 @@ enum ShareFeedPostImage {
                 let path = UIBezierPath()
                 path.move(to: runPts[0])
                 for p in runPts.dropFirst() { path.addLine(to: p) }
-                path.lineCapStyle = .round; path.lineJoinStyle = .round
-                if style.dashed && !run.isShared { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
-                if style.dark && !run.isShared {
-                    path.lineWidth = 9 * s
-                    UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
+                path.lineJoinStyle = .round
+                if let stripe = TopoShared.stripeStyle(run, lineIdx: idx, scale: s) {
+                    path.lineCapStyle = .butt
+                    path.setLineDash(stripe.dash, count: stripe.dash.count, phase: stripe.phase)
+                } else {
+                    path.lineCapStyle = .round
+                    if style.dashed { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
+                    if style.dark {
+                        path.lineWidth = 9 * s
+                        UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
+                    }
                 }
                 path.lineWidth = 5 * s
-                (run.isShared ? UIColor(TopoShared.color) : stroke).setStroke(); path.stroke()
+                stroke.setStroke(); path.stroke()
             }
 
             let textColor: UIColor = style.dark ? .black : .white

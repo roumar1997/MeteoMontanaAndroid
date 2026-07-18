@@ -1,11 +1,12 @@
 package com.meteomontana.android.topo
 
 import com.meteomontana.android.domain.model.DrawOp
-import com.meteomontana.android.domain.util.SHARED_SEGMENT_ARGB
 import com.meteomontana.android.domain.util.TopoLineData
+import com.meteomontana.android.domain.util.fanOffsets
 import com.meteomontana.android.domain.util.magnetizeStroke
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.domain.util.sharedSegmentKeys
+import com.meteomontana.android.domain.util.simplifyStroke
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -59,18 +60,42 @@ class SharedSegmentsTest {
         assertTrue(sharedSegmentKeys(listOf(TopoLineData("A", "6a", null, existing))).isEmpty())
     }
 
-    @Test fun `renderTopo pinta el tramo compartido del color especial`() {
+    @Test fun `renderTopo pinta el tramo compartido a FRANJAS con fase distinta`() {
         val a = TopoLineData("A", "6a", null, existing)
         val b = TopoLineData("B", "7a", null,
             listOf(0.05f to 0.95f, existing[1], existing[2], 0.60f to 0.20f))
         val ops = renderTopo(listOf(a, b), w, h)
-        val sharedRuns = ops.filterIsInstance<DrawOp.LinePath>()
-            .filter { it.argb == SHARED_SEGMENT_ARGB }
-        // Las DOS vías pintan su racha compartida (se superponen, mismo color).
-        assertEquals(2, sharedRuns.size)
-        sharedRuns.forEach { run ->
-            assertEquals(2, run.pts.size)   // el tramo común son 2 vértices
-        }
+        val stripeRuns = ops.filterIsInstance<DrawOp.LinePath>()
+            .filter { it.dashPattern != null }
+        // Las DOS vías pintan su franja del tramo (cada una con SU color de
+        // grado y fase distinta → se intercalan).
+        assertEquals(2, stripeRuns.size)
+        assertTrue(stripeRuns[0].argb != stripeRuns[1].argb)          // color propio
+        assertTrue(stripeRuns[0].dashPhase != stripeRuns[1].dashPhase) // fases alternas
+        stripeRuns.forEach { assertEquals(2, it.pts.size) }            // 2 vértices
+    }
+
+    @Test fun `simplify quita el temblor pero respeta las esquinas`() {
+        // Trazo con ruido a lo largo de una recta + una esquina real.
+        val noisy = listOf(
+            0.10f to 0.10f, 0.15f to 0.101f, 0.20f to 0.099f, 0.25f to 0.102f,
+            0.30f to 0.10f,                       // recta con temblor
+            0.30f to 0.30f                        // esquina real (giro brusco)
+        )
+        val out = simplifyStroke(noisy)
+        assertTrue("Debe quitar los puntos de temblor", out.size < noisy.size)
+        assertEquals(noisy.first(), out.first())
+        assertEquals(noisy.last(), out.last())
+        assertTrue("Debe conservar la esquina", out.contains(0.30f to 0.10f))
+    }
+
+    @Test fun `fanOffsets separa badges que coinciden y no toca el resto`() {
+        val p = 0.5f to 0.5f
+        val offsets = fanOffsets(listOf(p, p, 0.9f to 0.9f, p), 30f)
+        // Los tres coincidentes se reparten alrededor del punto; el suelto queda a 0.
+        assertEquals(0f, offsets[2])
+        assertEquals(3, listOf(offsets[0], offsets[1], offsets[3]).distinct().size)
+        assertEquals(0f, offsets[0] + offsets[1] + offsets[3], 0.001f) // centrados
     }
 
     @Test fun `sin tramos compartidos renderTopo pinta como siempre`() {

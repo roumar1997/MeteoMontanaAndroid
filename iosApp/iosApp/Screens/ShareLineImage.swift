@@ -189,14 +189,18 @@ enum ShareLineImage {
     /// con grosores/badges escalados al tamaño de la card.
     private static func drawLines(_ cg: CGContext, lines: [TopoLineVM], in rect: CGRect) {
         let s = rect.width / 360.0   // 360 ≈ ancho del Canvas en la app (puntos)
-        // Tramos compartidos entre vías → color propio (espejo de renderTopo).
-        let shared = TopoShared.sharedSegmentKeys(lines.map { $0.points })
+        // Tramos compartidos → FRANJAS por vía; badges en abanico si coinciden.
+        let shared = TopoShared.sharedSegmentLines(lines.map { $0.points })
+        let startFan = TopoShared.fanOffsets(lines.map { $0.points.first }, spacing: (12 * 2 + 4) * s)
+        let endFan = TopoShared.fanOffsets(lines.map { $0.points.last }, spacing: (14 * 2 + 4) * s)
         for (idx, line) in lines.enumerated() where !line.points.isEmpty {
             let style = GradeColor.style(line.grade)
             let stroke = UIColor(style.stroke)
-            let pts = line.points.map {
+            var pts = line.points.map {
                 CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
             }
+            pts[0].x += startFan[idx]
+            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
             for run in TopoShared.splitRuns(line.points, shared: shared) {
                 let runPts = run.pts.map {
                     CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
@@ -205,15 +209,21 @@ enum ShareLineImage {
                 let path = UIBezierPath()
                 path.move(to: runPts[0])
                 for p in runPts.dropFirst() { path.addLine(to: p) }
-                path.lineCapStyle = .round; path.lineJoinStyle = .round
-                if style.dashed && !run.isShared { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
-                // Línea blanca: contorno negro para que se vea sobre cualquier foto.
-                if style.dark && !run.isShared {
-                    path.lineWidth = 9 * s
-                    UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
+                path.lineJoinStyle = .round
+                if let stripe = TopoShared.stripeStyle(run, lineIdx: idx, scale: s) {
+                    path.lineCapStyle = .butt
+                    path.setLineDash(stripe.dash, count: stripe.dash.count, phase: stripe.phase)
+                } else {
+                    path.lineCapStyle = .round
+                    if style.dashed { path.setLineDash([10 * s, 8 * s], count: 2, phase: 0) }
+                    // Línea blanca: contorno negro para verse sobre cualquier foto.
+                    if style.dark {
+                        path.lineWidth = 9 * s
+                        UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
+                    }
                 }
                 path.lineWidth = 5 * s
-                (run.isShared ? UIColor(TopoShared.color) : stroke).setStroke(); path.stroke()
+                stroke.setStroke(); path.stroke()
             }
 
             let textColor: UIColor = style.dark ? .black : .white

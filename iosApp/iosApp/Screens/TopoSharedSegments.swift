@@ -1,14 +1,14 @@
 import SwiftUI
 
-// Tramos COMPARTIDOS entre vías — espejo Swift de sharedSegmentKeys /
-// magnetizeStroke / SHARED_SEGMENT_ARGB de TopoRenderer.kt (shared). Igual que
-// GradeColor/TopoParse: iOS pinta nativo, así que la lógica se replica aquí.
-// Si se toca la versión Kotlin, tocar esta (misma semántica exacta).
+// Tramos COMPARTIDOS entre vías + utilidades del editor — espejo Swift de
+// sharedSegmentLines / magnetizeStroke / simplifyStroke / fanOffsets de
+// TopoRenderer.kt (shared). Igual que GradeColor/TopoParse: iOS pinta nativo,
+// así que la lógica se replica aquí. Si se toca la versión Kotlin, tocar esta.
 
 enum TopoShared {
-    /// Color del tramo compartido (naranja #FF9500 — no choca con la paleta de
-    /// grados ni con el rosa discontinuo de proyecto). = SHARED_SEGMENT_ARGB.
-    static let color = Color(red: 1.0, green: 149.0 / 255.0, blue: 0.0)
+    /// Largo de cada franja del tramo compartido, en px del canvas.
+    /// = SHARED_STRIPE_PX. Los canvas escalados (share 1080) lo multiplican.
+    static let stripe: CGFloat = 22
 
     /// Clave de un punto normalizado, redondeado a 4 decimales (robusto frente
     /// al viaje JSON; el imán copia los valores exactos).
@@ -21,40 +21,51 @@ enum TopoShared {
         return ka <= kb ? "\(ka)|\(kb)" : "\(kb)|\(ka)"
     }
 
-    /// Claves de los segmentos presentes en DOS o más vías.
-    static func sharedSegmentKeys(_ lines: [[CGPoint]]) -> Set<String> {
-        var count: [String: Int] = [:]
-        for pts in lines {
-            var own = Set<String>()
-            for i in 0..<max(0, pts.count - 1) { own.insert(segmentKey(pts[i], pts[i + 1])) }
-            for k in own { count[k, default: 0] += 1 }
-        }
-        return Set(count.filter { $0.value >= 2 }.keys)
-    }
-
-    /// Trocea una polilínea (puntos NORMALIZADOS) en rachas propias/compartidas.
-    /// Devuelve pares (puntos de la racha, esCompartida). Con una sola racha
-    /// (lo normal) el resultado es la línea entera sin trocear.
-    static func splitRuns(_ points: [CGPoint], shared: Set<String>) -> [(pts: [CGPoint], isShared: Bool)] {
-        guard points.count >= 2 else { return [(points, false)] }
-        var runs: [(pts: [CGPoint], isShared: Bool)] = []
-        var runStart = 0
-        var runShared = shared.contains(segmentKey(points[0], points[1]))
-        for i in 1..<(points.count - 1) {
-            let segShared = shared.contains(segmentKey(points[i], points[i + 1]))
-            if segShared != runShared {
-                runs.append((Array(points[runStart...i]), runShared))
-                runStart = i
-                runShared = segShared
+    /// Segmento compartido → índices (ordenados) de las vías que lo comparten.
+    /// Solo entradas con 2+ vías.
+    static func sharedSegmentLines(_ lines: [[CGPoint]]) -> [String: [Int]] {
+        var byKey: [String: Set<Int>] = [:]
+        for (idx, pts) in lines.enumerated() {
+            guard pts.count >= 2 else { continue }
+            for i in 0..<(pts.count - 1) {
+                byKey[segmentKey(pts[i], pts[i + 1]), default: []].insert(idx)
             }
         }
-        runs.append((Array(points[runStart...]), runShared))
+        return byKey.filter { $0.value.count >= 2 }.mapValues { $0.sorted() }
+    }
+
+    /// Una racha de la polilínea: puntos + vías que comparten ese tramo
+    /// (vacío = tramo propio).
+    struct Run { let pts: [CGPoint]; let sharers: [Int] }
+
+    /// Trocea una polilínea (puntos NORMALIZADOS) en rachas propias/compartidas.
+    static func splitRuns(_ points: [CGPoint], shared: [String: [Int]]) -> [Run] {
+        guard points.count >= 2 else { return [Run(pts: points, sharers: [])] }
+        var runs: [Run] = []
+        var runStart = 0
+        var runSharers = shared[segmentKey(points[0], points[1])] ?? []
+        for i in 1..<(points.count - 1) {
+            let s = shared[segmentKey(points[i], points[i + 1])] ?? []
+            if s != runSharers {
+                runs.append(Run(pts: Array(points[runStart...i]), sharers: runSharers))
+                runStart = i
+                runSharers = s
+            }
+        }
+        runs.append(Run(pts: Array(points[runStart...]), sharers: runSharers))
         return runs
     }
 
+    /// (dash, phase) de la franja de la vía [lineIdx] en una racha compartida,
+    /// escalado por [s]. nil si la racha no es compartida.
+    static func stripeStyle(_ run: Run, lineIdx: Int, scale s: CGFloat = 1) -> (dash: [CGFloat], phase: CGFloat)? {
+        guard run.sharers.count >= 2 else { return nil }
+        let n = CGFloat(run.sharers.count)
+        let k = CGFloat(run.sharers.firstIndex(of: lineIdx) ?? 0)
+        return ([stripe * s, stripe * s * (n - 1)], k * stripe * s)
+    }
+
     /// IMÁN del editor: espejo exacto de magnetizeStroke de TopoRenderer.kt.
-    /// Sustituye los puntos del trazo cercanos a un VÉRTICE de otra vía por ese
-    /// vértice exacto, e inserta los vértices intermedios que el dedo saltó.
     static func magnetizeStroke(_ drawn: [CGPoint], others: [[CGPoint]],
                                 threshold: CGFloat = 0.02) -> [CGPoint] {
         guard !drawn.isEmpty, !others.isEmpty else { return drawn }
@@ -91,5 +102,52 @@ enum TopoShared {
         var dedup: [CGPoint] = []
         for p in out where dedup.last != p { dedup.append(p) }
         return dedup
+    }
+
+    /// SUAVIZADO del trazo a mano (Douglas-Peucker) — espejo de simplifyStroke.
+    static func simplifyStroke(_ points: [CGPoint], epsilon: CGFloat = 0.006) -> [CGPoint] {
+        guard points.count > 2 else { return points }
+        func perpDist(_ p: CGPoint, _ a: CGPoint, _ b: CGPoint) -> CGFloat {
+            let dx = b.x - a.x, dy = b.y - a.y
+            let len = (dx * dx + dy * dy).squareRoot()
+            if len < 1e-9 {
+                let ex = p.x - a.x, ey = p.y - a.y
+                return (ex * ex + ey * ey).squareRoot()
+            }
+            return abs(dy * p.x - dx * p.y + b.x * a.y - b.y * a.x) / len
+        }
+        var keep = [Bool](repeating: false, count: points.count)
+        keep[0] = true; keep[points.count - 1] = true
+        func dp(_ from: Int, _ to: Int) {
+            var maxD: CGFloat = 0; var maxI = -1
+            if to > from + 1 {
+                for i in (from + 1)..<to {
+                    let d = perpDist(points[i], points[from], points[to])
+                    if d > maxD { maxD = d; maxI = i }
+                }
+            }
+            if maxD > epsilon && maxI > 0 {
+                keep[maxI] = true
+                dp(from, maxI); dp(maxI, to)
+            }
+        }
+        dp(0, points.count - 1)
+        return points.enumerated().filter { keep[$0.offset] }.map { $0.element }
+    }
+
+    /// ABANICO de badges: desplazamiento X (px) por vía cuando varios badges
+    /// coinciden en el mismo punto — espejo de fanOffsets.
+    static func fanOffsets(_ anchors: [CGPoint?], spacing: CGFloat) -> [CGFloat] {
+        var groups: [String: [Int]] = [:]
+        for (idx, p) in anchors.enumerated() {
+            if let p { groups[pointKey(p), default: []].append(idx) }
+        }
+        var out = [CGFloat](repeating: 0, count: anchors.count)
+        for members in groups.values where members.count > 1 {
+            for (k, idx) in members.enumerated() {
+                out[idx] = (CGFloat(k) - CGFloat(members.count - 1) / 2) * spacing
+            }
+        }
+        return out
     }
 }

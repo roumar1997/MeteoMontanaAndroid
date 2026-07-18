@@ -131,15 +131,21 @@ struct TopoPhotoView: View {
         }
         // 2. Existentes normales + propuesta, sólidas y numeradas en continuo.
         let solid = normalLines + lines
-        // Tramos compartidos entre vías → color propio (espejo de renderTopo).
-        let shared = TopoShared.sharedSegmentKeys(solid.map { $0.points })
+        // Tramos compartidos → FRANJAS con los colores de las vías (= renderTopo).
+        let shared = TopoShared.sharedSegmentLines(solid.map { $0.points })
+        // Abanico: badges que coinciden en el mismo punto se separan en X.
+        let startFan = TopoShared.fanOffsets(solid.map { $0.points.first }, spacing: 9 * 2 + 4)
+        let endFan = TopoShared.fanOffsets(solid.map { $0.points.last }, spacing: 10.5 * 2 + 4)
         for (idx, line) in solid.enumerated() where !line.points.isEmpty {
-            drawSolidLine(ctx, size, line: line, number: idx + 1, shared: shared)
+            drawSolidLine(ctx, size, line: line, number: idx + 1, lineIdx: idx,
+                          shared: shared, startDx: startFan[idx], endDx: endFan[idx])
         }
     }
 
     private func drawSolidLine(_ ctx: GraphicsContext, _ size: CGSize, line: TopoLineVM,
-                               number: Int, shared: Set<String> = []) {
+                               number: Int, lineIdx: Int = 0,
+                               shared: [String: [Int]] = [:],
+                               startDx: CGFloat = 0, endDx: CGFloat = 0) {
         let style = GradeColor.style(line.grade)
         let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         guard !pts.isEmpty else { return }
@@ -147,28 +153,37 @@ struct TopoPhotoView: View {
         // Tamaños unificados con Android (TopoPhotoCanvas.kt): badge 9/7,
         // inicio 10.5/8.5, trazo 3.5 — antes iOS pintaba ~2.5x más grande
         // (pt vs px físicos) y tapaba la piedra.
-        // La polilínea se trocea en rachas propias/compartidas (= renderTopo):
-        // la racha compartida va del color TopoShared, sólida.
+        // Rachas propias (color de grado) / compartidas (FRANJA: mi color a
+        // guiones con fase propia; las otras vías rellenan los huecos).
         for run in TopoShared.splitRuns(line.points, shared: shared) {
             let runPts = run.pts.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
             guard runPts.count > 1 else { continue }
             var path = Path()
             path.move(to: runPts[0])
             for p in runPts.dropFirst() { path.addLine(to: p) }
-            // Línea blanca: contorno negro para que se vea sobre cualquier foto.
-            if style.dark && !run.isShared {
-                ctx.stroke(path, with: .color(.black.opacity(0.8)),
-                           style: StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round, dash: dash))
+            if let stripe = TopoShared.stripeStyle(run, lineIdx: lineIdx) {
+                ctx.stroke(path, with: .color(style.stroke),
+                           style: StrokeStyle(lineWidth: 3.5, lineCap: .butt, lineJoin: .round,
+                                              dash: stripe.dash, dashPhase: stripe.phase))
+            } else {
+                // Línea blanca: contorno negro para verse sobre cualquier foto.
+                if style.dark {
+                    ctx.stroke(path, with: .color(.black.opacity(0.8)),
+                               style: StrokeStyle(lineWidth: 6.5, lineCap: .round, lineJoin: .round, dash: dash))
+                }
+                ctx.stroke(path, with: .color(style.stroke),
+                           style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round, dash: dash))
             }
-            ctx.stroke(path, with: .color(run.isShared ? TopoShared.color : style.stroke),
-                       style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round,
-                                          dash: run.isShared ? [] : dash))
         }
         let textColor: Color = style.dark ? .black : .white
-        badge(ctx, at: pts[0], outer: 9, inner: 7, fill: .white, ring: style.stroke,
+        // Abanico: los badges coincidentes se desplazan para no taparse.
+        badge(ctx, at: CGPoint(x: pts[0].x + startDx, y: pts[0].y),
+              outer: 9, inner: 7, fill: .white, ring: style.stroke,
               text: "\(number)", textSize: 10, textColor: textColor)
         if let label = startLabel(line.startType), pts.count > 1 {
-            badge(ctx, at: pts[pts.count - 1], outer: 10.5, inner: 8.5,
+            let last = pts[pts.count - 1]
+            badge(ctx, at: CGPoint(x: last.x + endDx, y: last.y),
+                  outer: 10.5, inner: 8.5,
                   fill: style.dark ? .black : .white, ring: style.stroke,
                   text: label, textSize: 7, textColor: textColor)
         }
