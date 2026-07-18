@@ -124,7 +124,7 @@ fun LineCommentsThread(
     val moderation: ModerationViewModel = hiltViewModel()
     val hiddenIds by moderation.hiddenIds.collectAsState()
     val mine = remember(all, blockId, lineId, hiddenIds) {
-        all.filter { it.blockId == blockId && it.lineId == lineId && it.id !in hiddenIds }
+        all.filter { it.blockId == blockId && it.lineId == lineId && "COMMENT:${it.id}" !in hiddenIds }
             .sortedWith(compareByDescending<LineCommentDto> { it.upvotesCount - it.downvotesCount }
                 .thenByDescending { it.createdAt ?: "" })
     }

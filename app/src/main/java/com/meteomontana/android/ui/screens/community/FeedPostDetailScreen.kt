@@ -285,7 +285,7 @@ fun FeedPostDetailScreen(
                                 modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
                             )
                         }
-                        val visible = state.comments.filter { it.id !in hiddenIds }
+                        val visible = state.comments.filter { "FEED_COMMENT:${it.id}" !in hiddenIds }
                         if (visible.isEmpty()) {
                             item {
                                 Text(

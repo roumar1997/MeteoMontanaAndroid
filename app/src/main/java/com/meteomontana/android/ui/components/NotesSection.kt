@@ -103,7 +103,7 @@ fun NotesSection(
             } else {
                 // Llegan del backend ordenadas por utilidad (▲ − ▼). Las
                 // denunciadas por ti se ocultan al instante.
-                notes.filter { it.id !in hiddenIds }.forEach { n ->
+                notes.filter { "NOTE:${it.id}" !in hiddenIds }.forEach { n ->
                     NoteRow(n, onPhotoClick = { photoNote = n }, onVote = { v -> onVote(n, v) },
                         canReport = myUid != null && myUid != n.uid,
                         onReport = { reportTarget = n })

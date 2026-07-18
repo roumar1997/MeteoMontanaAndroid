@@ -184,7 +184,7 @@ struct FeedPostDetailView: View {
                         .font(Cumbre.mono(10, .bold)).tracking(1.8)
                         .foregroundStyle(Cumbre.terra)
                         .padding(.top, 16).padding(.bottom, 4)
-                    let visible = vm.comments.filter { !moderation.hiddenIds.contains($0.id) }
+                    let visible = vm.comments.filter { !moderation.hiddenIds.contains("FEED_COMMENT:\($0.id)") }
                     if visible.isEmpty {
                         Text("Sé el primero en comentar.")
                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)

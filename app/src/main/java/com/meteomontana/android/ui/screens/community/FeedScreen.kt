@@ -253,7 +253,7 @@ private fun FeedList(
     // Lo denunciado desaparece al instante para quien denuncia (Apple 1.2) y
     // el filtro "Mostrar:" solo OCULTA en cliente (la paginación trae todo).
     val visiblePosts = state.posts
-        .filter { it.id.toString() !in hiddenIds }
+        .filter { "FEED_POST:${it.id}" !in hiddenIds }
         .filter { matchesFilter(it, state.filter) }
     PullToRefreshBox(
         isRefreshing = state.refreshing,
@@ -791,7 +791,7 @@ internal fun FeedCommentsSheet(
                             )
                         }
                     }
-                    items(threadOrder(list.filter { it.id !in hiddenIds }), key = { it.id }) { comment ->
+                    items(threadOrder(list.filter { "FEED_COMMENT:${it.id}" !in hiddenIds }), key = { it.id }) { comment ->
                         FeedCommentRow(
                             comment = comment,
                             onOpenUser = onOpenUser,

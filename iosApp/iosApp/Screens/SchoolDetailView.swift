@@ -2419,7 +2419,7 @@ struct NotesSectionView: View {
                     .padding(.vertical, 4)
             } else {
                 // Llegan del backend ordenadas por utilidad (▲ − ▼).
-                ForEach(notes.filter { !moderation.hiddenIds.contains($0.id) }, id: \.id) { n in
+                ForEach(notes.filter { !moderation.hiddenIds.contains("NOTE:\($0.id)") }, id: \.id) { n in
                     NoteRowView(note: n, onPhotoTap: { photoNote = n },
                                 onVote: { v in onVote(n, v) },
                                 canReport: Auth.auth().currentUser?.uid != n.uid,

@@ -146,8 +146,17 @@ struct UserFeedSection: View {
     }
 
     var body: some View {
+        // OJO: el Group SIEMPRE debe tener un hijo real. Antes era
+        // `if !vm.loading { sectionBody }`, que con loading=true (estado inicial)
+        // dejaba el Group VACÍO → el `.task` de abajo se anclaba a nada y NO se
+        // disparaba → load() nunca corría → pantalla permanentemente en blanco
+        // (sin spinner ni "sin publicaciones"). El spinner mantiene la vista viva.
         Group {
-            if !vm.loading {
+            if vm.loading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+            } else {
                 sectionBody
             }
         }
@@ -200,7 +209,13 @@ struct UserFeedSection: View {
     }
 
     @ViewBuilder private var sectionBody: some View {
-        let visible = vm.posts.filter { !moderation.hiddenIds.contains(String($0.id)) }
+        // "Mis publicaciones" = solo lo que el usuario ELIGE publicar (TICK /
+        // PROJECT_DONE). Las de piedra/vía nueva (NEW_BLOCK/NEW_LINE) son
+        // automáticas al aprobar una propuesta → no van aquí ni en el perfil
+        // público. (La pestaña "Mías" del feed sí las muestra, no se toca.)
+        let visible = vm.posts
+            .filter { $0.kind != "NEW_BLOCK" && $0.kind != "NEW_LINE" }
+            .filter { !moderation.hiddenIds.contains("FEED_POST:\($0.id)") }
         VStack(alignment: .leading, spacing: 12) {
             if showTitle {
                 Text(title).eyebrow()

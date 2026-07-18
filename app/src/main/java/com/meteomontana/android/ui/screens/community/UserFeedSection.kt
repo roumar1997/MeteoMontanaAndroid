@@ -211,7 +211,13 @@ fun UserFeedSection(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(vertical = 8.dp)
         )
-        val visible = state.posts.filter { it.id.toString() !in hiddenIds }
+        // "Mis publicaciones" = solo lo que el usuario ELIGE publicar (TICK /
+        // PROJECT_DONE). Las de piedra/vía nueva (NEW_BLOCK/NEW_LINE) son
+        // automáticas al aprobar una propuesta → no van aquí ni en el perfil
+        // público. (La pestaña "Mías" del feed sí las muestra, no se toca.)
+        val visible = state.posts
+            .filter { it.kind != "NEW_BLOCK" && it.kind != "NEW_LINE" }
+            .filter { "FEED_POST:${it.id}" !in hiddenIds }
         if (visible.isEmpty()) {
             Text(
                 stringResource(R.string.feed_posts_empty),

@@ -62,7 +62,7 @@ struct LineCommentsThreadView: View {
 
     private var mine: [LineCommentDto] {
         store.comments
-            .filter { $0.blockId == blockId && $0.lineId == lineId && !moderation.hiddenIds.contains($0.id) }
+            .filter { $0.blockId == blockId && $0.lineId == lineId && !moderation.hiddenIds.contains("COMMENT:\($0.id)") }
             .sorted {
                 let a = $0.upvotesCount - $0.downvotesCount
                 let b = $1.upvotesCount - $1.downvotesCount

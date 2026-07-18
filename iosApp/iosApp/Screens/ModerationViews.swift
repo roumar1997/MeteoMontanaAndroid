@@ -4,6 +4,9 @@ import Shared
 // Moderación UGC (requisito App Store): denunciar comentarios/notas/usuarios
 // y bloquear usuarios. Espejo de ReportDialog.kt / ModerationViewModel de
 // Android. `hiddenIds` oculta AL INSTANTE lo denunciado para quien denuncia.
+// Guarda claves tipadas "TIPO:id" (p.ej. "FEED_POST:51", "NOTE:51"): los ids de
+// post del feed son enteros pequeños que chocaban con ids de notas/comentarios
+// → denunciar una nota id 51 ocultaba el post 51. Cada filtro compone su clave.
 
 @MainActor
 final class ModerationStore: ObservableObject {
@@ -21,7 +24,7 @@ final class ModerationStore: ObservableObject {
 
     func report(targetType: String, targetId: String, reason: String,
                 alsoBlockUid: String? = nil) {
-        hiddenIds.insert(targetId)
+        hiddenIds.insert("\(targetType):\(targetId)")
         Task {
             try? await api.report(targetType: targetType, targetId: targetId, reason: reason)
             if let uid = alsoBlockUid {

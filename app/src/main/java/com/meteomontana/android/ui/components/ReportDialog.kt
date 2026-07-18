@@ -40,6 +40,11 @@ import javax.inject.Inject
  * Moderación desde la UI: denunciar contenido (con snapshot en el backend) y
  * bloquear usuarios. `hiddenIds` oculta AL INSTANTE lo denunciado para quien
  * denuncia (Apple lo exige); el filtrado permanente lo hace el servidor.
+ *
+ * OJO: `hiddenIds` guarda claves tipadas "TIPO:id" (p.ej. "FEED_POST:51",
+ * "NOTE:51"). Antes guardaba solo el id, pero los ids de post del feed son
+ * enteros pequeños que CHOCABAN con ids de notas/comentarios → denunciar una
+ * nota con id 51 ocultaba tu post 51. Cada filtro compone su clave con su tipo.
  */
 @HiltViewModel
 class ModerationViewModel @Inject constructor(
@@ -60,7 +65,7 @@ class ModerationViewModel @Inject constructor(
 
     fun report(targetType: String, targetId: String, reason: String,
                alsoBlockUid: String? = null) {
-        _hiddenIds.value = _hiddenIds.value + targetId
+        _hiddenIds.value = _hiddenIds.value + "$targetType:$targetId"
         viewModelScope.launch {
             runCatching { api.report(targetType, targetId, reason) }
             alsoBlockUid?.let { uid ->

@@ -445,7 +445,7 @@ struct FeedView: View {
         // Lo denunciado desaparece al instante para quien denuncia (Apple 1.2)
         // y el filtro "Mostrar:" solo OCULTA en cliente.
         let visible = vm.posts
-            .filter { !moderation.hiddenIds.contains(String($0.id)) }
+            .filter { !moderation.hiddenIds.contains("FEED_POST:\($0.id)") }
             .filter { feedMatchesFilter($0, vm.filter) }
         if vm.loading {
             Spacer()
@@ -878,7 +878,7 @@ struct FeedCommentsSheet: View {
 
     @ViewBuilder private var commentsList: some View {
         if let list = comments {
-            let visible = list.filter { !moderation.hiddenIds.contains($0.id) }
+            let visible = list.filter { !moderation.hiddenIds.contains("FEED_COMMENT:\($0.id)") }
             ScrollView {
                 LazyVStack(spacing: 0) {
                     if visible.isEmpty {
