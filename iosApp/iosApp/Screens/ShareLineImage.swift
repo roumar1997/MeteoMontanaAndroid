@@ -226,7 +226,17 @@ enum ShareLineImage {
                 path.lineWidth = 5 * s
                 stroke.setStroke(); path.stroke()
             }
-
+        }
+        // 2ª pasada: BADGES encima de TODAS las líneas (si no, la línea de una
+        // vía posterior tapa los badges de las anteriores).
+        for (idx, line) in lines.enumerated() where !line.points.isEmpty {
+            let style = GradeColor.style(line.grade)
+            let stroke = UIColor(style.stroke)
+            var pts = line.points.map {
+                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
+            }
+            pts[0].x += startFan[idx]
+            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
             let textColor: UIColor = style.dark ? .black : .white
             fillCircle(cg, pts[0], 12 * s, .white)
             fillCircle(cg, pts[0], 9.5 * s, stroke)

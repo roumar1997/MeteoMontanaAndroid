@@ -136,16 +136,25 @@ struct TopoPhotoView: View {
         // Abanico: badges que coinciden en el mismo punto se separan en X.
         let startFan = TopoShared.fanOffsets(solid.map { $0.points.first }, spacing: 9 * 2 + 4)
         let endFan = TopoShared.fanOffsets(solid.map { $0.points.last }, spacing: 10.5 * 2 + 4)
+        // Dos pasadas: primero TODAS las líneas, luego TODOS los badges — si
+        // no, la línea de una vía posterior tapa los badges de las anteriores.
         for (idx, line) in solid.enumerated() where !line.points.isEmpty {
             drawSolidLine(ctx, size, line: line, number: idx + 1, lineIdx: idx,
-                          shared: shared, startDx: startFan[idx], endDx: endFan[idx])
+                          shared: shared, startDx: startFan[idx], endDx: endFan[idx],
+                          strokesOnly: true)
+        }
+        for (idx, line) in solid.enumerated() where !line.points.isEmpty {
+            drawSolidLine(ctx, size, line: line, number: idx + 1, lineIdx: idx,
+                          shared: shared, startDx: startFan[idx], endDx: endFan[idx],
+                          badgesOnly: true)
         }
     }
 
     private func drawSolidLine(_ ctx: GraphicsContext, _ size: CGSize, line: TopoLineVM,
                                number: Int, lineIdx: Int = 0,
                                shared: [String: [Int]] = [:],
-                               startDx: CGFloat = 0, endDx: CGFloat = 0) {
+                               startDx: CGFloat = 0, endDx: CGFloat = 0,
+                               strokesOnly: Bool = false, badgesOnly: Bool = false) {
         let style = GradeColor.style(line.grade)
         let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         guard !pts.isEmpty else { return }
@@ -156,6 +165,7 @@ struct TopoPhotoView: View {
         // (pt vs px físicos) y tapaba la piedra.
         // Rachas propias (color de grado) / compartidas (FRANJA: mi color a
         // guiones con fase propia; las otras vías rellenan los huecos).
+        if !badgesOnly {
         for run in TopoShared.splitRuns(line.points, shared: shared) {
             let runPts = run.pts.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
             guard runPts.count > 1 else { continue }
@@ -176,6 +186,8 @@ struct TopoPhotoView: View {
                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round, dash: dash))
             }
         }
+        }
+        if strokesOnly { return }
         let textColor: Color = style.dark ? .black : .white
         // Abanico: los badges coincidentes se desplazan para no taparse.
         badge(ctx, at: CGPoint(x: pts[0].x + startDx, y: pts[0].y),

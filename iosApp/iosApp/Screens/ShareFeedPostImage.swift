@@ -264,7 +264,17 @@ enum ShareFeedPostImage {
                 path.lineWidth = 5 * s
                 stroke.setStroke(); path.stroke()
             }
-
+        }
+        // 2ª pasada: BADGES encima de TODAS las líneas.
+        for (idx, via) in vias.enumerated() {
+            let style = GradeColor.style(via.grade)
+            let stroke = UIColor(style.stroke)
+            var pts = via.pts.map {
+                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
+            }
+            guard !pts.isEmpty else { continue }
+            pts[0].x += startFan[idx]
+            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
             let textColor: UIColor = style.dark ? .black : .white
             fillCircle(cg, pts[0], 14 * s, .white)
             fillCircle(cg, pts[0], 11 * s, stroke)

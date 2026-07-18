@@ -590,12 +590,13 @@ struct TopoEditorView: View {
         let sharedKeys = TopoShared.sharedSegmentLines(allPoints)
         let startFan = TopoShared.fanOffsets(allPoints.map { $0.first }, spacing: 12 * 2 + 4)
         let endFan = TopoShared.fanOffsets(allPoints.map { $0.last }, spacing: 13 * 2 + 4)
-        // 1. Existentes que NO cambian → NORMALES (sólidas, con número y tipo).
+        // 1. Existentes que NO cambian → NORMALES (con número y tipo).
+        // (los badges van en una 2ª pasada al final, siempre encima)
         for (i, line) in normalLines.enumerated() where !line.points.isEmpty {
             drawTopoLine(ctx, size, points: line.points, grade: line.grade,
                          startType: line.startType, number: i + 1, lineWidth: 5,
                          lineIdx: i, shared: sharedKeys,
-                         startDx: startFan[i], endDx: endFan[i])
+                         startDx: startFan[i], endDx: endFan[i], strokesOnly: true)
         }
         // 2. SOLO la vía vieja que se corrige, difuminada (para distinguirla).
         for line in fadedLines where !line.points.isEmpty {
@@ -612,18 +613,34 @@ struct TopoEditorView: View {
             drawTopoLine(ctx, size, points: b.line, grade: b.grade, startType: b.startType,
                          number: idx + 1, lineWidth: idx == selected ? 8 : 5,
                          lineIdx: g, shared: sharedKeys,
-                         startDx: startFan[g], endDx: endFan[g])
+                         startDx: startFan[g], endDx: endFan[g], strokesOnly: true)
+        }
+        // 4. BADGES de todas, encima de todas las líneas.
+        for (i, line) in normalLines.enumerated() where !line.points.isEmpty {
+            drawTopoLine(ctx, size, points: line.points, grade: line.grade,
+                         startType: line.startType, number: i + 1, lineWidth: 5,
+                         lineIdx: i, shared: sharedKeys,
+                         startDx: startFan[i], endDx: endFan[i], badgesOnly: true)
+        }
+        for (idx, b) in blocks.enumerated() where !b.line.isEmpty {
+            let g = normalLines.count + idx
+            drawTopoLine(ctx, size, points: b.line, grade: b.grade, startType: b.startType,
+                         number: idx + 1, lineWidth: idx == selected ? 8 : 5,
+                         lineIdx: g, shared: sharedKeys,
+                         startDx: startFan[g], endDx: endFan[g], badgesOnly: true)
         }
     }
 
     private func drawTopoLine(_ ctx: GraphicsContext, _ size: CGSize, points: [CGPoint],
                               grade: String?, startType: String?, number: Int, lineWidth: CGFloat,
                               lineIdx: Int = 0, shared: [String: [Int]] = [:],
-                              startDx: CGFloat = 0, endDx: CGFloat = 0) {
+                              startDx: CGFloat = 0, endDx: CGFloat = 0,
+                              strokesOnly: Bool = false, badgesOnly: Bool = false) {
         let style = GradeColor.style(grade)
         var pts = points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
         guard !pts.isEmpty else { return }
         // Rachas propias (color de grado) / compartidas (FRANJAS por vía).
+        if !badgesOnly {
         for run in TopoShared.splitRuns(points, shared: shared) {
             let runPts = run.pts.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
             guard runPts.count > 1 else { continue }
@@ -645,6 +662,8 @@ struct TopoEditorView: View {
                                               dash: TopoShared.dash))
             }
         }
+        }
+        if strokesOnly { return }
         // Abanico: badges coincidentes separados en X.
         if !pts.isEmpty {
             pts[0] = CGPoint(x: pts[0].x + startDx, y: pts[0].y)

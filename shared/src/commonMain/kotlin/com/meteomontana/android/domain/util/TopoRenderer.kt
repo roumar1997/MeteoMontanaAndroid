@@ -246,6 +246,10 @@ fun renderTopo(
     stripePx: Float = SHARED_STRIPE_PX
 ): List<DrawOp> {
     val ops = mutableListOf<DrawOp>()
+    // Los BADGES se acumulan aparte y se emiten al FINAL: si no, la línea de
+    // una vía posterior tapa los badges de las anteriores (feedback Rodrigo:
+    // el "PIE" verde quedaba debajo de la travesía morada).
+    val badgeOps = mutableListOf<DrawOp>()
     // Tramos compartidos: segmento → vías que lo comparten (franjas alternas).
     val shared = sharedSegmentLines(lines)
     // Abanico de badges: cuando varios inicios/finales coinciden en el mismo
@@ -314,9 +318,9 @@ fun renderTopo(
         // Badge numérico en el punto de inicio (desplazado si hay abanico)
         val (fx0, fy) = pts.first()
         val fx = fx0 + startFan[idx]
-        ops += DrawOp.FilledCircle(fx, fy, badgeR.first, 0xFFFFFFFFL)
-        ops += DrawOp.FilledCircle(fx, fy, badgeR.second, strokeArgb)
-        ops += DrawOp.TextLabel(fx, fy, "${idx + 1}", textArgb, badgeTextPx.first, bold = true, badgeTextPx.second)
+        badgeOps += DrawOp.FilledCircle(fx, fy, badgeR.first, 0xFFFFFFFFL)
+        badgeOps += DrawOp.FilledCircle(fx, fy, badgeR.second, strokeArgb)
+        badgeOps += DrawOp.TextLabel(fx, fy, "${idx + 1}", textArgb, badgeTextPx.first, bold = true, badgeTextPx.second)
 
         // Badge de tipo de inicio en el punto final (desplazado si hay abanico)
         val label = when (line.startType?.uppercase()) {
@@ -331,11 +335,12 @@ fun renderTopo(
             val (lx0, ly) = pts.last()
             val lx = lx0 + endFan[idx]
             val haloArgb = if (dark) 0xFF000000L else 0xFFFFFFFFL
-            ops += DrawOp.FilledCircle(lx, ly, startR.first, haloArgb)
-            ops += DrawOp.FilledCircle(lx, ly, startR.second, strokeArgb)
-            if (dark) ops += DrawOp.CircleStroke(lx, ly, startR.second, 0xFF000000L, 2f)
-            ops += DrawOp.TextLabel(lx, ly, label, textArgb, startTextPx.first, bold = true, startTextPx.second)
+            badgeOps += DrawOp.FilledCircle(lx, ly, startR.first, haloArgb)
+            badgeOps += DrawOp.FilledCircle(lx, ly, startR.second, strokeArgb)
+            if (dark) badgeOps += DrawOp.CircleStroke(lx, ly, startR.second, 0xFF000000L, 2f)
+            badgeOps += DrawOp.TextLabel(lx, ly, label, textArgb, startTextPx.first, bold = true, startTextPx.second)
         }
     }
-    return ops
+    // Líneas primero, badges SIEMPRE encima.
+    return ops + badgeOps
 }
