@@ -28,7 +28,7 @@ android {
         applicationId = "com.meteomontana.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 70
+        versionCode = 71
         versionName = "2.19.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -125,6 +125,11 @@ dependencies {
 
     // Location
     implementation(libs.play.services.location)
+
+    // Actualización obligatoria DENTRO de la app (Play In-App Updates):
+    // descarga+instala sin ir a la tienda. Solo funciona con instalaciones
+    // de Play; si no está disponible cae al botón de tienda del gate.
+    implementation(libs.play.app.update)
     implementation(libs.accompanist.permissions)
 
     // Maps (MapLibre native)

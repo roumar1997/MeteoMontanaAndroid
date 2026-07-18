@@ -69,10 +69,38 @@ fun AppRoot(
     }
 }
 
-/** Pantalla completa NO descartable: hay que actualizar para seguir usando la app. */
+/** Pantalla completa NO descartable: hay que actualizar para seguir usando la app.
+ *  Primero intenta el flujo de Play In-App Updates (descarga+instala DENTRO de
+ *  la app, sin ir a la tienda). Si no está disponible (instalación fuera de
+ *  Play, Play sin la versión aún, cualquier error) queda esta pantalla con el
+ *  botón a la tienda como respaldo. */
 @Composable
 private fun ForceUpdateScreen(storeUrl: String) {
     val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        runCatching {
+            val activity = generateSequence(context) {
+                (it as? android.content.ContextWrapper)?.baseContext
+            }.filterIsInstance<android.app.Activity>().firstOrNull() ?: return@runCatching
+            val manager = com.google.android.play.core.appupdate.AppUpdateManagerFactory.create(context)
+            manager.appUpdateInfo.addOnSuccessListener { info ->
+                val available = info.updateAvailability() ==
+                    com.google.android.play.core.install.model.UpdateAvailability.UPDATE_AVAILABLE
+                if (available && info.isUpdateTypeAllowed(
+                        com.google.android.play.core.install.model.AppUpdateType.IMMEDIATE)) {
+                    runCatching {
+                        manager.startUpdateFlowForResult(
+                            info, activity,
+                            com.google.android.play.core.appupdate.AppUpdateOptions
+                                .newBuilder(com.google.android.play.core.install.model.AppUpdateType.IMMEDIATE)
+                                .build(),
+                            9001
+                        )
+                    }
+                }
+            }
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()

@@ -49,6 +49,7 @@ googleid = "1.1.1"
 
 # Location
 playServicesLocation = "21.3.0"
+playAppUpdate = "2.1.0"
 accompanistPermissions = "0.36.0"
 
 # Maps
@@ -140,6 +141,7 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 
 # Location
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+play-app-update = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanistPermissions" }
 
 # Maps
