@@ -669,10 +669,13 @@ struct BoulderBlockRow: View {
                 }
             }
             // Descripción opcional (beta, salida, detalle a especificar).
-            TextField("Variante (opcional): directa, extensión…", text: $block.variant)
+            TextField("Variante (opcional)", text: $block.variant)
                 .onChange(of: block.variant) { _, new in
                     if new.count > 60 { block.variant = String(new.prefix(60)) }
                 }
+            Text("Si esta vía es una variante de otra con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)».")
+                .font(.system(size: 12))
+                .foregroundStyle(Cumbre.ink3)
             TextField("Descripción (opcional)", text: $block.descriptionText, axis: .vertical)
                 .font(.system(size: 13))
                 .lineLimit(1...3)

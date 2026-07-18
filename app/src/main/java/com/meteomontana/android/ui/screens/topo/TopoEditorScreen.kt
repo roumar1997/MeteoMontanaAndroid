@@ -304,7 +304,13 @@ private fun NewLineDialog(
                 }
                 Text(stringResource(R.string.topo_editor_start_label), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                // FlowRow: con 5 tipos (SEMI incluido) una Row fija se desborda
+                // del diálogo y los chips salían cortados.
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     START_TYPE_KEYS.forEach { (v, labelRes) ->
                         CumbreChip(stringResource(labelRes), startType == v, { startType = v })
                     }

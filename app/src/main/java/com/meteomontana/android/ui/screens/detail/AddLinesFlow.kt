@@ -820,6 +820,11 @@ internal fun AddLineRow(
             shape = MaterialTheme.shapes.small,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
         )
+        Text(
+            stringResource(R.string.line_variant_caption),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
         // Descripción opcional (beta, salida, detalle a especificar).
         OutlinedTextField(

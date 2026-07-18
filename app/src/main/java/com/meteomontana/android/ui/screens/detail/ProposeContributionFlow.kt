@@ -1455,6 +1455,23 @@ private fun BloqueRow(
         StartTypeChips(selected = bloque.startType,
             onSelect = { onUpdate(bloque.copy(startType = it)) })
 
+        // Variante opcional: distingue vías homónimas ("directa", "extensión").
+        androidx.compose.material3.OutlinedTextField(
+            value = bloque.variant ?: "",
+            onValueChange = { if (it.length <= 60) onUpdate(bloque.copy(variant = it.takeIf { t -> t.isNotBlank() })) },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text(stringResource(R.string.line_variant_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            singleLine = true,
+            shape = MaterialTheme.shapes.small
+        )
+        Text(
+            stringResource(R.string.line_variant_caption),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
         // Resumen de línea dibujada si existe
         if (bloque.linePath.isNotEmpty()) {
             Text(

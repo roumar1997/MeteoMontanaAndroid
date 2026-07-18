@@ -484,7 +484,8 @@
     <string name="topo_editor_create">Crear</string>
     <string name="topo_editor_start_sit">Sentado</string>
     <string name="topo_editor_start_semi">Semi-sit</string>
-    <string name="line_variant_hint">Variante (opcional): directa, extensión…</string>
+    <string name="line_variant_hint">Variante (opcional)</string>
+    <string name="line_variant_caption">Si esta vía es una variante de otra con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)».</string>
     <string name="topo_editor_start_stand">Pie</string>
     <string name="topo_editor_start_jump">Lance</string>
     <string name="topo_editor_start_trav">Trav.</string>
