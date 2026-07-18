@@ -542,8 +542,8 @@ internal fun ContributionCard(
         // EDITAR Y APROBAR: el admin retoca la propuesta (líneas, nombres,
         // grados, variantes...) en el editor normal y se aprueba con SUS
         // cambios. Solo si la propuesta trae vías y una única foto editable.
-        val editablePhoto = editablePhotoOf(c)
-        if (editablePhoto != null) {
+        val editableFaces = editableFacesOf(c)
+        if (editableFaces.isNotEmpty()) {
             Spacer(Modifier.height(Spacing.xs))
             Box(
                 modifier = Modifier
@@ -557,19 +557,32 @@ internal fun ContributionCard(
                 Text(stringResource(R.string.admin_edit_approve), style = EyebrowTextStyle, color = Terra)
             }
         }
-        if (showEditApprove && editablePhoto != null) {
+        if (showEditApprove && editableFaces.isNotEmpty()) {
             var bloques by remember(c.id) { mutableStateOf(parseBloquesForms(c.bloquesJson)) }
-            ContributionTopoDialog(
-                photoUri = android.net.Uri.parse(editablePhoto),
-                bloques = bloques,
-                onSave = { updated ->
-                    bloques = updated
-                    onApproveEdited(c.id, updated.toBloquesJson())
-                    showEditApprove = false
-                },
-                onDismiss = { showEditApprove = false },
-                existingLines = emptyList()
-            )
+            var faceIdx by remember(c.id) { mutableStateOf(0) }
+            val facePhoto = editableFaces[faceIdx.coerceIn(0, editableFaces.size - 1)]
+            // El diálogo edita SOLO las vías de la cara elegida sobre SU foto;
+            // al guardar se fusionan con las del resto de caras.
+            val faceBloques = bloques.filter { (it.facePhoto ?: editableFaces.first()) == facePhoto }
+            key(c.id, faceIdx) {
+                ContributionTopoDialog(
+                    photoUri = android.net.Uri.parse(facePhoto),
+                    bloques = faceBloques,
+                    onSave = { updated ->
+                        val others = bloques.filter { (it.facePhoto ?: editableFaces.first()) != facePhoto }
+                        bloques = others + updated
+                        if (editableFaces.size > 1 && faceIdx < editableFaces.size - 1) {
+                            // Siguiente cara: se edita en cadena antes de aprobar.
+                            faceIdx += 1
+                        } else {
+                            onApproveEdited(c.id, bloques.toBloquesJson())
+                            showEditApprove = false
+                        }
+                    },
+                    onDismiss = { showEditApprove = false },
+                    existingLines = emptyList()
+                )
+            }
         }
     }
 
@@ -893,25 +906,22 @@ private fun ZoomableTopo(photoUrl: String, lines: List<TopoLine>) {
 }
 
 
-/** Foto sobre la que se puede EDITAR la propuesta: la de la propuesta (o la
- *  única cara referenciada). null = no editable (sin vías o multi-foto). */
-private fun editablePhotoOf(c: Contribution): String? {
-    val json = c.bloquesJson?.takeIf { it.isNotBlank() } ?: return null
+/** Caras (fotos) editables de la propuesta, en orden de aparición. Vacía =
+ *  no editable (sin vías o sin ninguna foto). Multi-cara: se editan en cadena. */
+private fun editableFacesOf(c: Contribution): List<String> {
+    val json = c.bloquesJson?.takeIf { it.isNotBlank() } ?: return emptyList()
     return runCatching {
         val arr = org.json.JSONArray(json)
-        if (arr.length() == 0) return null
-        val photos = mutableSetOf<String?>()
+        if (arr.length() == 0) return emptyList()
+        val photos = mutableListOf<String>()
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
-            photos.add(o.optString("photoUrl").takeIf { it.isNotEmpty() && it != "null" })
+            val p = o.optString("photoUrl").takeIf { it.isNotEmpty() && it != "null" }
+            if (p != null && p !in photos) photos.add(p)
         }
-        val distinct = photos.filterNotNull().distinct()
-        when {
-            distinct.size == 1 -> distinct[0]
-            distinct.isEmpty() -> c.photoUrl?.takeIf { it.isNotBlank() }
-            else -> null   // varias caras: el editor V1 no las mezcla
-        }
-    }.getOrNull()
+        if (photos.isEmpty()) listOfNotNull(c.photoUrl?.takeIf { it.isNotBlank() })
+        else photos
+    }.getOrElse { emptyList() }
 }
 
 /** bloquesJson → formularios editables (nombre/grado/inicio/variante/desc/trazo),

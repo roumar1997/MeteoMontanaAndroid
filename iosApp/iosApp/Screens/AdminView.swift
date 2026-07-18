@@ -360,7 +360,7 @@ private struct ContributionAdminCard: View {
 
             // EDITAR Y APROBAR: el admin retoca la propuesta en el editor
             // normal (imán, toques, franjas) y se aprueba con SUS cambios.
-            if onApproveEdited != nil, AdminEditApprove.editablePhoto(of: contribution) != nil {
+            if onApproveEdited != nil, !AdminEditApprove.editableFaces(of: contribution).isEmpty {
                 Button { showEditApprove = true } label: {
                     Text("✎ EDITAR Y APROBAR").font(Cumbre.mono(11, .bold)).tracking(0.8)
                         .foregroundStyle(Cumbre.terra)
@@ -1648,18 +1648,21 @@ private struct UserModerationSheet: View {
 // MARK: - EDITAR Y APROBAR (admin retoca la propuesta y aprueba con sus cambios)
 
 enum AdminEditApprove {
-    /// Foto sobre la que se puede editar la propuesta: la única cara
-    /// referenciada (o la portada de la propuesta). nil = no editable
-    /// (sin vías o multi-foto — el editor V1 no mezcla caras).
-    static func editablePhoto(of c: Contribution) -> String? {
+    /// Caras (fotos) editables de la propuesta, en orden de aparición.
+    /// Vacía = no editable (sin vías o sin ninguna foto).
+    static func editableFaces(of c: Contribution) -> [String] {
         guard let json = c.bloquesJson, !json.isEmpty,
               let data = json.data(using: .utf8),
               let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
-              !arr.isEmpty else { return nil }
-        let photos = Set(arr.compactMap { ($0["photoUrl"] as? String).flatMap { $0.isEmpty ? nil : $0 } })
-        if photos.count == 1 { return photos.first }
-        if photos.isEmpty { return (c.photoUrl?.isEmpty == false) ? c.photoUrl : nil }
-        return nil
+              !arr.isEmpty else { return [] }
+        var photos: [String] = []
+        for o in arr {
+            if let p = (o["photoUrl"] as? String), !p.isEmpty, !photos.contains(p) {
+                photos.append(p)
+            }
+        }
+        if photos.isEmpty, let cover = c.photoUrl, !cover.isEmpty { return [cover] }
+        return photos
     }
 
     /// bloquesJson → formularios editables, conservando targetLineId y cara
@@ -1702,6 +1705,21 @@ struct AdminEditApproveSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var blocks: [BoulderBlockForm] = []
     @State private var showTopo = false
+    @State private var faceIdx = 0
+
+    private var faces: [String] { AdminEditApprove.editableFaces(of: contribution) }
+    private var facePhoto: String? { faces.indices.contains(faceIdx) ? faces[faceIdx] : faces.first }
+    /// Vías de la cara seleccionada, como binding que fusiona los cambios de
+    /// vuelta en la lista completa (las demás caras no se tocan).
+    private var faceBlocksBinding: Binding<[BoulderBlockForm]> {
+        Binding(
+            get: { blocks.filter { ($0.facePhoto ?? faces.first) == facePhoto } },
+            set: { updated in
+                let others = blocks.filter { ($0.facePhoto ?? faces.first) != facePhoto }
+                blocks = others + updated
+            }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -1713,7 +1731,23 @@ struct AdminEditApproveSheet: View {
                         BoulderBlockRow(block: $blocks[i], index: i,
                                         onDelete: blocks.count > 1 ? { blocks.remove(at: i) } : nil)
                     }
-                    if AdminEditApprove.editablePhoto(of: contribution) != nil {
+                    if !faces.isEmpty {
+                        if faces.count > 1 {
+                            // Varias caras: elegir cuál editar (las vías de cada
+                            // cara se dibujan sobre SU foto).
+                            HStack(spacing: 8) {
+                                ForEach(faces.indices, id: \.self) { i in
+                                    Button { faceIdx = i } label: {
+                                        Text("FOTO \(i + 1)")
+                                            .font(Cumbre.mono(10, .bold)).tracking(1.2)
+                                            .foregroundStyle(faceIdx == i ? .white : Cumbre.ink2)
+                                            .padding(.horizontal, 12).padding(.vertical, 7)
+                                            .background(faceIdx == i ? Cumbre.terra : Color.clear)
+                                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                                    }.buttonStyle(.plain)
+                                }
+                            }
+                        }
                         Button { showTopo = true } label: {
                             Text("✎ EDITAR LÍNEAS SOBRE LA FOTO")
                                 .font(Cumbre.mono(11, .bold)).tracking(0.8)
@@ -1748,8 +1782,7 @@ struct AdminEditApproveSheet: View {
                 }
             }
             .sheet(isPresented: $showTopo) {
-                TopoEditorView(photoUrl: AdminEditApprove.editablePhoto(of: contribution),
-                               blocks: $blocks)
+                TopoEditorView(photoUrl: facePhoto, blocks: faceBlocksBinding)
             }
         }
     }
