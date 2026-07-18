@@ -116,14 +116,20 @@ class JournalEntriesViewModel @Inject constructor(
                         .map { it.payloadJson }.toSet()
                     if (pendingDeletes.isEmpty()) server
                     else server.filter {
-                        "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" !in pendingDeletes
+                        // El payload del borrado puede ser clave por lineId
+                        // ("escuela|#id") o por nombre (legado) — probar ambas.
+                        val idKey = it.lineId?.takeIf { l -> l.isNotBlank() }
+                            ?.let { l -> "${it.schoolId ?: ""}|#$l" }
+                        val nameKey = "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}"
+                        idKey !in pendingDeletes && nameKey !in pendingDeletes
                     }
                 } else server
-                // Sin duplicados: la misma vía marcada varias veces (mismo
-                // escuela|sector|vía) se colapsa en una (la más reciente; el
-                // servidor las devuelve por fecha desc).
+                // Sin duplicados: la misma vía marcada varias veces se colapsa en
+                // una (la más reciente). Por lineId cuando lo hay (dos homónimas
+                // son entradas DISTINTAS); por escuela|sector|nombre como legado.
                 val all = visible.distinctBy {
-                    "${it.schoolId ?: ""}|${(it.sector ?: "").trim().lowercase()}|${it.blockName.trim().lowercase()}"
+                    it.lineId?.takeIf { l -> l.isNotBlank() }
+                        ?: "${it.schoolId ?: ""}|${(it.sector ?: "").trim().lowercase()}|${it.blockName.trim().lowercase()}"
                 }
                 // Los PROYECTOS (probando, aún no hecho) tienen sus propias pantallas
                 // ("project"/"project:BOULDER"/"project:ROUTE"); el resto de filtros

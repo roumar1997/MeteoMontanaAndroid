@@ -280,7 +280,7 @@ fun BlockDetailDialog(
                                 }
                                 if (line.name.isNotBlank()) {
                                     Text(
-                                        line.name,
+                                        line.displayName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -557,7 +557,7 @@ fun BlockDetailDialog(
                             Text("${idx + 1}.",
                                 style = MaterialTheme.typography.titleMedium)
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(line.name,
+                                Text(line.displayName,
                                     style = MaterialTheme.typography.bodyLarge)
                                 Text(
                                     listOfNotNull(line.grade, line.startType?.toString())

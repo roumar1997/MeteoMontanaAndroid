@@ -73,6 +73,7 @@ fun GradeChipsGrid(
 val START_TYPE_LABELS = listOf(
     "PIE" to "De pie",
     "SIT" to "Sentado",
+    "SEMI" to "Semi-sit",
     "LANCE" to "Lance",
     "TRAV" to "Travesía"
 )

@@ -91,6 +91,7 @@ fun renderTopo(
         val label = when (line.startType?.uppercase()) {
             "PIE", "STAND"  -> "PIE"
             "SIT"           -> "SIT"
+            "SEMI"          -> "SEM"
             "LANCE", "JUMP" -> "LAN"
             "TRAV"          -> "TRV"
             else            -> null

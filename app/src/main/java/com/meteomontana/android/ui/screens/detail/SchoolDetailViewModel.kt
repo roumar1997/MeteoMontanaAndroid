@@ -188,12 +188,12 @@ class SchoolDetailViewModel @Inject constructor(
             val keys = mutableSetOf<String>()
             keys.addAll(local)   // registro local: funciona también SIN conexión
             // Solo las entradas DONE cuentan como "hecha" — un PROYECTO no lo es.
-            journal.filter { it.status != "PROJECT" }.forEach { keys.add(viaKey(it.schoolId, it.blockName)) }
+            journal.filter { it.status != "PROJECT" }.forEach { keys.add(entryKey(it.schoolId, it.lineId, it.blockName)) }
             pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }.forEach { row ->
                 runCatching {
                     journalJson.decodeFromString(
                         com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                }.getOrNull()?.takeIf { it.status != "PROJECT" }?.let { keys.add(viaKey(it.schoolId, it.blockName)) }
+                }.getOrNull()?.takeIf { it.status != "PROJECT" }?.let { keys.add(entryKey(it.schoolId, it.lineId, it.blockName)) }
             }
             // Vías con borrado pendiente (desmarcadas sin red) → fuera, aunque el
             // diario del servidor todavía las tenga.
@@ -212,12 +212,12 @@ class SchoolDetailViewModel @Inject constructor(
         ) { journal, pending, local ->
             val keys = mutableSetOf<String>()
             keys.addAll(local)
-            journal.filter { it.status == "PROJECT" }.forEach { keys.add(viaKey(it.schoolId, it.blockName)) }
+            journal.filter { it.status == "PROJECT" }.forEach { keys.add(entryKey(it.schoolId, it.lineId, it.blockName)) }
             pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }.forEach { row ->
                 runCatching {
                     journalJson.decodeFromString(
                         com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                }.getOrNull()?.takeIf { it.status == "PROJECT" }?.let { keys.add(viaKey(it.schoolId, it.blockName)) }
+                }.getOrNull()?.takeIf { it.status == "PROJECT" }?.let { keys.add(entryKey(it.schoolId, it.lineId, it.blockName)) }
             }
             pending.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
                 .forEach { keys.remove(it.payloadJson) }
@@ -226,6 +226,16 @@ class SchoolDetailViewModel @Inject constructor(
 
     private fun viaKey(schoolId: String?, name: String) =
         "${schoolId ?: ""}|${name.trim().lowercase()}"
+
+    /**
+     * Clave de una entrada del diario, POR lineId cuando lo tiene
+     * ("escuela|#lineId") y por nombre solo como LEGADO (entradas antiguas sin
+     * lineId). Fix de raíz de "La ola": dos vías homónimas compartían la clave
+     * por nombre → marcar una encendía/borraba la otra. Con el id son claves
+     * distintas. Debe casar con [journalViaKey] (la versión de la UI).
+     */
+    private fun entryKey(schoolId: String?, lineId: String?, blockName: String) =
+        journalViaKey(schoolId, lineId, blockName)
 
     init { refreshJournal() }
 
@@ -246,17 +256,17 @@ class SchoolDetailViewModel @Inject constructor(
                     }.getOrNull()
                 }
             val pendingCreateDone = pendingRequests.filter { it.status != "PROJECT" }
-                .map { viaKey(it.schoolId, it.blockName) }.toSet()
+                .map { entryKey(it.schoolId, it.lineId, it.blockName) }.toSet()
             val pendingCreateProject = pendingRequests.filter { it.status == "PROJECT" }
-                .map { viaKey(it.schoolId, it.blockName) }.toSet()
+                .map { entryKey(it.schoolId, it.lineId, it.blockName) }.toSet()
             // Vías con borrado pendiente: aún no se deben mostrar como hechas/proyecto.
             val pendingDelete = all
                 .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
                 .map { it.payloadJson }.toSet()
             val serverDoneKeys = net.filter { it.status != "PROJECT" }
-                .map { viaKey(it.schoolId, it.blockName) }.toSet() - pendingDelete
+                .map { entryKey(it.schoolId, it.lineId, it.blockName) }.toSet() - pendingDelete
             val serverProjectKeys = net.filter { it.status == "PROJECT" }
-                .map { viaKey(it.schoolId, it.blockName) }.toSet() - pendingDelete
+                .map { entryKey(it.schoolId, it.lineId, it.blockName) }.toSet() - pendingDelete
             journalDoneStore.sync(serverDoneKeys, pendingCreateDone)
             journalProjectStore.sync(serverProjectKeys, pendingCreateProject)
         }
@@ -282,8 +292,11 @@ class SchoolDetailViewModel @Inject constructor(
         markDone: Boolean? = null
     ): Result<Boolean> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
-        val key = viaKey(block.schoolId, viaName)
-        val alreadyDone = doneViaKeys.value.contains(key)
+        // Clave por lineId (aguanta homónimas). La clave por NOMBRE se sigue
+        // mirando como legado: entradas antiguas sin lineId la usan.
+        val key = entryKey(block.schoolId, line.id.takeIf { it.isNotBlank() }, viaName)
+        val legacyKey = viaKey(block.schoolId, viaName)
+        val alreadyDone = doneViaKeys.value.contains(key) || doneViaKeys.value.contains(legacyKey)
         if (markDone == true && alreadyDone) {
             // Idempotente: ya estaba hecha (el diario llegó tarde a la ficha).
             journalDoneStore.add(key)
@@ -291,8 +304,10 @@ class SchoolDetailViewModel @Inject constructor(
         }
         val unmark = markDone?.let { !it } ?: alreadyDone
         if (unmark) {
-            // DESMARCAR
+            // DESMARCAR (quita también la clave legado por nombre, por si el ✓
+            // venía de una entrada antigua sin lineId).
             journalDoneStore.remove(key)
+            journalDoneStore.remove(legacyKey)
             // 1) Si solo estaba ENCOLADA (marcada offline, sin subir) → cancela la
             //    creación y listo (no hay nada en el servidor que borrar).
             val hadPendingCreate = removeOutboxByKey(
@@ -300,13 +315,22 @@ class SchoolDetailViewModel @Inject constructor(
             if (!hadPendingCreate) {
                 // 2) Está (o estará) en el servidor: borra ya si hay red; si no,
                 //    ENCOLA el borrado para que se aplique al volver la conexión.
+                //    La entrada se localiza POR lineId; solo si no hay ninguna con
+                //    ese id, por nombre entre las SIN lineId (entradas antiguas) —
+                //    nunca borra la entrada de una homónima con id distinto.
                 val online = networkMonitor.isOnline.value
-                val entry = if (online) _myJournal.value.firstOrNull { viaKey(it.schoolId, it.blockName) == key } else null
+                val entry = if (online) _myJournal.value.firstOrNull {
+                    (line.id.isNotBlank() && it.lineId == line.id) ||
+                        (it.lineId == null && viaKey(it.schoolId, it.blockName) == legacyKey)
+                } else null
                 val deleted = entry != null && runCatching { deleteJournalEntry(entry.id) }.isSuccess
                 if (!deleted) {
-                    removeOutboxByKey(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, key)
+                    // El payload del borrado pendiente usa la clave de LA ENTRADA
+                    // encontrada (id o legado) para que el filtrado offline case.
+                    val delKey = entry?.let { entryKey(it.schoolId, it.lineId, it.blockName) } ?: key
+                    removeOutboxByKey(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, delKey)
                     outboxRepo.enqueue(
-                        com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, block.schoolId, key)
+                        com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, block.schoolId, delKey)
                 }
             }
             refreshJournal()
@@ -315,8 +339,8 @@ class SchoolDetailViewModel @Inject constructor(
             // Si era un PROYECTO, primero lo quitamos (local + servidor/cola): al
             // conseguirla, desaparece de Proyectos y pasa a Vías/Bloques, sin
             // quedar duplicada.
-            if (projectViaKeys.value.contains(key)) {
-                removeProjectEntry(block.schoolId, key)
+            if (projectViaKeys.value.contains(key) || projectViaKeys.value.contains(legacyKey)) {
+                removeProjectEntry(block.schoolId, key, legacyKey)
             }
             // MARCAR HECHA: registro local primero (dedup offline), luego crear/encolar.
             journalDoneStore.add(key)
@@ -372,9 +396,11 @@ class SchoolDetailViewModel @Inject constructor(
         markProject: Boolean? = null
     ): Result<Boolean> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
-        val key = viaKey(block.schoolId, viaName)
-        if (doneViaKeys.value.contains(key)) return@runCatching false
-        val alreadyProject = projectViaKeys.value.contains(key)
+        // Clave por lineId + legado por nombre (ver toggleLine).
+        val key = entryKey(block.schoolId, line.id.takeIf { it.isNotBlank() }, viaName)
+        val legacyKey = viaKey(block.schoolId, viaName)
+        if (doneViaKeys.value.contains(key) || doneViaKeys.value.contains(legacyKey)) return@runCatching false
+        val alreadyProject = projectViaKeys.value.contains(key) || projectViaKeys.value.contains(legacyKey)
         if (markProject == true && alreadyProject) {
             journalProjectStore.add(key)
             return@runCatching true
@@ -382,7 +408,7 @@ class SchoolDetailViewModel @Inject constructor(
         val unmarkProject = markProject?.let { !it } ?: alreadyProject
         if (unmarkProject) {
             // DESMARCAR proyecto
-            removeProjectEntry(block.schoolId, key)
+            removeProjectEntry(block.schoolId, key, legacyKey)
             refreshJournal()
             false
         } else {
@@ -419,20 +445,27 @@ class SchoolDetailViewModel @Inject constructor(
     /** Cancela/borra la entrada PROYECTO de [key] (cola pendiente o ya subida
      *  al servidor). Compartido por toggleProject (desmarcar) y toggleLine
      *  (promoción proyecto→hecha). */
-    private suspend fun removeProjectEntry(schoolId: String, key: String) {
+    private suspend fun removeProjectEntry(schoolId: String, key: String, legacyKey: String = key) {
         journalProjectStore.remove(key)
+        journalProjectStore.remove(legacyKey)
         val hadPendingCreate = removeOutboxByKey(
             com.meteomontana.android.data.outbox.OutboxType.JOURNAL, key)
         if (!hadPendingCreate) {
             val online = networkMonitor.isOnline.value
+            // Por clave nueva (id) o, para entradas antiguas SIN lineId, por nombre.
             val entry = if (online) {
-                _myJournal.value.firstOrNull { it.status == "PROJECT" && viaKey(it.schoolId, it.blockName) == key }
+                _myJournal.value.firstOrNull {
+                    it.status == "PROJECT" && (
+                        entryKey(it.schoolId, it.lineId, it.blockName) == key ||
+                            (it.lineId == null && viaKey(it.schoolId, it.blockName) == legacyKey))
+                }
             } else null
             val deleted = entry != null && runCatching { deleteJournalEntry(entry.id) }.isSuccess
             if (!deleted) {
-                removeOutboxByKey(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, key)
+                val delKey = entry?.let { entryKey(it.schoolId, it.lineId, it.blockName) } ?: key
+                removeOutboxByKey(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, delKey)
                 outboxRepo.enqueue(
-                    com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, schoolId, key)
+                    com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, schoolId, delKey)
             }
         }
     }
@@ -449,7 +482,7 @@ class SchoolDetailViewModel @Inject constructor(
                 runCatching {
                     journalJson.decodeFromString(
                         com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                }.getOrNull()?.let { viaKey(it.schoolId, it.blockName) }
+                }.getOrNull()?.let { entryKey(it.schoolId, it.lineId, it.blockName) }
             }
             if (rowKey == key) { outboxRepo.delete(row.id); removed = true }
         }
@@ -937,3 +970,12 @@ class SchoolDetailViewModel @Inject constructor(
         rateLineUseCase.unrate(blockId, lineId)
     }
 }
+
+/**
+ * Clave de diario de una vía: "escuela|#lineId" si tiene id (aguanta
+ * homónimas), "escuela|nombre" como legado si no. ÚNICA fuente del formato —
+ * la usan el ViewModel y la UI (SchoolMap) para que siempre casen.
+ */
+fun journalViaKey(schoolId: String?, lineId: String?, viaName: String): String =
+    if (!lineId.isNullOrBlank()) "${schoolId ?: ""}|#$lineId"
+    else "${schoolId ?: ""}|${viaName.trim().lowercase()}"

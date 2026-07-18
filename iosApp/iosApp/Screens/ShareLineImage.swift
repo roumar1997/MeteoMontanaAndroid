@@ -255,6 +255,7 @@ enum ShareLineImage {
         switch t?.uppercased() {
         case "PIE", "STAND": return "PIE"
         case "SIT": return "SIT"
+        case "SEMI": return "SEM"
         case "LANCE", "JUMP": return "LAN"
         case "TRAV": return "TRV"
         default: return nil

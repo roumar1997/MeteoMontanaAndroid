@@ -85,6 +85,8 @@
     <string name="submissions_empty_message">From a school map (+ PROPOSE) or with "+ Submit school" you can propose parkings, boulders, sectors or new schools. You\'ll see their status here.</string>
     <!-- Tipo de inicio (mismas claves que el editor de topos) -->
     <string name="topo_editor_start_sit">Sit</string>
+    <string name="topo_editor_start_semi">Semi-sit</string>
+    <string name="line_variant_hint">Variant (optional): direct, extension…</string>
     <string name="topo_editor_start_stand">Stand</string>
     <string name="topo_editor_start_jump">Dyno</string>
     <string name="topo_editor_start_trav">Trav.</string>

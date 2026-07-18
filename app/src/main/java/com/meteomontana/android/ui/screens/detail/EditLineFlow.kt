@@ -229,6 +229,7 @@ fun EditLineFlow(
 private fun startTypeForUi(raw: String?): String? = when (raw?.uppercase()) {
     "STAND", "PIE" -> "PIE"
     "SIT"          -> "SIT"
+    "SEMI"         -> "SEMI"
     "JUMP", "LANCE"-> "LANCE"
     "TRAV"         -> "TRAV"
     else           -> null

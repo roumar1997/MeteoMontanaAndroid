@@ -386,11 +386,15 @@ fun SchoolMap(
         val sectors = blocks.filter { it.type == "ZONE" }
         // Vías ya hechas (diario + cola offline pendiente) → marcadas ✓ al abrir.
         val doneKeys by viewModel.doneViaKeys.collectAsState()
+        // Clave por lineId (aguanta homónimas — fix "La ola") + clave por nombre
+        // como LEGADO (entradas antiguas del diario sin lineId).
         val doneLineIds = remember(block, doneKeys) {
             block.lines.mapIndexedNotNull { idx, line ->
                 val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
-                val key = "${block.schoolId}|${viaName.trim().lowercase()}"
-                if (doneKeys.contains(key)) line.id else null
+                val idKey = com.meteomontana.android.ui.screens.detail.journalViaKey(
+                    block.schoolId, line.id.takeIf { it.isNotBlank() }, viaName)
+                val nameKey = "${block.schoolId}|${viaName.trim().lowercase()}"
+                if (doneKeys.contains(idKey) || doneKeys.contains(nameKey)) line.id else null
             }.toSet()
         }
         // Vías marcadas como PROYECTO → mismo mecanismo que doneLineIds.
@@ -398,8 +402,10 @@ fun SchoolMap(
         val projectLineIds = remember(block, projectKeys) {
             block.lines.mapIndexedNotNull { idx, line ->
                 val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
-                val key = "${block.schoolId}|${viaName.trim().lowercase()}"
-                if (projectKeys.contains(key)) line.id else null
+                val idKey = com.meteomontana.android.ui.screens.detail.journalViaKey(
+                    block.schoolId, line.id.takeIf { it.isNotBlank() }, viaName)
+                val nameKey = "${block.schoolId}|${viaName.trim().lowercase()}"
+                if (projectKeys.contains(idKey) || projectKeys.contains(nameKey)) line.id else null
             }.toSet()
         }
         BlockDetailDialog(

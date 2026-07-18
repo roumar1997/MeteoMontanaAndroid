@@ -11,6 +11,7 @@ import com.meteomontana.android.R
  */
 val START_TYPE_LABELS = listOf(
     "SIT" to R.string.topo_editor_start_sit,
+    "SEMI" to R.string.topo_editor_start_semi,
     "STAND" to R.string.topo_editor_start_stand,
     "JUMP" to R.string.topo_editor_start_jump,
     "TRAV" to R.string.topo_editor_start_trav

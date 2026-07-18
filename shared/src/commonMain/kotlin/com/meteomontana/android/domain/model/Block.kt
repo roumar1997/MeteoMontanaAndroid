@@ -65,8 +65,12 @@ data class BlockLine(
     val faceOrder: Int = 0,         // orden de su cara dentro de la piedra
     val avgStars: Float? = null,    // media de valoraciones (null = sin votos)
     val myStars: Int? = null,       // valoración del usuario actual (null = no ha votado)
-    val lineDescription: String? = null  // beta/detalle opcional (nombre no-"description" por NSObject en Swift)
-)
+    val lineDescription: String? = null, // beta/detalle opcional (nombre no-"description" por NSObject en Swift)
+    val variant: String? = null          // variante opcional ("directa", "extensión"...) — distingue homónimas
+) {
+    /** Nombre + variante para mostrar: "La ola (extensión)" si tiene variante. */
+    val displayName: String get() = if (variant.isNullOrBlank()) name else "$name ($variant)"
+}
 
 /** Una cara de la piedra: una foto y las vías dibujadas sobre ella. */
 data class BlockFace(

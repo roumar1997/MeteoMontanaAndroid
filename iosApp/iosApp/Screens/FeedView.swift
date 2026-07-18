@@ -68,6 +68,7 @@ func feedRelativeTime(_ createdAt: String) -> String {
 func feedStartTypeLabel(_ startType: String?) -> String? {
     switch startType?.uppercased() {
     case "SIT": return "Sentado"
+    case "SEMI": return "Semi-sit"
     case "STAND": return "Pie"
     case "JUMP": return "Lance"
     case "TRAV": return "Trav."

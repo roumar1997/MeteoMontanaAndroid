@@ -483,6 +483,8 @@
     <string name="topo_editor_start_label">INICIO</string>
     <string name="topo_editor_create">Crear</string>
     <string name="topo_editor_start_sit">Sentado</string>
+    <string name="topo_editor_start_semi">Semi-sit</string>
+    <string name="line_variant_hint">Variante (opcional): directa, extensión…</string>
     <string name="topo_editor_start_stand">Pie</string>
     <string name="topo_editor_start_jump">Lance</string>
     <string name="topo_editor_start_trav">Trav.</string>

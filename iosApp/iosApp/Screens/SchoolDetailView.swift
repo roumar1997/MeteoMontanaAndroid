@@ -1532,7 +1532,7 @@ struct BlockInfoSheet: View {
                                             Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
                                                 .frame(width: 38, alignment: .leading)
                                         }
-                                        Text(l.name.isEmpty ? "Vía \(idx + 1)" : l.name)
+                                        Text(l.name.isEmpty ? "Vía \(idx + 1)" : l.displayName)
                                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                                         Spacer()
                                         if let st = l.startType, !st.isEmpty {
@@ -1737,7 +1737,15 @@ struct BlockInfoSheet: View {
             var serverProjectKeys = Set<String>()
             for j in journal {
                 guard let sid = j.schoolId else { continue }
-                let key = "\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+                // Clave por lineId (aguanta homónimas — fix "La ola"); por
+                // nombre solo para entradas antiguas sin lineId. Mismo formato
+                // que journalViaKey de Android y los helpers del container.
+                let key: String
+                if let lid = j.lineId, !lid.isEmpty {
+                    key = "\(sid)|#\(lid)"
+                } else {
+                    key = "\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+                }
                 if j.status == "PROJECT" { serverProjectKeys.insert(key) } else { serverDoneKeys.insert(key) }
             }
             JournalDoneStore.shared.sync(server: serverDoneKeys.subtracting(pendingDeletes), pending: pendingDoneKeys)
@@ -1751,13 +1759,17 @@ struct BlockInfoSheet: View {
         var projects = Set<String>()
         for (idx, l) in block.lines.enumerated() {
             let viaName = l.name.isEmpty ? "Vía \(idx + 1)" : l.name
-            let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
-            if (storeKeys.contains(key) || pendingDoneKeys.contains(key)) && !pendingDeletes.contains(key) {
-                done.insert(l.id)
-            }
-            if (projectKeys.contains(key) || pendingProjectKeys.contains(key)) && !pendingDeletes.contains(key) && !done.contains(l.id) {
-                projects.insert(l.id)
-            }
+            // Clave por id + clave por nombre (LEGADO: entradas sin lineId).
+            let idKey = "\(block.schoolId)|#\(l.id)"
+            let nameKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
+            let isDone = (storeKeys.contains(idKey) || storeKeys.contains(nameKey)
+                          || pendingDoneKeys.contains(idKey) || pendingDoneKeys.contains(nameKey))
+                && !pendingDeletes.contains(idKey) && !pendingDeletes.contains(nameKey)
+            if isDone { done.insert(l.id) }
+            let isProject = (projectKeys.contains(idKey) || projectKeys.contains(nameKey)
+                             || pendingProjectKeys.contains(idKey) || pendingProjectKeys.contains(nameKey))
+                && !pendingDeletes.contains(idKey) && !pendingDeletes.contains(nameKey)
+            if isProject && !done.contains(l.id) { projects.insert(l.id) }
         }
         tickedLines = done
         projectLines = projects
@@ -1840,31 +1852,48 @@ struct BlockInfoSheet: View {
         tickingLine = line.id
         let container = AppDependencies.shared.container
         let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
-        let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
+        // Clave por lineId (fix homónimas "La ola") + legado por nombre.
+        let key = "\(block.schoolId)|#\(line.id)"
+        let legacyKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
 
         if tickedLines.contains(line.id) {
-            // DESMARCAR
+            // DESMARCAR (quita también la clave legado, por si el ✓ venía de
+            // una entrada antigua sin lineId).
             tickedLines.remove(line.id)
             JournalDoneStore.shared.remove(key)
+            JournalDoneStore.shared.remove(legacyKey)
             // 1) Si solo estaba ENCOLADA (sin subir) → cancela la creación y listo.
             let hadPending = ((try? await container.dequeueJournal(key: key))?.boolValue) ?? false
             if !hadPending {
                 // 2) Está (o estará) en el servidor: borra ya si hay red; si no,
-                //    ENCOLA el borrado para aplicarlo al volver la conexión.
+                //    ENCOLA el borrado. La entrada se localiza POR lineId; solo
+                //    si no hay ninguna con ese id, por nombre entre las SIN
+                //    lineId — nunca borra la entrada de una homónima distinta.
                 var deleted = false
-                if let j = (try? await container.getMyJournal.invoke())?.first(where: {
-                    $0.schoolId == block.schoolId &&
-                    $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
-                }) {
+                let journal = (try? await container.getMyJournal.invoke()) ?? []
+                let j = journal.first(where: { $0.lineId == line.id })
+                    ?? journal.first(where: {
+                        $0.lineId == nil && $0.schoolId == block.schoolId &&
+                        $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
+                    })
+                if let j {
                     deleted = ((try? await container.deleteJournalEntry.invoke(id: j.id)) != nil)
                 }
-                if !deleted { try? await container.enqueueJournalDelete(key: key) }
+                if !deleted {
+                    // Payload del borrado = la clave de LA ENTRADA encontrada
+                    // (id o legado) para que el filtrado offline case.
+                    let delKey: String
+                    if let j, j.lineId == nil, let sid = j.schoolId {
+                        delKey = "\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+                    } else { delKey = key }
+                    try? await container.enqueueJournalDelete(key: delKey)
+                }
             }
         } else {
             // Si era un PROYECTO, primero lo quitamos (local + servidor/cola): al
             // conseguirla, desaparece de Proyectos y pasa a Vías/Bloques.
             if projectLines.contains(line.id) {
-                await removeProjectEntry(key: key)
+                await removeProjectEntry(key: key, legacyKey: legacyKey, line: line, viaName: viaName)
                 projectLines.remove(line.id)
             }
             // MARCAR HECHA (dedup: no estaba hecha)
@@ -1894,12 +1923,14 @@ struct BlockInfoSheet: View {
         togglingProject = line.id
         let container = AppDependencies.shared.container
         let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
-        let key = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
+        // Clave por lineId + legado por nombre (ver toggle).
+        let key = "\(block.schoolId)|#\(line.id)"
+        let legacyKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
 
         if projectLines.contains(line.id) {
             // DESMARCAR proyecto
             projectLines.remove(line.id)
-            await removeProjectEntry(key: key)
+            await removeProjectEntry(key: key, legacyKey: legacyKey, line: line, viaName: viaName)
         } else {
             // MARCAR proyecto
             projectLines.insert(line.id)
@@ -1920,19 +1951,32 @@ struct BlockInfoSheet: View {
     /// Cancela/borra la entrada PROYECTO de [key] (cola pendiente o ya subida al
     /// servidor). Compartido por toggleProject (desmarcar) y toggle (promoción
     /// proyecto→hecha).
-    private func removeProjectEntry(key: String) async {
+    private func removeProjectEntry(key: String, legacyKey: String,
+                                    line: BlockLine, viaName: String) async {
         let container = AppDependencies.shared.container
         JournalProjectStore.shared.remove(key)
+        JournalProjectStore.shared.remove(legacyKey)
         let hadPending = ((try? await container.dequeueJournal(key: key))?.boolValue) ?? false
         if !hadPending {
             var deleted = false
-            if let j = (try? await container.getMyJournal.invoke())?.first(where: {
-                $0.status == "PROJECT" && $0.schoolId == block.schoolId &&
-                "\($0.schoolId ?? "")|\($0.blockName.trimmingCharacters(in: .whitespaces).lowercased())" == key
-            }) {
+            let journal = (try? await container.getMyJournal.invoke()) ?? []
+            // Por lineId; fallback por nombre SOLO entre entradas sin lineId.
+            let j = journal.first(where: { $0.status == "PROJECT" && $0.lineId == line.id })
+                ?? journal.first(where: {
+                    $0.status == "PROJECT" && $0.lineId == nil &&
+                    $0.schoolId == block.schoolId &&
+                    $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
+                })
+            if let j {
                 deleted = ((try? await container.deleteJournalEntry.invoke(id: j.id)) != nil)
             }
-            if !deleted { try? await container.enqueueJournalDelete(key: key) }
+            if !deleted {
+                let delKey: String
+                if let j, j.lineId == nil, let sid = j.schoolId {
+                    delKey = "\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+                } else { delKey = key }
+                try? await container.enqueueJournalDelete(key: delKey)
+            }
         }
     }
 }

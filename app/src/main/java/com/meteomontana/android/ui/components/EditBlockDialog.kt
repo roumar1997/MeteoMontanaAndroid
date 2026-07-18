@@ -89,6 +89,7 @@ fun EditBlockDialog(
                 "STAND" -> "PIE"
                 "JUMP"  -> "LANCE"
                 "SIT"   -> "SIT"
+                "SEMI"  -> "SEMI"
                 "TRAV"  -> "TRAV"
                 else    -> null
             }
@@ -96,7 +97,11 @@ fun EditBlockDialog(
                 name = line.name,
                 grade = line.grade,
                 startType = appStart,
-                linePath = parseLineStroke(line.linePath).points
+                linePath = parseLineStroke(line.linePath).points,
+                // Arrastrar descripción y variante de la vía existente: sin esto,
+                // guardar desde este diálogo las borraba (se enviaban null).
+                description = line.lineDescription,
+                variant = line.variant
             )
         }.ifEmpty { listOf(BoulderBloqueForm()) }
     }
@@ -351,6 +356,7 @@ private fun buildUpdateRequest(
                 val startTypeBackend = when (b.startType?.uppercase()) {
                     "PIE", "STAND"      -> "STAND"
                     "SIT"               -> "SIT"
+                    "SEMI"              -> "SEMI"
                     "LANCE", "JUMP"     -> "JUMP"
                     "TRAV"              -> "TRAV"
                     else                -> null
@@ -360,7 +366,8 @@ private fun buildUpdateRequest(
                     grade = b.grade,
                     startType = startTypeBackend,
                     linePath = LineStroke(b.linePath).toJson(),
-                    description = b.description
+                    description = b.description,
+                    variant = b.variant
                 )
             }
     } else emptyList()

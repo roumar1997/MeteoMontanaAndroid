@@ -367,7 +367,13 @@ class IosDependencyContainer(
                 val match = runCatching {
                     outboxJson.decodeFromString(
                         com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                }.getOrNull()?.let { "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" == key } ?: false
+                }.getOrNull()?.let { req ->
+                    // Mismo formato id-aware que pendingJournalKeysByStatus.
+                    val lid = req.lineId
+                    val rowKey = if (!lid.isNullOrBlank()) "${req.schoolId ?: ""}|#$lid"
+                    else "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
+                    rowKey == key
+                } ?: false
                 if (match) { repo.delete(row.id); removed = true }
             }
         return removed
@@ -416,7 +422,14 @@ class IosDependencyContainer(
                 }.getOrNull()
             }
             .filter { (it.status ?: "DONE") == status }
-            .map { "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" }
+            // Clave por lineId si lo tiene (aguanta vías homónimas — fix "La
+            // ola"); por nombre solo como legado. Mismo formato que Android
+            // (journalViaKey) y que las claves que computa SchoolDetailView.
+            .map { req ->
+                val lid = req.lineId
+                if (!lid.isNullOrBlank()) "${req.schoolId ?: ""}|#$lid"
+                else "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
+            }
             .toSet()
     }
 

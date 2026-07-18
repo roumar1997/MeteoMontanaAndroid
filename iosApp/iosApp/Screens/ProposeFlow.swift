@@ -34,7 +34,7 @@ let BOULDER_GRADES = ["3", "4", "5", "5+",
                       "8a", "8a+", "8b", "8b+", "8c", "8c+",
                       "9a", "PROY"]
 
-let START_TYPES = ["PIE", "SIT", "LANCE", "TRAV"]
+let START_TYPES = ["PIE", "SIT", "SEMI", "LANCE", "TRAV"]
 
 /// Un bloque/vía de la piedra propuesta.
 struct BoulderBlockForm: Identifiable {
@@ -51,6 +51,8 @@ struct BoulderBlockForm: Identifiable {
     var facePhoto: String? = nil
     /// Beta/detalle opcional de la vía (se muestra en su ficha).
     var descriptionText: String = ""
+    /// Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
+    var variant: String = ""
 }
 
 /// Serializa los bloques al formato que espera el backend (espejo de
@@ -70,7 +72,8 @@ func buildBloquesJson(_ blocks: [BoulderBlockForm]) -> String {
                 "targetLineId": b.existingLineId as Any? ?? NSNull(),
                 // Cara (foto) a la que pertenece → el backend la mantiene en su cara.
                 "photoUrl": b.facePhoto as Any? ?? NSNull(),
-                "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText]
+                "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText,
+                "variant": b.variant.isEmpty ? NSNull() : b.variant]
     }
     return (try? JSONSerialization.data(withJSONObject: arr))
         .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
@@ -102,7 +105,8 @@ func buildFacesBloquesJson(_ faces: [BoulderFaceForm], photoByFace: [UUID: Strin
                         "linePath": linePath,
                         "targetLineId": b.existingLineId as Any? ?? NSNull(),
                         "photoUrl": facePhoto as Any? ?? NSNull(),
-                        "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText])
+                        "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText,
+                        "variant": b.variant.isEmpty ? NSNull() : b.variant])
             idx += 1
         }
     }
@@ -598,6 +602,7 @@ struct TopoEditorView: View {
         switch t?.uppercased() {
         case "PIE", "STAND": return "PIE"
         case "SIT": return "SIT"
+        case "SEMI": return "SEM"
         case "LANCE", "JUMP": return "LAN"
         case "TRAV": return "TRV"
         default: return nil
@@ -664,6 +669,10 @@ struct BoulderBlockRow: View {
                 }
             }
             // Descripción opcional (beta, salida, detalle a especificar).
+            TextField("Variante (opcional): directa, extensión…", text: $block.variant)
+                .onChange(of: block.variant) { _, new in
+                    if new.count > 60 { block.variant = String(new.prefix(60)) }
+                }
             TextField("Descripción (opcional)", text: $block.descriptionText, axis: .vertical)
                 .font(.system(size: 13))
                 .lineLimit(1...3)
@@ -681,7 +690,8 @@ struct BoulderBlockRow: View {
 
 /// Códigos de tipo de inicio → etiqueta legible (espejo de GradePickers.kt).
 let START_TYPE_LABELS: [(String, String)] = [
-    ("PIE", "De pie"), ("SIT", "Sentado"), ("LANCE", "Lance"), ("TRAV", "Travesía")
+    ("PIE", "De pie"), ("SIT", "Sentado"), ("SEMI", "Semi-sit"),
+    ("LANCE", "Lance"), ("TRAV", "Travesía")
 ]
 
 
@@ -973,7 +983,8 @@ struct EditLinesSheet: View {
                                          line: TopoParse.points(l.linePath),
                                          existingLineId: l.id,
                                          facePhoto: f.photoPath ?? block.photoPath,
-                                         descriptionText: l.lineDescription ?? "")
+                                         descriptionText: l.lineDescription ?? "",
+                                         variant: l.variant ?? "")
                     }
                 }
                 // Abre la cara que contiene la vía del deep-link, si la hay.
