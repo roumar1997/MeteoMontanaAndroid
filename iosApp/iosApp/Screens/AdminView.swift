@@ -62,6 +62,16 @@ final class AdminViewModel: ObservableObject {
         }
     }
 
+    /// "EDITAR Y APROBAR": aprueba con el bloquesJson retocado por el admin.
+    func approveContributionEdited(_ id: String, editedBloquesJson: String) {
+        working.insert(id)
+        Task {
+            _ = try? await approveContrib.invoke(id: id, editedBloquesJson: editedBloquesJson)
+            working.remove(id)
+            contributions.removeAll { $0.id == id }
+        }
+    }
+
     func reviewContribution(_ id: String, approve: Bool, reason: String?) {
         working.insert(id)
         Task {
@@ -205,7 +215,8 @@ struct AdminView: View {
                                             contribution: c,
                                             busy: vm.working.contains(c.id),
                                             onApprove: { vm.reviewContribution(c.id, approve: true, reason: nil) },
-                                            onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) }
+                                            onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) },
+                                            onApproveEdited: { edited in vm.approveContributionEdited(c.id, editedBloquesJson: edited) }
                                         )
                                         Divider().overlay(Cumbre.rule)
                                     }
@@ -255,7 +266,10 @@ private struct ContributionAdminCard: View {
     let busy: Bool
     let onApprove: () -> Void
     let onReject: () -> Void
+    /// "EDITAR Y APROBAR": (bloquesJson retocado) → aprueba con los cambios.
+    var onApproveEdited: ((String) -> Void)? = nil
     @State private var showMap = false
+    @State private var showEditApprove = false
     // Bloques de la escuela (para resolver la piedra/sector destino al revisar
     // corregir/añadir vías o asignar sector — el admin debe ver QUÉ se cambia).
     @State private var schoolBlocks: [Block] = []
@@ -343,10 +357,27 @@ private struct ContributionAdminCard: View {
             }.buttonStyle(.plain)
 
             ReviewButtons(busy: busy, onApprove: onApprove, onReject: onReject)
+
+            // EDITAR Y APROBAR: el admin retoca la propuesta en el editor
+            // normal (imán, toques, franjas) y se aprueba con SUS cambios.
+            if onApproveEdited != nil, AdminEditApprove.editablePhoto(of: contribution) != nil {
+                Button { showEditApprove = true } label: {
+                    Text("✎ EDITAR Y APROBAR").font(Cumbre.mono(11, .bold)).tracking(0.8)
+                        .foregroundStyle(Cumbre.terra)
+                        .frame(maxWidth: .infinity).padding(.vertical, 9)
+                        .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                }.buttonStyle(.plain).disabled(busy)
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .sheet(isPresented: $showMap) {
             ContributionMapSheet(contribution: contribution)
+        }
+        .sheet(isPresented: $showEditApprove) {
+            AdminEditApproveSheet(contribution: contribution) { edited in
+                showEditApprove = false
+                onApproveEdited?(edited)
+            }
         }
         .task(id: contribution.id) {
             guard !blocksLoaded else { return }
@@ -1611,5 +1642,115 @@ private struct UserModerationSheet: View {
                 .frame(maxWidth: .infinity).padding(.vertical, 10)
                 .overlay(Rectangle().stroke(color, lineWidth: 1))
         }.buttonStyle(.plain)
+    }
+}
+
+// MARK: - EDITAR Y APROBAR (admin retoca la propuesta y aprueba con sus cambios)
+
+enum AdminEditApprove {
+    /// Foto sobre la que se puede editar la propuesta: la única cara
+    /// referenciada (o la portada de la propuesta). nil = no editable
+    /// (sin vías o multi-foto — el editor V1 no mezcla caras).
+    static func editablePhoto(of c: Contribution) -> String? {
+        guard let json = c.bloquesJson, !json.isEmpty,
+              let data = json.data(using: .utf8),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+              !arr.isEmpty else { return nil }
+        let photos = Set(arr.compactMap { ($0["photoUrl"] as? String).flatMap { $0.isEmpty ? nil : $0 } })
+        if photos.count == 1 { return photos.first }
+        if photos.isEmpty { return (c.photoUrl?.isEmpty == false) ? c.photoUrl : nil }
+        return nil
+    }
+
+    /// bloquesJson → formularios editables, conservando targetLineId y cara
+    /// para que el round-trip sea fiel (espejo de parseBloquesForms de Android).
+    static func parseForms(_ json: String?) -> [BoulderBlockForm] {
+        guard let json, let data = json.data(using: .utf8),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { return [] }
+        return arr.map { o in
+            var f = BoulderBlockForm()
+            f.name = (o["name"] as? String) ?? ""
+            f.grade = (o["grade"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            f.startType = uiStart(o["startType"] as? String)
+            f.line = TopoParse.points(o["linePath"] as? String)
+            f.existingLineId = (o["targetLineId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            f.facePhoto = (o["photoUrl"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            f.descriptionText = (o["description"] as? String) ?? ""
+            f.variant = (o["variant"] as? String) ?? ""
+            return f
+        }
+    }
+
+    private static func uiStart(_ raw: String?) -> String? {
+        switch raw?.uppercased() {
+        case "STAND", "PIE": return "PIE"
+        case "SIT": return "SIT"
+        case "SEMI": return "SEMI"
+        case "JUMP", "LANCE": return "LANCE"
+        case "TRAV": return "TRAV"
+        default: return nil
+        }
+    }
+}
+
+/// Hoja "EDITAR Y APROBAR": campos editables por vía + editor de líneas sobre
+/// la foto de la propuesta. Guardar = aprobar CON los cambios del admin.
+struct AdminEditApproveSheet: View {
+    let contribution: Contribution
+    let onApprove: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var blocks: [BoulderBlockForm] = []
+    @State private var showTopo = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Retoca lo que haga falta (nombres, grados, variantes, líneas) y aprueba con tus cambios. El autor sigue siendo quien lo propuso.")
+                        .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                    ForEach(blocks.indices, id: \.self) { i in
+                        BoulderBlockRow(block: $blocks[i], index: i,
+                                        onDelete: blocks.count > 1 ? { blocks.remove(at: i) } : nil)
+                    }
+                    if AdminEditApprove.editablePhoto(of: contribution) != nil {
+                        Button { showTopo = true } label: {
+                            Text("✎ EDITAR LÍNEAS SOBRE LA FOTO")
+                                .font(Cumbre.mono(11, .bold)).tracking(0.8)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .background(Cumbre.terra)
+                        }.buttonStyle(.plain)
+                    }
+                    Button {
+                        onApprove(buildBloquesJson(blocks))
+                    } label: {
+                        Text("APROBAR CON MIS CAMBIOS")
+                            .font(Cumbre.mono(12, .bold)).tracking(0.8)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .background(Cumbre.ink)
+                    }.buttonStyle(.plain)
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Editar y aprobar")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cerrar") { dismiss() }.foregroundStyle(Cumbre.terra)
+                }
+            }
+            .onAppear {
+                if blocks.isEmpty {
+                    blocks = AdminEditApprove.parseForms(contribution.bloquesJson)
+                }
+            }
+            .sheet(isPresented: $showTopo) {
+                TopoEditorView(photoUrl: AdminEditApprove.editablePhoto(of: contribution),
+                               blocks: $blocks)
+            }
+        }
     }
 }
