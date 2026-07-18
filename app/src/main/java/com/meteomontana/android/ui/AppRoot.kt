@@ -1,19 +1,42 @@
 package com.meteomontana.android.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.messaging.FirebaseMessaging
+import com.meteomontana.android.R
+import com.meteomontana.android.data.api.KtorAppVersionApi
 import com.meteomontana.android.data.api.dto.FcmTokenRequest
 import com.meteomontana.android.data.auth.AuthManager
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase
 import com.meteomontana.android.ui.screens.login.LoginScreen
+import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.theme.Terra
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -26,9 +49,18 @@ fun AppRoot(
     viewModel: AppRootViewModel = hiltViewModel()
 ) {
     val authState by viewModel.authState.collectAsState()
+    // Actualización OBLIGATORIA: si el backend dice que esta versión es
+    // demasiado vieja, gate no descartable con botón a la tienda. Tolerante a
+    // fallos: sin red o error → null → la app abre normal.
+    val forceUpdateUrl by viewModel.forceUpdateUrl.collectAsState()
 
     LaunchedEffect(authState) {
         if (authState is AuthManager.AuthState.SignedIn) viewModel.ensureUserProvisioned()
+    }
+
+    forceUpdateUrl?.let { url ->
+        ForceUpdateScreen(url)
+        return
     }
 
     when (authState) {
@@ -37,14 +69,89 @@ fun AppRoot(
     }
 }
 
+/** Pantalla completa NO descartable: hay que actualizar para seguir usando la app. */
+@Composable
+private fun ForceUpdateScreen(storeUrl: String) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            stringResource(R.string.force_update_eyebrow),
+            style = EyebrowTextStyle,
+            color = Terra
+        )
+        Text(
+            stringResource(R.string.force_update_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+        Text(
+            stringResource(R.string.force_update_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 12.dp)
+        )
+        Box(
+            modifier = Modifier
+                .padding(top = 24.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(2.dp))
+                .background(Terra)
+                .clickable {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(storeUrl)
+                            )
+                        )
+                    }
+                }
+                .padding(vertical = 14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                stringResource(R.string.force_update_button),
+                style = EyebrowTextStyle,
+                color = Color.White
+            )
+        }
+    }
+}
+
 @HiltViewModel
 class AppRootViewModel @Inject constructor(
     authManager: AuthManager,
     private val getMyProfile: GetMyProfileUseCase,
-    private val updateFcmToken: UpdateFcmTokenUseCase
+    private val updateFcmToken: UpdateFcmTokenUseCase,
+    private val appVersionApi: KtorAppVersionApi
 ) : ViewModel() {
 
     val authState: StateFlow<AuthManager.AuthState> = authManager.authState
+
+    /** URL de la tienda si esta versión está por debajo del mínimo obligatorio
+     *  del backend; null = todo bien (o no se pudo comprobar — nunca bloquea). */
+    private val _forceUpdateUrl = MutableStateFlow<String?>(null)
+    val forceUpdateUrl: StateFlow<String?> = _forceUpdateUrl
+
+    init {
+        viewModelScope.launch {
+            runCatching {
+                val v = appVersionApi.get()
+                if (com.meteomontana.android.BuildConfig.VERSION_CODE < v.minAndroidVc) {
+                    _forceUpdateUrl.value = v.androidUrl
+                        ?: "https://play.google.com/store/apps/details?id=com.meteomontana.android"
+                }
+            }
+        }
+    }
 
     fun ensureUserProvisioned() {
         viewModelScope.launch {

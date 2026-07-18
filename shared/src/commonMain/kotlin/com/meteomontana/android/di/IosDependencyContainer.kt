@@ -153,6 +153,7 @@ class IosDependencyContainer(
     private val forecastApi = KtorForecastApi(httpClient)
     val radarApi = KtorRadarApi(httpClient)
     val mountainApi = KtorMountainApi(httpClient)
+    val appVersionApi = com.meteomontana.android.data.api.KtorAppVersionApi(httpClient)
     private val favoritesApi = KtorFavoritesApi(httpClient)
     val noteApi = KtorNoteApi(httpClient)
     private val profileApi = KtorProfileApi(httpClient)

@@ -45,9 +45,16 @@ struct RootView: View {
     // re-muestra si ya lo tienes. nil = perfil aún sin cargar.
     @State private var needsUsername: Bool? = nil
 
+    // Actualización OBLIGATORIA: URL de la tienda si esta build está por debajo
+    // del mínimo del backend; nil = todo bien (o no se pudo comprobar — un
+    // fallo de red NUNCA bloquea la app).
+    @State private var forceUpdateUrl: String? = nil
+
     var body: some View {
         Group {
-            if session.user == nil {
+            if let url = forceUpdateUrl {
+                ForceUpdateView(storeUrl: url)
+            } else if session.user == nil {
                 LoginView()
             } else if !onboardingDone {
                 OnboardingView {
@@ -61,6 +68,14 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(theme.colorScheme)
+        // Gate de versión mínima (antes incluso del login).
+        .task {
+            guard let dto = try? await AppDependencies.shared.container.appVersionApi.get() else { return }
+            let build = Int(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") ?? 0
+            if build > 0 && build < Int(dto.minIosBuild) {
+                forceUpdateUrl = dto.iosUrl ?? "https://api.climbingteams.com/app"
+            }
+        }
         .task(id: session.user?.uid) {
             guard session.user != nil else { return }
             if let profile = try? await AppDependencies.shared.container.getMyProfile.invoke() {
@@ -70,5 +85,47 @@ struct RootView: View {
                 needsUsername = false
             }
         }
+    }
+}
+
+/// Pantalla completa NO descartable: hay que actualizar para seguir usando la
+/// app — espejo de ForceUpdateScreen de AppRoot.kt.
+struct ForceUpdateView: View {
+    let storeUrl: String
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            Text("ACTUALIZACIÓN NECESARIA")
+                .font(Cumbre.mono(10, .bold)).tracking(1.8)
+                .foregroundStyle(Cumbre.terra)
+            Text("Hay una versión nueva obligatoria")
+                .font(Cumbre.serif(22, .bold))
+                .foregroundStyle(Cumbre.ink)
+                .multilineTextAlignment(.center)
+                .padding(.top, 8)
+            Text("Esta versión de Cumbre ya no es compatible. Actualiza para seguir usándola.")
+                .font(.system(size: 14))
+                .foregroundStyle(Cumbre.ink3)
+                .multilineTextAlignment(.center)
+                .padding(.top, 12)
+            Button {
+                if let url = URL(string: storeUrl) { UIApplication.shared.open(url) }
+            } label: {
+                Text("ACTUALIZAR AHORA")
+                    .font(Cumbre.mono(11, .bold)).tracking(1.4)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Cumbre.terra)
+                    .clipShape(RoundedRectangle(cornerRadius: 2))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 24)
+            Spacer()
+        }
+        .padding(.horizontal, 32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Cumbre.bg.ignoresSafeArea())
     }
 }

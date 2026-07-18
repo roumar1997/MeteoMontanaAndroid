@@ -485,6 +485,10 @@
     <string name="topo_editor_start_sit">Sentado</string>
     <string name="topo_editor_start_semi">Semi-sit</string>
     <string name="line_variant_hint">Variante (opcional)</string>
+    <string name="force_update_eyebrow">ACTUALIZACIÓN NECESARIA</string>
+    <string name="force_update_title">Hay una versión nueva obligatoria</string>
+    <string name="force_update_body">Esta versión de Cumbre ya no es compatible. Actualiza para seguir usándola.</string>
+    <string name="force_update_button">ACTUALIZAR AHORA</string>
     <string name="line_variant_caption">Si esta vía es una variante de otra con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)».</string>
     <string name="topo_editor_start_stand">Pie</string>
     <string name="topo_editor_start_jump">Lance</string>

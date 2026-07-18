@@ -87,6 +87,10 @@
     <string name="topo_editor_start_sit">Sit</string>
     <string name="topo_editor_start_semi">Semi-sit</string>
     <string name="line_variant_hint">Variant (optional)</string>
+    <string name="force_update_eyebrow">UPDATE REQUIRED</string>
+    <string name="force_update_title">A new version is required</string>
+    <string name="force_update_body">This version of Cumbre is no longer supported. Update to keep using it.</string>
+    <string name="force_update_button">UPDATE NOW</string>
     <string name="line_variant_caption">If this route is a variant of another with the same name (direct, extension, low start…). Shown as “Name (variant)”.</string>
     <string name="topo_editor_start_stand">Stand</string>
     <string name="topo_editor_start_jump">Dyno</string>
