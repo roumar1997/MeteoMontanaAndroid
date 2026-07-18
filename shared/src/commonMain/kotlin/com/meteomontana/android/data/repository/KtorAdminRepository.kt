@@ -32,8 +32,8 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
     override suspend fun rejectSubmission(id: String, reason: String?): Submission =
         api.reject(id, RejectReason(reason)).toDomain()
 
-    override suspend fun approveContribution(id: String): Contribution =
-        api.approveContribution(id).toDomain()
+    override suspend fun approveContribution(id: String, editedBloquesJson: String?): Contribution =
+        api.approveContribution(id, editedBloquesJson).toDomain()
 
     override suspend fun rejectContribution(id: String, reason: String?): Contribution =
         api.rejectContribution(id, RejectReason(reason)).toDomain()

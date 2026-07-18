@@ -65,7 +65,10 @@ final class AdminViewModel: ObservableObject {
     func reviewContribution(_ id: String, approve: Bool, reason: String?) {
         working.insert(id)
         Task {
-            if approve { _ = try? await approveContrib.invoke(id: id) }
+            // editedBloquesJson: los data class de Kotlin no exportan defaults a
+            // Swift → hay que pasar nil explícito. El "EDITAR Y APROBAR" de iOS
+            // llegará en la siguiente tanda (Android ya lo tiene).
+            if approve { _ = try? await approveContrib.invoke(id: id, editedBloquesJson: nil) }
             else { _ = try? await rejectContrib.invoke(id: id, reason: reason) }
             contributions.removeAll { $0.id == id }
             working.remove(id)

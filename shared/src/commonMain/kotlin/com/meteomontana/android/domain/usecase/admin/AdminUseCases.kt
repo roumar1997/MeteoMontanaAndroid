@@ -41,7 +41,7 @@ class RejectSubmissionUseCase(private val repository: AdminRepository) {
 
 class ApproveContributionUseCase(private val repository: AdminRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(id: String): Contribution = repository.approveContribution(id)
+    suspend operator fun invoke(id: String, editedBloquesJson: String? = null): Contribution = repository.approveContribution(id, editedBloquesJson)
 }
 
 class RejectContributionUseCase(private val repository: AdminRepository) {

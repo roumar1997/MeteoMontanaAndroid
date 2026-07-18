@@ -14,7 +14,7 @@ interface AdminRepository {
     suspend fun getLogs(limit: Int = 100): List<AdminLog>
     suspend fun approveSubmission(id: String): Submission
     suspend fun rejectSubmission(id: String, reason: String?): Submission
-    suspend fun approveContribution(id: String): Contribution
+    suspend fun approveContribution(id: String, editedBloquesJson: String? = null): Contribution
     suspend fun rejectContribution(id: String, reason: String?): Contribution
     suspend fun sendPush(targetUid: String?, title: String, body: String): AdminPushResult
     suspend fun getPendingReports(): List<MeetupReport>

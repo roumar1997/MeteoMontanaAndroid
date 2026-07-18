@@ -85,6 +85,10 @@ import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Moss
 import com.meteomontana.android.ui.theme.Spacing
+import com.meteomontana.android.ui.screens.detail.BoulderBloqueForm
+import com.meteomontana.android.ui.screens.detail.ContributionTopoDialog
+import com.meteomontana.android.ui.screens.detail.toBloquesJson
+import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.colorForGrade
 import com.meteomontana.android.ui.theme.gradeStyle
@@ -104,12 +108,15 @@ internal fun ContributionCard(
     onDeleteBlock: (String) -> Unit,
     onUpdateBlock: (com.meteomontana.android.domain.model.Block, com.meteomontana.android.data.api.dto.CreateBlockRequest) -> Unit,
     onApprove: (String) -> Unit,
-    onReject: (String, String?) -> Unit
+    onReject: (String, String?) -> Unit,
+    /** "EDITAR Y APROBAR": (id, bloquesJson retocado) → aprueba CON los cambios. */
+    onApproveEdited: (String, String) -> Unit = { id, _ -> onApprove(id) }
 ) {
     val onUpdateBlockCard = onUpdateBlock
     val lifecycleOwner = LocalLifecycleOwner.current
     val mapViewRef = remember { mutableStateOf<MapView?>(null) }
     var showFullMap by remember { mutableStateOf(false) }
+    var showEditApprove by remember { mutableStateOf(false) }
 
     // Carga bloques existentes de la escuela al renderizar la card (una vez por schoolId).
     LaunchedEffect(c.schoolId) { onFetchBlocks() }
@@ -531,6 +538,39 @@ internal fun ContributionCard(
                 Text(stringResource(R.string.admin_approve), style = EyebrowTextStyle, color = Color.White)
             }
         }
+
+        // EDITAR Y APROBAR: el admin retoca la propuesta (líneas, nombres,
+        // grados, variantes...) en el editor normal y se aprueba con SUS
+        // cambios. Solo si la propuesta trae vías y una única foto editable.
+        val editablePhoto = editablePhotoOf(c)
+        if (editablePhoto != null) {
+            Spacer(Modifier.height(Spacing.xs))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(2.dp))
+                    .border(1.dp, Terra, RoundedCornerShape(2.dp))
+                    .clickable { showEditApprove = true }
+                    .padding(vertical = Spacing.sm),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(R.string.admin_edit_approve), style = EyebrowTextStyle, color = Terra)
+            }
+        }
+        if (showEditApprove && editablePhoto != null) {
+            var bloques by remember(c.id) { mutableStateOf(parseBloquesForms(c.bloquesJson)) }
+            ContributionTopoDialog(
+                photoUri = android.net.Uri.parse(editablePhoto),
+                bloques = bloques,
+                onSave = { updated ->
+                    bloques = updated
+                    onApproveEdited(c.id, updated.toBloquesJson())
+                    showEditApprove = false
+                },
+                onDismiss = { showEditApprove = false },
+                existingLines = emptyList()
+            )
+        }
     }
 
     // Mapa a pantalla completa al pulsar "VER EN MAPA"
@@ -850,4 +890,56 @@ private fun ZoomableTopo(photoUrl: String, lines: List<TopoLine>) {
             }
         }
     }
+}
+
+
+/** Foto sobre la que se puede EDITAR la propuesta: la de la propuesta (o la
+ *  única cara referenciada). null = no editable (sin vías o multi-foto). */
+private fun editablePhotoOf(c: Contribution): String? {
+    val json = c.bloquesJson?.takeIf { it.isNotBlank() } ?: return null
+    return runCatching {
+        val arr = org.json.JSONArray(json)
+        if (arr.length() == 0) return null
+        val photos = mutableSetOf<String?>()
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            photos.add(o.optString("photoUrl").takeIf { it.isNotEmpty() && it != "null" })
+        }
+        val distinct = photos.filterNotNull().distinct()
+        when {
+            distinct.size == 1 -> distinct[0]
+            distinct.isEmpty() -> c.photoUrl?.takeIf { it.isNotBlank() }
+            else -> null   // varias caras: el editor V1 no las mezcla
+        }
+    }.getOrNull()
+}
+
+/** bloquesJson → formularios editables (nombre/grado/inicio/variante/desc/trazo),
+ *  conservando targetLineId y cara para que el round-trip sea fiel. */
+private fun parseBloquesForms(json: String?): List<BoulderBloqueForm> {
+    if (json.isNullOrBlank()) return emptyList()
+    return runCatching {
+        val arr = org.json.JSONArray(json)
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            val startUi = when (o.optString("startType").uppercase()) {
+                "STAND", "PIE" -> "PIE"
+                "SIT" -> "SIT"
+                "SEMI" -> "SEMI"
+                "JUMP", "LANCE" -> "LANCE"
+                "TRAV" -> "TRAV"
+                else -> null
+            }
+            BoulderBloqueForm(
+                name = o.optString("name"),
+                grade = o.optString("grade").takeIf { it.isNotEmpty() && it != "null" },
+                startType = startUi,
+                linePath = parseLineStroke(o.optString("linePath")).points,
+                existingLineId = o.optString("targetLineId").takeIf { it.isNotEmpty() && it != "null" },
+                facePhoto = o.optString("photoUrl").takeIf { it.isNotEmpty() && it != "null" },
+                description = o.optString("description").takeIf { it.isNotEmpty() && it != "null" },
+                variant = o.optString("variant").takeIf { it.isNotEmpty() && it != "null" }
+            )
+        }
+    }.getOrElse { emptyList() }
 }

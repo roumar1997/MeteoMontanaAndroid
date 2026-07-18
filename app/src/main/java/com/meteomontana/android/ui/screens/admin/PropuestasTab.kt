@@ -103,6 +103,7 @@ internal fun PropuestasTab(
     onApproveSubmission: (String) -> Unit,
     onRejectSubmission: (String, String?) -> Unit,
     onApproveContribution: (String) -> Unit,
+    onApproveContributionEdited: (String, String) -> Unit = { id, _ -> onApproveContribution(id) },
     onRejectContribution: (String, String?) -> Unit
 ) {
     var filter by remember { mutableStateOf(ContribFilter.TODAS) }
@@ -190,6 +191,7 @@ internal fun PropuestasTab(
                     onDeleteBlock = { blockId -> onDeleteBlock(blockId, c.schoolId) },
                     onUpdateBlock = { b, req -> onUpdateBlock(b.id, c.schoolId, req) {} },
                     onApprove = onApproveContribution,
+                    onApproveEdited = onApproveContributionEdited,
                     onReject = onRejectContribution
                 )
             }

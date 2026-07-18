@@ -75,7 +75,11 @@ fun EditLineFlow(
                 grade = line.grade,
                 startType = startTypeForUi(line.startType?.toString()),
                 linePath = parseLineStroke(line.linePath).points,
-                facePhoto = facePhoto
+                facePhoto = facePhoto,
+                // Arrastrar descripción y variante actuales: sin esto el form
+                // salía vacío y al guardar podían perderse.
+                description = line.lineDescription,
+                variant = line.variant
             )
         )
     }

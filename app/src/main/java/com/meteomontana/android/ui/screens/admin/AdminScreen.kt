@@ -177,6 +177,7 @@ fun AdminScreen(
                 onApproveSubmission = viewModel::approve,
                 onRejectSubmission = viewModel::reject,
                 onApproveContribution = viewModel::approveContribution,
+                onApproveContributionEdited = { id, json -> viewModel.approveContribution(id, json) },
                 onRejectContribution = viewModel::rejectContribution
             )
             AdminTab.Gestionar -> GestionarTab(

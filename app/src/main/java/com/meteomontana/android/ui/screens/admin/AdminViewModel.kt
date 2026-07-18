@@ -115,9 +115,9 @@ class AdminViewModel @Inject constructor(
         }
     }
 
-    fun approveContribution(id: String) {
+    fun approveContribution(id: String, editedBloquesJson: String? = null) {
         viewModelScope.launch {
-            runCatching { approveContributionUseCase(id) }
+            runCatching { approveContributionUseCase(id, editedBloquesJson) }
             load()
         }
     }
