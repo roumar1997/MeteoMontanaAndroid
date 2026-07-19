@@ -88,7 +88,7 @@ struct SchoolMapSection: View {
         .task(id: expanded) {
             guard expanded else { return }
             if vm.blocks.isEmpty {
-                vm.blocks = await loadBlocksOnlineOrOffline()
+                _ = await vm.reloadBlocks(school: school, selectedId: nil)
             }
             maybeAutoOpen()
             headingProvider.start()
