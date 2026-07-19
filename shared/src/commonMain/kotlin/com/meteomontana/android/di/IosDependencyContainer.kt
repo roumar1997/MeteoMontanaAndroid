@@ -176,7 +176,7 @@ class IosDependencyContainer(
     private val profileRepository = KtorProfileRepository(profileApi)
     private val notificationsRepository = KtorNotificationsRepository(notificationApi)
     private val socialRepository = KtorSocialRepository(socialApi)
-    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi)
+    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi, database)
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))

@@ -237,3 +237,21 @@ DELETE FROM CachedMeetup WHERE expiresAt <= ?;
 
 meetupsDeleteAll:
 DELETE FROM CachedMeetup;
+
+-- ─── CachedFeedPage: primera página del feed por scope, para verlo SIN red ───
+-- (la clave es "scope|uid"; solo se cachea la primera página, before == null)
+
+CREATE TABLE CachedFeedPage (
+    key       TEXT NOT NULL PRIMARY KEY,
+    json      TEXT NOT NULL,     -- List<FeedPostDto> serializada
+    fetchedAt INTEGER NOT NULL   -- epoch millis
+);
+
+selectFeedPage:
+SELECT * FROM CachedFeedPage WHERE key = ?;
+
+upsertFeedPage:
+INSERT OR REPLACE INTO CachedFeedPage(key, json, fetchedAt) VALUES (?, ?, ?);
+
+feedPagesDeleteAll:
+DELETE FROM CachedFeedPage;
