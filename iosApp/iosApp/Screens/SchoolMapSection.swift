@@ -19,21 +19,9 @@ private struct SchoolMapSection: View {
     @State private var expanded = false
     @State private var blocks: [Block] = []
     @State private var selectedBlock: Block?
-    // Proponer mejora: tap en el mapa fija coords → formulario → envío.
-    @State private var waitingTap = false
-    @State private var showTypePicker = false
-    @State private var formCoord: CLLocationCoordinate2D?
-    @State private var proposeType = "PARKING"
-    @State private var showSuccess = false
+    // Flujo proponer/corregir agrupado (espejo de ProposalMapBridge en Android).
+    @StateObject private var flow = MapProposalFlowStore()
     @State private var mapStyle: MapStyleKind = .satellite  // paridad con Android
-    @State private var boulderCoord: CLLocationCoordinate2D?
-    // Corregir posición: seleccionar un marcador y fijar su nueva posición.
-    @State private var correctionMode = false
-    @State private var corrActive = false        // ya hay un target elegido
-    @State private var corrTargetId: String?     // nil + corrActive ⇒ la escuela
-    @State private var corrTargetName = ""
-    @State private var corrOld: CLLocationCoordinate2D?
-    @State private var corrNew: CLLocationCoordinate2D?
     @State private var userCoord: CLLocationCoordinate2D?   // mi ubicación en el sector
     @State private var collapsedSectors: Set<String> = []   // zonas con piedras ocultas
     // Mini-ficha flotante de PARKING/ZONA sobre el mapa (la ficha grande queda
@@ -166,9 +154,9 @@ private struct SchoolMapSection: View {
                         onZoomChange: { mapZoom = $0 },
                         onCameraChange: { c, z in savedCenter = c; savedZoom = z },
                         onTapMarker: { id in
-                            if correctionMode && !corrActive {
+                            if flow.correctionMode && !flow.corrActive {
                                 selectCorrectionTarget(id)
-                            } else if !waitingTap && !correctionMode {
+                            } else if !flow.waitingTap && !flow.correctionMode {
                                 // Parking/zona → mini-ficha flotante (el mapa se
                                 // sigue viendo); piedras → su ficha completa.
                                 if let b = blocks.first(where: { $0.id == id }) {
@@ -201,12 +189,12 @@ private struct SchoolMapSection: View {
                                 }
                             }
                         },
-                        onMapTap: (waitingTap || (correctionMode && corrActive)) ? { coord in
-                            if waitingTap {
-                                waitingTap = false
-                                if proposeType == "BOULDER" { boulderCoord = coord } else { formCoord = coord }
+                        onMapTap: (flow.waitingTap || (flow.correctionMode && flow.corrActive)) ? { coord in
+                            if flow.waitingTap {
+                                flow.waitingTap = false
+                                if flow.proposeType == "BOULDER" { flow.boulderCoord = coord } else { flow.formCoord = coord }
                             } else {
-                                corrNew = coord
+                                flow.corrNew = coord
                             }
                         } : nil,
                         polylines: wallPolylines,
@@ -221,13 +209,13 @@ private struct SchoolMapSection: View {
                     .frame(height: height)
 
 
-                    if waitingTap {
+                    if flow.waitingTap {
                         // Banner "PULSA EN EL MAPA" (parking/sector/piedra).
                         mapBanner("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN",
-                                  cancel: { waitingTap = false })
-                    } else if correctionMode {
+                                  cancel: { flow.waitingTap = false })
+                    } else if flow.correctionMode {
                         mapBanner(correctionBannerText,
-                                  accept: (corrActive && corrNew != nil) ? { Task { await submitCorrection() } } : nil,
+                                  accept: (flow.corrActive && flow.corrNew != nil) ? { Task { await submitCorrection() } } : nil,
                                   cancel: cancelCorrection)
                     } else {
                         // Botón "+ PROPONER": pill flotante ARRIBA a la derecha —
@@ -239,7 +227,7 @@ private struct SchoolMapSection: View {
                                 Button {
                                     // Ya no salimos de pantalla completa: el selector
                                     // se presenta desde mapArea (dentro del cover).
-                                    showTypePicker = true
+                                    flow.showTypePicker = true
                                 } label: {
                                     Text(NSLocalizedString("detail_propose", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.6)
                                         .foregroundStyle(.white)
@@ -257,7 +245,7 @@ private struct SchoolMapSection: View {
 
                     // Ampliar / salir de pantalla completa — ARRIBA a la izquierda
                     // (debajo de los chips de estilo) + botonera lateral en fullscreen.
-                    if !waitingTap && !correctionMode {
+                    if !flow.waitingTap && !flow.correctionMode {
                         VStack {
                             HStack {
                                 Button { fullscreenMap.toggle() } label: {
@@ -280,7 +268,7 @@ private struct SchoolMapSection: View {
                         .padding(10)
                         .frame(height: height)
                     }
-                    if !waitingTap && !correctionMode {
+                    if !flow.waitingTap && !flow.correctionMode {
                         // Botonera lateral (maqueta B): topo↔satélite de un toque
                         // + capas con la FORMA real del marcador.
                         VStack {
@@ -330,7 +318,7 @@ private struct SchoolMapSection: View {
 
                     // Mini-ficha flotante de parking/sector: informa y da CÓMO
                     // LLEGAR sin tapar el mapa.
-                    if let mb = miniBlock, !waitingTap, !correctionMode {
+                    if let mb = miniBlock, !flow.waitingTap, !flow.correctionMode {
                         VStack { Spacer(); miniBlockCard(mb) }
                             .frame(height: height)
                             .frame(maxWidth: .infinity)
@@ -340,30 +328,30 @@ private struct SchoolMapSection: View {
                 // usa igual en tarjeta y en pantalla completa (solo hay una
                 // instancia activa a la vez), el selector/formularios se
                 // presentan en el contexto correcto SIN salir de pantalla completa.
-                .sheet(isPresented: $showTypePicker) {
+                .sheet(isPresented: $flow.showTypePicker) {
                     ContributionTypePicker { type in
-                        showTypePicker = false
+                        flow.showTypePicker = false
                         switch type {
-                        case "PARKING", "SECTOR", "BOULDER": proposeType = type; waitingTap = true
-                        case "CORRECTION": correctionMode = true; corrActive = false; corrNew = nil
+                        case "PARKING", "SECTOR", "BOULDER": flow.proposeType = type; flow.waitingTap = true
+                        case "CORRECTION": flow.startCorrection()
                         default: break
                         }
                     }
                 }
                 .sheet(item: coordItem) { item in
-                    ContributionFormSheet(type: proposeType, schoolId: school.id, coord: item.coord) { ok in
-                        formCoord = nil
+                    ContributionFormSheet(type: flow.proposeType, schoolId: school.id, coord: item.coord) { ok in
+                        flow.formCoord = nil
                         if ok { afterSubmit() }
                     }
                 }
                 .sheet(item: boulderCoordItem) { item in
                     BoulderFormSheet(schoolId: school.id, coord: item.coord,
                                      sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
-                        boulderCoord = nil
+                        flow.boulderCoord = nil
                         if ok { afterSubmit() }
                     }
                 }
-                .sheet(isPresented: $showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
+                .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
                 // Ficha de piedra y sus acciones — también ancladas al mapa para
                 // que se presenten sobre la pantalla completa sin tener que salir.
                 .sheet(item: $selectedBlock) { b in
@@ -537,46 +525,46 @@ private struct SchoolMapSection: View {
     private func afterSubmit() {
         Task {
             try? await Task.sleep(nanoseconds: 400_000_000)
-            showSuccess = true
+            flow.showSuccess = true
             await reloadBlocks()
         }
     }
 
     // Wrapper Identifiable para presentar el formulario de piedra.
     private var boulderCoordItem: Binding<CoordItem?> {
-        Binding(get: { boulderCoord.map { CoordItem(coord: $0) } },
-                set: { if $0 == nil { boulderCoord = nil } })
+        Binding(get: { flow.boulderCoord.map { CoordItem(coord: $0) } },
+                set: { if $0 == nil { flow.boulderCoord = nil } })
     }
 
     // MARK: - Corrección de posición
 
     private func selectCorrectionTarget(_ id: String) {
         if let b = blocks.first(where: { $0.id == id }) {
-            corrTargetId = b.id
-            corrTargetName = b.name.isEmpty ? typeLabel(b.type) : b.name
-            corrOld = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
+            flow.corrTargetId = b.id
+            flow.corrTargetName = b.name.isEmpty ? typeLabel(b.type) : b.name
+            flow.corrOld = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
         } else if id == school.id {
-            corrTargetId = nil
-            corrTargetName = "la escuela"
-            corrOld = CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)
+            flow.corrTargetId = nil
+            flow.corrTargetName = "la escuela"
+            flow.corrOld = CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)
         } else { return }
-        corrActive = true
-        corrNew = nil
+        flow.corrActive = true
+        flow.corrNew = nil
     }
 
     private func cancelCorrection() {
-        correctionMode = false; corrActive = false; corrTargetId = nil; corrNew = nil
+        flow.resetCorrection()
     }
 
     private func submitCorrection() async {
-        guard let old = corrOld, let nw = corrNew else { return }
+        guard let old = flow.corrOld, let nw = flow.corrNew else { return }
         let req = ContributionRequest(
-            type: "POSITION_CORRECTION", name: corrTargetName,
+            type: "POSITION_CORRECTION", name: flow.corrTargetName,
             lat: old.latitude, lon: old.longitude,
             notes: nil, description: nil,
             proposedLat: KotlinDouble(double: nw.latitude),
             proposedLon: KotlinDouble(double: nw.longitude), correctionReason: nil,
-            targetBlockId: corrTargetId, targetLineId: nil, sectorBlockId: nil,
+            targetBlockId: flow.corrTargetId, targetLineId: nil, sectorBlockId: nil,
             photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
             geometry: nil, path: nil, direction: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: school.id, req: req)) != nil
@@ -585,8 +573,8 @@ private struct SchoolMapSection: View {
     }
 
     private var correctionBannerText: String {
-        if !corrActive { return "PULSA EL MARCADOR QUE QUIERES MOVER" }
-        if corrNew == nil { return "MOVIENDO «\(corrTargetName)» · PULSA LA NUEVA POSICIÓN" }
+        if !flow.corrActive { return "PULSA EL MARCADOR QUE QUIERES MOVER" }
+        if flow.corrNew == nil { return "MOVIENDO «\(flow.corrTargetName)» · PULSA LA NUEVA POSICIÓN" }
         return "POSICIÓN FIJADA · PULSA OTRA VEZ PARA RECORREGIR O ACEPTA"
     }
 
@@ -615,8 +603,8 @@ private struct SchoolMapSection: View {
 
     // Wrapper Identifiable para presentar el formulario con la coordenada fijada.
     private var coordItem: Binding<CoordItem?> {
-        Binding(get: { formCoord.map { CoordItem(coord: $0) } },
-                set: { if $0 == nil { formCoord = nil } })
+        Binding(get: { flow.formCoord.map { CoordItem(coord: $0) } },
+                set: { if $0 == nil { flow.formCoord = nil } })
     }
 
     /// Abre la piedra que contiene la vía indicada (deep-link del diario): busca
@@ -737,7 +725,7 @@ private struct SchoolMapSection: View {
                                    score: headingProvider.heading))
         }
         // Fantasma de la nueva posición al corregir.
-        if let nw = corrNew {
+        if let nw = flow.corrNew {
             ms.append(CumbreMarker(
                 id: "__GHOST__", coordinate: nw, title: "Nueva posición",
                 kind: .block, color: UIColor(hex: 0xF59E0B), name: "★"))
