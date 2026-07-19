@@ -11,7 +11,7 @@ import FirebaseAuth
 // (Android). OJO workarounds documentados inline: sheets colgados de mapArea,
 // fullScreenCover colgado del buscador, task(id: expanded) del GPS. NO mover.
 
-private struct SchoolMapSection: View {
+struct SchoolMapSection: View {
     let school: School
     var openVia: String? = nil
     @State private var didAutoOpen = false
