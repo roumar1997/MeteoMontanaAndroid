@@ -150,6 +150,8 @@ targets:
           CODE_SIGN_IDENTITY: "-"
           CODE_SIGN_STYLE: Manual
           CODE_SIGNING_REQUIRED: "NO"
+          # Necesario para @testable import MeteoMontana desde el target de tests.
+          ENABLE_TESTABILITY: "YES"
         # Release: firma MANUAL para App Store (ios-prod-ipa.yml).
         # ¿Por qué manual y no automática? La firma automática + -allowProvisioning
         # Updates crea un certificado "Apple Development" NUEVO en cada build (el
@@ -192,3 +194,33 @@ targets:
           fi
           cd "$SRCROOT/.."
           ./gradlew :shared:embedAndSignAppleFrameworkForXcode
+
+  # Target de tests unitarios (espejos algorítmicos Kotlin↔Swift: GradeColor,
+  # TopoShared…). Hospedado por la app. Corre en simulador desde ios-tests.yml.
+  MeteoMontanaTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: MeteoMontanaTests
+    dependencies:
+      - target: MeteoMontana
+    settings:
+      base:
+        # El bundle de tests también enlaza el framework KMP (la app lo usa).
+        FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS: $(inherited) -framework Shared -lsqlite3
+        GENERATE_INFOPLIST_FILE: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: com.meteomontana.ios.tests
+
+schemes:
+  MeteoMontana:
+    build:
+      targets:
+        MeteoMontana: all
+        MeteoMontanaTests: [test]
+    test:
+      targets:
+        - MeteoMontanaTests
+      gatherCoverageData: false
+    run:
+      config: Debug
