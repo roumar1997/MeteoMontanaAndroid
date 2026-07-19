@@ -246,29 +246,15 @@ fun SchoolMap(
 
     selectedBlock?.let { block ->
         val sectors = blocks.filter { it.type == "ZONE" }
-        // Vías ya hechas (diario + cola offline pendiente) → marcadas ✓ al abrir.
+        // Vías ya hechas (diario + cola offline) → ✓ al abrir; PROYECTO igual.
+        // La traducción claves→ids vive en matchedLineIds (pura y testeada).
         val doneKeys by viewModel.doneViaKeys.collectAsState()
-        // Clave por lineId (aguanta homónimas — fix "La ola") + clave por nombre
-        // como LEGADO (entradas antiguas del diario sin lineId).
         val doneLineIds = remember(block, doneKeys) {
-            block.lines.mapIndexedNotNull { idx, line ->
-                val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
-                val idKey = com.meteomontana.android.ui.screens.detail.journalViaKey(
-                    block.schoolId, line.id.takeIf { it.isNotBlank() }, viaName)
-                val nameKey = "${block.schoolId}|${viaName.trim().lowercase()}"
-                if (doneKeys.contains(idKey) || doneKeys.contains(nameKey)) line.id else null
-            }.toSet()
+            com.meteomontana.android.ui.screens.detail.matchedLineIds(block, doneKeys)
         }
-        // Vías marcadas como PROYECTO → mismo mecanismo que doneLineIds.
         val projectKeys by viewModel.projectViaKeys.collectAsState()
         val projectLineIds = remember(block, projectKeys) {
-            block.lines.mapIndexedNotNull { idx, line ->
-                val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
-                val idKey = com.meteomontana.android.ui.screens.detail.journalViaKey(
-                    block.schoolId, line.id.takeIf { it.isNotBlank() }, viaName)
-                val nameKey = "${block.schoolId}|${viaName.trim().lowercase()}"
-                if (projectKeys.contains(idKey) || projectKeys.contains(nameKey)) line.id else null
-            }.toSet()
+            com.meteomontana.android.ui.screens.detail.matchedLineIds(block, projectKeys)
         }
         BlockDetailDialog(
             block = block,

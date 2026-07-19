@@ -1,6 +1,9 @@
 package com.meteomontana.android.detail
 
+import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.model.BlockLine
 import com.meteomontana.android.ui.screens.detail.journalViaKey
+import com.meteomontana.android.ui.screens.detail.matchedLineIds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
@@ -60,5 +63,45 @@ class JournalViaKeyTest {
     fun `schoolId null no revienta y produce clave estable`() {
         assertEquals("|#l1", journalViaKey(null, "l1", "x"))
         assertEquals("|x", journalViaKey(null, null, "X"))
+    }
+
+    // ── matchedLineIds: la traducción diario → ✓ de la ficha de piedra ──
+
+    private fun line(id: String, name: String) = BlockLine(
+        id = id, name = name, grade = "6a", startType = null,
+        linePath = null, sortOrder = 0)
+
+    private fun block(vararg lines: BlockLine) = Block(
+        id = "b1", schoolId = "esc", type = "BLOCK", name = "Piedra", lat = 0.0, lon = 0.0,
+        photoPath = null, description = null, createdByUid = "", createdAt = "",
+        lines = lines.toList())
+
+    @Test
+    fun `matchedLineIds casa por lineId y separa homonimas`() {
+        // Dos "La ola" (el caso real): solo la marcada por id enciende su ✓.
+        val b = block(line("l1", "La ola"), line("l2", "La ola"))
+        val done = matchedLineIds(b, setOf("esc|#l2"))
+        assertEquals(setOf("l2"), done)
+    }
+
+    @Test
+    fun `matchedLineIds casa por nombre LEGADO cuando la clave es antigua`() {
+        val b = block(line("l1", "Travesía"))
+        assertEquals(setOf("l1"), matchedLineIds(b, setOf("esc|travesía")))
+    }
+
+    @Test
+    fun `matchedLineIds con via sin nombre usa el fallback Via N`() {
+        val b = block(line("l1", ""))
+        // La clave por id manda aunque el nombre esté vacío.
+        assertEquals(setOf("l1"), matchedLineIds(b, setOf("esc|#l1")))
+        // Y el legado por nombre usa "vía 1".
+        assertEquals(setOf("l1"), matchedLineIds(b, setOf("esc|vía 1")))
+    }
+
+    @Test
+    fun `matchedLineIds sin coincidencias devuelve vacio`() {
+        val b = block(line("l1", "La ola"))
+        assertEquals(emptySet<String>(), matchedLineIds(b, setOf("otra|#l1", "esc|#l9")))
     }
 }

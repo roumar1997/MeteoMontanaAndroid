@@ -979,3 +979,20 @@ class SchoolDetailViewModel @Inject constructor(
 fun journalViaKey(schoolId: String?, lineId: String?, viaName: String): String =
     if (!lineId.isNullOrBlank()) "${schoolId ?: ""}|#$lineId"
     else "${schoolId ?: ""}|${viaName.trim().lowercase()}"
+
+/**
+ * Ids de las vías de [block] cuyo diario casa con alguna clave de [keys]:
+ * por lineId ("escuela|#id", aguanta homónimas — fix "La ola") o por nombre
+ * como LEGADO (entradas antiguas sin lineId). Es la traducción diario → ✓ de
+ * la ficha de piedra; función PURA para testearla sin Compose.
+ */
+fun matchedLineIds(
+    block: com.meteomontana.android.domain.model.Block,
+    keys: Set<String>
+): Set<String> =
+    block.lines.mapIndexedNotNull { idx, line ->
+        val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
+        val idKey = journalViaKey(block.schoolId, line.id.takeIf { it.isNotBlank() }, viaName)
+        val nameKey = "${block.schoolId}|${viaName.trim().lowercase()}"
+        if (keys.contains(idKey) || keys.contains(nameKey)) line.id else null
+    }.toSet()
