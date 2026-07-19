@@ -184,7 +184,7 @@ class IosDependencyContainer(
     val blockApi = KtorBlockApi(httpClient)
     // Moderación UGC (denunciar/bloquear) — requisito App Store.
     val moderationApi = com.meteomontana.android.data.api.KtorModerationApi(httpClient)
-    private val blockRepository = KtorBlockRepository(blockApi)
+    private val blockRepository = KtorBlockRepository(blockApi, database)
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
     val meetupApi = KtorMeetupApi(httpClient)
     private val meetupCache: MeetupCacheRepository? = database?.let { MeetupCacheRepository(it) }

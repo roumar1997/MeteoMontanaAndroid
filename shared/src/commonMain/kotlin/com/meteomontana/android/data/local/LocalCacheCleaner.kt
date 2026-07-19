@@ -17,5 +17,6 @@ class LocalCacheCleaner(private val db: MeteoMontanaDb) {
         db.schemaQueries.profilesDeleteAll()
         db.schemaQueries.meetupsDeleteAll()
         db.schemaQueries.feedPagesDeleteAll()
+        db.schemaQueries.blocksPagesDeleteAll()
     }
 }

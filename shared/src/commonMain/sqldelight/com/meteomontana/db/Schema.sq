@@ -128,6 +128,9 @@ CREATE TABLE CachedSchool (
 cachedSchoolsAll:
 SELECT * FROM CachedSchool;
 
+cachedSchoolById:
+SELECT * FROM CachedSchool WHERE id = ?;
+
 cachedSchoolsDeleteAll:
 DELETE FROM CachedSchool;
 
@@ -255,3 +258,22 @@ INSERT OR REPLACE INTO CachedFeedPage(key, json, fetchedAt) VALUES (?, ?, ?);
 
 feedPagesDeleteAll:
 DELETE FROM CachedFeedPage;
+
+-- ─── CachedBlocksPage: bloques por escuela, para abrir el detalle al instante ─
+-- (stale-while-revalidate: se pinta esto y la red lo refresca; también sirve
+-- de fallback sin conexión para escuelas NO guardadas offline)
+
+CREATE TABLE CachedBlocksPage (
+    schoolId  TEXT NOT NULL PRIMARY KEY,
+    json      TEXT NOT NULL,     -- List<BlockDto> serializada
+    fetchedAt INTEGER NOT NULL
+);
+
+selectBlocksPage:
+SELECT * FROM CachedBlocksPage WHERE schoolId = ?;
+
+upsertBlocksPage:
+INSERT OR REPLACE INTO CachedBlocksPage(schoolId, json, fetchedAt) VALUES (?, ?, ?);
+
+blocksPagesDeleteAll:
+DELETE FROM CachedBlocksPage;

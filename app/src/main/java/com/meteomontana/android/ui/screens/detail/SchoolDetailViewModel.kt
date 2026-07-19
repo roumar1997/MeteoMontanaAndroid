@@ -189,8 +189,20 @@ class SchoolDetailViewModel @Inject constructor(
     }
 
     fun load() {
-        _uiState.value = SchoolDetailUiState.Loading
+        // PREVIEW instantánea desde disco (si la escuela ya se visitó): la ficha
+        // abre al momento con lo cacheado y la red la sustituye al llegar —
+        // fix de raíz del "diario→piedra tarda" (stale-while-revalidate).
+        // Solo en el arranque: los reload posteriores (aprobar/borrar/editar)
+        // NO deben degradar el estado fresco a la caché vieja.
+        val wasLoading = _uiState.value is SchoolDetailUiState.Loading
+        if (!wasLoading) _uiState.value = SchoolDetailUiState.Loading
         viewModelScope.launch {
+            if (wasLoading) {
+                val preview = runCatching { loader.loadCachedPreview(schoolId) }.getOrNull()
+                if (preview != null && _uiState.value is SchoolDetailUiState.Loading) {
+                    _uiState.value = preview
+                }
+            }
             val result = loader.load(schoolId)
             _uiState.value = result.state
             val success = result.state as? SchoolDetailUiState.Success ?: return@launch

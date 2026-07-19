@@ -92,8 +92,11 @@ object RepositoryModule {
         KtorForecastRepository(api)
 
     @Provides @Singleton
-    fun provideBlockRepository(api: KtorBlockApi): BlockRepository =
-        KtorBlockRepository(api)
+    fun provideBlockRepository(
+        api: KtorBlockApi,
+        db: com.meteomontana.db.MeteoMontanaDb
+    ): BlockRepository =
+        KtorBlockRepository(api, db)
 
     @Provides @Singleton
     fun provideNoteRepository(api: KtorNoteApi): NoteRepository =

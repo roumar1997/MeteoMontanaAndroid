@@ -29,8 +29,40 @@ class SchoolDetailLoader @Inject constructor(
     private val getBlocks: GetBlocksUseCase,
     private val getMyProfile: GetMyProfileUseCase,
     private val savedSchoolRepo: SavedSchoolRepository,
-    private val mountainApi: KtorMountainApi
+    private val mountainApi: KtorMountainApi,
+    private val db: com.meteomontana.db.MeteoMontanaDb,
+    private val blockRepo: com.meteomontana.android.domain.repository.BlockRepository
 ) {
+
+    /**
+     * PREVIEW instantánea desde disco (stale-while-revalidate): escuela del
+     * catálogo cacheado + bloques cacheados + último forecast. Se pinta al
+     * abrir SIN esperar a la red (el flujo diario→piedra abre la ficha ya);
+     * la carga real de [load] la sustituye al llegar. null = nunca visitada.
+     */
+    suspend fun loadCachedPreview(schoolId: String): SchoolDetailUiState.Success? {
+        val row = runCatching {
+            db.schemaQueries.cachedSchoolById(schoolId).executeAsOneOrNull()
+        }.getOrNull() ?: return null
+        val blocks = runCatching { blockRepo.getCachedBlocks(schoolId) }.getOrNull()
+        val cachedForecast = runCatching { savedSchoolRepo.loadCachedForecast(schoolId) }.getOrNull()
+        return SchoolDetailUiState.Success(
+            school = School(
+                id = row.id, name = row.name, location = row.location,
+                region = row.region, style = row.style, rockType = row.rockType,
+                lat = row.lat, lon = row.lon, source = row.source
+            ),
+            forecast = cachedForecast?.first,
+            forecastError = null,
+            notes = emptyList(),
+            isFavorite = false,
+            blocks = blocks ?: emptyList(),
+            isCurrentUserAdmin = false,
+            // Sin spinner de stats en la preview: la carga real lo gestiona.
+            monthlyLoading = false,
+            forecastCachedAt = cachedForecast?.second
+        )
+    }
     /** [fromNetwork] distingue el Success online del snapshot offline: solo el
      *  online encadena stats mensuales y refresco del guardado. */
     data class LoadResult(val state: SchoolDetailUiState, val fromNetwork: Boolean)

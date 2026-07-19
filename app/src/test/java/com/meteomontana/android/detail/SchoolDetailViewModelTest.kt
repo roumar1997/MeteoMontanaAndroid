@@ -148,7 +148,9 @@ class SchoolDetailViewModelTest {
         val loader = com.meteomontana.android.ui.screens.detail.SchoolDetailLoader(
             getSchoolById, getForecast, getNotes, getMyFavorites, getBlocks,
             getMyProfile, savedSchoolRepo,
-            mockk<com.meteomontana.android.data.api.KtorMountainApi>(relaxed = true)
+            mockk<com.meteomontana.android.data.api.KtorMountainApi>(relaxed = true),
+            mockk<com.meteomontana.db.MeteoMontanaDb>(relaxed = true),  // preview: sin catalogo cacheado
+            mockk(relaxed = true)   // blockRepo (getCachedBlocks -> null)
         )
         val journal = com.meteomontana.android.ui.screens.detail.JournalTickController(
             mockk(relaxed = true),  // getMyJournal
