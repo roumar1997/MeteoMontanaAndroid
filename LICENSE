@@ -1,0 +1,24 @@
+Copyright (c) 2026 Álvaro Fanjul Martín. Todos los derechos reservados.
+All rights reserved.
+
+Este repositorio es CÓDIGO PROPIETARIO de la aplicación Cumbre
+(climbingteams.com). Se publica en abierto únicamente para fines de
+compilación e integración continua.
+
+NO se concede ninguna licencia de uso. Queda expresamente prohibido, sin
+autorización escrita del titular:
+
+  - copiar, modificar o redistribuir este código, total o parcialmente;
+  - usarlo en otros proyectos, productos o servicios, comerciales o no;
+  - publicar aplicaciones derivadas en cualquier tienda o plataforma;
+  - entrenar sistemas o generar productos a partir de este código.
+
+La marca "Cumbre", su logotipo y sus recursos gráficos son propiedad del
+titular y no pueden usarse sin permiso.
+
+---
+
+This repository contains PROPRIETARY source code of the Cumbre app
+(climbingteams.com). It is public solely for build and CI purposes.
+No license is granted. Viewing does not imply any right to copy, modify,
+redistribute, or use this code in any project, product, or service.
