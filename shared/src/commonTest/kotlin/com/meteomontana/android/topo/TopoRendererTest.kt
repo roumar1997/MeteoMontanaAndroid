@@ -4,9 +4,9 @@ import com.meteomontana.android.domain.model.DrawOp
 import com.meteomontana.android.domain.util.TopoLineData
 import com.meteomontana.android.domain.util.gradeArgb
 import com.meteomontana.android.domain.util.renderTopo
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.Test
 
 class TopoRendererTest {
 
@@ -23,7 +23,7 @@ class TopoRendererTest {
         val ops = renderTopo(listOf(line), w, h)
 
         val linePaths = ops.filterIsInstance<DrawOp.LinePath>()
-        assertTrue("Debe haber al menos un LinePath", linePaths.isNotEmpty())
+        assertTrue(linePaths.isNotEmpty(), "Debe haber al menos un LinePath")
 
         val main = linePaths.last()
         assertEquals(2, main.pts.size)
@@ -38,7 +38,7 @@ class TopoRendererTest {
         val ops = renderTopo(listOf(line), w, h)
 
         val paths = ops.filterIsInstance<DrawOp.LinePath>()
-        assertEquals("Grado blanco debe generar outline + línea = 2 LinePath", 2, paths.size)
+        assertEquals(2, paths.size, "Grado blanco debe generar outline + línea = 2 LinePath")
         assertEquals(0xCC000000L, paths[0].argb)  // outline oscuro primero
     }
 
@@ -47,7 +47,7 @@ class TopoRendererTest {
         val ops = renderTopo(listOf(line), w, h)
 
         val paths = ops.filterIsInstance<DrawOp.LinePath>()
-        assertEquals("Grado coloreado solo genera 1 LinePath", 1, paths.size)
+        assertEquals(1, paths.size, "Grado coloreado solo genera 1 LinePath")
     }
 
     @Test fun `badge numerico siempre presente`() {
@@ -55,7 +55,7 @@ class TopoRendererTest {
         val ops = renderTopo(listOf(line), w, h)
 
         val labels = ops.filterIsInstance<DrawOp.TextLabel>()
-        assertTrue("Debe haber al menos un TextLabel (badge numérico)", labels.any { it.text == "1" })
+        assertTrue(labels.any { it.text == "1" }, "Debe haber al menos un TextLabel (badge numérico)")
     }
 
     @Test fun `badge de inicio se genera solo si startType es valido`() {
@@ -68,10 +68,8 @@ class TopoRendererTest {
         val labelsConTipo = opsConTipo.filterIsInstance<DrawOp.TextLabel>()
         val labelsSinTipo = opsSinTipo.filterIsInstance<DrawOp.TextLabel>()
 
-        assertTrue("Con startType debe haber badge PIE/SIT/LAN/TRV",
-            labelsConTipo.any { it.text in listOf("PIE", "SIT", "LAN", "TRV") })
-        assertTrue("Sin startType no debe haber badge de inicio",
-            labelsSinTipo.none { it.text in listOf("PIE", "SIT", "LAN", "TRV") })
+        assertTrue(labelsConTipo.any { it.text in listOf("PIE", "SIT", "LAN", "TRV") }, "Con startType debe haber badge PIE/SIT/LAN/TRV")
+        assertTrue(labelsSinTipo.none { it.text in listOf("PIE", "SIT", "LAN", "TRV") }, "Sin startType no debe haber badge de inicio")
     }
 
     @Test fun `gradeArgb coincide con palette de la PWA`() {
@@ -82,7 +80,7 @@ class TopoRendererTest {
         assertEquals(0xFFD62828L, gradeArgb("7b").first)   // rojo
         assertEquals(0xFF111111L, gradeArgb("8a").first)   // negro ≥8a
         assertEquals(0xFFFF4FA3L, gradeArgb(null).first)   // proyecto/sin grado
-        assertTrue("≤5c+ es dark", gradeArgb("5b").third)
+        assertTrue(gradeArgb("5b").third, "≤5c+ es dark")
     }
 
     @Test fun `dos lineas producen badges independientes`() {
@@ -93,9 +91,9 @@ class TopoRendererTest {
         val ops = renderTopo(lines, w, h)
 
         val labels = ops.filterIsInstance<DrawOp.TextLabel>()
-        assertTrue("Badge 1 presente", labels.any { it.text == "1" })
-        assertTrue("Badge 2 presente", labels.any { it.text == "2" })
-        assertTrue("Badge PIE presente", labels.any { it.text == "PIE" })
-        assertTrue("Badge SIT presente", labels.any { it.text == "SIT" })
+        assertTrue(labels.any { it.text == "1" }, "Badge 1 presente")
+        assertTrue(labels.any { it.text == "2" }, "Badge 2 presente")
+        assertTrue(labels.any { it.text == "PIE" }, "Badge PIE presente")
+        assertTrue(labels.any { it.text == "SIT" }, "Badge SIT presente")
     }
 }

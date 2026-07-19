@@ -73,7 +73,7 @@ jobs:
       - name: Build debug + unit tests
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug :app:testDebugUnitTest --stacktrace
+          ./gradlew :app:assembleDebug :app:testDebugUnitTest :shared:testDebugUnitTest --stacktrace
 
       # APK instalable: Actions → run → Artifacts → app-debug-apk.
       # Permite probar en el móvil sin compilar en local (workflow GitHub-only).

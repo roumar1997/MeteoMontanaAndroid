@@ -3,8 +3,8 @@ package com.meteomontana.android.topo
 import com.meteomontana.android.domain.model.DrawOp
 import com.meteomontana.android.domain.util.TopoLineData
 import com.meteomontana.android.domain.util.renderTopo
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertTrue
+import kotlin.test.Test
 
 /**
  * Los badges (número de vía, etiqueta de inicio) se pintan SIEMPRE encima de
@@ -35,20 +35,18 @@ class BadgesOnTopTest {
             it is DrawOp.FilledCircle || it is DrawOp.TextLabel || it is DrawOp.CircleStroke
         }
 
-        assertTrue("debe haber trazos", lastStroke >= 0)
-        assertTrue("debe haber badges", firstBadge >= 0)
-        assertTrue(
-            "TODOS los trazos (último en $lastStroke) deben ir antes que el " +
-                    "primer badge (en $firstBadge) — si no, una línea tapa los badges",
-            lastStroke < firstBadge)
+        assertTrue(lastStroke >= 0, "debe haber trazos")
+        assertTrue(firstBadge >= 0, "debe haber badges")
+        assertTrue(lastStroke < firstBadge, "TODOS los trazos (último en $lastStroke) deben ir antes que el " +
+                    "primer badge (en $firstBadge) — si no, una línea tapa los badges")
     }
 
     @Test
     fun `cada via aporta su numero como TextLabel`() {
         val ops = renderTopo(lines, w, h)
         val labels = ops.filterIsInstance<DrawOp.TextLabel>().map { it.text }
-        assertTrue("falta el badge 1", labels.contains("1"))
-        assertTrue("falta el badge 2", labels.contains("2"))
-        assertTrue("falta el badge 3", labels.contains("3"))
+        assertTrue(labels.contains("1"), "falta el badge 1")
+        assertTrue(labels.contains("2"), "falta el badge 2")
+        assertTrue(labels.contains("3"), "falta el badge 3")
     }
 }

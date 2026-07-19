@@ -7,9 +7,9 @@ import com.meteomontana.android.domain.util.magnetizeStroke
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.domain.util.sharedSegmentKeys
 import com.meteomontana.android.domain.util.simplifyStroke
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.Test
 
 /** Tramos compartidos entre vías: imán del editor + detección + pintado. */
 class SharedSegmentsTest {
@@ -82,7 +82,7 @@ class SharedSegmentsTest {
         val runs = ops.filterIsInstance<DrawOp.LinePath>()
         assertTrue(runs.isNotEmpty())
         runs.forEach {
-            assertTrue("Ninguna línea debe ser maciza", it.dashed)
+            assertTrue(it.dashed, "Ninguna línea debe ser maciza")
             assertEquals(12f to 9f, it.dashPattern)
         }
     }
@@ -104,10 +104,10 @@ class SharedSegmentsTest {
             0.30f to 0.30f                        // esquina real (giro brusco)
         )
         val out = simplifyStroke(noisy)
-        assertTrue("Debe quitar los puntos de temblor", out.size < noisy.size)
+        assertTrue(out.size < noisy.size, "Debe quitar los puntos de temblor")
         assertEquals(noisy.first(), out.first())
         assertEquals(noisy.last(), out.last())
-        assertTrue("Debe conservar la esquina", out.contains(0.30f to 0.10f))
+        assertTrue(out.contains(0.30f to 0.10f), "Debe conservar la esquina")
     }
 
     @Test fun `fanOffsets separa badges que coinciden y no toca el resto`() {
