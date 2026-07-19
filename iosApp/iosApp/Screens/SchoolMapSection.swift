@@ -15,15 +15,14 @@ struct SchoolMapSection: View {
     let school: School
     var openVia: String? = nil
     @State private var didAutoOpen = false
-    @State private var isAdmin = false
     @State private var expanded = false
-    @State private var blocks: [Block] = []
     @State private var selectedBlock: Block?
     // Flujo proponer/corregir agrupado (espejo de ProposalMapBridge en Android).
     @StateObject private var flow = MapProposalFlowStore()
+    // Datos del mapa (bloques/capas/buscador/admin) — ver SchoolMapViewModel.
+    @StateObject private var vm = SchoolMapViewModel()
     @State private var mapStyle: MapStyleKind = .satellite  // paridad con Android
     @State private var userCoord: CLLocationCoordinate2D?   // mi ubicación en el sector
-    @State private var collapsedSectors: Set<String> = []   // zonas con piedras ocultas
     // Mini-ficha flotante de PARKING/ZONA sobre el mapa (la ficha grande queda
     // solo para PIEDRAS). confirmDeleteMini = confirmación de borrado (admin).
     @State private var miniBlock: Block?
@@ -40,12 +39,9 @@ struct SchoolMapSection: View {
     // Encuadre de bounds (parking + su zona) — tiene prioridad sobre focusCoord.
     @State private var focusFit: [CLLocationCoordinate2D] = []
     // Capas ocultas por el usuario (leyenda pulsable): PARKING/BLOCK/ZONE.
-    @State private var hiddenTypes: Set<String> = []
     // Mapa a pantalla completa (estilo Radar).
     @State private var fullscreenMap = false
     // Buscador de vías/bloques de la escuela.
-    @State private var searchQuery = ""
-    @State private var searchHighlight: String?
     // Brújula → cono de dirección en el punto azul.
     @StateObject private var headingProvider = HeadingProvider()
 
@@ -63,8 +59,8 @@ struct SchoolMapSection: View {
                     Image(systemName: "map").font(.system(size: 13))
                     Text(expanded ? NSLocalizedString("schools_hide_map", comment: "") : NSLocalizedString("schools_view_map", comment: ""))
                         .font(Cumbre.mono(11, .bold)).tracking(0.8)
-                    if !blocks.isEmpty {
-                        Text("· \(blocks.count)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                    if !vm.blocks.isEmpty {
+                        Text("· \(vm.blocks.count)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
                     }
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
@@ -91,8 +87,8 @@ struct SchoolMapSection: View {
         }
         .task(id: expanded) {
             guard expanded else { return }
-            if blocks.isEmpty {
-                blocks = await loadBlocksOnlineOrOffline()
+            if vm.blocks.isEmpty {
+                vm.blocks = await loadBlocksOnlineOrOffline()
             }
             maybeAutoOpen()
             headingProvider.start()
@@ -118,7 +114,7 @@ struct SchoolMapSection: View {
         }
         // ¿Admin? → puede eliminar bloques desde su ficha.
         .task {
-            isAdmin = ((try? await AppDependencies.shared.container.getMyProfile.invoke())?.isAdmin) ?? false
+            await vm.loadAdminFlag()
         }
         .alert("¿Eliminar «\(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
             Button("ELIMINAR", role: .destructive) {
@@ -126,7 +122,7 @@ struct SchoolMapSection: View {
                 miniBlock = nil
                 Task {
                     try? await AppDependencies.shared.container.deleteBlock.invoke(blockId: mb.id)
-                    await reloadBlocks()
+                    if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
                 }
             }
             Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
@@ -159,7 +155,7 @@ struct SchoolMapSection: View {
                             } else if !flow.waitingTap && !flow.correctionMode {
                                 // Parking/zona → mini-ficha flotante (el mapa se
                                 // sigue viendo); piedras → su ficha completa.
-                                if let b = blocks.first(where: { $0.id == id }) {
+                                if let b = vm.blocks.first(where: { $0.id == id }) {
                                     switch b.type.uppercased() {
                                     case "PARKING":
                                         miniBlock = b
@@ -170,8 +166,8 @@ struct SchoolMapSection: View {
                                         miniBlock = b
                                         // Zoom FIJO centrado entre sector y piedras
                                         // (los encuadres calculados se iban a extremos).
-                                        let stones = blocks.filter { $0.sectorBlockId == b.id }
-                                        collapsedSectors.remove(b.id)
+                                        let stones = vm.blocks.filter { $0.sectorBlockId == b.id }
+                                        vm.collapsedSectors.remove(b.id)
                                         let pts = [CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)]
                                             + stones.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
                                         let cLat = pts.map { $0.latitude }.reduce(0, +) / Double(pts.count)
@@ -287,14 +283,14 @@ struct SchoolMapSection: View {
                                     Image(systemName: "square.3.layers.3d")
                                         .font(.system(size: 16)).foregroundStyle(Cumbre.ink)
                                 }
-                                sideButton(active: !hiddenTypes.contains("PARKING")) {
-                                    toggleLayer("PARKING")
+                                sideButton(active: !vm.hiddenTypes.contains("PARKING")) {
+                                    vm.toggleLayer("PARKING")
                                 } content: { parkingShape }
-                                sideButton(active: !hiddenTypes.contains("BLOCK")) {
-                                    toggleLayer("BLOCK")
+                                sideButton(active: !vm.hiddenTypes.contains("BLOCK")) {
+                                    vm.toggleLayer("BLOCK")
                                 } content: { stoneShape }
-                                sideButton(active: !hiddenTypes.contains("ZONE")) {
-                                    toggleLayer("ZONE")
+                                sideButton(active: !vm.hiddenTypes.contains("ZONE")) {
+                                    vm.toggleLayer("ZONE")
                                 } content: { zoneShape }
                                 if let u = userCoord {
                                     sideButton(active: true) {
@@ -346,28 +342,28 @@ struct SchoolMapSection: View {
                 }
                 .sheet(item: boulderCoordItem) { item in
                     BoulderFormSheet(schoolId: school.id, coord: item.coord,
-                                     sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
+                                     sectors: vm.blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
                         flow.boulderCoord = nil
                         if ok { afterSubmit() }
                     }
                 }
-                .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: isAdmin) }
+                .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(vm.isAdmin: vm.isAdmin) }
                 // Ficha de piedra y sus acciones — también ancladas al mapa para
                 // que se presenten sobre la pantalla completa sin tener que salir.
                 .sheet(item: $selectedBlock) { b in
                     BlockInfoSheet(
                         block: b,
-                        sectors: blocks.filter { $0.type.uppercased() == "ZONE" },
+                        sectors: vm.blocks.filter { $0.type.uppercased() == "ZONE" },
                         schoolName: school.name,
-                        highlightVia: searchHighlight ?? openVia,
+                        highlightVia: vm.searchHighlight ?? openVia,
                         onEditLines: { editLinesBlock = b },
                         onAssignSector: { assignSectorBlock = b },
-                        onDelete: isAdmin ? {
+                        onDelete: vm.isAdmin ? {
                             let id = b.id
                             selectedBlock = nil
                             Task {
                                 try? await AppDependencies.shared.container.deleteBlock.invoke(blockId: id)
-                                await reloadBlocks()
+                                if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
                             }
                         } : nil,
                         onRateLine: { lineId, stars in
@@ -378,7 +374,7 @@ struct SchoolMapSection: View {
                                 } else {
                                     _ = try? await rateLine.unrate(blockId: b.id, lineId: lineId)
                                 }
-                                await reloadBlocks()
+                                if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
                             }
                         })
                 }
@@ -390,7 +386,7 @@ struct SchoolMapSection: View {
                 }
                 .sheet(item: $assignSectorBlock) { b in
                     AssignSectorSheet(block: b, schoolId: school.id,
-                                      sectors: blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
+                                      sectors: vm.blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
                         assignSectorBlock = nil
                         if ok { afterSubmit() }
                     }
@@ -401,15 +397,15 @@ struct SchoolMapSection: View {
     @ViewBuilder
     private var searchBar: some View {
         VStack(alignment: .leading, spacing: 4) {
-            TextField("Buscar vías/bloques…", text: $searchQuery)
+            TextField("Buscar vías/bloques…", text: $vm.searchQuery)
                 .textFieldStyle(.plain)
                 .font(.system(size: 14))
                 .padding(.horizontal, 12).padding(.vertical, 9)
                 .background(Cumbre.paper)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-            let q = searchQuery.trimmingCharacters(in: .whitespaces)
+            let q = vm.searchQuery.trimmingCharacters(in: .whitespaces)
             if q.count >= 2 {
-                let hits = searchHits(q)
+                let hits = vm.searchHits(q)
                 if hits.isEmpty {
                     Text("Sin resultados en esta escuela")
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
@@ -417,8 +413,8 @@ struct SchoolMapSection: View {
                     VStack(spacing: 0) {
                         ForEach(hits, id: \.id) { h in
                             Button {
-                                searchQuery = ""
-                                searchHighlight = h.viaName
+                                vm.searchQuery = ""
+                                vm.searchHighlight = h.viaName
                                 selectedBlock = h.block
                             } label: {
                                 HStack {
@@ -449,34 +445,15 @@ struct SchoolMapSection: View {
         }
     }
 
-    private struct SearchHit { let id: String; let label: String; let sub: String; let viaName: String?; let block: Block }
-    private func searchHits(_ q: String) -> [SearchHit] {
-        var out: [SearchHit] = []
-        for b in blocks where b.type.uppercased() == "BLOCK" {
-            for l in b.lines where l.name.localizedCaseInsensitiveContains(q) {
-                let grade = (l.grade?.isEmpty == false) ? " · \(l.grade!)" : ""
-                out.append(SearchHit(id: l.id, label: l.name + grade, sub: b.name, viaName: l.name, block: b))
-            }
-            if b.name.localizedCaseInsensitiveContains(q) {
-                out.append(SearchHit(id: b.id, label: b.name, sub: "\(b.lines.count) vías", viaName: nil, block: b))
-            }
-        }
-        return Array(out.prefix(8))
-    }
-
     /// Vuelve al encuadre inicial de la escuela (todos los marcadores).
     private func recenterOnSchool() {
         var coords = [CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)]
-        coords += blocks.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+        coords += vm.blocks.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
         if coords.count >= 2 { focusFit = coords } else {
             focusFit = []
             focusCoord = coords[0]
         }
         focusToken += 1
-    }
-
-    private func toggleLayer(_ type: String) {
-        if hiddenTypes.contains(type) { hiddenTypes.remove(type) } else { hiddenTypes.insert(type) }
     }
 
     /// Botón circular de la botonera lateral; apagado = capa oculta.
@@ -526,7 +503,7 @@ struct SchoolMapSection: View {
         Task {
             try? await Task.sleep(nanoseconds: 400_000_000)
             flow.showSuccess = true
-            await reloadBlocks()
+            if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
         }
     }
 
@@ -539,7 +516,7 @@ struct SchoolMapSection: View {
     // MARK: - Corrección de posición
 
     private func selectCorrectionTarget(_ id: String) {
-        if let b = blocks.first(where: { $0.id == id }) {
+        if let b = vm.blocks.first(where: { $0.id == id }) {
             flow.corrTargetId = b.id
             flow.corrTargetName = b.name.isEmpty ? typeLabel(b.type) : b.name
             flow.corrOld = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
@@ -610,64 +587,32 @@ struct SchoolMapSection: View {
     /// Abre la piedra que contiene la vía indicada (deep-link del diario): busca
     /// el bloque cuya vía coincide por nombre (o el bloque con ese nombre).
     private func maybeAutoOpen() {
-        guard !didAutoOpen, let via = openVia, !via.isEmpty, !blocks.isEmpty else { return }
+        guard !didAutoOpen, let via = openVia, !via.isEmpty, !vm.blocks.isEmpty else { return }
         // Por id ESTABLE primero (enlaces compartidos /s/v/{...}/{lineId});
         // si no, por nombre (deep-link clásico del diario).
-        let target = blocks.first { b in
+        let target = vm.blocks.first { b in
             b.lines.contains { $0.id == via }
-        } ?? blocks.first { b in
+        } ?? vm.blocks.first { b in
             b.lines.contains { $0.name.caseInsensitiveCompare(via) == .orderedSame }
-        } ?? blocks.first { $0.name.caseInsensitiveCompare(via) == .orderedSame }
+        } ?? vm.blocks.first { $0.name.caseInsensitiveCompare(via) == .orderedSame }
             // Post "piedra nueva" del feed: openVia trae el ID de la piedra.
-            ?? blocks.first { $0.id == via }
+            ?? vm.blocks.first { $0.id == via }
         if let target {
             didAutoOpen = true
             selectedBlock = target
         }
     }
 
-    private func reloadBlocks() async {
-        blocks = await loadBlocksOnlineOrOffline()
-        // Si hay una ficha de bloque abierta, refresca sus datos (p.ej. nueva foto)
-        if let sel = selectedBlock, let fresh = blocks.first(where: { $0.id == sel.id }) {
-            selectedBlock = fresh
-        }
-    }
-
-    /// Carga los bloques (piedras/parkings/zonas) por red; si la red falla o no
-    /// devuelve nada (offline), cae al snapshot guardado `loadOffline` para que
-    /// el mapa, las piedras y sus vías salgan igual sin internet. Las fotos las
-    /// resuelve `TopoPhotoView` desde `ImageCache`.
-    private func loadBlocksOnlineOrOffline() async -> [Block] {
-        if let online = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id),
-           !online.isEmpty {
-            // Si el sitio está guardado offline, refresca su snapshot con lo recién
-            // bajado (bloques + fotos) para que SIN conexión no se vea lo viejo tras
-            // una modificación. Forecast nil = no se toca el ya cacheado.
-            if let repo = AppDependencies.shared.container.savedSchools,
-               (try? await repo.loadOffline(id: school.id)) != nil {
-                try? await repo.saveOffline(school: school, blocks: online, forecast: nil)
-                await ImageCache.prefetch(online.compactMap { $0.photoPath })
-            }
-            return online
-        }
-        // Sin red (o sin bloques en la respuesta): tira del snapshot offline.
-        if let repo = AppDependencies.shared.container.savedSchools,
-           let snap = try? await repo.loadOffline(id: school.id) {
-            return snap.blocks.map { repo.toBlock(entity: $0, lines: snap.lines) }
-        }
-        return []
-    }
 
     // Muros (geometry=LINE) dibujados como polilínea terra en el mapa. Se ocultan
     // si la piedra pertenece a un sector colapsado (igual que su marcador).
     private var wallPolylines: [CumbrePolyline] {
-        blocks.compactMap { b in
+        vm.blocks.compactMap { b in
             // Solo PIEDRAS: un parking/zona con path corrupto no debe estirarse
             // en una línea (se veía azul, color del tipo).
             guard b.type.uppercased() == "BLOCK", b.geometry.uppercased() == "LINE" else { return nil }
-            if hiddenTypes.contains("BLOCK") { return nil }
-            if let sid = b.sectorBlockId, collapsedSectors.contains(sid) { return nil }
+            if vm.hiddenTypes.contains("BLOCK") { return nil }
+            if let sid = b.sectorBlockId, vm.collapsedSectors.contains(sid) { return nil }
             let pts = parseWallPath(b.path)
             guard pts.count >= 2 else { return nil }
             return CumbrePolyline(id: "wall-\(b.id)", coordinates: pts, color: blockColor, width: 5)
@@ -689,16 +634,16 @@ struct SchoolMapSection: View {
             id: school.id,
             coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
             title: school.name, kind: .school, color: schoolColor)]
-        for b in blocks {
+        for b in vm.blocks {
             // Capa apagada (botonera lateral) → no se pinta.
-            if hiddenTypes.contains(b.type.uppercased()) { continue }
+            if vm.hiddenTypes.contains(b.type.uppercased()) { continue }
             // Piedra oculta si pertenece a un sector colapsado.
-            if b.type.uppercased() == "BLOCK", let sid = b.sectorBlockId, collapsedSectors.contains(sid) {
+            if b.type.uppercased() == "BLOCK", let sid = b.sectorBlockId, vm.collapsedSectors.contains(sid) {
                 continue
             }
             // Zona colapsada: muestra cuántas piedras tiene ocultas.
-            let collapsed = b.type.uppercased() == "ZONE" && collapsedSectors.contains(b.id)
-            let hidden = collapsed ? blocks.filter { $0.sectorBlockId == b.id }.count : 0
+            let collapsed = b.type.uppercased() == "ZONE" && vm.collapsedSectors.contains(b.id)
+            let hidden = collapsed ? vm.blocks.filter { $0.sectorBlockId == b.id }.count : 0
             ms.append(CumbreMarker(
                 id: b.id,
                 coordinate: blockMarkerCoord(b),
@@ -765,13 +710,13 @@ struct SchoolMapSection: View {
     /// ≤800 m (expandiendo colapsados) — vista de ~1,5-2 km. Sin nada cerca,
     /// zoom equivalente. Espejo de flyToParkingZone de Android.
     private func flyToParkingZone(_ p: Block) {
-        let near = blocks.filter { b in
+        let near = vm.blocks.filter { b in
             b.id != p.id &&
             Geo.shared.haversineKm(lat1: p.lat, lon1: p.lon, lat2: b.lat, lon2: b.lon) <= 0.8
         }
         for b in near {
-            if b.type.uppercased() == "ZONE" { collapsedSectors.remove(b.id) }
-            if let sid = b.sectorBlockId { collapsedSectors.remove(sid) }
+            if b.type.uppercased() == "ZONE" { vm.collapsedSectors.remove(b.id) }
+            if let sid = b.sectorBlockId { vm.collapsedSectors.remove(sid) }
         }
         // Centrar EN el parking pulsado (no en el centroide del parking + cercanos,
         // que dejaba el parking descentrado). Paridad con Android.
@@ -785,8 +730,8 @@ struct SchoolMapSection: View {
     /// CÓMO LLEGAR. Sectores con piedras: toggle VER/OCULTAR explícito.
     private func miniBlockCard(_ mb: Block) -> some View {
         let isParking = mb.type.uppercased() == "PARKING"
-        let stoneCount = blocks.filter { $0.sectorBlockId == mb.id }.count
-        let collapsed = collapsedSectors.contains(mb.id)
+        let stoneCount = vm.blocks.filter { $0.sectorBlockId == mb.id }.count
+        let collapsed = vm.collapsedSectors.contains(mb.id)
         var subtitle = isParking ? "Parking" : "Sector"
         if !isParking && stoneCount > 0 { subtitle += " · \(stoneCount) piedra\(stoneCount == 1 ? "" : "s")" }
         if let u = userCoord {
@@ -806,7 +751,7 @@ struct SchoolMapSection: View {
                     Text(subtitle).font(.system(size: 11)).foregroundStyle(Cumbre.ink3).lineLimit(1)
                 }
                 Spacer(minLength: 4)
-                if isAdmin {
+                if vm.isAdmin {
                     Button { miniBlock = nil; openBlockSheet(mb) } label: {
                         Image(systemName: "pencil").font(.system(size: 15)).foregroundStyle(Cumbre.ink2).padding(4)
                     }.buttonStyle(.plain)
@@ -829,7 +774,7 @@ struct SchoolMapSection: View {
             }
             if !isParking && stoneCount > 0 {
                 Button {
-                    if collapsed { collapsedSectors.remove(mb.id) } else { collapsedSectors.insert(mb.id) }
+                    if collapsed { vm.collapsedSectors.remove(mb.id) } else { vm.collapsedSectors.insert(mb.id) }
                 } label: {
                     Text(collapsed ? "VER PIEDRAS" : "OCULTAR PIEDRAS")
                         .font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
@@ -846,7 +791,7 @@ struct SchoolMapSection: View {
     }
 
     private var parkingsList: some View {
-        let parkings = blocks.filter { $0.type.uppercased() == "PARKING" }.sorted { $0.name < $1.name }
+        let parkings = vm.blocks.filter { $0.type.uppercased() == "PARKING" }.sorted { $0.name < $1.name }
         return Group {
             if !parkings.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
