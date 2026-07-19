@@ -142,26 +142,45 @@ class SchoolDetailViewModelTest {
 
     @After fun tearDown() { Dispatchers.resetMain() }
 
-    private fun newVm() = SchoolDetailViewModel(
-        savedState(), getSchoolById, getForecast, getNotes, createNote,
-        getMyFavorites, addFavorite, removeFavorite, getBlocks, createBlock,
-        deleteBlockUC, submitContribution, getMyProfile, photoUploader, fileReader,
-        monthlyStatsRepo, savedSchoolRepo, offlineTiles, ktorAdminApi, updateBlockUseCase,
-        outboxRepo,
-        mockk<com.meteomontana.android.data.api.KtorMountainApi>(relaxed = true),
-        mockk<com.meteomontana.android.data.api.KtorNoteApi>(relaxed = true),
-        networkMonitor,
-        mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-        mockk<com.meteomontana.android.data.local.JournalDoneStore>(relaxed = true) {
-            every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
-        },
-        mockk<com.meteomontana.android.data.local.JournalProjectStore>(relaxed = true) {
-            every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
-        },
-        mockk(relaxed = true),  // rateLineUseCase
-        mockk(relaxed = true),  // publishFeedPost (feed Comunidad)
-        mockk(relaxed = true)   // uploadFeedPhoto (foto de celebración)
-    )
+    // El VM es ahora una FACHADA: se cablean sus colaboradores reales con los
+    // mocks de siempre (mismo patrón que los tests del FeedService troceado).
+    private fun newVm(): SchoolDetailViewModel {
+        val loader = com.meteomontana.android.ui.screens.detail.SchoolDetailLoader(
+            getSchoolById, getForecast, getNotes, getMyFavorites, getBlocks,
+            getMyProfile, savedSchoolRepo,
+            mockk<com.meteomontana.android.data.api.KtorMountainApi>(relaxed = true)
+        )
+        val journal = com.meteomontana.android.ui.screens.detail.JournalTickController(
+            mockk(relaxed = true),  // getMyJournal
+            mockk(relaxed = true),  // createJournalEntry
+            mockk(relaxed = true),  // deleteJournalEntry
+            mockk<com.meteomontana.android.data.local.JournalDoneStore>(relaxed = true) {
+                every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
+            },
+            mockk<com.meteomontana.android.data.local.JournalProjectStore>(relaxed = true) {
+                every { keys } returns kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
+            },
+            outboxRepo, networkMonitor
+        )
+        val contributions = com.meteomontana.android.ui.screens.detail.SchoolContributionSender(
+            submitContribution, photoUploader, fileReader, outboxRepo, networkMonitor
+        )
+        val tickFeed = com.meteomontana.android.ui.screens.detail.TickFeedPublisher(
+            mockk(relaxed = true),  // publishFeedPost (feed Comunidad)
+            mockk(relaxed = true),  // uploadFeedPhoto (foto de celebración)
+            fileReader
+        )
+        return SchoolDetailViewModel(
+            savedState(), loader, journal, contributions, tickFeed,
+            getNotes, createNote, addFavorite, removeFavorite, getBlocks,
+            createBlock, deleteBlockUC, photoUploader, fileReader,
+            monthlyStatsRepo, savedSchoolRepo, offlineTiles, ktorAdminApi,
+            updateBlockUseCase, outboxRepo,
+            mockk<com.meteomontana.android.data.api.KtorNoteApi>(relaxed = true),
+            networkMonitor,
+            mockk(relaxed = true)  // rateLineUseCase
+        )
+    }
 
     @Test fun `load con todo OK produce Success con forecast y sin error`() = runTest {
         val vm = newVm()
