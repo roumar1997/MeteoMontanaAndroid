@@ -84,21 +84,6 @@ private enum class MapStyleOption(val labelResId: Int) {
     TOPO(R.string.map_topo)
 }
 
-/**
- * Bounds con margen proporcional y MÍNIMO absoluto: con puntos casi
- * coincidentes, newLatLngBounds se iba a zoom extremo (mapa borroso).
- */
-private fun inflatedBounds(points: List<LatLng>): LatLngBounds {
-    val minLat = points.minOf { it.latitude }; val maxLat = points.maxOf { it.latitude }
-    val minLon = points.minOf { it.longitude }; val maxLon = points.maxOf { it.longitude }
-    val latSpan = maxOf((maxLat - minLat) * 0.30, 0.004)
-    val lonSpan = maxOf((maxLon - minLon) * 0.30, 0.005)
-    return LatLngBounds.Builder()
-        .include(LatLng(minLat - latSpan, minLon - lonSpan))
-        .include(LatLng(maxLat + latSpan, maxLon + lonSpan))
-        .build()
-}
-
 private fun styleJsonFor(style: MapStyleOption): String = when (style) {
     MapStyleOption.SATELLITE -> """{"version":8,"sources":{"sat":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"sat","type":"raster","source":"sat"}]}"""
     MapStyleOption.TOPO      -> """{"version":8,"sources":{"topo":{"type":"raster","tiles":["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"topo","type":"raster","source":"topo"}]}"""
@@ -1304,29 +1289,6 @@ private fun CumbreSuccessDialog(
 // Mapa de markers activos para poder mapear marker → Block al tocar
 private val markerBlockMap = mutableMapOf<Long, Block>()
 private val polylineBlockMap = mutableMapOf<Long, Block>()
-// Marker de clúster → centro al que acercar la cámara al tocarlo.
-private val clusterTargetMap = mutableMapOf<Long, LatLng>()
-
-/**
- * Agrupa piedras que a este zoom caerían unas encima de otras (≈44 px).
- * Greedy y suficiente para decenas de piedras: cada piedra entra en el primer
- * grupo cuyo origen tiene cerca; si no hay ninguno, abre grupo nuevo.
- */
-private fun clusterStones(stones: List<Block>, zoom: Double): List<List<Block>> {
-    if (stones.size < 2) return stones.map { listOf(it) }
-    val thresholdDeg = 44.0 * 360.0 / (256.0 * Math.pow(2.0, zoom))
-    val groups = mutableListOf<MutableList<Block>>()
-    stones.forEach { s ->
-        val cosLat = Math.cos(Math.toRadians(s.lat)).coerceAtLeast(0.2)
-        val g = groups.firstOrNull { grp ->
-            val seed = grp.first()
-            Math.abs(seed.lat - s.lat) < thresholdDeg &&
-                Math.abs(seed.lon - s.lon) * cosLat < thresholdDeg
-        }
-        if (g != null) g.add(s) else groups.add(mutableListOf(s))
-    }
-    return groups
-}
 
 /** Parsea el `path` de un muro ("[[lat,lon],...]") a LatLng. Vacío si no es válido. */
 internal fun parseWallPath(path: String?): List<LatLng> {
@@ -1371,7 +1333,6 @@ private fun placeMarkers(
     map.clear()
     markerBlockMap.clear()
     polylineBlockMap.clear()
-    clusterTargetMap.clear()
 
     val iconFactory = IconFactory.getInstance(ctx)
 
@@ -1603,32 +1564,6 @@ private fun blockBitmap(label: String): Bitmap = pinBitmapBoulder(
     sizeDp = 22   // ↓ Más pequeñas: en zonas con muchas piedras juntas, no se solapan tanto.
 )
 
-/** Círculo terra con contador para clústeres de piedras juntas. */
-private fun clusterBitmap(count: Int): Bitmap {
-    val size = 76
-    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val c = Canvas(bmp)
-    val cx = size / 2f; val cy = size / 2f
-    // Halo translúcido + círculo sólido + borde blanco (legible sobre satélite).
-    val halo = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.parseColor(PIEDRA_COLOR); alpha = 70 }
-    c.drawCircle(cx, cy, 36f, halo)
-    val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.parseColor(PIEDRA_COLOR) }
-    c.drawCircle(cx, cy, 26f, fill)
-    val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 3f }
-    c.drawCircle(cx, cy, 26f, ring)
-    val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE
-        textSize = if (count >= 10) 24f else 28f
-        textAlign = Paint.Align.CENTER
-        typeface = Typeface.DEFAULT_BOLD
-    }
-    c.drawText(count.toString(), cx, cy + txt.textSize / 3f, txt)
-    return bmp
-}
-
 /** Pin verde para zonas (tipo ZONE). */
 private fun zoneBitmap(): Bitmap {
     val size = 68
@@ -1789,25 +1724,6 @@ private fun ZoneShapeIcon() {
     ) {
         Text("Z", color = Color.White, style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun StyleChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape  = RoundedCornerShape(2.dp)
-    val bg     = if (selected) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.surface
-    val fg     = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
-    val border = if (selected) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.outline
-    Box(
-        modifier = Modifier
-            .clip(shape)
-            .background(bg, shape)
-            .border(1.dp, border, shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(label, color = fg, style = MaterialTheme.typography.labelMedium)
     }
 }
 
