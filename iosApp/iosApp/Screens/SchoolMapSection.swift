@@ -347,7 +347,7 @@ struct SchoolMapSection: View {
                         if ok { afterSubmit() }
                     }
                 }
-                .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(vm.isAdmin: vm.isAdmin) }
+                .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: vm.isAdmin) }
                 // Ficha de piedra y sus acciones — también ancladas al mapa para
                 // que se presenten sobre la pantalla completa sin tener que salir.
                 .sheet(item: $selectedBlock) { b in
