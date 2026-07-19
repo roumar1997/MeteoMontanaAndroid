@@ -8,6 +8,14 @@ import Shared
 // ciclo de vida de MapLibre NO se tocan (frágiles por naturaleza, no por deuda).
 @MainActor
 final class SchoolMapViewModel: ObservableObject {
+    // Inyección por init con default (regla para VMs NUEVOS, auditoría
+    // 2026-07-19): en la app no cambia nada; en un test se le pasa un
+    // container con fakes y el VM por fin se puede testear.
+    private let container: IosDependencyContainer
+    init(container: IosDependencyContainer = AppDependencies.shared.container) {
+        self.container = container
+    }
+
     @Published var blocks: [Block] = []
     @Published var isAdmin = false
     /// Capas ocultas por la botonera (BLOCK/PARKING/ZONE).
@@ -18,7 +26,7 @@ final class SchoolMapViewModel: ObservableObject {
     @Published var searchHighlight: String?
 
     func loadAdminFlag() async {
-        isAdmin = ((try? await AppDependencies.shared.container.getMyProfile.invoke())?.isAdmin) ?? false
+        isAdmin = ((try? await container.getMyProfile.invoke())?.isAdmin) ?? false
     }
 
     func toggleLayer(_ type: String) {
@@ -53,12 +61,12 @@ final class SchoolMapViewModel: ObservableObject {
     /// el mapa, las piedras y sus vías salgan igual sin internet. Las fotos las
     /// resuelve `TopoPhotoView` desde `ImageCache`.
     private func loadBlocksOnlineOrOffline(school: School) async -> [Block] {
-        if let online = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: school.id),
+        if let online = try? await container.getBlocks.invoke(schoolId: school.id),
            !online.isEmpty {
             // Si el sitio está guardado offline, refresca su snapshot con lo recién
             // bajado (bloques + fotos) para que SIN conexión no se vea lo viejo tras
             // una modificación. Forecast nil = no se toca el ya cacheado.
-            if let repo = AppDependencies.shared.container.savedSchools,
+            if let repo = container.savedSchools,
                (try? await repo.loadOffline(id: school.id)) != nil {
                 try? await repo.saveOffline(school: school, blocks: online, forecast: nil)
                 await ImageCache.prefetch(online.compactMap { $0.photoPath })
@@ -66,7 +74,7 @@ final class SchoolMapViewModel: ObservableObject {
             return online
         }
         // Sin red (o sin bloques en la respuesta): tira del snapshot offline.
-        if let repo = AppDependencies.shared.container.savedSchools,
+        if let repo = container.savedSchools,
            let snap = try? await repo.loadOffline(id: school.id) {
             return snap.blocks.map { repo.toBlock(entity: $0, lines: snap.lines) }
         }

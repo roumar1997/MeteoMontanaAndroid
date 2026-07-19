@@ -38,6 +38,11 @@ Reglas de dependencia (la flecha SOLO apunta hacia dentro):
   servicio de backend → pararse y preguntarse qué responsabilidades mezcla.
 - Un composable/función con **>12 parámetros** está pidiendo un state-holder
   (`@Stable` class con `mutableStateOf`, como `ProposalMapBridge`).
+- **iOS: todo ViewModel NUEVO recibe sus dependencias por `init` con default**
+  (`init(container: IosDependencyContainer = AppDependencies.shared.container)`,
+  ver `SchoolMapViewModel`). En la app no cambia nada; en un test se le pasa un
+  container con fakes. Prohibido resolver `AppDependencies.shared` inline en
+  las propiedades de un VM nuevo (los antiguos se migran boy-scout, sin big-bang).
 
 ## 3. El módulo del mapa de escuela (refactor 2026-07-19)
 
