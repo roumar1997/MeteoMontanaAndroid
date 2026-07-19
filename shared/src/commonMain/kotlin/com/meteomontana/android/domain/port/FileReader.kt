@@ -5,7 +5,7 @@ import com.meteomontana.android.domain.model.FileRef
 /**
  * Puerto para leer bytes de un fichero local.
  * La implementación Android usa ContentResolver. En iOS usará NSData.
- * Puro Kotlin — sin imports Android. Listo para commonMain en Fase 2.
+ * Puro Kotlin — sin imports Android. Vive en commonMain (migración KMP completada).
  */
 interface FileReader {
     @Throws(Exception::class)

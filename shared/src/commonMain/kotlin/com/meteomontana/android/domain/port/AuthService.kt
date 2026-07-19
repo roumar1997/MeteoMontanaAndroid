@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 /**
  * Puerto de autenticación. Abstrae Firebase Auth del resto de la app.
  * Solo expone lo que el dominio y los ViewModels necesitan saber.
- * Puro Kotlin — sin imports Android/Firebase. Listo para commonMain en Fase 2.
+ * Puro Kotlin — sin imports Android/Firebase. Vive en commonMain (migración KMP completada).
  */
 interface AuthService {
     sealed interface AuthState {

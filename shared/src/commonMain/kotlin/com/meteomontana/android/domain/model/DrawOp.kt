@@ -3,7 +3,7 @@ package com.meteomontana.android.domain.model
 /**
  * Instrucción de dibujo independiente de plataforma.
  * En Android el Composable Canvas las traduce a DrawScope + nativeCanvas.
- * En iOS (Fase 3) se traducirán a SwiftUI Canvas + CoreGraphics.
+ * En iOS se traducen a SwiftUI Canvas + CoreGraphics.
  *
  * Coordenadas: píxeles absolutos del canvas (ya multiplicadas por w/h).
  * Colores: ARGB32 como Long (bits 0-31). Usar .toInt() al crear Compose Color.
