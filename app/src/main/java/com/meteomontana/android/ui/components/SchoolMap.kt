@@ -154,18 +154,8 @@ fun SchoolMap(
     var highlightVia by remember { mutableStateOf<String?>(null) }
     // Tick pendiente de confirmar (hoja "Publicar en el feed").
     var pendingTick by remember { mutableStateOf<PendingTick?>(null) }
-    var addingLinesTo by remember { mutableStateOf<Block?>(null) }
-    var editFaces by remember { mutableStateOf<List<com.meteomontana.android.ui.screens.detail.EditFace>>(emptyList()) }
-    var editGeometry by remember { mutableStateOf("POINT") }
-    var editDirection by remember { mutableStateOf("LTR") }
-    var editSelectedFace by remember { mutableStateOf(0) }
-    var editTracedPath by remember { mutableStateOf<List<Pair<Double, Double>>?>(null) }
-    // Trazado de muro del EDITOR (editWallTracing): el mapa lo pinta.
-    var editWallTracing by remember { mutableStateOf(false) }
-    var editWallPreview by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
-    var editingLine by remember {
-        mutableStateOf<Pair<Block, com.meteomontana.android.domain.model.BlockLine>?>(null)
-    }
+    // Estado del editor de piedra/muro, agrupado (antes 9 variables sueltas).
+    val wallEdit = remember { WallEditState() }
     var successMessage by remember { mutableStateOf<String?>(null) }
 
     // Deep-link por id de PIEDRA (post "piedra nueva" del feed, sin vía):
@@ -199,25 +189,8 @@ fun SchoolMap(
         }
     }
 
-    // Estado del flujo de propuesta
-    var proposeOpen    by remember { mutableStateOf(false) }
-    var waitingMapTap  by remember { mutableStateOf(false) }
-    var correctionMode by remember { mutableStateOf(false) }
-    var correctionGhost by remember { mutableStateOf<com.meteomontana.android.ui.screens.detail.CorrectionGhost?>(null) }
-    var correctionTargetName by remember { mutableStateOf<String?>(null) }
-    // Trazado de muro: modo activo + polilínea en construcción (preview).
-    var wallTracing by remember { mutableStateOf(false) }
-    var wallPreview by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
-
-    // Callback que el flujo registra para recibir el tap en el mapa
-    var mapTapCallback by remember { mutableStateOf<((Double, Double) -> Unit)?>(null) }
-    // Callback que el flujo registra para recibir un tap en un marker existente.
-    var markerTapForCorrection by remember { mutableStateOf<((Block) -> Unit)?>(null) }
-    // Callback que el flujo registra para que se dispare al pulsar ACEPTAR.
-    var acceptCorrectionCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
-    // Callbacks DESHACER / LISTO del trazado de muro.
-    var wallUndoCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
-    var wallDoneCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
+    // Puente mapa ↔ flujo de propuestas (antes: 7 estados + 5 callbacks sueltos).
+    val bridge = remember { ProposalMapBridge() }
 
     Column(modifier = modifier.fillMaxWidth()) {
 
@@ -276,84 +249,34 @@ fun SchoolMap(
                 schoolName    = schoolName,
                 schoolId      = schoolId,
                 viewModel     = viewModel,
-                onMyProposals = onMyProposals,
-                waitingMapTap = waitingMapTap,
-                correctionMode = correctionMode,
-                correctionGhost = correctionGhost,
-                correctionTargetName = correctionTargetName,
-                wallTracing = wallTracing,
-                wallPreview = wallPreview,
-                onProposeClick = { proposeOpen = true },
-                onCancelTap   = {
-                    waitingMapTap = false
-                    correctionMode = false
-                    correctionGhost = null
-                    correctionTargetName = null
-                    wallTracing = false
-                    wallPreview = emptyList()
-                    proposeOpen = false
-                    mapTapCallback = null
-                    markerTapForCorrection = null
-                    acceptCorrectionCallback = null
-                    wallUndoCallback = null
-                    wallDoneCallback = null
-                },
-                onMapTapped   = { lat, lon ->
-                    mapTapCallback?.invoke(lat, lon)
-                    // No reseteamos waitingMapTap en corrección ni en trazado (siguen activos).
-                    if (!correctionMode && !wallTracing) waitingMapTap = false
-                },
-                onMarkerTappedForCorrection = { block ->
-                    markerTapForCorrection?.invoke(block)
-                },
-                onAcceptCorrection = { acceptCorrectionCallback?.invoke() },
-                onWallUndo = { wallUndoCallback?.invoke() },
-                onWallDone = { wallDoneCallback?.invoke() },
-                // Ficha y trazado del editor viven en ESTE nivel (izados).
+                bridge        = bridge,
+                wallEdit      = wallEdit,
+                // Ficha de piedra izada a ESTE nivel (deep-links sin MapLibre).
                 onBlockSelected = { selectedBlock = it },
-                onDismissBlock = { selectedBlock = null },
-                editWallTracing = editWallTracing,
-                editWallPreview = editWallPreview,
-                onEditWallTap = { lat, lon -> editWallPreview = editWallPreview + (lat to lon) },
-                onEditWallUndo = { editWallPreview = editWallPreview.dropLast(1) },
-                onEditWallDone = { editTracedPath = editWallPreview; editWallTracing = false },
-                onEditWallCancel = { editWallTracing = false }
+                onDismissBlock = { selectedBlock = null }
             )
         }
     }
 
     // ── Flujo de propuesta (dialogs) ──────────────────────────────────────
-    if (proposeOpen) {
+    if (bridge.proposeOpen) {
         ProposeContributionFlow(
             schoolName      = schoolName,
             schoolLat       = centerLat,
             schoolLon       = centerLon,
-            waitingForTap   = waitingMapTap,
-            onStartWaitingTap = { waitingMapTap = true },
-            onMapTap        = { cb -> mapTapCallback = cb },
-            onMarkerTapForCorrection = { cb -> markerTapForCorrection = cb },
-            onCorrectionModeChange = { correctionMode = it },
-            onGhostMarkerChange = { correctionGhost = it },
-            onCorrectionTargetChange = { correctionTargetName = it },
-            onAcceptCorrection = { cb -> acceptCorrectionCallback = cb },
-            onWallTracingChange = { wallTracing = it },
-            onWallPreviewChange = { wallPreview = it },
-            onWallUndo = { cb -> wallUndoCallback = cb },
-            onWallDone = { cb -> wallDoneCallback = cb },
-            onDismiss       = {
-                proposeOpen = false
-                waitingMapTap = false
-                correctionMode = false
-                correctionGhost = null
-                correctionTargetName = null
-                wallTracing = false
-                wallPreview = emptyList()
-                mapTapCallback = null
-                markerTapForCorrection = null
-                acceptCorrectionCallback = null
-                wallUndoCallback = null
-                wallDoneCallback = null
-            },
+            waitingForTap   = bridge.waitingMapTap,
+            onStartWaitingTap = { bridge.waitingMapTap = true },
+            onMapTap        = { cb -> bridge.mapTapCallback = cb },
+            onMarkerTapForCorrection = { cb -> bridge.markerTapForCorrection = cb },
+            onCorrectionModeChange = { bridge.correctionMode = it },
+            onGhostMarkerChange = { bridge.correctionGhost = it },
+            onCorrectionTargetChange = { bridge.correctionTargetName = it },
+            onAcceptCorrection = { cb -> bridge.acceptCorrectionCallback = cb },
+            onWallTracingChange = { bridge.wallTracing = it },
+            onWallPreviewChange = { bridge.wallPreview = it },
+            onWallUndo = { cb -> bridge.wallUndoCallback = cb },
+            onWallDone = { cb -> bridge.wallDoneCallback = cb },
+            onDismiss       = { bridge.reset() },
             onMyProposals   = onMyProposals,
             viewModel       = viewModel
         )
@@ -400,21 +323,13 @@ fun SchoolMap(
             initiallyTicked = doneLineIds,
             initiallyProjects = projectLineIds,
             onAddLines = if (block.type == "BLOCK") ({
-                // Inicializa el estado del editor AQUÍ (no en un LaunchedEffect)
-                // para que abra ya poblado y no haya un frame vacío (el "salto").
-                editFaces = com.meteomontana.android.ui.screens.detail.initialEditFaces(block)
-                editGeometry = block.geometry.ifBlank { "POINT" }
-                editDirection = block.direction.ifBlank { "LTR" }
-                editSelectedFace = 0
-                editTracedPath = null
-                editWallTracing = false
-                editWallPreview = emptyList()
-                addingLinesTo = block
+                // openFor puebla el estado ANTES de abrir (sin frame vacío).
                 // NO cerramos la ficha: el editor abre ENCIMA (su scrim tapa la
                 // ficha) → sin parpadeo del mapa entre diálogos.
+                wallEdit.openFor(block)
             }) else null,
             onEditLine = if (block.type == "BLOCK") ({ line ->
-                editingLine = block to line
+                wallEdit.editingLine = block to line
             }) else null,
             onRateLine = if (block.type == "BLOCK") ({ lineId, stars ->
                 viewModel.viewModelScope.launch {
@@ -524,29 +439,29 @@ fun SchoolMap(
     }
 
     // Flujo "+ AÑADIR VÍAS" / editar piedra-muro. Se oculta mientras se traza el
-    // muro en el mapa (el estado vive aquí, así no se pierde lo editado).
-    addingLinesTo?.let { block ->
-        if (!editWallTracing) {
+    // muro en el mapa (el estado vive en wallEdit, así no se pierde lo editado).
+    wallEdit.target?.let { block ->
+        if (!wallEdit.tracing) {
             AddLinesFlow(
                 block = block,
                 viewModel = viewModel,
-                faces = editFaces,
-                onFacesChange = { editFaces = it },
-                selectedFace = editSelectedFace,
-                onSelectedFaceChange = { editSelectedFace = it },
-                geometry = editGeometry,
-                onGeometryChange = { editGeometry = it },
-                direction = editDirection,
-                onDirectionChange = { editDirection = it },
-                tracedPath = editTracedPath,
+                faces = wallEdit.faces,
+                onFacesChange = { wallEdit.faces = it },
+                selectedFace = wallEdit.selectedFace,
+                onSelectedFaceChange = { wallEdit.selectedFace = it },
+                geometry = wallEdit.geometry,
+                onGeometryChange = { wallEdit.geometry = it },
+                direction = wallEdit.direction,
+                onDirectionChange = { wallEdit.direction = it },
+                tracedPath = wallEdit.tracedPath,
                 onTraceWall = {
-                    editWallPreview = emptyList(); editWallTracing = true
+                    wallEdit.startTracing()
                     selectedBlock = null  // deja ver el mapa para trazar
                     expanded = true       // trazar exige el mapa abierto
                 },
-                onDismiss = { addingLinesTo = null; selectedBlock = null },
+                onDismiss = { wallEdit.target = null; selectedBlock = null },
                 onSuccess = {
-                    addingLinesTo = null
+                    wallEdit.target = null
                     selectedBlock = null
                     successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
                 }
@@ -555,14 +470,14 @@ fun SchoolMap(
     }
 
     // Flujo "✎ CORREGIR VÍA" — redibuja una línea concreta
-    editingLine?.let { (block, line) ->
+    wallEdit.editingLine?.let { (block, line) ->
         com.meteomontana.android.ui.screens.detail.EditLineFlow(
             block = block,
             line = line,
             viewModel = viewModel,
-            onDismiss = { editingLine = null; selectedBlock = null },
+            onDismiss = { wallEdit.editingLine = null; selectedBlock = null },
             onSuccess = {
-                editingLine = null
+                wallEdit.editingLine = null
                 selectedBlock = null
                 successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
             }
@@ -591,44 +506,22 @@ private fun InnerMap(
     schoolName: String,
     schoolId: String,
     viewModel: SchoolDetailViewModel,
-    onMyProposals: () -> Unit,
-    waitingMapTap: Boolean,
-    correctionMode: Boolean,
-    correctionGhost: com.meteomontana.android.ui.screens.detail.CorrectionGhost?,
-    correctionTargetName: String?,
-    wallTracing: Boolean,
-    wallPreview: List<Pair<Double, Double>>,
-    onProposeClick: () -> Unit,
-    onCancelTap: () -> Unit,
-    onMapTapped: (Double, Double) -> Unit,
-    onMarkerTappedForCorrection: (Block) -> Unit,
-    onAcceptCorrection: () -> Unit,
-    onWallUndo: () -> Unit,
-    onWallDone: () -> Unit,
-    // Ficha de piedra y trazado del EDITOR: izados a SchoolMap (los deep-links
-    // abren la ficha sin arrancar MapLibre). El mapa solo notifica taps y
-    // pinta/alimenta el preview del muro en edición.
+    /** Puente con el flujo "+ PROPONER": flags y callbacks SIEMPRE frescos
+     *  (es @Stable con mutableStateOf → los listeners del factory leen por
+     *  referencia; fuera los rememberUpdatedState que parcheaban esto). */
+    bridge: ProposalMapBridge,
+    /** Estado del editor de piedra/muro (izado en SchoolMap). */
+    wallEdit: WallEditState,
+    // Ficha de piedra: izada a SchoolMap (los deep-links abren la ficha sin
+    // arrancar MapLibre). El mapa solo notifica taps.
     onBlockSelected: (Block) -> Unit,
-    onDismissBlock: () -> Unit,
-    editWallTracing: Boolean,
-    editWallPreview: List<Pair<Double, Double>>,
-    onEditWallTap: (Double, Double) -> Unit,
-    onEditWallUndo: () -> Unit,
-    onEditWallDone: () -> Unit,
-    onEditWallCancel: () -> Unit
+    onDismissBlock: () -> Unit
 ) {
     val ctx = LocalContext.current
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
     val mapViewRef   = remember { mutableStateOf<MapView?>(null) }
     val mapRef       = remember { mutableStateOf<MapLibreMap?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
-
-    // Snapshots actualizados de flags y callbacks para que los listeners del factory los lean fresh.
-    val waitingMapTapState by androidx.compose.runtime.rememberUpdatedState(waitingMapTap)
-    val correctionModeState by androidx.compose.runtime.rememberUpdatedState(correctionMode)
-    val wallTracingState by androidx.compose.runtime.rememberUpdatedState(wallTracing)
-    val onMarkerTappedForCorrectionState by androidx.compose.runtime.rememberUpdatedState(onMarkerTappedForCorrection)
-    val onMapTappedState by androidx.compose.runtime.rememberUpdatedState(onMapTapped)
 
     // Última ubicación conocida del usuario → punto azul en el mapa.
     val userLoc = rememberUserLocation()
@@ -641,10 +534,9 @@ private fun InnerMap(
     var miniBlock by remember { mutableStateOf<Block?>(null) }
     var editingMiniBlock by remember { mutableStateOf<Block?>(null) }
     var confirmDeleteMini by remember { mutableStateOf<Block?>(null) }
-    // Snapshots del trazado de muro del EDITOR (estado izado en SchoolMap):
-    // el listener del mapa (registrado una vez en el factory) los lee frescos.
-    val editWallTracingState by androidx.compose.runtime.rememberUpdatedState(editWallTracing)
-    val onEditWallTapState by androidx.compose.runtime.rememberUpdatedState(onEditWallTap)
+    // onDismissBlock es lambda del padre → snapshot para que el listener del
+    // factory (registrado una vez) lo lea fresco. bridge/wallEdit no lo
+    // necesitan: son objetos @Stable leídos por referencia.
     val onDismissBlockState by androidx.compose.runtime.rememberUpdatedState(onDismissBlock)
 
     // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
@@ -743,14 +635,14 @@ private fun InnerMap(
     }
 
     // Preview de muro activo: el del editor si está trazando, si no el del flujo crear.
-    val activePreview = if (editWallTracing) editWallPreview else wallPreview
+    val activePreview = if (wallEdit.tracing) wallEdit.preview else bridge.wallPreview
 
     // Re-pinta markers cuando cambia el ghost, el preview del muro, se colapsa
     // un sector, te mueves o giras (brújula del punto azul).
-    androidx.compose.runtime.LaunchedEffect(correctionGhost, visibleMarkers, activePreview, userLoc, deviceHeading) {
+    androidx.compose.runtime.LaunchedEffect(bridge.correctionGhost, visibleMarkers, activePreview, userLoc, deviceHeading) {
         val map = mapRef.value ?: return@LaunchedEffect
-        placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview, deviceHeading) { tapped ->
-            if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+        placeMarkers(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview, deviceHeading) { tapped ->
+            if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
             else onBlockTap(tapped)
         }
     }
@@ -759,7 +651,7 @@ private fun InnerMap(
     // zoom, el SDK a veces pierde las anotaciones (piedras/sectores esfumados).
     // Al pararse la cámara, si el mapa está vacío cuando no debería, re-pintamos.
     val visibleState = androidx.compose.runtime.rememberUpdatedState(visibleMarkers)
-    val ghostState = androidx.compose.runtime.rememberUpdatedState(correctionGhost)
+    val ghostState = androidx.compose.runtime.rememberUpdatedState(bridge.correctionGhost)
     val previewState = androidx.compose.runtime.rememberUpdatedState(activePreview)
     androidx.compose.runtime.LaunchedEffect(mapRef.value) {
         val map = mapRef.value ?: return@LaunchedEffect
@@ -772,7 +664,7 @@ private fun InnerMap(
                 lastClusterZoom = map.cameraPosition.zoom
                 placeMarkers(ctx, map, visibleState.value, ghostState.value,
                     userLoc, previewState.value) { tapped ->
-                    if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+                    if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
                     else onBlockTap(tapped)
                 }
             }
@@ -793,8 +685,8 @@ private fun InnerMap(
             currentStyle = option
             mapViewRef.value?.getMapAsync { map ->
                 map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
-                    placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview) { tapped ->
-                        if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+                    placeMarkers(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview) { tapped ->
+                        if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
                         else onBlockTap(tapped)
                     }
                 }
@@ -809,15 +701,15 @@ private fun InnerMap(
     // Banners del flujo de propuesta (compartidos entre modo normal y fullscreen).
     val flowBanners: @Composable () -> Unit = {
         // Banner contextual con estado preciso del flujo.
-        if (waitingMapTap || correctionMode) {
+        if (bridge.waitingMapTap || bridge.correctionMode) {
             val bannerText = when {
-                !correctionMode -> "ℹ PULSA EN EL MAPA EN LA POSICIÓN ELEGIDA"
-                correctionTargetName == null ->
+                !bridge.correctionMode -> "ℹ PULSA EN EL MAPA EN LA POSICIÓN ELEGIDA"
+                bridge.correctionTargetName == null ->
                     "ℹ PULSA EL MARKER (PIEDRA / PARKING / ZONA / ESCUELA) QUE QUIERES MOVER"
-                correctionGhost?.newLat == null ->
-                    "✓ HAS PULSADO \"${correctionTargetName}\" · AHORA PULSA LA NUEVA POSICIÓN EN EL MAPA"
+                bridge.correctionGhost?.newLat == null ->
+                    "✓ HAS PULSADO \"${bridge.correctionTargetName}\" · AHORA PULSA LA NUEVA POSICIÓN EN EL MAPA"
                 else ->
-                    "✓ POSICIÓN FIJADA PARA \"${correctionTargetName}\" · PULSA OTRA VEZ PARA RECORREGIR O ACEPTAR"
+                    "✓ POSICIÓN FIJADA PARA \"${bridge.correctionTargetName}\" · PULSA OTRA VEZ PARA RECORREGIR O ACEPTAR"
             }
             Column(
                 modifier = Modifier.fillMaxWidth().background(Terra)
@@ -827,14 +719,15 @@ private fun InnerMap(
                     Text(bannerText, style = EyebrowTextStyle, color = Color.White,
                         modifier = Modifier.weight(1f))
                     Text(" ✕", color = Color.White, style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.clickable(onClick = onCancelTap))
+                        modifier = Modifier.clickable(onClick = bridge::reset))
                 }
                 // Botón ACEPTAR cuando hay posición candidata fijada.
-                if (correctionGhost?.newLat != null && correctionGhost.newLon != null) {
+                val ghost = bridge.correctionGhost
+                if (ghost?.newLat != null && ghost.newLon != null) {
                     Spacer(Modifier.size(Spacing.sm))
                     Box(modifier = Modifier.fillMaxWidth()
                         .background(Color.White)
-                        .clickable(onClick = onAcceptCorrection)
+                        .clickable(onClick = bridge::acceptCorrection)
                         .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
@@ -845,12 +738,12 @@ private fun InnerMap(
         }
 
         // Banner del trazado de muro: cada tap añade un punto; DESHACER / LISTO.
-        // Sirve para el flujo CREAR (wallTracing) y el de EDITAR (editWallTracing).
-        if (wallTracing || editWallTracing) {
-            val pv = if (editWallTracing) editWallPreview else wallPreview
-            val onUndo: () -> Unit = if (editWallTracing) onEditWallUndo else onWallUndo
-            val onDone: () -> Unit = if (editWallTracing) onEditWallDone else onWallDone
-            val onCancel: () -> Unit = if (editWallTracing) onEditWallCancel else onCancelTap
+        // Sirve para el flujo CREAR (bridge.wallTracing) y el de EDITAR (wallEdit.tracing).
+        if (bridge.wallTracing || wallEdit.tracing) {
+            val pv = if (wallEdit.tracing) wallEdit.preview else bridge.wallPreview
+            val onUndo: () -> Unit = if (wallEdit.tracing) wallEdit::undoPoint else bridge::wallUndo
+            val onDone: () -> Unit = if (wallEdit.tracing) wallEdit::finishTracing else bridge::wallDone
+            val onCancel: () -> Unit = if (wallEdit.tracing) wallEdit::cancelTracing else bridge::reset
             Column(
                 modifier = Modifier.fillMaxWidth().background(Terra)
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
@@ -913,8 +806,8 @@ private fun InnerMap(
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(centerLat, centerLon))
                                     .zoom(15.0).build()
-                                placeMarkers(ctx, map, visibleMarkers, correctionGhost, userLoc, activePreview) { tapped ->
-                                    if (correctionModeState) onMarkerTappedForCorrectionState(tapped)
+                                placeMarkers(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview) { tapped ->
+                                    if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
                                     else onBlockTap(tapped)
                                 }
                                 // Encuadre inicial con TODOS los elementos, salvo que
@@ -936,12 +829,12 @@ private fun InnerMap(
                             }
                             map.addOnMapClickListener { point ->
                                 when {
-                                    editWallTracingState -> {
-                                        onEditWallTapState(point.latitude, point.longitude)
+                                    wallEdit.tracing -> {
+                                        wallEdit.addPoint(point.latitude, point.longitude)
                                         true
                                     }
-                                    waitingMapTapState || correctionModeState || wallTracingState -> {
-                                        onMapTappedState(point.latitude, point.longitude)
+                                    bridge.waitingMapTap || bridge.correctionMode || bridge.wallTracing -> {
+                                        bridge.handleMapTap(point.latitude, point.longitude)
                                         true
                                     }
                                     else -> {
@@ -957,7 +850,7 @@ private fun InnerMap(
                 },
                 update = { _ ->
                     // Sin re-registrar listener — el del factory lee siempre
-                    // los flags actuales waitingMapTap/correctionMode vía closure.
+                    // los flags actuales bridge.waitingMapTap/bridge.correctionMode vía closure.
                 }
             )
 
@@ -969,7 +862,7 @@ private fun InnerMap(
                     .padding(Spacing.sm)
                     .clip(RoundedCornerShape(2.dp))
                     .background(Terra)
-                    .clickable(onClick = onProposeClick)
+                    .clickable(onClick = { bridge.proposeOpen = true })
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
@@ -999,7 +892,7 @@ private fun InnerMap(
             // topo↔satélite de un toque + capas con la FORMA real del marcador
             // (P cuadrada azul, piedra polígono terra, Z círculo verde);
             // apagado = capa oculta.
-            if (!waitingMapTap && !correctionMode && !wallTracing) {
+            if (!bridge.waitingMapTap && !bridge.correctionMode && !bridge.wallTracing) {
                 Column(
                     // ARRIBA a la derecha, bajo PROPONER — centrada se solapaba
                     // con el botón de ubicación (abajo a la derecha).
