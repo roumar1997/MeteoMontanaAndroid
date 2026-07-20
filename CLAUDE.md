@@ -301,9 +301,13 @@ C:\Users\rouma\Desktop\MeteoMontana/
 Junior developer aprendiendo. Quiere entender cada línea. Reglas:
 
 1. **Idioma: español.** Código en **inglés**.
-2. **Paso a paso.** Una cosa a la vez. Esperas confirmación antes del siguiente.
-3. **Verifica antes de proponer.** Lee el código existente antes de tocar algo.
-4. **Trade-offs explícitos** en decisiones de diseño.
+2. **SOLID + clean code + hexagonal, SIEMPRE** (regla de Rodrigo, 2026-07-20):
+   todo lo que se cree, modifique o arregle cumple `ARCHITECTURE.md`. Lo que
+   se toca se deja mejor (boy-scout); los atajos inevitables se avisan, nunca
+   se cuelan en silencio.
+3. **Paso a paso.** Una cosa a la vez. Esperas confirmación antes del siguiente.
+4. **Verifica antes de proponer.** Lee el código existente antes de tocar algo.
+5. **Trade-offs explícitos** en decisiones de diseño.
 
 ## Stack
 
