@@ -94,11 +94,18 @@ fun BlockDetailDialog(
     var showLinePicker by remember { mutableStateOf(false) }
     val tickedLines = remember { mutableStateListOf<String>().apply { addAll(initiallyTicked) } }   // vías hechas
     val projectLines = remember { mutableStateListOf<String>().apply { addAll(initiallyProjects) } } // vías proyecto
-    // NOTA: NO sincronizamos ✓/P con el diario mientras la ficha está abierta.
-    // Se intentó (LaunchedEffect sobre initiallyTicked) y salió mal: el diario
-    // identifica vías POR NOMBRE → dos vías homónimas ("La ola" x2) se marcaban
-    // a la vez en vivo. El estado visual es del usuario; la carrera de guardado
-    // ya la resuelve el parámetro explícito nowDone de onTickLine.
+    // Si la ficha se abrió ANTES de que cargara el diario (la vista instantánea
+    // la abre muy rápido → salía desmarcada, #14/#15), FUSIONA las marcas que
+    // van llegando. Solo AÑADE por lineId (nunca quita: quitar es acción del
+    // usuario). Es seguro con homónimas porque las claves ya son lineIds, no
+    // nombres — el motivo por el que antes NO se sincronizaba desapareció al
+    // migrar el diario a lineId.
+    androidx.compose.runtime.LaunchedEffect(initiallyTicked) {
+        initiallyTicked.forEach { if (!tickedLines.contains(it)) tickedLines.add(it) }
+    }
+    androidx.compose.runtime.LaunchedEffect(initiallyProjects) {
+        initiallyProjects.forEach { if (!projectLines.contains(it)) projectLines.add(it) }
+    }
     val context = LocalContext.current
     val shareScope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }

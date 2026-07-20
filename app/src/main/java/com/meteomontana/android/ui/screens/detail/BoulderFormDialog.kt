@@ -599,6 +599,20 @@ private fun BloqueRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        // Descripción opcional (beta, salida, detalle) — paridad con el editor
+        // de vías (AddLineRow). Faltaba SOLO al CREAR piedra; ahora coinciden.
+        OutlinedTextField(
+            value = bloque.description ?: "",
+            onValueChange = { onUpdate(bloque.copy(description = it.takeIf { t -> t.isNotBlank() })) },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Descripción (opcional)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            maxLines = 3,
+            shape = MaterialTheme.shapes.small,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+        )
+
         // Resumen de línea dibujada si existe
         if (bloque.linePath.isNotEmpty()) {
             Text(
