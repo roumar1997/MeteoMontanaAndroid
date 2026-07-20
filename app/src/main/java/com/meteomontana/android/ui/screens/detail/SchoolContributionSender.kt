@@ -74,7 +74,7 @@ class SchoolContributionSender @Inject constructor(
         sectorBlockId: String? = null
     ): Result<Unit> = runCatching {
         val photoUrl = if (photoRef != null) {
-            val bytes = fileReader.readBytes(photoRef)
+            val bytes = fileReader.readImageCompressed(photoRef)
             photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
         } else null
 
@@ -116,7 +116,7 @@ class SchoolContributionSender @Inject constructor(
         for (face in faces) {
             val uri = face.photoUri
             photoUrlByFace[face.id] = if (uri != null) {
-                val bytes = fileReader.readBytes(FileRef(uri.toString()))
+                val bytes = fileReader.readImageCompressed(FileRef(uri.toString()))
                 photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
             } else null
         }
@@ -205,7 +205,7 @@ class SchoolContributionSender @Inject constructor(
 
     /** Sube una foto de piedra (cara nueva) y devuelve su URL. */
     suspend fun uploadBoulderPhoto(schoolId: String, ref: FileRef): Result<String> = runCatching {
-        val bytes = fileReader.readBytes(ref)
+        val bytes = fileReader.readImageCompressed(ref)
         photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", schoolId)
     }
 
