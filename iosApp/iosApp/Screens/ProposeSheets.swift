@@ -90,7 +90,16 @@ struct WallTraceSheet: View {
         NavigationStack {
             ZStack(alignment: .top) {
                 MapLibreView(
-                    center: center, zoom: 17, markers: [], style: .topo,
+                    // Satélite (no topográfico): ver la base real del muro es más
+                    // útil y es lo que hace Android. Cada punto tocado se pinta
+                    // como círculo NUMERADO (antes no se veían: solo salía la línea
+                    // con ≥2 puntos y el primer toque parecía no registrarse).
+                    center: center, zoom: 17,
+                    markers: points.enumerated().map { i, p in
+                        CumbreMarker(id: "pt\(i)", coordinate: p, title: "\(i + 1)",
+                                     kind: .cluster, color: UIColor(Cumbre.terra), score: i + 1)
+                    },
+                    style: .satellite,
                     onMapTap: { points.append($0) },
                     polylines: points.count >= 2
                         ? [CumbrePolyline(id: "trace", coordinates: points, color: UIColor(Cumbre.terra), width: 5)]
