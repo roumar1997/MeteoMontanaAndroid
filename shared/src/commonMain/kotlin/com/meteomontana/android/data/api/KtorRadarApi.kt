@@ -18,6 +18,7 @@ class KtorRadarApi(private val client: HttpClient) {
      * todos los ciclos de ese día (chips HOY/AYER). Con lat/lon: radar
      * regional más cercano (mejor resolución).
      */
+    @Throws(Exception::class)
     suspend fun getFrames(
         lat: Double? = null,
         lon: Double? = null,
@@ -31,6 +32,7 @@ class KtorRadarApi(private val client: HttpClient) {
         }.body()
 
     /** PNG Cumbre del frame (bytes listos para decodificar como imagen). */
+    @Throws(Exception::class)
     suspend fun getFramePng(radar: String, ts: String): ByteArray =
         client.get("radar/frame/$radar/$ts").body()
 }

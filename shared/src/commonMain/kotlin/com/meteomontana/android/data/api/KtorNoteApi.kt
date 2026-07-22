@@ -10,13 +10,16 @@ import io.ktor.client.request.setBody
 
 class KtorNoteApi(private val client: HttpClient) {
 
+    @Throws(Exception::class)
     suspend fun getNotesBySchool(schoolId: String): List<NoteDto> =
         client.get("schools/$schoolId/notes").body()
 
+    @Throws(Exception::class)
     suspend fun createNote(schoolId: String, req: CreateNoteRequest): NoteDto =
         client.post("schools/$schoolId/notes") { setBody(req) }.body()
 
     /** Voto de utilidad (1 o -1; repetir lo retira). Devuelve el voto vigente. */
+    @Throws(Exception::class)
     suspend fun voteNote(noteId: String, value: Int): Int {
         val resp: Map<String, Int> = client.post("notes/$noteId/vote") {
             setBody(mapOf("value" to value))
