@@ -180,10 +180,91 @@ internal fun parseProposedVias(bloquesJson: String?): List<ProposedVia> {
                 points = com.meteomontana.android.ui.screens.topo.parseLineStroke(o.optString("linePath")).points,
                 photoUrl = o.optString("photoUrl").takeIf { it.isNotEmpty() && it != "null" },
                 targetLineId = o.optString("targetLineId").takeIf { it.isNotEmpty() && it != "null" },
-                description = o.optString("description").takeIf { it.isNotEmpty() && it != "null" }
+                description = o.optString("description").takeIf { it.isNotEmpty() && it != "null" },
+                variant = o.optString("variant").takeIf { it.isNotEmpty() && it != "null" }
             )
         }
     } catch (_: Throwable) { emptyList() }
+}
+
+// ─── Diff de campos de una vía corregida (piedra POINT) ───────────────────────
+
+/** True si dos trazados son iguales (mismos puntos, tolerancia mínima). */
+internal fun pointsEqual(
+    a: List<androidx.compose.ui.geometry.Offset>,
+    b: List<androidx.compose.ui.geometry.Offset>
+): Boolean {
+    if (a.size != b.size) return false
+    for (i in a.indices) {
+        if (kotlin.math.abs(a[i].x - b[i].x) > 0.001f) return false
+        if (kotlin.math.abs(a[i].y - b[i].y) > 0.001f) return false
+    }
+    return true
+}
+
+/** ¿La vía propuesta cambia el DIBUJO (trazado) respecto a la existente? */
+internal fun ProposedVia.drawingChangedFrom(
+    orig: com.meteomontana.android.domain.model.BlockLine?
+): Boolean {
+    if (orig == null) return true // vía nueva
+    val origPts = parseLineStroke(orig.linePath ?: "").points
+    return !pointsEqual(this.points, origPts)
+}
+
+/** Una fila "Campo: viejo → nuevo" — solo se pinta si el campo cambia. */
+@Composable
+private fun FieldChangeRow(label: String, old: String?, new: String?) {
+    val o = old?.takeIf { it.isNotBlank() }
+    val n = new?.takeIf { it.isNotBlank() }
+    if (o == n) return
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = Spacing.md, top = 1.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Text("$label:", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("${o ?: "—"} → ${n ?: "—"}",
+            style = MaterialTheme.typography.bodyMedium, color = Terra)
+    }
+}
+
+/**
+ * Diff de UNA vía corregida/nueva. Si es nueva, la lista de campos; si corrige,
+ * SOLO los campos que cambian (nombre/grado/variante/tipo/descripción) old→new,
+ * y una nota si se redibujó el trazado. Así el admin ve qué toca sin mirar la
+ * foto dos veces.
+ */
+@Composable
+internal fun ViaChangeRows(
+    orig: com.meteomontana.android.domain.model.BlockLine?,
+    v: ProposedVia
+) {
+    if (orig == null) {
+        val txt = listOfNotNull(
+            v.name?.takeIf { it.isNotBlank() }, v.grade,
+            v.variant?.let { "($it)" }, v.startType, v.description
+        ).joinToString(" · ")
+        Text("• NUEVA: $txt",
+            style = MaterialTheme.typography.bodyMedium, color = Terra)
+        return
+    }
+    val name = v.name?.takeIf { it.isNotBlank() } ?: orig.name
+    val anyChange = orig.name != v.name || orig.grade != v.grade ||
+        orig.variant != v.variant || orig.startType != v.startType ||
+        orig.lineDescription != v.description || v.drawingChangedFrom(orig)
+    Text("• $name" + if (!anyChange) "  (sin cambios)" else "",
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (anyChange) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurfaceVariant)
+    FieldChangeRow("Nombre", orig.name, v.name)
+    FieldChangeRow("Grado", orig.grade, v.grade)
+    FieldChangeRow("Variante", orig.variant, v.variant)
+    FieldChangeRow("Tipo", orig.startType, v.startType)
+    FieldChangeRow("Descripción", orig.lineDescription, v.description)
+    if (v.drawingChangedFrom(orig)) {
+        Text("    Trazado: redibujado (ver foto)",
+            modifier = Modifier.padding(start = Spacing.md),
+            style = MaterialTheme.typography.bodyMedium, color = Terra)
+    }
 }
 
 // ─── Diff de muro (Fase 7) ────────────────────────────────────────────────────

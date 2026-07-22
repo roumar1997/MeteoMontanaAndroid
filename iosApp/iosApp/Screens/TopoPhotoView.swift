@@ -12,12 +12,17 @@ struct TopoLineVM: Identifiable {
     let grade: String?
     let startType: String?
     let points: [CGPoint]   // normalizados 0..1
+    // Opcionales para el diff de admin (no afectan al dibujo). Default nil para
+    // no tocar el resto de call sites.
+    var variant: String? = nil
+    var desc: String? = nil
 }
 
 extension TopoLineVM {
     init(_ l: BlockLine) {
         self.init(id: l.id, name: l.name, grade: l.grade,
-                  startType: l.startType, points: TopoParse.points(l.linePath))
+                  startType: l.startType, points: TopoParse.points(l.linePath),
+                  variant: l.variant, desc: l.lineDescription)
     }
 }
 
@@ -55,11 +60,23 @@ enum TopoParse {
         else { return [] }
         return arr.enumerated().map { idx, o in
             let line = TopoLineVM(id: "b\(idx)", name: o["name"] as? String, grade: o["grade"] as? String,
-                                  startType: o["startType"] as? String, points: points(o["linePath"] as? String))
+                                  startType: o["startType"] as? String, points: points(o["linePath"] as? String),
+                                  variant: (o["variant"] as? String).flatMap { $0.isEmpty ? nil : $0 },
+                                  desc: (o["description"] as? String).flatMap { $0.isEmpty ? nil : $0 })
             let photo = (o["photoUrl"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             let tId = (o["targetLineId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             return ProposedVia(line: line, photoUrl: photo, targetLineId: tId)
         }
+    }
+
+    /// True si dos trazados son iguales (tolerancia mínima) — para saber si una
+    /// corrección tocó el dibujo o solo campos de texto.
+    static func pointsEqual(_ a: [CGPoint], _ b: [CGPoint]) -> Bool {
+        guard a.count == b.count else { return false }
+        for i in a.indices where abs(a[i].x - b[i].x) > 0.001 || abs(a[i].y - b[i].y) > 0.001 {
+            return false
+        }
+        return true
     }
 
     /// Parsea `[{"x":..,"y":..}, ...]` a puntos normalizados.

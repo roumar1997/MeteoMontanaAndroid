@@ -81,10 +81,12 @@ struct AssignSectorSheet: View {
 struct WallTraceSheet: View {
     let center: CLLocationCoordinate2D
     let initial: [CLLocationCoordinate2D]
-    let onDone: ([CLLocationCoordinate2D]) -> Void
-    /// Marcadores de contexto (otras piedras/sectores/parkings) para ubicarte
-    /// mientras trazas — opcional (los callers pasan lo que tengan).
+    /// Marcadores de contexto (otras piedras/sectores/parkings + mi ubicación)
+    /// para ubicarte mientras trazas — opcional (los callers pasan lo que tengan).
+    /// Declarado ANTES de `onDone` para que el closure final del caller enlace
+    /// sin ambigüedad con `onDone` (último parámetro de tipo función).
     var contextMarkers: [CumbreMarker] = []
+    let onDone: ([CLLocationCoordinate2D]) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var points: [CLLocationCoordinate2D] = []
     @State private var started = false

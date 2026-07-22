@@ -220,58 +220,61 @@ internal fun ContributionCard(
                     val isNewFace = oldFace == null
                     val oldPhoto = oldFace?.photoPath
                     val photoChanged = !isNewFace && !facePhotoKey.isNullOrBlank() && facePhotoKey != oldPhoto
+                    // ¿Cambia algo VISUAL (foto o trazado de alguna vía)? Si no,
+                    // NO repetimos la foto dos veces: basta el diff de campos.
+                    val faceDrawingChanged = isNewFace || photoChanged || vias.any { v ->
+                        v.drawingChangedFrom(
+                            v.targetLineId?.let { id -> oldFace?.lines?.firstOrNull { it.id == id } })
+                    }
 
                     Spacer(Modifier.height(Spacing.md))
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                     Spacer(Modifier.height(Spacing.sm))
 
-                    if (isNewFace) {
-                        Text("CARA NUEVA (FOTO AÑADIDA)", style = EyebrowTextStyle, color = Moss)
-                        Spacer(Modifier.height(Spacing.xs))
-                    } else if (!oldPhoto.isNullOrBlank()) {
-                        // FOTO ACTUAL (estado vigente de esa cara).
-                        Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
-                            style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(Spacing.xs))
-                        ZoomableTopo(
-                            photoUrl = oldPhoto,
-                            lines = (oldFace?.lines ?: emptyList()).toTopoLines()
-                        )
-                    }
+                    if (faceDrawingChanged) {
+                        if (isNewFace) {
+                            Text("CARA NUEVA (FOTO AÑADIDA)", style = EyebrowTextStyle, color = Moss)
+                            Spacer(Modifier.height(Spacing.xs))
+                        } else if (!oldPhoto.isNullOrBlank()) {
+                            // FOTO ACTUAL (estado vigente de esa cara).
+                            Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
+                                style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(Spacing.xs))
+                            ZoomableTopo(
+                                photoUrl = oldPhoto,
+                                lines = (oldFace?.lines ?: emptyList()).toTopoLines()
+                            )
+                        }
 
-                    Spacer(Modifier.height(Spacing.sm))
-                    // PROPUESTA (foto nueva si la cambió + líneas resultantes).
-                    Text(if (isNewFace) "FOTO NUEVA" else if (photoChanged) "FOTO PROPUESTA (NUEVA)" else "PROPUESTA",
-                        style = EyebrowTextStyle, color = Terra)
-                    Spacer(Modifier.height(Spacing.xs))
-                    val proposedLines: List<TopoLine> = if (photoChanged) {
-                        // Foto nueva: el proponente repinta TODAS las vías de la cara.
-                        vias.map { it.toTopoLine() }
+                        Spacer(Modifier.height(Spacing.sm))
+                        // PROPUESTA (foto nueva si la cambió + líneas resultantes).
+                        Text(if (isNewFace) "FOTO NUEVA" else if (photoChanged) "FOTO PROPUESTA (NUEVA)" else "PROPUESTA",
+                            style = EyebrowTextStyle, color = Terra)
+                        Spacer(Modifier.height(Spacing.xs))
+                        val proposedLines: List<TopoLine> = if (photoChanged) {
+                            // Foto nueva: el proponente repinta TODAS las vías de la cara.
+                            vias.map { it.toTopoLine() }
+                        } else {
+                            // Misma foto: vías sin tocar + las corregidas/nuevas propuestas.
+                            val keep = (oldFace?.lines ?: emptyList())
+                                .filter { it.id !in targetIds }.toTopoLines()
+                            keep + vias.map { it.toTopoLine() }
+                        }
+                        val propostaPhoto = facePhotoKey ?: oldPhoto ?: ""
+                        if (propostaPhoto.isNotEmpty()) {
+                            ZoomableTopo(photoUrl = propostaPhoto, lines = proposedLines)
+                        }
                     } else {
-                        // Misma foto: vías sin tocar + las corregidas/nuevas propuestas.
-                        val keep = (oldFace?.lines ?: emptyList())
-                            .filter { it.id !in targetIds }.toTopoLines()
-                        keep + vias.map { it.toTopoLine() }
-                    }
-                    val propostaPhoto = facePhotoKey ?: oldPhoto ?: ""
-                    if (propostaPhoto.isNotEmpty()) {
-                        ZoomableTopo(photoUrl = propostaPhoto, lines = proposedLines)
+                        // Solo cambian textos: sin fotos, directo al diff de campos.
+                        Text("SOLO TEXTO · el dibujo y la foto no cambian",
+                            style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
 
-                    // Texto: qué cambia en cada vía (original → propuesta).
+                    // Diff por vía: qué CAMPOS cambian (nombre/grado/variante/tipo/desc).
                     Spacer(Modifier.height(Spacing.xs))
                     vias.forEach { v ->
                         val orig = v.targetLineId?.let { id -> oldFace?.lines?.firstOrNull { it.id == id } }
-                        val newTxt = listOfNotNull(v.name, v.grade, v.startType, v.description).joinToString(" · ")
-                        if (orig != null) {
-                            val origTxt = listOfNotNull(orig.name, orig.grade, orig.startType?.toString(), orig.lineDescription).joinToString(" · ")
-                            Text("• $origTxt  →  $newTxt",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface)
-                        } else {
-                            Text("• NUEVA: $newTxt",
-                                style = MaterialTheme.typography.bodyMedium, color = Terra)
-                        }
+                        ViaChangeRows(orig, v)
                     }
                 }
             } else {
@@ -616,5 +619,6 @@ internal data class ProposedVia(
     val name: String?, val grade: String?, val startType: String?,
     val points: List<androidx.compose.ui.geometry.Offset>,
     val photoUrl: String?, val targetLineId: String?,
-    val description: String? = null
+    val description: String? = null,
+    val variant: String? = null
 )

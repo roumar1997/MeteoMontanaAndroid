@@ -10,6 +10,9 @@ struct BoulderFormSheet: View {
     let schoolId: String
     let coord: CLLocationCoordinate2D
     let sectors: [Block]              // ZONEs de la escuela (sector opcional)
+    /// Piedras/sectores/parkings + mi ubicación, para orientarme al trazar el
+    /// muro (contexto de solo lectura). Los pasa SchoolMapSection.
+    var contextMarkers: [CumbreMarker] = []
     let onDone: (Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -243,7 +246,8 @@ struct BoulderFormSheet: View {
             }
         }
         .sheet(isPresented: $showTrace) {
-            WallTraceSheet(center: coord, initial: wallPath) { wallPath = $0 }
+            WallTraceSheet(center: coord, initial: wallPath,
+                           contextMarkers: contextMarkers) { wallPath = $0 }
         }
     }
 

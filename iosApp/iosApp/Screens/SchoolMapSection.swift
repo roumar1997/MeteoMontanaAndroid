@@ -342,7 +342,8 @@ struct SchoolMapSection: View {
                 }
                 .sheet(item: boulderCoordItem) { item in
                     BoulderFormSheet(schoolId: school.id, coord: item.coord,
-                                     sectors: vm.blocks.filter { $0.type.uppercased() == "ZONE" }) { ok in
+                                     sectors: vm.blocks.filter { $0.type.uppercased() == "ZONE" },
+                                     contextMarkers: traceContextMarkers) { ok in
                         flow.boulderCoord = nil
                         if ok { afterSubmit() }
                     }
@@ -379,7 +380,8 @@ struct SchoolMapSection: View {
                         })
                 }
                 .sheet(item: $editLinesBlock) { b in
-                    EditLinesSheet(block: b, schoolId: school.id, focusVia: openVia) { ok in
+                    EditLinesSheet(block: b, schoolId: school.id, focusVia: openVia,
+                                   contextMarkers: traceContextMarkers) { ok in
                         editLinesBlock = nil
                         if ok { afterSubmit() }
                     }
@@ -684,6 +686,28 @@ struct SchoolMapSection: View {
         case "ZONE": return .zone
         default: return .block
         }
+    }
+
+    /// Contexto de solo lectura para el mapa de trazar muro: escuela + todas las
+    /// piedras/sectores/parkings + mi ubicación. Sin overlays del trazo ni
+    /// fantasmas de corrección (eso lo pinta WallTraceSheet aparte).
+    private var traceContextMarkers: [CumbreMarker] {
+        var ms: [CumbreMarker] = [CumbreMarker(
+            id: school.id,
+            coordinate: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
+            title: school.name, kind: .school, color: schoolColor)]
+        for b in vm.blocks {
+            ms.append(CumbreMarker(
+                id: b.id, coordinate: blockMarkerCoord(b),
+                title: b.name.isEmpty ? b.type : b.name,
+                subtitle: typeLabel(b.type),
+                kind: markerKind(for: b.type), color: color(for: b.type), name: b.name))
+        }
+        if let u = userCoord {
+            ms.append(CumbreMarker(id: "__USER__", coordinate: u, title: "", kind: .user,
+                                   score: headingProvider.heading))
+        }
+        return ms
     }
 
     private var legend: some View {

@@ -217,7 +217,8 @@ struct BoulderReviewView: View {
                         .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
                 }
             } else {
-                // Corrección/edición: una sección por cara con FOTO ACTUAL vs PROPUESTA.
+                // Corrección/edición: una sección por cara. Solo enseña las fotos
+                // si cambia el dibujo/foto; si solo cambian textos, el diff de campos.
                 let faces = targetBlock?.facesOrDerived() ?? []
                 ForEach(Array(faceGroups.enumerated()), id: \.offset) { _, group in
                     let targetIds = Set(group.vias.compactMap { $0.targetLineId })
@@ -227,31 +228,36 @@ struct BoulderReviewView: View {
                     let oldPhoto = oldFace?.photoPath ?? targetBlock?.photoPath
                     let photoChanged = !group.key.isEmpty && group.key != (oldPhoto ?? "")
                     let proposalPhoto = group.key.isEmpty ? oldPhoto : group.key
+                    let isNewFace = oldFace == nil
+                    let drawingChanged = isNewFace || photoChanged || group.vias.contains { v in
+                        guard let tid = v.targetLineId,
+                              let o = oldFace?.lines.first(where: { $0.id == tid }) else { return true }
+                        return !TopoParse.pointsEqual(v.line.points, TopoParse.points(o.linePath))
+                    }
 
                     Divider().overlay(Cumbre.rule)
-                    // FOTO ACTUAL
-                    if let op = oldPhoto, !op.isEmpty {
-                        Text(photoChanged ? "FOTO ACTUAL" : "ACTUAL")
-                            .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-                        ZoomableTopo(photoUrl: op, lines: (oldFace?.lines ?? []).map { TopoLineVM($0) })
-                    }
-                    // PROPUESTA
-                    Text(photoChanged ? "FOTO PROPUESTA (NUEVA)" : "PROPUESTA")
-                        .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
-                    if let pp = proposalPhoto, !pp.isEmpty {
-                        let keep = photoChanged ? [] :
-                            (oldFace?.lines ?? []).filter { !targetIds.contains($0.id) }.map { TopoLineVM($0) }
-                        ZoomableTopo(photoUrl: pp, lines: keep + group.vias.map { $0.line })
-                    }
-                    // Texto: original → propuesta por vía.
-                    ForEach(Array(group.vias.enumerated()), id: \.offset) { _, v in
-                        if let tid = v.targetLineId, let o = oldFace?.lines.first(where: { $0.id == tid }) {
-                            Text("• \(lineSummary(o.name, o.grade, o.startType))  →  \(lineSummary(v.line.name, v.line.grade, v.line.startType))")
-                                .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink)
-                        } else {
-                            Text("• NUEVA · \(lineSummary(v.line.name, v.line.grade, v.line.startType))")
-                                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    if drawingChanged {
+                        if let op = oldPhoto, !op.isEmpty {
+                            Text(photoChanged ? "FOTO ACTUAL" : "ACTUAL")
+                                .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                            ZoomableTopo(photoUrl: op, lines: (oldFace?.lines ?? []).map { TopoLineVM($0) })
                         }
+                        Text(photoChanged ? "FOTO PROPUESTA (NUEVA)" : "PROPUESTA")
+                            .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+                        if let pp = proposalPhoto, !pp.isEmpty {
+                            let keep = photoChanged ? [] :
+                                (oldFace?.lines ?? []).filter { !targetIds.contains($0.id) }.map { TopoLineVM($0) }
+                            ZoomableTopo(photoUrl: pp, lines: keep + group.vias.map { $0.line })
+                        }
+                    } else {
+                        Text("SOLO TEXTO · el dibujo y la foto no cambian")
+                            .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                    }
+                    // Diff por vía: qué CAMPOS cambian (nombre/grado/variante/tipo/desc).
+                    ForEach(Array(group.vias.enumerated()), id: \.offset) { _, v in
+                        ViaChangeRowsView(
+                            orig: v.targetLineId.flatMap { tid in oldFace?.lines.first(where: { $0.id == tid }) },
+                            v: v)
                     }
                 }
             }
@@ -306,6 +312,58 @@ struct ZoomableTopo: View {
 func lineSummary(_ name: String?, _ grade: String?, _ start: String?) -> String {
     [name?.isEmpty == false ? name : nil, grade, start]
         .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+}
+
+/// Diff de UNA vía corregida/nueva: si es nueva, sus campos; si corrige, SOLO los
+/// campos que cambian (nombre/grado/variante/tipo/desc) viejo→nuevo, más una nota
+/// si se redibujó el trazado. Espejo de ViaChangeRows de ContributionDiff.kt.
+struct ViaChangeRowsView: View {
+    let orig: BlockLine?
+    let v: TopoParse.ProposedVia
+
+    var body: some View {
+        if let o = orig {
+            let name = (v.line.name?.isEmpty == false ? v.line.name : o.name) ?? "(sin nombre)"
+            let redrawn = !TopoParse.pointsEqual(v.line.points, TopoParse.points(o.linePath))
+            let anyChange = o.name != v.line.name || o.grade != v.line.grade
+                || o.variant != v.line.variant || o.startType != v.line.startType
+                || o.lineDescription != v.line.desc || redrawn
+            VStack(alignment: .leading, spacing: 1) {
+                Text("• \(name)" + (anyChange ? "" : "  (sin cambios)"))
+                    .font(Cumbre.mono(10)).foregroundStyle(anyChange ? Cumbre.ink : Cumbre.ink3)
+                fieldRow("Nombre", o.name, v.line.name)
+                fieldRow("Grado", o.grade, v.line.grade)
+                fieldRow("Variante", o.variant, v.line.variant)
+                fieldRow("Tipo", o.startType, v.line.startType)
+                fieldRow("Descripción", o.lineDescription, v.line.desc)
+                if redrawn {
+                    Text("    Trazado: redibujado (ver foto)")
+                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.terra)
+                }
+            }
+        } else {
+            Text("• NUEVA · \(newSummary)")
+                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+        }
+    }
+
+    private var newSummary: String {
+        [v.line.name?.isEmpty == false ? v.line.name : nil, v.line.grade,
+         v.line.variant.map { "(\($0))" }, v.line.startType, v.line.desc]
+            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
+    @ViewBuilder
+    private func fieldRow(_ label: String, _ old: String?, _ new: String?) -> some View {
+        let o = (old?.isEmpty == false) ? old : nil
+        let n = (new?.isEmpty == false) ? new : nil
+        if o != n {
+            HStack(spacing: 6) {
+                Text("\(label):").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                Text("\(o ?? "—") → \(n ?? "—")").font(Cumbre.mono(10)).foregroundStyle(Cumbre.terra)
+            }.padding(.leading, 10)
+        }
+    }
 }
 
 func adminTypeLabel(_ t: String) -> String {

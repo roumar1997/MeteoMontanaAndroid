@@ -11,6 +11,9 @@ struct EditLinesSheet: View {
     let onDone: (Bool) -> Void
     /// Cara que se abre primero (deep-link "corregir esta vía"): la de esa vía.
     var focusVia: String? = nil
+    /// Otras piedras/sectores + mi ubicación, para orientarme al re-trazar el
+    /// muro (contexto de solo lectura). Los pasa SchoolMapSection.
+    var contextMarkers: [CumbreMarker] = []
     @Environment(\.dismiss) private var dismiss
     // Una piedra puede tener VARIAS caras (fotos). Cada cara edita SOLO sus vías
     // sobre SU foto (antes se mezclaban todas en la portada). `faceBlocks[i]` =
@@ -258,7 +261,8 @@ struct EditLinesSheet: View {
         .sheet(isPresented: $showTrace) {
             let seed = tracedPath.isEmpty ? parseWallPath(block.path) : tracedPath
             WallTraceSheet(center: CLLocationCoordinate2D(latitude: block.lat, longitude: block.lon),
-                           initial: seed) { tracedPath = $0 }
+                           initial: seed,
+                           contextMarkers: contextMarkers.filter { $0.id != block.id }) { tracedPath = $0 }
         }
     }
 
