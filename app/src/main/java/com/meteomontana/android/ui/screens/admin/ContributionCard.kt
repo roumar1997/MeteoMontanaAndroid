@@ -389,6 +389,20 @@ internal fun ContributionCard(
                                     val targetBlock = if (!c.targetBlockId.isNullOrBlank())
                                         existingBlocks.firstOrNull { it.id == c.targetBlockId } else null
                                     drawWallDiffPolylines(map, c, targetBlock)
+                                    // Encuadrar el TRAZADO: a zoom 15 fijo un muro de metros queda
+                                    // sub-píxel bajo el marcador y parece "solo el punto". Ajustamos
+                                    // la cámara al trazado (el propuesto; el viejo si es corrección
+                                    // sin nuevo) para que el admin lo VEA de verdad.
+                                    val wp = com.meteomontana.android.ui.components.parseWallPath(c.path)
+                                        .ifEmpty { com.meteomontana.android.ui.components.parseWallPath(targetBlock?.path) }
+                                    if (wp.size >= 2) {
+                                        val bounds = org.maplibre.android.geometry.LatLngBounds.Builder()
+                                            .apply { wp.forEach { include(it) } }.build()
+                                        runCatching {
+                                            map.moveCamera(org.maplibre.android.camera.CameraUpdateFactory
+                                                .newLatLngBounds(bounds, 90))
+                                        }
+                                    }
                                 }
                             }
                             map.uiSettings.apply {

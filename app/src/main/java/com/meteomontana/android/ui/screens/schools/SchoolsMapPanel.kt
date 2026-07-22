@@ -360,7 +360,15 @@ internal fun syncMarkers(
     }
 
     if (fitBounds) runCatching {
-        map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 48), 400)
+        if (schools.size == 1) {
+            // Una sola escuela (p.ej. buscador): encuadrar "bounds" de un único
+            // punto hace que MapLibre se vaya al mundo entero. Zoom directo a ella
+            // (como iOS), en vez de bounds degenerados.
+            val s = schools.first()
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(s.lat, s.lon), 13.5), 400)
+        } else {
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 48), 400)
+        }
     }
 }
 
