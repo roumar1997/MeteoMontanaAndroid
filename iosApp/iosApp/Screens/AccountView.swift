@@ -203,7 +203,6 @@ struct AccountView: View {
                     badges
                     followCounters
                     diarySection
-                    adminCard
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 24)
@@ -213,7 +212,20 @@ struct AccountView: View {
             .navigationTitle(NSLocalizedString("profile_title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { HelpButton(topicKey: "profile") }
+                ToolbarItemGroup(placement: .topBarLeading) {
+                    HelpButton(topicKey: "profile")
+                    // Acceso admin (solo admins) con nº de pendientes, junto al "?".
+                    if vm.profile?.isAdmin == true {
+                        NavigationLink(destination: AdminView()) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.shield")
+                                if vm.pendingReview > 0 {
+                                    Text("\(vm.pendingReview)").font(Cumbre.mono(12, .bold))
+                                }
+                            }
+                        }.foregroundStyle(Cumbre.terra)
+                    }
+                }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     if vm.profile != nil {
                         Button { shareProfile() } label: {
@@ -281,27 +293,6 @@ struct AccountView: View {
             // El grado máx ya vive en las stats del diario (decisión de Rodrigo).
             if vm.profile?.isAdmin == true { badge("ADMIN", Cumbre.ink) }
             if vm.profile?.isPremium == true { badge("PREMIUM", Cumbre.ok) }
-        }
-    }
-
-    /// Tarjeta terracota del Panel de admin (solo admins). Espejo de Android.
-    @ViewBuilder private var adminCard: some View {
-        if vm.profile?.isAdmin == true {
-            NavigationLink(destination: AdminView()) {
-                HStack(spacing: 12) {
-                    Image(systemName: "checkmark.shield").font(.system(size: 18)).foregroundStyle(.white)
-                    Text("PANEL DE ADMIN").font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(.white)
-                    Spacer()
-                    if vm.pendingReview > 0 {
-                        Text("\(vm.pendingReview)").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                            .padding(.horizontal, 9).padding(.vertical, 2).background(Color.white).clipShape(Capsule())
-                    }
-                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(.white)
-                }
-                .padding(.vertical, 14).padding(.horizontal, 16).frame(maxWidth: .infinity)
-                .background(Cumbre.terra).clipShape(RoundedRectangle(cornerRadius: 4))
-                .contentShape(Rectangle())
-            }.buttonStyle(.plain).padding(.top, 4)
         }
     }
 

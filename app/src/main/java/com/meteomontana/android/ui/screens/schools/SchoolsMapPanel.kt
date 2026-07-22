@@ -86,13 +86,14 @@ fun SchoolsMapPanel(
         .fillMaxWidth()
         .padding(horizontal = Spacing.lg, vertical = Spacing.xs)) {
 
-        // Toggle "VER MAPA" — barra clara con icono de mapa terracota (paridad iOS).
+        // Toggle "VER MAPA" — botón terracota (borde + texto + tinte) para que se
+        // vea claramente pulsable (antes era una barra gris que parecía pasiva).
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
                 .clickable(onClick = onToggle)
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -107,12 +108,12 @@ fun SchoolsMapPanel(
             Text(
                 if (expanded) stringResource(R.string.schools_hide_map) else stringResource(R.string.schools_view_map),
                 style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 if (expanded) "▴" else "▾",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleMedium
             )
         }

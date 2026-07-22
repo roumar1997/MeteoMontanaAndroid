@@ -245,6 +245,8 @@ struct MapToggleAndPanel: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Botón terracota (borde + texto + tinte) para que se vea claramente
+            // pulsable (antes era texto gris que no parecía botón).
             Button { withAnimation { show.toggle() } } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "map").font(.system(size: 13))
@@ -252,11 +254,15 @@ struct MapToggleAndPanel: View {
                     Spacer()
                     Image(systemName: show ? "chevron.up" : "chevron.down").font(.system(size: 11))
                 }
-                .foregroundStyle(Cumbre.ink2)
-                .padding(.horizontal, 16).padding(.vertical, 10)
+                .foregroundStyle(Cumbre.terra)
+                .padding(.horizontal, 14).padding(.vertical, 11)
+                .frame(maxWidth: .infinity)
+                .background(Cumbre.terra.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.terra, lineWidth: 1))
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .padding(.horizontal, 16).padding(.vertical, 4)
 
             if show {
                 ZStack(alignment: .topLeading) {

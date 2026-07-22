@@ -151,7 +151,9 @@ fun ProfileScreen(
                 showClose = showClose,
                 onBack = onBack,
                 onShare = successState?.let { s -> { shareProfile(ctx, scope, s.profile, s.stats) } },
-                onSettings = successState?.let { { settingsOpen = true } }
+                onSettings = successState?.let { { settingsOpen = true } },
+                onAdmin = successState?.takeIf { it.profile.isAdmin }?.let { { onAdmin() } },
+                pendingReview = successState?.pendingReview ?: 0
             )
             when (val s = state) {
                 ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
@@ -162,9 +164,7 @@ fun ProfileScreen(
                     followers = s.followers,
                     following = s.following,
                     offline = s.offline,
-                    pendingReview = s.pendingReview,
                     onAddBlock = { addBlockOpen = true },
-                    onAdmin = onAdmin,
                     onOpenFollowers = onOpenFollowers,
                     onOpenFollowing = onOpenFollowing,
                     onOpenBoulders = onOpenBoulders,
@@ -206,16 +206,44 @@ private fun ProfileTopBar(
     showClose: Boolean,
     onBack: () -> Unit,
     onShare: (() -> Unit)?,
-    onSettings: (() -> Unit)?
+    onSettings: (() -> Unit)?,
+    onAdmin: (() -> Unit)? = null,
+    pendingReview: Int = 0
 ) {
     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center))
-        com.meteomontana.android.ui.components.HelpButton(
-            topicKey = "profile",
-            modifier = Modifier.align(Alignment.CenterStart)
-        )
+        // Izquierda: ayuda (?) + acceso admin con nº de pendientes (solo admins).
+        Row(
+            modifier = Modifier.align(Alignment.CenterStart),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            com.meteomontana.android.ui.components.HelpButton(topicKey = "profile")
+            if (onAdmin != null) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(onClick = onAdmin)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Outlined.AdminPanelSettings, contentDescription = "Panel de admin",
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                    if (pendingReview > 0) {
+                        Box(
+                            Modifier.clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(horizontal = 6.dp, vertical = 1.dp)
+                        ) {
+                            Text("$pendingReview", color = Color.White,
+                                style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
         Row(
             modifier = Modifier.align(Alignment.CenterEnd),
             verticalAlignment = Alignment.CenterVertically
@@ -244,9 +272,7 @@ private fun Content(
     followers: Long,
     following: Long,
     offline: Boolean = false,
-    pendingReview: Int = 0,
     onAddBlock: () -> Unit,
-    onAdmin: () -> Unit,
     onOpenFollowers: () -> Unit,
     onOpenFollowing: () -> Unit,
     onOpenBoulders: () -> Unit,
@@ -276,49 +302,9 @@ private fun Content(
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts) }
         item { AddBlockButton(onClick = onAddBlock) }
-        // Panel de admin — tarjeta terracota destacada (solo admins), con el nº de
-        // propuestas pendientes de revisar.
-        if (profile.isAdmin) {
-            item { AdminPanelCard(pendingReview = pendingReview, onClick = onAdmin) }
-        }
-        // La lista de escuelas del diario NO se repite aquí (ya vive en la pestaña
-        // Diario) — el perfil se queda con cabecera + stats + acciones.
+        // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
+        // La lista de escuelas tampoco (ya vive en la pestaña Diario).
         item { Spacer(Modifier.height(24.dp)) }
-    }
-}
-
-/** Tarjeta terracota del Panel de admin (solo visible para admins). */
-@Composable
-private fun AdminPanelCard(pendingReview: Int, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(MaterialTheme.colorScheme.primary)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(Icons.Outlined.AdminPanelSettings, contentDescription = null,
-            tint = Color.White, modifier = Modifier.size(22.dp))
-        Text(stringResource(R.string.profile_admin_panel).uppercase(),
-            color = Color.White, style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.weight(1f))
-        if (pendingReview > 0) {
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 9.dp, vertical = 2.dp)
-            ) {
-                Text("$pendingReview", color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            }
-        }
-        Icon(Icons.Outlined.ChevronRight, contentDescription = null,
-            tint = Color.White, modifier = Modifier.size(20.dp))
     }
 }
 
