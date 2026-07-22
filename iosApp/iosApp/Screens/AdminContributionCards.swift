@@ -334,7 +334,12 @@ func lineSummary(_ name: String?, _ grade: String?, _ start: String?) -> String 
 
 /// Diff de UNA vía corregida/nueva: si es nueva, sus campos; si corrige, SOLO los
 /// campos que cambian (nombre/grado/variante/tipo/desc) viejo→nuevo, más una nota
-/// si se redibujó el trazado. Espejo de ViaChangeRows de ContributionDiff.kt.
+/// si se redibujó el trazado.
+///
+/// ESPEJO de `computeLineDiff` (shared/domain/usecase/contributions/LineDiff.kt),
+/// que es la fuente de verdad y está cubierta por LineDiffTest. Si tocas la lógica
+/// de qué cuenta como cambio, tócala en el Kotlin Y aquí (patrón GradeColor/
+/// TopoParse del proyecto: la lógica pura se espeja, no se puentea por SKIE).
 struct ViaChangeRowsView: View {
     let orig: BlockLine?
     let v: TopoParse.ProposedVia

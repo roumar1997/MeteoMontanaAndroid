@@ -227,43 +227,161 @@ private fun FieldChangeRow(label: String, old: String?, new: String?) {
     }
 }
 
+/** Etiqueta visible de cada campo del diff (la lógica vive en `shared`). */
+private fun lineFieldLabel(f: com.meteomontana.android.domain.usecase.contributions.LineField): String =
+    when (f) {
+        com.meteomontana.android.domain.usecase.contributions.LineField.NAME -> "Nombre"
+        com.meteomontana.android.domain.usecase.contributions.LineField.GRADE -> "Grado"
+        com.meteomontana.android.domain.usecase.contributions.LineField.VARIANT -> "Variante"
+        com.meteomontana.android.domain.usecase.contributions.LineField.START_TYPE -> "Tipo"
+        com.meteomontana.android.domain.usecase.contributions.LineField.DESCRIPTION -> "Descripción"
+    }
+
 /**
- * Diff de UNA vía corregida/nueva. Si es nueva, la lista de campos; si corrige,
- * SOLO los campos que cambian (nombre/grado/variante/tipo/descripción) old→new,
- * y una nota si se redibujó el trazado. Así el admin ve qué toca sin mirar la
- * foto dos veces.
+ * Diff de UNA vía corregida/nueva. Delega el CÁLCULO en `computeLineDiff`
+ * (shared, testeado) y aquí solo se PINTA: nueva → sus campos; corrección →
+ * solo los campos que cambian + nota si se redibujó. Así el admin ve qué toca
+ * sin mirar la foto dos veces.
  */
 @Composable
 internal fun ViaChangeRows(
     orig: com.meteomontana.android.domain.model.BlockLine?,
     v: ProposedVia
 ) {
-    if (orig == null) {
+    val diff = com.meteomontana.android.domain.usecase.contributions.computeLineDiff(
+        orig = orig?.let {
+            com.meteomontana.android.domain.usecase.contributions.LineFields(
+                it.name, it.grade, it.variant, it.startType, it.lineDescription)
+        },
+        new = com.meteomontana.android.domain.usecase.contributions.LineFields(
+            v.name, v.grade, v.variant, v.startType, v.description),
+        drawingChanged = v.drawingChangedFrom(orig)
+    )
+    if (diff.isNew) {
         val txt = listOfNotNull(
             v.name?.takeIf { it.isNotBlank() }, v.grade,
             v.variant?.let { "($it)" }, v.startType, v.description
         ).joinToString(" · ")
-        Text("• NUEVA: $txt",
-            style = MaterialTheme.typography.bodyMedium, color = Terra)
+        Text("• NUEVA: $txt", style = MaterialTheme.typography.bodyMedium, color = Terra)
         return
     }
-    val name = v.name?.takeIf { it.isNotBlank() } ?: orig.name
-    val anyChange = orig.name != v.name || orig.grade != v.grade ||
-        orig.variant != v.variant || orig.startType != v.startType ||
-        orig.lineDescription != v.description || v.drawingChangedFrom(orig)
-    Text("• $name" + if (!anyChange) "  (sin cambios)" else "",
+    Text("• ${diff.displayName ?: "(sin nombre)"}" + if (!diff.hasAnyChange) "  (sin cambios)" else "",
         style = MaterialTheme.typography.bodyMedium,
-        color = if (anyChange) MaterialTheme.colorScheme.onSurface
+        color = if (diff.hasAnyChange) MaterialTheme.colorScheme.onSurface
                 else MaterialTheme.colorScheme.onSurfaceVariant)
-    FieldChangeRow("Nombre", orig.name, v.name)
-    FieldChangeRow("Grado", orig.grade, v.grade)
-    FieldChangeRow("Variante", orig.variant, v.variant)
-    FieldChangeRow("Tipo", orig.startType, v.startType)
-    FieldChangeRow("Descripción", orig.lineDescription, v.description)
-    if (v.drawingChangedFrom(orig)) {
+    diff.changes.forEach { ch -> FieldChangeRow(lineFieldLabel(ch.field), ch.old, ch.new) }
+    if (diff.drawingChanged) {
         Text("    Trazado: redibujado (ver foto)",
             modifier = Modifier.padding(start = Spacing.md),
             style = MaterialTheme.typography.bodyMedium, color = Terra)
+    }
+}
+
+/**
+ * Revisión de admin de una piedra (BOULDER): corrección de una piedra existente
+ * (comparación cara a cara ACTUAL vs PROPUESTA + diff de campos) o piedra NUEVA
+ * (una sección por foto con SUS líneas). Extraído de ContributionCard (SRP): la
+ * card solo orquesta; toda la lógica de revisión de piedra vive aquí.
+ */
+@Composable
+internal fun BoulderReviewSection(
+    c: Contribution,
+    existingBlocks: List<com.meteomontana.android.domain.model.Block>
+) {
+    val targetBlock = if (!c.targetBlockId.isNullOrBlank())
+        existingBlocks.firstOrNull { it.id == c.targetBlockId } else null
+    val proposed = parseProposedVias(c.bloquesJson)
+
+    if (targetBlock != null && proposed.isNotEmpty()) {
+        // Corrección/edición de una piedra existente: comparamos cara a cara.
+        val existingFaces = targetBlock.facesOrDerived()
+        val groups = proposed.groupBy { it.photoUrl }
+        groups.forEach { (facePhotoKey, vias) ->
+            val targetIds = vias.mapNotNull { it.targetLineId }.toSet()
+            // Cara coincidente: por las vías que corrige, o por foto igual.
+            val oldFace = existingFaces.firstOrNull { f -> f.lines.any { it.id in targetIds } }
+                ?: existingFaces.firstOrNull { it.photoPath == facePhotoKey }
+            val isNewFace = oldFace == null
+            val oldPhoto = oldFace?.photoPath
+            val photoChanged = !isNewFace && !facePhotoKey.isNullOrBlank() && facePhotoKey != oldPhoto
+            // ¿Cambia algo VISUAL (foto o trazado)? Si no, no repetimos la foto.
+            val faceDrawingChanged = isNewFace || photoChanged || vias.any { v ->
+                v.drawingChangedFrom(
+                    v.targetLineId?.let { id -> oldFace?.lines?.firstOrNull { it.id == id } })
+            }
+
+            Spacer(Modifier.height(Spacing.md))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            Spacer(Modifier.height(Spacing.sm))
+
+            if (faceDrawingChanged) {
+                if (isNewFace) {
+                    Text("CARA NUEVA (FOTO AÑADIDA)", style = EyebrowTextStyle, color = Moss)
+                    Spacer(Modifier.height(Spacing.xs))
+                } else if (!oldPhoto.isNullOrBlank()) {
+                    Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
+                        style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(Spacing.xs))
+                    ZoomableTopo(photoUrl = oldPhoto, lines = (oldFace?.lines ?: emptyList()).toTopoLines())
+                }
+
+                Spacer(Modifier.height(Spacing.sm))
+                Text(if (isNewFace) "FOTO NUEVA" else if (photoChanged) "FOTO PROPUESTA (NUEVA)" else "PROPUESTA",
+                    style = EyebrowTextStyle, color = Terra)
+                Spacer(Modifier.height(Spacing.xs))
+                val proposedLines: List<TopoLine> = if (photoChanged) {
+                    vias.map { it.toTopoLine() }
+                } else {
+                    val keep = (oldFace?.lines ?: emptyList()).filter { it.id !in targetIds }.toTopoLines()
+                    keep + vias.map { it.toTopoLine() }
+                }
+                val propostaPhoto = facePhotoKey ?: oldPhoto ?: ""
+                if (propostaPhoto.isNotEmpty()) {
+                    ZoomableTopo(photoUrl = propostaPhoto, lines = proposedLines)
+                }
+            } else {
+                Text("SOLO TEXTO · el dibujo y la foto no cambian",
+                    style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Spacer(Modifier.height(Spacing.xs))
+            vias.forEach { v ->
+                val orig = v.targetLineId?.let { id -> oldFace?.lines?.firstOrNull { it.id == id } }
+                ViaChangeRows(orig, v)
+            }
+        }
+    } else {
+        // Piedra NUEVA: una sección por CARA (foto) con SUS líneas — las vías sin
+        // foto propia caen en la portada (c.photoUrl).
+        val groups = proposed.groupBy { it.photoUrl ?: c.photoUrl }
+        val hasAnyPhoto = groups.keys.any { !it.isNullOrBlank() }
+        if (hasAnyPhoto) {
+            groups.forEach { (facePhoto, vias) ->
+                Spacer(Modifier.height(Spacing.md))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                Spacer(Modifier.height(Spacing.sm))
+                Text("FOTO", style = EyebrowTextStyle, color = Terra)
+                Spacer(Modifier.height(Spacing.xs))
+                if (!facePhoto.isNullOrBlank()) {
+                    ZoomableTopo(photoUrl = facePhoto, lines = vias.map { it.toTopoLine() })
+                }
+                Spacer(Modifier.height(Spacing.xs))
+                vias.forEach { v ->
+                    val txt = listOfNotNull(
+                        v.name?.takeIf { it.isNotBlank() }, v.grade,
+                        v.variant?.let { "($it)" }, v.startType, v.description
+                    ).joinToString(" · ")
+                    Text("• $txt", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        } else if (proposed.isNotEmpty()) {
+            Spacer(Modifier.height(Spacing.xs))
+            Text("SIN FOTO — el proponente no adjuntó imagen",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            c.bloquesJson?.takeIf { it.isNotBlank() }?.let { BloquesSummary(it) }
+        }
     }
 }
 
