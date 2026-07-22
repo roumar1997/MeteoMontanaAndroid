@@ -209,9 +209,17 @@ fun RadarScreen(
         ) { tapped -> selectedSchool = tapped }
     }
 
-    val currentLabel = readyFrames.getOrNull(frameIndex)?.timeLabel ?: "--:--"
-    val isNow = state.day == RadarDay.HOY &&
-            readyFrames.isNotEmpty() && frameIndex == readyFrames.size - 1
+    // Mientras descargan los PNGs, el timestamp grande NO debe bailar: el frame
+    // "AHORA" (el último de la lista) tiene su hora desde que llega la lista
+    // (viene del capturedAt, no del PNG). Lo anclamos ahí en vez de seguir a
+    // readyFrames[frameIndex], que salta al llegar cada frame → parpadeo.
+    val currentLabel = if (state.framesLoading)
+        (state.frames.lastOrNull()?.timeLabel ?: "--:--")
+    else
+        (readyFrames.getOrNull(frameIndex)?.timeLabel ?: "--:--")
+    val isNow = state.day == RadarDay.HOY && (
+        if (state.framesLoading) state.frames.isNotEmpty()
+        else readyFrames.isNotEmpty() && frameIndex == readyFrames.size - 1)
 
     // Scrubber estable durante la carga: la lista COMPLETA (state.frames) tiene
     // tamaño fijo desde el primer instante; readyFrames crece mientras entran los
