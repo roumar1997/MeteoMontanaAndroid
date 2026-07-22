@@ -120,10 +120,8 @@ internal class MarkerPlacer {
     
         // Orden de pintado: piedras primero, PARKING/ZONE/SCHOOL después → los
         // sectores no quedan tapados por las piedras.
-        val paintOrder = blocks.sortedBy { b ->
-            when (b.type.uppercase()) {
-                "BLOCK" -> 0; "PARKING" -> 1; "ZONE" -> 2; else -> 3
-            }
+        val paintOrder = blocks.sortedBy {
+            com.meteomontana.android.domain.usecase.map.MapGeometry.paintRank(it.type)
         }
         paintOrder.forEach { b ->
             // Si este marker está siendo movido (es el original), lo pintamos semitransparente.
@@ -218,14 +216,8 @@ internal class MarkerPlacer {
     }
 }
 
-/** Parsea el `path` de un muro ("[[lat,lon],...]") a LatLng. Vacío si no es válido. */
-internal fun parseWallPath(path: String?): List<LatLng> {
-    if (path.isNullOrBlank()) return emptyList()
-    return try {
-        val arr = org.json.JSONArray(path)
-        (0 until arr.length()).mapNotNull { i ->
-            val p = arr.optJSONArray(i) ?: return@mapNotNull null
-            if (p.length() < 2) null else LatLng(p.getDouble(0), p.getDouble(1))
-        }
-    } catch (e: Exception) { emptyList() }
-}
+/** Parsea el `path` de un muro a LatLng. Delega el parseo en MapGeometry
+ *  (shared, testeado por MapGeometryTest) y solo mapea al tipo de MapLibre. */
+internal fun parseWallPath(path: String?): List<LatLng> =
+    com.meteomontana.android.domain.usecase.map.MapGeometry.parseWallPath(path)
+        .map { LatLng(it.lat, it.lon) }
