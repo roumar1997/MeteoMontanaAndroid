@@ -205,16 +205,34 @@ struct BoulderReviewView: View {
             Text(header).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
 
             if isNewBoulder {
-                // Piedra nueva: foto propuesta + sus líneas.
-                if let photo = contribution.photoUrl, !photo.isEmpty {
+                // Piedra nueva: UNA sección por CARA (foto) con SUS líneas — no todas
+                // amontonadas en la portada.
+                if faceGroups.contains(where: { !$0.key.isEmpty }) {
+                    ForEach(Array(faceGroups.enumerated()), id: \.offset) { _, group in
+                        Divider().overlay(Cumbre.rule)
+                        let photo = group.key.isEmpty ? (contribution.photoUrl ?? "") : group.key
+                        if !photo.isEmpty {
+                            Text("FOTO").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+                            ZoomableTopo(photoUrl: photo, lines: group.vias.map { $0.line })
+                        }
+                        ForEach(Array(group.vias.enumerated()), id: \.offset) { _, v in
+                            Text("NUEVA · \(lineSummary(v.line.name, v.line.grade, v.line.startType))")
+                                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                    }
+                } else if let photo = contribution.photoUrl, !photo.isEmpty {
                     ZoomableTopo(photoUrl: photo, lines: newLines)
+                    ForEach(Array(newLines.enumerated()), id: \.offset) { _, l in
+                        Text("NUEVA · \(lineSummary(l.name, l.grade, l.startType))")
+                            .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    }
                 } else if !newLines.isEmpty {
                     Text("SIN FOTO — el proponente no adjuntó imagen")
                         .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
-                }
-                ForEach(Array(newLines.enumerated()), id: \.offset) { _, l in
-                    Text("NUEVA · \(lineSummary(l.name, l.grade, l.startType))")
-                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    ForEach(Array(newLines.enumerated()), id: \.offset) { _, l in
+                        Text("NUEVA · \(lineSummary(l.name, l.grade, l.startType))")
+                            .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    }
                 }
             } else {
                 // Corrección/edición: una sección por cara. Solo enseña las fotos

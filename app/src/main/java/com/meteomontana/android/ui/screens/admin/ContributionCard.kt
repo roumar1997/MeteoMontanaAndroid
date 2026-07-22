@@ -278,18 +278,39 @@ internal fun ContributionCard(
                     }
                 }
             } else {
-                // Piedra NUEVA (sin bloque destino): foto propuesta + sus líneas.
-                val newPhoto = c.photoUrl
-                if (!newPhoto.isNullOrBlank()) {
-                    Spacer(Modifier.height(Spacing.sm))
-                    ZoomableTopo(photoUrl = newPhoto, lines = parseBloquesJson(c.bloquesJson))
-                } else if (parseBloquesJson(c.bloquesJson).isNotEmpty()) {
+                // Piedra NUEVA (sin bloque destino): UNA sección por CARA (foto),
+                // con SUS líneas — no todas amontonadas en la portada. Las vías sin
+                // foto propia caen en la portada (c.photoUrl).
+                val groups = proposed.groupBy { it.photoUrl ?: c.photoUrl }
+                val hasAnyPhoto = groups.keys.any { !it.isNullOrBlank() }
+                if (hasAnyPhoto) {
+                    groups.forEach { (facePhoto, vias) ->
+                        Spacer(Modifier.height(Spacing.md))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        Spacer(Modifier.height(Spacing.sm))
+                        Text("FOTO", style = EyebrowTextStyle, color = Terra)
+                        Spacer(Modifier.height(Spacing.xs))
+                        if (!facePhoto.isNullOrBlank()) {
+                            ZoomableTopo(photoUrl = facePhoto, lines = vias.map { it.toTopoLine() })
+                        }
+                        Spacer(Modifier.height(Spacing.xs))
+                        vias.forEach { v ->
+                            val txt = listOfNotNull(
+                                v.name?.takeIf { it.isNotBlank() }, v.grade,
+                                v.variant?.let { "($it)" }, v.startType, v.description
+                            ).joinToString(" · ")
+                            Text("• $txt",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                } else if (proposed.isNotEmpty()) {
                     Spacer(Modifier.height(Spacing.xs))
                     Text("SIN FOTO — el proponente no adjuntó imagen",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    c.bloquesJson?.takeIf { it.isNotBlank() }?.let { BloquesSummary(it) }
                 }
-                c.bloquesJson?.takeIf { it.isNotBlank() }?.let { BloquesSummary(it) }
             }
         }
 
