@@ -10,6 +10,7 @@ import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
 import com.meteomontana.android.domain.model.RangeScore
 import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
+import com.meteomontana.android.domain.usecase.schools.SchoolFilterEngine
 import com.meteomontana.android.domain.usecase.schools.GetSchoolCatalogUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -291,7 +292,7 @@ class SchoolListViewModel @Inject constructor(
                             lat = it.lat, lon = it.lon, source = null
                         )
                     }
-                    val visible = filterQuery(list, f.query)
+                    val visible = SchoolFilterEngine.filterByQuery(list, f.query)
                     // Cargar scores (red si hay; si no, del forecast cacheado de
                     // cada guardada) para que la lista NO muestre "—" offline.
                     loadScoresFor(visible.map { it.id }) { applySort(f) }
@@ -313,17 +314,16 @@ class SchoolListViewModel @Inject constructor(
             // (Si escribes "Albarracín" debe salir aunque esté a 50 km y tengas
             // un radio menor; los filtros son para explorar, el texto para ir a lo
             // que sabes que existe.)
-            var list: List<School>
-            if (f.query.isNotBlank()) {
-                list = filterQuery(allSchools, f.query)
-            } else {
-                list = allSchools.asSequence()
-                    .filter { f.style.apiValue == null || f.style.apiValue.equals(it.style, ignoreCase = true) }
-                    .filter { f.rockTypes.isEmpty() || f.rockTypes.any { r -> r.equals(it.rockType, ignoreCase = true) } }
-                    .filter { f.maxDistanceKm == null || Geo.haversineKm(userLat, userLon, it.lat, it.lon) <= f.maxDistanceKm }
-                    .toList()
-                if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
-            }
+            val list = SchoolFilterEngine.filter(
+                schools = allSchools,
+                query = f.query,
+                styleApiValue = f.style.apiValue,
+                rockTypes = f.rockTypes,
+                maxDistanceKm = f.maxDistanceKm,
+                onlyFavorites = f.onlyFavorites,
+                favoriteIds = _favoriteIds.value,
+                userLat = userLat, userLon = userLon
+            )
 
             // Cargar scores en background para todas las visibles (lotes).
             // Modo tramo (días elegidos) → range-scores; si no, today-scores.
@@ -350,10 +350,11 @@ class SchoolListViewModel @Inject constructor(
         f: SchoolFilters,
         scores: Map<String, com.meteomontana.android.domain.model.SchoolScore>
     ): List<School> = when (f.sortBy) {
-        SortBy.Distance -> list.sortedBy { Geo.haversineKm(userLat, userLon, it.lat, it.lon) }
-        SortBy.Score    ->
-            if (rangeMode) list.sortedByDescending { _rangeScores.value[it.id]?.combinedScore ?: -1 }
-            else list.sortedByDescending { scores[it.id]?.todayScore ?: -1 }
+        SortBy.Distance -> SchoolFilterEngine.sortByDistance(list, userLat, userLon)
+        SortBy.Score -> SchoolFilterEngine.sortByScore(list) { id ->
+            if (rangeMode) _rangeScores.value[id]?.combinedScore ?: -1
+            else scores[id]?.todayScore ?: -1
+        }
     }
 
     /** Carga los scores del tramo por lotes (≤60 ids/call). Van llegando y la
@@ -417,14 +418,8 @@ class SchoolListViewModel @Inject constructor(
     fun distanceTo(schoolLat: Double, schoolLon: Double): Double =
         Geo.haversineKm(userLat, userLon, schoolLat, schoolLon)
 
-    private fun filterQuery(list: List<School>, q: String): List<School> {
-        val needle = q.trim().lowercase()
-        if (needle.isBlank()) return list
-        return list.filter {
-            it.name.lowercase().contains(needle) ||
-                    it.location?.lowercase()?.contains(needle) == true
-        }
-    }
+    // filterQuery / filtro / orden viven ahora en SchoolFilterEngine (shared,
+    // testeado por SchoolFilterEngineTest).
 
     fun setStyle(style: StyleFilter)        { _filters.update { it.copy(style = style) }; load() }
     fun setDistance(km: Double?)            { _filters.update { it.copy(maxDistanceKm = km) }; load() }
