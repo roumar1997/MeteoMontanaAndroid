@@ -229,6 +229,8 @@ fun MainScreen(
                 "meetup" -> deepLink.targetId?.let { openSheet(Routes.meetupDetail(it)) }
                 // Push de denuncia nueva → abre el panel de admin.
                 "admin_reports" -> openFullScreen(Routes.ADMIN)
+                // Push de propuesta nueva (a admins) → panel de admin (abre en PROPUESTAS).
+                "admin_contributions" -> openFullScreen(Routes.ADMIN)
                 "submission", "contribution" -> openSheet(Routes.MY_SUBMISSIONS)
                 // Push de actividad del feed Comunidad → detalle del post.
                 "feed_post" -> deepLink.targetId?.let { openSheet(Routes.feedPost(it)) }
