@@ -82,24 +82,29 @@ struct WallTraceSheet: View {
     let center: CLLocationCoordinate2D
     let initial: [CLLocationCoordinate2D]
     let onDone: ([CLLocationCoordinate2D]) -> Void
+    /// Marcadores de contexto (otras piedras/sectores/parkings) para ubicarte
+    /// mientras trazas — opcional (los callers pasan lo que tengan).
+    var contextMarkers: [CumbreMarker] = []
     @Environment(\.dismiss) private var dismiss
     @State private var points: [CLLocationCoordinate2D] = []
     @State private var started = false
+    // El usuario elige satélite/topo (antes estaba fijo). Satélite por defecto:
+    // ver la base real del muro es lo más útil, igual que Android.
+    @State private var style: MapStyleKind = .satellite
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
                 MapLibreView(
-                    // Satélite (no topográfico): ver la base real del muro es más
-                    // útil y es lo que hace Android. Cada punto tocado se pinta
-                    // como círculo NUMERADO (antes no se veían: solo salía la línea
-                    // con ≥2 puntos y el primer toque parecía no registrarse).
+                    // Cada punto tocado se pinta como círculo NUMERADO (antes no
+                    // se veían: solo salía la línea con ≥2 puntos y el primer toque
+                    // parecía no registrarse). Debajo, el contexto (otras piedras).
                     center: center, zoom: 17,
-                    markers: points.enumerated().map { i, p in
+                    markers: contextMarkers + points.enumerated().map { i, p in
                         CumbreMarker(id: "pt\(i)", coordinate: p, title: "\(i + 1)",
                                      kind: .cluster, color: UIColor(Cumbre.terra), score: i + 1)
                     },
-                    style: .satellite,
+                    style: style,
                     onMapTap: { points.append($0) },
                     polylines: points.count >= 2
                         ? [CumbrePolyline(id: "trace", coordinates: points, color: UIColor(Cumbre.terra), width: 5)]
@@ -112,6 +117,19 @@ struct WallTraceSheet: View {
                         .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10).background(Cumbre.terra)
+                    // Toggle satélite / topográfico (antes estaba fijo).
+                    HStack(spacing: 8) {
+                        ForEach([("satellite", "SATÉLITE"), ("topo", "TOPO")], id: \.0) { value, label in
+                            let on = style.rawValue == value
+                            Button { style = MapStyleKind(rawValue: value) ?? .satellite } label: {
+                                Text(label).font(Cumbre.mono(11, .bold))
+                                    .foregroundStyle(on ? .white : Cumbre.ink)
+                                    .frame(maxWidth: .infinity).padding(.vertical, 8)
+                                    .background(on ? Cumbre.terra : .white)
+                                    .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                            }.buttonStyle(.plain)
+                        }
+                    }.padding(.horizontal, 10)
                     HStack(spacing: 10) {
                         Button { if !points.isEmpty { points.removeLast() } } label: {
                             Text("↶ DESHACER").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
