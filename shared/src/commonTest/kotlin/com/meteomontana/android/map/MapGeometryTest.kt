@@ -1,5 +1,7 @@
 package com.meteomontana.android.map
 
+import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.usecase.map.GeoPoint
 import com.meteomontana.android.domain.usecase.map.MapGeometry
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,6 +39,33 @@ class MapGeometryTest {
     fun `sin trazado no hay punto medio`() {
         assertNull(MapGeometry.wallMidpoint(null))
         assertNull(MapGeometry.wallMidpoint("[[1.0,1.0]]")) // solo 1 punto
+    }
+
+    private fun block(id: String, lat: Double, lon: Double) = Block(
+        id = id, schoolId = "s", type = "BLOCK", name = id, lat = lat, lon = lon,
+        photoPath = null, description = null, createdByUid = "", createdAt = "", lines = emptyList()
+    )
+
+    @Test
+    fun `centroide de puntos`() {
+        val c = MapGeometry.centroid(listOf(GeoPoint(0.0, 0.0), GeoPoint(2.0, 4.0)))
+        assertEquals(1.0, c?.lat)
+        assertEquals(2.0, c?.lon)
+    }
+
+    @Test
+    fun `centroide de lista vacia es null`() {
+        assertNull(MapGeometry.centroid(emptyList()))
+    }
+
+    @Test
+    fun `bloques dentro de radio excluyen lejanos y el propio`() {
+        val parking = block("P", 40.4, -3.7)
+        val cerca = block("cerca", 40.401, -3.701)   // ~150 m
+        val lejos = block("lejos", 41.0, -3.7)        // ~66 km
+        val r = MapGeometry.blocksWithinKm(
+            listOf(parking, cerca, lejos), lat = 40.4, lon = -3.7, km = 0.8, excludeId = "P")
+        assertEquals(listOf("cerca"), r.map { it.id })
     }
 
     @Test

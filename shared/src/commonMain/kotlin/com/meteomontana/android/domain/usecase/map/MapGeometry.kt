@@ -1,5 +1,7 @@
 package com.meteomontana.android.domain.usecase.map
 
+import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.util.Geo
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
@@ -53,5 +55,19 @@ object MapGeometry {
         "PARKING" -> 1
         "ZONE" -> 2
         else -> 3
+    }
+
+    /** Centroide (media aritmética) de un conjunto de puntos; null si vacío. */
+    fun centroid(points: List<GeoPoint>): GeoPoint? {
+        if (points.isEmpty()) return null
+        return GeoPoint(points.sumOf { it.lat } / points.size, points.sumOf { it.lon } / points.size)
+    }
+
+    /** Bloques dentro de [km] de (lat,lon), excluyendo opcionalmente [excludeId].
+     *  Usado para "volar a la zona" de un parking (sectores/piedras cercanas). */
+    fun blocksWithinKm(
+        blocks: List<Block>, lat: Double, lon: Double, km: Double, excludeId: String? = null
+    ): List<Block> = blocks.filter {
+        it.id != excludeId && Geo.haversineKm(lat, lon, it.lat, it.lon) <= km
     }
 }

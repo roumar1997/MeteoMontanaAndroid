@@ -214,10 +214,8 @@ internal fun SchoolMapView(
     // ≤800 m (expandiendo colapsados) — vista de ~1,5-2 km. Sin nada cerca,
     // zoom equivalente.
     val flyToParkingZone: (Block) -> Unit = { parking ->
-        val near = blocks.filter { b ->
-            b.id != parking.id &&
-                Geo.haversineKm(parking.lat, parking.lon, b.lat, b.lon) <= 0.8
-        }
+        val near = com.meteomontana.android.domain.usecase.map.MapGeometry.blocksWithinKm(
+            blocks, parking.lat, parking.lon, km = 0.8, excludeId = parking.id)
         val nearZoneIds = near.filter { it.type == "ZONE" }.map { it.id } +
             near.mapNotNull { it.sectorBlockId }
         if (nearZoneIds.isNotEmpty()) collapsedSectors = collapsedSectors - nearZoneIds.toSet()
@@ -249,14 +247,14 @@ internal fun SchoolMapView(
                         runCatching {
                             // Zoom FIJO y predecible: los encuadres calculados
                             // se iban a los extremos según cómo estén los datos.
-                            val pts = listOf(LatLng(tapped.lat, tapped.lon)) +
-                                stones.map { LatLng(it.lat, it.lon) }
-                            val cLat = pts.sumOf { it.latitude } / pts.size
-                            val cLon = pts.sumOf { it.longitude } / pts.size
+                            val pts = listOf(
+                                com.meteomontana.android.domain.usecase.map.GeoPoint(tapped.lat, tapped.lon)
+                            ) + stones.map { com.meteomontana.android.domain.usecase.map.GeoPoint(it.lat, it.lon) }
+                            val c = com.meteomontana.android.domain.usecase.map.MapGeometry.centroid(pts)!!
                             // Nunca ALEJAR: si ya estás más cerca, solo centra.
                             val targetZoom = maxOf(map.cameraPosition.zoom, 15.0)
                             map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                LatLng(cLat, cLon), targetZoom))
+                                LatLng(c.lat, c.lon), targetZoom))
                         }
                     }
                 }
