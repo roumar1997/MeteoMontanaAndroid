@@ -8,12 +8,14 @@ import Shared
 struct EditLinesSheet: View {
     let block: Block
     let schoolId: String
-    let onDone: (Bool) -> Void
     /// Cara que se abre primero (deep-link "corregir esta vía"): la de esa vía.
     var focusVia: String? = nil
     /// Otras piedras/sectores + mi ubicación, para orientarme al re-trazar el
     /// muro (contexto de solo lectura). Los pasa SchoolMapSection.
     var contextMarkers: [CumbreMarker] = []
+    /// Declarado el ÚLTIMO para que el closure final del caller enlace con él
+    /// sin ambigüedad (focusVia/contextMarkers tienen default y van antes).
+    let onDone: (Bool) -> Void
     @Environment(\.dismiss) private var dismiss
     // Una piedra puede tener VARIAS caras (fotos). Cada cara edita SOLO sus vías
     // sobre SU foto (antes se mezclaban todas en la portada). `faceBlocks[i]` =
