@@ -505,8 +505,36 @@ func contributionMarkers(_ c: Contribution, blocks: [Block] = []) -> [CumbreMark
     }
 }
 
-/// Polilíneas de un cambio de sector: piedra → sector viejo (gris) y → nuevo (verde).
+/// Coordenadas para encuadrar el mapa de una propuesta: si es MURO, incluye el
+/// TRAZADO (a zoom fijo un muro de metros queda sub-píxel bajo el marcador y
+/// parece "solo el punto"). Espejo del fix de ContributionCard.kt (Android).
+/// Vacío si hay menos de 2 puntos (MapLibreView solo encuadra con ≥2).
+func contributionFitCoords(_ c: Contribution, _ proposed: [CumbreMarker]) -> [CLLocationCoordinate2D] {
+    let wall = (c.geometry ?? "").uppercased() == "LINE" ? parseWallPath(c.path) : []
+    let all = wall + proposed.map { $0.coordinate }
+    return all.count >= 2 ? all : []
+}
+
+/// Polilíneas de una propuesta: el TRAZADO del muro (LINE) o un cambio de sector.
 func contributionPolylines(_ c: Contribution, blocks: [Block]) -> [CumbrePolyline] {
+    // Muro (geometry LINE): trazado viejo (gris, si corrige) + nuevo (terra). Antes
+    // NO se dibujaba en la revisión de admin en iOS — solo se veía el punto.
+    if (c.geometry ?? "").uppercased() == "LINE" {
+        var wallLines: [CumbrePolyline] = []
+        if let tb = c.targetBlockId.flatMap({ id in blocks.first(where: { $0.id == id }) }) {
+            let old = parseWallPath(tb.path)
+            if old.count >= 2 {
+                wallLines.append(CumbrePolyline(id: "wallOld", coordinates: old,
+                    color: UIColor(white: 0.54, alpha: 1), width: 5, alpha: 0.6))
+            }
+        }
+        let new = parseWallPath(c.path)
+        if new.count >= 2 {
+            wallLines.append(CumbrePolyline(id: "wallNew", coordinates: new,
+                color: UIColor(Cumbre.terra), width: 5, alpha: 1))
+        }
+        return wallLines
+    }
     guard c.type.uppercased() == "ASSIGN_SECTOR",
           let stone = blocks.first(where: { $0.id == c.targetBlockId }) else { return [] }
     let stoneCoord = CLLocationCoordinate2D(latitude: stone.lat, longitude: stone.lon)
@@ -535,7 +563,7 @@ struct ContributionMiniMap: View {
         MapLibreView(
             center: CLLocationCoordinate2D(latitude: contribution.lat, longitude: contribution.lon),
             zoom: 16, markers: contextMarkers(contribution, blocks: blocks) + proposed, style: style,
-            fitToCoordinatesOnLoad: proposed.count >= 2 ? proposed.map { $0.coordinate } : [],
+            fitToCoordinatesOnLoad: contributionFitCoords(contribution, proposed),
             polylines: contributionPolylines(contribution, blocks: blocks))
         .frame(height: 200)
         .clipShape(RoundedRectangle(cornerRadius: 2))
@@ -562,9 +590,9 @@ struct ContributionMapSheet: View {
                     MapLibreView(
                         center: CLLocationCoordinate2D(latitude: contribution.lat, longitude: contribution.lon),
                         zoom: 16, markers: contextMarkers(contribution, blocks: blocks) + proposed, style: style,
-                        // Encuadra los marcadores clave de la propuesta al cargar
-                        // (✕/★ o piedra+sectores) para que todos entren en pantalla.
-                        fitToCoordinatesOnLoad: proposed.count >= 2 ? proposed.map { $0.coordinate } : [],
+                        // Encuadra lo clave de la propuesta (✕/★, piedra+sectores, o el
+                        // TRAZADO del muro) para que todo entre en pantalla.
+                        fitToCoordinatesOnLoad: contributionFitCoords(contribution, proposed),
                         polylines: contributionPolylines(contribution, blocks: blocks))
                     MapStyleChips(selection: $style)
                 } else {
