@@ -53,7 +53,7 @@ jobs:
       # El compilador de Kotlin/Native y SKIE descargan toolchain a ~/.konan.
       # Cachearlo evita ~10 min de descargas en cada run.
       - name: Cache Kotlin/Native (~/.konan)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
@@ -64,7 +64,7 @@ jobs:
       # grafo de paquetes SPM entre builds — "PIFLoader GUID already registered").
       # Solo cacheamos las descargas de SPM (fuentes/binarios de los paquetes).
       - name: Cache SPM downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/Library/Caches/org.swift.swiftpm
           key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}

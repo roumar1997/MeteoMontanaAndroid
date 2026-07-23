@@ -40,14 +40,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Cache Kotlin/Native (~/.konan)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
           restore-keys: konan-${{ runner.os }}-
 
       - name: Cache build KMP shared (shared/build)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             shared/build
@@ -57,7 +57,7 @@ jobs:
           restore-keys: kmp-build-${{ runner.os }}-
 
       - name: Cache SPM packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/Library/Caches/org.swift.swiftpm
           key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
