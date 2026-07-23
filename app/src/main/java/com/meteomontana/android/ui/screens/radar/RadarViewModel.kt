@@ -33,6 +33,17 @@ import javax.inject.Inject
 enum class RadarDay { HOY, AYER }
 
 /**
+ * ¿Se conserva el frame [i] de una película de [size] frames? Un día son hasta
+ * 144 ciclos: para no fundir la memoria con bitmaps, la película usa pasos de
+ * ~30 min (1 de cada 3) SALVO la última hora ([keepLast] frames), que va
+ * completa (es lo que más importa). Función pura → testable sin Bitmap/red.
+ */
+internal fun radarKeepsFrame(i: Int, size: Int, keepLast: Int = 7): Boolean {
+    val cut = (size - keepLast).coerceAtLeast(0)
+    return i >= cut || i % 3 == 0
+}
+
+/**
  * Estado de la pestaña Radar: compuesto España del backend (PNG Cumbre),
  * timeline por día y escuelas para los pines.
  */
@@ -83,11 +94,9 @@ class RadarViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val dto = radarApi.getFrames(date = dateStr)
-                // Un día entero son hasta 144 ciclos: para no fundir la memoria
-                // con bitmaps, la película usa pasos de ~30 min salvo la última
-                // hora, que va completa (es lo que más importa).
-                val cut = (dto.frames.size - 7).coerceAtLeast(0)
-                val thinned = dto.frames.filterIndexed { i, _ -> i >= cut || i % 3 == 0 }
+                // Adelgaza la película (ver radarKeepsFrame): pasos de ~30 min
+                // salvo la última hora completa.
+                val thinned = dto.frames.filterIndexed { i, _ -> radarKeepsFrame(i, dto.frames.size) }
                 _state.value = _state.value.copy(
                     loading = false,
                     framesLoading = true,

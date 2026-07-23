@@ -176,7 +176,7 @@ class IosDependencyContainer(
     private val profileRepository = KtorProfileRepository(profileApi)
     private val notificationsRepository = KtorNotificationsRepository(notificationApi)
     private val socialRepository = KtorSocialRepository(socialApi)
-    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi)
+    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi, database)
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
@@ -184,7 +184,7 @@ class IosDependencyContainer(
     val blockApi = KtorBlockApi(httpClient)
     // Moderación UGC (denunciar/bloquear) — requisito App Store.
     val moderationApi = com.meteomontana.android.data.api.KtorModerationApi(httpClient)
-    private val blockRepository = KtorBlockRepository(blockApi)
+    private val blockRepository = KtorBlockRepository(blockApi, database)
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
     val meetupApi = KtorMeetupApi(httpClient)
     private val meetupCache: MeetupCacheRepository? = database?.let { MeetupCacheRepository(it) }
@@ -559,9 +559,12 @@ class IosDependencyContainer(
                         val req = outboxJson.decodeFromString(
                             com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
                         // Idempotente: no crear si esa vía ya está en el diario.
-                        val key = "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
+                        // Clave POR lineId (journalViaKey) para no confundir homónimas.
+                        val key = com.meteomontana.android.domain.journal
+                            .journalViaKey(req.schoolId, req.lineId, req.blockName)
                         val exists = getMyJournal().any { e ->
-                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
+                            com.meteomontana.android.domain.journal
+                                .journalViaKey(e.schoolId, e.lineId, e.blockName) == key
                         }
                         if (!exists) createJournalEntry(req)
                         true
@@ -569,10 +572,14 @@ class IosDependencyContainer(
                     if (ok) repo.delete(row.id)
                 }
                 com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE -> {
-                    // payload = clave "escuela|vía"; resolvemos el id real y borramos.
+                    // payload = clave journalViaKey ("escuela|#lineId" o por nombre
+                    // legado). Casa por la MISMA clave id-aware que usa el encolado
+                    // (antes se comparaba por nombre → el borrado por id nunca casaba
+                    // → se perdía al reconectar). Resolvemos el id real y borramos.
                     val ok = runCatching {
                         val entry = getMyJournal().firstOrNull { e ->
-                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == row.payloadJson
+                            com.meteomontana.android.domain.journal
+                                .journalViaKey(e.schoolId, e.lineId, e.blockName) == row.payloadJson
                         }
                         if (entry != null) deleteJournalEntry(entry.id)
                         true   // si no existe ya, también se considera hecho

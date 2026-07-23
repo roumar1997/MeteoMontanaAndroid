@@ -1,0 +1,109 @@
+name: iOS Tests
+
+# Corre los tests unitarios de iOS (target MeteoMontanaTests) en un simulador.
+# Cubre los ESPEJOS algorítmicos Swift↔Kotlin (GradeColor, TopoShared…): si un
+# espejo diverge del Kotlin, aquí sale rojo antes de romper la paridad.
+#
+# Separado de ios-ci.yml (que hace el .ipa de dispositivo) porque los tests
+# necesitan el SDK de SIMULADOR y un simulador arrancado (build distinta).
+
+on:
+  push:
+    branches: ["main", "develop", "claude/**"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ios-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Seleccionar Xcode más reciente
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle (con caché)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Kotlin/Native (~/.konan)
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
+          restore-keys: konan-${{ runner.os }}-
+
+      - name: Cache SPM downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # Dummy estructural: los tests son de LÓGICA (no llaman a Firebase), pero la
+      # app anfitriona llama a FirebaseApp.configure() al lanzar en el simulador,
+      # y necesita un plist con forma válida.
+      - name: Write GoogleService-Info.plist (dummy)
+        run: |
+          sed 's/^[[:space:]]*//' > iosApp/iosApp/GoogleService-Info.plist <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          <key>API_KEY</key><string>AIzaSyDUMMY-DUMMY-DUMMY-DUMMY-DUMMY-DUMMY</string>
+          <key>GCM_SENDER_ID</key><string>000000000000</string>
+          <key>PLIST_VERSION</key><string>1</string>
+          <key>BUNDLE_ID</key><string>com.meteomontana.ios</string>
+          <key>PROJECT_ID</key><string>ci-dummy</string>
+          <key>STORAGE_BUCKET</key><string>ci-dummy.appspot.com</string>
+          <key>IS_ADS_ENABLED</key><false/>
+          <key>IS_ANALYTICS_ENABLED</key><false/>
+          <key>IS_APPINVITE_ENABLED</key><true/>
+          <key>IS_GCM_ENABLED</key><true/>
+          <key>IS_SIGNIN_ENABLED</key><true/>
+          <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
+          <key>CLIENT_ID</key><string>000000000000-dummy.apps.googleusercontent.com</string>
+          <key>REVERSED_CLIENT_ID</key><string>com.googleusercontent.apps.000000000000-dummy</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: XcodeGen generate
+        working-directory: iosApp
+        run: xcodegen generate
+
+      # Elige un simulador de iPhone disponible en el runner.
+      - name: Elegir simulador
+        id: sim
+        run: |
+          NAME=$(xcrun simctl list devices available | grep -oE 'iPhone [0-9]+( Pro)?' | head -1)
+          echo "Simulador: $NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Tests (simulador)
+        run: |
+          chmod +x gradlew
+          xcodebuild test \
+            -project iosApp/MeteoMontana.xcodeproj \
+            -scheme MeteoMontana \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | tee xcodebuild-test.log

@@ -31,6 +31,7 @@ data class MountainSpotDto(
 
 class KtorMountainApi(private val client: HttpClient) {
 
+    @Throws(Exception::class)
     suspend fun getBulletin(lat: Double, lon: Double, day: Int = 0): MountainBulletinDto? {
         val resp = client.get("mountain/bulletin") {
             parameter("lat", lat)

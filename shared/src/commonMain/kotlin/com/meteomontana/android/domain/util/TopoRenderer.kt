@@ -4,7 +4,7 @@ import com.meteomontana.android.domain.model.DrawOp
 
 /**
  * Datos de una línea/vía del topo. Puro Kotlin, sin tipos Compose ni Android.
- * Listo para mover a commonMain en Fase 2.
+ * Vive en commonMain (migración KMP completada).
  *
  * @param points Coordenadas normalizadas (0..1) como (x, y)
  * @param strokeWidthPx Grosor de línea en px. Viewer usa 5f; editor usa 8f (seleccionada) / 5f.
@@ -221,7 +221,7 @@ fun magnetizeStroke(
 /**
  * Convierte una lista de líneas topo en instrucciones de dibujo independientes de plataforma.
  *
- * Puro Kotlin — sin imports de Android ni Compose. Listo para commonMain en Fase 2.
+ * Puro Kotlin — sin imports de Android ni Compose. Vive en commonMain (migración KMP completada).
  *
  * @param lines  Líneas a dibujar (coords normalizadas 0..1)
  * @param w      Ancho del canvas en píxeles

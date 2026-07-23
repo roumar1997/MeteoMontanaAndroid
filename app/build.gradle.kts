@@ -28,8 +28,8 @@ android {
         applicationId = "com.meteomontana.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 76
-        versionName = "2.19.0"
+        versionCode = 77
+        versionName = "2.20.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -152,6 +152,8 @@ dependencies {
     testImplementation(libs.mockk)
     // org.json real para tests unitarios (el de Android es stub en src/test/)
     testImplementation("org.json:json:20240303")
+    // Driver JVM de SQLDelight (BD en memoria) para testear el outbox offline.
+    testImplementation("app.cash.sqldelight:sqlite-driver:2.0.2")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

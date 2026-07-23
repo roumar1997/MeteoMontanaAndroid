@@ -86,13 +86,14 @@ fun SchoolsMapPanel(
         .fillMaxWidth()
         .padding(horizontal = Spacing.lg, vertical = Spacing.xs)) {
 
-        // Toggle "VER MAPA" — barra clara con icono de mapa terracota (paridad iOS).
+        // Toggle "VER MAPA" — botón terracota (borde + texto + tinte) para que se
+        // vea claramente pulsable (antes era una barra gris que parecía pasiva).
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
                 .clickable(onClick = onToggle)
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -107,12 +108,12 @@ fun SchoolsMapPanel(
             Text(
                 if (expanded) stringResource(R.string.schools_hide_map) else stringResource(R.string.schools_view_map),
                 style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 if (expanded) "▴" else "▾",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleMedium
             )
         }
@@ -212,11 +213,20 @@ private fun MapBody(
                         mapRef.value = map
                         val styleJson = if (isDarkTheme) DARK_RASTER_STYLE else OSM_RASTER_STYLE
                         map.setStyle(Style.Builder().fromJson(styleJson)) {
-                            // Con ubicación real: centramos cerca del usuario.
-                            // Sin ella: España entera.
-                            val center = if (userLat != null && userLon != null)
-                                LatLng(userLat, userLon) else LatLng(40.4, -3.7)
-                            val zoom = if (userLat != null && userLon != null) 8.0 else 5.0
+                            // Si al abrir el mapa la lista ya viene filtrada a UNA
+                            // escuela (buscador), centramos en ELLA (como iOS). Si no,
+                            // con ubicación real cerca del usuario; sin ella, España.
+                            val single = schools.singleOrNull()
+                            val center = when {
+                                single != null -> LatLng(single.lat, single.lon)
+                                userLat != null && userLon != null -> LatLng(userLat, userLon)
+                                else -> LatLng(40.4, -3.7)
+                            }
+                            val zoom = when {
+                                single != null -> 13.5
+                                userLat != null && userLon != null -> 8.0
+                                else -> 5.0
+                            }
                             map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
                                 .target(center).zoom(zoom).build()
                             lastFittedIds.value = schools.map { it.id }.toSet()
@@ -360,7 +370,15 @@ internal fun syncMarkers(
     }
 
     if (fitBounds) runCatching {
-        map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 48), 400)
+        if (schools.size == 1) {
+            // Una sola escuela (p.ej. buscador): encuadrar "bounds" de un único
+            // punto hace que MapLibre se vaya al mundo entero. Zoom directo a ella
+            // (como iOS), en vez de bounds degenerados.
+            val s = schools.first()
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(s.lat, s.lon), 13.5), 400)
+        } else {
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 48), 400)
+        }
     }
 }
 

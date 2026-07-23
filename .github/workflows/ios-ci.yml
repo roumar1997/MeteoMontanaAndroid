@@ -15,7 +15,7 @@ name: iOS CI
 # se mantiene para lanzarlo a mano si hace falta.
 on:
   push:
-    branches: ["main", "claude/**"]
+    branches: ["main", "develop", "claude/**"]
   workflow_dispatch: {}
 
 # Un push nuevo cancela el build anterior de la misma rama (no apila builds

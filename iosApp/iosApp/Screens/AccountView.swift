@@ -175,8 +175,6 @@ struct AccountView: View {
     @StateObject private var vm = AccountViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var showAddBlock = false
-    @State private var showDeleteConfirm = false
-    @State private var showHintsReset = false
     @State private var zoomUrl: String? = nil   // foto de perfil a pantalla completa
 
     private let authBridge = AppDependencies.shared.authBridge
@@ -205,11 +203,6 @@ struct AccountView: View {
                     badges
                     followCounters
                     diarySection
-                    Divider().overlay(Cumbre.rule).padding(.vertical, 4)
-                    menuLinks
-                    Divider().overlay(Cumbre.rule).padding(.vertical, 4)
-                    signOutButton
-                    deleteAccountButton
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 24)
@@ -219,20 +212,33 @@ struct AccountView: View {
             .navigationTitle(NSLocalizedString("profile_title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { HelpButton(topicKey: "profile") }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarLeading) {
+                    HelpButton(topicKey: "profile")
+                    // Acceso admin (solo admins) con nº de pendientes, junto al "?".
+                    if vm.profile?.isAdmin == true {
+                        NavigationLink(destination: AdminView()) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.shield")
+                                if vm.pendingReview > 0 {
+                                    Text("\(vm.pendingReview)").font(Cumbre.mono(12, .bold))
+                                }
+                            }
+                        }.foregroundStyle(Cumbre.terra)
+                    }
+                }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if vm.profile != nil {
+                        Button { shareProfile() } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }.foregroundStyle(Cumbre.terra)
+                        NavigationLink(destination: AccountSettingsView(vm: vm)) {
+                            Image(systemName: "gearshape")
+                        }.foregroundStyle(Cumbre.ink)
+                    }
                     if showClose {
                         Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
                     }
                 }
-            }
-            .alert("¿Eliminar tu cuenta?", isPresented: $showDeleteConfirm) {
-                Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
-                Button("Eliminar", role: .destructive) {
-                    Task { await vm.deleteMyAccount(); dismiss() }
-                }
-            } message: {
-                Text("Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.")
             }
             .sheet(isPresented: $showAddBlock) {
                 AddBlockSheet { block, grade, schoolId, school, sector, notes in
@@ -284,11 +290,24 @@ struct AccountView: View {
 
     private var badges: some View {
         HStack(spacing: 8) {
-            // TOPE = grado máximo REAL del diario (no el topGrade editable del
-            // perfil). Espejo de la stat "MÁXIMO" de Android.
-            if let g = vm.stats?.maxGrade, !g.isEmpty { badge("TOPE \(g.uppercased())", Cumbre.terra) }
+            // El grado máx ya vive en las stats del diario (decisión de Rodrigo).
             if vm.profile?.isAdmin == true { badge("ADMIN", Cumbre.ink) }
             if vm.profile?.isPremium == true { badge("PREMIUM", Cumbre.ok) }
+        }
+    }
+
+    /// Comparte el perfil como imagen 1080×1920 (desde el icono de la barra).
+    private func shareProfile() {
+        guard let p = vm.profile else { return }
+        let handle = (p.username?.isEmpty == false ? p.username! : p.uid)
+        let label = p.username.map { "@" + $0 } ?? (p.displayName ?? "mi perfil")
+        Task {
+            let st = vm.stats
+            await ShareProfileImage.share(
+                handle: handle, displayLabel: label,
+                username: p.username, photoUrl: p.photoUrl, topGrade: p.topGrade, bio: p.bio,
+                boulders: st.map { Int($0.boulderCount) }, routes: st.map { Int($0.routeCount) },
+                schools: st.map { Int($0.schoolCount) })
         }
     }
 
@@ -320,89 +339,95 @@ struct AccountView: View {
             .overlay(Rectangle().stroke(c, lineWidth: 1))
     }
 
-    private var menuLinks: some View {
-        VStack(spacing: 0) {
-            // Compartir mi perfil: imagen 1080×1920 (formato historia) →
-            // Instagram Stories, WhatsApp... + enlace /s/u/ (paridad Android).
-            if let p = vm.profile {
-                let handle = (p.username?.isEmpty == false ? p.username! : p.uid)
-                let label = p.username.map { "@" + $0 } ?? (p.displayName ?? "mi perfil")
+    private var displayName: String {
+        vm.profile?.displayName ?? authBridge.currentDisplayName() ?? "Sin nombre"
+    }
+    private var email: String? {
+        vm.profile?.email ?? authBridge.currentEmail()
+    }
+}
+
+// MARK: - Ajustes del perfil (pantalla empujada)
+
+/// Ajustes del perfil: agrupa cuenta / mi actividad / preferencias + cerrar
+/// sesión / borrar cuenta. Es una PANTALLA (NavigationLink desde el ⚙️), no un
+/// sheet — así cada sub-ajuste se empuja y "atrás" vuelve aquí. Espejo del
+/// ProfileSettingsScreen de Android.
+struct AccountSettingsView: View {
+    @ObservedObject var vm: AccountViewModel
+    @Environment(\.dismiss) private var dismiss
+    private let authBridge = AppDependencies.shared.authBridge
+    @State private var showDeleteConfirm = false
+    @State private var showHintsReset = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                sectionLabel(NSLocalizedString("profile_section_account", comment: ""))
+                menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
+
+                sectionLabel(NSLocalizedString("profile_section_activity", comment: ""))
+                menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
+                menuRow("Mis contribuciones", "mappin.and.ellipse", MyContributionsUnifiedView())
+                if vm.profile?.isPublic == false {
+                    menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
+                }
+
+                sectionLabel(NSLocalizedString("profile_section_prefs", comment: ""))
+                menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
+                FeedPublishSettingRow()
                 Button {
-                    Task {
-                        let st = vm.stats
-                        await ShareProfileImage.share(
-                            handle: handle, displayLabel: label,
-                            username: p.username, photoUrl: p.photoUrl,
-                            topGrade: p.topGrade, bio: p.bio,
-                            boulders: st.map { Int($0.boulderCount) },
-                            routes: st.map { Int($0.routeCount) },
-                            schools: st.map { Int($0.schoolCount) })
-                    }
+                    FirstTimeHint.resetAll()
+                    showHintsReset = true
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "square.and.arrow.up").font(.system(size: 16))
-                            .foregroundStyle(Cumbre.terra).frame(width: 24)
-                        Text("Compartir mi perfil").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                        Image(systemName: "questionmark.circle").font(.system(size: 16)).foregroundStyle(Cumbre.terra).frame(width: 24)
+                        Text(NSLocalizedString("profile_show_hints", comment: "")).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                         Spacer()
-                        Image(systemName: "chevron.right").font(.system(size: 12))
-                            .foregroundStyle(Cumbre.ink3)
-                    }
-                    .padding(.vertical, 13).padding(.horizontal, 16)
-                }
-                Divider().overlay(Cumbre.rule)
+                    }.padding(.vertical, 12).contentShape(Rectangle())
+                }.buttonStyle(.plain)
+
+                Divider().overlay(Cumbre.rule).padding(.vertical, 8)
+                Button {
+                    AppDependencies.shared.container.localCacheCleaner?.clearServerCaches()
+                    authBridge.signOut {}
+                    dismiss()
+                } label: {
+                    Text(NSLocalizedString("profile_logout", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
+                        .foregroundStyle(Cumbre.ink).padding(.vertical, 14).frame(maxWidth: .infinity)
+                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+                Button { showDeleteConfirm = true } label: {
+                    Text(NSLocalizedString("profile_delete_account", comment: ""))
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                        .padding(.vertical, 8).frame(maxWidth: .infinity)
+                }.buttonStyle(.plain)
             }
-            // "Comunidad" se mudó a su propia pestaña (feed social + ranking).
-            menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
-            menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
-            menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
-            // Ajuste "Publicar ascensos en el feed": Preguntar / Siempre / Nunca.
-            FeedPublishSettingRow()
-            // Entrada única "Mis contribuciones": pantalla unificada con
-            // segmented PROPUESTAS ⇄ CONTRIBUCIONES (paridad Android).
-            menuRow("Mis contribuciones", "mappin.and.ellipse", MyContributionsUnifiedView())
-            menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
-            // Panel de admin: solo si el perfil es admin. Muestra un aviso con el
-            // nº de propuestas/contribuciones pendientes de revisar.
-            if vm.profile?.isAdmin == true {
-                NavigationLink(destination: AdminView()) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark.shield").font(.system(size: 16))
-                            .foregroundStyle(Cumbre.terra).frame(width: 24)
-                        Text("Panel de admin").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                        Spacer()
-                        if vm.pendingReview > 0 {
-                            Text("\(vm.pendingReview) PENDIENTE\(vm.pendingReview == 1 ? "" : "S")")
-                                .font(Cumbre.mono(10, .bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 8).padding(.vertical, 3)
-                                .background(Cumbre.terra).clipShape(Capsule())
-                        }
-                        Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                    }
-                    .padding(.vertical, 12)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-            Button {
-                FirstTimeHint.resetAll()
-                showHintsReset = true
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "questionmark.circle").font(.system(size: 16))
-                        .foregroundStyle(Cumbre.terra).frame(width: 24)
-                    Text(NSLocalizedString("profile_show_hints", comment: "")).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                    Spacer()
-                }
-                .padding(.vertical, 12).contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .alert("Pistas reactivadas", isPresented: $showHintsReset) {
-                Button("Vale", role: .cancel) {}
-            } message: {
-                Text("Entra de nuevo en cada pantalla para volver a ver las pistas.")
-            }
+            .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 24)
         }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle(NSLocalizedString("profile_settings", comment: ""))
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("¿Eliminar tu cuenta?", isPresented: $showDeleteConfirm) {
+            Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
+            Button("Eliminar", role: .destructive) {
+                Task { await vm.deleteMyAccount(); dismiss() }
+            }
+        } message: {
+            Text("Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.")
+        }
+        .alert("Pistas reactivadas", isPresented: $showHintsReset) {
+            Button("Vale", role: .cancel) {}
+        } message: {
+            Text("Entra de nuevo en cada pantalla para volver a ver las pistas.")
+        }
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased()).font(Cumbre.mono(10, .bold)).tracking(1.4)
+            .foregroundStyle(Cumbre.ink3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 16).padding(.bottom, 2)
     }
 
     private func menuRow<Dest: View>(_ title: String, _ icon: String, _ dest: Dest) -> some View {
@@ -413,43 +438,8 @@ struct AccountView: View {
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
             }
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var signOutButton: some View {
-        Button {
-            // Limpiar cachés del servidor (preserva outbox y guardados offline)
-            // para no arrastrar datos viejos/de otra cuenta al re-loguear.
-            AppDependencies.shared.container.localCacheCleaner?.clearServerCaches()
-            authBridge.signOut {}
-            dismiss()
-        } label: {
-            Text(NSLocalizedString("profile_logout", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
-                .foregroundStyle(Cumbre.ink)
-                .padding(.vertical, 14).frame(maxWidth: .infinity)
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var deleteAccountButton: some View {
-        Button { showDeleteConfirm = true } label: {
-            Text(NSLocalizedString("profile_delete_account", comment: ""))
-                .font(.system(size: 14))
-                .foregroundStyle(Cumbre.ink3)
-                .padding(.vertical, 8).frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var displayName: String {
-        vm.profile?.displayName ?? authBridge.currentDisplayName() ?? "Sin nombre"
-    }
-    private var email: String? {
-        vm.profile?.email ?? authBridge.currentEmail()
+            .padding(.vertical, 12).contentShape(Rectangle())
+        }.buttonStyle(.plain)
     }
 }
 

@@ -94,11 +94,18 @@ fun BlockDetailDialog(
     var showLinePicker by remember { mutableStateOf(false) }
     val tickedLines = remember { mutableStateListOf<String>().apply { addAll(initiallyTicked) } }   // vías hechas
     val projectLines = remember { mutableStateListOf<String>().apply { addAll(initiallyProjects) } } // vías proyecto
-    // NOTA: NO sincronizamos ✓/P con el diario mientras la ficha está abierta.
-    // Se intentó (LaunchedEffect sobre initiallyTicked) y salió mal: el diario
-    // identifica vías POR NOMBRE → dos vías homónimas ("La ola" x2) se marcaban
-    // a la vez en vivo. El estado visual es del usuario; la carrera de guardado
-    // ya la resuelve el parámetro explícito nowDone de onTickLine.
+    // Si la ficha se abrió ANTES de que cargara el diario (la vista instantánea
+    // la abre muy rápido → salía desmarcada, #14/#15), FUSIONA las marcas que
+    // van llegando. Solo AÑADE por lineId (nunca quita: quitar es acción del
+    // usuario). Es seguro con homónimas porque las claves ya son lineIds, no
+    // nombres — el motivo por el que antes NO se sincronizaba desapareció al
+    // migrar el diario a lineId.
+    androidx.compose.runtime.LaunchedEffect(initiallyTicked) {
+        initiallyTicked.forEach { if (!tickedLines.contains(it)) tickedLines.add(it) }
+    }
+    androidx.compose.runtime.LaunchedEffect(initiallyProjects) {
+        initiallyProjects.forEach { if (!projectLines.contains(it)) projectLines.add(it) }
+    }
     val context = LocalContext.current
     val shareScope = rememberCoroutineScope()
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -432,356 +439,35 @@ fun BlockDetailDialog(
                 Text("→ ${stringResource(R.string.common_directions)}", style = EyebrowTextStyle, color = Color.White)
             }
 
-            // Desplegable "OPCIONES": agrupa editar vías / cambiar sector /
-            // editar (admin) / eliminar para no apilar 4 botones.
-            val hasOptions = !isProposal && (
-                (onAddLines != null && block.type == "BLOCK") ||
-                (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) ||
-                onEdit != null || onDelete != null)
-            if (hasOptions) {
-                Spacer(Modifier.height(Spacing.sm))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .clickable { optionsOpen = !optionsOpen }
-                        .padding(horizontal = Spacing.md, vertical = Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("OPCIONES", style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f))
-                    Text(if (optionsOpen) "▴" else "▾",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelLarge)
-                }
-            }
-
-            // Botón editor por cara (corregir/repintar/añadir + cambiar foto) —
-            // solo para BLOCK y si el caller lo permite.
-            if (optionsOpen && onAddLines != null && block.type == "BLOCK" && !isProposal) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, Terra, RoundedCornerShape(2.dp))
-                        .clickable(onClick = onAddLines)
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(if (block.lines.isEmpty()) stringResource(R.string.block_add_routes) else stringResource(R.string.block_edit_routes),
-                        style = EyebrowTextStyle, color = Terra)
-                }
-            }
-
-            // Botón "+ ASIGNAR / CAMBIAR SECTOR" — BLOCK si la escuela tiene algún
-            // sector. Si ya tiene → "CAMBIAR SECTOR" (el picker muestra los demás;
-            // si no hay otro, lo avisa). El backend sobrescribe el sector al aprobar.
-            if (optionsOpen && onAssignSector != null && block.type == "BLOCK" && !isProposal
-                    && !availableSectors.isNullOrEmpty()) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, Terra, RoundedCornerShape(2.dp))
-                        .clickable { showSectorPicker = true }
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        if (block.sectorBlockId == null) stringResource(R.string.propose_assign_sector) else stringResource(R.string.propose_change_sector),
-                        style = EyebrowTextStyle, color = Terra
-                    )
-                }
-            }
-            // (El antiguo botón "✎ CORREGIR VÍA" por vía se quitó: el editor por
-            // cara de arriba ("EDITAR / CORREGIR VÍAS") ya corrige las existentes.)
-
-            // Botón "EDITAR" — admin: mover posición, renombrar, editar líneas
-            if (optionsOpen && onEdit != null && !isProposal) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(2.dp))
-                        .clickable(onClick = onEdit)
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("✎ EDITAR", style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.onBackground)
-                }
-            }
-
-            // Botón "BORRAR" — solo si el caller lo permite (admins) y no es propuesta
-            if (optionsOpen && onDelete != null && !isProposal) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))
-                        .clickable { showDeleteConfirm = true }
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("🗑 BORRAR", style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.error)
-                }
-            }
+            BlockOptionsSection(
+                block = block, isProposal = isProposal,
+                optionsOpen = optionsOpen, onToggleOptions = { optionsOpen = !optionsOpen },
+                onAddLines = onAddLines, availableSectors = availableSectors,
+                onOpenSectorPicker = if (onAssignSector != null) ({ showSectorPicker = true }) else null,
+                onEdit = onEdit,
+                onRequestDelete = if (onDelete != null) ({ showDeleteConfirm = true }) else null
+            )
         }
     }
 
-    // Selector de vía a corregir
+    // Selector de via a corregir
     if (showLinePicker && onEditLine != null) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showLinePicker = false },
-            title = { Text("Elige la vía a corregir") },
-            text = {
-                Column {
-                    block.lines.forEachIndexed { idx, line ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable {
-                                    showLinePicker = false
-                                    onEditLine(line)
-                                }
-                                .padding(vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            Text("${idx + 1}.",
-                                style = MaterialTheme.typography.titleMedium)
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(line.displayName,
-                                    style = MaterialTheme.typography.bodyLarge)
-                                Text(
-                                    listOfNotNull(line.grade, line.startType?.toString())
-                                        .joinToString(" · "),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showLinePicker = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        )
+        BlockLinePickerDialog(block,
+            onPick = { showLinePicker = false; onEditLine(it) },
+            onDismiss = { showLinePicker = false })
     }
 
-    // Dialog de confirmación de borrado
+    // Dialog de confirmacion de borrado
     if (showDeleteConfirm && onDelete != null) {
-        val typeLabel = when (block.type) {
-            "PARKING" -> "parking"
-            "ZONE"    -> "sector"
-            else      -> "piedra"
-        }
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("¿Borrar este $typeLabel?") },
-            text = {
-                Text(
-                    if (block.type == "BLOCK")
-                        "Se borrará \"${block.name}\" y todas sus vías. Esta acción no se puede deshacer."
-                    else
-                        "Se borrará \"${block.name}\". Esta acción no se puede deshacer."
-                )
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    showDeleteConfirm = false
-                    onDelete()
-                }) {
-                    Text("SÍ, BORRAR", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        )
+        BlockDeleteConfirmDialog(block,
+            onConfirm = { showDeleteConfirm = false; onDelete() },
+            onDismiss = { showDeleteConfirm = false })
     }
 
     // Picker de sector para "ASIGNAR SECTOR"
     if (showSectorPicker && onAssignSector != null && !availableSectors.isNullOrEmpty()) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showSectorPicker = false },
-            title = { Text("Elegir sector") },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "El admin revisará la propuesta. Si se aprueba, esta piedra quedará asignada al sector elegido.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(Spacing.sm))
-                    // Excluye el sector actual: solo tiene sentido cambiar a otro.
-                    val otherSectors = availableSectors.filter { it.id != block.sectorBlockId }
-                    if (otherSectors.isEmpty()) {
-                        Text(
-                            "Esta escuela solo tiene este sector. Crea otro con \"+ PROPONER → SECTOR\" para poder cambiarlo.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    otherSectors.forEach { sect ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable {
-                                    showSectorPicker = false
-                                    onAssignSector(sect.id)
-                                }
-                                .padding(vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(Color(0xFF1FA84E))
-                                    .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                            ) {
-                                Text("ZONA", style = EyebrowTextStyle, color = Color.White)
-                            }
-                            Spacer(Modifier.padding(horizontal = Spacing.xs))
-                            Text(sect.name, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showSectorPicker = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        )
-    }
-}
-
-/**
- * Fila de 5 estrellas tocables para valorar una vía.
- * Muestra la media de votos y permite al usuario dar/cambiar su valoración.
- */
-@Composable
-private fun LineStarsRow(
-    lineId: String,
-    avgStars: Float?,
-    myStars: Int,
-    onRate: (Int) -> Unit
-) {
-    // Estilo Google Play: las estrellas muestran la MEDIA (amarillo), y son
-    // tocables para votar. Tu toque se ve al instante (optimista) y luego el
-    // dato refrescado recalcula la media.
-    var pending by remember(lineId) { mutableStateOf<Int?>(null) }
-    androidx.compose.runtime.LaunchedEffect(avgStars, myStars) { pending = null }
-    val avgRounded = avgStars?.let { Math.round(it) } ?: 0
-    val shown = pending ?: avgRounded
-    val amber = Color(0xFFF59E0B)
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        modifier = Modifier.padding(start = 26.dp, top = 2.dp, bottom = 4.dp)
-    ) {
-        for (i in 1..5) {
-            val filled = i <= shown
-            Text(
-                if (filled) "★" else "☆",
-                style = MaterialTheme.typography.titleLarge,
-                color = if (filled) amber else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable {
-                        val newStars = if (myStars == i) 0 else i   // re-tocar tu voto → quitarlo
-                        pending = newStars.takeIf { it > 0 }
-                        onRate(newStars)
-                    }
-            )
-        }
-        // Media numérica + marca discreta de tu voto.
-        if (avgStars != null && avgStars > 0f) {
-            Text(
-                "%.1f".format(avgStars),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
-        if (myStars > 0) {
-            Text(
-                "· tu voto ${myStars}★",
-                style = MaterialTheme.typography.labelSmall,
-                color = amber,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
-    }
-}
-
-/**
- * Comparte una vía: intenta generar la IMAGEN (foto + líneas dibujadas, formato
- * historia) para que en el menú salga Instagram/WhatsApp con la foto ya adjunta;
- * si la vía no tiene foto o dibujo, cae al compartir de texto de siempre.
- * Descargar la foto es `suspend`, por eso se lanza en una corrutina.
- */
-private fun shareVia(
-    scope: kotlinx.coroutines.CoroutineScope,
-    context: android.content.Context,
-    block: Block,
-    line: com.meteomontana.android.domain.model.BlockLine,
-    schoolName: String,
-    tickedIds: Set<String>,
-    projectIds: Set<String>,
-    sectorName: String?
-) {
-    scope.launch {
-        val shared = runCatching {
-            com.meteomontana.android.ui.share.shareLineAsImage(
-                context, block, line, schoolName, tickedIds, projectIds, sectorName
-            )
-        }.getOrDefault(false)
-        if (!shared) shareLine(context, block, line, schoolName, sectorName)
-    }
-}
-
-/** Comparte una vía/bloque: texto según disciplina + enlace que abre la app. */
-private fun shareLine(
-    context: android.content.Context,
-    block: Block,
-    line: com.meteomontana.android.domain.model.BlockLine,
-    schoolName: String,
-    sectorName: String?
-) {
-    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "vía" else "bloque"
-    val article = if (kind == "vía") "esta" else "este"
-    val grade = line.grade?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
-    val where = buildString {
-        append(block.name)
-        if (schoolName.isNotBlank()) append(" · ").append(schoolName)
-        if (!sectorName.isNullOrBlank()) append(" · ").append(sectorName)
-    }
-    val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
-    val link = "${base}s/v/${block.schoolId}/${line.id}"
-    val text = "🧗 Mira $article $kind: «${line.name}»$grade\n" +
-        "📍 $where\n" +
-        "👉 Míralo en Cumbre (foto con la línea dibujada):\n" +
-        link
-    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(android.content.Intent.EXTRA_TEXT, text)
-    }
-    runCatching {
-        context.startActivity(android.content.Intent.createChooser(intent, "Compartir $kind"))
+        BlockSectorPickerDialog(block, availableSectors,
+            onPick = { showSectorPicker = false; onAssignSector(it) },
+            onDismiss = { showSectorPicker = false })
     }
 }

@@ -230,7 +230,11 @@
     <string name="profile_my_proposals">Mis propuestas</string>
     <string name="profile_my_contributions">Mis contribuciones</string>
     <string name="profile_follow_requests">Solicitudes</string>
-    <string name="profile_add_block">+ AÑADIR BLOQUE</string>
+    <string name="profile_add_block">+ AÑADIR BLOQUE/VÍA</string>
+    <string name="profile_settings">Ajustes</string>
+    <string name="profile_section_account">Cuenta</string>
+    <string name="profile_section_activity">Mi actividad</string>
+    <string name="profile_section_prefs">Preferencias</string>
     <string name="profile_logout">Cerrar sesión</string>
     <string name="profile_delete_account">Eliminar cuenta</string>
     <string name="profile_delete_confirm">¿Seguro que quieres eliminar tu cuenta? Se borrarán todos tus datos. Esta acción no se puede deshacer.</string>

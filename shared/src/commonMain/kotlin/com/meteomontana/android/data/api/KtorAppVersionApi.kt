@@ -21,6 +21,16 @@ data class AppVersionDto(
 )
 
 class KtorAppVersionApi(private val client: HttpClient) {
-    /** El caller debe tolerar el fallo (sin red → la app abre normal). */
+    /**
+     * El caller debe tolerar el fallo (sin red → la app abre normal).
+     *
+     * `@Throws(Exception::class)` NO es opcional: esta suspend se llama desde
+     * Swift (`container.appVersionApi.get()`) con `try?`. Sin la anotación,
+     * SKIE genera una firma Swift NO-throwing → cuando Ktor lanza sin red
+     * (`DarwinHttpRequestException`), Swift no puede recibir el error, la
+     * excepción escapa a Kotlin/Native y ABORTA el proceso (crash al arrancar
+     * offline). Regla: toda suspend expuesta a Swift que haga I/O va con @Throws.
+     */
+    @Throws(Exception::class)
     suspend fun get(): AppVersionDto = client.get("app-version").body()
 }

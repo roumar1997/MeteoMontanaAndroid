@@ -50,6 +50,8 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
             switch type {
             case "admin_reports":
                 ShareLinkRouter.shared.target = ShareLinkRouter.Target(openAdminReports: true)
+            case "admin_contributions":
+                ShareLinkRouter.shared.target = ShareLinkRouter.Target(openAdminContributions: true)
             case "user":
                 if let id, !id.isEmpty { ShareLinkRouter.shared.target = ShareLinkRouter.Target(userHandle: id) }
             case "meetup":

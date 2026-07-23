@@ -16,6 +16,37 @@
 
 ---
 
+## ✅ ESTADO 2026-07-20 (fase "dejar perfecta" ejecutada — leer antes que el resto)
+
+Gran parte de este plan YA ESTÁ HECHO (todo en la rama develop, CI verde,
+re-auditoría: UI Android 7.5 · iOS 7.5 · shared 7 · backend 7 · ingeniería 8):
+
+- **Bloque 1**: 1.1 ✅ (GlobalExceptionHandler) · 1.2 ✅ (@Valid con tests) ·
+  1.3 ✅ (dominio sin Spring) · 1.4 ✅ (caps gearJson/bloquesJson/coords) ·
+  1.6 ✅ EL GORDO (N+1 de ratings: 2 queries/vía → 2/escuela). 1.5 pendiente.
+- **Bloque 2**: 2.1 ✅ (shared/src/commonTest existe y el CI lo corre) ·
+  2.3 ✅ ampliado (contratos del feed + autorización: admin/baneo/foto ajena) ·
+  2.4 ✅ parcial (CI vigila develop, Dependabot en ambos repos; análisis
+  estático/ArchUnit pendiente). 2.2 pendiente.
+- **Bloque 3**: 3.3 ✅ (ReviewContributionUseCase→orquestador + 4 piezas, con
+  fix real de @Transactional). 3.1/3.2/3.4/3.5/3.6 = BOY-SCOUT (al tocar cada
+  clase; decisión de auditoría: en big-bang mete más riesgo del que quita).
+- **Bloque 4 y god-files**: TODOS los ficheros >900 líneas de ambas apps
+  repartidos (14 en total: SchoolMap, SchoolDetailView/VM, FeedService,
+  Propose*, FeedScreen/View, AdminView, ContributionCard, MainScreen,
+  SchoolListView, MeetupsView, AddLinesFlow, BlockDetailDialog) +
+  SchoolMapViewModel extraído en iOS. Reglas en ARCHITECTURE.md (normativo).
+- **Extra no previsto**: caché de disco del FEED y de BLOQUES en la capa
+  compartida (offline en ambas apps) + detalle de escuela INSTANTÁNEO en
+  Android (preview stale-while-revalidate) + workflow de release AAB
+  (faltan los secrets de firma, los crea Rodrigo).
+
+Lo que QUEDA de este plan: 1.5 (EAGER doble en MeetupJpaEntity), 2.2
+(dispatchers inyectados), el boy-scout del Bloque 3, ArchUnit/detekt (2.4),
+y los bloques 5-6 (producto/monetización). Nada de ello es urgente.
+
+---
+
 ## BLOQUE 1 — Backend: lo barato que arregla mucho (1-2 sesiones)
 
 ### 1.1 Manejador global de errores (`@RestControllerAdvice`)
