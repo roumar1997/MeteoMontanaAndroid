@@ -147,7 +147,7 @@ jobs:
 
       # Descárgalo en: Actions → run → Artifacts → ios-app-unsigned-ipa.
       - name: Upload .ipa
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-app-unsigned-ipa
           path: MeteoMontana-unsigned.ipa
