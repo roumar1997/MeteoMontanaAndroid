@@ -20,7 +20,7 @@ kotlinx-datetime = "0.6.1"
 kermit = "2.0.5"
 ucrop = "2.2.10"
 appcompat = "1.7.0"
-sqldelight = "2.0.2"
+sqldelight = "2.3.2"
 
 # iOS / Swift interop (KMP → SwiftUI): StateFlow como AsyncSequence, suspend como async throws
 skie = "0.10.12"
