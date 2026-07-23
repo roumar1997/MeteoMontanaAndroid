@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Selecciona el Xcode más nuevo instalado en el runner (lee formato 77).
       - name: Seleccionar Xcode más reciente
