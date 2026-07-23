@@ -56,7 +56,7 @@ accompanistPermissions = "0.36.0"
 maplibre = "11.5.0"
 
 # Persistencia local
-room = "2.7.0"
+room = "2.8.4"
 
 # Widget de pantalla de inicio
 glance = "1.1.1"
