@@ -12,7 +12,7 @@ composeBom = "2024.09.00"
 
 # Network / serialization
 retrofit = "2.11.0"
-okhttp = "4.12.0"
+okhttp = "5.4.0"
 moshi = "1.15.1"
 ktor = "3.0.3"           # alineado con Kotlin 2.0.21 (ABI klib iOS); 3.1.x exige Kotlin 2.1.x
 kotlinx-serialization = "1.7.3"  # alineado con Kotlin 2.0.21 (ABI klib iOS); 1.8.x exige Kotlin 2.1.x
