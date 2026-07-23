@@ -244,7 +244,16 @@ fun MainScreen(
         }
     }
 
-    val showBottomBar = currentRoute == TABS_HOST
+    // La cápsula de tabs se dibuja en el slot bottomBar, SIEMPRE encima del
+    // overlay (perfil, chats, detalle…). En los chats hay un campo de texto
+    // abajo y la cápsula lo tapaba (bug solo Android; en iOS el chat va en
+    // .sheet y cubre la barra). Ocultamos la cápsula cuando el overlay muestra
+    // un chat 1-a-1 o de grupo → el Scaffold deja de reservar su espacio y el
+    // bottomInset del chat pasa a ~0 (campo pegado abajo, sobre el teclado).
+    val sheetEntry by sheetNav.currentBackStackEntryAsState()
+    val sheetShowsChat = sheetVisible &&
+        sheetEntry?.destination?.route in setOf(Routes.CHAT, Routes.GROUP_CHAT)
+    val showBottomBar = currentRoute == TABS_HOST && !sheetShowsChat
 
     Scaffold(
         bottomBar = {

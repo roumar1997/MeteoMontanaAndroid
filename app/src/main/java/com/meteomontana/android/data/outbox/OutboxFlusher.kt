@@ -10,6 +10,7 @@ import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
+import com.meteomontana.android.domain.journal.journalViaKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -108,18 +109,23 @@ class OutboxFlusher @Inject constructor(
                         val req = json.decodeFromString<CreateJournalRequest>(row.payloadJson)
                         // Idempotente: si esa vía ya está en el diario (p.ej. se
                         // marcó también en otro sitio), NO la creamos otra vez.
-                        val key = "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
+                        // Clave POR lineId (journalViaKey) para no confundir homónimas.
+                        val key = journalViaKey(req.schoolId, req.lineId, req.blockName)
                         val exists = getMyJournal().any { e ->
-                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
+                            journalViaKey(e.schoolId, e.lineId, e.blockName) == key
                         }
                         if (!exists) createJournalEntry(req)
                     }
                     OutboxType.JOURNAL_DELETE -> {
-                        // payload = clave "escuelaId|nombreVía". Resolvemos el id real
-                        // contra el diario actual y borramos esa entrada.
+                        // payload = clave journalViaKey ("escuela|#lineId", o por
+                        // nombre en entradas antiguas sin lineId). Resolvemos la
+                        // entrada real con la MISMA función de clave y la borramos.
+                        // ANTES se comparaba solo por nombre → nunca casaba con las
+                        // claves por id → el borrado offline se perdía al reconectar
+                        // (el ✓ reaparecía). Ahora casa por id y por nombre-legado.
                         val key = row.payloadJson
                         val entry = getMyJournal().firstOrNull { e ->
-                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
+                            journalViaKey(e.schoolId, e.lineId, e.blockName) == key
                         }
                         if (entry != null) deleteJournalEntry(entry.id)
                         // Si no existe, ya estaba borrada → se considera hecho.

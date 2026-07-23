@@ -2,7 +2,7 @@ package com.meteomontana.android.detail
 
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.BlockLine
-import com.meteomontana.android.ui.screens.detail.journalViaKey
+import com.meteomontana.android.domain.journal.journalViaKey
 import com.meteomontana.android.ui.screens.detail.matchedLineIds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals

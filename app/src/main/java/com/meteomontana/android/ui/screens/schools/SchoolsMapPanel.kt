@@ -213,11 +213,20 @@ private fun MapBody(
                         mapRef.value = map
                         val styleJson = if (isDarkTheme) DARK_RASTER_STYLE else OSM_RASTER_STYLE
                         map.setStyle(Style.Builder().fromJson(styleJson)) {
-                            // Con ubicación real: centramos cerca del usuario.
-                            // Sin ella: España entera.
-                            val center = if (userLat != null && userLon != null)
-                                LatLng(userLat, userLon) else LatLng(40.4, -3.7)
-                            val zoom = if (userLat != null && userLon != null) 8.0 else 5.0
+                            // Si al abrir el mapa la lista ya viene filtrada a UNA
+                            // escuela (buscador), centramos en ELLA (como iOS). Si no,
+                            // con ubicación real cerca del usuario; sin ella, España.
+                            val single = schools.singleOrNull()
+                            val center = when {
+                                single != null -> LatLng(single.lat, single.lon)
+                                userLat != null && userLon != null -> LatLng(userLat, userLon)
+                                else -> LatLng(40.4, -3.7)
+                            }
+                            val zoom = when {
+                                single != null -> 13.5
+                                userLat != null && userLon != null -> 8.0
+                                else -> 5.0
+                            }
                             map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
                                 .target(center).zoom(zoom).build()
                             lastFittedIds.value = schools.map { it.id }.toSet()

@@ -7,6 +7,7 @@ import com.meteomontana.android.data.outbox.OutboxRepository
 import com.meteomontana.android.data.outbox.OutboxType
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.BlockLine
+import com.meteomontana.android.domain.journal.journalViaKey
 import com.meteomontana.android.domain.model.JournalSession
 import com.meteomontana.android.domain.port.NetworkMonitor
 import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
@@ -181,12 +182,17 @@ class JournalTickController @Inject constructor(
                 //    La entrada se localiza POR lineId; solo si no hay ninguna con
                 //    ese id, por nombre entre las SIN lineId (entradas antiguas) —
                 //    nunca borra la entrada de una homónima con id distinto.
-                val online = networkMonitor.isOnline.value
-                val entry = if (online) _myJournal.value.firstOrNull {
+                // Localizamos la entrada en el diario cargado SIEMPRE (también sin
+                // red) para calcular la clave de borrado correcta (por lineId); solo
+                // BORRAMOS directo si hay red — si no, se encola CON esa clave, que
+                // es la que el flusher usará para reencontrarla al reconectar.
+                val entry = _myJournal.value.firstOrNull {
                     (line.id.isNotBlank() && it.lineId == line.id) ||
                         (it.lineId == null && viaKey(it.schoolId, it.blockName) == legacyKey)
-                } else null
-                val deleted = entry != null && runCatching { deleteJournalEntry(entry.id) }.isSuccess
+                }
+                val online = networkMonitor.isOnline.value
+                val deleted = online && entry != null &&
+                    runCatching { deleteJournalEntry(entry.id) }.isSuccess
                 if (!deleted) {
                     // El payload del borrado pendiente usa la clave de LA ENTRADA
                     // encontrada (id o legado) para que el filtrado offline case.
@@ -309,16 +315,17 @@ class JournalTickController @Inject constructor(
         journalProjectStore.remove(legacyKey)
         val hadPendingCreate = removeOutboxByKey(OutboxType.JOURNAL, key)
         if (!hadPendingCreate) {
-            val online = networkMonitor.isOnline.value
+            // Localiza la entrada SIEMPRE (también sin red) para la clave correcta;
+            // solo borra directo si hay red (si no, se encola con esa clave).
             // Por clave nueva (id) o, para entradas antiguas SIN lineId, por nombre.
-            val entry = if (online) {
-                _myJournal.value.firstOrNull {
-                    it.status == "PROJECT" && (
-                        entryKey(it.schoolId, it.lineId, it.blockName) == key ||
-                            (it.lineId == null && viaKey(it.schoolId, it.blockName) == legacyKey))
-                }
-            } else null
-            val deleted = entry != null && runCatching { deleteJournalEntry(entry.id) }.isSuccess
+            val entry = _myJournal.value.firstOrNull {
+                it.status == "PROJECT" && (
+                    entryKey(it.schoolId, it.lineId, it.blockName) == key ||
+                        (it.lineId == null && viaKey(it.schoolId, it.blockName) == legacyKey))
+            }
+            val online = networkMonitor.isOnline.value
+            val deleted = online && entry != null &&
+                runCatching { deleteJournalEntry(entry.id) }.isSuccess
             if (!deleted) {
                 val delKey = entry?.let { entryKey(it.schoolId, it.lineId, it.blockName) } ?: key
                 removeOutboxByKey(OutboxType.JOURNAL_DELETE, delKey)

@@ -15,6 +15,7 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.journal.journalViaKey
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
@@ -446,15 +447,6 @@ class SchoolDetailViewModel @Inject constructor(
         rateLineUseCase.unrate(blockId, lineId)
     }
 }
-
-/**
- * Clave de diario de una vía: "escuela|#lineId" si tiene id (aguanta
- * homónimas), "escuela|nombre" como legado si no. ÚNICA fuente del formato —
- * la usan el ViewModel y la UI (SchoolMap) para que siempre casen.
- */
-fun journalViaKey(schoolId: String?, lineId: String?, viaName: String): String =
-    if (!lineId.isNullOrBlank()) "${schoolId ?: ""}|#$lineId"
-    else "${schoolId ?: ""}|${viaName.trim().lowercase()}"
 
 /**
  * Ids de las vías de [block] cuyo diario casa con alguna clave de [keys]:
