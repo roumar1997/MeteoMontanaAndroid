@@ -21,7 +21,7 @@ jobs:
           java-version: "17"
 
       - name: Set up Gradle (con caché de dependencias)
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # google-services.json está excluido de git (credenciales Firebase).
       # Si existe el secret GOOGLE_SERVICES_JSON (contenido del fichero real,

@@ -48,7 +48,7 @@ jobs:
           java-version: "21"
 
       - name: Set up Gradle (con caché de dependencias)
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # El compilador de Kotlin/Native y SKIE descargan toolchain a ~/.konan.
       # Cachearlo evita ~10 min de descargas en cada run.
