@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Selecciona el Xcode más nuevo instalado en el runner (lee formato 77).
       - name: Seleccionar Xcode más reciente
@@ -42,18 +42,18 @@ jobs:
       # con gradlew, que necesita un JDK. `xcodebuild` limpia el entorno, así que
       # el script cae en `/usr/libexec/java_home -v 21` → este JDK.
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle (con caché de dependencias)
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # El compilador de Kotlin/Native y SKIE descargan toolchain a ~/.konan.
       # Cachearlo evita ~10 min de descargas en cada run.
       - name: Cache Kotlin/Native (~/.konan)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
@@ -64,7 +64,7 @@ jobs:
       # grafo de paquetes SPM entre builds — "PIFLoader GUID already registered").
       # Solo cacheamos las descargas de SPM (fuentes/binarios de los paquetes).
       - name: Cache SPM downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/Library/Caches/org.swift.swiftpm
           key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
@@ -147,7 +147,7 @@ jobs:
 
       # Descárgalo en: Actions → run → Artifacts → ios-app-unsigned-ipa.
       - name: Upload .ipa
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-app-unsigned-ipa
           path: MeteoMontana-unsigned.ipa
