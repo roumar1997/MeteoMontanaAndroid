@@ -153,7 +153,7 @@ dependencies {
     // org.json real para tests unitarios (el de Android es stub en src/test/)
     testImplementation("org.json:json:20240303")
     // Driver JVM de SQLDelight (BD en memoria) para testear el outbox offline.
-    testImplementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+    testImplementation("app.cash.sqldelight:sqlite-driver:2.3.2")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
