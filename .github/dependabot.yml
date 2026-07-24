@@ -1,13 +1,48 @@
 # Escaneo de dependencias (riesgo señalado en la auditoría 2026-07-19).
 # Solo AVISA con PRs — nada se actualiza sin revisión + CI verde + OK.
+#
+# Config endurecida (auditoría 2026-07-24):
+#  - target-branch: develop  → los PRs van a develop, no a main (flujo del proyecto).
+#  - groups                  → un solo PR por ecosistema en vez de N sueltos.
+#  - ignore                  → las majors delicadas se gestionan A MANO junto con
+#                              su migración (ktor está atado a la versión de Kotlin;
+#                              okhttp 5 y sqldelight 2.3 son saltos con breaking changes).
 version: 2
 updates:
   - package-ecosystem: gradle
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      gradle-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # ktor va alineado con Kotlin 2.0.21 (ABI klib de iOS): 3.1.x ya exige
+      # Kotlin 2.1.x. La subida se hace a mano junto con Kotlin+SKIE.
+      - dependency-name: "io.ktor:*"
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor
+      # okhttp 5 y sqldelight 2.3 son majors con migración: a mano.
+      - dependency-name: "com.squareup.okhttp3:*"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "app.cash.sqldelight:*"
+        update-types:
+          - version-update:semver-major
+
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
