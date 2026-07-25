@@ -238,33 +238,6 @@ enum ShareFeedPostImage {
         cg.restoreGState()
     }
 
-    /// Abreviatura del tipo de inicio (= startLabel de ShareLineImage, que es private allí).
-    private static func startLabel(_ t: String?) -> String? {
-        switch t?.uppercased() {
-        case "PIE", "STAND": return "PIE"
-        case "SIT": return "SIT"
-        case "SEMI": return "SEM"
-        case "LANCE", "JUMP": return "LAN"
-        case "TRAV": return "TRV"
-        default: return nil
-        }
-    }
-
-    // MARK: - Helpers de dibujo (= ShareLineImage; son private allí)
-
-    private static func fillCircle(_ cg: CGContext, _ c: CGPoint, _ r: CGFloat, _ color: UIColor) {
-        cg.setFillColor(color.cgColor)
-        cg.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
-    }
-
-    private static func drawCentered(_ text: String, at c: CGPoint, size: CGFloat, color: UIColor) {
-        let font = UIFont.systemFont(ofSize: size, weight: .bold)
-        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
-        let sz = (text as NSString).size(withAttributes: attrs)
-        (text as NSString).draw(at: CGPoint(x: c.x - sz.width / 2, y: c.y - sz.height / 2),
-                                withAttributes: attrs)
-    }
-
     private static func drawText(_ text: String, at rect: CGRect, font: UIFont, color: UIColor,
                                  kern: CGFloat, align: NSTextAlignment) {
         let para = NSMutableParagraphStyle()

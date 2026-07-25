@@ -232,17 +232,6 @@ enum ShareLineImage {
         (text as NSString).draw(in: r, withAttributes: attrs)
     }
 
-    private static func startLabel(_ t: String?) -> String? {
-        switch t?.uppercased() {
-        case "PIE", "STAND": return "PIE"
-        case "SIT": return "SIT"
-        case "SEMI": return "SEM"
-        case "LANCE", "JUMP": return "LAN"
-        case "TRAV": return "TRV"
-        default: return nil
-        }
-    }
-
     private static func mono(_ size: CGFloat, bold: Bool) -> UIFont {
         UIFont(name: bold ? "JetBrainsMono-Bold" : "JetBrainsMono-Regular", size: size)
             ?? .monospacedSystemFont(ofSize: size, weight: bold ? .bold : .regular)
