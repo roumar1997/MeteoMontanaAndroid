@@ -181,7 +181,11 @@ fun AddBlockSheet(
     // catalogados en la escuela. Cuando el usuario pulsa uno catalogado guardamos
     // su id para poder filtrar las vías por sector.
     var selectedSectorBlockId by remember { mutableStateOf<String?>(null) }
-    val sectorSuggestions = remember(sector, history, schoolBlocks, selectedSectorBlockId) {
+    // Se calculan en CADA recomposición (no en un `remember` cacheado) para que,
+    // en cuanto lleguen por red los bloques/sectores de la escuela, el recuadro
+    // de sugerencias aparezca solo — igual que iOS, que recalcula inline. Con un
+    // `remember` el recuadro no se refrescaba hasta tocar el campo.
+    val sectorSuggestions = run {
         val real = schoolBlocks.filter { it.type == "ZONE" }
             .map { SectorSuggestion(it.name, it.id) }
         val historical = history.sectors.map { SectorSuggestion(it, null) }
@@ -193,7 +197,7 @@ fun AddBlockSheet(
 
     // Vías reales (con grado + tipo). Si hay sector seleccionado, filtramos a las
     // vías de las piedras de ese sector.
-    val lineSuggestions = remember(blockName, schoolBlocks, selectedSectorBlockId) {
+    val lineSuggestions = run {
         val blocksScope = schoolBlocks.filter { it.type == "BLOCK" }
             .let { all ->
                 if (selectedSectorBlockId != null)
@@ -218,7 +222,7 @@ fun AddBlockSheet(
         }.take(6)
     }
     // Fallback: si la escuela aún no tiene vías catalogadas, sugerimos bloques.
-    val blockSuggestions = remember(blockName, history, schoolBlocks, lineSuggestions) {
+    val blockSuggestions = run {
         if (lineSuggestions.isNotEmpty()) emptyList()
         else {
             val previous = history.blocks
