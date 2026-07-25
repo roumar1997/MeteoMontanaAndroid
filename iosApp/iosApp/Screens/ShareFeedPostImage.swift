@@ -225,68 +225,17 @@ enum ShareFeedPostImage {
             }
         }
         guard !vias.isEmpty else { return }
-        let s = rect.width / 380.0
-        // Tramos compartidos → FRANJAS por vía; badges en abanico si coinciden.
-        let shared = TopoShared.sharedSegmentLines(vias.map { $0.pts })
-        let startFan = TopoShared.fanOffsets(vias.map { $0.pts.first }, spacing: (14 * 2 + 4) * s)
-        let endFan = TopoShared.fanOffsets(vias.map { $0.pts.last }, spacing: (14 * 2 + 4) * s)
-        for (idx, via) in vias.enumerated() {
-            let style = GradeColor.style(via.grade)
-            let stroke = UIColor(style.stroke)
-            var pts = via.pts.map {
-                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-            }
-            if !pts.isEmpty {
-                pts[0].x += startFan[idx]
-                if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
-            }
-            for run in TopoShared.splitRuns(via.pts, shared: shared) {
-                let runPts = run.pts.map {
-                    CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-                }
-                guard runPts.count > 1 else { continue }
-                let path = UIBezierPath()
-                path.move(to: runPts[0])
-                for p in runPts.dropFirst() { path.addLine(to: p) }
-                path.lineJoinStyle = .round
-                if let stripe = TopoShared.stripeStyle(run, lineIdx: idx, scale: s) {
-                    path.lineCapStyle = .butt
-                    path.setLineDash(stripe.dash, count: stripe.dash.count, phase: stripe.phase)
-                } else {
-                    path.lineCapStyle = .round
-                    // ESTILO GUÍA: discontinua siempre (no tapa la roca).
-                    path.setLineDash(TopoShared.dash.map { $0 * s }, count: 2, phase: 0)
-                    if style.dark {
-                        path.lineWidth = 9 * s
-                        UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
-                    }
-                }
-                path.lineWidth = 5 * s
-                stroke.setStroke(); path.stroke()
-            }
+        // Pintor único (TopoPainter) sobre CGContext: trasladamos al origen del
+        // rect y pasamos rect.size. Estilo .share con base 380 (canvas del feed).
+        let painterVias = vias.enumerated().map { (i, v) in
+            TopoVia(number: i + 1, grade: v.grade, startType: v.startType, points: v.pts)
         }
-        // 2ª pasada: BADGES encima de TODAS las líneas.
-        for (idx, via) in vias.enumerated() {
-            let style = GradeColor.style(via.grade)
-            let stroke = UIColor(style.stroke)
-            var pts = via.pts.map {
-                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-            }
-            guard !pts.isEmpty else { continue }
-            pts[0].x += startFan[idx]
-            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
-            let textColor: UIColor = style.dark ? .black : .white
-            fillCircle(cg, pts[0], 14 * s, .white)
-            fillCircle(cg, pts[0], 11 * s, stroke)
-            drawCentered("\(idx + 1)", at: pts[0], size: 15 * s, color: textColor)
-            // Círculo del tipo de inicio en la base de la línea (= ShareLineImage).
-            if let label = startLabel(via.startType), pts.count > 1 {
-                let last = pts[pts.count - 1]
-                fillCircle(cg, last, 14 * s, style.dark ? .black : .white)
-                fillCircle(cg, last, 11 * s, stroke)
-                drawCentered(label, at: last, size: 9 * s, color: textColor)
-            }
-        }
+        cg.saveGState()
+        cg.translateBy(x: rect.minX, y: rect.minY)
+        TopoPainter.paint(CGContextTarget(cg: cg), vias: painterVias, size: rect.size,
+                          style: .share(scale: rect.width / 380.0, badgeOuter: 14, badgeInner: 11,
+                                        badgeText: 15, startText: 9, fanStart: 14 * 2 + 4, fanEnd: 14 * 2 + 4))
+        cg.restoreGState()
     }
 
     /// Abreviatura del tipo de inicio (= startLabel de ShareLineImage, que es private allí).

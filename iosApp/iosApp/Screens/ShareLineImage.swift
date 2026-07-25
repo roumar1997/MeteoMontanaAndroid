@@ -188,66 +188,18 @@ enum ShareLineImage {
     /// Dibuja las vías sobre la foto — espejo de `TopoPhotoView.drawSolidLine`,
     /// con grosores/badges escalados al tamaño de la card.
     private static func drawLines(_ cg: CGContext, lines: [TopoLineVM], in rect: CGRect) {
-        let s = rect.width / 360.0   // 360 ≈ ancho del Canvas en la app (puntos)
-        // Tramos compartidos → FRANJAS por vía; badges en abanico si coinciden.
-        let shared = TopoShared.sharedSegmentLines(lines.map { $0.points })
-        let startFan = TopoShared.fanOffsets(lines.map { $0.points.first }, spacing: (12 * 2 + 4) * s)
-        let endFan = TopoShared.fanOffsets(lines.map { $0.points.last }, spacing: (14 * 2 + 4) * s)
-        for (idx, line) in lines.enumerated() where !line.points.isEmpty {
-            let style = GradeColor.style(line.grade)
-            let stroke = UIColor(style.stroke)
-            var pts = line.points.map {
-                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-            }
-            pts[0].x += startFan[idx]
-            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
-            for run in TopoShared.splitRuns(line.points, shared: shared) {
-                let runPts = run.pts.map {
-                    CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-                }
-                guard runPts.count > 1 else { continue }
-                let path = UIBezierPath()
-                path.move(to: runPts[0])
-                for p in runPts.dropFirst() { path.addLine(to: p) }
-                path.lineJoinStyle = .round
-                if let stripe = TopoShared.stripeStyle(run, lineIdx: idx, scale: s) {
-                    path.lineCapStyle = .butt
-                    path.setLineDash(stripe.dash, count: stripe.dash.count, phase: stripe.phase)
-                } else {
-                    path.lineCapStyle = .round
-                    // ESTILO GUÍA: discontinua siempre (no tapa la roca).
-                    path.setLineDash(TopoShared.dash.map { $0 * s }, count: 2, phase: 0)
-                    // Línea blanca: contorno negro para verse sobre cualquier foto.
-                    if style.dark {
-                        path.lineWidth = 9 * s
-                        UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
-                    }
-                }
-                path.lineWidth = 5 * s
-                stroke.setStroke(); path.stroke()
-            }
+        // Pintor único (TopoPainter) sobre el backend CGContext. Trasladamos el
+        // contexto al origen del rect y pasamos rect.size → el pintor mapea desde
+        // (0,0). Estilo .share con base 360 (ancho del Canvas de la app).
+        let vias = lines.enumerated().map { (i, l) in
+            TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points)
         }
-        // 2ª pasada: BADGES encima de TODAS las líneas (si no, la línea de una
-        // vía posterior tapa los badges de las anteriores).
-        for (idx, line) in lines.enumerated() where !line.points.isEmpty {
-            let style = GradeColor.style(line.grade)
-            let stroke = UIColor(style.stroke)
-            var pts = line.points.map {
-                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-            }
-            pts[0].x += startFan[idx]
-            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
-            let textColor: UIColor = style.dark ? .black : .white
-            fillCircle(cg, pts[0], 12 * s, .white)
-            fillCircle(cg, pts[0], 9.5 * s, stroke)
-            drawCentered("\(idx + 1)", at: pts[0], size: 13 * s, color: textColor)
-            if let label = startLabel(line.startType), pts.count > 1 {
-                let last = pts[pts.count - 1]
-                fillCircle(cg, last, 14 * s, style.dark ? .black : .white)
-                fillCircle(cg, last, 11 * s, stroke)
-                drawCentered(label, at: last, size: 9 * s, color: textColor)
-            }
-        }
+        cg.saveGState()
+        cg.translateBy(x: rect.minX, y: rect.minY)
+        TopoPainter.paint(CGContextTarget(cg: cg), vias: vias, size: rect.size,
+                          style: .share(scale: rect.width / 360.0, badgeOuter: 12, badgeInner: 9.5,
+                                        badgeText: 13, startText: 9, fanStart: 12 * 2 + 4, fanEnd: 14 * 2 + 4))
+        cg.restoreGState()
     }
 
     // MARK: - Helpers de dibujo
