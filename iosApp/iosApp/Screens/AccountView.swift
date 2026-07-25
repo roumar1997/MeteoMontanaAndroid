@@ -90,12 +90,12 @@ final class AccountViewModel: ObservableObject {
         }
     }
 
-    func addBlock(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String) async {
+    func addBlock(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String, discipline: String) async {
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
         let req = CreateJournalRequest(
             schoolId: schoolId, schoolName: schoolName.nilIfBlank, sector: sector.nilIfBlank,
             blockName: blockName.trimmingCharacters(in: .whitespaces), grade: grade.nilIfBlank,
-            notes: notes.nilIfBlank, date: df.string(from: Date()), discipline: nil, lineId: nil, status: nil)
+            notes: notes.nilIfBlank, date: df.string(from: Date()), discipline: discipline, lineId: nil, status: nil)
         _ = try? await createEntry.invoke(req: req)
         await reloadJournal()
     }
@@ -241,9 +241,10 @@ struct AccountView: View {
                 }
             }
             .sheet(isPresented: $showAddBlock) {
-                AddBlockSheet { block, grade, schoolId, school, sector, notes in
+                AddBlockSheet { block, grade, schoolId, school, sector, notes, discipline in
                     Task { await vm.addBlock(blockName: block, grade: grade, schoolId: schoolId,
-                                             schoolName: school, sector: sector, notes: notes) }
+                                             schoolName: school, sector: sector, notes: notes,
+                                             discipline: discipline) }
                 }
             }
             .task { await vm.load() }

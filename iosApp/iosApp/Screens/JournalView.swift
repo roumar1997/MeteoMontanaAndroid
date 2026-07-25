@@ -33,7 +33,7 @@ final class JournalViewModel: ObservableObject {
         loading = false
     }
 
-    func add(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String) async {
+    func add(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String, discipline: String) async {
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
         let req = CreateJournalRequest(
             schoolId: schoolId,
@@ -43,7 +43,7 @@ final class JournalViewModel: ObservableObject {
             grade: grade.nilIfBlank,
             notes: notes.nilIfBlank,
             date: df.string(from: Date()),
-            discipline: nil,
+            discipline: discipline,   // antes iba nil → todo caía en "Bloques"
             lineId: nil,
             status: nil
         )
@@ -93,8 +93,8 @@ struct JournalView: View {
         .navigationTitle("Mi diario")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAdd) {
-            AddBlockSheet { block, grade, schoolId, school, sector, notes in
-                Task { await vm.add(blockName: block, grade: grade, schoolId: schoolId, schoolName: school, sector: sector, notes: notes) }
+            AddBlockSheet { block, grade, schoolId, school, sector, notes, discipline in
+                Task { await vm.add(blockName: block, grade: grade, schoolId: schoolId, schoolName: school, sector: sector, notes: notes, discipline: discipline) }
             }
         }
         .task { await vm.load() }
@@ -227,6 +227,7 @@ struct LineSuggestion: Identifiable {
     let name: String
     let grade: String?
     let startType: String?
+    var discipline: String = "BOULDER"   // BOULDER (bloque) / ROUTE (vía) — de la piedra
     var label: String {
         let extras = [grade, startType].compactMap { $0 }.joined(separator: " · ")
         return (extras.isEmpty ? name : "\(name) · \(extras)") + " — \(blockName)"
@@ -306,7 +307,8 @@ final class AddBlockViewModel: ObservableObject {
             b.lines.map { l in
                 LineSuggestion(blockName: b.name,
                                name: l.name.isEmpty ? "L\(l.sortOrder + 1)" : l.name,
-                               grade: l.grade, startType: l.startType)
+                               grade: l.grade, startType: l.startType,
+                               discipline: b.discipline)
             }
         }
         let f = filter.trimmingCharacters(in: .whitespaces)
@@ -330,7 +332,8 @@ final class AddBlockViewModel: ObservableObject {
 /// Formulario para registrar un bloque escalado, con autocompletado de escuela,
 /// sector y vías reales — espejo de AddBlockSheet.kt de Android.
 struct AddBlockSheet: View {
-    let onSave: (String, String, String?, String, String, String) -> Void
+    // (block, grade, schoolId, school, sector, notes, discipline)
+    let onSave: (String, String, String?, String, String, String, String) -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = AddBlockViewModel()
     // Los sheets no heredan el modo claro/oscuro forzado por el tema → forzarlo
@@ -338,6 +341,9 @@ struct AddBlockSheet: View {
     @ObservedObject private var theme = ThemeManager.shared
 
     @State private var block = ""
+    // Modalidad: BOULDER (bloque) / ROUTE (vía). Antes se mandaba nil → la entrada
+    // caía siempre en "Bloques" y nunca en "Vías" (el diario separa por discipline).
+    @State private var discipline = "BOULDER"
     @State private var grade = ""
     @State private var schoolQuery = ""
     @State private var selectedSchool: School?
@@ -352,6 +358,7 @@ struct AddBlockSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     schoolField
                     sectorField
+                    modalityField
                     blockField
                     gradeField
                     field("NOTAS", $notes, "Comentarios")
@@ -365,7 +372,7 @@ struct AddBlockSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Guardar") {
                         let schoolName = selectedSchool?.name ?? schoolQuery
-                        onSave(block, grade, selectedSchool?.id, schoolName, sector, notes); dismiss()
+                        onSave(block, grade, selectedSchool?.id, schoolName, sector, notes, discipline); dismiss()
                     }.foregroundStyle(Cumbre.terra)
                         .disabled(block.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
@@ -422,10 +429,32 @@ struct AddBlockSheet: View {
         }
     }
 
+    // ─── MODALIDAD: bloque o vía (decide en qué lista del diario cae) ───
+    private var modalityField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("MODALIDAD").eyebrow()
+            HStack(spacing: 8) {
+                modalityOption("BLOQUE", active: discipline == "BOULDER") { discipline = "BOULDER" }
+                modalityOption("VÍA", active: discipline == "ROUTE") { discipline = "ROUTE" }
+            }
+        }
+    }
+
+    private func modalityOption(_ text: String, active: Bool, _ tap: @escaping () -> Void) -> some View {
+        Text(text)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(active ? Color.white : Cumbre.ink)
+            .frame(maxWidth: .infinity).padding(.vertical, 12)
+            .background(active ? Cumbre.terra : Cumbre.paper)
+            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .contentShape(Rectangle())
+            .onTapGesture(perform: tap)
+    }
+
     // ─── BLOQUE / VÍA con autocomplete ───
     private var blockField: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("BLOQUE / VÍA").eyebrow()
+            Text(discipline == "ROUTE" ? "VÍA" : "BLOQUE").eyebrow()
             TextField("ej: El Pollito", text: $block)
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .padding(10).background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
@@ -436,6 +465,7 @@ struct AddBlockSheet: View {
                         suggestionRow(l.label) {
                             block = l.name
                             if let g = l.grade, !g.isEmpty { grade = g }
+                            discipline = l.discipline   // hereda la modalidad de la vía catalogada
                         }
                     }
                 }
