@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.data.map.MapStyles
+
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -631,19 +633,11 @@ private fun FilledAction(text: String, onClick: () -> Unit, modifier: Modifier =
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-/** Estilo MapLibre con tiles raster de OSM. Mismo origen que la PWA. */
-internal val OSM_RASTER_STYLE = """
-{"version":8,"sources":{"osm":{"type":"raster","tiles":["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png","https://b.tile.openstreetmap.org/{z}/{x}/{y}.png","https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"osm","type":"raster","source":"osm"}]}
-""".trimIndent()
-
-/** Tiles oscuros (CartoDB dark matter) para cuando el tema de la app es oscuro. */
-internal val DARK_RASTER_STYLE = """
-{"version":8,"sources":{"carto":{"type":"raster","tiles":["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap © CARTO"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#1C1B18"}},{"id":"carto","type":"raster","source":"carto"}]}
-""".trimIndent()
-
-internal val SATELLITE_RASTER_STYLE = """
-{"version":8,"sources":{"esri":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"© Esri"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"esri","type":"raster","source":"esri"}]}
-""".trimIndent()
+/** Estilos MapLibre raster (fuente única en MapStyles). Mismo origen que la PWA. */
+internal val OSM_RASTER_STYLE get() = MapStyles.osmPaper
+internal val DARK_RASTER_STYLE get() = MapStyles.darkPaper
+internal val SATELLITE_RASTER_STYLE get() =
+    MapStyles.raster("esri", MapStyles.SATELLITE, "© Esri", MapStyles.PAPER_BG)
 
 @Composable
 private fun MapStyleChip(label: String, selected: Boolean, onClick: () -> Unit) {

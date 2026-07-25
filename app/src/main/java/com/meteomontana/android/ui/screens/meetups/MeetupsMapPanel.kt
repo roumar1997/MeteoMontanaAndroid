@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.data.map.MapStyles
+
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
@@ -185,8 +187,7 @@ private fun MeetupsMapView(
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                 android.content.res.Configuration.UI_MODE_NIGHT_YES
         val url = tileUrl(satellite, dark)
-        val json = """{"version":8,"sources":{"osm":{"type":"raster","tiles":["$url"],"tileSize":256}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}"""
-        map.setStyle(Style.Builder().fromJson(json))
+        map.setStyle(Style.Builder().fromJson(MapStyles.raster("osm", listOf(url))))
     }
 
     val mapView = remember {
