@@ -16,6 +16,9 @@ struct TopoVia {
     let grade: String?
     let startType: String?
     let points: [CGPoint]
+    /// Override del ancho de trazo (el editor resalta la vía seleccionada más
+    /// gruesa). nil = usar el de TopoStyle. El contorno oscuro pasa a ancho+4.
+    var lineWidth: CGFloat? = nil
 }
 
 /// Tamaños de un topo (varían entre editor / ficha / imágenes de compartir).
@@ -90,19 +93,21 @@ enum TopoPainter {
         for (idx, via) in solid.enumerated() {
             let stroke = UIColor(GradeColor.style(via.grade).stroke)
             let dark = GradeColor.style(via.grade).dark
+            let lw = via.lineWidth ?? style.lineWidth
+            let darkW = via.lineWidth != nil ? lw + 4 : style.darkOutlineWidth
             for run in TopoShared.splitRuns(via.points, shared: shared) {
                 let runPts = run.pts.map(px)
                 guard runPts.count > 1 else { continue }
                 if let stripe = TopoShared.stripeStyle(run, lineIdx: idx, scale: style.stripeScale) {
-                    target.strokePath(runPts, color: stroke, width: style.lineWidth,
+                    target.strokePath(runPts, color: stroke, width: lw,
                                       roundCap: false, dash: stripe.dash, dashPhase: stripe.phase)
                 } else {
                     if dark {
                         target.strokePath(runPts, color: UIColor.black.withAlphaComponent(0.8),
-                                          width: style.darkOutlineWidth, roundCap: true,
+                                          width: darkW, roundCap: true,
                                           dash: style.dash, dashPhase: 0)
                     }
-                    target.strokePath(runPts, color: stroke, width: style.lineWidth,
+                    target.strokePath(runPts, color: stroke, width: lw,
                                       roundCap: true, dash: style.dash, dashPhase: 0)
                 }
             }
