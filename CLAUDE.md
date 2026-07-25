@@ -284,8 +284,12 @@ C:\Users\rouma\Desktop\MeteoMontana/
    `adb install -r app\build\outputs\apk\debug\app-debug.apk` (adb en
    `%LOCALAPPDATA%\Android\Sdk\platform-tools`). Si tocaste el widget, quítalo
    y re-añádelo en el launcher.
-3. **Commit + push a `main`** (backend también si lo tocaste; Railway
-   redespliega solo). Mensaje descriptivo.
+3. **Pedir OK, luego commit + push a `develop`** (NO a `main` — desde
+   2026-06-22 se trabaja develop-first; `main`/prod solo tras validar, y el
+   backend a `develop`→staging antes que a `main`→prod). Ver secciones
+   "🟢🟡 Entornos" y "🌐 Workflow GitHub-only". Publicación a tiendas y merge
+   a `main`: ver `DEPLOYMENT.md` (incluye el flujo de hotfix). Mensaje
+   descriptivo.
 4. **Actualiza** `📍 ESTADO ACTUAL` + `Próximo paso` de `KMP_MIGRATION.md` y la
    **Bitácora** de este `CLAUDE.md`.
 
