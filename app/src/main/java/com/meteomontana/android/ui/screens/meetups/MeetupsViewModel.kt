@@ -13,7 +13,7 @@ import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
-import com.meteomontana.android.domain.usecase.meetups.MeetupAlertState
+import com.meteomontana.android.domain.model.MeetupAlertState
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase

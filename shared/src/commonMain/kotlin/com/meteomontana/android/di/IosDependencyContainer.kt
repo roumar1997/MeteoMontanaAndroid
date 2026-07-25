@@ -325,19 +325,24 @@ class IosDependencyContainer(
         database?.let { com.meteomontana.android.data.local.LocalCacheCleaner(it) }
 
     // Quedadas (meetups): lista, detalle, crear, unirse, salir, expulsar.
-    // La caché local (SQLDelight) permite ver la lista offline.
-    val getMeetups: GetMeetupsUseCase? = meetupCache?.let { GetMeetupsUseCase(meetupApi, it) }
-    val getMeetup: GetMeetupUseCase? = meetupCache?.let { GetMeetupUseCase(meetupApi, it) }
-    val createMeetup: CreateMeetupUseCase? = meetupCache?.let { CreateMeetupUseCase(meetupApi, it) }
-    val joinMeetup: JoinMeetupUseCase? = meetupCache?.let { JoinMeetupUseCase(meetupApi, it) }
-    val leaveMeetup: LeaveMeetupUseCase? = meetupCache?.let { LeaveMeetupUseCase(meetupApi, it) }
-    val updateMeetup: UpdateMeetupUseCase? = meetupCache?.let { UpdateMeetupUseCase(meetupApi, it) }
-    val getMeetupByConversation = GetMeetupByConversationUseCase(meetupApi)
-    val kickMeetupMember  = KickMeetupMemberUseCase(meetupApi)
-    val reportMeetup      = ReportMeetupUseCase(meetupApi)
-    val updateMyGear      = UpdateMyGearUseCase(meetupApi)
-    val getMeetupAlert    = GetMeetupAlertUseCase(meetupApi)
-    val setMeetupAlert    = SetMeetupAlertUseCase(meetupApi)
+    // Puerto MeetupRepository (orquesta red + caché SQLDelight para offline);
+    // los use cases dependen de él, no del KtorMeetupApi concreto. Se conservan
+    // las puertas `meetupCache?.let` para no cambiar la nulabilidad que Swift ya
+    // consume (los que necesitan caché siguen siendo opcionales).
+    private val meetupRepo: com.meteomontana.android.domain.repository.MeetupRepository =
+        com.meteomontana.android.data.repository.KtorMeetupRepository(meetupApi, meetupCache)
+    val getMeetups: GetMeetupsUseCase? = meetupCache?.let { GetMeetupsUseCase(meetupRepo) }
+    val getMeetup: GetMeetupUseCase? = meetupCache?.let { GetMeetupUseCase(meetupRepo) }
+    val createMeetup: CreateMeetupUseCase? = meetupCache?.let { CreateMeetupUseCase(meetupRepo) }
+    val joinMeetup: JoinMeetupUseCase? = meetupCache?.let { JoinMeetupUseCase(meetupRepo) }
+    val leaveMeetup: LeaveMeetupUseCase? = meetupCache?.let { LeaveMeetupUseCase(meetupRepo) }
+    val updateMeetup: UpdateMeetupUseCase? = meetupCache?.let { UpdateMeetupUseCase(meetupRepo) }
+    val getMeetupByConversation = GetMeetupByConversationUseCase(meetupRepo)
+    val kickMeetupMember  = KickMeetupMemberUseCase(meetupRepo)
+    val reportMeetup      = ReportMeetupUseCase(meetupRepo)
+    val updateMyGear      = UpdateMyGearUseCase(meetupRepo)
+    val getMeetupAlert    = GetMeetupAlertUseCase(meetupRepo)
+    val setMeetupAlert    = SetMeetupAlertUseCase(meetupRepo)
 
     // ─── Cola offline (outbox) ───────────────────────────────────────────────
     // La lógica vive en OutboxSyncService (SRP); aquí solo se instancia y se

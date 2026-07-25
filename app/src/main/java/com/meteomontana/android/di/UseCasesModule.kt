@@ -369,75 +369,76 @@ object UseCasesModule {
     fun provideUnlikeFeedCommentUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
         com.meteomontana.android.domain.usecase.feed.UnlikeFeedCommentUseCase(repo)
 
-    // Meetups (quedadas)
+    // Meetups (quedadas) — los use cases dependen del PUERTO MeetupRepository.
     @Provides @Singleton
-    fun provideGetMeetupsUseCase(
+    fun provideMeetupRepository(
         api: com.meteomontana.android.data.api.KtorMeetupApi,
         cache: com.meteomontana.android.data.saved.MeetupCacheRepository
-    ) = GetMeetupsUseCase(api, cache)
+    ): com.meteomontana.android.domain.repository.MeetupRepository =
+        com.meteomontana.android.data.repository.KtorMeetupRepository(api, cache)
+
+    @Provides @Singleton
+    fun provideGetMeetupsUseCase(
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = GetMeetupsUseCase(repo)
 
     @Provides @Singleton
     fun provideGetMeetupUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi,
-        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
-    ) = GetMeetupUseCase(api, cache)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = GetMeetupUseCase(repo)
 
     @Provides @Singleton
     fun provideCreateMeetupUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi,
-        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
-    ) = CreateMeetupUseCase(api, cache)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = CreateMeetupUseCase(repo)
 
     @Provides @Singleton
     fun provideUpdateMeetupUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi,
-        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
-    ) = com.meteomontana.android.domain.usecase.meetups.UpdateMeetupUseCase(api, cache)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = com.meteomontana.android.domain.usecase.meetups.UpdateMeetupUseCase(repo)
 
     @Provides @Singleton
     fun provideGetMeetupByConversationUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi
-    ) = com.meteomontana.android.domain.usecase.meetups.GetMeetupByConversationUseCase(api)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = com.meteomontana.android.domain.usecase.meetups.GetMeetupByConversationUseCase(repo)
 
     @Provides @Singleton
     fun provideJoinMeetupUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi,
-        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
-    ) = JoinMeetupUseCase(api, cache)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = JoinMeetupUseCase(repo)
 
     @Provides @Singleton
     fun provideLeaveMeetupUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi,
-        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
-    ) = LeaveMeetupUseCase(api, cache)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = LeaveMeetupUseCase(repo)
 
     @Provides @Singleton
     fun provideKickMeetupMemberUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi
-    ) = KickMeetupMemberUseCase(api)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = KickMeetupMemberUseCase(repo)
 
     @Provides @Singleton
     fun provideDeleteMeetupUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi
-    ) = com.meteomontana.android.domain.usecase.meetups.DeleteMeetupUseCase(api)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = com.meteomontana.android.domain.usecase.meetups.DeleteMeetupUseCase(repo)
 
     @Provides @Singleton
     fun provideReportMeetupUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi
-    ) = ReportMeetupUseCase(api)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = ReportMeetupUseCase(repo)
 
     @Provides @Singleton
     fun provideGetMeetupAlertUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi
-    ) = com.meteomontana.android.domain.usecase.meetups.GetMeetupAlertUseCase(api)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = com.meteomontana.android.domain.usecase.meetups.GetMeetupAlertUseCase(repo)
 
     @Provides @Singleton
     fun provideSetMeetupAlertUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi
-    ) = com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase(api)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase(repo)
 
     @Provides @Singleton
     fun provideUpdateMyGearUseCase(
-        api: com.meteomontana.android.data.api.KtorMeetupApi
-    ) = com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase(api)
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase(repo)
 }

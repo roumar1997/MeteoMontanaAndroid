@@ -1,189 +1,92 @@
 package com.meteomontana.android.domain.usecase.meetups
 
-import com.meteomontana.android.data.api.KtorMeetupApi
-import com.meteomontana.android.data.api.dto.CreateMeetupRequestDto
-import com.meteomontana.android.data.api.dto.toDomain
-import com.meteomontana.android.data.saved.MeetupCacheRepository
-import com.meteomontana.android.domain.model.Meetup
 import com.meteomontana.android.domain.model.CreateMeetupRequest
+import com.meteomontana.android.domain.model.Meetup
+import com.meteomontana.android.domain.model.MeetupAlertState
+import com.meteomontana.android.domain.repository.MeetupRepository
 
-class GetMeetupsUseCase(
-    private val api: KtorMeetupApi,
-    private val cache: MeetupCacheRepository
-) {
-    /** Devuelve lista de quedadas. Stale-while-revalidate: primero caché, luego refresca. */
-    suspend fun execute(schoolId: String? = null, date: String? = null,
-                        relation: String? = null): List<Meetup> {
-        return try {
-            val dtos = api.getMeetups(schoolId, date, relation)
-            cache.saveAll(dtos)
-            dtos.map { it.toDomain() }
-        } catch (e: Exception) {
-            // Offline: devolver caché local, filtrando caducadas
-            val now = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
-            cache.getAll().let { cached ->
-                var result = cached.filter { it.expiresAt > now }
-                if (schoolId != null) result = result.filter { it.schoolId == schoolId }
-                if (date != null) result = result.filter { it.days.contains(date) }
-                result
-            }
-        }
-    }
-}
+// Los use cases dependen del PUERTO MeetupRepository (no del KtorMeetupApi
+// concreto). La orquestación red+caché (stale-while-revalidate) vive en
+// KtorMeetupRepository. TODOS llevan @Throws porque cruzan a Swift: aunque el
+// repo trague la excepción en las lecturas y caiga a caché, declarar @Throws
+// mantiene la firma Swift `async throws` uniforme (Swift ya las llama con try)
+// y blinda contra un futuro cambio del repo — ver SwiftBoundaryThrowsTest.
 
-class GetMeetupUseCase(
-    private val api: KtorMeetupApi,
-    private val cache: MeetupCacheRepository
-) {
-    suspend fun execute(id: String): Meetup? {
-        return try {
-            val dto = api.getMeetup(id)
-            cache.saveAll(listOf(dto))
-            dto.toDomain()
-        } catch (e: Exception) {
-            cache.getById(id)
-        }
-    }
-}
-
-class CreateMeetupUseCase(
-    private val api: KtorMeetupApi,
-    private val cache: MeetupCacheRepository
-) {
+class GetMeetupsUseCase(private val repo: MeetupRepository) {
+    /** Devuelve lista de quedadas. Stale-while-revalidate en el repositorio. */
     @Throws(Exception::class)
-    suspend fun execute(req: CreateMeetupRequest): Meetup {
-        val dto = api.createMeetup(
-            CreateMeetupRequestDto(
-                schoolId = req.schoolId,
-                name = req.name,
-                description = req.description,
-                discipline = req.discipline,
-                privacy = req.privacy,
-                memberLimit = req.memberLimit,
-                photoUrl = req.photoUrl,
-                days = req.days
-            )
-        )
-        cache.saveAll(listOf(dto))
-        return dto.toDomain()
-    }
+    suspend fun execute(schoolId: String? = null, date: String? = null,
+                        relation: String? = null): List<Meetup> =
+        repo.getMeetups(schoolId, date, relation)
+}
+
+class GetMeetupUseCase(private val repo: MeetupRepository) {
+    @Throws(Exception::class)
+    suspend fun execute(id: String): Meetup? = repo.getMeetup(id)
+}
+
+class CreateMeetupUseCase(private val repo: MeetupRepository) {
+    @Throws(Exception::class)
+    suspend fun execute(req: CreateMeetupRequest): Meetup = repo.createMeetup(req)
 }
 
 /** Editar la descripción de una quedada (solo el organizador). */
-class UpdateMeetupUseCase(
-    private val api: KtorMeetupApi,
-    private val cache: MeetupCacheRepository
-) {
+class UpdateMeetupUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
-    suspend fun execute(meetupId: String, description: String?): Meetup {
-        val dto = api.updateMeetup(meetupId, description)
-        cache.saveAll(listOf(dto))
-        return dto.toDomain()
-    }
+    suspend fun execute(meetupId: String, description: String?): Meetup =
+        repo.updateMeetup(meetupId, description)
 }
 
 /** Resolver la quedada por su conversación de chat (para abrir el detalle desde el chat). */
-class GetMeetupByConversationUseCase(
-    private val api: KtorMeetupApi
-) {
-    suspend fun execute(conversationId: String): Meetup? {
-        return try {
-            api.getMeetupByConversation(conversationId)?.toDomain()
-        } catch (e: Exception) {
-            null
-        }
-    }
+class GetMeetupByConversationUseCase(private val repo: MeetupRepository) {
+    @Throws(Exception::class)
+    suspend fun execute(conversationId: String): Meetup? =
+        repo.getMeetupByConversation(conversationId)
 }
 
-class JoinMeetupUseCase(
-    private val api: KtorMeetupApi,
-    private val cache: MeetupCacheRepository
-) {
+class JoinMeetupUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
-    suspend fun execute(id: String): Meetup {
+    suspend fun execute(id: String): Meetup =
         // Si llegamos por un enlace de invitación, el token permite unirse
         // aunque no haya relación de follows (los "no mixto" siguen exigiendo género).
-        val dto = api.joinMeetup(id, invite = PendingMeetupInvite.tokenFor(id))
-        cache.saveAll(listOf(dto))
-        return dto.toDomain()
-    }
+        repo.joinMeetup(id, invite = PendingMeetupInvite.tokenFor(id))
 }
 
-class LeaveMeetupUseCase(
-    private val api: KtorMeetupApi,
-    private val cache: MeetupCacheRepository
-) {
+class LeaveMeetupUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
-    suspend fun execute(id: String) {
-        api.leaveMeetup(id)
-        // Actualizar caché: not joined
-        val cached = cache.getById(id)
-        if (cached != null) {
-            cache.updateJoined(id, false, maxOf(0, cached.memberCount - 1))
-        }
-    }
+    suspend fun execute(id: String) = repo.leaveMeetup(id)
 }
 
-class KickMeetupMemberUseCase(
-    private val api: KtorMeetupApi
-) {
+class KickMeetupMemberUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
-    suspend fun execute(meetupId: String, targetUid: String) {
-        api.kickMember(meetupId, targetUid)
-    }
+    suspend fun execute(meetupId: String, targetUid: String) = repo.kickMember(meetupId, targetUid)
 }
 
-class UpdateMyGearUseCase(private val api: KtorMeetupApi) {
+class UpdateMyGearUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
-    suspend fun execute(meetupId: String, gearJson: String): Meetup {
-        return api.updateMyGear(meetupId, gearJson).toDomain()
-    }
+    suspend fun execute(meetupId: String, gearJson: String): Meetup =
+        repo.updateMyGear(meetupId, gearJson)
 }
 
-class DeleteMeetupUseCase(private val api: KtorMeetupApi) {
+class DeleteMeetupUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
-    suspend fun execute(meetupId: String) { api.deleteMeetup(meetupId) }
+    suspend fun execute(meetupId: String) = repo.deleteMeetup(meetupId)
 }
 
-class ReportMeetupUseCase(private val api: KtorMeetupApi) {
+class ReportMeetupUseCase(private val repo: MeetupRepository) {
     /** reason: SPAM | INAPPROPRIATE | HARASSMENT | OTHER */
     @Throws(Exception::class)
     suspend fun execute(meetupId: String, reportedUid: String?,
-                        reason: String, context: String?) {
-        api.reportMeetup(meetupId,
-            com.meteomontana.android.data.api.dto.ReportRequestDto(
-                reportedUid = reportedUid, reason = reason, context = context))
-    }
+                        reason: String, context: String?) =
+        repo.reportMeetup(meetupId, reportedUid, reason, context)
 }
 
-/** Estado completo de la alerta de quedadas, con todos los filtros configurables. */
-data class MeetupAlertState(
-    val enabled: Boolean,
-    val daysCsv: String? = null,
-    val schoolId: String? = null,
-    val schoolName: String? = null,
-    val discipline: String? = null,    // BOULDER | ROUTE | BOTH | null = cualquiera
-    val privacy: String? = null,       // OPEN | FOLLOWERS | WOMEN | null = cualquiera
-    val maxDistanceKm: Int? = null,
-    val userLat: Double? = null,
-    val userLon: Double? = null
-)
-
-private fun com.meteomontana.android.data.api.dto.MeetupAlertDto.toState() = MeetupAlertState(
-    enabled = enabled, daysCsv = daysCsv, schoolId = schoolId, schoolName = schoolName,
-    discipline = discipline, privacy = privacy, maxDistanceKm = maxDistanceKm,
-    userLat = userLat, userLon = userLon
-)
-
-class GetMeetupAlertUseCase(private val api: KtorMeetupApi) {
+class GetMeetupAlertUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
-    suspend fun execute(): MeetupAlertState {
-        val dto = api.getMeetupAlert()
-        return dto?.toState() ?: MeetupAlertState(enabled = false)
-    }
+    suspend fun execute(): MeetupAlertState = repo.getMeetupAlert()
 }
 
-class SetMeetupAlertUseCase(private val api: KtorMeetupApi) {
+class SetMeetupAlertUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
     suspend fun execute(
         enabled: Boolean,
@@ -194,16 +97,13 @@ class SetMeetupAlertUseCase(private val api: KtorMeetupApi) {
         maxDistanceKm: Int? = null,
         userLat: Double? = null,
         userLon: Double? = null
-    ): MeetupAlertState {
-        val dto = api.setMeetupAlert(
-            com.meteomontana.android.data.api.dto.SetAlertRequestDto(
-                enabled = enabled, daysCsv = daysCsv, schoolId = schoolId,
-                discipline = discipline, privacy = privacy, maxDistanceKm = maxDistanceKm,
-                userLat = userLat, userLon = userLon
-            )
+    ): MeetupAlertState = repo.setMeetupAlert(
+        MeetupAlertState(
+            enabled = enabled, daysCsv = daysCsv, schoolId = schoolId,
+            discipline = discipline, privacy = privacy, maxDistanceKm = maxDistanceKm,
+            userLat = userLat, userLon = userLon
         )
-        return dto.toState()
-    }
+    )
 }
 
 /**
