@@ -5,47 +5,63 @@ import org.junit.Test
 import java.io.File
 
 /**
- * GUARD arquitectónico (KMP↔Swift). Las clases `Ktor*Api` del módulo compartido
- * que el contenedor expone a Swift como propiedades PÚBLICAS se llaman desde
- * Swift con `try?`. Si una `suspend fun` pública puede lanzar (I/O de Ktor) y NO
- * lleva `@Throws`, SKIE genera una firma Swift NO-throwing → sin red la
- * excepción escapa a Kotlin/Native y ABORTA el proceso (crash offline que no se
- * ve compilando; el CI verde solo prueba que compila).
+ * GUARD arquitectónico (KMP↔Swift). El contenedor `IosDependencyContainer`
+ * expone a Swift, como propiedades PÚBLICAS, no solo las clases `Ktor*Api` sino
+ * también USE CASES y REPOSITORIES. Swift llama sus métodos `suspend` con `try?`.
+ * Si una `suspend fun` pública puede lanzar (I/O de Ktor / SQLDelight) y NO lleva
+ * `@Throws`, SKIE genera una firma Swift NO-throwing → sin red la excepción
+ * escapa a Kotlin/Native y ABORTA el proceso (crash offline que no se ve
+ * compilando; el CI verde solo prueba que compila).
  *
- * Este test recorre esas clases y exige `@Throws` en cada `suspend fun` pública,
- * SALVO que el cuerpo trague la excepción él mismo (patrón `try { } catch`, como
- * KtorModerationApi). Habría cazado el crash de `KtorAppVersionApi.get()`
- * (gate de versión 2.19.0) el día que se añadió.
+ * Este test recorre esos ficheros y exige `@Throws` en cada `suspend fun`
+ * pública, SALVO que el cuerpo trague la excepción él mismo (patrón
+ * `try { } catch` sin relanzar, como KtorModerationApi o GetMeetupsUseCase).
+ * Habría cazado el crash de `KtorAppVersionApi.get()` (gate 2.19.0) y el de los
+ * 10 `MeetupUseCases.execute` sin `@Throws` (P0.2).
  */
 class SwiftBoundaryThrowsTest {
 
-    /** Clases API expuestas a Swift como `val` público en IosDependencyContainer. */
-    private val swiftReachableApis = setOf(
-        "KtorAppVersionApi", "KtorSchoolApi", "KtorRadarApi", "KtorMountainApi",
-        "KtorNoteApi", "KtorPhotoApi", "KtorChatPushApi", "KtorBlockApi",
-        "KtorMeetupApi", "KtorModerationApi"
+    /** Ficheros del módulo compartido cuyas clases se exponen a Swift como `val`
+     *  público en IosDependencyContainer. Rutas relativas a shared/commonMain. */
+    private val swiftReachableFiles = listOf(
+        // ── Ktor*Api directos (10) ──
+        "data/api/KtorAppVersionApi.kt", "data/api/KtorSchoolApi.kt",
+        "data/api/KtorRadarApi.kt", "data/api/KtorMountainApi.kt",
+        "data/api/KtorNoteApi.kt", "data/api/KtorPhotoApi.kt",
+        "data/api/KtorChatPushApi.kt", "data/api/KtorBlockApi.kt",
+        "data/api/KtorMeetupApi.kt", "data/api/KtorModerationApi.kt",
+        // ── Use cases expuestos como val público ──
+        "domain/usecase/meetups/MeetupUseCases.kt",
+        "domain/usecase/profile/WeekendAlertUseCases.kt",
+        "domain/usecase/blocks/RateLineUseCase.kt",
+        // ── Repositories expuestos como val público ──
+        "data/stats/MonthlyStatsRepository.kt",
+        "data/saved/CachedSchoolsRepository.kt",
+        "data/saved/SavedSchoolRepository.kt"
     )
 
     @Test
     fun `toda suspend publica expuesta a Swift va con @Throws o traga la excepcion`() {
-        val apiDir = findApiDir()
+        val root = findSharedCommonRoot()
         val offenders = mutableListOf<String>()
 
-        for (name in swiftReachableApis) {
-            val file = File(apiDir, "$name.kt")
-            assertTrue("No encuentro $name.kt en ${apiDir.path}", file.exists())
+        for (rel in swiftReachableFiles) {
+            val file = File(root, rel)
+            assertTrue("No encuentro $rel en ${root.path}", file.exists())
             val lines = file.readLines()
 
             lines.forEachIndexed { i, raw ->
                 val line = raw.trim()
-                // Solo suspend PÚBLICAS (sin private/internal).
-                if (!line.startsWith("suspend fun ")) return@forEachIndexed
+                // Solo suspend PÚBLICAS (sin private/internal). Cubre `suspend fun`
+                // y `suspend operator fun` (invoke de los use cases).
+                if (!line.startsWith("suspend fun ") &&
+                    !line.startsWith("suspend operator fun ")) return@forEachIndexed
+                if (line.startsWith("private ") || line.startsWith("internal ")) return@forEachIndexed
 
                 val hasThrows = i > 0 && lines[i - 1].trim().startsWith("@Throws")
-                // Cuerpo que traga: `= try { ... } catch` o abre `try {` en el bloque.
                 val swallows = swallowsWithinBody(lines, i)
                 if (!hasThrows && !swallows) {
-                    offenders += "$name.kt:${i + 1}  ${line.take(60)}"
+                    offenders += "$rel:${i + 1}  ${line.take(60)}"
                 }
             }
         }
@@ -59,25 +75,23 @@ class SwiftBoundaryThrowsTest {
 
     /** True si la función traga la excepción internamente (try/catch en su cuerpo). */
     private fun swallowsWithinBody(lines: List<String>, declIndex: Int): Boolean {
-        // Mira las ~12 líneas siguientes hasta el próximo `suspend fun`/fin de clase.
+        // Mira las ~12 líneas siguientes hasta la próxima declaración/fin de clase.
         val end = (declIndex + 12).coerceAtMost(lines.size)
         for (j in declIndex until end) {
             val l = lines[j].trim()
-            if (j != declIndex && l.startsWith("suspend fun ")) break
+            if (j != declIndex && (l.startsWith("suspend fun ") ||
+                    l.startsWith("suspend operator fun "))) break
             if (l.contains("try {") || l.startsWith("try ") || l.contains("} catch")) return true
         }
         return false
     }
 
-    private fun findApiDir(): File {
+    private fun findSharedCommonRoot(): File {
         // El working dir del test es el módulo (app/); subimos a la raíz y bajamos
         // a shared. Robustez: probamos varias raíces.
-        val candidates = listOf(
-            File("../shared/src/commonMain/kotlin/com/meteomontana/android/data/api"),
-            File("shared/src/commonMain/kotlin/com/meteomontana/android/data/api")
-        )
+        val base = "shared/src/commonMain/kotlin/com/meteomontana/android"
+        val candidates = listOf(File("../$base"), File(base))
         return candidates.firstOrNull { it.isDirectory }
-            ?: error("No encuentro el directorio data/api del módulo compartido " +
-                "(cwd=${File(".").absolutePath})")
+            ?: error("No encuentro el módulo compartido (cwd=${File(".").absolutePath})")
     }
 }

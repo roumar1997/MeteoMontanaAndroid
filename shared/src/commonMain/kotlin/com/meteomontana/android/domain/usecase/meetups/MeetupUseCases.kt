@@ -50,6 +50,7 @@ class CreateMeetupUseCase(
     private val api: KtorMeetupApi,
     private val cache: MeetupCacheRepository
 ) {
+    @Throws(Exception::class)
     suspend fun execute(req: CreateMeetupRequest): Meetup {
         val dto = api.createMeetup(
             CreateMeetupRequestDto(
@@ -73,6 +74,7 @@ class UpdateMeetupUseCase(
     private val api: KtorMeetupApi,
     private val cache: MeetupCacheRepository
 ) {
+    @Throws(Exception::class)
     suspend fun execute(meetupId: String, description: String?): Meetup {
         val dto = api.updateMeetup(meetupId, description)
         cache.saveAll(listOf(dto))
@@ -97,6 +99,7 @@ class JoinMeetupUseCase(
     private val api: KtorMeetupApi,
     private val cache: MeetupCacheRepository
 ) {
+    @Throws(Exception::class)
     suspend fun execute(id: String): Meetup {
         // Si llegamos por un enlace de invitación, el token permite unirse
         // aunque no haya relación de follows (los "no mixto" siguen exigiendo género).
@@ -110,6 +113,7 @@ class LeaveMeetupUseCase(
     private val api: KtorMeetupApi,
     private val cache: MeetupCacheRepository
 ) {
+    @Throws(Exception::class)
     suspend fun execute(id: String) {
         api.leaveMeetup(id)
         // Actualizar caché: not joined
@@ -123,23 +127,27 @@ class LeaveMeetupUseCase(
 class KickMeetupMemberUseCase(
     private val api: KtorMeetupApi
 ) {
+    @Throws(Exception::class)
     suspend fun execute(meetupId: String, targetUid: String) {
         api.kickMember(meetupId, targetUid)
     }
 }
 
 class UpdateMyGearUseCase(private val api: KtorMeetupApi) {
+    @Throws(Exception::class)
     suspend fun execute(meetupId: String, gearJson: String): Meetup {
         return api.updateMyGear(meetupId, gearJson).toDomain()
     }
 }
 
 class DeleteMeetupUseCase(private val api: KtorMeetupApi) {
+    @Throws(Exception::class)
     suspend fun execute(meetupId: String) { api.deleteMeetup(meetupId) }
 }
 
 class ReportMeetupUseCase(private val api: KtorMeetupApi) {
     /** reason: SPAM | INAPPROPRIATE | HARASSMENT | OTHER */
+    @Throws(Exception::class)
     suspend fun execute(meetupId: String, reportedUid: String?,
                         reason: String, context: String?) {
         api.reportMeetup(meetupId,
@@ -168,6 +176,7 @@ private fun com.meteomontana.android.data.api.dto.MeetupAlertDto.toState() = Mee
 )
 
 class GetMeetupAlertUseCase(private val api: KtorMeetupApi) {
+    @Throws(Exception::class)
     suspend fun execute(): MeetupAlertState {
         val dto = api.getMeetupAlert()
         return dto?.toState() ?: MeetupAlertState(enabled = false)
@@ -175,6 +184,7 @@ class GetMeetupAlertUseCase(private val api: KtorMeetupApi) {
 }
 
 class SetMeetupAlertUseCase(private val api: KtorMeetupApi) {
+    @Throws(Exception::class)
     suspend fun execute(
         enabled: Boolean,
         daysCsv: String? = null,
