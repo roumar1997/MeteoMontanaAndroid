@@ -1,10 +1,12 @@
 package com.meteomontana.android.ui.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -75,7 +77,8 @@ data class LineSuggestion(
     val blockName: String,
     val name: String,           // nombre de la vía (o "L1" si la vía no tiene nombre)
     val grade: String?,
-    val startType: String?
+    val startType: String?,
+    val discipline: String = "BOULDER"  // BOULDER (bloque) / ROUTE (vía) — de la piedra
 ) {
     val displayLabel: String get() = buildString {
         append(name)
@@ -157,6 +160,9 @@ fun AddBlockSheet(
     var schoolQuery by remember { mutableStateOf("") }
     var sector by remember { mutableStateOf("") }
     var blockName by remember { mutableStateOf("") }
+    // Modalidad: BOULDER (bloque) o ROUTE (vía). Antes se omitía → toda entrada
+    // manual caía en "Bloques" y nunca en "Vías" (el diario separa por discipline).
+    var discipline by remember { mutableStateOf("BOULDER") }
     var grade by remember { mutableStateOf<String?>(null) }
     var notes by remember { mutableStateOf("") }
     var gradeMenuExpanded by remember { mutableStateOf(false) }
@@ -200,7 +206,8 @@ fun AddBlockSheet(
                     blockName = b.name,
                     name = l.name.ifBlank { "L${l.sortOrder + 1}" },
                     grade = l.grade,
-                    startType = l.startType
+                    startType = l.startType,
+                    discipline = b.discipline
                 )
             }
         }
@@ -281,8 +288,12 @@ fun AddBlockSheet(
                 }
             }
 
-            // ─── BLOQUE con autocomplete (bloques previos + bloques de la escuela) ───
-            Label("BLOQUE / VÍA")
+            // ─── MODALIDAD: bloque o vía (decide en qué lista del diario cae) ───
+            Label("MODALIDAD")
+            ModalityToggle(selected = discipline, onSelect = { discipline = it })
+
+            // ─── NOMBRE con autocomplete (bloques/vías previos + de la escuela) ───
+            Label(if (discipline == "ROUTE") "VÍA" else "BLOQUE")
             OutlinedTextField(
                 value = blockName, onValueChange = { blockName = it },
                 placeholder = { Text("ej: El Pollito") },
@@ -296,6 +307,8 @@ fun AddBlockSheet(
                             onClick = {
                                 blockName = l.name
                                 if (!l.grade.isNullOrBlank()) grade = l.grade
+                                // Al elegir una vía catalogada, hereda su modalidad.
+                                discipline = l.discipline
                             }
                         )
                     }
@@ -349,7 +362,8 @@ fun AddBlockSheet(
                         blockName = blockName,
                         grade = grade,
                         notes = notes.takeIf { it.isNotBlank() },
-                        date = today
+                        date = today,
+                        discipline = discipline
                     ))
                 },
                 enabled = blockName.isNotBlank(),
@@ -372,6 +386,32 @@ fun AddBlockSheet(
 private fun Label(text: String) {
     Text(text, style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** Selector Bloque / Vía. Decide el campo `discipline` de la entrada del diario,
+ *  que es lo que separa las listas "Mis bloques" y "Mis vías" del perfil. */
+@Composable
+private fun ModalityToggle(selected: String, onSelect: (String) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ModalityOption("BLOQUE", selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
+        ModalityOption("VÍA", selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
+    }
+}
+
+@Composable
+private fun ModalityOption(text: String, active: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val bg = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val fg = if (active) Color.White else MaterialTheme.colorScheme.onSurface
+    Box(
+        modifier = modifier
+            .background(bg, MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text, style = MaterialTheme.typography.labelLarge, color = fg)
+    }
 }
 
 @Composable
