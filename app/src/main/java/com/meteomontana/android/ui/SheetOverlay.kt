@@ -457,7 +457,8 @@ private fun SheetNavHost(
                             onBack = popSheetOrDismiss,
                             onOpenChat = { convId -> sheetNav.navigate(Routes.groupChat(convId)) },
                             onOpenSchool = { id -> sheetNav.navigate(Routes.schoolDetail(id)) },
-                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
+                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
+                            onEditProfile = { sheetNav.navigate(Routes.EDIT_PROFILE) }
                         )
                     }
                     composable(Routes.CREATE_MEETUP) {
@@ -466,7 +467,8 @@ private fun SheetNavHost(
                             onCreated = { id ->
                                 sheetNav.popBackStack()
                                 sheetNav.navigate(Routes.meetupDetail(id))
-                            }
+                            },
+                            onEditProfile = { sheetNav.navigate(Routes.EDIT_PROFILE) }
                         )
                     }
                     composable(Routes.MEETUP_ALERT) {

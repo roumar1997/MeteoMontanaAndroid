@@ -110,11 +110,13 @@ class MeetupsViewModelTest {
         assertTrue(!vm.detailState.value.joining)
     }
 
-    @Test fun `join mapea GENDER_REQUIRED a instruccion de perfil`() = runTest {
+    @Test fun `join mapea GENDER_REQUIRED al gate de genero`() = runTest {
         coEvery { joinMeetup.execute("m1") } throws RuntimeException("GENDER_REQUIRED")
         val vm = vm(); advanceUntilIdle()
         vm.join("m1"); advanceUntilIdle()
-        assertTrue(vm.detailState.value.error!!.contains("Mujer"))
+        // RC3: en vez de texto de error, se activa el gate (diálogo con CTA).
+        assertTrue(vm.genderGate.value)
+        assertEquals(null, vm.detailState.value.error)
     }
 
     @Test fun `create mapea GENDER_REQUIRED y llama onError`() = runTest {
@@ -127,7 +129,9 @@ class MeetupsViewModelTest {
             onSuccess = {}, onError = { errCalled = true })
         advanceUntilIdle()
         assertTrue(errCalled)
-        assertTrue(vm.createError.value!!.contains("Mujer"))
+        // RC3: activa el gate (diálogo con CTA a editar perfil), no un texto.
+        assertTrue(vm.genderGate.value)
+        assertEquals(null, vm.createError.value)
     }
 
     @Test fun `leave decrementa aforo optimista sin bajar de cero`() = runTest {

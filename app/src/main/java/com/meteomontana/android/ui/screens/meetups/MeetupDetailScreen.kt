@@ -84,9 +84,14 @@ fun MeetupDetailScreen(
     onOpenChat: (String) -> Unit = {},
     onOpenSchool: (String) -> Unit = {},
     onOpenProfile: (String) -> Unit = {},
+    onEditProfile: () -> Unit = {},
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
     val state by viewModel.detailState.collectAsState()
+    val genderGate by viewModel.genderGate.collectAsState()
+    if (genderGate) {
+        GenderGateDialog(onEditProfile = onEditProfile, onDismiss = { viewModel.clearGenderGate() })
+    }
     val savingDescription by viewModel.savingDescription.collectAsState()
     val dayScores by viewModel.dayScores.collectAsState()
     val myUid = FirebaseAuth.getInstance().currentUser?.uid

@@ -96,6 +96,13 @@ class MeetupsViewModel @Inject constructor(
     private val _createError = MutableStateFlow<String?>(null)
     val createError = _createError.asStateFlow()
 
+    // RC3: gate de género (No Mixto exige perfil Mujer). En vez de un texto de
+    // error críptico, las pantallas muestran un DIÁLOGO explicativo con botón a
+    // Editar perfil. Se activa al crear/unirse y lo consume la UI.
+    private val _genderGate = MutableStateFlow(false)
+    val genderGate = _genderGate.asStateFlow()
+    fun clearGenderGate() { _genderGate.value = false }
+
     private val _myGender = MutableStateFlow<String?>(null)
     val myGender = _myGender.asStateFlow()
 
@@ -165,16 +172,19 @@ class MeetupsViewModel @Inject constructor(
                     s.copy(meetups = s.meetups.map { m -> if (m.id == id) updated else m })
                 }
             } catch (e: Exception) {
-                val msg = when {
-                    e.message?.contains("GENDER_REQUIRED") == true ->
-                        "Para unirte a quedadas No Mixto necesitas indicar tu género como Mujer. Ve a Perfil → Editar perfil → Género."
-                    e.message?.contains("FOLLOW_REQUIRED") == true ->
-                        "Solo puedes unirte si sigues al organizador o te sigue."
-                    e.message?.contains("MEETUP_FULL") == true ->
-                        "La quedada está completa."
-                    else -> e.message
+                if (e.message?.contains("GENDER_REQUIRED") == true) {
+                    _genderGate.value = true   // RC3: diálogo con CTA a Editar perfil
+                    _detail.update { it.copy(joining = false) }
+                } else {
+                    val msg = when {
+                        e.message?.contains("FOLLOW_REQUIRED") == true ->
+                            "Solo puedes unirte si sigues al organizador o te sigue."
+                        e.message?.contains("MEETUP_FULL") == true ->
+                            "La quedada está completa."
+                        else -> e.message
+                    }
+                    _detail.update { it.copy(joining = false, error = msg) }
                 }
-                _detail.update { it.copy(joining = false, error = msg) }
             }
         }
     }
@@ -252,11 +262,10 @@ class MeetupsViewModel @Inject constructor(
                 loadMeetups()
                 onSuccess(meetup)
             } catch (e: Exception) {
-                _createError.value = when {
-                    e.message?.contains("GENDER_REQUIRED") == true ->
-                        "Para crear o unirte a quedadas No Mixto necesitas indicar tu género " +
-                        "como Mujer en tu perfil. Ve a Perfil → Editar perfil → Género."
-                    else -> e.message ?: "Error al crear la quedada"
+                if (e.message?.contains("GENDER_REQUIRED") == true) {
+                    _genderGate.value = true   // RC3: diálogo con CTA a Editar perfil
+                } else {
+                    _createError.value = e.message ?: "Error al crear la quedada"
                 }
                 onError()
             }

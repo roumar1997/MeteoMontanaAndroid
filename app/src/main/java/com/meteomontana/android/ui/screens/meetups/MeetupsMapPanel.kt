@@ -412,7 +412,8 @@ private fun zoomForKm(km: Double): Double = when {
 }
 
 private fun createSchoolBadge(name: String, count: Int): Bitmap {
-    val density = 2f
+    // 3f (antes 2f) → badge ~50% más grande y legible, a la par que iOS (M3b).
+    val density = 3f
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.WHITE
         textSize = 11f * density

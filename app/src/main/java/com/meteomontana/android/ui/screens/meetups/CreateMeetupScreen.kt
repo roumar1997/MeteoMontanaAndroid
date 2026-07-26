@@ -76,9 +76,14 @@ import kotlinx.coroutines.launch
 fun CreateMeetupScreen(
     onBack: () -> Unit = {},
     onCreated: (meetupId: String) -> Unit = {},
+    onEditProfile: () -> Unit = {},
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
     val createError by viewModel.createError.collectAsState()
+    val genderGate by viewModel.genderGate.collectAsState()
+    if (genderGate) {
+        GenderGateDialog(onEditProfile = onEditProfile, onDismiss = { viewModel.clearGenderGate() })
+    }
     val uploadingPhoto by viewModel.uploadingPhoto.collectAsState()
     val dayScores by viewModel.dayScores.collectAsState()
 

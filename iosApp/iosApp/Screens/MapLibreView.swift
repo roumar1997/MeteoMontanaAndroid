@@ -432,8 +432,11 @@ struct MapLibreView: UIViewRepresentable {
                     ne: CLLocationCoordinate2D(latitude: lats.max()!, longitude: lons.max()!))
                 mapView.setVisibleCoordinateBounds(bounds,
                     edgePadding: UIEdgeInsets(top: 90, left: 60, bottom: 90, right: 60), animated: false)
-                if mapView.zoomLevel > 16.5 {
-                    mapView.setCenter(mapView.centerCoordinate, zoomLevel: 16.5, animated: false)
+                // Tope de zoom inicial 15 (antes 16.5): el mapa de escuela abría
+                // demasiado cerca cuando los elementos estaban juntos; con 15 se ve
+                // más contexto, a la par que Android (M1).
+                if mapView.zoomLevel > 15.0 {
+                    mapView.setCenter(mapView.centerCoordinate, zoomLevel: 15.0, animated: false)
                 }
             }
             // autoFitToMarkers: makeUIView llama con force=true que salta el fit
