@@ -30,21 +30,27 @@ class KtorMeetupRepository(
 ) : MeetupRepository {
 
     override suspend fun getMeetups(schoolId: String?, date: String?, relation: String?): List<Meetup> {
-        return try {
-            val dtos = api.getMeetups(schoolId, date, relation)
-            cache?.saveAll(dtos)
-            dtos.map { it.toDomain() }
-        } catch (e: Exception) {
-            // Offline: devolver caché local, filtrando caducadas CON gracia (misma
-            // que la caché: expiresAt es medianoche → una quedada de hoy sigue viva).
+        // Caché local, filtrando caducadas CON gracia (expiresAt es medianoche →
+        // una quedada de hoy sigue viva; 2 días cubren el día + zonas horarias).
+        suspend fun fromCache(): List<Meetup> {
             val cutoff = Clock.System.now().toEpochMilliseconds() -
                 com.meteomontana.android.data.saved.MeetupCacheRepository.EXPIRY_GRACE_MS
-            (cache?.getAll() ?: emptyList()).let { cached ->
-                var result = cached.filter { it.expiresAt > cutoff }
-                if (schoolId != null) result = result.filter { it.schoolId == schoolId }
-                if (date != null) result = result.filter { it.days.contains(date) }
-                result
-            }
+            var result = (cache?.getAll() ?: emptyList()).filter { it.expiresAt > cutoff }
+            if (schoolId != null) result = result.filter { it.schoolId == schoolId }
+            if (date != null) result = result.filter { it.days.contains(date) }
+            return result
+        }
+        return try {
+            val dtos = api.getMeetups(schoolId, date, relation)
+            if (dtos.isNotEmpty()) cache?.saveAll(dtos)   // no vaciar la caché con un vacío
+            val fresh = dtos.map { it.toDomain() }
+            // RED-PRIMERO, CACHÉ-DE-RESPALDO: si la red viene VACÍA (sin conexión que
+            // no lanza, respuesta transitoria vacía…) NO borramos lo que se veía;
+            // caemos a la caché. Solo mostramos vacío si la caché también lo está
+            // (bug RC2: al recargar sin red desaparecían las quedadas).
+            if (fresh.isEmpty()) fromCache().ifEmpty { fresh } else fresh
+        } catch (e: Exception) {
+            fromCache()
         }
     }
 

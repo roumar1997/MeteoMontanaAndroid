@@ -472,7 +472,10 @@ fun MainScreen(
                         onMeetupClick = { id -> openSheet(Routes.meetupDetail(id)) },
                         onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
                         onCreateMeetup = { openSheet(Routes.CREATE_MEETUP) },
-                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) }
+                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) },
+                        // Recarga el estado de la alerta al reaparecer la pestaña sin
+                        // overlay (al cerrar la hoja de alerta) → icono siempre real.
+                        visible = selectedTab == Tab.Meetups.route && !sheetVisible
                     )
                 }
                         // ── Overlay estilo Apple, DENTRO del contenido ──

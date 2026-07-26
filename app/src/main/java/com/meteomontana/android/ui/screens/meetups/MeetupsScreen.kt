@@ -47,7 +47,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -78,6 +77,7 @@ fun MeetupsScreen(
     onOpenChat: (String) -> Unit = {},
     onCreateMeetup: () -> Unit = {},
     onOpenAlert: () -> Unit = {},
+    visible: Boolean = true,
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
     val state by viewModel.listState.collectAsState()
@@ -92,18 +92,11 @@ fun MeetupsScreen(
     var mapExpanded by remember { mutableStateOf(false) }
     var filtersExpanded by remember { mutableStateOf(false) }
 
-    // Recarga el estado de la alerta al entrar Y al reanudar: con las pestañas
-    // keep-alive, volver de configurar la alerta no re-dispara LaunchedEffect(Unit),
-    // así que el icono quedaba con el estado viejo (gris aunque estuviera activa).
-    val alertLifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current
-    DisposableEffect(alertLifecycle) {
-        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
-            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.loadAlertState()
-        }
-        alertLifecycle.lifecycle.addObserver(obs)
-        onDispose { alertLifecycle.lifecycle.removeObserver(obs) }
-    }
-    LaunchedEffect(Unit) { viewModel.loadAlertState() }
+    // Recarga el estado de la alerta cada vez que la pestaña se hace VISIBLE sin
+    // overlay encima (p.ej. al CERRAR la hoja de configurar alerta, que usa otro
+    // VM instance) → el icono refleja siempre el estado real (activa/desactivada).
+    // Antes se quedaba con el de la primera carga (gris activa / activa desactivada).
+    LaunchedEffect(visible) { if (visible) viewModel.loadAlertState() }
 
     // Filtros aplicados localmente (recomputa cuando llega la ubicación)
     val displayedMeetups = remember(state.meetups, state.filterPrivacy, state.maxDistanceKm, state.filterDays, state.filterDiscipline, uLat, uLon) {
