@@ -1,7 +1,9 @@
 package com.meteomontana.android.data.repository
 
 import com.meteomontana.android.data.api.KtorSchoolApi
+import com.meteomontana.android.data.api.LineSearchHitDto
 import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.LineSearchHit
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.SchoolCatalog
 import com.meteomontana.android.domain.repository.SchoolRepository
@@ -25,4 +27,12 @@ class KtorSchoolRepository(private val api: KtorSchoolApi) : SchoolRepository {
 
     override suspend fun searchSchools(query: String, limit: Int): List<School> =
         api.searchSchools(query, limit).map { it.toDomain() }
+
+    override suspend fun searchLines(query: String): List<LineSearchHit> =
+        api.searchLines(query).map { it.toDomain() }
 }
+
+private fun LineSearchHitDto.toDomain() = LineSearchHit(
+    schoolId = schoolId, schoolName = schoolName, blockId = blockId, blockName = blockName,
+    lineId = lineId, lineName = lineName, grade = grade, sectorName = sectorName
+)

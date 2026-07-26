@@ -92,6 +92,10 @@ object UseCasesModule {
     fun provideGetSchoolByIdUseCase(repo: SchoolRepository) = GetSchoolByIdUseCase(repo)
 
     @Provides @Singleton
+    fun provideSearchLinesUseCase(repo: SchoolRepository) =
+        com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetTodayScoresUseCase(repo: ForecastRepository) = GetTodayScoresUseCase(repo)
 
     @Provides @Singleton
