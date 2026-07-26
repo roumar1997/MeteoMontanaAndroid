@@ -375,12 +375,14 @@ struct MapLibreView: UIViewRepresentable {
             // favoritas): fitBounds podría disparar un zoom inestable y "pillar" el
             // mapa. En ese caso centramos con un zoom fijo cómodo.
             if markers.count == 1 {
-                map.setCenter(markers[0].coordinate, zoomLevel: 14, animated: true)
+                map.setCenter(markers[0].coordinate, zoomLevel: 13, animated: true)  // M1: menos cerca
                 return
             }
+            // M1: más padding (48→90) → el mapa de escuela abre más ABIERTO (se ven
+            // sectores/piedras y contexto), a la par que Android, en vez de tan pegado.
             map.setVisibleCoordinateBounds(
                 inflated(minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon),
-                edgePadding: UIEdgeInsets(top: 48, left: 48, bottom: 48, right: 48),
+                edgePadding: UIEdgeInsets(top: 90, left: 90, bottom: 90, right: 90),
                 animated: true)
         }
 

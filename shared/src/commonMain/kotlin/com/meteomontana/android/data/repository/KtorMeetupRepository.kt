@@ -50,7 +50,10 @@ class KtorMeetupRepository(
             // (bug RC2: al recargar sin red desaparecían las quedadas).
             if (fresh.isEmpty()) fromCache().ifEmpty { fresh } else fresh
         } catch (e: Exception) {
-            fromCache()
+            // Sin red: caché si la hay. Si la caché TAMBIÉN está vacía, RELANZAMOS
+            // en vez de devolver vacío → el VM (su catch conserva la lista actual)
+            // no borra las quedadas que ya se veían (bug RC2, definitivo).
+            fromCache().ifEmpty { throw e }
         }
     }
 

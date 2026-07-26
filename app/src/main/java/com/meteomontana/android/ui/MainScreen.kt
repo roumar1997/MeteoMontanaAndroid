@@ -7,6 +7,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -349,6 +350,23 @@ fun MainScreen(
                                     Modifier.fillMaxSize()
                                         .zIndex(if (sel) 1f else 0f)
                                         .graphicsLayer { alpha = if (sel) 1f else 0f }
+                                        // Los tabs ocultos siguen con alpha 0 pero SEGUÍAN
+                                        // siendo tocables: un toque en un HUECO de la barra
+                                        // del tab visible se filtraba al tab de debajo
+                                        // (pulsabas botones de Escuelas desde Quedadas). El
+                                        // tab seleccionado consume los toques no manejados
+                                        // por sus hijos → nada se filtra.
+                                        .then(
+                                            if (sel) Modifier.pointerInput(Unit) {
+                                                awaitPointerEventScope {
+                                                    while (true) {
+                                                        awaitPointerEvent().changes.forEach {
+                                                            if (!it.isConsumed) it.consume()
+                                                        }
+                                                    }
+                                                }
+                                            } else Modifier
+                                        )
                                 ) { content() }
                             }
                         }
