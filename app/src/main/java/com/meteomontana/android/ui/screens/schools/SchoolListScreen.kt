@@ -142,6 +142,12 @@ fun SchoolListScreen(
     // (solo sale si username == null en el servidor; reinstalar no lo re-muestra).
     com.meteomontana.android.ui.onboarding.UsernameGate()
 
+    // M2: cámara del mapa de escuelas, recordada AQUÍ (fuera del LazyColumn) para
+    // que sobreviva al reciclado del item del mapa al scrollear.
+    val mapCamera = remember {
+        androidx.compose.runtime.mutableStateOf<org.maplibre.android.camera.CameraPosition?>(null)
+    }
+
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
@@ -254,7 +260,8 @@ fun SchoolListScreen(
                     userLon = userLocation?.lon,
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
-                    onSchoolDetail = onSchoolClick
+                    onSchoolDetail = onSchoolClick,
+                    savedCamera = mapCamera
                 )
             }
 

@@ -138,7 +138,10 @@ struct SchoolMapSection: View {
         ZStack(alignment: .bottomTrailing) {
                     MapLibreView(
                         center: savedCenter ?? CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-                        zoom: savedZoom ?? 14,
+                        // M1: 12.5 (antes 14). El autoFit hace return en el primer apply
+                        // (registra la base), así que la escuela abría al zoom INICIAL fijo
+                        // y salía muy cerca. Con 12.5 abre más abierta (se ve más contexto).
+                        zoom: savedZoom ?? 12.5,
                         markers: markers,
                         style: mapStyle,
                         // Encuadre inicial con TODOS los elementos (parkings/sectores/
