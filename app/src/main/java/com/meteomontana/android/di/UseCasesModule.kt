@@ -98,6 +98,17 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideGetTodayScoresUseCase(repo: ForecastRepository) = GetTodayScoresUseCase(repo)
 
+    // Radar (frames + PNG) — antes RadarViewModel usaba KtorRadarApi directo.
+    @Provides @Singleton
+    fun provideGetRadarFramesUseCase(
+        repo: com.meteomontana.android.domain.repository.RadarRepository
+    ) = com.meteomontana.android.domain.usecase.radar.GetRadarFramesUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetRadarFramePngUseCase(
+        repo: com.meteomontana.android.domain.repository.RadarRepository
+    ) = com.meteomontana.android.domain.usecase.radar.GetRadarFramePngUseCase(repo)
+
     @Provides @Singleton
     fun provideGetRangeScoresUseCase(repo: ForecastRepository) =
         com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase(repo)
