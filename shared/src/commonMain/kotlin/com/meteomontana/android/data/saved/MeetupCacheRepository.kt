@@ -18,6 +18,12 @@ class MeetupCacheRepository(private val db: MeteoMontanaDb) {
 
     private val q get() = db.schemaQueries
 
+    companion object {
+        /** Gracia de caducidad: `expiresAt` se parsea de la fecha (medianoche), así
+         *  que una quedada vale hasta el final de su día + margen de zona horaria. */
+        const val EXPIRY_GRACE_MS = 2L * 86_400_000L
+    }
+
     suspend fun saveAll(meetups: List<MeetupDto>) = withContext(Dispatchers.Default) {
         val now = Clock.System.now().toEpochMilliseconds()
         meetups.forEach { m ->
@@ -44,8 +50,12 @@ class MeetupCacheRepository(private val db: MeteoMontanaDb) {
                 fetchedAt = now
             )
         }
-        // Limpiar caducadas
-        q.deleteExpiredMeetups(now)
+        // Limpiar caducadas — con 2 DÍAS de gracia. `expiresAt` se parsea de la
+        // fecha (medianoche) → sin gracia, una quedada de HOY se consideraba
+        // caducada a partir de las 00:00 y se borraba de la caché a media mañana,
+        // aunque el servidor la seguía mostrando online → offline desaparecía al
+        // recargar (bug Q3/Q4). La gracia cubre el día entero + zonas horarias.
+        q.deleteExpiredMeetups(now - EXPIRY_GRACE_MS)
     }
 
     suspend fun getAll(): List<Meetup> = withContext(Dispatchers.Default) {

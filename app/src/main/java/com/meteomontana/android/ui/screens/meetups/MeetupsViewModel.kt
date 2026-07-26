@@ -76,6 +76,7 @@ class MeetupsViewModel @Inject constructor(
     private val getMyProfile: GetMyProfileUseCase,
     private val locationProvider: LocationProvider,
     private val photoUploader: PhotoUploader,
+    private val fileReader: com.meteomontana.android.domain.port.FileReader,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -339,11 +340,15 @@ class MeetupsViewModel @Inject constructor(
     val uploadingPhoto = _uploadingPhoto.asStateFlow()
 
     /** Sube una foto para la quedada (temporal: usa "new" como ID; el backend usará la URL tal cual). */
-    fun uploadMeetupPhoto(bytes: ByteArray, mimeType: String, onResult: (String?) -> Unit) {
+    fun uploadMeetupPhoto(uri: String, onResult: (String?) -> Unit) {
         _uploadingPhoto.value = true
         viewModelScope.launch {
             try {
-                val url = photoUploader.uploadMeetupPhoto(bytes, mimeType, "new_${System.currentTimeMillis()}")
+                // readImageCompressed HORNEA la rotación EXIF en los píxeles; antes
+                // se subían los bytes crudos y las fotos verticales salían de lado.
+                val bytes = fileReader.readImageCompressed(
+                    com.meteomontana.android.domain.model.FileRef(uri))
+                val url = photoUploader.uploadMeetupPhoto(bytes, "image/jpeg", "new_${System.currentTimeMillis()}")
                 onResult(url)
             } catch (_: Exception) {
                 onResult(null)

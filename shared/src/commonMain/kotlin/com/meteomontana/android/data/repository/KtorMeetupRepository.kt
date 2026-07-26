@@ -35,10 +35,12 @@ class KtorMeetupRepository(
             cache?.saveAll(dtos)
             dtos.map { it.toDomain() }
         } catch (e: Exception) {
-            // Offline: devolver caché local, filtrando caducadas.
-            val now = Clock.System.now().toEpochMilliseconds()
+            // Offline: devolver caché local, filtrando caducadas CON gracia (misma
+            // que la caché: expiresAt es medianoche → una quedada de hoy sigue viva).
+            val cutoff = Clock.System.now().toEpochMilliseconds() -
+                com.meteomontana.android.data.saved.MeetupCacheRepository.EXPIRY_GRACE_MS
             (cache?.getAll() ?: emptyList()).let { cached ->
-                var result = cached.filter { it.expiresAt > now }
+                var result = cached.filter { it.expiresAt > cutoff }
                 if (schoolId != null) result = result.filter { it.schoolId == schoolId }
                 if (date != null) result = result.filter { it.days.contains(date) }
                 result

@@ -108,11 +108,8 @@ fun CreateMeetupScreen(
     val scope = rememberCoroutineScope()
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
-        scope.launch {
-            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@launch
-            val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-            viewModel.uploadMeetupPhoto(bytes, mime) { url -> photoUrl = url }
-        }
+        // Pasamos el URI: el VM lee con readImageCompressed (hornea la rotación EXIF).
+        viewModel.uploadMeetupPhoto(uri.toString()) { url -> photoUrl = url }
     }
 
     // Para el selector de escuela, reusamos búsqueda simple (cadena schoolId manual por ahora)
