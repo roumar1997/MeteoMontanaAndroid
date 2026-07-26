@@ -34,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,14 +53,16 @@ fun SubmitSchoolScreen(
     val state by viewModel.state.collectAsState()
     val options by viewModel.options.collectAsState()
 
-    var name by remember { mutableStateOf("") }
-    var region by remember { mutableStateOf("") }
-    var style by remember { mutableStateOf("") }
-    var rockType by remember { mutableStateOf("") }
-    var lat by remember { mutableStateOf("") }
-    var lon by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
+    // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
+    // (MIUI lo hace agresivamente) o a un giro de pantalla — no se pierde lo escrito.
+    var name by rememberSaveable { mutableStateOf("") }
+    var region by rememberSaveable { mutableStateOf("") }
+    var style by rememberSaveable { mutableStateOf("") }
+    var rockType by rememberSaveable { mutableStateOf("") }
+    var lat by rememberSaveable { mutableStateOf("") }
+    var lon by rememberSaveable { mutableStateOf("") }
+    var location by rememberSaveable { mutableStateOf("") }
+    var notes by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(state) {
         if (state is SubmitState.Done) onBack()

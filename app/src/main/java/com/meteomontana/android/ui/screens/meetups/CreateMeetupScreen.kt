@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -81,12 +82,14 @@ fun CreateMeetupScreen(
     val uploadingPhoto by viewModel.uploadingPhoto.collectAsState()
     val dayScores by viewModel.dayScores.collectAsState()
 
-    var name by remember { mutableStateOf("") }
-    var schoolId by remember { mutableStateOf("") }
-    var schoolName by remember { mutableStateOf("") }
-    var privacy by remember { mutableStateOf("OPEN") }
-    var discipline by remember { mutableStateOf<String?>(null) }
-    var limitText by remember { mutableStateOf("") }
+    // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
+    // (MIUI) o a un giro de pantalla — no se pierde lo escrito/elegido.
+    var name by rememberSaveable { mutableStateOf("") }
+    var schoolId by rememberSaveable { mutableStateOf("") }
+    var schoolName by rememberSaveable { mutableStateOf("") }
+    var privacy by rememberSaveable { mutableStateOf("OPEN") }
+    var discipline by rememberSaveable { mutableStateOf<String?>(null) }
+    var limitText by rememberSaveable { mutableStateOf("") }
     val selectedDays = remember { mutableStateOf<Set<String>>(emptySet()) }
     var submitting by remember { mutableStateOf(false) }
     var photoUrl by remember { mutableStateOf<String?>(null) }
