@@ -109,6 +109,35 @@ object UseCasesModule {
         repo: com.meteomontana.android.domain.repository.RadarRepository
     ) = com.meteomontana.android.domain.usecase.radar.GetRadarFramePngUseCase(repo)
 
+    // Moderación (consola de admin) — antes AdminViewModel usaba KtorModerationApi directo.
+    @Provides @Singleton
+    fun provideGetContentReportsUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.GetContentReportsUseCase(r)
+    @Provides @Singleton
+    fun provideResolveContentReportUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.ResolveContentReportUseCase(r)
+    @Provides @Singleton
+    fun provideGetAdminUsersUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.GetAdminUsersUseCase(r)
+    @Provides @Singleton
+    fun provideGetAdminNotesUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.GetAdminNotesUseCase(r)
+    @Provides @Singleton
+    fun provideGetUserModerationUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.GetUserModerationUseCase(r)
+    @Provides @Singleton
+    fun provideWarnUserUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.WarnUserUseCase(r)
+    @Provides @Singleton
+    fun provideSuspendUserUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.SuspendUserUseCase(r)
+    @Provides @Singleton
+    fun provideBanUserUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.BanUserUseCase(r)
+    @Provides @Singleton
+    fun provideUnbanUserUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.UnbanUserUseCase(r)
+
     @Provides @Singleton
     fun provideGetRangeScoresUseCase(repo: ForecastRepository) =
         com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase(repo)

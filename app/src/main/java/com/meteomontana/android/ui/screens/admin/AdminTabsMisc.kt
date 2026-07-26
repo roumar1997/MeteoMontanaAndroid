@@ -98,8 +98,8 @@ import org.maplibre.android.maps.Style
 @Composable
 internal fun StatsTab(
     stats: AdminStats?,
-    users: List<com.meteomontana.android.data.api.AdminUserRowDto>? = null,
-    notes: List<com.meteomontana.android.data.api.AdminNoteRowDto>? = null,
+    users: List<com.meteomontana.android.domain.model.AdminUserRow>? = null,
+    notes: List<com.meteomontana.android.domain.model.AdminNoteRow>? = null,
     onLoadUsers: () -> Unit = {},
     onLoadNotes: () -> Unit = {},
     onOpenUserProfile: (String) -> Unit = {},
@@ -392,7 +392,7 @@ internal fun PushTab(
 @Composable
 internal fun DenunciasTab(
     reports: List<MeetupReport>,
-    contentReports: List<com.meteomontana.android.data.api.ContentReportDto> = emptyList(),
+    contentReports: List<com.meteomontana.android.domain.model.ContentReport> = emptyList(),
     onResolve: (String) -> Unit,
     onDismiss: (String) -> Unit,
     onRemoveContent: (String) -> Unit = {},
@@ -449,7 +449,7 @@ internal fun DenunciasTab(
 /** Card de denuncia de CONTENIDO: snapshot + motivo + RETIRAR / IGNORAR. */
 @Composable
 private fun ContentReportCard(
-    r: com.meteomontana.android.data.api.ContentReportDto,
+    r: com.meteomontana.android.domain.model.ContentReport,
     onRemove: () -> Unit,
     onIgnore: () -> Unit,
     onOpenAuthor: () -> Unit = {},
@@ -670,7 +670,7 @@ private fun reasonLabel(reason: String) = when (reason) {
  */
 @Composable
 internal fun UserModerationSheet(
-    mod: com.meteomontana.android.data.api.UserModerationDto?,
+    mod: com.meteomontana.android.domain.model.UserModeration?,
     loading: Boolean,
     onWarn: (String, String?) -> Unit,
     onSuspend: (String, Int, String?) -> Unit,

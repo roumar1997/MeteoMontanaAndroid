@@ -93,7 +93,15 @@ class AdminViewModelTest {
         sendPush,
         mockk(relaxed = true),  // getPendingReportsUseCase
         mockk(relaxed = true),  // resolveReportUseCase
-        mockk(relaxed = true),  // moderationApi
+        mockk(relaxed = true),  // getContentReports
+        mockk(relaxed = true),  // resolveContentReportUseCase
+        mockk(relaxed = true),  // getAdminUsersUseCase
+        mockk(relaxed = true),  // getAdminNotesUseCase
+        mockk(relaxed = true),  // getUserModerationUseCase
+        mockk(relaxed = true),  // warnUserUseCase
+        mockk(relaxed = true),  // suspendUserUseCase
+        mockk(relaxed = true),  // banUserUseCase
+        mockk(relaxed = true),  // unbanUserUseCase
         mockk(relaxed = true),  // searchUsers
         getBlocks, updateBlockUC, deleteBlockUC, getSchoolsUseCase
     )

@@ -141,6 +141,12 @@ object RepositoryModule {
         com.meteomontana.android.data.repository.KtorRadarRepository(api)
 
     @Provides @Singleton
+    fun provideModerationRepository(
+        api: com.meteomontana.android.data.api.KtorModerationApi
+    ): com.meteomontana.android.domain.repository.ModerationRepository =
+        com.meteomontana.android.data.repository.KtorModerationRepository(api)
+
+    @Provides @Singleton
     fun provideJournalRepository(api: KtorJournalApi): JournalRepository =
         KtorJournalRepository(api)
 
