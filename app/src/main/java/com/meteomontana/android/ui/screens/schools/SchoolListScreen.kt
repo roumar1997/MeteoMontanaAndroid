@@ -144,9 +144,9 @@ fun SchoolListScreen(
 
     // M2: cámara del mapa de escuelas, recordada AQUÍ (fuera del LazyColumn) para
     // que sobreviva al reciclado del item del mapa al scrollear.
-    val mapCamera = remember {
-        androidx.compose.runtime.mutableStateOf<org.maplibre.android.camera.CameraPosition?>(null)
-    }
+    // M2/M3: estado del mapa (cámara + ids encuadrados) recordado AQUÍ, fuera del
+    // LazyColumn, para que sobreviva al reciclado del item del mapa al scrollear.
+    val mapState = rememberSchoolsMapState()
 
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -261,7 +261,7 @@ fun SchoolListScreen(
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
                     onSchoolDetail = onSchoolClick,
-                    savedCamera = mapCamera
+                    mapState = mapState
                 )
             }
 

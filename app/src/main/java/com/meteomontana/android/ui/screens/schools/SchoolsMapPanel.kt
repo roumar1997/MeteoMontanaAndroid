@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +50,7 @@ import com.meteomontana.android.ui.theme.Spacing
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
@@ -74,6 +76,48 @@ import com.meteomontana.android.R
  * Markers se re-pintan con un Bitmap generado a mano (diamante rotado
  * + score blanco encima) para parecerse al pin de la PWA.
  */
+
+/**
+ * Estado del mapa que debe SOBREVIVIR al reciclado del item del `LazyColumn`
+ * (el `MapBody` vive dentro de la lista y se destruye/recrea al scrollear).
+ * Se recuerda en el propietario estable (`SchoolListScreen`) y se pasa aquí,
+ * de modo que la pantalla NO ve tipos de MapLibre — quedan encapsulados.
+ *  - [savedCamera]: la última cámara, para restaurarla al recrear el mapa.
+ *  - [fittedIds]: ids ya encuadrados, para no re-encuadrar salvo cambio de filtro.
+ */
+class SchoolsMapState {
+    val savedCamera: MutableState<CameraPosition?> = mutableStateOf(null)
+    val fittedIds: MutableState<Set<String>> = mutableStateOf(emptySet())
+}
+
+@Composable
+fun rememberSchoolsMapState(): SchoolsMapState = remember { SchoolsMapState() }
+
+/**
+ * Plan de cámara INICIAL cuando no hay ninguna guardada (primer abrir del mapa).
+ * Función pura (sin tipos de MapLibre) → testeable en JVM.
+ *  - 2+ escuelas → [fit] = true: encuadrar las visibles (igual que al filtrar).
+ *  - 1 escuela → centrar en ella (zoom cercano).
+ *  - 0 escuelas con ubicación → centrar en el usuario.
+ *  - 0 escuelas sin ubicación → vista de España.
+ */
+data class MapCameraPlan(
+    val lat: Double,
+    val lon: Double,
+    val zoom: Double,
+    val fit: Boolean
+)
+
+fun planInitialCamera(schools: List<School>, userLat: Double?, userLon: Double?): MapCameraPlan {
+    val single = schools.singleOrNull()
+    return when {
+        schools.size >= 2 -> MapCameraPlan(0.0, 0.0, 0.0, fit = true)
+        single != null -> MapCameraPlan(single.lat, single.lon, 13.5, fit = false)
+        userLat != null && userLon != null -> MapCameraPlan(userLat, userLon, 8.0, fit = false)
+        else -> MapCameraPlan(40.4, -3.7, 5.0, fit = false)
+    }
+}
+
 @Composable
 fun SchoolsMapPanel(
     schools: List<School>,
@@ -85,9 +129,10 @@ fun SchoolsMapPanel(
     onSchoolDetail: (String) -> Unit,
     // M2: cámara persistida por el LLAMANTE (SchoolListScreen, que NO se recicla al
     // scrollear). El mapa vive en un item de LazyColumn → al salir/entrar de pantalla
-    // se DESTRUYE y recrea, y volvía a la cámara inicial. Restaurándola desde aquí,
-    // el mapa reaparece donde lo dejaste.
-    savedCamera: androidx.compose.runtime.MutableState<org.maplibre.android.camera.CameraPosition?>
+    // se DESTRUYE y recrea, y volvía a la cámara inicial. Con el estado en el llamante
+    // (SchoolListScreen, que NO se recicla), el mapa reaparece donde lo dejaste y no
+    // re-encuadra salvo cambio de filtro. Ver [SchoolsMapState].
+    mapState: SchoolsMapState
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -132,7 +177,7 @@ fun SchoolsMapPanel(
                 userLat = userLat,
                 userLon = userLon,
                 onSchoolDetail = onSchoolDetail,
-                savedCamera = savedCamera
+                mapState = mapState
             )
         }
     }
@@ -147,8 +192,10 @@ private fun MapBody(
     userLat: Double?,
     userLon: Double?,
     onSchoolDetail: (String) -> Unit,
-    savedCamera: androidx.compose.runtime.MutableState<org.maplibre.android.camera.CameraPosition?>
+    mapState: SchoolsMapState
 ) {
+    val savedCamera = mapState.savedCamera
+    val lastFittedIds = mapState.fittedIds
     val ctx = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     // Tiles oscuros si el tema actual es oscuro (CartoDB dark) — el mapa claro
@@ -160,7 +207,7 @@ private fun MapBody(
     var selectedSchool by remember { mutableStateOf<School?>(null) }
     // ids de la última lista pintada: solo re-encuadramos la cámara cuando
     // cambia QUÉ escuelas se ven (filtros), no cuando llegan scores nuevos.
-    val lastFittedIds = remember { mutableStateOf<Set<String>>(emptySet()) }
+    // (M2/M3: `lastFittedIds` llega como parámetro persistido por el padre.)
     // Etiquetas de nombre solo con zoom cercano (si no, se solapan).
     val labelsVisible = remember { mutableStateOf(false) }
     var isSatellite by remember { mutableStateOf(false) }
@@ -232,29 +279,28 @@ private fun MapBody(
                             // M2: si hay cámara guardada (el mapa se recreó al scrollear),
                             // la restauramos → el mapa reaparece donde lo dejaste, no en
                             // el encuadre inicial.
+                            // doFit = encuadrar las escuelas visibles (como al cambiar
+                            // de filtro). Así el mapa al ABRIR la app muestra LO MISMO
+                            // que tras filtrar a esa misma distancia (antes abría a un
+                            // zoom fijo centrado en ti y no coincidía).
                             val restored = savedCamera.value
+                            val doFit: Boolean
                             if (restored != null) {
-                                map.cameraPosition = restored
+                                map.cameraPosition = restored           // M2: donde lo dejaste
+                                doFit = false
                             } else {
-                                val single = schools.singleOrNull()
-                                val center = when {
-                                    single != null -> LatLng(single.lat, single.lon)
-                                    userLat != null && userLon != null -> LatLng(userLat, userLon)
-                                    else -> LatLng(40.4, -3.7)
+                                val plan = planInitialCamera(schools, userLat, userLon)
+                                doFit = plan.fit
+                                if (!plan.fit) {
+                                    map.cameraPosition = CameraPosition.Builder()
+                                        .target(LatLng(plan.lat, plan.lon)).zoom(plan.zoom).build()
                                 }
-                                val zoom = when {
-                                    single != null -> 13.5
-                                    userLat != null && userLon != null -> 8.0
-                                    else -> 5.0
-                                }
-                                map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
-                                    .target(center).zoom(zoom).build()
                             }
                             lastFittedIds.value = schools.map { it.id }.toSet()
                             syncMarkers(
                                 context, map, schools, scoresById,
                                 showLabels = labelsVisible.value,
-                                fitBounds = false,   // respetamos el centrado en el usuario
+                                fitBounds = doFit,
                                 userLat = userLat, userLon = userLon
                             ) { tappedSchool -> selectedSchool = tappedSchool }
                         }
