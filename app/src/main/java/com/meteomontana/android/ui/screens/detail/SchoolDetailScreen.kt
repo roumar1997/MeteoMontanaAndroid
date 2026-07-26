@@ -228,7 +228,7 @@ private fun Content(
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit,
     onDayClick: (Int) -> Unit = {},
-    mountainBulletin: com.meteomontana.android.data.api.MountainBulletinDto? = null
+    mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null
 ) {
     // Columna NO perezosa (paridad con el ScrollView de iOS): toda la pantalla
     // se compone al entrar → los deep-links a piedras/vías (feed, diario,

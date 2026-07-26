@@ -66,3 +66,9 @@ class ResolveReportUseCase(private val repository: AdminRepository) {
     suspend operator fun invoke(id: String, action: String): MeetupReport =
         repository.resolveReport(id, action)
 }
+
+class MoveSchoolUseCase(private val repository: AdminRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(schoolId: String, lat: Double, lon: Double) =
+        repository.moveSchool(schoolId, lat, lon)
+}

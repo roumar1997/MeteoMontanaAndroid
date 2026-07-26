@@ -19,4 +19,6 @@ interface AdminRepository {
     suspend fun sendPush(targetUid: String?, title: String, body: String): AdminPushResult
     suspend fun getPendingReports(): List<MeetupReport>
     suspend fun resolveReport(id: String, action: String): MeetupReport
+    /** Admin: mueve la escuela a una posición nueva. */
+    suspend fun moveSchool(schoolId: String, lat: Double, lon: Double)
 }
