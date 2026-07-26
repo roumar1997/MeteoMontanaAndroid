@@ -107,6 +107,12 @@ object RepositoryModule {
         KtorContributionRepository(api)
 
     @Provides @Singleton
+    fun provideChatPushRepository(
+        api: com.meteomontana.android.data.api.KtorChatPushApi
+    ): com.meteomontana.android.domain.repository.ChatPushRepository =
+        com.meteomontana.android.data.repository.KtorChatPushRepository(api)
+
+    @Provides @Singleton
     fun provideFavoritesRepository(api: KtorFavoritesApi): FavoritesRepository =
         KtorFavoritesRepository(api)
 

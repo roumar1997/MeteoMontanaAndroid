@@ -149,6 +149,18 @@ object UseCasesModule {
     fun provideGetMyContributionsUseCase(repo: ContributionRepository) =
         GetMyContributionsUseCase(repo)
 
+    // Chat push (crear conversación + notificar) — antes ChatViewModel usaba
+    // KtorChatPushApi directamente (bypass de capas).
+    @Provides @Singleton
+    fun provideStartConversationUseCase(
+        repo: com.meteomontana.android.domain.repository.ChatPushRepository
+    ) = com.meteomontana.android.domain.usecase.chat.StartConversationUseCase(repo)
+
+    @Provides @Singleton
+    fun provideNotifyChatMessageUseCase(
+        repo: com.meteomontana.android.domain.repository.ChatPushRepository
+    ) = com.meteomontana.android.domain.usecase.chat.NotifyChatMessageUseCase(repo)
+
     // Notes
     @Provides @Singleton
     fun provideGetNotesUseCase(repo: NoteRepository) = GetNotesUseCase(repo)
