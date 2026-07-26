@@ -1,5 +1,6 @@
 import Foundation
 import os
+import Shared
 
 // Base de soporte de la app (P2.1). Establece TRES convenciones para acabar con
 // el `try?` disperso (que traga errores en silencio) y el acceso verboso a la DI:
