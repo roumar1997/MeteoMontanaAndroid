@@ -25,6 +25,15 @@ Reglas de dependencia (la flecha SOLO apunta hacia dentro):
 3. **Los efectos de plataforma** (MediaStore, cámara, GPS, BLE…) viven en
    `data/local` (Android) o detrás de un puerto con bridge (patrón de
    KMP_MIGRATION.md §22) — nunca inline en un composable.
+3.b **Gotcha de Kotlin/Native al crear un puerto nuevo**: si la clase que lo
+   implementa ya lleva `@Throws(Exception::class)` en un método, la INTERFAZ
+   debe llevarlo también — si no, Android compila pero el build de iOS falla
+   con *"Member overrides different '@Throws' filter"*. Pasó al dar puerto a
+   las cachés (`ProfileCache`/`SchoolCatalogCache`, 2026-07-27). La convención
+   general es que los puertos NO llevan `@Throws` (lo llevan los use cases,
+   que son los que cruzan a Swift): si el implementador lo lleva, iguala la
+   interfaz.
+
 4. **Backend hexagonal**: los use cases de `application/` dependen de puertos
    de `domain/port`, no de entidades JPA. (El subsistema social/feed viola
    esto hoy — deuda conocida, ver MejorasFuturas.md.) El mapeo excepción→HTTP
