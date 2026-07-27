@@ -181,8 +181,30 @@ object UseCasesModule {
     fun provideDeleteBlockUseCase(repo: BlockRepository) = DeleteBlockUseCase(repo)
 
     @Provides @Singleton
-    fun provideRateLineUseCase(api: com.meteomontana.android.data.api.KtorBlockApi) =
-        com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(api)
+    fun provideRateLineUseCase(repo: com.meteomontana.android.domain.repository.BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(repo)
+
+    // Comentarios de piedras/vías — antes LineCommentsViewModel usaba KtorBlockApi.
+    @Provides @Singleton
+    fun provideGetLineCommentsUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.GetLineCommentsUseCase(repo)
+    @Provides @Singleton
+    fun provideAddLineCommentUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.AddLineCommentUseCase(repo)
+    @Provides @Singleton
+    fun provideVoteLineCommentUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.VoteLineCommentUseCase(repo)
+    @Provides @Singleton
+    fun provideDeleteLineCommentUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.DeleteLineCommentUseCase(repo)
+
+    // Alerta de tiempo — antes WeekendAlertViewModel usaba KtorProfileApi.
+    @Provides @Singleton
+    fun provideGetWeekendAlertUseCase(repo: ProfileRepository) =
+        com.meteomontana.android.domain.usecase.profile.GetWeekendAlertUseCase(repo)
+    @Provides @Singleton
+    fun provideUpdateWeekendAlertUseCase(repo: ProfileRepository) =
+        com.meteomontana.android.domain.usecase.profile.UpdateWeekendAlertUseCase(repo)
 
     // Contributions
     @Provides @Singleton

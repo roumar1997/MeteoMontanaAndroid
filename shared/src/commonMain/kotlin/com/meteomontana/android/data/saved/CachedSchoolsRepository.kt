@@ -11,11 +11,12 @@ import kotlinx.coroutines.withContext
  */
 class CachedSchoolsRepository(
     private val db: MeteoMontanaDb
-) {
+) :
+    com.meteomontana.android.domain.repository.SchoolCatalogCache {
     private val q get() = db.schemaQueries
 
     @Throws(Exception::class)
-    suspend fun load(): List<School> = withContext(Dispatchers.Default) {
+    override suspend fun load(): List<School> = withContext(Dispatchers.Default) {
         q.cachedSchoolsAll().executeAsList().map {
             School(
                 id = it.id, name = it.name, location = it.location,

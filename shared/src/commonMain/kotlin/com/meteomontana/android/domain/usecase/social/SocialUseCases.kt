@@ -1,6 +1,6 @@
 package com.meteomontana.android.domain.usecase.social
 
-import com.meteomontana.android.data.saved.ProfileCacheRepository
+import com.meteomontana.android.domain.repository.ProfileCache
 import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.repository.SocialRepository
@@ -13,7 +13,7 @@ import com.meteomontana.android.domain.repository.SocialRepository
  */
 class GetPublicProfileUseCase(
     private val repo: SocialRepository,
-    private val cache: ProfileCacheRepository? = null
+    private val cache: ProfileCache? = null
 ) {
     @Throws(Exception::class)
     suspend operator fun invoke(uid: String): PublicProfile {

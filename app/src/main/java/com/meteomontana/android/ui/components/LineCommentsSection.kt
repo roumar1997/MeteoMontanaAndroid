@@ -36,9 +36,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorBlockApi
-import com.meteomontana.android.data.api.dto.CreateLineCommentRequest
-import com.meteomontana.android.data.api.dto.LineCommentDto
+import com.meteomontana.android.domain.model.LineComment
+import com.meteomontana.android.domain.usecase.blocks.AddLineCommentUseCase
+import com.meteomontana.android.domain.usecase.blocks.DeleteLineCommentUseCase
+import com.meteomontana.android.domain.usecase.blocks.GetLineCommentsUseCase
+import com.meteomontana.android.domain.usecase.blocks.VoteLineCommentUseCase
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
@@ -55,11 +57,14 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class LineCommentsViewModel @Inject constructor(
-    private val blockApi: KtorBlockApi
+    private val getComments: GetLineCommentsUseCase,
+    private val addComment: AddLineCommentUseCase,
+    private val voteCommentUseCase: VoteLineCommentUseCase,
+    private val deleteCommentUseCase: DeleteLineCommentUseCase
 ) : ViewModel() {
 
-    private val _comments = MutableStateFlow<List<LineCommentDto>>(emptyList())
-    val comments: StateFlow<List<LineCommentDto>> = _comments
+    private val _comments = MutableStateFlow<List<LineComment>>(emptyList())
+    val comments: StateFlow<List<LineComment>> = _comments
 
     private var loadedBlockId: String? = null
 
@@ -67,21 +72,21 @@ class LineCommentsViewModel @Inject constructor(
         if (loadedBlockId == blockId) return
         loadedBlockId = blockId
         viewModelScope.launch {
-            runCatching { blockApi.getComments(blockId) }
+            runCatching { getComments(blockId) }
                 .onSuccess { _comments.value = it }
         }
     }
 
     fun add(blockId: String, lineId: String?, text: String) {
         viewModelScope.launch {
-            runCatching { blockApi.addComment(blockId, CreateLineCommentRequest(lineId, text)) }
+            runCatching { addComment(blockId, lineId, text) }
                 .onSuccess { created -> _comments.value = _comments.value + created }
         }
     }
 
     fun vote(commentId: String, value: Int) {
         viewModelScope.launch {
-            runCatching { blockApi.voteComment(commentId, value) }.onSuccess { myVote ->
+            runCatching { voteCommentUseCase(commentId, value) }.onSuccess { myVote ->
                 _comments.value = _comments.value.map { c ->
                     if (c.id != commentId) c else {
                         val old = c.myVote
@@ -98,7 +103,7 @@ class LineCommentsViewModel @Inject constructor(
 
     fun delete(commentId: String) {
         viewModelScope.launch {
-            runCatching { blockApi.deleteComment(commentId) }
+            runCatching { deleteCommentUseCase(commentId) }
                 .onSuccess { _comments.value = _comments.value.filter { it.id != commentId } }
         }
     }
@@ -125,12 +130,12 @@ fun LineCommentsThread(
     val hiddenIds by moderation.hiddenIds.collectAsState()
     val mine = remember(all, blockId, lineId, hiddenIds) {
         all.filter { it.blockId == blockId && it.lineId == lineId && "COMMENT:${it.id}" !in hiddenIds }
-            .sortedWith(compareByDescending<LineCommentDto> { it.upvotesCount - it.downvotesCount }
+            .sortedWith(compareByDescending<LineComment> { it.upvotesCount - it.downvotesCount }
                 .thenByDescending { it.createdAt ?: "" })
     }
     var expanded by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
-    var reportTarget by remember { mutableStateOf<com.meteomontana.android.data.api.dto.LineCommentDto?>(null) }
+    var reportTarget by remember { mutableStateOf<LineComment?>(null) }
 
     Column(Modifier.fillMaxWidth()) {
         Row(

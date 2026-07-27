@@ -1,19 +1,20 @@
 package com.meteomontana.android.domain.usecase.profile
 
-import com.meteomontana.android.data.api.KtorProfileApi
-import com.meteomontana.android.data.api.dto.WeekendAlertDto
+import com.meteomontana.android.domain.model.WeekendAlert
+import com.meteomontana.android.domain.repository.ProfileRepository
 
 /**
  * Casos de uso de la "Alerta de tiempo" (GET/PUT /api/me/weekend-alert).
- * Trabajan directamente con [WeekendAlertDto] (igual que el ViewModel de
- * Android), porque la pantalla mapea 1:1 ese payload.
+ * Trabajan con el modelo de dominio [WeekendAlert]; el DTO del backend se
+ * queda en la capa de datos.
  */
-class GetWeekendAlertUseCase(private val api: KtorProfileApi) {
+class GetWeekendAlertUseCase(private val repo: ProfileRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(): WeekendAlertDto = api.getWeekendAlert()
+    suspend operator fun invoke(): WeekendAlert = repo.getWeekendAlert()
 }
 
-class UpdateWeekendAlertUseCase(private val api: KtorProfileApi) {
+class UpdateWeekendAlertUseCase(private val repo: ProfileRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(req: WeekendAlertDto): WeekendAlertDto = api.updateWeekendAlert(req)
+    suspend operator fun invoke(alert: WeekendAlert): WeekendAlert =
+        repo.updateWeekendAlert(alert)
 }

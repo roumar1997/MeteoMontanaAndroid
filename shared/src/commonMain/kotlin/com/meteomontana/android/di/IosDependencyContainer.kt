@@ -219,8 +219,8 @@ class IosDependencyContainer(
     val updateFcmToken = com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase(profileRepository)
 
     // Alerta de tiempo (preferencias en /api/me/weekend-alert).
-    val getWeekendAlert = GetWeekendAlertUseCase(profileApi)
-    val updateWeekendAlert = UpdateWeekendAlertUseCase(profileApi)
+    val getWeekendAlert = GetWeekendAlertUseCase(profileRepository)
+    val updateWeekendAlert = UpdateWeekendAlertUseCase(profileRepository)
 
     // Notificaciones / inbox.
     val getMyNotifications = GetMyNotificationsUseCase(notificationsRepository)
@@ -295,7 +295,7 @@ class IosDependencyContainer(
     val resolveReport = ResolveReportUseCase(adminRepository)
     val updateBlock = UpdateBlockUseCase(blockRepository)
     val deleteBlock = DeleteBlockUseCase(blockRepository)
-    val rateLine = com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(blockApi)
+    val rateLine = com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(blockRepository)
 
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)
