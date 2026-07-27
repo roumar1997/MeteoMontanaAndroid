@@ -398,10 +398,11 @@ struct BlockInfoSheet: View {
         let lineId: String? = line.id.isEmpty ? nil : line.id
         Task {
             let container = AppDependencies.shared.container
-            guard let postId = try? await container.publishFeedPost.invoke(
-                blockId: block.id, lineId: lineId, kind: kind, discipline: discipline,
-                caption: caption)
-            else { return }
+            guard let postId = await reporting("No se pudo publicar el ascenso", {
+                try await container.publishFeedPost.invoke(
+                    blockId: block.id, lineId: lineId, kind: kind, discipline: discipline,
+                    caption: caption)
+            }) else { return }
             // Foto de celebración (opcional): comprimir (máx 1024 px, JPEG 0.8,
             // mismo pipeline que StorageUploader) y subirla como multipart. Si
             // falla, el post queda publicado sin foto (aviso discreto).
