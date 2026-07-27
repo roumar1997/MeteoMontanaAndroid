@@ -85,12 +85,21 @@ fun FeedScreen(
     // dibuja en su propia ventana y no empuja el campo por encima del teclado
     // (el texto que escribías quedaba tapado). El detalle sí lo hace bien.
     onOpenPost: (postId: String) -> Unit,
+    // true cuando la pestaña Feed está seleccionada Y sin overlay encima. Con las
+    // tabs keep-alive, cambiar de pestaña NO dispara ON_RESUME ni recompone →
+    // publicabas un ascenso en Escuelas y el Feed seguía enseñando la lista vieja
+    // ("mis publicaciones nuevas no salen"). Mismo patrón `visible` que
+    // ProfileScreen/MeetupsScreen (equivalente al .task {} de iOS).
+    visible: Boolean = true,
     viewModel: FeedViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
-    // Frescura: recarga silenciosa cada vez que la pestaña vuelve a primer
-    // plano (patrón ON_RESUME del panel admin/perfil).
+    // Frescura: recarga silenciosa al MOSTRARSE la pestaña (visible) y también
+    // en ON_RESUME (volver de background con la pestaña ya seleccionada).
+    androidx.compose.runtime.LaunchedEffect(visible) {
+        if (visible) viewModel.refreshSilent()
+    }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
