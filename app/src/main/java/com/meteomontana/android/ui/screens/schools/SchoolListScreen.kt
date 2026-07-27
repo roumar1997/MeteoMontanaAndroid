@@ -177,14 +177,18 @@ fun SchoolListScreen(
                 )
             }
 
-            // Buscador
+            // Buscador con selector de MODO: escuelas (filtra el catálogo) o
+            // vías/bloques (buscador global con mini-topo en los resultados).
             item {
-                Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
+                Column(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
                     OutlinedTextField(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Busca tu escuela o vía/bloque…") },
+                        placeholder = {
+                            Text(if (filters.searchMode == SearchMode.LINES)
+                                "Busca una vía o bloque…" else "Busca tu escuela…")
+                        },
                         singleLine = true,
                         shape = MaterialTheme.shapes.small,
                         colors = TextFieldDefaults.colors(
@@ -192,6 +196,21 @@ fun SchoolListScreen(
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface
                         )
                     )
+                    Row(
+                        Modifier.padding(top = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        SearchModeChip(
+                            label = "ESCUELAS",
+                            selected = filters.searchMode == SearchMode.SCHOOLS,
+                            onClick = { viewModel.setSearchMode(SearchMode.SCHOOLS) }
+                        )
+                        SearchModeChip(
+                            label = "VÍAS Y BLOQUES",
+                            selected = filters.searchMode == SearchMode.LINES,
+                            onClick = { viewModel.setSearchMode(SearchMode.LINES) }
+                        )
+                    }
                 }
             }
 
@@ -211,29 +230,46 @@ fun SchoolListScreen(
                                     MaterialTheme.shapes.small)
                         ) {
                             viaHits.forEach { h ->
-                                Row(
+                                Column(
                                     Modifier.fillMaxWidth()
                                         .clickable { onViaHit(h.schoolId, h.lineId, h.lineName ?: h.blockName) }
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(horizontal = 12.dp, vertical = 10.dp)
                                 ) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(
-                                            (h.lineName ?: h.blockName) +
-                                                (h.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1)
-                                        Text(
-                                            listOf(h.blockName.takeIf { h.lineName != null },
-                                                   h.sectorName, h.schoolName)
-                                                .filterNotNull().filter { it.isNotBlank() }
-                                                .joinToString(" · "),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                (h.lineName ?: h.blockName) +
+                                                    (h.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1)
+                                            Text(
+                                                listOf(h.blockName.takeIf { h.lineName != null },
+                                                       h.sectorName, h.schoolName)
+                                                    .filterNotNull().filter { it.isNotBlank() }
+                                                    .joinToString(" · "),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1)
+                                        }
+                                        Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
-                                    Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    // Mini-topo: la foto de la cara con la línea dibujada
+                                    // (solo si el backend mandó foto; la piedra sale sin trazo).
+                                    h.photoPath?.takeIf { it.isNotBlank() }?.let { photo ->
+                                        val stroke = com.meteomontana.android.ui.screens.topo
+                                            .parseLineStroke(h.linePath)
+                                        val topoLines = if (stroke.points.size >= 2) listOf(
+                                            com.meteomontana.android.ui.components.TopoLine(
+                                                name = h.lineName, grade = h.grade,
+                                                startType = h.startType, points = stroke.points)
+                                        ) else emptyList()
+                                        com.meteomontana.android.ui.components.TopoPhotoCanvas(
+                                            photoUrl = photo,
+                                            lines = topoLines,
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -755,6 +791,29 @@ private fun SkeletonRow() {
             .clip(MaterialTheme.shapes.small).background(tone))
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+}
+
+/** Chip del selector de modo de búsqueda (ESCUELAS ⇄ VÍAS Y BLOQUES). */
+@Composable
+private fun SearchModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        label,
+        style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+        color = if (selected) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surface
+            )
+            .border(1.dp,
+                if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outline,
+                MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp)
+    )
 }
 
 @Composable

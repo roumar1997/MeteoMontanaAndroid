@@ -34,5 +34,6 @@ class KtorSchoolRepository(private val api: KtorSchoolApi) : SchoolRepository {
 
 private fun LineSearchHitDto.toDomain() = LineSearchHit(
     schoolId = schoolId, schoolName = schoolName, blockId = blockId, blockName = blockName,
-    lineId = lineId, lineName = lineName, grade = grade, sectorName = sectorName
+    lineId = lineId, lineName = lineName, grade = grade, sectorName = sectorName,
+    photoPath = photoPath, linePath = linePath, startType = startType
 )

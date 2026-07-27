@@ -20,6 +20,10 @@ final class SchoolListViewModel: ObservableObject {
     enum ShowMode: String, CaseIterable { case all = "Todas", favorites = "Favoritos", saved = "Guardados" }
     static let distanceOptions: [Double?] = [nil, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
 
+    /// Que busca el campo: escuelas (filtra el catalogo) o vias/bloques
+    /// (buscador global con mini-topo; el catalogo no se filtra). Espejo Android.
+    enum SearchMode { case schools, lines }
+    @Published var searchMode: SearchMode = .schools
     @Published var query = ""
     @Published var style: String?
     @Published var rock: String?
@@ -109,7 +113,8 @@ final class SchoolListViewModel: ObservableObject {
     func clearCompare() { compareSelection.removeAll() }
 
     var filtered: [School] {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        // En modo vias/bloques el texto es para el buscador global, no para escuelas.
+        let q = searchMode == .lines ? "" : query.trimmingCharacters(in: .whitespaces).lowercased()
         // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
         // catálogo no está en caché (sin red, primera vez), las sintetizamos
         // desde el snapshot guardado para que SÍ se vean.
@@ -349,7 +354,9 @@ struct SchoolListView: View {
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     SearchField(text: $vm.query)
-                    if !viaHits.isEmpty && vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
+                    SearchModeChips(mode: $vm.searchMode)
+                    if vm.searchMode == .lines && !viaHits.isEmpty
+                        && vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
                         viaHitsSection
                     }
 
@@ -415,17 +422,8 @@ struct SchoolListView: View {
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(item: $navSchool) { SchoolDetailView(school: $0, openVia: navVia) }
-            .onChange(of: vm.query) { _, q in
-                viaSearchTask?.cancel()
-                let trimmed = q.trimmingCharacters(in: .whitespaces)
-                guard trimmed.count >= 2 else { viaHits = []; return }
-                viaSearchTask = Task {
-                    try? await Task.sleep(nanoseconds: 350_000_000)
-                    guard !Task.isCancelled else { return }
-                    let hits = (try? await AppDependencies.shared.container.schoolApi.searchLines(query: trimmed)) ?? []
-                    if !Task.isCancelled { viaHits = hits }
-                }
-            }
+            .onChange(of: vm.query) { _, _ in dispatchViaSearch() }
+            .onChange(of: vm.searchMode) { _, _ in dispatchViaSearch() }
             .overlay(alignment: .bottom) {
                 if vm.compareSelection.count >= 1 {
                     CompareBar(count: vm.compareSelection.count,
@@ -452,8 +450,22 @@ struct SchoolListView: View {
     @State private var navSchool: School?
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
     @State private var navVia: String?
-    @State private var viaHits: [LineSearchHitDto] = []
+    @State private var viaHits: [LineSearchHit] = []   // modelo de DOMINIO (via use case)
     @State private var viaSearchTask: Task<Void, Never>?
+
+    /// Relanza la busqueda global (solo en modo vias/bloques), con debounce.
+    private func dispatchViaSearch() {
+        viaSearchTask?.cancel()
+        let trimmed = vm.query.trimmingCharacters(in: .whitespaces)
+        guard vm.searchMode == .lines, trimmed.count >= 2 else { viaHits = []; return }
+        viaSearchTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else { return }
+            // Regla DI: por el use case del container, no la API directa.
+            let hits = (try? await AppDependencies.shared.container.searchLines.invoke(query: trimmed)) ?? []
+            if !Task.isCancelled { viaHits = hits }
+        }
+    }
 
     /// Resultados del buscador global (vías/bloques de TODO el catálogo).
     private var viaHitsSection: some View {
@@ -485,12 +497,45 @@ struct SchoolListView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    // Mini-topo: foto de la cara con la linea dibujada (si el
+                    // backend mando foto; las piedras salen sin trazo).
+                    if let photo = h.photoPath, !photo.isEmpty {
+                        let pts = TopoParse.points(h.linePath)
+                        TopoPhotoView(photoUrl: photo, lines: pts.count >= 2 ? [
+                            TopoLineVM(id: h.lineId ?? "hit", name: h.lineName,
+                                       grade: h.grade, startType: h.startType, points: pts)
+                        ] : [])
+                        .padding(.horizontal, 12).padding(.bottom, 10)
+                    }
                 }
             }
             .background(Cumbre.paper)
             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         }
         .padding(.horizontal, 16).padding(.vertical, 4)
+    }
+}
+
+/// Selector de modo del buscador (ESCUELAS / VIAS Y BLOQUES) — espejo Android.
+private struct SearchModeChips: View {
+    @Binding var mode: SchoolListViewModel.SearchMode
+    var body: some View {
+        HStack(spacing: 8) {
+            chip("ESCUELAS", .schools)
+            chip("V\u{00cd}AS Y BLOQUES", .lines)
+            Spacer()
+        }
+        .padding(.horizontal, 16).padding(.top, 2).padding(.bottom, 4)
+    }
+    private func chip(_ label: String, _ value: SchoolListViewModel.SearchMode) -> some View {
+        let selected = mode == value
+        return Text(label)
+            .font(Cumbre.mono(10, .bold)).tracking(1.2)
+            .foregroundStyle(selected ? Color.white : Cumbre.ink3)
+            .padding(.horizontal, 12).padding(.vertical, 7)
+            .background(selected ? Cumbre.terra : Cumbre.paper)
+            .overlay(Rectangle().stroke(selected ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+            .onTapGesture { mode = value }
     }
 }
 

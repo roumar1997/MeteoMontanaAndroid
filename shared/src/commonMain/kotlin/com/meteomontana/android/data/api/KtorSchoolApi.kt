@@ -91,5 +91,10 @@ data class LineSearchHitDto(
     val lineId: String? = null,
     val lineName: String? = null,
     val grade: String? = null,
-    val sectorName: String? = null
+    val sectorName: String? = null,
+    // Mini-topo del resultado (aditivos; null con backends viejos): foto de la
+    // cara de la vía (o portada de la piedra), trazo normalizado y tipo de inicio.
+    val photoPath: String? = null,
+    val linePath: String? = null,
+    val startType: String? = null
 )
