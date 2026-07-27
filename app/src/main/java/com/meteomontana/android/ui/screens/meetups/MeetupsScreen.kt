@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -48,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,13 +80,13 @@ fun MeetupsScreen(
     visible: Boolean = true,
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
-    val state by viewModel.listState.collectAsState()
-    val alertState by viewModel.alertState.collectAsState()
-    val schoolResults by viewModel.schoolResults.collectAsState()
-    val myGender by viewModel.myGender.collectAsState()
-    val dayScores by viewModel.dayScores.collectAsState()
-    val uLat by viewModel.userLat.collectAsState()
-    val uLon by viewModel.userLon.collectAsState()
+    val state by viewModel.listState.collectAsStateWithLifecycle()
+    val alertState by viewModel.alertState.collectAsStateWithLifecycle()
+    val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
+    val myGender by viewModel.myGender.collectAsStateWithLifecycle()
+    val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
+    val uLat by viewModel.userLat.collectAsStateWithLifecycle()
+    val uLon by viewModel.userLon.collectAsStateWithLifecycle()
     var showSchoolFilter by remember { mutableStateOf(false) }
     var showWomenGateDialog by remember { mutableStateOf(false) }
     var mapExpanded by remember { mutableStateOf(false) }

@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
 import android.net.Uri
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -46,7 +47,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,13 +79,13 @@ fun CreateMeetupScreen(
     onEditProfile: () -> Unit = {},
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
-    val createError by viewModel.createError.collectAsState()
-    val genderGate by viewModel.genderGate.collectAsState()
+    val createError by viewModel.createError.collectAsStateWithLifecycle()
+    val genderGate by viewModel.genderGate.collectAsStateWithLifecycle()
     if (genderGate) {
         GenderGateDialog(onEditProfile = onEditProfile, onDismiss = { viewModel.clearGenderGate() })
     }
-    val uploadingPhoto by viewModel.uploadingPhoto.collectAsState()
-    val dayScores by viewModel.dayScores.collectAsState()
+    val uploadingPhoto by viewModel.uploadingPhoto.collectAsStateWithLifecycle()
+    val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
 
     // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
     // (MIUI) o a un giro de pantalla — no se pierde lo escrito/elegido.
@@ -99,7 +99,7 @@ fun CreateMeetupScreen(
     var submitting by remember { mutableStateOf(false) }
     var photoUrl by remember { mutableStateOf<String?>(null) }
     var showSchoolPicker by remember { mutableStateOf(false) }
-    val schoolResults by viewModel.schoolResults.collectAsState()
+    val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
 
     // Cargar scores de los días seleccionados cuando hay escuela
     LaunchedEffect(schoolId, selectedDays.value) {

@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +29,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -197,7 +197,7 @@ fun WeekendAlertScreen(
     onBack: () -> Unit,
     viewModel: WeekendAlertViewModel = hiltViewModel()
 ) {
-    val s by viewModel.state.collectAsState()
+    val s by viewModel.state.collectAsStateWithLifecycle()
 
     // Al guardar con éxito, volvemos atrás (breve pausa para que se vea el ✓).
     androidx.compose.runtime.LaunchedEffect(s.savedOk) {

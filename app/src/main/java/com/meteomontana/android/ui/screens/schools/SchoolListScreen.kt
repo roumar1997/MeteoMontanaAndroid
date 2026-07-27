@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -38,7 +39,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,18 +72,18 @@ fun SchoolListScreen(
     onViaHit: (schoolId: String, viaId: String?, viaName: String?) -> Unit = { s, _, _ -> onSchoolClick(s) },
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val filters by viewModel.filters.collectAsState()
-    val unread by viewModel.unreadCount.collectAsState()
-    val scores by viewModel.scores.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
-    val userLocation by viewModel.userLocation.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val compareSelection by viewModel.compareSelection.collectAsState()
-    val selectedDays by viewModel.selectedDays.collectAsState()
-    val rangeScores by viewModel.rangeScores.collectAsState()
-    val chatUnread by viewModel.chatUnread.collectAsState()
-    val viaHits by viewModel.viaHits.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
+    val unread by viewModel.unreadCount.collectAsStateWithLifecycle()
+    val scores by viewModel.scores.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val compareSelection by viewModel.compareSelection.collectAsStateWithLifecycle()
+    val selectedDays by viewModel.selectedDays.collectAsStateWithLifecycle()
+    val rangeScores by viewModel.rangeScores.collectAsStateWithLifecycle()
+    val chatUnread by viewModel.chatUnread.collectAsStateWithLifecycle()
+    val viaHits by viewModel.viaHits.collectAsStateWithLifecycle()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
@@ -441,7 +441,7 @@ fun SchoolListScreen(
                 IconButton(onClick = viewModel::clearCompare) {
                     Icon(
                         Icons.Outlined.Close,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.common_close),
                         tint = MaterialTheme.colorScheme.background
                     )
                 }
@@ -610,7 +610,7 @@ private fun TopIconsRow(
 @Composable
 private fun ThemeToggleButton() {
     val vm: ThemeToggleViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-    val mode by vm.mode.collectAsState()
+    val mode by vm.mode.collectAsStateWithLifecycle()
     val isDark = when (mode) {
         com.meteomontana.android.ui.theme.ThemeMode.DARK -> true
         com.meteomontana.android.ui.theme.ThemeMode.LIGHT -> false
@@ -619,7 +619,7 @@ private fun ThemeToggleButton() {
     IconButton(onClick = vm::toggle) {
         Icon(
             imageVector = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.a11y_toggle_theme),
             tint = MaterialTheme.colorScheme.onBackground
         )
     }

@@ -101,4 +101,8 @@
     <string name="topo_editor_start_stand">Stand</string>
     <string name="topo_editor_start_jump">Dyno</string>
     <string name="topo_editor_start_trav">Trav.</string>
+    <string name="a11y_toggle_theme">Switch between light and dark theme</string>
+    <string name="a11y_fullscreen_map">Full-screen map</string>
+    <string name="a11y_change_photo">Change profile photo</string>
+    <string name="a11y_zoom_photo">Zoom profile photo</string>
 </resources>

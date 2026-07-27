@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +29,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -168,9 +168,9 @@ fun AddBlockSheet(
     var gradeMenuExpanded by remember { mutableStateOf(false) }
 
     val today = remember { LocalDate.now().toString() }
-    val results by searchVM.results.collectAsState()
-    val history by searchVM.history.collectAsState()
-    val schoolBlocks by searchVM.schoolBlocks.collectAsState()
+    val results by searchVM.results.collectAsStateWithLifecycle()
+    val history by searchVM.history.collectAsStateWithLifecycle()
+    val schoolBlocks by searchVM.schoolBlocks.collectAsStateWithLifecycle()
 
     LaunchedEffect(schoolQuery, selectedSchool) {
         if (selectedSchool == null) searchVM.search(schoolQuery)

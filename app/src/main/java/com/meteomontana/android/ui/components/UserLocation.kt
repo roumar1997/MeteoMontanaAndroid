@@ -1,7 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -42,6 +42,6 @@ class UserLocationViewModel @Inject constructor(
 @Composable
 fun rememberUserLocation(): UserLocation? {
     val vm: UserLocationViewModel = hiltViewModel()
-    val loc by vm.location.collectAsState()
+    val loc by vm.location.collectAsStateWithLifecycle()
     return loc
 }

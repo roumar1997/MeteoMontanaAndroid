@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +24,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -124,10 +124,10 @@ fun LineCommentsThread(
     viewModel: LineCommentsViewModel = hiltViewModel()
 ) {
     viewModel.load(blockId)
-    val all by viewModel.comments.collectAsState()
+    val all by viewModel.comments.collectAsStateWithLifecycle()
     // Moderación: denunciar comentarios ajenos (bandera) + ocultar al instante.
     val moderation: ModerationViewModel = hiltViewModel()
-    val hiddenIds by moderation.hiddenIds.collectAsState()
+    val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
     val mine = remember(all, blockId, lineId, hiddenIds) {
         all.filter { it.blockId == blockId && it.lineId == lineId && "COMMENT:${it.id}" !in hiddenIds }
             .sortedWith(compareByDescending<LineComment> { it.upvotesCount - it.downvotesCount }

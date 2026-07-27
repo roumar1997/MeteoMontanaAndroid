@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.chat
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +36,6 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,8 +57,8 @@ fun ChatListScreen(
     onNewGroup: () -> Unit = {},
     viewModel: ChatListViewModel = hiltViewModel()
 ) {
-    val items by viewModel.items.collectAsState()
-    val contacts by viewModel.contacts.collectAsState()
+    val items by viewModel.items.collectAsStateWithLifecycle()
+    val contacts by viewModel.contacts.collectAsStateWithLifecycle()
     var showPicker by remember { mutableStateOf(false) }
     val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 

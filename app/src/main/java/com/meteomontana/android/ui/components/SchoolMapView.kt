@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import com.meteomontana.android.data.map.MapStyles
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -180,7 +180,7 @@ internal fun SchoolMapView(
     val onDismissBlockState by androidx.compose.runtime.rememberUpdatedState(onDismissBlock)
 
     // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
-    val isAdminUser = (viewModel.uiState.collectAsState().value
+    val isAdminUser = (viewModel.uiState.collectAsStateWithLifecycle().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
     val mapScope = androidx.compose.runtime.rememberCoroutineScope()
@@ -523,7 +523,7 @@ internal fun SchoolMapView(
                 androidx.compose.material3.Icon(
                     if (fullscreenMap) androidx.compose.material.icons.Icons.Outlined.CloseFullscreen
                     else androidx.compose.material.icons.Icons.Outlined.OpenInFull,
-                    contentDescription = null,
+                    contentDescription = androidx.compose.ui.res.stringResource(R.string.a11y_fullscreen_map),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(18.dp))
             }

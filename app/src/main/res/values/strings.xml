@@ -518,4 +518,8 @@
     <string name="share_school_prefix">Mira esta escuela de escalada en Cumbre:</string>
     <string name="share_meetup_prefix">¡Quedada para escalar!</string>
     <string name="share_download">Descarga la app:</string>
+    <string name="a11y_toggle_theme">Cambiar entre tema claro y oscuro</string>
+    <string name="a11y_fullscreen_map">Mapa a pantalla completa</string>
+    <string name="a11y_change_photo">Cambiar foto de perfil</string>
+    <string name="a11y_zoom_photo">Ampliar foto de perfil</string>
 </resources>

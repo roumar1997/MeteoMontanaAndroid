@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,7 +87,7 @@ fun MentionSuggestions(
     viewModel: MentionSearchViewModel = hiltViewModel()
 ) {
     val query = activeMentionQuery(text)
-    val results by viewModel.results.collectAsState()
+    val results by viewModel.results.collectAsStateWithLifecycle()
 
     LaunchedEffect(query) {
         val q = query

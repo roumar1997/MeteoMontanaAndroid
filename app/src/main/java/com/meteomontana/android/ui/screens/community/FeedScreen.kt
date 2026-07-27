@@ -2,6 +2,7 @@
 package com.meteomontana.android.ui.screens.community
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -46,7 +47,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,7 +93,7 @@ fun FeedScreen(
     visible: Boolean = true,
     viewModel: FeedViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     // Frescura: recarga silenciosa al MOSTRARSE la pestaña (visible) y también
     // en ON_RESUME (volver de background con la pestaña ya seleccionada).
@@ -115,7 +115,7 @@ fun FeedScreen(
     // Denuncias (moderación): post pendiente de denunciar + ids ocultados al
     // instante para quien denuncia (patrón notas/comentarios).
     val moderation: com.meteomontana.android.ui.components.ModerationViewModel = hiltViewModel()
-    val hiddenIds by moderation.hiddenIds.collectAsState()
+    val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
     var reportPost by remember { mutableStateOf<FeedPost?>(null) }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.users
 import com.meteomontana.android.util.toUserMessage
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,7 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -149,11 +149,11 @@ fun PublicProfileScreen(
     onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?, blockId: String?) -> Unit = { _, _, _, _ -> },
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // Moderación: denunciar / bloquear a este usuario (menú ⋯).
     val moderation: com.meteomontana.android.ui.components.ModerationViewModel =
         hiltViewModel()
-    val blocked by moderation.blocked.collectAsState()
+    val blocked by moderation.blocked.collectAsStateWithLifecycle()
     var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var showReport by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { moderation.loadBlocked() }
@@ -297,7 +297,7 @@ private fun Body(
         Column(modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally) {
             if (p.photoUrl != null) {
-                AsyncImage(model = p.photoUrl, contentDescription = null,
+                AsyncImage(model = p.photoUrl, contentDescription = stringResource(R.string.a11y_zoom_photo),
                     modifier = Modifier.size(96.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { zoomPhoto = p.photoUrl })

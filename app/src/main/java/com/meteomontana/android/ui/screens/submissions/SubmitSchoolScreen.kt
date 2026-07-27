@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.submissions
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,7 +31,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,8 +50,8 @@ fun SubmitSchoolScreen(
     onBack: () -> Unit,
     viewModel: SubmitSchoolViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    val options by viewModel.options.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val options by viewModel.options.collectAsStateWithLifecycle()
 
     // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
     // (MIUI lo hace agresivamente) o a un giro de pantalla — no se pierde lo escrito.

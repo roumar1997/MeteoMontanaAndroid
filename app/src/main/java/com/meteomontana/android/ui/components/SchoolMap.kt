@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,7 +114,7 @@ fun SchoolMap(
 
     // Deep-link por id de PIEDRA (post "piedra nueva" del feed, sin vía):
     // abre la ficha directamente, SIN expandir el mapa.
-    val autoOpenBlockId by viewModel.autoOpenBlockId.collectAsState()
+    val autoOpenBlockId by viewModel.autoOpenBlockId.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(blocks, autoOpenBlockId) {
         val blockId = autoOpenBlockId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
         val target = blocks.firstOrNull { it.id == blockId } ?: return@LaunchedEffect
@@ -123,8 +123,8 @@ fun SchoolMap(
     }
     // Deep-link por vía (diario, buscador, enlaces): abre la piedra que la
     // contiene. Preferimos el id ESTABLE; si no, por nombre.
-    val autoOpenVia by viewModel.autoOpenVia.collectAsState()
-    val autoOpenViaId by viewModel.autoOpenViaId.collectAsState()
+    val autoOpenVia by viewModel.autoOpenVia.collectAsStateWithLifecycle()
+    val autoOpenViaId by viewModel.autoOpenViaId.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia, autoOpenViaId) {
         val viaId = autoOpenViaId?.takeIf { it.isNotBlank() }
         val via = autoOpenVia?.takeIf { it.isNotBlank() }
@@ -241,18 +241,18 @@ fun SchoolMap(
     // la ficha sin arrancar MapLibre. Los taps de marker del mapa llegan por
     // onBlockSelected; el trazado de muro del editor expande el mapa.
     val fichaCtx = LocalContext.current
-    val fichaIsAdmin = (viewModel.uiState.collectAsState().value
+    val fichaIsAdmin = (viewModel.uiState.collectAsStateWithLifecycle().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
     selectedBlock?.let { block ->
         val sectors = blocks.filter { it.type == "ZONE" }
         // Vías ya hechas (diario + cola offline) → ✓ al abrir; PROYECTO igual.
         // La traducción claves→ids vive en matchedLineIds (pura y testeada).
-        val doneKeys by viewModel.doneViaKeys.collectAsState()
+        val doneKeys by viewModel.doneViaKeys.collectAsStateWithLifecycle()
         val doneLineIds = remember(block, doneKeys) {
             com.meteomontana.android.ui.screens.detail.matchedLineIds(block, doneKeys)
         }
-        val projectKeys by viewModel.projectViaKeys.collectAsState()
+        val projectKeys by viewModel.projectViaKeys.collectAsStateWithLifecycle()
         val projectLineIds = remember(block, projectKeys) {
             com.meteomontana.android.ui.screens.detail.matchedLineIds(block, projectKeys)
         }

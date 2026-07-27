@@ -1,6 +1,7 @@
 package com.meteomontana.android
 
 import android.content.Context
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -13,7 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import com.meteomontana.android.ui.AppRoot
@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermissionIfNeeded()
 
         setContent {
-            val mode by themeManager.mode.collectAsState()
+            val mode by themeManager.mode.collectAsStateWithLifecycle()
             val system = isSystemInDarkTheme()
             val isDark = when (mode) {
                 ThemeMode.DARK   -> true
