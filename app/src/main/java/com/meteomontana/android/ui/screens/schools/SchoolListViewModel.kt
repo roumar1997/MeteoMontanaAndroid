@@ -47,17 +47,8 @@ data class SchoolFilters(
     val onlyFavorites: Boolean = false,
     val onlySavedOffline: Boolean = false,
     val sortBy: SortBy = SortBy.Score,       // ordenado por mejor score por defecto
-    val query: String = "",
-    val searchMode: SearchMode = SearchMode.SCHOOLS
+    val query: String = ""
 )
-
-/** Qué busca el campo de texto: escuelas (filtra el catálogo) o vías/bloques
- *  (buscador global con mini-topo; el catálogo no se filtra). */
-enum class SearchMode { SCHOOLS, LINES }
-
-/** La query que aplica al CATÁLOGO: en modo vías/bloques el texto es para el
- *  buscador global, no para filtrar escuelas. */
-fun SchoolFilters.schoolQuery(): String = if (searchMode == SearchMode.LINES) "" else query
 
 sealed interface SchoolListUiState {
     data object Loading : SchoolListUiState
@@ -301,7 +292,7 @@ class SchoolListViewModel @Inject constructor(
                             lat = it.lat, lon = it.lon, source = null
                         )
                     }
-                    val visible = SchoolFilterEngine.filterByQuery(list, f.schoolQuery())
+                    val visible = SchoolFilterEngine.filterByQuery(list, f.query)
                     // Cargar scores (red si hay; si no, del forecast cacheado de
                     // cada guardada) para que la lista NO muestre "—" offline.
                     loadScoresFor(visible.map { it.id }) { applySort(f) }
@@ -325,7 +316,7 @@ class SchoolListViewModel @Inject constructor(
             // que sabes que existe.)
             val list = SchoolFilterEngine.filter(
                 schools = allSchools,
-                query = f.schoolQuery(),
+                query = f.query,
                 styleApiValue = f.style.apiValue,
                 rockTypes = f.rockTypes,
                 maxDistanceKm = f.maxDistanceKm,
@@ -493,22 +484,15 @@ class SchoolListViewModel @Inject constructor(
         dispatchSearch()
     }
 
-    /** Cambia qué busca el campo (escuelas ⇄ vías/bloques) y re-lanza la búsqueda. */
-    fun setSearchMode(mode: SearchMode) {
-        if (_filters.value.searchMode == mode) return
-        _filters.update { it.copy(searchMode = mode) }
-        dispatchSearch()
-    }
-
     private fun dispatchSearch() {
         queryJob?.cancel()
         queryJob = viewModelScope.launch {
             kotlinx.coroutines.delay(200)
             load()
-            // Búsqueda global de vías/bloques SOLO en su modo (300 ms más: red).
-            val f = _filters.value
-            val q = f.query.trim()
-            if (f.searchMode == SearchMode.LINES && q.length >= 2) {
+            // Búsqueda global de vías/bloques EN PARALELO a las escuelas (un solo
+            // buscador con dos secciones, estilo Spotlight; 300 ms más: red).
+            val q = _filters.value.query.trim()
+            if (q.length >= 2) {
                 kotlinx.coroutines.delay(300)
                 _viaHits.value = runCatching { searchLines(q) }.getOrDefault(emptyList())
             } else {

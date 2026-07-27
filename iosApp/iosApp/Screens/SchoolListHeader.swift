@@ -217,7 +217,7 @@ struct SearchField: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink3)
-            TextField("Busca tu escuela o vía/bloque…", text: $text)
+            TextField("Busca escuelas, vías y bloques…", text: $text)
                 .foregroundStyle(Cumbre.ink)
                 .autocorrectionDisabled()
             if !text.isEmpty {

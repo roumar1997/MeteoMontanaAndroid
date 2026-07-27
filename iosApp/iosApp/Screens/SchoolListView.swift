@@ -20,10 +20,6 @@ final class SchoolListViewModel: ObservableObject {
     enum ShowMode: String, CaseIterable { case all = "Todas", favorites = "Favoritos", saved = "Guardados" }
     static let distanceOptions: [Double?] = [nil, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
 
-    /// Que busca el campo: escuelas (filtra el catalogo) o vias/bloques
-    /// (buscador global con mini-topo; el catalogo no se filtra). Espejo Android.
-    enum SearchMode { case schools, lines }
-    @Published var searchMode: SearchMode = .schools
     @Published var query = ""
     @Published var style: String?
     @Published var rock: String?
@@ -113,8 +109,7 @@ final class SchoolListViewModel: ObservableObject {
     func clearCompare() { compareSelection.removeAll() }
 
     var filtered: [School] {
-        // En modo vias/bloques el texto es para el buscador global, no para escuelas.
-        let q = searchMode == .lines ? "" : query.trimmingCharacters(in: .whitespaces).lowercased()
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
         // catálogo no está en caché (sin red, primera vez), las sintetizamos
         // desde el snapshot guardado para que SÍ se vean.
@@ -354,9 +349,7 @@ struct SchoolListView: View {
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     SearchField(text: $vm.query)
-                    SearchModeChips(mode: $vm.searchMode)
-                    if vm.searchMode == .lines && !viaHits.isEmpty
-                        && vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
+                    if vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
                         viaHitsSection
                     }
 
@@ -423,7 +416,6 @@ struct SchoolListView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(item: $navSchool) { SchoolDetailView(school: $0, openVia: navVia) }
             .onChange(of: vm.query) { _, _ in dispatchViaSearch() }
-            .onChange(of: vm.searchMode) { _, _ in dispatchViaSearch() }
             .overlay(alignment: .bottom) {
                 if vm.compareSelection.count >= 1 {
                     CompareBar(count: vm.compareSelection.count,
@@ -457,7 +449,7 @@ struct SchoolListView: View {
     private func dispatchViaSearch() {
         viaSearchTask?.cancel()
         let trimmed = vm.query.trimmingCharacters(in: .whitespaces)
-        guard vm.searchMode == .lines, trimmed.count >= 2 else { viaHits = []; return }
+        guard trimmed.count >= 2 else { viaHits = []; return }
         viaSearchTask = Task {
             try? await Task.sleep(nanoseconds: 350_000_000)
             guard !Task.isCancelled else { return }
@@ -467,12 +459,51 @@ struct SchoolListView: View {
         }
     }
 
-    /// Resultados del buscador global (vías/bloques de TODO el catálogo).
+    /// Resultados del buscador UNICO en DOS secciones (estilo Spotlight):
+    /// ESCUELAS (top 5, acceso directo) y VIAS Y BLOQUES (global + mini-topo).
+    /// Las cabeceras salen SIEMPRE al escribir: se aprende que busca ambas.
     private var viaHitsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("VÍAS Y BLOQUES").font(Cumbre.mono(10, .bold)).tracking(1.2)
-                .foregroundStyle(Cumbre.ink3)
-            VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("ESCUELAS").font(Cumbre.mono(10, .bold)).tracking(1.2)
+                    .foregroundStyle(Cumbre.ink3)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                let schoolMatches = Array(vm.filtered.prefix(5))
+                if schoolMatches.isEmpty {
+                    Text("Sin resultados").font(.system(size: 12))
+                        .foregroundStyle(Cumbre.ink3)
+                        .padding(.horizontal, 12).padding(.bottom, 8)
+                } else {
+                    ForEach(schoolMatches, id: \.id) { school in
+                        Button { navVia = nil; navSchool = school } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(school.name).font(.system(size: 14))
+                                        .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    if let r = school.region, !r.isEmpty {
+                                        Text(r).font(.system(size: 12))
+                                            .foregroundStyle(Cumbre.ink3).lineLimit(1)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Divider().overlay(Cumbre.rule)
+                Text("VÍAS Y BLOQUES").font(Cumbre.mono(10, .bold)).tracking(1.2)
+                    .foregroundStyle(Cumbre.ink3)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                if viaHits.isEmpty {
+                    Text("Sin resultados").font(.system(size: 12))
+                        .foregroundStyle(Cumbre.ink3)
+                        .padding(.horizontal, 12).padding(.bottom, 8)
+                }
                 ForEach(Array(viaHits.enumerated()), id: \.offset) { _, h in
                     Button {
                         if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
@@ -513,29 +544,6 @@ struct SchoolListView: View {
             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         }
         .padding(.horizontal, 16).padding(.vertical, 4)
-    }
-}
-
-/// Selector de modo del buscador (ESCUELAS / VIAS Y BLOQUES) — espejo Android.
-private struct SearchModeChips: View {
-    @Binding var mode: SchoolListViewModel.SearchMode
-    var body: some View {
-        HStack(spacing: 8) {
-            chip("ESCUELAS", .schools)
-            chip("V\u{00cd}AS Y BLOQUES", .lines)
-            Spacer()
-        }
-        .padding(.horizontal, 16).padding(.top, 2).padding(.bottom, 4)
-    }
-    private func chip(_ label: String, _ value: SchoolListViewModel.SearchMode) -> some View {
-        let selected = mode == value
-        return Text(label)
-            .font(Cumbre.mono(10, .bold)).tracking(1.2)
-            .foregroundStyle(selected ? Color.white : Cumbre.ink3)
-            .padding(.horizontal, 12).padding(.vertical, 7)
-            .background(selected ? Cumbre.terra : Cumbre.paper)
-            .overlay(Rectangle().stroke(selected ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-            .onTapGesture { mode = value }
     }
 }
 

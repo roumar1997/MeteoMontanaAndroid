@@ -177,18 +177,16 @@ fun SchoolListScreen(
                 )
             }
 
-            // Buscador con selector de MODO: escuelas (filtra el catálogo) o
-            // vías/bloques (buscador global con mini-topo en los resultados).
+            // Buscador ÚNICO estilo Spotlight: escuelas Y vías/bloques a la vez.
+            // El placeholder anuncia que busca ambas cosas, y al escribir salen
+            // las dos secciones (aunque una esté vacía) → se aprende solo.
             item {
-                Column(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
+                Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
                     OutlinedTextField(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = {
-                            Text(if (filters.searchMode == SearchMode.LINES)
-                                "Busca una vía o bloque…" else "Busca tu escuela…")
-                        },
+                        placeholder = { Text("Busca escuelas, vías y bloques…") },
                         singleLine = true,
                         shape = MaterialTheme.shapes.small,
                         colors = TextFieldDefaults.colors(
@@ -196,32 +194,18 @@ fun SchoolListScreen(
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface
                         )
                     )
-                    Row(
-                        Modifier.padding(top = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SearchModeChip(
-                            label = "ESCUELAS",
-                            selected = filters.searchMode == SearchMode.SCHOOLS,
-                            onClick = { viewModel.setSearchMode(SearchMode.SCHOOLS) }
-                        )
-                        SearchModeChip(
-                            label = "VÍAS Y BLOQUES",
-                            selected = filters.searchMode == SearchMode.LINES,
-                            onClick = { viewModel.setSearchMode(SearchMode.LINES) }
-                        )
-                    }
                 }
             }
 
-            // Resultados del buscador GLOBAL de vías/bloques (mismo campo).
-            if (filters.query.trim().length >= 2 && viaHits.isNotEmpty()) {
+            // Resultados del buscador ÚNICO en DOS secciones (estilo Spotlight):
+            // ESCUELAS (top 5 del catálogo, acceso directo) y VÍAS Y BLOQUES
+            // (buscador global con mini-topo). Las cabeceras salen SIEMPRE al
+            // escribir — así se aprende que el campo busca ambas cosas.
+            if (filters.query.trim().length >= 2) {
                 item {
+                    val schoolMatches = (state as? SchoolListUiState.Success)
+                        ?.schools.orEmpty().take(5)
                     Column(Modifier.padding(horizontal = Spacing.lg)) {
-                        Text("VÍAS Y BLOQUES",
-                            style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp))
                         Column(
                             Modifier.fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.surface,
@@ -229,6 +213,52 @@ fun SchoolListScreen(
                                 .border(1.dp, MaterialTheme.colorScheme.outline,
                                     MaterialTheme.shapes.small)
                         ) {
+                            Text("ESCUELAS",
+                                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            if (schoolMatches.isEmpty()) {
+                                Text("Sin resultados",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                        .padding(bottom = 8.dp))
+                            } else {
+                                schoolMatches.forEach { s ->
+                                    Row(
+                                        Modifier.fillMaxWidth()
+                                            .clickable { onSchoolClick(s.id) }
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(s.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1)
+                                            s.region?.takeIf { it.isNotBlank() }?.let {
+                                                Text(it,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1)
+                                            }
+                                        }
+                                        Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            Text("VÍAS Y BLOQUES",
+                                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            if (viaHits.isEmpty()) {
+                                Text("Sin resultados",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                        .padding(bottom = 8.dp))
+                            }
                             viaHits.forEach { h ->
                                 Column(
                                     Modifier.fillMaxWidth()
@@ -791,29 +821,6 @@ private fun SkeletonRow() {
             .clip(MaterialTheme.shapes.small).background(tone))
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-}
-
-/** Chip del selector de modo de búsqueda (ESCUELAS ⇄ VÍAS Y BLOQUES). */
-@Composable
-private fun SearchModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Text(
-        label,
-        style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-        color = if (selected) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.small)
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surface
-            )
-            .border(1.dp,
-                if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.outline,
-                MaterialTheme.shapes.small)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp)
-    )
 }
 
 @Composable
