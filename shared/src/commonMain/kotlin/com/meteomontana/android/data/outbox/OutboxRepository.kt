@@ -4,6 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.meteomontana.db.MeteoMontanaDb
 import com.meteomontana.db.Outbox
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Clock
@@ -24,12 +25,15 @@ object OutboxType {
     const val FAVORITE_DELETE = "FAVORITE_DELETE" // escuela desmarcada favorita sin red (schoolId = id)
 }
 
-class OutboxRepository(private val db: MeteoMontanaDb) {
+class OutboxRepository(
+    private val db: MeteoMontanaDb,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
+) {
 
     private val q get() = db.schemaQueries
 
     fun observePending(): Flow<List<Outbox>> =
-        q.outboxAllFlow().asFlow().mapToList(Dispatchers.Default)
+        q.outboxAllFlow().asFlow().mapToList(dispatcher)
 
     suspend fun all(): List<Outbox> = q.outboxAll().executeAsList()
 

@@ -10,21 +10,23 @@ import com.meteomontana.db.MeteoMontanaDb
 import com.meteomontana.db.SavedBlock
 import com.meteomontana.db.SavedBlockLine
 import com.meteomontana.db.SavedSchool
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 
 class SavedSchoolRepository(
-    private val db: MeteoMontanaDb
+    private val db: MeteoMontanaDb,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val q get() = db.schemaQueries
 
     fun isSavedFlow(id: String): Flow<Boolean> =
-        q.isSchoolSaved(id).asFlow().mapToList(Dispatchers.Default).map { it.firstOrNull() == true }
+        q.isSchoolSaved(id).asFlow().mapToList(dispatcher).map { it.firstOrNull() == true }
 
     fun observeSaved(): Flow<List<SavedSchool>> =
-        q.observeAllSchools().asFlow().mapToList(Dispatchers.Default)
+        q.observeAllSchools().asFlow().mapToList(dispatcher)
 
     @Throws(Exception::class)
     suspend fun saveOffline(school: School, blocks: List<Block>, forecast: Forecast?) {

@@ -2,6 +2,7 @@ package com.meteomontana.android.data.saved
 
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.db.MeteoMontanaDb
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -10,13 +11,14 @@ import kotlinx.coroutines.withContext
  * la lista se pinta desde aquí al instante y se refresca desde red después.
  */
 class CachedSchoolsRepository(
-    private val db: MeteoMontanaDb
+    private val db: MeteoMontanaDb,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) :
     com.meteomontana.android.domain.repository.SchoolCatalogCache {
     private val q get() = db.schemaQueries
 
     @Throws(Exception::class)
-    override suspend fun load(): List<School> = withContext(Dispatchers.Default) {
+    override suspend fun load(): List<School> = withContext(dispatcher) {
         q.cachedSchoolsAll().executeAsList().map {
             School(
                 id = it.id, name = it.name, location = it.location,
@@ -27,7 +29,7 @@ class CachedSchoolsRepository(
     }
 
     @Throws(Exception::class)
-    suspend fun replaceAll(schools: List<School>) = withContext(Dispatchers.Default) {
+    suspend fun replaceAll(schools: List<School>) = withContext(dispatcher) {
         q.transaction {
             q.cachedSchoolsDeleteAll()
             schools.forEach {
