@@ -197,10 +197,12 @@ final class FeedViewModel: ObservableObject {
                     : try await container.unlikeFeedPost.invoke(postId: post.id)
                 updatePost(post.id) { copyPost($0, likedByMe: liked, likeCount: count.int64Value) }
             } catch {
-                // Revertir el optimismo si falló.
+                // Revertir el optimismo si falló + avisar (antes fallaba en silencio).
                 updatePost(post.id) {
                     copyPost($0, likedByMe: post.likedByMe, likeCount: post.likeCount)
                 }
+                ErrorPresenter.shared.show(
+                    ErrorPresenter.friendly(error, fallback: "No se pudo registrar el me gusta"))
             }
         }
     }
@@ -210,7 +212,10 @@ final class FeedViewModel: ObservableObject {
             do {
                 try await container.deleteFeedPost.invoke(postId: post.id)
                 posts.removeAll { $0.id == post.id }
-            } catch {}
+            } catch {
+                ErrorPresenter.shared.show(
+                    ErrorPresenter.friendly(error, fallback: "No se pudo borrar la publicación"))
+            }
         }
     }
 
@@ -225,9 +230,9 @@ final class FeedViewModel: ObservableObject {
     }
 
     func addComment(_ postId: Int64, _ text: String, _ parentId: String?) async -> FeedComment? {
-        guard let created = try? await container.addFeedComment.invoke(
-            postId: postId, text: text, parentId: parentId)
-        else { return nil }
+        guard let created = await reporting("No se pudo enviar el comentario", {
+            try await container.addFeedComment.invoke(postId: postId, text: text, parentId: parentId)
+        }) else { return nil }
         updatePost(postId) { copyPost($0, commentCount: $0.commentCount + 1) }
         return created
     }

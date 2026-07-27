@@ -184,6 +184,8 @@ class IosDependencyContainer(
     val blockApi = KtorBlockApi(httpClient)
     // Moderación UGC (denunciar/bloquear) — requisito App Store.
     val moderationApi = com.meteomontana.android.data.api.KtorModerationApi(httpClient)
+    private val moderationRepository =
+        com.meteomontana.android.data.repository.KtorModerationRepository(moderationApi)
     private val blockRepository = KtorBlockRepository(blockApi, database)
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
     val meetupApi = KtorMeetupApi(httpClient)
@@ -198,6 +200,10 @@ class IosDependencyContainer(
     val getForecast = GetForecastUseCase(forecastRepository)
     val getForecastByLocation = GetForecastByLocationUseCase(forecastRepository)
     val getTodayScores = GetTodayScoresUseCase(forecastRepository)
+    val getAdminUsers =
+        com.meteomontana.android.domain.usecase.admin.GetAdminUsersUseCase(moderationRepository)
+    val getAdminNotes =
+        com.meteomontana.android.domain.usecase.admin.GetAdminNotesUseCase(moderationRepository)
     val getRangeScores = GetRangeScoresUseCase(forecastRepository)
 
     // Favoritas (requieren sesión; el token lo aporta el authService del

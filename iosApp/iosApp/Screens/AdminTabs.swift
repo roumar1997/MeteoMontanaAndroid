@@ -9,8 +9,8 @@ struct AdminStatsTab: View {
     /// Cambia de pestaña (ESCUELAS → gestionar, PENDIENTES → propuestas).
     var onGoToTab: (AdminTab) -> Void = { _ in }
     @State private var openList: String? = nil
-    @State private var users: [AdminUserRowDto]? = nil
-    @State private var notes: [AdminNoteRowDto]? = nil
+    @State private var users: [AdminUserRow]? = nil
+    @State private var notes: [AdminNoteRow]? = nil
 
     var body: some View {
         ScrollView {
@@ -39,11 +39,11 @@ struct AdminStatsTab: View {
 
     private func loadUsers() {
         guard users == nil else { return }
-        Task { users = (try? await AppDependencies.shared.container.moderationApi.getAdminUsers()) ?? [] }
+        Task { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? [] }
     }
     private func loadNotes() {
         guard notes == nil else { return }
-        Task { notes = (try? await AppDependencies.shared.container.moderationApi.getAdminNotes()) ?? [] }
+        Task { notes = (try? await AppDependencies.shared.container.getAdminNotes.invoke()) ?? [] }
     }
 
     @ViewBuilder private var listSheet: some View {

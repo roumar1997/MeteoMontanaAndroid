@@ -256,6 +256,24 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      # Crashlytics: subir los dSYM para que los crashes lleguen simbolizados
+      # a Firebase Console. Best-effort (|| true): si el binario upload-symbols
+      # no está donde se espera, el run NO se pone rojo — los dSYM quedan igual
+      # como artifact (paso siguiente) y se pueden subir a mano.
+      - name: Subir dSYM a Crashlytics (best-effort)
+        if: always()
+        run: |
+          set -x
+          UPLOADER=$(find ~/Library/Developer/Xcode/DerivedData -path "*checkouts/firebase-ios-sdk/Crashlytics/upload-symbols" -type f 2>/dev/null | head -1)
+          if [ -z "$UPLOADER" ]; then
+            UPLOADER=$(find build -path "*firebase-ios-sdk/Crashlytics/upload-symbols" -type f 2>/dev/null | head -1)
+          fi
+          if [ -n "$UPLOADER" ] && [ -d build/MeteoMontana.xcarchive/dSYMs ]; then
+            "$UPLOADER" -gsp iosApp/iosApp/GoogleService-Info.plist -p ios build/MeteoMontana.xcarchive/dSYMs || true
+          else
+            echo "upload-symbols no encontrado; los dSYM quedan como artifact"
+          fi
+
       - name: Upload dSYM (símbolos para traducir crashes)
         if: always()
         uses: actions/upload-artifact@v7

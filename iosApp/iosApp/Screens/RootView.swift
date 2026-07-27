@@ -68,6 +68,9 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(theme.colorScheme)
+        // Banner GLOBAL de errores de usuario (ErrorPresenter): una sola
+        // superposición para toda la app — las vistas solo llaman a reporting{}.
+        .overlay(alignment: .top) { ErrorBannerView() }
         // Gate de versión mínima (antes incluso del login).
         .task {
             guard let dto = try? await AppDependencies.shared.container.appVersionApi.get() else { return }

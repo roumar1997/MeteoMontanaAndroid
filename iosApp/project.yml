@@ -175,6 +175,11 @@ targets:
       # antes de publicar (necesita APNs key + capability, ver PushManager.swift).
       - package: Firebase
         product: FirebaseMessaging
+      # Crashlytics: reporte de cierres en producción (Firebase Console →
+      # Crashlytics). Sin esto la app iOS llevaba meses pública SIN visibilidad
+      # de crashes. Los dSYM: el .ipa de App Store los sube el workflow de prod.
+      - package: Firebase
+        product: FirebaseCrashlytics
       - package: GoogleSignIn
         product: GoogleSignIn
       - package: MapLibre
