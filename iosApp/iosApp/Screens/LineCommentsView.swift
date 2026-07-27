@@ -8,32 +8,36 @@ import Shared
 
 @MainActor
 final class LineCommentsStore: ObservableObject {
-    @Published var comments: [LineCommentDto] = []
+    // Modelo de DOMINIO (LineComment), no el DTO de red — espejo de Android.
+    @Published var comments: [LineComment] = []
     private var loadedBlockId: String?
+
+    // Regla DI (ARCHITECTURE §2): por los use cases del container, nunca la API.
+    private var container: IosDependencyContainer { AppDependencies.shared.container }
 
     func load(blockId: String) async {
         guard loadedBlockId != blockId else { return }
         loadedBlockId = blockId
-        if let list = try? await AppDependencies.shared.container.blockApi.getComments(blockId: blockId) {
+        if let list = try? await container.getLineComments.invoke(blockId: blockId) {
             comments = list
         }
     }
 
     func add(blockId: String, lineId: String?, text: String) async {
-        let req = CreateLineCommentRequest(lineId: lineId, text: text)
-        if let created = try? await AppDependencies.shared.container.blockApi.addComment(blockId: blockId, req: req) {
+        if let created = try? await container.addLineComment
+            .invoke(blockId: blockId, lineId: lineId, text: text) {
             comments.append(created)
         }
     }
 
     func vote(commentId: String, value: Int) async {
-        guard let myVote = try? await AppDependencies.shared.container.blockApi
-            .voteComment(commentId: commentId, value: Int32(value)) else { return }
+        guard let myVote = try? await container.voteLineComment
+            .invoke(commentId: commentId, value: Int32(value)) else { return }
         comments = comments.map { c in
             guard c.id == commentId else { return c }
             let old = Int(c.myVote)
             let neu = Int(truncating: myVote)
-            return LineCommentDto(
+            return LineComment(
                 id: c.id, blockId: c.blockId, lineId: c.lineId, author: c.author,
                 uid: c.uid, createdAt: c.createdAt, text: c.text,
                 upvotesCount: c.upvotesCount + Int32((neu == 1 ? 1 : 0) - (old == 1 ? 1 : 0)),
@@ -43,7 +47,7 @@ final class LineCommentsStore: ObservableObject {
     }
 
     func delete(commentId: String) async {
-        try? await AppDependencies.shared.container.blockApi.deleteComment(commentId: commentId)
+        try? await container.deleteLineComment.invoke(commentId: commentId)
         comments.removeAll { $0.id == commentId }
     }
 }
@@ -58,9 +62,9 @@ struct LineCommentsThreadView: View {
     @State private var draft = ""
     // Moderación: denunciar comentarios ajenos + ocultar al instante.
     @ObservedObject private var moderation = ModerationStore.shared
-    @State private var reportTarget: LineCommentDto? = nil
+    @State private var reportTarget: LineComment? = nil
 
-    private var mine: [LineCommentDto] {
+    private var mine: [LineComment] {
         store.comments
             .filter { $0.blockId == blockId && $0.lineId == lineId && !moderation.hiddenIds.contains("COMMENT:\($0.id)") }
             .sorted {
@@ -182,4 +186,4 @@ struct LineCommentsThreadView: View {
 }
 
 // Para .sheet(item:) — el id ya existe en el DTO de Kotlin.
-extension LineCommentDto: Identifiable {}
+extension LineComment: Identifiable {}

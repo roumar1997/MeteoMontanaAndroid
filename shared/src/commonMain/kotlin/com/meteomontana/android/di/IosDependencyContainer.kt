@@ -296,6 +296,11 @@ class IosDependencyContainer(
     val updateBlock = UpdateBlockUseCase(blockRepository)
     val deleteBlock = DeleteBlockUseCase(blockRepository)
     val rateLine = com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(blockRepository)
+    // Comentarios de piedras/vías por use case (regla DI: nada de blockApi directo).
+    val getLineComments = com.meteomontana.android.domain.usecase.blocks.GetLineCommentsUseCase(blockRepository)
+    val addLineComment = com.meteomontana.android.domain.usecase.blocks.AddLineCommentUseCase(blockRepository)
+    val voteLineComment = com.meteomontana.android.domain.usecase.blocks.VoteLineCommentUseCase(blockRepository)
+    val deleteLineComment = com.meteomontana.android.domain.usecase.blocks.DeleteLineCommentUseCase(blockRepository)
 
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)

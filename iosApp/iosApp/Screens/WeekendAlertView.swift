@@ -86,7 +86,7 @@ final class WeekendAlertViewModel: ObservableObject {
                 return
             }
         }
-        let dto = WeekendAlertDto(
+        let dto = WeekendAlert(
             enabled: enabled,
             notifyDay: Int32(notifyDay),
             notifyHour: Int32(notifyHour),
@@ -99,7 +99,7 @@ final class WeekendAlertViewModel: ObservableObject {
             optimalEnabled: KotlinBoolean(bool: optimalEnabled),
             optimalThreshold: KotlinInt(int: Int32(optimalThreshold))
         )
-        if (try? await container.updateWeekendAlert.invoke(req: dto)) != nil {
+        if (try? await container.updateWeekendAlert.invoke(alert: dto)) != nil {
             savedOk = true
         } else {
             error = "No se pudo guardar. Revisa la conexión."
