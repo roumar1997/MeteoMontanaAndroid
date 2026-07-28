@@ -46,12 +46,17 @@ struct PendingFeedTick: Identifiable {
 struct FeedPublishSheet: View {
     let lineLabel: String
     let wasProject: Bool
-    let onPublish: (_ always: Bool, _ caption: String?, _ photo: UIImage?) -> Void
-    let onDiaryOnly: () -> Void
+    let onPublish: (_ always: Bool, _ caption: String?, _ photo: UIImage?, _ sessionDate: String?) -> Void
+    let onDiaryOnly: (_ sessionDate: String?) -> Void
 
     @State private var always = false
     // Descripción opcional del autor (viaja como "caption", max 500).
     @State private var caption = ""
+    // C3: CUANDO la encadenaste. nil = hoy (cero friccion). La fecha se guarda
+    // en el diario SIEMPRE, publiques o no.
+    @State private var sessionDate: String? = nil
+    @State private var showDatePicker = false
+    @State private var pickedDate = Date()
     // Foto de celebración: hecha en el momento con la cámara del sistema. Se
     // guarda en un ObservableObject (no @State) porque la cámara se presenta
     // por UIKit y un @State captado en el callback no refrescaba la hoja.
@@ -88,6 +93,36 @@ struct FeedPublishSheet: View {
 
             // Descripción opcional del post (paridad con FeedPublishSheet de
             // SchoolMap.kt: placeholder + límite 500).
+            // ── C3: ¿CUANDO LA ENCADENASTE? ──────────────────────────────
+            Text("CUANDO LA ENCADENASTE").font(Cumbre.mono(10, .bold)).tracking(1)
+                .foregroundStyle(Cumbre.ink3)
+            HStack(spacing: 8) {
+                dateChip("Hoy", selected: sessionDate == nil) { sessionDate = nil }
+                dateChip("Ayer", selected: sessionDate == FeedPublishSheet.iso(daysAgo: 1)) {
+                    sessionDate = FeedPublishSheet.iso(daysAgo: 1)
+                }
+                let custom = sessionDate.flatMap { d in
+                    d == FeedPublishSheet.iso(daysAgo: 1) ? nil : d
+                }
+                dateChip(custom.map { FeedPublishSheet.shortDate($0) } ?? "Otra fecha…",
+                         selected: custom != nil) { showDatePicker = true }
+            }
+            .sheet(isPresented: $showDatePicker) {
+                VStack(spacing: 12) {
+                    DatePicker("", selection: $pickedDate, in: ...Date(),
+                               displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                    Button("OK") {
+                        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+                        sessionDate = df.string(from: pickedDate)
+                        showDatePicker = false
+                    }
+                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                }
+                .padding(16)
+                .presentationDetents([.medium])
+            }
+
             TextField("Añade una descripción (opcional)", text: $caption, axis: .vertical)
                 .lineLimit(2...4)
                 .font(.system(size: 14))
@@ -212,7 +247,7 @@ struct FeedPublishSheet: View {
                 let c = caption.trimmingCharacters(in: .whitespacesAndNewlines)
                 let photo = photoStore.image
                 CapturedPhotoStore.forget()   // consumida: no re-adoptar después
-                onPublish(always, c.isEmpty ? nil : c, photo)
+                onPublish(always, c.isEmpty ? nil : c, photo, sessionDate)
             } label: {
                 Text("PUBLICAR EN EL FEED")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
@@ -228,7 +263,7 @@ struct FeedPublishSheet: View {
             // Secundario: solo diario.
             Button {
                 CapturedPhotoStore.forget()
-                onDiaryOnly()
+                onDiaryOnly(sessionDate)
             } label: {
                 Text("SOLO EN MI DIARIO")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
@@ -301,6 +336,35 @@ struct FeedPublishSettingRow: View {
             }
             .padding(.vertical, 12)
             .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+
+extension FeedPublishSheet {
+    static func iso(daysAgo: Int) -> String {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        return df.string(from: Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!)
+    }
+
+    static func shortDate(_ iso: String) -> String {
+        let parts = iso.split(separator: "-")
+        guard parts.count == 3, let m = Int(parts[1]), let d = Int(parts[2]) else { return iso }
+        let months = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"]
+        return "\(d) \(months[m - 1])"
+    }
+
+    @ViewBuilder
+    func dateChip(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label).font(.system(size: 13, weight: .medium))
+                .foregroundStyle(selected ? .white : Cumbre.ink)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(RoundedRectangle(cornerRadius: 8)
+                    .fill(selected ? Cumbre.terra : Cumbre.paper))
+                .overlay(RoundedRectangle(cornerRadius: 8)
+                    .stroke(selected ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

@@ -51,6 +51,15 @@ final class JournalViewModel: ObservableObject {
         await load()
     }
 
+    /** C3: cambiar la fecha de una entrada y recargar. */
+    func changeDate(_ id: String, _ newDate: String) async {
+        if await reporting("No se pudo cambiar la fecha", {
+            try await AppDependencies.shared.container.updateJournalDate.invoke(id: id, date: newDate)
+        }) != nil {
+            await load()
+        }
+    }
+
     func delete(_ id: String) {
         entries.removeAll { $0.id == id }
         Task { try? await deleteEntry.invoke(id: id); await load() }
@@ -80,9 +89,22 @@ struct JournalView: View {
                             Text("Aún no has registrado bloques.")
                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(32)
                         } else {
-                            ForEach(vm.entries, id: \.id) { e in
-                                JournalRow(entry: e, schoolId: e.schoolId) { vm.delete(e.id) }
-                                Divider().overlay(Cumbre.rule)
+                            // C3: agrupado por MES ("JULIO 2026 - N").
+                            let byMonth = Dictionary(grouping: vm.entries.sorted { $0.date > $1.date },
+                                                     by: { String($0.date.prefix(7)) })
+                            ForEach(byMonth.keys.sorted(by: >), id: \.self) { month in
+                                Text(JournalView.monthHeader(month) + " · \(byMonth[month]!.count)")
+                                    .font(Cumbre.mono(10, .bold)).tracking(1)
+                                    .foregroundStyle(Cumbre.terra)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16).padding(.vertical, 8)
+                                ForEach(byMonth[month]!, id: \.id) { e in
+                                    JournalRow(entry: e, schoolId: e.schoolId,
+                                               onChangeDate: { newDate in
+                                                   Task { await vm.changeDate(e.id, newDate) }
+                                               }) { vm.delete(e.id) }
+                                    Divider().overlay(Cumbre.rule)
+                                }
                             }
                         }
                     }
@@ -127,8 +149,12 @@ struct JournalRow: View {
     var schoolId: String? = nil
     /// nº de piedra + sector resueltos en vivo del catálogo (no se guardan).
     var info: ViaCatalogInfo? = nil
+    /// C3: cambiar la fecha de la entrada (nil = no editable, diario ajeno).
+    var onChangeDate: ((String) -> Void)? = nil
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
     var onDelete: (() -> Void)? = nil
+    @State private var showDatePicker = false
+    @State private var pickedDate = Date()
 
     /// "Escuela · Piedra N · Sector" — lo que se pueda resolver del catálogo.
     private var subtitle: String {
@@ -175,7 +201,32 @@ struct JournalRow: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
-                Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                if onChangeDate != nil {
+                    Button { showDatePicker = true } label: {
+                        Text(String(entry.date.prefix(10))).font(Cumbre.mono(10, .bold))
+                            .foregroundStyle(Cumbre.terra)
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showDatePicker) {
+                        VStack(spacing: 12) {
+                            Text("CAMBIAR FECHA").font(Cumbre.mono(11, .bold)).tracking(1)
+                                .foregroundStyle(Cumbre.terra)
+                            DatePicker("", selection: $pickedDate, in: ...Date(),
+                                       displayedComponents: .date)
+                                .datePickerStyle(.graphical)
+                            Button("GUARDAR") {
+                                let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+                                onChangeDate?(df.string(from: pickedDate))
+                                showDatePicker = false
+                            }
+                            .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                        .padding(16)
+                        .presentationDetents([.medium])
+                    }
+                } else {
+                    Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                }
                 if let onDelete {
                     Button(action: onDelete) {
                         Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad)
@@ -772,3 +823,14 @@ struct JournalStatsNav: View {
 }
 
 private extension String { var nilIfBlank: String? { trimmingCharacters(in: .whitespaces).isEmpty ? nil : self } }
+
+
+extension JournalView {
+    static func monthHeader(_ yyyyMm: String) -> String {
+        let names = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
+                     "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]
+        let parts = yyyyMm.split(separator: "-")
+        guard parts.count == 2, let m = Int(parts[1]), m >= 1, m <= 12 else { return yyyyMm }
+        return names[m - 1] + " " + parts[0]
+    }
+}

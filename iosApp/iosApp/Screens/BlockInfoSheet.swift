@@ -11,7 +11,22 @@ import FirebaseAuth
 // diario/ticks/proyectos con claves duales (fix homónimas «La ola») y las
 // colas offline: bloque MUY sensible, movido intacto.
 
+struct OrientationTarget: Identifiable {
+    let id = UUID()
+    let photoIndex: Int?
+}
+
+struct GradeVoteTarget: Identifiable {
+    var id: String { lineId }
+    let lineId: String
+    let canVote: Bool
+}
+
 struct BlockInfoSheet: View {
+    // Votacion comunitaria (C2/C5): orientacion + sol/sombra + grado.
+    @StateObject private var community = CommunityVoteStore()
+    @State private var orientationTarget: OrientationTarget? = nil
+    @State private var gradeTarget: GradeVoteTarget? = nil
     let block: Block
     var sectors: [Block] = []
     var schoolName: String? = nil
@@ -64,6 +79,22 @@ struct BlockInfoSheet: View {
                     Text(block.name.isEmpty ? typeLabel : block.name)
                         .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
 
+                    // C2: orientacion votable de la piedra/sector entero + tira de sol.
+                    HStack(spacing: 8) {
+                        VotableChip(text: community.summaryFor(nil)?.consensus.map { "PARED " + $0 } ?? "ORIENTACION") {
+                            orientationTarget = OrientationTarget(photoIndex: nil)
+                        }
+                        let votesTotal = community.summaryFor(nil)?.votes.values
+                            .reduce(0) { $0 + $1.intValue } ?? 0
+                        if votesTotal > 0 {
+                            Text("\(votesTotal) votos").font(.system(size: 11))
+                                .foregroundStyle(Cumbre.ink3)
+                        }
+                    }
+                    if let sun = community.sunByPhoto[-1] {
+                        SunStripView(sun: sun)
+                    }
+
                     // Sector al que pertenece (si lo tiene).
                     if let sn = sectorName, !sn.isEmpty {
                         Text("SECTOR · \(sn.uppercased())").font(Cumbre.mono(10, .bold))
@@ -89,7 +120,17 @@ struct BlockInfoSheet: View {
                           VStack(alignment: .leading, spacing: 12) {
                             if let photo = face.photoPath, !photo.isEmpty {
                                 if orderedFaces.count > 1 {
-                                    Text("FOTO \(faceIdx + 1)").eyebrow().padding(.top, 4)
+                                    // iOS no reordena las caras (solo scroll) => el indice ya es el original.
+                                    let originalIdx = faceIdx
+                                    HStack(spacing: 8) {
+                                        Text("FOTO \(faceIdx + 1)").eyebrow()
+                                        // C2: cada cara de un muro vota su orientacion.
+                                        VotableChip(text: community.summaryFor(originalIdx)?.consensus ?? "ORIENT.") {
+                                            orientationTarget = OrientationTarget(photoIndex: originalIdx)
+                                            Task { await community.loadSun(blockId: block.id, photoIndex: originalIdx) }
+                                        }
+                                    }
+                                    .padding(.top, 4)
                                 }
                                 TopoPhotoView(photoUrl: photo, lines: face.lines.map { TopoLineVM($0) })
                                     .padding(.top, 4)
@@ -104,8 +145,12 @@ struct BlockInfoSheet: View {
                                             .frame(width: 24, height: 24)
                                             .background(Circle().fill(GradeColor.color(l.grade)))
                                         if let g = l.grade, !g.isEmpty {
-                                            Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
-                                                .frame(width: 38, alignment: .leading)
+                                            // C5: el grado es VOTABLE (chip discontinuo terra).
+                                            VotableChip(text: g) {
+                                                let canVote = tickedLines.contains(l.id) || projectLines.contains(l.id)
+                                                gradeTarget = GradeVoteTarget(lineId: l.id, canVote: canVote)
+                                                Task { await community.loadGrade(lineId: l.id) }
+                                            }
                                         }
                                         Text(l.name.isEmpty ? "Vía \(idx + 1)" : l.displayName)
                                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
@@ -256,6 +301,18 @@ struct BlockInfoSheet: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .task { await commentsStore.load(blockId: block.id) }
+            .task(id: block.id) {
+                await community.loadOrientation(blockId: block.id)
+                await community.loadSun(blockId: block.id, photoIndex: nil)
+            }
+            .sheet(item: $orientationTarget) { target in
+                OrientationVoteSheet(store: community, blockId: block.id,
+                                     photoIndex: target.photoIndex)
+            }
+            .sheet(item: $gradeTarget) { target in
+                GradeVoteSheet(store: community, lineId: target.lineId,
+                               canVote: target.canVote)
+            }
             .navigationTitle(block.name.isEmpty ? typeLabel : block.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -268,18 +325,18 @@ struct BlockInfoSheet: View {
                 FeedPublishSheet(
                     lineLabel: feedTickLabel(pt.line, index: pt.index),
                     wasProject: pt.wasProject,
-                    onPublish: { always, caption, photo in
+                    onPublish: { always, caption, photo, sessionDate in
                         if always { FeedPublishPrefs.mode = .always }
                         pendingTick = nil
                         Task {
-                            await toggle(pt.line, index: pt.index)
+                            await toggle(pt.line, index: pt.index, sessionDate: sessionDate)
                             publishTickToFeed(pt.line, wasProject: pt.wasProject,
                                               caption: caption, photo: photo)
                         }
                     },
-                    onDiaryOnly: {
+                    onDiaryOnly: { sessionDate in
                         pendingTick = nil
-                        Task { await toggle(pt.line, index: pt.index) }
+                        Task { await toggle(pt.line, index: pt.index, sessionDate: sessionDate) }
                     })
             }
             // Deep-link del diario: hace scroll a la cara que contiene la vía
@@ -424,7 +481,7 @@ struct BlockInfoSheet: View {
     /// Marca/DESMARCA la vía en tu diario (toggle). Si no estaba hecha la añade
     /// (POST, o cola sin red); si ya estaba, la quita (borra la subida y/o la
     /// pendiente). No se puede añadir dos veces. Espejo del toggle de Android.
-    private func toggle(_ line: BlockLine, index: Int) async {
+    private func toggle(_ line: BlockLine, index: Int, sessionDate: String? = nil) async {
         tickingLine = line.id
         let container = AppDependencies.shared.container
         let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
@@ -481,7 +538,7 @@ struct BlockInfoSheet: View {
             let req = CreateJournalRequest(
                 schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
                 blockName: viaName, grade: line.grade,
-                notes: nil, date: df.string(from: Date()),
+                notes: nil, date: sessionDate ?? df.string(from: Date()),
                 discipline: block.discipline,   // la vía hereda la modalidad de su piedra
                 lineId: line.id,                // id estable → enganche del diario por muro
                 status: "DONE")
