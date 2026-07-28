@@ -91,6 +91,7 @@ fun ProfileScreen(
     onOpenProjects: () -> Unit = {},
     // Fila "Mis publicaciones" → pantalla dedicada con el feed propio (scope=mine).
     onOpenMyPosts: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
     /** En la pestaña keep-alive: true cuando la pestaña Perfil está visible.
      *  Recarga al hacerse visible (los ON_RESUME no saltan al cambiar de tab). */
     visible: Boolean = true,
@@ -172,7 +173,8 @@ fun ProfileScreen(
                     onOpenAllSchools = onOpenAllSchools,
                     onOpenMaxGrade = onOpenMaxGrade,
                     onOpenProjects = onOpenProjects,
-                    onOpenMyPosts = onOpenMyPosts
+                    onOpenMyPosts = onOpenMyPosts,
+                    onOpenStats = onOpenStats
                 )
             }
         }
@@ -280,7 +282,8 @@ private fun Content(
     onOpenAllSchools: () -> Unit,
     onOpenMaxGrade: () -> Unit,
     onOpenProjects: () -> Unit,
-    onOpenMyPosts: () -> Unit = {}
+    onOpenMyPosts: () -> Unit = {},
+    onOpenStats: () -> Unit = {}
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         if (offline) {
@@ -300,7 +303,7 @@ private fun Content(
         // y seguidores). El grado máx vive solo en las stats (decisión de Rodrigo).
         item { Header(profile, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
-        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts) }
+        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
         item { AddBlockButton(onClick = onAddBlock) }
         // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
         // La lista de escuelas tampoco (ya vive en la pestaña Diario).
@@ -606,7 +609,8 @@ private fun StatsRow(
     onSchools: () -> Unit,
     onMax: () -> Unit,
     onProjects: () -> Unit,
-    onMyPosts: () -> Unit
+    onMyPosts: () -> Unit,
+    onOpenStats: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -629,6 +633,7 @@ private fun StatsRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f).clickable(onClick = onProjects))
             StatCell(stringResource(R.string.feed_my_posts_section), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
+            StatCell("ESTADÍSTICAS", "▃▅▇", Modifier.weight(1f).clickable(onClick = onOpenStats))
         }
     }
 }

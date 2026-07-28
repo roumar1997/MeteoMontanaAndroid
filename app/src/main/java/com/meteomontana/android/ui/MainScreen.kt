@@ -454,7 +454,8 @@ fun MainScreen(
                         onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
                         onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
                         onOpenProjects = { openSheet(Routes.projects(null)) },
-                        onOpenMyPosts = { openSheet(Routes.MY_POSTS) }
+                        onOpenMyPosts = { openSheet(Routes.MY_POSTS) },
+                        onOpenStats = { openSheet(Routes.JOURNAL_STATS) }
                     )
                 }
                         tabContainer(Tab.Community.route) {

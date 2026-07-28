@@ -220,7 +220,14 @@ private fun SheetNavHost(
                             onOpenAllSchools = { sheetNav.navigate(Routes.journalSchools(null)) },
                             onOpenMaxGrade = { sheetNav.navigate(Routes.journalEntries("grade-max")) },
                             onOpenProjects = { sheetNav.navigate(Routes.projects(null)) },
-                            onOpenMyPosts = { sheetNav.navigate(Routes.MY_POSTS) }
+                            onOpenMyPosts = { sheetNav.navigate(Routes.MY_POSTS) },
+                            onOpenStats = { sheetNav.navigate(Routes.JOURNAL_STATS) }
+                        )
+                    }
+                    // C4: MIS ESTADISTICAS (piramide, racha, progresion).
+                    composable(Routes.JOURNAL_STATS) {
+                        com.meteomontana.android.ui.screens.profile.StatsScreen(
+                            onBack = popSheetOrDismiss
                         )
                     }
                     // "Mis publicaciones": feed propio en pantalla dedicada.

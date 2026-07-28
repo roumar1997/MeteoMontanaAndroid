@@ -60,6 +60,7 @@ object Routes {
     fun groupChat(convId: String) = "group-chats/$convId"
     const val TOPO_EDITOR = "topo/{blockId}"
     fun topoEditor(blockId: String) = "topo/$blockId"
+    const val JOURNAL_STATS = "journal/stats"
     const val JOURNAL_ENTRIES = "journal/entries?filter={filter}&uid={uid}"
     fun journalEntries(filter: String? = null, uid: String? = null): String {
         val f = filter ?: ""

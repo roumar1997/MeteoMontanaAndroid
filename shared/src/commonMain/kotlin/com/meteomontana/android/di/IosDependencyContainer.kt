@@ -187,6 +187,8 @@ class IosDependencyContainer(
     private val moderationRepository =
         com.meteomontana.android.data.repository.KtorModerationRepository(moderationApi)
     private val blockRepository = KtorBlockRepository(blockApi, database)
+    private val communityRepository = com.meteomontana.android.data.repository
+        .KtorCommunityRepository(com.meteomontana.android.data.api.KtorCommunityApi(httpClient))
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
     val meetupApi = KtorMeetupApi(httpClient)
     private val meetupCache: MeetupCacheRepository? = database?.let { MeetupCacheRepository(it) }
@@ -200,6 +202,19 @@ class IosDependencyContainer(
     val getForecast = GetForecastUseCase(forecastRepository)
     val getForecastByLocation = GetForecastByLocationUseCase(forecastRepository)
     val getTodayScores = GetTodayScoresUseCase(forecastRepository)
+    // Votación comunitaria (C2/C5) + fecha del diario (C3).
+    val getOrientation =
+        com.meteomontana.android.domain.usecase.community.GetOrientationUseCase(communityRepository)
+    val voteOrientation =
+        com.meteomontana.android.domain.usecase.community.VoteOrientationUseCase(communityRepository)
+    val getSunHours =
+        com.meteomontana.android.domain.usecase.community.GetSunHoursUseCase(communityRepository)
+    val getGradeVotes =
+        com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase(communityRepository)
+    val voteGrade =
+        com.meteomontana.android.domain.usecase.community.VoteGradeUseCase(communityRepository)
+    val updateJournalDate =
+        com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase(journalRepository)
     val getAdminUsers =
         com.meteomontana.android.domain.usecase.admin.GetAdminUsersUseCase(moderationRepository)
     val getAdminNotes =

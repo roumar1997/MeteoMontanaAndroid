@@ -347,13 +347,14 @@ fun SchoolMap(
             lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
                 (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
             wasProject = pt.wasProject,
-            onPublish = { always, caption, photoUri ->
+            onPublish = { always, caption, photoUri, sessionDate ->
                 if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
                     fichaCtx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
                 pendingTick = null
                 viewModel.viewModelScope.launch {
                     val r = viewModel.toggleLine(
-                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true)
+                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true,
+                        sessionDate = sessionDate)
                     if (r.getOrNull() == true) {
                         viewModel.publishTickToFeed(
                             pt.block, pt.line, pt.wasProject, caption,
@@ -368,10 +369,11 @@ fun SchoolMap(
                     }
                 }
             },
-            onDiaryOnly = {
+            onDiaryOnly = { sessionDate ->
                 pendingTick = null
                 viewModel.viewModelScope.launch {
-                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true)
+                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName,
+                        markDone = true, sessionDate = sessionDate)
                 }
             },
             onDismiss = { pendingTick = null }

@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.runtime.setValue
+import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -72,6 +74,7 @@ class JournalEntriesViewModel @Inject constructor(
     private val getUserJournal: GetUserJournalUseCase,
     private val getUserStats: GetUserStatsUseCase,
     private val deleteJournalEntry: DeleteJournalEntryUseCase,
+    private val updateJournalDate: com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase,
     private val getJournalViaInfo: com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
 ) : ViewModel() {
@@ -175,6 +178,14 @@ class JournalEntriesViewModel @Inject constructor(
         }
     }
 
+    /** C3: cambiar la fecha de una entrada y recargar. */
+    fun changeDate(id: String, newDate: String) {
+        viewModelScope.launch {
+            runCatching { updateJournalDate(id, newDate) }
+                .onSuccess { load() }
+        }
+    }
+
     fun delete(id: String) {
         if (!isMine) return
         viewModelScope.launch {
@@ -244,14 +255,31 @@ fun JournalEntriesScreen(
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                             }
                         }
-                        items(s.entries, key = { it.id }) { e ->
-                            EntryRow(
-                                e, canDelete = s.isMine,
-                                info = s.viaInfo[e.id],
-                                onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName, e.lineId) } },
-                                onDelete = { viewModel.delete(e.id) }
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        // C3: agrupado por MES (cabecera "JULIO 2026 - N"), orden
+                        // cronologico descendente por fecha de la sesion.
+                        val byMonth = s.entries.sortedByDescending { it.date }
+                            .groupBy { it.date.take(7) }
+                        byMonth.forEach { (month, monthEntries) ->
+                            item(key = "month-" + month) {
+                                Text(
+                                    formatMonthHeader(month) + " \u00b7 " + monthEntries.size,
+                                    style = EyebrowTextStyle,
+                                    color = com.meteomontana.android.ui.theme.Terra,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(monthEntries, key = { it.id }) { e ->
+                                EntryRow(
+                                    e, canDelete = s.isMine,
+                                    info = s.viaInfo[e.id],
+                                    onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName, e.lineId) } },
+                                    onDelete = { viewModel.delete(e.id) },
+                                    onChangeDate = if (s.isMine) ({ newDate ->
+                                        viewModel.changeDate(e.id, newDate)
+                                    }) else null
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            }
                         }
                     }
                 }
@@ -262,14 +290,39 @@ fun JournalEntriesScreen(
 
 // internal (no private): reutilizado por JournalSectorsScreen.kt (mismo paquete)
 // para las entradas sin sector, que se muestran directamente sin subcarpeta.
-@Composable
+@androidx.compose.runtime.Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 internal fun EntryRow(
     e: JournalSession,
     canDelete: Boolean = true,
     info: com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo? = null,
     onClick: () -> Unit = {},
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    /** C3: cambiar la fecha de la entrada (null = no editable, diario ajeno). */
+    onChangeDate: ((String) -> Unit)? = null
 ) {
+    var showDatePicker by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
+    if (showDatePicker && onChangeDate != null) {
+        val pickerState = androidx.compose.material3.rememberDatePickerState(
+            selectableDates = object : androidx.compose.material3.SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) =
+                    utcTimeMillis <= System.currentTimeMillis()
+            })
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { ms ->
+                        onChangeDate(java.time.Instant.ofEpochMilli(ms)
+                            .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString())
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            }
+        ) { androidx.compose.material3.DatePicker(state = pickerState) }
+    }
     Row(
         modifier = Modifier.fillMaxWidth()
             .then(if (e.schoolId != null) Modifier.clickable(onClick = onClick) else Modifier)
@@ -281,7 +334,10 @@ internal fun EntryRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(e.date,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = if (onChangeDate != null) com.meteomontana.android.ui.theme.Terra
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = if (onChangeDate != null)
+                        Modifier.clickable { showDatePicker = true } else Modifier)
                 // Grado ACTUAL del catálogo (refleja correcciones) o, si no se
                 // pudo resolver, el guardado al marcar la vía.
                 val eGrade = info?.grade ?: e.grade
@@ -346,3 +402,12 @@ internal fun EntryRow(
         }
     }
 }
+
+
+private val MONTH_NAMES = listOf(
+    "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+    "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE")
+
+internal fun formatMonthHeader(yyyyMm: String): String = runCatching {
+    MONTH_NAMES[yyyyMm.substringAfter('-').toInt() - 1] + " " + yyyyMm.take(4)
+}.getOrDefault(yyyyMm)

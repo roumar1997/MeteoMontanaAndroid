@@ -341,6 +341,30 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideGetMyJournalUseCase(repo: JournalRepository) = GetMyJournalUseCase(repo)
 
+    @Provides
+    fun provideUpdateJournalDateUseCase(repo: JournalRepository) =
+        com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase(repo)
+
+    @Provides
+    fun provideGetOrientationUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.GetOrientationUseCase(repo)
+
+    @Provides
+    fun provideVoteOrientationUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.VoteOrientationUseCase(repo)
+
+    @Provides
+    fun provideGetSunHoursUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.GetSunHoursUseCase(repo)
+
+    @Provides
+    fun provideGetGradeVotesUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase(repo)
+
+    @Provides
+    fun provideVoteGradeUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.VoteGradeUseCase(repo)
+
     @Provides @Singleton
     fun provideGetMyJournalStatsUseCase(repo: JournalRepository) = GetMyJournalStatsUseCase(repo)
 
