@@ -120,6 +120,11 @@ fun StatsScreen(
                     }
                 }
             }
+            // Día concreto activo (desde DÍAS DE ROCA): chip para quitarlo.
+            state.day?.let { d ->
+                Spacer(Modifier.height(Spacing.sm))
+                FilterChip("DÍA $d  ✕", true) { viewModel.setDay(null) }
+            }
             // Meses del año elegido (solo con año concreto).
             if (state.year != null) {
                 Spacer(Modifier.height(Spacing.sm))
@@ -172,6 +177,16 @@ fun StatsScreen(
                                             color = Terra)
                                     }
                                     if (isOpen) {
+                                        // S4: cargar TODA la pantalla con ese día.
+                                        Text("VER ESTADÍSTICAS DE ESTE DÍA ▸",
+                                            style = EyebrowTextStyle.copy(fontSize = 9.sp),
+                                            color = Terra,
+                                            modifier = Modifier
+                                                .clickable {
+                                                    showDaysList = false
+                                                    viewModel.setDay(day)
+                                                }
+                                                .padding(start = Spacing.md, top = 4.dp, bottom = 6.dp))
                                         viewModel.entriesForDay(day).forEach { e ->
                                             Row(Modifier.fillMaxWidth()
                                                 .clickable(enabled = e.schoolId != null) {
@@ -427,19 +442,23 @@ private fun InfoCard(text: String) {
 @Composable
 private fun MonthBars(counts: List<Pair<String, Int>>) {
     val max = (counts.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
-    // Altura barra 56 sobre fila de 96: número (≈12) + barra + letra del mes
-    // caben SIEMPRE (con 70 la barra alta desbordaba y tapaba el mes).
-    Row(Modifier.fillMaxWidth().height(96.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.Bottom) {
+    // Carriles FIJOS (número 14 / barra 56 anclada abajo / letra): todas las
+    // barras nacen de la MISMA línea base, sin desbordes (feedback S5).
+    Row(Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         counts.forEach { (month, count) ->
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (count > 0) Text(count.toString(), fontSize = 8.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Box(Modifier.fillMaxWidth()
-                    .height((56 * count / max).coerceAtLeast(if (count > 0) 4 else 1).dp)
-                    .background(Terra.copy(alpha = 0.4f + 0.6f * count / max),
-                        RoundedCornerShape(3.dp)))
+                Box(Modifier.height(14.dp), contentAlignment = Alignment.BottomCenter) {
+                    if (count > 0) Text(count.toString(), fontSize = 8.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Box(Modifier.fillMaxWidth().height(56.dp),
+                    contentAlignment = Alignment.BottomCenter) {
+                    Box(Modifier.fillMaxWidth()
+                        .height((56 * count / max).coerceAtLeast(if (count > 0) 4 else 1).dp)
+                        .background(Terra.copy(alpha = 0.4f + 0.6f * count / max),
+                            RoundedCornerShape(3.dp)))
+                }
                 Text(MONTHS[month.substringAfter('-').toInt() - 1].take(1), fontSize = 8.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

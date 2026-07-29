@@ -25,6 +25,7 @@ class StatsViewModel @Inject constructor(
         val discipline: String = "BOULDER",
         val year: String? = null,          // null = todo
         val month: String? = null,         // "01".."12"; solo con año concreto
+        val day: String? = null,           // "yyyy-MM-dd": estadísticas de UN día
         val availableYears: List<String> = emptyList(),
         val summary: JournalStatsCalculator.Summary? = null,
         val progression: JournalStatsCalculator.Progression? = null
@@ -46,8 +47,10 @@ class StatsViewModel @Inject constructor(
     }
 
     fun setDiscipline(d: String) { _state.value = _state.value.copy(discipline = d); recompute() }
-    fun setYear(y: String?) { _state.value = _state.value.copy(year = y, month = null); recompute() }
-    fun setMonth(m: String?) { _state.value = _state.value.copy(month = m); recompute() }
+    fun setYear(y: String?) { _state.value = _state.value.copy(year = y, month = null, day = null); recompute() }
+    fun setMonth(m: String?) { _state.value = _state.value.copy(month = m, day = null); recompute() }
+    /** S4: estadísticas de UN día concreto (desde DÍAS DE ROCA). */
+    fun setDay(d: String?) { _state.value = _state.value.copy(day = d); recompute() }
 
     /** N7: dias de roca del filtro actual, recientes primero, con nº de ascensos. */
     fun daysWithCounts(): List<Pair<String, Int>> =
@@ -70,6 +73,7 @@ class StatsViewModel @Inject constructor(
         val st = _state.value
         var filtered = JournalStatsCalculator.filter(entries, st.discipline, st.year)
         st.month?.let { m -> filtered = filtered.filter { it.date.substring(5, 7) == m } }
+        st.day?.let { d -> filtered = filtered.filter { it.date == d } }
         return filtered
     }
 
@@ -78,6 +82,7 @@ class StatsViewModel @Inject constructor(
         val today = java.time.LocalDate.now().toString()
         var filtered = JournalStatsCalculator.filter(entries, st.discipline, st.year)
         st.month?.let { m -> filtered = filtered.filter { it.date.substring(5, 7) == m } }
+        st.day?.let { d -> filtered = filtered.filter { it.date == d } }
         _state.value = st.copy(
             loading = false,
             availableYears = JournalStatsCalculator.availableYears(entries),

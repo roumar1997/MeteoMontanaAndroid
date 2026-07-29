@@ -37,13 +37,18 @@ struct StatsView: View {
                         store.discipline = "ROUTE"; store.recompute()
                     }
                     Menu {
-                        Button("Todo") { store.year = nil; store.month = nil; store.recompute() }
+                        Button("Todo") { store.year = nil; store.month = nil; store.day = nil; store.recompute() }
                         ForEach(store.availableYears, id: \.self) { y in
-                            Button(y) { store.year = y; store.month = nil; store.recompute() }
+                            Button(y) { store.year = y; store.month = nil; store.day = nil; store.recompute() }
                         }
                     } label: {
                         VotableChip(text: store.year ?? "TODO") {}
                             .allowsHitTesting(false)
+                    }
+                }
+                if let d = store.day {
+                    filterChip("DÍA \(d)  ✕", selected: true) {
+                        store.day = nil; store.recompute()
                     }
                 }
                 if store.year != nil {
@@ -254,6 +259,18 @@ struct StatsView: View {
                         }
                         .buttonStyle(.plain)
                         if expandedDay == day {
+                            // S4: cargar TODA la pantalla con ese día.
+                            Button {
+                                showDaysList = false
+                                store.day = day
+                                store.recompute()
+                            } label: {
+                                Text("VER ESTADÍSTICAS DE ESTE DÍA ▸")
+                                    .font(Cumbre.mono(9, .bold)).tracking(1)
+                                    .foregroundStyle(Cumbre.terra)
+                                    .padding(.leading, 16).padding(.vertical, 4)
+                            }
+                            .buttonStyle(.plain)
                             ForEach(Array(store.entriesForDay(day).enumerated()),
                                     id: \.offset) { _, e in
                                 if let sid = e.schoolId {
@@ -412,6 +429,7 @@ final class StatsStore: ObservableObject {
     @Published var discipline = "BOULDER"
     @Published var year: String? = nil
     @Published var month: String? = nil
+    @Published var day: String? = nil    // "yyyy-MM-dd": estadísticas de UN día
     @Published var availableYears: [String] = []
     @Published var summary: JournalStatsCalculator.Summary? = nil
     @Published var progression: JournalStatsCalculator.Progression? = nil
@@ -462,6 +480,7 @@ final class StatsStore: ObservableObject {
                 return String(e.date[start..<end]) == m
             }
         }
+        if let d = day { filtered = filtered.filter { $0.date == d } }
         return filtered
     }
 
@@ -479,6 +498,7 @@ final class StatsStore: ObservableObject {
                 return String(d[start..<end]) == m
             }
         }
+        if let dd = day { filtered = filtered.filter { $0.date == dd } }
         availableYears = calc.availableYears(entries: entries)
         summary = calc.summary(entries: filtered, allEntries: entries, today: today)
         progression = calc.progression(entries: filtered, today: today)
