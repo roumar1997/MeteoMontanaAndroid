@@ -492,10 +492,14 @@ struct SchoolListView: View {
     /// vía TODAVÍA nil (abría la escuela a secas) y el segundo funcionaba
     /// porque navVia conservaba el valor del intento anterior. Con un único
     /// item la carrera desaparece.
-    struct SchoolNavTarget: Identifiable {
+    /// Hashable A MANO por `id`: navigationDestination(item:) exige Hashable y
+    /// la síntesis automática no es fiable con `School` (clase de Kotlin).
+    struct SchoolNavTarget: Identifiable, Hashable {
         let school: School
         let via: String?
         var id: String { school.id + "|" + (via ?? "") }
+        static func == (a: SchoolNavTarget, b: SchoolNavTarget) -> Bool { a.id == b.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
     }
     @State private var navTarget: SchoolNavTarget?
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
