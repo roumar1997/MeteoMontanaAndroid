@@ -49,6 +49,15 @@ class StatsViewModel @Inject constructor(
     fun setYear(y: String?) { _state.value = _state.value.copy(year = y, month = null); recompute() }
     fun setMonth(m: String?) { _state.value = _state.value.copy(month = m); recompute() }
 
+    /** N7: dias de roca del filtro actual, recientes primero, con nº de ascensos. */
+    fun daysWithCounts(): List<Pair<String, Int>> {
+        val st = _state.value
+        var filtered = JournalStatsCalculator.filter(entries, st.discipline, st.year)
+        st.month?.let { m -> filtered = filtered.filter { it.date.substring(5, 7) == m } }
+        return filtered.groupingBy { it.date }.eachCount()
+            .toList().sortedByDescending { it.first }
+    }
+
     private fun recompute() {
         val st = _state.value
         val today = java.time.LocalDate.now().toString()

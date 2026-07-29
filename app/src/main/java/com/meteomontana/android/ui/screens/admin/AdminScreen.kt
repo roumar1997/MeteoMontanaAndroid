@@ -170,6 +170,8 @@ fun AdminScreen(
             AdminTab.Propuestas -> PropuestasTab(
                 submissions = state.pending,
                 contributions = state.contributions,
+                contributionsStatus = state.contributionsStatus,
+                onStatusChange = viewModel::setContributionsStatus,
                 schoolBlocks = state.schoolBlocks,
                 onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
                 onDeleteBlock = viewModel::deleteBlock,
@@ -211,7 +213,11 @@ fun AdminScreen(
                 onOpenUserProfile = onOpenUser,
                 onOpenSchool = onOpenSchool,
                 onGoToTab = { name ->
-                    tab = when (name) {
+                    // P6: "propuestas:APPROVED" preselecciona el estado.
+                    if (name.startsWith("propuestas:")) {
+                        viewModel.setContributionsStatus(name.substringAfter(':'))
+                    }
+                    tab = when (name.substringBefore(':')) {
                         "gestionar" -> AdminTab.Gestionar
                         "propuestas" -> AdminTab.Propuestas
                         else -> AdminTab.Activity

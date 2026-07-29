@@ -32,9 +32,16 @@ suspend fun shareStatsAsImage(
     periodLabel: String,          // "MI 2026 EN ROCA" / "MI DIARIO EN ROCA"
     disciplineLabel: String,      // "BLOQUE" / "VÍA"
     summary: JournalStatsCalculator.Summary,
-    maxGrade: String?
+    maxGrade: String?,
+    /** N9: progresion para rellenar la imagen (semanas + trimestres). */
+    progression: JournalStatsCalculator.Progression? = null
 ) {
-    val bmp = renderStatsCard(periodLabel, disciplineLabel, summary, maxGrade)
+    // Logo real de la app (N9: la imagen salia "seca" sin marca).
+    val logo = runCatching {
+        android.graphics.BitmapFactory.decodeResource(
+            context.resources, com.meteomontana.android.R.drawable.logo_cumbre)
+    }.getOrNull()
+    val bmp = renderStatsCard(periodLabel, disciplineLabel, summary, maxGrade, progression, logo)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     dir.listFiles()?.filter { it.name.startsWith("stats") }?.forEach { it.delete() }
     val file = File(dir, "stats-${System.currentTimeMillis()}.png")
@@ -57,7 +64,9 @@ private fun renderStatsCard(
     periodLabel: String,
     disciplineLabel: String,
     s: JournalStatsCalculator.Summary,
-    maxGrade: String?
+    maxGrade: String?,
+    progression: JournalStatsCalculator.Progression?,
+    logo: Bitmap?
 ): Bitmap {
     val w = 1080
     val h = 1920
@@ -72,12 +81,27 @@ private fun renderStatsCard(
     val mono = Typeface.MONOSPACE
     val serifBold = Typeface.create(Typeface.SERIF, Typeface.BOLD)
 
-    c.drawText("⛰ CUMBRE · $disciplineLabel", cx, 150f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    // Logo circular arriba (N9).
+    if (logo != null) {
+        val r = 84f
+        val shader = android.graphics.BitmapShader(logo,
+            android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+        val scale = (r * 2) / minOf(logo.width, logo.height).toFloat()
+        shader.setLocalMatrix(android.graphics.Matrix().apply {
+            setScale(scale, scale)
+            postTranslate(cx - logo.width * scale / 2f, 130f - logo.height * scale / 2f + r)
+        })
+        c.drawCircle(cx, 130f + r, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { this.shader = shader })
+        c.drawCircle(cx, 130f + r, r + 6f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE; strokeWidth = 4f; color = TERRA
+        })
+    }
+    c.drawText("CUMBRE · $disciplineLabel", cx, 350f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = TERRA; textSize = 32f; typeface = mono
         letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
     })
-    c.drawText(periodLabel, cx, 270f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = INK; textSize = 96f; typeface = serifBold; textAlign = Paint.Align.CENTER
+    c.drawText(periodLabel, cx, 452f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = INK; textSize = 92f; typeface = serifBold; textAlign = Paint.Align.CENTER
     })
 
     // ── 4 métricas en rejilla 2×2 ────────────────────────────────────────────
@@ -93,7 +117,7 @@ private fun renderStatsCard(
         val col = i % 2
         val row = i / 2
         val left = 80f + col * (boxW + 40f)
-        val top = 360f + row * (boxH + 36f)
+        val top = 520f + row * (boxH + 28f)
         val box = RectF(left, top, left + boxW, top + boxH)
         c.drawRect(box, Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE; strokeWidth = 3f; color = RULE
@@ -109,7 +133,7 @@ private fun renderStatsCard(
     }
 
     // ── Pirámide de grados ──────────────────────────────────────────────────
-    var y = 950f
+    var y = 1070f
     c.drawText("PIRÁMIDE DE GRADOS", 80f, y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = INK_SOFT; textSize = 30f; typeface = mono
         letterSpacing = 0.18f; isFakeBoldText = true
@@ -146,6 +170,40 @@ private fun renderStatsCard(
         c.drawText(label, cx, y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = INK; textSize = 44f; textAlign = Paint.Align.CENTER
         })
+    }
+
+    // ── N9: ultimas 12 semanas + grado maximo por trimestre ──────────
+    progression?.let { p ->
+        var py = 1560f
+        c.drawText("ÚLT. 12 SEMANAS", 80f, py, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = INK_SOFT; textSize = 28f; typeface = Typeface.MONOSPACE
+            letterSpacing = 0.16f; isFakeBoldText = true
+        })
+        py += 24f
+        val cellW = (w - 160f - 11 * 8f) / 12f
+        p.weeksOut.forEachIndexed { i2, out ->
+            c.drawRoundRect(
+                RectF(80f + i2 * (cellW + 8f), py, 80f + i2 * (cellW + 8f) + cellW, py + 40f),
+                8f, 8f,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (out) TERRA else RULE }
+            )
+        }
+        py += 88f
+        val quarters = p.maxGradePerQuarter.takeLast(4)
+        if (quarters.isNotEmpty()) {
+            val colW2 = (w - 160f) / quarters.size
+            quarters.forEachIndexed { i2, (q, g) ->
+                val qcx = 80f + colW2 * i2 + colW2 / 2f
+                c.drawText(g, qcx, py + 8f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = TERRA; textSize = 52f; typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+                    textAlign = Paint.Align.CENTER
+                })
+                c.drawText(q.substringAfter('-'), qcx, py + 48f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = INK_SOFT; textSize = 26f; typeface = Typeface.MONOSPACE
+                    textAlign = Paint.Align.CENTER
+                })
+            }
+        }
     }
 
     // ── Pie ─────────────────────────────────────────────────────────────────

@@ -212,8 +212,16 @@ fun SunStrip(sun: SunHours, modifier: Modifier = Modifier) {
     val sunColor = Color(0xFFE8B84B)
     val shadeColor = Color(0xFF3D4A5C)
     Column(modifier) {
-        Text("SOL EN ESTA PARED · HOY", style = EyebrowTextStyle.copy(fontSize = 10.sp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Titulo + leyenda EN LA MISMA FILA (feedback N1: aprovechar el espacio).
+        Row(verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()) {
+            Text("SOL EN ESTA PARED · HOY", style = EyebrowTextStyle.copy(fontSize = 10.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                LegendDot(Color(0xFFE8B84B), "Sol"); LegendDot(Color(0xFF3D4A5C), "Sombra")
+            }
+        }
         Row(
             Modifier.fillMaxWidth().padding(top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -226,9 +234,6 @@ fun SunStrip(sun: SunHours, modifier: Modifier = Modifier) {
                     Text(hour, fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-        }
-        Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            LegendDot(sunColor, "Al sol"); LegendDot(shadeColor, "Sombra")
         }
     }
 }

@@ -36,8 +36,10 @@ class KtorAdminApi(private val client: HttpClient) {
     suspend fun sendPush(req: AdminPushRequest): AdminPushResponse =
         client.post("admin/push") { setBody(req) }.body()
 
-    suspend fun pendingContributions(): List<ContributionDto> =
-        client.get("admin/contributions").body()
+    suspend fun pendingContributions(status: String? = null): List<ContributionDto> =
+        client.get("admin/contributions") {
+            if (status != null) url.parameters.append("status", status)
+        }.body()
 
     /** [editedBloquesJson] != null = "EDITAR Y APROBAR": se aprueba con la
      *  versión retocada por el admin. */

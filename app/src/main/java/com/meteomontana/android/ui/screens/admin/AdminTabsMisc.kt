@@ -130,8 +130,9 @@ internal fun StatsTab(
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard("PENDING", stats.submissionsPending, Modifier.weight(1f)) { onGoToTab("propuestas") }
-            StatCard("APROBADAS", stats.submissionsApproved, Modifier.weight(1f)) { onGoToTab("actividad") }
-            StatCard("RECHAZADAS", stats.submissionsRejected, Modifier.weight(1f)) { onGoToTab("actividad") }
+            // P6: cada cifra abre PROPUESTAS ya filtrada por su estado.
+            StatCard("APROBADAS", stats.submissionsApproved, Modifier.weight(1f)) { onGoToTab("propuestas:APPROVED") }
+            StatCard("RECHAZADAS", stats.submissionsRejected, Modifier.weight(1f)) { onGoToTab("propuestas:REJECTED") }
         }
     }
 

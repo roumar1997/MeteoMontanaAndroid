@@ -359,6 +359,13 @@ fun SchoolMap(
                         viewModel.publishTickToFeed(
                             pt.block, pt.line, pt.wasProject, caption,
                             photoUri = photoUri?.toString(),
+                            onPublishFailed = {
+                                android.widget.Toast.makeText(
+                                    fichaCtx,
+                                    "No se pudo publicar el ascenso (queda en tu diario)",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            },
                             onPhotoUploadFailed = {
                                 android.widget.Toast.makeText(
                                     fichaCtx, R.string.feed_photo_upload_failed,

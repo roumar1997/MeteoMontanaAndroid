@@ -286,7 +286,7 @@ fun BlockDetailDialog(
                                 )
                                 // C2: cada cara de un muro vota su propia orientacion.
                                 if (!isProposal) VotableChip(
-                                    text = orientationOf(originalIdx)?.consensus ?: "ORIENT.",
+                                    text = orientationOf(originalIdx)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTAR ESTA CARA",
                                 ) {
                                     orientationTarget = originalIdx
                                     orientationOpen = true
@@ -370,14 +370,20 @@ fun BlockDetailDialog(
                                             .clickable {
                                                 val sectorName = availableSectors
                                                     ?.firstOrNull { it.id == block.sectorBlockId }?.name
+                                                shareScope.launch {
+                                                // N10: los datos comunitarios se consultan AL
+                                                // compartir (best-effort, ~100ms) — el preload
+                                                // podia no haber llegado.
+                                                val badge = orientationOf(null)?.consensus
+                                                    ?: communityVm.fetchOrientationConsensus(block.id)
+                                                val setterRef = communityVm.fetchSetterGradeRef(line.id)
                                                 shareVia(
-                                                shareScope, context, block, line, schoolName,
-                                                tickedLines.toSet(), projectLines.toSet(), sectorName,
-                                                orientationBadge = orientationOf(null)?.consensus,
-                                                setterGradeRef = gradeSummary
-                                                    ?.takeIf { it.lineId == line.id && it.setterGrade != null && it.setterGrade != it.displayedGrade }
-                                                    ?.setterGrade
-                                            )
+                                                    shareScope, context, block, line, schoolName,
+                                                    tickedLines.toSet(), projectLines.toSet(), sectorName,
+                                                    orientationBadge = badge,
+                                                    setterGradeRef = setterRef
+                                                )
+                                            }
                                             }
                                             .padding(5.dp)
                                             .size(22.dp)
@@ -517,7 +523,22 @@ fun BlockDetailDialog(
                 onAddLines = onAddLines, availableSectors = availableSectors,
                 onOpenSectorPicker = if (onAssignSector != null) ({ showSectorPicker = true }) else null,
                 onEdit = onEdit,
-                onRequestDelete = if (onDelete != null) ({ showDeleteConfirm = true }) else null
+                onRequestDelete = if (onDelete != null) ({ showDeleteConfirm = true }) else null,
+                onShareBlock = {
+                    // N10: comparte la piedra entera usando su primera via como ancla
+                    // (la tarjeta ya lista TODAS las vias de la cara).
+                    block.lines.firstOrNull()?.let { first ->
+                        val blockSector = availableSectors
+                            ?.firstOrNull { z -> z.id == block.sectorBlockId }?.name
+                        shareScope.launch {
+                            val badge = orientationOf(null)?.consensus
+                                ?: communityVm.fetchOrientationConsensus(block.id)
+                            shareVia(shareScope, context, block, first, schoolName,
+                                tickedLines.toSet(), projectLines.toSet(), blockSector,
+                                orientationBadge = badge)
+                        }
+                    }
+                },
             )
         }
     }

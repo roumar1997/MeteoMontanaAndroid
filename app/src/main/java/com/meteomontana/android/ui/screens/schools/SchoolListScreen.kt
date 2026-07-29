@@ -187,6 +187,16 @@ fun SchoolListScreen(
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Busca escuelas, vías y bloques…") },
+                        trailingIcon = {
+                            // P8: X para limpiar de un toque (paridad iOS).
+                            if (filters.query.isNotEmpty()) {
+                                androidx.compose.material3.Icon(
+                                    Icons.Outlined.Close,
+                                    contentDescription = stringResource(R.string.common_close),
+                                    modifier = Modifier.clickable { viewModel.setQuery("") }
+                                )
+                            }
+                        },
                         singleLine = true,
                         shape = MaterialTheme.shapes.small,
                         colors = TextFieldDefaults.colors(
@@ -287,8 +297,16 @@ fun SchoolListScreen(
                                     // Mini-topo: la foto de la cara con la línea dibujada
                                     // (solo si el backend mandó foto; la piedra sale sin trazo).
                                     h.photoPath?.takeIf { it.isNotBlank() }?.let { photo ->
-                                        val stroke = com.meteomontana.android.ui.screens.topo
+                                        // P8: dedup de puntos consecutivos casi identicos — en
+                                        // trazos a mano antiguos los duplicados fusionaban los
+                                        // guiones y la linea salia CONTINUA solo aqui.
+                                        val rawStroke = com.meteomontana.android.ui.screens.topo
                                             .parseLineStroke(h.linePath)
+                                        val stroke = rawStroke.copy(points = rawStroke.points
+                                            .filterIndexed { i, pt ->
+                                                i == 0 || kotlin.math.abs(pt.x - rawStroke.points[i - 1].x) +
+                                                    kotlin.math.abs(pt.y - rawStroke.points[i - 1].y) > 0.004f
+                                            })
                                         val topoLines = if (stroke.points.size >= 2) listOf(
                                             com.meteomontana.android.ui.components.TopoLine(
                                                 name = h.lineName, grade = h.grade,

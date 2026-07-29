@@ -52,8 +52,11 @@ import com.meteomontana.android.ui.theme.Terra
 @Composable
 fun StatsScreen(
     onBack: () -> Unit,
+    /** N7: abrir el diario de una escuela concreta (vista de sectores). */
+    onOpenSchool: (String) -> Unit = {},
     viewModel: StatsViewModel = hiltViewModel()
 ) {
+    var showDaysList by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     var yearMenuOpen by remember { mutableStateOf(false) }
 
@@ -83,7 +86,8 @@ fun StatsScreen(
                                         ?: "MI DIARIO EN ROCA",
                                     disciplineLabel = if (state.discipline == "ROUTE") "VÍA" else "BLOQUE",
                                     summary = sum,
-                                    maxGrade = sum.pyramid.firstOrNull()?.first
+                                    maxGrade = sum.pyramid.firstOrNull()?.first,
+                                    progression = state.progression
                                 )
                             }
                         }.padding(Spacing.xs)
@@ -128,8 +132,36 @@ fun StatsScreen(
             val s = state.summary
             if (s != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    MetricCard("DÍAS DE ROCA", s.daysOut.toString(), Modifier.weight(1f))
+                    MetricCard("DÍAS DE ROCA ▾", s.daysOut.toString(),
+                        Modifier.weight(1f).clickable { showDaysList = true })
                     MetricCard("RACHA", "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
+                }
+                if (showDaysList) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showDaysList = false },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = { showDaysList = false }) {
+                                Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                            }
+                        },
+                        title = { Text("Tus días de roca", fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Bold) },
+                        text = {
+                            val days = remember { viewModel.daysWithCounts() }
+                            LazyColumn(Modifier.height(360.dp)) {
+                                items(days.size) { i ->
+                                    val (day, count) = days[i]
+                                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(day, style = MaterialTheme.typography.bodyMedium)
+                                        Text("$count ascensos",
+                                            style = EyebrowTextStyle.copy(fontSize = 10.sp),
+                                            color = Terra)
+                                    }
+                                }
+                            }
+                        }
+                    )
                 }
                 Spacer(Modifier.height(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -163,7 +195,12 @@ fun StatsScreen(
                 }
                 s.bestMonth?.let { bm ->
                     Spacer(Modifier.height(Spacing.sm))
-                    InfoCard("Tu mejor mes: ${formatMonth(bm)} (${s.bestMonthCount} ascensos).")
+                    // N7: pulsable — filtra las estadisticas a ESE mes.
+                    Box(Modifier.clickable {
+                        viewModel.setYear(bm.take(4)); viewModel.setMonth(bm.substringAfter('-'))
+                    }) {
+                        InfoCard("Tu mejor mes: ${formatMonth(bm)} (${s.bestMonthCount} ascensos). Toca para verlo ▾")
+                    }
                 }
                 Spacer(Modifier.height(Spacing.lg))
             }
@@ -218,7 +255,9 @@ fun StatsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 p.perSchool.take(8).forEach { (school, count, maxGrade) ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                    Row(Modifier.fillMaxWidth()
+                        .clickable { onOpenSchool(school) }
+                        .padding(vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(school, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface)

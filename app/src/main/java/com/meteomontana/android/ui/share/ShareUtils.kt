@@ -61,7 +61,7 @@ fun shareSchool(
 fun shareProfile(context: Context, handle: String, displayLabel: String) {
     val text = buildString {
         append("Perfil de $displayLabel en Cumbre:\n")
-        append("https://api.climbingteams.com/s/u/$handle")
+        append((com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/u/$handle")
     }
     shareText(context, text, "Compartir perfil")
 }
@@ -82,3 +82,14 @@ private fun formatShareDay(iso: String): String {
     val d = parts[2].toIntOrNull() ?: return iso
     return "$d ${months.getOrElse(mo - 1) { "?" }}"
 }
+
+/**
+ * P7: base de los enlaces compartidos SEGUN EL BUILD. El debug apunta a
+ * staging (donde viven tus datos de prueba); release sigue en prod. OJO:
+ * abrir la app directa desde el enlace (App Links) solo funciona con el
+ * dominio de prod — en staging se abre la landing web, que es lo esperado.
+ */
+fun shareBaseUrl(): String =
+    if (com.meteomontana.android.BuildConfig.DEBUG)
+        "https://meteomontanaapi-staging.up.railway.app"
+    else "https://api.climbingteams.com"

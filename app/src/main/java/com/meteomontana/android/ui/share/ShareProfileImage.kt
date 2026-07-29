@@ -63,7 +63,7 @@ suspend fun shareProfileAsImage(
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
     val text = "Perfil de $displayLabel en Cumbre:\n" +
-        "https://api.climbingteams.com/s/u/$handle"
+        (com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/u/$handle"
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)

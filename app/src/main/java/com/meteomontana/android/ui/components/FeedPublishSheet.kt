@@ -276,7 +276,10 @@ internal fun FeedPublishSheet(
             }
         ) { androidx.compose.material3.DatePicker(state = state) }
     }
+    // N5: abrir ENTERA (el boton 'Solo en mi diario' quedaba oculto).
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
     androidx.compose.material3.ModalBottomSheet(
+        sheetState = sheetState,
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.background
     ) {

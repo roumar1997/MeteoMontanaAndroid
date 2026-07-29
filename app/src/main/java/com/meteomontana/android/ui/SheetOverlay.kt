@@ -227,7 +227,10 @@ private fun SheetNavHost(
                     // C4: MIS ESTADISTICAS (piramide, racha, progresion).
                     composable(Routes.JOURNAL_STATS) {
                         com.meteomontana.android.ui.screens.profile.StatsScreen(
-                            onBack = popSheetOrDismiss
+                            onBack = popSheetOrDismiss,
+                            onOpenSchool = { school ->
+                                sheetNav.navigate(Routes.journalSectors(school))
+                            }
                         )
                     }
                     // "Mis publicaciones": feed propio en pantalla dedicada.

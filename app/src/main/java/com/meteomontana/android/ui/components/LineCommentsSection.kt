@@ -69,7 +69,9 @@ class LineCommentsViewModel @Inject constructor(
     private var loadedBlockId: String? = null
 
     fun load(blockId: String) {
-        if (loadedBlockId == blockId) return
+        // P4: recarga SIEMPRE al (re)abrir la ficha — el guard dejaba los
+        // comentarios rancios. El LaunchedEffect del hilo la dispara UNA vez
+        // por apertura, asi que no hay refetch en cada recomposicion.
         loadedBlockId = blockId
         viewModelScope.launch {
             runCatching { getComments(blockId) }
@@ -123,7 +125,7 @@ fun LineCommentsThread(
     title: String = "COMENTARIOS",
     viewModel: LineCommentsViewModel = hiltViewModel()
 ) {
-    viewModel.load(blockId)
+    androidx.compose.runtime.LaunchedEffect(blockId) { viewModel.load(blockId) }
     val all by viewModel.comments.collectAsStateWithLifecycle()
     // Moderación: denunciar comentarios ajenos (bandera) + ocultar al instante.
     val moderation: ModerationViewModel = hiltViewModel()

@@ -89,6 +89,18 @@ class CommunityVoteViewModel @Inject constructor(
         }
     }
 
+    /** N10: consenso de orientacion consultado EN EL MOMENTO de compartir
+     *  (best-effort). No depende de que el resumen ya estuviera cargado. */
+    suspend fun fetchOrientationConsensus(blockId: String): String? =
+        runCatching { getOrientation(blockId) }.getOrNull()
+            ?.firstOrNull { it.photoIndex == null }?.consensus
+
+    /** N10: grado del equipador si DIVERGE del mostrado (consulta directa). */
+    suspend fun fetchSetterGradeRef(lineId: String): String? =
+        runCatching { getGradeVotes(lineId) }.getOrNull()
+            ?.takeIf { it.setterGrade != null && it.setterGrade != it.displayedGrade }
+            ?.setterGrade
+
     fun clearForBlock() {
         _orientation.value = emptyList()
         _sun.value = emptyMap()

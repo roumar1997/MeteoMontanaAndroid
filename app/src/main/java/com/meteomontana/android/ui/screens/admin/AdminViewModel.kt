@@ -42,6 +42,8 @@ data class AdminUiState(
     val stats: AdminStats? = null,
     val pending: List<Submission> = emptyList(),
     val contributions: List<Contribution> = emptyList(),
+    /** P6: estado mostrado en PROPUESTAS (PENDING/APPROVED/REJECTED). */
+    val contributionsStatus: String = "PENDING",
     val logs: List<AdminLog> = emptyList(),
     val pushBusy: Boolean = false,
     val pushResult: String? = null,
@@ -86,6 +88,12 @@ class AdminViewModel @Inject constructor(
 
     init { load() }
 
+    /** P6: cambia el estado de PROPUESTAS y recarga. */
+    fun setContributionsStatus(status: String) {
+        _state.value = _state.value.copy(contributionsStatus = status)
+        load()
+    }
+
     fun load() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
@@ -94,7 +102,10 @@ class AdminViewModel @Inject constructor(
                 coroutineScope {
                     val statsD = async { getStats() }
                     val pendingD = async { runCatching { getPendingSubmissions() }.getOrDefault(emptyList()) }
-                    val contributionsD = async { runCatching { getPendingContributions() }.getOrDefault(emptyList()) }
+                    val contributionsD = async { runCatching {
+                        getPendingContributions(_state.value.contributionsStatus
+                            .takeIf { st -> st != "PENDING" })
+                    }.getOrDefault(emptyList()) }
                     val logsD = async { runCatching { getLogs() }.getOrDefault(emptyList()) }
                     val reportsD = async { runCatching { getPendingReportsUseCase() }.getOrDefault(emptyList()) }
                     val contentReportsD = async { runCatching { getContentReports() }.getOrDefault(emptyList()) }
