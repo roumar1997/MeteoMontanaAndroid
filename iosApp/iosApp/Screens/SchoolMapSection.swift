@@ -118,6 +118,9 @@ struct SchoolMapSection: View {
         .onAppear {
             if let v = openVia, !v.isEmpty, !didAutoOpen, !expanded { expanded = true }
         }
+        // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
+        // el auto-abrir del deep-link (antes se quedaba en la escuela a secas).
+        .onChange(of: vm.blocks.count) { _ in maybeAutoOpen() }
         // ¿Admin? → puede eliminar bloques desde su ficha.
         .task {
             await vm.loadAdminFlag()

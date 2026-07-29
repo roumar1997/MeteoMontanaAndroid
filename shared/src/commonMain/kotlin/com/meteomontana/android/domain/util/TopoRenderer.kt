@@ -121,6 +121,67 @@ fun simplifyStroke(
 }
 
 /**
+ * QUITA EL SOBRE-TRAZADO de trazos antiguos: algunos linePath del editor viejo
+ * recorren la MISMA línea varias veces (ida, vuelta entera, ida — «La ola»:
+ * 263 puntos, 3 pasadas). Varias pasadas discontinuas superpuestas con fases
+ * distintas se tapan los huecos unas a otras → la línea SE VE continua (y el
+ * canvas pinta 3× de más). Detección: se parte el trazo en tramos monótonos
+ * sobre el eje dominante; si hay varias pasadas (recorrido ≥1.6× el ancho
+ * real) y la más larga cubre ≥80% del ancho, nos quedamos SOLO con esa pasada
+ * (la limpia). Trazos normales (una pasada, zigzags reales) salen intactos.
+ */
+fun dropRetrace(points: List<Pair<Float, Float>>): List<Pair<Float, Float>> {
+    if (points.size < 8) return points
+    val xs = points.map { it.first }
+    val ys = points.map { it.second }
+    val spanX = (xs.max() - xs.min())
+    val spanY = (ys.max() - ys.min())
+    val horizontal = spanX >= spanY
+    val span = if (horizontal) spanX else spanY
+    if (span < 1e-6f) return points
+    fun axis(p: Pair<Float, Float>) = if (horizontal) p.first else p.second
+
+    // Recorrido total sobre el eje dominante: si ~= span, no hay sobre-trazado.
+    var travelled = 0f
+    for (i in 0 until points.size - 1) {
+        travelled += kotlin.math.abs(axis(points[i + 1]) - axis(points[i]))
+    }
+    if (travelled < span * 1.6f) return points
+
+    // Tramos monótonos con tolerancia al temblor (reversa < 1% no corta).
+    val tol = 0.01f
+    val runs = mutableListOf<Pair<Int, Int>>()   // [desde, hasta] inclusive
+    var runStart = 0
+    var dir = 0                                   // +1/-1; 0 = aún sin decidir
+    var reversal = 0f
+    var reversalStart = -1
+    for (i in 0 until points.size - 1) {
+        val step = axis(points[i + 1]) - axis(points[i])
+        if (dir == 0 && kotlin.math.abs(step) > 1e-6f) {
+            dir = if (step > 0) 1 else -1
+        } else if (dir != 0 && step * dir < 0) {
+            if (reversalStart < 0) reversalStart = i
+            reversal += kotlin.math.abs(step)
+            if (reversal > tol) {                 // reversa real: cerrar tramo
+                runs.add(runStart to reversalStart)
+                runStart = reversalStart
+                dir = -dir
+                reversal = 0f; reversalStart = -1
+            }
+        } else {
+            reversal = 0f; reversalStart = -1
+        }
+    }
+    runs.add(runStart to points.size - 1)
+    if (runs.size < 2) return points
+
+    val best = runs.maxBy { (a, b) -> kotlin.math.abs(axis(points[b]) - axis(points[a])) }
+    val bestSpan = kotlin.math.abs(axis(points[best.second]) - axis(points[best.first]))
+    if (bestSpan < span * 0.8f) return points     // ninguna pasada domina: no tocar
+    return points.subList(best.first, best.second + 1).toList()
+}
+
+/**
  * ABANICO de badges: cuando varias vías empiezan/acaban en el MISMO punto,
  * sus badges se despliegan lado a lado en vez de apilarse. Devuelve, para
  * cada vía, el desplazamiento X en px de su badge (0 si no hay coincidencia).
@@ -250,6 +311,10 @@ fun renderTopo(
     // una vía posterior tapa los badges de las anteriores (feedback Rodrigo:
     // el "PIE" verde quedaba debajo de la travesía morada).
     val badgeOps = mutableListOf<DrawOp>()
+    // Trazos antiguos con varias pasadas superpuestas → solo la pasada limpia
+    // (si no, los guiones se rellenan entre pasadas y la línea sale continua).
+    @Suppress("NAME_SHADOWING")
+    val lines = lines.map { it.copy(points = dropRetrace(it.points)) }
     // Tramos compartidos: segmento → vías que lo comparten (franjas alternas).
     val shared = sharedSegmentLines(lines)
     // Abanico de badges: cuando varios inicios/finales coinciden en el mismo

@@ -81,7 +81,13 @@ enum TopoPainter {
     /// TODOS los trazos, luego TODOS los badges (si no, la línea de una vía
     /// posterior taparía los badges de las anteriores).
     static func paint(_ target: TopoDrawTarget, vias: [TopoVia], size: CGSize, style: TopoStyle) {
-        let solid = vias.filter { !$0.points.isEmpty }
+        // Trazos antiguos con pasadas superpuestas: solo la pasada limpia (si
+        // no, los guiones se rellenan entre pasadas y la línea sale continua).
+        let cleaned = vias.map {
+            TopoVia(number: $0.number, grade: $0.grade, startType: $0.startType,
+                    points: TopoShared.dropRetrace($0.points), lineWidth: $0.lineWidth)
+        }
+        let solid = cleaned.filter { !$0.points.isEmpty }
         guard !solid.isEmpty else { return }
         let shared = TopoShared.sharedSegmentLines(solid.map { $0.points })
         let startFan = TopoShared.fanOffsets(solid.map { $0.points.first }, spacing: style.fanStartSpacing)
