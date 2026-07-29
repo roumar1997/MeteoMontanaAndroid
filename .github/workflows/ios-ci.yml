@@ -123,13 +123,18 @@ jobs:
       - name: Build (iphoneos, sin firma)
         run: |
           chmod +x gradlew
+          # Release para velocidad real de SwiftUI, pero apuntando a STAGING:
+          # se activa el flag en codigo (el override de compilation conditions
+          # por linea de comandos rompia los paquetes SPM de Firebase).
+          sed -i '' 's/static let ciStaging = false/static let ciStaging = true/' iosApp/iosApp/DI/AppDependencies.swift
+          grep -q "ciStaging = true" iosApp/iosApp/DI/AppDependencies.swift
           xcodebuild \
             -project iosApp/MeteoMontana.xcodeproj \
             -scheme MeteoMontana \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
-            SWIFT_ACTIVE_COMPILATION_CONDITIONS=STAGING \
+\
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \

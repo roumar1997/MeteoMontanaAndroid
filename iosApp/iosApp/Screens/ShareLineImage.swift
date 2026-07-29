@@ -309,10 +309,12 @@ enum ShareLineImage {
 /// (Universal Links) solo funciona con el dominio de prod.
 enum ShareBase {
     static var url: String {
-        #if DEBUG || STAGING
+        #if DEBUG
         return "https://meteomontanaapi-staging.up.railway.app"
         #else
-        return "https://api.climbingteams.com"
+        return BuildFlags.ciStaging
+            ? "https://meteomontanaapi-staging.up.railway.app"
+            : "https://api.climbingteams.com"
         #endif
     }
 }
