@@ -220,8 +220,8 @@ private fun SheetNavHost(
                             onOpenAllSchools = { sheetNav.navigate(Routes.journalSchools(null)) },
                             onOpenMaxGrade = { sheetNav.navigate(Routes.journalEntries("grade-max")) },
                             onOpenProjects = { sheetNav.navigate(Routes.projects(null)) },
-                            onOpenMyPosts = { sheetNav.navigate(Routes.MY_POSTS) },
-                            onOpenStats = { sheetNav.navigate(Routes.JOURNAL_STATS) }
+                            onOpenMyPosts = { sheetNav.navigate(Routes.myPosts()) },
+                            onOpenStats = { sheetNav.navigate(Routes.journalStats()) }
                         )
                     }
                     // C4: MIS ESTADISTICAS (piramide, racha, progresion).
@@ -243,9 +243,16 @@ private fun SheetNavHost(
                         )
                     }
                     // "Mis publicaciones": feed propio en pantalla dedicada.
-                    composable(Routes.MY_POSTS) {
+                    composable(
+                        Routes.MY_POSTS,
+                        arguments = listOf(androidx.navigation.navArgument("uid") {
+                            type = androidx.navigation.NavType.StringType
+                            nullable = true; defaultValue = null
+                        })
+                    ) { entry ->
                         com.meteomontana.android.ui.screens.community.MyPostsScreen(
                             onBack = popSheetOrDismiss,
+                            ownProfile = entry.arguments?.getString("uid").isNullOrBlank(),
                             onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             onOpenSchool = { schoolId, lineId, lineName, blockId ->
                                 sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId, blockId = blockId))
@@ -371,6 +378,7 @@ private fun SheetNavHost(
                             onOpenSchoolEntries = { uid, schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName, uid)) },
                             onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) },
                             onOpenStats = { uid -> sheetNav.navigate(Routes.journalStats(uid)) },
+                            onOpenPosts = { uid -> sheetNav.navigate(Routes.myPosts(uid)) },
                             // Sección Publicaciones (feed) del perfil:
                             onOpenUserProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             onOpenFeedSchool = { schoolId, lineId, lineName, blockId ->

@@ -97,7 +97,10 @@ object Routes {
     fun feedPost(postId: String) = "feed/$postId"
 
     // "Mis publicaciones": pantalla dedicada con el feed propio (scope=mine).
-    const val MY_POSTS = "profile/my-posts"
+    const val MY_POSTS = "profile/my-posts?uid={uid}"
+    /** H: publicaciones propias (uid=null) o de OTRO usuario. */
+    fun myPosts(uid: String? = null): String =
+        "profile/my-posts" + (uid?.let { "?uid=" + android.net.Uri.encode(it) } ?: "")
 
     const val MEETUP_DETAIL = "meetups/{meetupId}"
     fun meetupDetail(id: String) = "meetups/$id"

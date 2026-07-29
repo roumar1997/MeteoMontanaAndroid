@@ -238,23 +238,13 @@ struct PublicProfileView: View {
                     if let st = vm.stats {
                         Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                         Text("DIARIO").eyebrow().frame(maxWidth: .infinity, alignment: .leading)
-                        JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo, projectsUid: uid)
-                        // G: sus estadísticas completas (pirámide, racha,
-                        // progresión) — misma pantalla que las tuyas.
-                        NavigationLink(destination: StatsView(uid: uid)) {
-                            Text("VER ESTADÍSTICAS ▸")
-                                .font(Cumbre.mono(10, .bold)).tracking(1.2)
-                                .foregroundStyle(Cumbre.terra)
-                                .padding(.vertical, 6)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .buttonStyle(.plain)
+                        // H: incluye las celdas ESTADÍSTICAS y PUBLICACIONES
+                        // (pulsables, como el resto del perfil).
+                        JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo,
+                                        projectsUid: uid, showStatsAndPosts: true)
                     }
-                    // Publicaciones del usuario en el feed Comunidad
-                    // (scope=user; el backend devuelve vacío si es privado
-                    // y no le sigues). Paridad con PublicProfileScreen.kt.
-                    UserFeedSection(uid: uid)
-                        .padding(.top, 16)
+                    // H: las publicaciones ya NO van inline — se abren desde
+                    // la celda PUBLICACIONES (igual que en el perfil propio).
                 }
             }
             .frame(maxWidth: .infinity)

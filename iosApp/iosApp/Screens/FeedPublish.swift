@@ -123,6 +123,8 @@ struct FeedPublishSheet: View {
                 .presentationDetents([.medium])
             }
 
+            // Aire tras los chips de fecha: iban pegados al campo (feedback).
+            Spacer().frame(height: 6)
             TextField("Añade una descripción (opcional)", text: $caption, axis: .vertical)
                 .lineLimit(2...4)
                 .font(.system(size: 14))

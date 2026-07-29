@@ -261,16 +261,18 @@ struct UserFeedSection: View {
 /// UserFeedSection; se abre desde la fila del perfil. Espejo de
 /// MyPostsScreen.kt de Android.
 struct MyPostsView: View {
+    /// H: nil = las mías; uid = las de OTRO usuario (misma pantalla).
+    var uid: String? = nil
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                UserFeedSection(uid: nil, ownProfile: true, showTitle: false)
+                UserFeedSection(uid: uid, ownProfile: uid == nil, showTitle: false)
             }
             .padding(.horizontal, 16).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle("Mis publicaciones")
+        .navigationTitle(uid == nil ? "Mis publicaciones" : "Publicaciones")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

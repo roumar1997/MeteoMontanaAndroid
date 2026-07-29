@@ -109,33 +109,6 @@ struct JournalView: View {
                         }
                         .buttonStyle(.plain).padding(16)
                         Divider().overlay(Cumbre.rule)
-                        // G: chips de grado (paleta de topos) para filtrar.
-                        if vm.availableGrades.count > 1 {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 6) {
-                                    ForEach(vm.availableGrades, id: \.self) { g in
-                                        let st = GradeColor.style(g)
-                                        let accent = st.dark ? Cumbre.ink : st.stroke
-                                        let active = vm.gradeFilter == g
-                                        Button {
-                                            vm.gradeFilter = active ? nil : g
-                                            vm.regroup()
-                                        } label: {
-                                            Text(g).font(.system(size: 12, weight: .bold))
-                                                .foregroundStyle(active ? .white : accent)
-                                                .padding(.horizontal, 10).padding(.vertical, 5)
-                                                .background(RoundedRectangle(cornerRadius: 6)
-                                                    .fill(active ? accent : Cumbre.paper))
-                                                .overlay(RoundedRectangle(cornerRadius: 6)
-                                                    .stroke(accent, lineWidth: 1))
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .padding(.horizontal, 16)
-                            }
-                            .padding(.vertical, 4)
-                        }
                         if vm.entries.isEmpty {
                             Text("Aún no has registrado bloques.")
                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(32)
@@ -802,11 +775,48 @@ struct JournalBlocksListView: View {
     var viaInfo: [String: ViaCatalogInfo] = [:]
     /// nil = todos · false = solo bloques (BOULDER) · true = solo vías (ROUTE).
     var routeOnly: Bool? = nil
-    private var shown: [JournalSession] {
+    /// G: filtro por grado (chips con la paleta de topos).
+    @State private var gradeFilter: String? = nil
+    private var byDiscipline: [JournalSession] {
         guard let r = routeOnly else { return entries }
         return entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
     }
+    private var shown: [JournalSession] {
+        guard let g = gradeFilter else { return byDiscipline }
+        return byDiscipline.filter { $0.grade?.lowercased() == g }
+    }
+    private var availableGrades: [String] {
+        let calc = JournalStatsCalculator.shared
+        return Set(byDiscipline.compactMap {
+            $0.grade?.trimmingCharacters(in: .whitespaces).lowercased()
+        }.filter { !$0.isEmpty })
+            .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
+    }
     var body: some View {
+        VStack(spacing: 0) {
+        if availableGrades.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(availableGrades, id: \.self) { g in
+                        let st = GradeColor.style(g)
+                        let accent = st.dark ? Cumbre.ink : st.stroke
+                        let active = gradeFilter == g
+                        Button { gradeFilter = active ? nil : g } label: {
+                            Text(g).font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(active ? .white : accent)
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(RoundedRectangle(cornerRadius: 6)
+                                    .fill(active ? accent : Cumbre.paper))
+                                .overlay(RoundedRectangle(cornerRadius: 6)
+                                    .stroke(accent, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .padding(.vertical, 8)
+        }
         Group {
             if shown.isEmpty {
                 Text(routeOnly == true ? "Sin vías registradas." : "Sin bloques registrados.")
@@ -823,6 +833,7 @@ struct JournalBlocksListView: View {
                 }
             }
         }
+        }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -838,6 +849,9 @@ struct JournalStatsNav: View {
     /// Si se indica, "PROYECTOS" navega a los proyectos de ESE usuario (perfil
     /// público); si es nil, a los proyectos propios.
     var projectsUid: String? = nil
+    /// H: en el perfil AJENO se añaden las celdas ESTADÍSTICAS y
+    /// PUBLICACIONES (en el propio ya viven en su pantalla de cuenta).
+    var showStatsAndPosts: Bool = false
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
@@ -860,6 +874,16 @@ struct JournalStatsNav: View {
             NavigationLink(destination: ProjectsView(uid: projectsUid)) {
                 cell("\(stats.projectCount)", "PROYECTOS")
             }.buttonStyle(.plain)
+            if showStatsAndPosts {
+                HStack(spacing: 8) {
+                    NavigationLink(destination: StatsView(uid: projectsUid)) {
+                        cell("\u25b8", "ESTAD\u00cdSTICAS")
+                    }.buttonStyle(.plain)
+                    NavigationLink(destination: MyPostsView(uid: projectsUid)) {
+                        cell("\u25b8", "PUBLICACIONES")
+                    }.buttonStyle(.plain)
+                }
+            }
         }
     }
     private func cell(_ v: String, _ l: String) -> some View {
