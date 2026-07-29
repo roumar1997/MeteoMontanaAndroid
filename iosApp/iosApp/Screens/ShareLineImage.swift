@@ -24,8 +24,16 @@ enum ShareLineImage {
     /// Punto de entrada: compone la imagen (o cae a texto) y presenta el share sheet.
     static func share(block: Block, line: BlockLine, schoolName: String?,
                       tickedIds: Set<String> = [], projectIds: Set<String> = [],
-                      sectorName: String? = nil) async {
-        if let image = await renderCard(block: block, line: line, schoolName: schoolName,
+                      sectorName: String? = nil,
+                      orientationBadge: String? = nil,
+                      setterGradeRef: String? = nil) async {
+        // C6: escuela + pared votada + grado del equipador si diverge.
+        let subtitleBits = [schoolName,
+                            orientationBadge.map { "PARED " + $0 },
+                            setterGradeRef.map { "equipador: " + $0 }]
+            .compactMap { $0 }.filter { !$0.isEmpty }
+        let headerSchool = subtitleBits.isEmpty ? schoolName : subtitleBits.joined(separator: "  ·  ")
+        if let image = await renderCard(block: block, line: line, schoolName: headerSchool,
                                         tickedIds: tickedIds, projectIds: projectIds) {
             let text = shareLineText(block: block, line: line, schoolName: schoolName,
                                      sectorName: sectorName, appWording: true)

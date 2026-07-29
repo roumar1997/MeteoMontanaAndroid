@@ -139,6 +139,24 @@ struct StatsView: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle("Mis estadísticas")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // C6: compartir como imagen (formato historia, estilo Wrapped).
+            if let sum = store.summary {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task {
+                            await ShareStatsImage.share(
+                                periodLabel: store.year.map { "MI \($0) EN ROCA" } ?? "MI DIARIO EN ROCA",
+                                disciplineLabel: store.discipline == "ROUTE" ? "VÍA" : "BLOQUE",
+                                summary: sum,
+                                maxGrade: (sum.pyramid.first?.first).map { $0 as String })
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.terra)
+                    }
+                }
+            }
+        }
         .task { await store.load() }
     }
 

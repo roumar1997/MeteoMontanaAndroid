@@ -32,7 +32,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Share
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator
 import com.meteomontana.android.ui.components.VotableChip
@@ -59,10 +62,33 @@ fun StatsScreen(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md)
     ) {
         item {
+            val shareCtx = androidx.compose.ui.platform.LocalContext.current
+            val shareScope = androidx.compose.runtime.rememberCoroutineScope()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("‹", fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.clickable(onClick = onBack).padding(end = Spacing.sm))
                 Text("MIS ESTADÍSTICAS", style = EyebrowTextStyle, color = Terra)
+                Spacer(Modifier.weight(1f))
+                // C6: compartir como imagen (formato historia, estilo Wrapped).
+                state.summary?.let { sum ->
+                    androidx.compose.material3.Icon(
+                        Icons.Outlined.Share,
+                        contentDescription = "Compartir estadísticas",
+                        tint = Terra,
+                        modifier = Modifier.clickable {
+                            shareScope.launch {
+                                com.meteomontana.android.ui.share.shareStatsAsImage(
+                                    context = shareCtx,
+                                    periodLabel = state.year?.let { y -> "MI $y EN ROCA" }
+                                        ?: "MI DIARIO EN ROCA",
+                                    disciplineLabel = if (state.discipline == "ROUTE") "VÍA" else "BLOQUE",
+                                    summary = sum,
+                                    maxGrade = sum.pyramid.firstOrNull()?.first
+                                )
+                            }
+                        }.padding(Spacing.xs)
+                    )
+                }
             }
             Spacer(Modifier.height(Spacing.md))
 

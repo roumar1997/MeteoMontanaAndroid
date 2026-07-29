@@ -56,7 +56,11 @@ suspend fun shareLineAsImage(
     schoolName: String,
     tickedIds: Set<String> = emptySet(),
     projectIds: Set<String> = emptySet(),
-    sectorName: String? = null
+    sectorName: String? = null,
+    /** C6: consenso de orientacion de la pared ("SO") para el badge. */
+    orientationBadge: String? = null,
+    /** C6: grado del equipador cuando DIVERGE del consenso mostrado. */
+    setterGradeRef: String? = null
 ): Boolean {
     // 1. Localiza la cara (foto + líneas) a la que pertenece esta vía.
     val face = block.facesOrDerived().firstOrNull { f -> f.lines.any { it.id == line.id } }
@@ -78,7 +82,7 @@ suspend fun shareLineAsImage(
     val photoBmp = (result as? SuccessResult)?.drawable?.toBitmap() ?: return false
 
     // 3. Compón la imagen y compártela.
-    val bmp = renderLineCard(block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds)
+    val bmp = renderLineCard(block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds, orientationBadge, setterGradeRef)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
     dir.listFiles()?.filter { it.name.startsWith("via") }?.forEach { it.delete() }
@@ -138,7 +142,9 @@ private fun renderLineCard(
     lines: List<BlockLine>,
     photo: Bitmap,
     tickedIds: Set<String>,
-    projectIds: Set<String>
+    projectIds: Set<String>,
+    orientationBadge: String?,
+    setterGradeRef: String?
 ): Bitmap {
     val w = 1080
     val h = 1920
@@ -177,10 +183,15 @@ private fun renderLineCard(
         y += 86f
     }
 
-    // Escuela.
-    if (schoolName.isNotBlank()) {
+    // Escuela + orientacion votada (C6) + grado del equipador si diverge.
+    val subtitleBits = buildList {
+        if (schoolName.isNotBlank()) add(schoolName)
+        orientationBadge?.let { add("PARED " + it) }
+        setterGradeRef?.let { add("equipador: " + it) }
+    }
+    if (subtitleBits.isNotEmpty()) {
         c.drawText(
-            schoolName, pad, y - 4f,
+            subtitleBits.joinToString("  ·  "), pad, y - 4f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 38f }
         )
         y += 44f

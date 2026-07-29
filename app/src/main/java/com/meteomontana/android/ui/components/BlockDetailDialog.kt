@@ -370,7 +370,14 @@ fun BlockDetailDialog(
                                             .clickable {
                                                 val sectorName = availableSectors
                                                     ?.firstOrNull { it.id == block.sectorBlockId }?.name
-                                                shareVia(shareScope, context, block, line, schoolName, tickedLines.toSet(), projectLines.toSet(), sectorName)
+                                                shareVia(
+                                                shareScope, context, block, line, schoolName,
+                                                tickedLines.toSet(), projectLines.toSet(), sectorName,
+                                                orientationBadge = orientationOf(null)?.consensus,
+                                                setterGradeRef = gradeSummary
+                                                    ?.takeIf { it.lineId == line.id && it.setterGrade != null && it.setterGrade != it.displayedGrade }
+                                                    ?.setterGrade
+                                            )
                                             }
                                             .padding(5.dp)
                                             .size(22.dp)

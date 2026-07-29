@@ -224,12 +224,15 @@ internal fun shareVia(
     schoolName: String,
     tickedIds: Set<String>,
     projectIds: Set<String>,
-    sectorName: String?
+    sectorName: String?,
+    orientationBadge: String? = null,
+    setterGradeRef: String? = null
 ) {
     scope.launch {
         val shared = runCatching {
             com.meteomontana.android.ui.share.shareLineAsImage(
-                context, block, line, schoolName, tickedIds, projectIds, sectorName
+                context, block, line, schoolName, tickedIds, projectIds, sectorName,
+                orientationBadge, setterGradeRef
             )
         }.getOrDefault(false)
         if (!shared) shareLine(context, block, line, schoolName, sectorName)
