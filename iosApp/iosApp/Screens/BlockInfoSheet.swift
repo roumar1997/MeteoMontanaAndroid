@@ -163,14 +163,18 @@ struct BlockInfoSheet: View {
                                         // foto/dibujo cae al texto (espejo de Android).
                                         Button {
                                             Task {
+                                                // await no puede vivir en el autoclosure de ?? -> lets explicitos.
+                                                var badge = community.summaryFor(nil)?.consensus
+                                                if badge == nil {
+                                                    badge = (try? await AppDependencies.shared.container
+                                                        .getOrientation.invoke(blockId: block.id))?
+                                                        .first(where: { $0.photoIndex == nil })?.consensus
+                                                }
                                                 await ShareLineImage.share(
                                                     block: block, line: l, schoolName: schoolName,
                                                     tickedIds: tickedLines, projectIds: projectLines,
                                                     sectorName: sectorName,
-                                                    orientationBadge: community.summaryFor(nil)?.consensus
-                                                        ?? (try? await AppDependencies.shared.container
-                                                            .getOrientation.invoke(blockId: block.id))?
-                                                            .first(where: { $0.photoIndex == nil })?.consensus,
+                                                    orientationBadge: badge,
                                                     setterGradeRef: {
                                                         guard let g = community.grade,
                                                               g.lineId == l.id,
@@ -262,10 +266,12 @@ struct BlockInfoSheet: View {
                     if block.type.uppercased() == "BLOCK", let firstLine = block.lines.first {
                         Button {
                             Task {
-                                let badge = community.summaryFor(nil)?.consensus
-                                    ?? (try? await AppDependencies.shared.container
+                                var badge = community.summaryFor(nil)?.consensus
+                                if badge == nil {
+                                    badge = (try? await AppDependencies.shared.container
                                         .getOrientation.invoke(blockId: block.id))?
                                         .first(where: { $0.photoIndex == nil })?.consensus
+                                }
                                 await ShareLineImage.share(
                                     block: block, line: firstLine, schoolName: schoolName,
                                     tickedIds: tickedLines, projectIds: projectLines,

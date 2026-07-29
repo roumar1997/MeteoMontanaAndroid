@@ -149,7 +149,7 @@ final class AccountViewModel: ObservableObject {
             // marcar el acceso al panel con un aviso.
             if p.isAdmin {
                 let subs = (try? await getPendingSubmissions.invoke())?.count ?? 0
-                let contribs = (try? await getPendingContributions.invoke())?.count ?? 0
+                let contribs = (try? await getPendingContributions.invoke(status: nil))?.count ?? 0
                 pendingReview = subs + contribs
             } else {
                 pendingReview = 0
