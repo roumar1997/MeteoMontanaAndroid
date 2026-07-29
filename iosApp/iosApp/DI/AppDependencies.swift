@@ -9,7 +9,10 @@ import Shared
 /// los usuarios reales.
 enum AppConfig {
     static let apiBaseUrl: String = {
-        #if DEBUG
+        // STAGING: el .ipa del CI compila RELEASE (velocidad real de
+        // SwiftUI — los watchdog 0x8BADF00D eran el build Debug sin optimizar)
+        // pero sigue apuntando a staging via este flag.
+        #if DEBUG || STAGING
         return "https://meteomontanaapi-staging.up.railway.app/api/"
         #else
         return "https://api.climbingteams.com/api/"

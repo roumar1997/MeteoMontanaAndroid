@@ -18,6 +18,8 @@ struct StatsView: View {
         var id: String { schoolId + "|" + via }
     }
     @State private var statsNav: StatsNav? = nil
+    // Día desplegado en la hoja de días de roca.
+    @State private var expandedDay: String? = nil
     // Escuela desplegada inline en TUS ESCUELAS (nil = ninguna).
     @State private var expandedSchool: String? = nil
 
@@ -232,18 +234,41 @@ struct StatsView: View {
             SchoolLoaderView(schoolId: nav.schoolId, openVia: nav.via)
         }
         .sheet(isPresented: $showDaysList) {
+            // Día pulsable → sus ascensos (pulsables → su piedra, cerrando
+            // la hoja y navegando en la pila principal, como la pirámide).
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("TUS DÍAS DE ROCA").font(Cumbre.mono(11, .bold)).tracking(1)
                         .foregroundStyle(Cumbre.terra).padding(.bottom, 8)
                     ForEach(store.daysWithCounts(), id: \.0) { day, count in
-                        HStack {
-                            Text(day).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                            Spacer()
-                            Text("\(count) ascensos").font(Cumbre.mono(10, .bold))
-                                .foregroundStyle(Cumbre.terra)
+                        Button { expandedDay = expandedDay == day ? nil : day } label: {
+                            HStack {
+                                Text(day).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                Spacer()
+                                Text("\(count) ascensos" + (expandedDay == day ? " ▴" : " ▾"))
+                                    .font(Cumbre.mono(10, .bold))
+                                    .foregroundStyle(Cumbre.terra)
+                            }
+                            .padding(.vertical, 6)
+                            .contentShape(Rectangle())
                         }
-                        .padding(.vertical, 6)
+                        .buttonStyle(.plain)
+                        if expandedDay == day {
+                            ForEach(Array(store.entriesForDay(day).enumerated()),
+                                    id: \.offset) { _, e in
+                                if let sid = e.schoolId {
+                                    Button {
+                                        showDaysList = false
+                                        statsNav = StatsNav(schoolId: sid, via: e.blockName)
+                                    } label: {
+                                        dayEntryRow(e, navigable: true)
+                                    }
+                                    .buttonStyle(.plain)
+                                } else {
+                                    dayEntryRow(e, navigable: false)
+                                }
+                            }
+                        }
                         Divider().overlay(Cumbre.rule)
                     }
                 }
@@ -291,6 +316,18 @@ struct StatsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 8)
+        .contentShape(Rectangle())
+    }
+
+    private func dayEntryRow(_ e: JournalSession, navigable: Bool) -> some View {
+        HStack {
+            Text(e.blockName).font(.system(size: 13)).foregroundStyle(Cumbre.ink)
+                .padding(.leading, 16)
+            Spacer()
+            Text((e.grade ?? "—") + (navigable ? " ▸" : ""))
+                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+        }
+        .padding(.vertical, 5)
         .contentShape(Rectangle())
     }
 
@@ -401,6 +438,11 @@ final class StatsStore: ObservableObject {
     func entriesForSchool(_ school: String) -> [JournalSession] {
         JournalStatsCalculator.shared.entriesForSchool(
             entries: filteredEntries(), school: school)
+    }
+
+    /** Un día de roca pulsado: qué ascensos hiciste ESE día. */
+    func entriesForDay(_ day: String) -> [JournalSession] {
+        filteredEntries().filter { $0.date == day }
     }
 
     /** Fila de la pirámide: vías de ESE grado (únicas, recientes primero). */

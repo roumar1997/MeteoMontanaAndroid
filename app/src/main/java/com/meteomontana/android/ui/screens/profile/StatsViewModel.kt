@@ -54,6 +54,10 @@ class StatsViewModel @Inject constructor(
         currentFiltered().groupingBy { it.date }.eachCount()
             .toList().sortedByDescending { it.first }
 
+    /** Un día de roca pulsado: qué ascensos hiciste ESE día. */
+    fun entriesForDay(date: String): List<JournalSession> =
+        currentFiltered().filter { it.date == date }
+
     /** Fila de la pirámide pulsable: vías de ESE grado (únicas, recientes primero). */
     fun entriesForGrade(grade: String): List<JournalSession> =
         JournalStatsCalculator.entriesForGrade(currentFiltered(), grade)

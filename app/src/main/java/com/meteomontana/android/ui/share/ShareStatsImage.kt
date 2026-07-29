@@ -212,13 +212,6 @@ private fun renderStatsCard(
         }
     }
 
-    // ── Pie ─────────────────────────────────────────────────────────────────
-    c.drawText("Descarga Cumbre", cx, h - 200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = INK; textSize = 44f; textAlign = Paint.Align.CENTER
-    })
-    c.drawText("⛰ CUMBRE", cx, h - 110f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = TERRA; textSize = 40f; typeface = mono
-        letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
-    })
+    // (Sin pie «Descarga Cumbre»/emblema — fuera a petición de Rodrigo.)
     return bmp
 }

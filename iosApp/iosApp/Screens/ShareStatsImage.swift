@@ -17,7 +17,15 @@ enum ShareStatsImage {
             guard let scene = UIApplication.shared.connectedScenes
                 .compactMap({ $0 as? UIWindowScene }).first,
                   let root = scene.keyWindow?.rootViewController else { return }
-            let vc = UIActivityViewController(activityItems: [image, text],
+            // PNG temporal (no UIImage directa): el share sheet recomprime
+            // las UIImage a JPEG y salían borrosas.
+            var shareItem: Any = image
+            if let data = image.pngData() {
+                let url = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("cumbre-stats-\(Int.random(in: 100000...999999)).png")
+                if (try? data.write(to: url)) != nil { shareItem = url }
+            }
+            let vc = UIActivityViewController(activityItems: [shareItem, text],
                                               applicationActivities: nil)
             var top = root
             while let presented = top.presentedViewController { top = presented }

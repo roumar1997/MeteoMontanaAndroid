@@ -126,9 +126,10 @@ jobs:
           xcodebuild \
             -project iosApp/MeteoMontana.xcodeproj \
             -scheme MeteoMontana \
-            -configuration Debug \
+            -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS=STAGING \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -138,7 +139,7 @@ jobs:
       # Sideloadly lo firma con tu Apple ID al instalar.
       - name: Empaquetar .ipa sin firmar
         run: |
-          APP=$(find build/Build/Products/Debug-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
           echo "App: $APP"
           mkdir -p Payload
           cp -R "$APP" Payload/

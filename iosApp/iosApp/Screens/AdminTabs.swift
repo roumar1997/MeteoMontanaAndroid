@@ -55,13 +55,12 @@ struct AdminStatsTab: View {
                             ForEach(list, id: \.id) { n in
                                 // P6: la nota abre su ESCUELA.
                                 Group {
-                                    if let sid = n.schoolId, !sid.isEmpty {
-                                        NavigationLink(destination: SchoolLoaderView(schoolId: sid)) {
-                                            adminNoteRow(n)
-                                        }.buttonStyle(.plain)
-                                    } else {
+                                    // R12: la nota abre su DETALLE (texto
+                                    // entero + VER ESCUELA), no la escuela a
+                                    // secas donde no se veía la nota.
+                                    NavigationLink(destination: AdminNoteDetailView(note: n)) {
                                         adminNoteRow(n)
-                                    }
+                                    }.buttonStyle(.plain)
                                 }
                                 Divider().overlay(Cumbre.rule)
                             }
@@ -251,4 +250,37 @@ fileprivate func adminNoteRow(_ n: AdminNoteRow) -> some View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .contentShape(Rectangle())
     .padding(.vertical, 8)
+}
+
+
+/// R12: detalle de una nota del panel admin — se LEE entera y desde aquí
+/// se salta a su escuela si hace falta.
+struct AdminNoteDetailView: View {
+    let note: AdminNoteRow
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("NOTA").font(Cumbre.mono(10, .bold)).tracking(1.5)
+                    .foregroundStyle(Cumbre.terra)
+                Text(note.text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                Text([note.author, note.schoolId,
+                      (note.createdAt ?? "").isEmpty ? nil : String((note.createdAt ?? "").prefix(10))]
+                        .compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                if let sid = note.schoolId, !sid.isEmpty {
+                    NavigationLink(destination: SchoolLoaderView(schoolId: sid)) {
+                        Text("VER ESCUELA ▸").font(Cumbre.mono(10, .bold)).tracking(1)
+                            .foregroundStyle(Cumbre.terra)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle("Nota")
+        .navigationBarTitleDisplayMode(.inline)
+    }
 }

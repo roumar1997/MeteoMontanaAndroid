@@ -310,13 +310,6 @@ private fun renderLineCard(
     })
 
     // ── Pie de marca ────────────────────────────────────────────────────────
-    c.drawText(
-        "⛰ CUMBRE", w - pad, h - 56f,
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = TERRA; textSize = 34f; typeface = Typeface.MONOSPACE
-            letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.RIGHT
-        }
-    )
 
     return bmp
 }

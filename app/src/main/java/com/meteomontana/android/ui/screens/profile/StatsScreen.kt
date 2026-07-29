@@ -151,19 +151,46 @@ fun StatsScreen(
                         containerColor = MaterialTheme.colorScheme.background
                     ) {
                         val days = remember { viewModel.daysWithCounts() }
+                        // Día pulsable -> se despliega con los ascensos de ese
+                        // día (pulsables -> abren su piedra).
+                        var expandedDay by remember { mutableStateOf<String?>(null) }
                         Column(Modifier.padding(horizontal = Spacing.md)) {
                             Text("TUS DÍAS DE ROCA", style = EyebrowTextStyle, color = Terra)
                             Spacer(Modifier.height(Spacing.sm))
                             LazyColumn(Modifier.height(420.dp)) {
                                 items(days.size) { i ->
                                     val (day, count) = days[i]
-                                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    val isOpen = expandedDay == day
+                                    Row(Modifier.fillMaxWidth()
+                                        .clickable { expandedDay = if (isOpen) null else day }
+                                        .padding(vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween) {
                                         Text(day, style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurface)
-                                        Text("$count ascensos",
+                                        Text("$count ascensos" + (if (isOpen) " ▴" else " ▾"),
                                             style = EyebrowTextStyle.copy(fontSize = 10.sp),
                                             color = Terra)
+                                    }
+                                    if (isOpen) {
+                                        viewModel.entriesForDay(day).forEach { e ->
+                                            Row(Modifier.fillMaxWidth()
+                                                .clickable(enabled = e.schoolId != null) {
+                                                    e.schoolId?.let { sid ->
+                                                        showDaysList = false
+                                                        onOpenBlock(sid, e.blockName, e.lineId)
+                                                    }
+                                                }
+                                                .padding(start = Spacing.md, top = 4.dp, bottom = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween) {
+                                                Text(e.blockName,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurface)
+                                                Text((e.grade ?: "—") +
+                                                    (if (e.schoolId != null) " ▸" else ""),
+                                                    style = EyebrowTextStyle.copy(fontSize = 10.sp),
+                                                    color = Terra)
+                                            }
+                                        }
                                     }
                                     androidx.compose.material3.HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outlineVariant)
@@ -400,7 +427,9 @@ private fun InfoCard(text: String) {
 @Composable
 private fun MonthBars(counts: List<Pair<String, Int>>) {
     val max = (counts.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
-    Row(Modifier.fillMaxWidth().height(90.dp),
+    // Altura barra 56 sobre fila de 96: número (≈12) + barra + letra del mes
+    // caben SIEMPRE (con 70 la barra alta desbordaba y tapaba el mes).
+    Row(Modifier.fillMaxWidth().height(96.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.Bottom) {
         counts.forEach { (month, count) ->
@@ -408,7 +437,7 @@ private fun MonthBars(counts: List<Pair<String, Int>>) {
                 if (count > 0) Text(count.toString(), fontSize = 8.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Box(Modifier.fillMaxWidth()
-                    .height((70 * count / max).coerceAtLeast(if (count > 0) 4 else 1).dp)
+                    .height((56 * count / max).coerceAtLeast(if (count > 0) 4 else 1).dp)
                     .background(Terra.copy(alpha = 0.4f + 0.6f * count / max),
                         RoundedCornerShape(3.dp)))
                 Text(MONTHS[month.substringAfter('-').toInt() - 1].take(1), fontSize = 8.sp,
