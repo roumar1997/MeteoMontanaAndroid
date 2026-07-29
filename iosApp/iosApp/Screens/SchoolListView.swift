@@ -405,7 +405,7 @@ struct SchoolListView: View {
                         hintKey: "schools_map",
                         text: "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
                     )
-                    MapToggleAndPanel(vm: vm, onOpen: { navVia = nil; navSchool = $0 })
+                    MapToggleAndPanel(vm: vm, onOpen: { navTarget = SchoolNavTarget(school: $0, via: nil) })
 
                     // Hint de filtros — justo antes de la barra de filtros
                     FirstTimeHint(
@@ -449,7 +449,7 @@ struct SchoolListView: View {
                                 )
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    if vm.compareSelection.isEmpty { navVia = nil; navSchool = school }
+                                    if vm.compareSelection.isEmpty { navTarget = SchoolNavTarget(school: school, via: nil) }
                                     else { vm.toggleCompare(school.id) }
                                 }
                                 .onLongPressGesture(minimumDuration: 0.35) { vm.toggleCompare(school.id) }
@@ -461,7 +461,7 @@ struct SchoolListView: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(item: $navSchool) { SchoolDetailView(school: $0, openVia: navVia) }
+            .navigationDestination(item: $navTarget) { SchoolDetailView(school: $0.school, openVia: $0.via) }
             .onChange(of: vm.query) { _, _ in dispatchViaSearch() }
             .overlay(alignment: .bottom) {
                 if vm.compareSelection.count >= 1 {
@@ -486,9 +486,19 @@ struct SchoolListView: View {
     }
 
     @State private var showCompare = false
-    @State private var navSchool: School?
+    /// Destino de navegación: escuela + vía EN EL MISMO valor. Antes eran dos
+    /// @State sueltos y `navigationDestination(item:)` captura su closure ANTES
+    /// de que el body se reevalúe: el primer toque construía el detalle con la
+    /// vía TODAVÍA nil (abría la escuela a secas) y el segundo funcionaba
+    /// porque navVia conservaba el valor del intento anterior. Con un único
+    /// item la carrera desaparece.
+    struct SchoolNavTarget: Identifiable {
+        let school: School
+        let via: String?
+        var id: String { school.id + "|" + (via ?? "") }
+    }
+    @State private var navTarget: SchoolNavTarget?
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
-    @State private var navVia: String?
     @State private var viaHits: [LineSearchHit] = []   // modelo de DOMINIO (via use case)
     @State private var viaSearchTask: Task<Void, Never>?
 
@@ -522,7 +532,7 @@ struct SchoolListView: View {
                         .padding(.horizontal, 12).padding(.bottom, 8)
                 } else {
                     ForEach(schoolMatches, id: \.id) { school in
-                        Button { navVia = nil; navSchool = school } label: {
+                        Button { navTarget = SchoolNavTarget(school: school, via: nil) } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(school.name).font(.system(size: 14))
@@ -554,8 +564,8 @@ struct SchoolListView: View {
                 ForEach(viaHits, id: \.stableId) { h in
                     Button {
                         if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
-                            navVia = h.lineId ?? h.lineName ?? h.blockName
-                            navSchool = school
+                            navTarget = SchoolNavTarget(
+                                school: school, via: h.lineId ?? h.lineName ?? h.blockName)
                         }
                     } label: {
                         HStack {
@@ -584,8 +594,8 @@ struct SchoolListView: View {
                         let pts = dedupPoints(TopoParse.points(h.linePath))
                         Button {
                             if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
-                                navVia = h.lineId ?? h.lineName ?? h.blockName
-                                navSchool = school
+                                navTarget = SchoolNavTarget(
+                                    school: school, via: h.lineId ?? h.lineName ?? h.blockName)
                             }
                         } label: {
                             TopoPhotoView(photoUrl: photo, lines: pts.count >= 2 ? [
