@@ -21,6 +21,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         FirebaseApp.configure()
+        // Diagnóstico real de cuelgues del hilo principal (MetricKit →
+        // Crashlytics) — caza de los watchdog 0x8BADF00D con stacks de verdad.
+        HangReporter.shared.start()
         return true
     }
 

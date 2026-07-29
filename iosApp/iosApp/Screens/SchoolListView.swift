@@ -384,7 +384,13 @@ struct SchoolListView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: 0, pinnedViews: []) {
+                // VStack NO perezoso a propósito: las 6 muertes por watchdog
+                // (jul-2026) ocurrieron DENTRO de la maquinaria de LazyVStack
+                // (prefetch, placement, motionVectors) recolocando estas ~191
+                // filas al reordenar/filtrar. Componerlas todas cuesta ~decenas
+                // de ms en Release y elimina esa maquinaria entera (mismo
+                // movimiento «piedras fluidas» que en Android).
+                VStack(spacing: 0) {
                     TopIconsRow(unreadCount: vm.unreadNotifications,
                                 chatUnread: vm.unreadChats,
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
