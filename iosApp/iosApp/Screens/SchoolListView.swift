@@ -534,13 +534,7 @@ struct SchoolListView: View {
                         // P8: dedup de puntos casi identicos (trazos antiguos
                         // fusionaban los guiones -> linea continua) y la FOTO
                         // tambien abre la piedra (paridad Android).
-                        let raw = TopoParse.points(h.linePath)
-                        var pts: [CGPoint] = []
-                        for pt in raw {
-                            if let last = pts.last,
-                               abs(pt.x - last.x) + abs(pt.y - last.y) < 0.004 { continue }
-                            pts.append(pt)
-                        }
+                        let pts = dedupPoints(TopoParse.points(h.linePath))
                         Button {
                             if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
                                 navVia = h.lineId ?? h.lineName ?? h.blockName
@@ -566,3 +560,15 @@ struct SchoolListView: View {
 
 // School (clase Kotlin) Identifiable por su id — para navigationDestination(item:).
 extension School: Identifiable {}
+
+
+/// P8: quita puntos consecutivos casi identicos (trazos antiguos fusionaban
+/// los guiones y la linea salia continua en el buscador).
+fileprivate func dedupPoints(_ raw: [CGPoint]) -> [CGPoint] {
+    var pts: [CGPoint] = []
+    for pt in raw {
+        if let last = pts.last, abs(pt.x - last.x) + abs(pt.y - last.y) < 0.004 { continue }
+        pts.append(pt)
+    }
+    return pts
+}
