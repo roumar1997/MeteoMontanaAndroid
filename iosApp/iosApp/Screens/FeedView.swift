@@ -49,12 +49,17 @@ func feedKindLabel(_ kind: String, _ discipline: String?) -> String {
 }
 
 /// "hace 2 h" a partir de un createdAt "yyyy-MM-ddTHH:mm:ss" (hora del servidor).
-func feedRelativeTime(_ createdAt: String) -> String {
+private let feedTimeFormatter: DateFormatter = {
     let df = DateFormatter()
     df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
     df.locale = Locale(identifier: "en_US_POSIX")
     // La hora del servidor es UTC (interpretarla como local sumaba 2h en España).
     df.timeZone = TimeZone(identifier: "UTC")
+    return df
+}()
+
+func feedRelativeTime(_ createdAt: String) -> String {
+    let df = feedTimeFormatter
     guard let date = df.date(from: String(createdAt.prefix(19))) else { return "" }
     let minutes = max(Int(Date().timeIntervalSince(date) / 60), 0)
     if minutes < 1 { return "ahora" }

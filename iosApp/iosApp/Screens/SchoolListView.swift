@@ -177,22 +177,26 @@ final class SchoolListViewModel: ObservableObject {
             case .saved: break   // `base` ya está restringido a las guardadas
             }
         }
-        // Orden.
+        // Orden DECORATE-SORT: la clave se calcula UNA vez por escuela (cada
+        // acceso a un objeto Kotlin cruza el puente ObjC; hacerlo dentro del
+        // comparador eran ~3.000 cruces por orden).
         switch sortBy {
         case .score:
-            // Modo tramo → ordena por score combinado de los días elegidos.
             if rangeMode {
-                return list.sorted { (rangeScores[$0.id]?.combinedScore ?? -1) > (rangeScores[$1.id]?.combinedScore ?? -1) }
+                let keyed = list.map { ($0, rangeScores[$0.id]?.combinedScore ?? -1) }
+                return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
             }
-            return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+            let keyed = list.map { ($0, scores[$0.id]?.todayScore ?? -1) }
+            return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
         case .distance:
             guard let la = userLat, let lo = userLon else {
-                return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+                let keyed = list.map { ($0, scores[$0.id]?.todayScore ?? -1) }
+                return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
             }
-            return list.sorted {
-                Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon)
-                < Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $1.lat, lon2: $1.lon)
+            let keyed = list.map { s -> (School, Double) in
+                (s, Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: s.lat, lon2: s.lon))
             }
+            return keyed.sorted { $0.1 < $1.1 }.map { $0.0 }
         }
     }
 
@@ -349,15 +353,23 @@ final class SchoolListViewModel: ObservableObject {
         for chunk in stride(from: 0, to: ids.count, by: 50) {
             let slice = Array(ids[chunk..<min(chunk + 50, ids.count)])
             guard let batch = try? await getTodayScores.invoke(ids: slice) else { continue }
-            for s in batch { scores[s.id] = s }
+            // UNA publicación por lote (no por escuela): cada escritura de un
+            // @Published reordena y re-difea la lista ENTERA de 191 filas —
+            // ~200 seguidas atascaban el hilo principal >5s → watchdog
+            // 0x8BADF00D (los cierres de jul-2026).
+            var acc = scores
+            for s in batch { acc[s.id] = s }
+            scores = acc
         }
         // Offline (o ids que la red no devolvió): rellenar con el forecast
         // cacheado de cada escuela guardada/visitada, para que la lista pinte el
         // score guardado en vez de "—". El detalle ya lo mostraba (imagen 2).
         let container = AppDependencies.shared.container
-        for id in ids where scores[id] == nil {
-            if let s = try? await container.cachedTodayScore(schoolId: id) { scores[id] = s }
+        var acc = scores
+        for id in ids where acc[id] == nil {
+            if let s = try? await container.cachedTodayScore(schoolId: id) { acc[id] = s }
         }
+        if acc.count != scores.count { scores = acc }
     }
 
     private func uniqueValues(_ raw: [String?]) -> [String] {
@@ -387,7 +399,7 @@ struct SchoolListView: View {
                         hintKey: "schools_map",
                         text: "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
                     )
-                    MapToggleAndPanel(vm: vm, onOpen: { navSchool = $0 })
+                    MapToggleAndPanel(vm: vm, onOpen: { navVia = nil; navSchool = $0 })
 
                     // Hint de filtros — justo antes de la barra de filtros
                     FirstTimeHint(
@@ -431,7 +443,7 @@ struct SchoolListView: View {
                                 )
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    if vm.compareSelection.isEmpty { navSchool = school }
+                                    if vm.compareSelection.isEmpty { navVia = nil; navSchool = school }
                                     else { vm.toggleCompare(school.id) }
                                 }
                                 .onLongPressGesture(minimumDuration: 0.35) { vm.toggleCompare(school.id) }
@@ -533,7 +545,7 @@ struct SchoolListView: View {
                         .foregroundStyle(Cumbre.ink3)
                         .padding(.horizontal, 12).padding(.bottom, 8)
                 }
-                ForEach(Array(viaHits.enumerated()), id: \.offset) { _, h in
+                ForEach(viaHits, id: \.stableId) { h in
                     Button {
                         if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
                             navVia = h.lineId ?? h.lineName ?? h.blockName
@@ -585,6 +597,12 @@ struct SchoolListView: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 4)
     }
+}
+
+/// Id estable de un hit del buscador (id: \.offset invalidaba las filas y
+/// sus TopoPhotoView en cada tecla).
+extension LineSearchHit {
+    var stableId: String { (lineId ?? "") + "|" + blockName + "|" + (schoolId ?? "") }
 }
 
 // School (clase Kotlin) Identifiable por su id — para navigationDestination(item:).
