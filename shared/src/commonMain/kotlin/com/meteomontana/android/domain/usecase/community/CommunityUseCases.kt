@@ -19,6 +19,12 @@ class VoteOrientationUseCase(private val repo: CommunityRepository) {
         repo.voteOrientation(blockId, photoIndex, aspect)
 }
 
+class GetSchoolOrientationsUseCase(private val repo: CommunityRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(schoolId: String): Map<String, String> =
+        repo.getSchoolOrientations(schoolId)
+}
+
 class GetSunHoursUseCase(private val repo: CommunityRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(blockId: String, photoIndex: Int?): SunHours =

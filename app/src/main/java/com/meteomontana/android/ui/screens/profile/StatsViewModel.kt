@@ -50,12 +50,23 @@ class StatsViewModel @Inject constructor(
     fun setMonth(m: String?) { _state.value = _state.value.copy(month = m); recompute() }
 
     /** N7: dias de roca del filtro actual, recientes primero, con nº de ascensos. */
-    fun daysWithCounts(): List<Pair<String, Int>> {
+    fun daysWithCounts(): List<Pair<String, Int>> =
+        currentFiltered().groupingBy { it.date }.eachCount()
+            .toList().sortedByDescending { it.first }
+
+    /** Fila de la pirámide pulsable: vías de ESE grado (únicas, recientes primero). */
+    fun entriesForGrade(grade: String): List<JournalSession> =
+        JournalStatsCalculator.entriesForGrade(currentFiltered(), grade)
+
+    /** Fila de escuela desplegable: vías de ESA escuela, del grado más duro abajo. */
+    fun entriesForSchool(school: String): List<JournalSession> =
+        JournalStatsCalculator.entriesForSchool(currentFiltered(), school)
+
+    private fun currentFiltered(): List<JournalSession> {
         val st = _state.value
         var filtered = JournalStatsCalculator.filter(entries, st.discipline, st.year)
         st.month?.let { m -> filtered = filtered.filter { it.date.substring(5, 7) == m } }
-        return filtered.groupingBy { it.date }.eachCount()
-            .toList().sortedByDescending { it.first }
+        return filtered
     }
 
     private fun recompute() {

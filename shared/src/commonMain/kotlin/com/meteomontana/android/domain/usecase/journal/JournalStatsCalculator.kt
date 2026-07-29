@@ -89,6 +89,26 @@ object JournalStatsCalculator {
         )
     }
 
+    /**
+     * Entradas de UN grado de la pirámide (fila pulsable): únicas por vía
+     * (lineId estable, nombre como legado), recientes primero.
+     */
+    fun entriesForGrade(entries: List<JournalSession>, grade: String): List<JournalSession> =
+        entries.filter { it.grade?.trim()?.lowercase() == grade.trim().lowercase() }
+            // Ordenar ANTES del dedupe: distinctBy conserva la primera aparición
+            // (queremos quedarnos con la entrada MÁS reciente de cada vía).
+            .sortedByDescending { it.date }
+            .distinctBy { it.lineId ?: "${it.schoolId}|${it.blockName.lowercase()}" }
+
+    /**
+     * Entradas de UNA escuela (fila desplegable de TUS ESCUELAS): únicas por
+     * vía, ordenadas del grado más duro al más fácil.
+     */
+    fun entriesForSchool(entries: List<JournalSession>, school: String): List<JournalSession> =
+        entries.filter { (it.schoolName ?: it.schoolId ?: "—") == school }
+            .distinctBy { it.lineId ?: "${it.schoolId}|${it.blockName.lowercase()}" }
+            .sortedByDescending { gradeRank(it.grade.orEmpty()) }
+
     /** Pirámide: recuento por grado, del más duro al más fácil. */
     fun pyramid(entries: List<JournalSession>): List<Pair<String, Int>> =
         entries.mapNotNull { it.grade?.trim()?.lowercase()?.takeIf(String::isNotEmpty) }

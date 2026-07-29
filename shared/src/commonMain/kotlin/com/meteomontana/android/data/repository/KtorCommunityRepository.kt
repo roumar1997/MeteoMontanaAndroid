@@ -18,6 +18,10 @@ class KtorCommunityRepository(private val api: KtorCommunityApi) : CommunityRepo
         api.voteOrientation(blockId, photoIndex, aspect).map { it.toDomain() }
 
     @Throws(Exception::class)
+    override suspend fun getSchoolOrientations(schoolId: String): Map<String, String> =
+        api.getSchoolOrientations(schoolId)
+
+    @Throws(Exception::class)
     override suspend fun getSunHours(blockId: String, photoIndex: Int?): SunHours =
         api.getSunHours(blockId, photoIndex).toDomain()
 

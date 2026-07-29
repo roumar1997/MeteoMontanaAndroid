@@ -7,6 +7,11 @@ import Shared
 struct StatsView: View {
     @StateObject private var store = StatsStore()
     @State private var showDaysList = false
+    // Fila de la pirámide tocada → hoja con las vías de ese grado.
+    private struct GradeSel: Identifiable { let id = UUID(); let grade: String }
+    @State private var gradeDetail: GradeSel? = nil
+    // Escuela desplegada inline en TUS ESCUELAS (nil = ninguna).
+    @State private var expandedSchool: String? = nil
 
     private let monthShort = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"]
 
@@ -65,20 +70,25 @@ struct StatsView: View {
                     let pyramid = s.pyramid.prefix(10)
                     let maxCount = pyramid.map { $0.second!.intValue }.max() ?? 1
                     ForEach(Array(pyramid.enumerated()), id: \.offset) { i, pair in
-                        HStack(spacing: 8) {
-                            Text(pair.first! as String).font(Cumbre.mono(11, .bold))
-                                .foregroundStyle(i == 0 ? Cumbre.terra : Cumbre.ink)
-                                .frame(width: 36, alignment: .leading)
-                            GeometryReader { geo in
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Cumbre.terra.opacity(1.0 - Double(i) * 0.08))
-                                    .frame(width: geo.size.width
-                                        * CGFloat(pair.second!.intValue) / CGFloat(maxCount))
+                        // Fila pulsable: abre la lista de vías de ESE grado.
+                        Button { gradeDetail = GradeSel(grade: pair.first! as String) } label: {
+                            HStack(spacing: 8) {
+                                Text(pair.first! as String).font(Cumbre.mono(11, .bold))
+                                    .foregroundStyle(i == 0 ? Cumbre.terra : Cumbre.ink)
+                                    .frame(width: 36, alignment: .leading)
+                                GeometryReader { geo in
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Cumbre.terra.opacity(1.0 - Double(i) * 0.08))
+                                        .frame(width: geo.size.width
+                                            * CGFloat(pair.second!.intValue) / CGFloat(maxCount))
+                                }
+                                .frame(height: 14)
+                                Text("\(pair.second!.intValue)").font(.system(size: 11))
+                                    .foregroundStyle(Cumbre.ink3)
                             }
-                            .frame(height: 14)
-                            Text("\(pair.second!.intValue)").font(.system(size: 11))
-                                .foregroundStyle(Cumbre.ink3)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                     if let bm = s.bestMonth {
                         Button {
@@ -127,23 +137,26 @@ struct StatsView: View {
 
                     Text("TUS ESCUELAS").eyebrow().padding(.top, 6)
                     ForEach(Array(p.perSchool.prefix(8).enumerated()), id: \.offset) { _, t in
-                        // N7: cada escuela abre TU diario de esa escuela.
-                        NavigationLink(destination: SchoolJournalSectorsView(
-                            schoolName: t.first! as String,
-                            entries: store.entriesForSchool(t.first! as String))) {
+                        let school = t.first! as String
+                        let isOpen = expandedSchool == school
+                        // Fila desplegable: los nombres de las vías inline.
+                        Button { expandedSchool = isOpen ? nil : school } label: {
                             HStack {
-                                Text(t.first! as String).font(.system(size: 14))
+                                Text(school).font(.system(size: 14))
                                     .foregroundStyle(Cumbre.ink)
                                 Spacer()
                                 Text("\(t.second!.intValue)"
-                                     + ((t.third as? String).map { " · máx \($0)" } ?? ""))
+                                     + ((t.third as? String).map { " · máx \($0)" } ?? "")
+                                     + (isOpen ? " ▴" : " ▾"))
                                     .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
                             }
                             .padding(.vertical, 4)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        if isOpen {
+                            schoolEntriesInline(school)
+                        }
                     }
                 }
 
@@ -176,6 +189,34 @@ struct StatsView: View {
             }
         }
         .task { await store.load() }
+        .sheet(item: $gradeDetail) { sel in
+            let grade = sel.grade
+            // Tus vías de ESE grado → cada una navega a su piedra.
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(store.entriesForGrade(grade).enumerated()),
+                                id: \.offset) { _, e in
+                            if let sid = e.schoolId {
+                                NavigationLink(destination:
+                                    SchoolLoaderView(schoolId: sid, openVia: e.blockName)) {
+                                    gradeEntryRow(e, navigable: true)
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                gradeEntryRow(e, navigable: false)
+                            }
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                    .padding(16)
+                }
+                .background(Cumbre.bg.ignoresSafeArea())
+                .navigationTitle("Tus \(grade.uppercased())")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            .presentationDetents([.medium, .large])
+        }
         .sheet(isPresented: $showDaysList) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -196,6 +237,58 @@ struct StatsView: View {
             }
             .presentationDetents([.medium, .large])
         }
+    }
+
+    /// Desplegado inline de una escuela: vías pulsables → abren su piedra.
+    @ViewBuilder
+    private func schoolEntriesInline(_ school: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(store.entriesForSchool(school).prefix(30).enumerated()),
+                    id: \.offset) { _, e in
+                if let sid = e.schoolId {
+                    NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: e.blockName)) {
+                        entryRow(e, navigable: true)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    entryRow(e, navigable: false)
+                }
+            }
+            NavigationLink(destination: SchoolJournalSectorsView(
+                schoolName: school, entries: store.entriesForSchool(school))) {
+                Text("VER EN EL DIARIO ▸").font(Cumbre.mono(9, .bold)).tracking(1)
+                    .foregroundStyle(Cumbre.ink3)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 4)
+        .background(Cumbre.paper)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func gradeEntryRow(_ e: JournalSession, navigable: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(e.blockName).font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Cumbre.ink)
+            Text((e.schoolName ?? "—") + (navigable ? "  ·  VER ▸" : ""))
+                .font(Cumbre.mono(9, .bold)).tracking(0.8)
+                .foregroundStyle(Cumbre.terra)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+    }
+
+    private func entryRow(_ e: JournalSession, navigable: Bool) -> some View {
+        HStack {
+            Text(e.blockName).font(.system(size: 13)).foregroundStyle(Cumbre.ink)
+            Spacer()
+            Text((e.grade ?? "—") + (navigable ? " ▸" : ""))
+                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+        }
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
     }
 
     private func formatMonth(_ yyyyMm: String) -> String {
@@ -290,9 +383,16 @@ final class StatsStore: ObservableObject {
         return counts.sorted { $0.key > $1.key }.map { ($0.key, $0.value) }
     }
 
-    /** N7: entradas del filtro actual de UNA escuela (para navegar a su diario). */
+    /** N7: entradas del filtro actual de UNA escuela (únicas, más duras primero). */
     func entriesForSchool(_ school: String) -> [JournalSession] {
-        filteredEntries().filter { ($0.schoolName ?? $0.schoolId ?? "—") == school }
+        JournalStatsCalculator.shared.entriesForSchool(
+            entries: filteredEntries(), school: school)
+    }
+
+    /** Fila de la pirámide: vías de ESE grado (únicas, recientes primero). */
+    func entriesForGrade(_ grade: String) -> [JournalSession] {
+        JournalStatsCalculator.shared.entriesForGrade(
+            entries: filteredEntries(), grade: grade)
     }
 
     private func filteredEntries() -> [JournalSession] {

@@ -207,6 +207,8 @@ class IosDependencyContainer(
         com.meteomontana.android.domain.usecase.community.GetOrientationUseCase(communityRepository)
     val voteOrientation =
         com.meteomontana.android.domain.usecase.community.VoteOrientationUseCase(communityRepository)
+    val getSchoolOrientations =
+        com.meteomontana.android.domain.usecase.community.GetSchoolOrientationsUseCase(communityRepository)
     val getSunHours =
         com.meteomontana.android.domain.usecase.community.GetSunHoursUseCase(communityRepository)
     val getGradeVotes =

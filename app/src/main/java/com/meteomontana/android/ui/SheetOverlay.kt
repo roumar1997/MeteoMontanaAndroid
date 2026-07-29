@@ -230,6 +230,9 @@ private fun SheetNavHost(
                             onBack = popSheetOrDismiss,
                             onOpenSchool = { school ->
                                 sheetNav.navigate(Routes.journalSectors(school))
+                            },
+                            onOpenBlock = { schoolId, lineName, lineId ->
+                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId))
                             }
                         )
                     }

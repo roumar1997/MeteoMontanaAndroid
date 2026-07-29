@@ -23,6 +23,10 @@ class KtorCommunityApi(private val client: HttpClient) {
             setBody(OrientationVoteRequest(photoIndex, aspect))
         }.body()
 
+    /** Consenso de orientación de TODAS las piedras de una escuela (filtro). */
+    suspend fun getSchoolOrientations(schoolId: String): Map<String, String> =
+        client.get("schools/$schoolId/orientations").body()
+
     suspend fun getSunHours(blockId: String, photoIndex: Int?): SunHoursDto =
         client.get("blocks/$blockId/sun-hours") {
             if (photoIndex != null) parameter("photoIndex", photoIndex)

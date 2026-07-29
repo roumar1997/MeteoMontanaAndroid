@@ -54,11 +54,17 @@ fun StatsScreen(
     onBack: () -> Unit,
     /** N7: abrir el diario de una escuela concreta (vista de sectores). */
     onOpenSchool: (String) -> Unit = {},
+    /** Ir a la piedra/vía en su escuela: (schoolId, lineName, lineId). */
+    onOpenBlock: (String, String, String?) -> Unit = { _, _, _ -> },
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     var showDaysList by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     var yearMenuOpen by remember { mutableStateOf(false) }
+    // Fila de la pirámide tocada → diálogo con las vías de ese grado.
+    var gradeDetail by remember { mutableStateOf<String?>(null) }
+    // Escuela desplegada inline en TUS ESCUELAS (null = ninguna).
+    var expandedSchool by remember { mutableStateOf<String?>(null) }
 
     LazyColumn(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
@@ -176,7 +182,9 @@ fun StatsScreen(
                 Spacer(Modifier.height(Spacing.xs))
                 val maxCount = s.pyramid.maxOfOrNull { it.second } ?: 1
                 s.pyramid.take(10).forEachIndexed { i, (grade, count) ->
-                    Row(Modifier.padding(vertical = 3.dp),
+                    Row(Modifier
+                        .clickable { gradeDetail = grade }
+                        .padding(vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text(grade, style = EyebrowTextStyle.copy(fontSize = 11.sp),
@@ -192,6 +200,43 @@ fun StatsScreen(
                         Text(count.toString(), fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                }
+                // Detalle de un grado: qué vías de ese grado llevas (pulsables).
+                gradeDetail?.let { grade ->
+                    val gradeEntries = remember(grade, state) { viewModel.entriesForGrade(grade) }
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { gradeDetail = null },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = { gradeDetail = null }) {
+                                Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                            }
+                        },
+                        title = { Text("Tus ${grade.uppercase()}", fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Bold) },
+                        text = {
+                            LazyColumn(Modifier.height(360.dp)) {
+                                items(gradeEntries.size) { i ->
+                                    val e = gradeEntries[i]
+                                    Column(Modifier.fillMaxWidth()
+                                        .clickable(enabled = e.schoolId != null) {
+                                            e.schoolId?.let { sid ->
+                                                gradeDetail = null
+                                                onOpenBlock(sid, e.blockName, e.lineId)
+                                            }
+                                        }
+                                        .padding(vertical = 8.dp)) {
+                                        Text(e.blockName, style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface)
+                                        Text((e.schoolName ?: "—") +
+                                            (if (e.schoolId != null) "  ·  VER ▸" else ""),
+                                            style = EyebrowTextStyle.copy(fontSize = 9.sp),
+                                            color = Terra)
+                                    }
+                                }
+                            }
+                        }
+                    )
                 }
                 s.bestMonth?.let { bm ->
                     Spacer(Modifier.height(Spacing.sm))
@@ -255,14 +300,45 @@ fun StatsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 p.perSchool.take(8).forEach { (school, count, maxGrade) ->
+                    val isOpen = expandedSchool == school
                     Row(Modifier.fillMaxWidth()
-                        .clickable { onOpenSchool(school) }
+                        .clickable { expandedSchool = if (isOpen) null else school }
                         .padding(vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(school, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface)
-                        Text("$count" + (maxGrade?.let { " · máx $it" } ?: ""),
+                        Text("$count" + (maxGrade?.let { " · máx $it" } ?: "") +
+                            (if (isOpen) " ▴" else " ▾"),
                             style = EyebrowTextStyle.copy(fontSize = 11.sp), color = Terra)
+                    }
+                    // Desplegado inline: los nombres de las vías de esa escuela,
+                    // pulsables → abren la piedra en su escuela.
+                    if (isOpen) {
+                        val schoolEntries = remember(school, state) { viewModel.entriesForSchool(school) }
+                        Column(Modifier.fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                            .padding(horizontal = Spacing.sm, vertical = 4.dp)) {
+                            schoolEntries.take(30).forEach { e ->
+                                Row(Modifier.fillMaxWidth()
+                                    .clickable(enabled = e.schoolId != null) {
+                                        e.schoolId?.let { sid -> onOpenBlock(sid, e.blockName, e.lineId) }
+                                    }
+                                    .padding(vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(e.blockName, style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface)
+                                    Text((e.grade ?: "—") + (if (e.schoolId != null) " ▸" else ""),
+                                        style = EyebrowTextStyle.copy(fontSize = 10.sp), color = Terra)
+                                }
+                            }
+                            Text("VER EN EL DIARIO ▸", style = EyebrowTextStyle.copy(fontSize = 9.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .clickable { onOpenSchool(school) }
+                                    .padding(vertical = 6.dp))
+                        }
+                        Spacer(Modifier.height(Spacing.xs))
                     }
                 }
             }

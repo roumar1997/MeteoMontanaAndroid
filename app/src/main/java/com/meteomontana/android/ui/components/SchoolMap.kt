@@ -196,10 +196,30 @@ fun SchoolMap(
             // Buscador de vías/bloques de ESTA escuela: solo con el mapa
             // abierto (como iOS). Elegir un resultado abre su piedra.
             SchoolViaSearchBar(blocks = blocks, viewModel = viewModel)
+            // Filtro por orientación (consenso comunitario): filtra la lista
+            // de marcadores del mapa. Piedras sin votos → solo en TODAS.
+            val orientationVm: OrientationFilterViewModel =
+                androidx.hilt.navigation.compose.hiltViewModel()
+            androidx.compose.runtime.LaunchedEffect(schoolId) { orientationVm.load(schoolId) }
+            val blockOrientations by orientationVm.orientations.collectAsStateWithLifecycle()
+            val orientationFilter by orientationVm.selected.collectAsStateWithLifecycle()
+            OrientationFilterChips(
+                orientations = blockOrientations,
+                selected = orientationFilter,
+                onSelect = orientationVm::select
+            )
+            val visibleBlocks = remember(blocks, blockOrientations, orientationFilter) {
+                val aspect = orientationFilter
+                if (aspect == null) blocks
+                else blocks.filter { b ->
+                    // Parkings y zonas siempre visibles: solo se filtran piedras/muros.
+                    b.type != "BLOCK" || blockOrientations[b.id] == aspect
+                }
+            }
             SchoolMapView(
                 centerLat     = centerLat,
                 centerLon     = centerLon,
-                blocks        = blocks,
+                blocks        = visibleBlocks,
                 schoolName    = schoolName,
                 schoolId      = schoolId,
                 viewModel     = viewModel,

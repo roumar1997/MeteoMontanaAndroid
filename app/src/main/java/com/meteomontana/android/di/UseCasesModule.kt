@@ -354,6 +354,10 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.community.VoteOrientationUseCase(repo)
 
     @Provides
+    fun provideGetSchoolOrientationsUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.GetSchoolOrientationsUseCase(repo)
+
+    @Provides
     fun provideGetSunHoursUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
         com.meteomontana.android.domain.usecase.community.GetSunHoursUseCase(repo)
 

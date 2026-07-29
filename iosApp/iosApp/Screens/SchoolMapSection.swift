@@ -14,6 +14,12 @@ import FirebaseAuth
 struct SchoolMapSection: View {
     let school: School
     var openVia: String? = nil
+
+    // Filtro por ORIENTACIÓN (consenso comunitario): filtra los marcadores
+    // de piedra del mapa. Piedras sin votos → solo en TODAS. Espejo de
+    // OrientationFilter.kt de Android.
+    @State private var blockOrientations: [String: String] = [:]
+    @State private var orientationFilter: String? = nil
     @State private var didAutoOpen = false
     @State private var expanded = false
     @State private var selectedBlock: Block?
@@ -115,6 +121,11 @@ struct SchoolMapSection: View {
         // ¿Admin? → puede eliminar bloques desde su ficha.
         .task {
             await vm.loadAdminFlag()
+            // Consenso de orientación de TODAS las piedras (una llamada).
+            if let m = try? await AppDependencies.shared.container
+                .getSchoolOrientations.invoke(schoolId: school.id) {
+                blockOrientations = (m as NSDictionary as? [String: String]) ?? [:]
+            }
         }
         .alert("¿Eliminar «\(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
             Button("ELIMINAR", role: .destructive) {
@@ -408,6 +419,7 @@ struct SchoolMapSection: View {
                 .padding(.horizontal, 12).padding(.vertical, 9)
                 .background(Cumbre.paper)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            orientationChips
             let q = vm.searchQuery.trimmingCharacters(in: .whitespaces)
             if q.count >= 2 {
                 let hits = vm.searchHits(q)
@@ -448,6 +460,47 @@ struct SchoolMapSection: View {
                     .ignoresSafeArea()
             }
         }
+    }
+
+    private static let aspectOrder = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+
+    /// Chips TODAS / N / NE… con el nº de piedras de cada consenso.
+    @ViewBuilder
+    private var orientationChips: some View {
+        if !blockOrientations.isEmpty {
+            let counts = Dictionary(grouping: blockOrientations.values, by: { $0 })
+                .mapValues { $0.count }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    orientationChip("TODAS", active: orientationFilter == nil) {
+                        orientationFilter = nil
+                    }
+                    ForEach(Self.aspectOrder, id: \.self) { aspect in
+                        if let n = counts[aspect], n > 0 {
+                            orientationChip("\(aspect) · \(n)", active: orientationFilter == aspect) {
+                                orientationFilter = orientationFilter == aspect ? nil : aspect
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func orientationChip(_ label: String, active: Bool,
+                                 action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label).font(Cumbre.mono(10, .bold))
+                .foregroundStyle(active ? .white : Cumbre.terra)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 6)
+                    .fill(active ? Cumbre.terra : Cumbre.paper))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(Cumbre.terra.opacity(active ? 1 : 0.55),
+                            style: StrokeStyle(lineWidth: 1, dash: active ? [] : [4, 3])))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Vuelve al encuadre inicial de la escuela (todos los marcadores).
@@ -644,6 +697,11 @@ struct SchoolMapSection: View {
             if vm.hiddenTypes.contains(b.type.uppercased()) { continue }
             // Piedra oculta si pertenece a un sector colapsado.
             if b.type.uppercased() == "BLOCK", let sid = b.sectorBlockId, vm.collapsedSectors.contains(sid) {
+                continue
+            }
+            // Filtro de orientación activo: solo piedras con ESE consenso.
+            if b.type.uppercased() == "BLOCK", let f = orientationFilter,
+               blockOrientations[b.id] != f {
                 continue
             }
             // Zona colapsada: muestra cuántas piedras tiene ocultas.

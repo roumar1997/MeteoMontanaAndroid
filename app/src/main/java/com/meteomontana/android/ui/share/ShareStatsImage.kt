@@ -139,7 +139,7 @@ private fun renderStatsCard(
         letterSpacing = 0.18f; isFakeBoldText = true
     })
     y += 50f
-    val pyramid = s.pyramid.take(7)
+    val pyramid = s.pyramid.take(6)
     val maxCount = (pyramid.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
     val barMaxW = w - 420f
     pyramid.forEachIndexed { i, (grade, count) ->
@@ -156,12 +156,12 @@ private fun renderStatsCard(
         )
         c.drawText(count.toString(), 240f + barW.coerceAtLeast(24f), y + 42f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 36f })
-        y += 78f
+        y += 72f
     }
 
-    // ── Mejor mes ───────────────────────────────────────────────────────────
+    // ── Mejor mes (fluye tras la pirámide — nada de posiciones fijas) ───────
     s.bestMonth?.let { bm ->
-        y += 40f
+        y += 44f
         val months = listOf("enero", "febrero", "marzo", "abril", "mayo", "junio",
             "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
         val label = runCatching {
@@ -172,25 +172,31 @@ private fun renderStatsCard(
         })
     }
 
-    // ── N9: ultimas 12 semanas + grado maximo por trimestre ──────────
+    // ── N9: últimas 12 semanas + grado máximo por trimestre ─────────────────
+    // FLUYEN tras el bloque anterior (el layout fijo en 1560 se solapaba con
+    // "Mejor mes" cuando la pirámide era larga). Cada sección comprueba que
+    // cabe por encima del pie; si no cabe, se omite (la pantalla la enseña).
+    val footerTop = h - 260f
     progression?.let { p ->
-        var py = 1560f
-        c.drawText("ÚLT. 12 SEMANAS", 80f, py, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = INK_SOFT; textSize = 28f; typeface = Typeface.MONOSPACE
-            letterSpacing = 0.16f; isFakeBoldText = true
-        })
-        py += 24f
-        val cellW = (w - 160f - 11 * 8f) / 12f
-        p.weeksOut.forEachIndexed { i2, out ->
-            c.drawRoundRect(
-                RectF(80f + i2 * (cellW + 8f), py, 80f + i2 * (cellW + 8f) + cellW, py + 40f),
-                8f, 8f,
-                Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (out) TERRA else RULE }
-            )
+        var py = y + 76f
+        if (py + 64f < footerTop) {
+            c.drawText("ÚLT. 12 SEMANAS", 80f, py, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = INK_SOFT; textSize = 28f; typeface = Typeface.MONOSPACE
+                letterSpacing = 0.16f; isFakeBoldText = true
+            })
+            py += 24f
+            val cellW = (w - 160f - 11 * 8f) / 12f
+            p.weeksOut.forEachIndexed { i2, out ->
+                c.drawRoundRect(
+                    RectF(80f + i2 * (cellW + 8f), py, 80f + i2 * (cellW + 8f) + cellW, py + 40f),
+                    8f, 8f,
+                    Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (out) TERRA else RULE }
+                )
+            }
+            py += 88f
         }
-        py += 88f
         val quarters = p.maxGradePerQuarter.takeLast(4)
-        if (quarters.isNotEmpty()) {
+        if (quarters.isNotEmpty() && py + 56f < footerTop) {
             val colW2 = (w - 160f) / quarters.size
             quarters.forEachIndexed { i2, (q, g) ->
                 val qcx = 80f + colW2 * i2 + colW2 / 2f

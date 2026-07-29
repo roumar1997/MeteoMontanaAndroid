@@ -17,6 +17,9 @@ interface CommunityRepository {
     suspend fun voteOrientation(blockId: String, photoIndex: Int?, aspect: String): List<OrientationSummary>
 
     @Throws(Exception::class)
+    suspend fun getSchoolOrientations(schoolId: String): Map<String, String>
+
+    @Throws(Exception::class)
     suspend fun getSunHours(blockId: String, photoIndex: Int?): SunHours
 
     @Throws(Exception::class)

@@ -28,6 +28,31 @@ class JournalStatsCalculatorTest {
     }
 
     @Test
+    fun lasEntradasDeUnGradoSonUnicasPorViaYRecientesPrimero() {
+        val entries = listOf(
+            entry("2026-07-01", "6b", lineId = "L1"),
+            entry("2026-07-15", "6b", lineId = "L1"),   // repetida → 1 sola
+            entry("2026-07-10", "6b", lineId = "L2"),
+            entry("2026-07-12", "7a", lineId = "L3")    // otro grado → fuera
+        )
+        val result = JournalStatsCalculator.entriesForGrade(entries, "6b")
+        assertEquals(2, result.size)
+        assertEquals("L1", result[0].lineId)  // 07-15 antes que 07-10
+        assertEquals("L2", result[1].lineId)
+    }
+
+    @Test
+    fun lasEntradasDeUnaEscuelaVanDelGradoMasDuroAlMasFacil() {
+        val entries = listOf(
+            entry("2026-07-01", "6a", school = "Zarzalejo", lineId = "L1"),
+            entry("2026-07-02", "7a", school = "Zarzalejo", lineId = "L2"),
+            entry("2026-07-03", "6b", school = "Pedriza", lineId = "L3")   // otra escuela
+        )
+        val result = JournalStatsCalculator.entriesForSchool(entries, "Zarzalejo")
+        assertEquals(listOf("L2", "L1"), result.map { it.lineId })
+    }
+
+    @Test
     fun laPiramideVaDelMasDuroAlMasFacil() {
         val entries = listOf(
             entry("2026-07-01", "6a"), entry("2026-07-02", "6a"),

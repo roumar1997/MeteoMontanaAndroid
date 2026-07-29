@@ -103,7 +103,7 @@ enum ShareStatsImage {
                      font: UIFont.monospacedSystemFont(ofSize: 29, weight: .bold),
                      color: inkSoft, centered: false, kern: 5)
                 y += 60
-                let pyramid = Array(s.pyramid.prefix(7))
+                let pyramid = Array(s.pyramid.prefix(6))
                 let maxCount = max(pyramid.map { $0.second!.intValue }.max() ?? 1, 1)
                 let barMaxW = w - 420
                 for (i, pair) in pyramid.enumerated() {
@@ -118,7 +118,7 @@ enum ShareStatsImage {
                                  cornerRadius: 12).fill()
                     draw("\(count)", x: 240 + barW, y: y + 6,
                          font: .systemFont(ofSize: 34), color: inkSoft, centered: false)
-                    y += 76
+                    y += 72
                 }
 
                 if let bm = s.bestMonth {
@@ -131,23 +131,28 @@ enum ShareStatsImage {
                          x: w / 2, y: y, font: .systemFont(ofSize: 42), color: ink)
                 }
 
-                // N9: ultimas 12 semanas + grado por trimestre (llenar el hueco).
+                // N9: últimas 12 semanas + grado por trimestre. FLUYEN tras el
+                // bloque anterior (el layout fijo en 1560 se solapaba con "Mejor
+                // mes"). Cada sección comprueba que cabe por encima del pie.
+                let footerTop = h - 260
                 if let p = progression {
-                    var py: CGFloat = 1560
-                    draw("ÚLT. 12 SEMANAS", x: 80, y: py,
-                         font: UIFont.monospacedSystemFont(ofSize: 27, weight: .bold),
-                         color: inkSoft, centered: false, kern: 4)
-                    py += 44
-                    let cellW = (w - 160 - 11 * 8) / 12
-                    for (i, out) in p.weeksOut.enumerated() {
-                        (out.boolValue ? terra : rule).setFill()
-                        UIBezierPath(roundedRect: CGRect(x: 80 + CGFloat(i) * (cellW + 8), y: py,
-                                                         width: cellW, height: 40),
-                                     cornerRadius: 8).fill()
+                    var py: CGFloat = y + 80
+                    if py + 110 < footerTop {
+                        draw("ÚLT. 12 SEMANAS", x: 80, y: py,
+                             font: UIFont.monospacedSystemFont(ofSize: 27, weight: .bold),
+                             color: inkSoft, centered: false, kern: 4)
+                        py += 44
+                        let cellW = (w - 160 - 11 * 8) / 12
+                        for (i, out) in p.weeksOut.enumerated() {
+                            (out.boolValue ? terra : rule).setFill()
+                            UIBezierPath(roundedRect: CGRect(x: 80 + CGFloat(i) * (cellW + 8), y: py,
+                                                             width: cellW, height: 40),
+                                         cornerRadius: 8).fill()
+                        }
+                        py += 66
                     }
-                    py += 66
                     let quarters = Array(p.maxGradePerQuarter.suffix(4))
-                    if !quarters.isEmpty {
+                    if !quarters.isEmpty, py + 100 < footerTop {
                         let colW = (w - 160) / CGFloat(quarters.count)
                         for (i, pair) in quarters.enumerated() {
                             let qcx = 80 + colW * CGFloat(i) + colW / 2
