@@ -108,7 +108,25 @@ final class SchoolListViewModel: ObservableObject {
     }
     func clearCompare() { compareSelection.removeAll() }
 
+    // MEMOIZADO: es propiedad calculada y SwiftUI la evalúa en cada pasada de
+    // layout (prefetch de la lazy list incluido) — cada pasada recorría las
+    // 191 escuelas KOTLIN (puentes ObjC + GC). Con la firma de entradas solo
+    // se recalcula cuando cambia algo de verdad.
+    private var filteredCache: (sig: String, list: [School])? = nil
     var filtered: [School] {
+        let sig = [query, style ?? "", rock ?? "", String(maxDistanceKm ?? -1),
+                   String(describing: showMode), String(describing: sortBy),
+                   String(rangeMode), String(schools.count), String(scores.count),
+                   String(rangeScores.count), String(favoriteIds.count),
+                   String(savedSchoolsList.count),
+                   String(userLat ?? 0), String(userLon ?? 0)].joined(separator: "|")
+        if let c = filteredCache, c.sig == sig { return c.list }
+        let list = computeFiltered()
+        filteredCache = (sig, list)
+        return list
+    }
+
+    private func computeFiltered() -> [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
         // catálogo no está en caché (sin red, primera vez), las sintetizamos
