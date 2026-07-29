@@ -343,9 +343,11 @@ class SchoolDetailViewModel @Inject constructor(
         discipline: String = "BOULDER",
         geometry: String = "POINT",
         path: String? = null,
-        direction: String = "LTR"
+        direction: String = "LTR",
+        blockOrientation: String? = null
     ): Result<Unit> = contributions.submitBoulderFaces(
-        schoolId, lat, lon, name, faces, sectorBlockId, discipline, geometry, path, direction
+        schoolId, lat, lon, name, faces, sectorBlockId, discipline, geometry, path, direction,
+        blockOrientation
     )
 
     suspend fun submitAssignSectorContribution(

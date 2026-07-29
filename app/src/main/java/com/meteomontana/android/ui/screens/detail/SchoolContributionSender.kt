@@ -110,7 +110,8 @@ class SchoolContributionSender @Inject constructor(
         discipline: String = "BOULDER",
         geometry: String = "POINT",
         path: String? = null,
-        direction: String = "LTR"
+        direction: String = "LTR",
+        blockOrientation: String? = null
     ): Result<Unit> = runCatching {
         val photoUrlByFace = HashMap<String, String?>()
         for (face in faces) {
@@ -135,7 +136,8 @@ class SchoolContributionSender @Inject constructor(
             discipline = discipline,
             geometry = geometry,
             path = path,
-            direction = direction
+            direction = direction,
+            orientationsJson = buildOrientationsJson(blockOrientation, faces)
         )
         submitContributionUseCase(schoolId, req)
         Unit

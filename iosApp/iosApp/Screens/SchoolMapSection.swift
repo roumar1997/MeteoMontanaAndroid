@@ -604,7 +604,7 @@ struct SchoolMapSection: View {
             proposedLon: KotlinDouble(double: nw.longitude), correctionReason: nil,
             targetBlockId: flow.corrTargetId, targetLineId: nil, sectorBlockId: nil,
             photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
-            geometry: nil, path: nil, direction: nil)
+            geometry: nil, path: nil, direction: nil, orientationsJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: school.id, req: req)) != nil
         cancelCorrection()
         if ok { afterSubmit() }

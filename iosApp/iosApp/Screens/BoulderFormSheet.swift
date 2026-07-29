@@ -31,6 +31,8 @@ struct BoulderFormSheet: View {
     @State private var queued = false
     // Muro/sector plegados (opciones avanzadas del formulario).
     @State private var advancedOpen = false
+    // F: orientación de la piedra según el autor (opcional; su primer voto).
+    @State private var blockOrientation: String? = nil
     // Geometría/sentido + trazado del muro (PUNTO por defecto).
     @State private var geometry = "POINT"
     @State private var direction = "LTR"
@@ -38,6 +40,51 @@ struct BoulderFormSheet: View {
     @State private var showTrace = false
 
     private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
+
+    private static let aspects = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+
+    /// F: chips de orientación (mismo lenguaje discontinuo-terra de votable).
+    @ViewBuilder
+    private func orientationChips(label: String, selected: String?,
+                                  onPick: @escaping (String) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).font(Cumbre.mono(9, .bold)).tracking(1.2)
+                .foregroundStyle(Cumbre.ink3)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(Self.aspects, id: \.self) { a in
+                        Button { onPick(a) } label: {
+                            Text(a).font(Cumbre.mono(10, .bold))
+                                .foregroundStyle(selected == a ? .white : Cumbre.terra)
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                .background(RoundedRectangle(cornerRadius: 6)
+                                    .fill(selected == a ? Cumbre.terra : Cumbre.paper))
+                                .overlay(RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Cumbre.terra.opacity(selected == a ? 1 : 0.55),
+                                            style: StrokeStyle(lineWidth: 1,
+                                                               dash: selected == a ? [] : [4, 3])))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// F: {"block":"NE","faces":{"0":"N"}} — la orientación que puso el autor
+    /// se convierte en su PRIMER voto al aprobarse. nil si no marcó nada.
+    private func buildOrientationsJson() -> String? {
+        var parts: [String] = []
+        if let b = blockOrientation { parts.append("\"block\":\"\(b)\"") }
+        let facesDict = faces.enumerated().compactMap { idx, f in
+            f.orientation.map { "\"\(idx)\":\"\($0)\"" }
+        }
+        if !facesDict.isEmpty {
+            parts.append("\"faces\":{" + facesDict.joined(separator: ",") + "}")
+        }
+        return parts.isEmpty ? nil : "{" + parts.joined(separator: ",") + "}"
+    }
     private var isWall: Bool { geometry == "LINE" }
 
     var body: some View {
@@ -60,6 +107,14 @@ struct BoulderFormSheet: View {
                         DisciplineSelector(selected: $discipline)
                     }
 
+                    // F: orientación de la piedra según el autor (opcional).
+                    // Al aprobarse se convierte en su PRIMER voto; la
+                    // comunidad puede seguir votando después.
+                    orientationChips(label: "ORIENTACIÓN DE LA PIEDRA (opcional)",
+                                     selected: blockOrientation) { a in
+                        blockOrientation = blockOrientation == a ? nil : a
+                    }
+
                     // ── Opciones avanzadas: muro, sector y numeración (plegado) ──
                     // El 90% de las propuestas son una piedra normal: esto vive
                     // plegado para no estorbar (espejo del formulario Android).
@@ -67,7 +122,7 @@ struct BoulderFormSheet: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Muro, sector y numeración").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                                Text(isWall ? "Muro de (wallPath.count) puntos" + (sectorId != nil ? " · con sector" : "")
+                                Text(isWall ? "Muro de \(wallPath.count) puntos" + (sectorId != nil ? " · con sector" : "")
                                      : (sectorId != nil ? "Con sector asignado" : "Solo si es una pared larga o va en un sector"))
                                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                             }
@@ -159,6 +214,16 @@ struct BoulderFormSheet: View {
                             .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
                             .frame(maxWidth: .infinity).padding(.vertical, 10)
                             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+
+                    // F: orientación de ESTA cara (opcional). Solo tiene
+                    // sentido con varias fotos; con una sola vale la general.
+                    if faces.count > 1 {
+                        orientationChips(label: "ORIENTACIÓN DE ESTA CARA (opcional)",
+                                         selected: faces[faceIdx].orientation) { a in
+                            faces[faceIdx].orientation =
+                                faces[faceIdx].orientation == a ? nil : a
+                        }
                     }
 
                     // ── Vías de esta foto ──────────────────────────────────────────
@@ -288,7 +353,8 @@ struct BoulderFormSheet: View {
             discipline: discipline,
             geometry: geometry,
             path: isWall && !wallPath.isEmpty ? buildPathJson(wallPath) : nil,
-            direction: direction)
+            direction: direction,
+            orientationsJson: buildOrientationsJson())
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         if ok {

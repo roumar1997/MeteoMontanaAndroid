@@ -71,7 +71,8 @@ enum ContributionOutboxFlusher {
             discipline: q["discipline"] as? String,
             geometry: q["geometry"] as? String,
             path: q["pathJson"] as? String,
-            direction: q["direction"] as? String)
+            direction: q["direction"] as? String,
+            orientationsJson: q["orientationsJson"] as? String)
 
         if (try? await c.submitContribution.invoke(schoolId: row.schoolId, req: req)) != nil {
             try? await c.deleteOutboxRow(id: row.id)

@@ -311,7 +311,7 @@ struct EditLinesSheet: View {
             photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: nil,
             geometry: geometry,
             path: isWall ? (tracedPath.isEmpty ? block.path : buildPathJson(tracedPath)) : nil,
-            direction: direction)
+            direction: direction, orientationsJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         if ok { dismiss(); onDone(true) }

@@ -66,6 +66,9 @@ internal fun BoulderFormDialog(
     onSectorChange: (String?) -> Unit,
     discipline: String,
     onDisciplineChange: (String) -> Unit,
+    /** F: orientación de la piedra según el autor (opcional; su primer voto). */
+    blockOrientation: String? = null,
+    onBlockOrientationChange: (String?) -> Unit = {},
     geometry: String,
     onGeometryChange: (String) -> Unit,
     direction: String,
@@ -119,6 +122,15 @@ internal fun BoulderFormDialog(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         DisciplineSelector(selected = discipline, onSelect = onDisciplineChange)
+
+        // F: orientación de la piedra (opcional). Al aprobarse será el PRIMER
+        // voto del autor; la comunidad puede seguir votando después.
+        Spacer(Modifier.height(Spacing.sm))
+        OrientationPickRow(
+            label = "ORIENTACIÓN DE LA PIEDRA (opcional)",
+            selected = blockOrientation,
+            onPick = { a -> onBlockOrientationChange(if (blockOrientation == a) null else a) }
+        )
         Spacer(Modifier.height(Spacing.md))
 
         // ── Opciones avanzadas: muro, sector y numeración (plegado) ─────────────
@@ -245,6 +257,15 @@ internal fun BoulderFormDialog(
         // ── Caras (fotos) ─────────────────────────────────────────────────────────
         // Una piedra grande no cabe en una foto: añade varias fotos, cada una con
         // sus vías. Pestañas para cambiar de foto; "+ AÑADIR FOTO" crea otra.
+        // F: orientación por CARA (solo con varias fotos; con una vale la general).
+        if (faces.size > 1) {
+            OrientationPickRow(
+                label = "ORIENTACIÓN DE ESTA CARA (opcional)",
+                selected = face.orientation,
+                onPick = { a -> updateFace { it.copy(orientation = if (it.orientation == a) null else a) } }
+            )
+            Spacer(Modifier.height(Spacing.sm))
+        }
         Text("FOTOS DE LA PIEDRA", style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
@@ -620,6 +641,39 @@ private fun BloqueRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary
             )
+        }
+    }
+}
+
+
+/** F: fila de chips de orientación (mismo lenguaje discontinuo-terra votable). */
+@Composable
+private fun OrientationPickRow(label: String, selected: String?, onPick: (String) -> Unit) {
+    Column {
+        Text(label, style = EyebrowTextStyle.copy(fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp)),
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        androidx.compose.foundation.lazy.LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            items(BOULDER_ASPECTS.size) { i ->
+                val a = BOULDER_ASPECTS[i]
+                val active = selected == a
+                Box(Modifier
+                    .background(
+                        if (active) com.meteomontana.android.ui.theme.Terra
+                        else MaterialTheme.colorScheme.surface,
+                        RoundedCornerShape(6.dp))
+                    .border(1.dp,
+                        com.meteomontana.android.ui.theme.Terra.copy(alpha = if (active) 1f else 0.55f),
+                        RoundedCornerShape(6.dp))
+                    .clickable { onPick(a) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    Text(a, style = EyebrowTextStyle.copy(fontSize = androidx.compose.ui.unit.TextUnit(10f, androidx.compose.ui.unit.TextUnitType.Sp)),
+                        color = if (active) androidx.compose.ui.graphics.Color.White
+                                else com.meteomontana.android.ui.theme.Terra)
+                }
+            }
         }
     }
 }

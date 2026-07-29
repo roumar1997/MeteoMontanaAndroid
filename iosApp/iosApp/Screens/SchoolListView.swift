@@ -114,12 +114,23 @@ final class SchoolListViewModel: ObservableObject {
     // se recalcula cuando cambia algo de verdad.
     private var filteredCache: (sig: String, list: [School])? = nil
     var filtered: [School] {
-        let sig = [query, style ?? "", rock ?? "", String(maxDistanceKm ?? -1),
-                   String(describing: showMode), String(describing: sortBy),
-                   String(rangeMode), String(schools.count), String(scores.count),
-                   String(rangeScores.count), String(favoriteIds.count),
-                   String(savedSchoolsList.count),
-                   String(userLat ?? 0), String(userLon ?? 0)].joined(separator: "|")
+        // En pasos: 14 elementos en una expresión saturan el type-checker.
+        var parts: [String] = []
+        parts.append(query)
+        parts.append(style ?? "")
+        parts.append(rock ?? "")
+        parts.append(String(maxDistanceKm ?? -1))
+        parts.append(String(describing: showMode))
+        parts.append(String(describing: sortBy))
+        parts.append(String(rangeMode))
+        parts.append(String(schools.count))
+        parts.append(String(scores.count))
+        parts.append(String(rangeScores.count))
+        parts.append(String(favoriteIds.count))
+        parts.append(String(savedSchoolsList.count))
+        parts.append(String(userLat ?? 0))
+        parts.append(String(userLon ?? 0))
+        let sig = parts.joined(separator: "|")
         if let c = filteredCache, c.sig == sig { return c.list }
         let list = computeFiltered()
         filteredCache = (sig, list)

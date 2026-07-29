@@ -128,7 +128,7 @@ struct ContributionFormSheet: View {
             description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: nil, targetLineId: nil, sectorBlockId: nil,
             photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
-            geometry: nil, path: nil, direction: nil)
+            geometry: nil, path: nil, direction: nil, orientationsJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         if ok { dismiss(); onDone(true) }

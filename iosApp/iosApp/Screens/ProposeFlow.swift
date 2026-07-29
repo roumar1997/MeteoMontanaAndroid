@@ -84,6 +84,8 @@ struct BoulderFaceForm: Identifiable {
     let id = UUID()
     var photo: UIImage? = nil
     var blocks: [BoulderBlockForm] = [BoulderBlockForm()]
+    /// F: orientación de ESTA cara según el autor (opcional; su primer voto).
+    var orientation: String? = nil
 }
 
 /// Serializa VARIAS caras a un único `bloquesJson` donde cada vía lleva el
