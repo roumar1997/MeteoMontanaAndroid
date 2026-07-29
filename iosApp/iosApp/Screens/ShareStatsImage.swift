@@ -8,10 +8,11 @@ import UIKit
 enum ShareStatsImage {
 
     static func share(periodLabel: String, disciplineLabel: String,
-                      summary: JournalStatsCalculator.Summary, maxGrade: String?) async {
+                      summary: JournalStatsCalculator.Summary, maxGrade: String?,
+                      progression: JournalStatsCalculator.Progression? = nil) async {
         let image = render(periodLabel: periodLabel, disciplineLabel: disciplineLabel,
-                           summary: summary, maxGrade: maxGrade)
-        let text = "Mis estadísticas de escalada en Cumbre:\nhttps://api.climbingteams.com/app"
+                           summary: summary, maxGrade: maxGrade, progression: progression)
+        let text = "Mis estadísticas de escalada en Cumbre:\n\(ShareBase.url)/app"
         await MainActor.run {
             guard let scene = UIApplication.shared.connectedScenes
                 .compactMap({ $0 as? UIWindowScene }).first,
@@ -33,7 +34,8 @@ enum ShareStatsImage {
 
     private static func render(periodLabel: String, disciplineLabel: String,
                                summary s: JournalStatsCalculator.Summary,
-                               maxGrade: String?) -> UIImage {
+                               maxGrade: String?,
+                               progression: JournalStatsCalculator.Progression?) -> UIImage {
         let w: CGFloat = 1080, h: CGFloat = 1920
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -53,10 +55,21 @@ enum ShareStatsImage {
                     (text as NSString).draw(at: CGPoint(x: px, y: y), withAttributes: attrs)
                 }
 
+                // N9: logo real de la app, circular con anillo terra.
+                if let logo = UIImage(named: "logo_cumbre") {
+                    let r: CGFloat = 84
+                    let rect = CGRect(x: w / 2 - r, y: 88, width: r * 2, height: r * 2)
+                    c.saveGState()
+                    UIBezierPath(ovalIn: rect).addClip()
+                    logo.draw(in: rect)
+                    c.restoreGState()
+                    terra.setStroke(); c.setLineWidth(4)
+                    c.strokeEllipse(in: rect.insetBy(dx: -6, dy: -6))
+                }
                 let mono = UIFont.monospacedSystemFont(ofSize: 32, weight: .bold)
-                draw("CUMBRE · \(disciplineLabel)", x: w / 2, y: 120,
+                draw("CUMBRE · \(disciplineLabel)", x: w / 2, y: 290,
                      font: mono, color: terra, kern: 6)
-                draw(periodLabel, x: w / 2, y: 190,
+                draw(periodLabel, x: w / 2, y: 352,
                      font: UIFont(name: "Georgia-Bold", size: 92)
                         ?? .systemFont(ofSize: 92, weight: .bold),
                      color: ink)
@@ -72,7 +85,7 @@ enum ShareStatsImage {
                 for (i, m) in metrics.enumerated() {
                     let col = CGFloat(i % 2), row = CGFloat(i / 2)
                     let left = 80 + col * (boxW + 40)
-                    let top = 360 + row * (boxH + 36)
+                    let top = 520 + row * (boxH + 28)
                     rule.setStroke()
                     c.stroke(CGRect(x: left, y: top, width: boxW, height: boxH))
                     draw(m.0, x: left + boxW / 2, y: top + 34,
@@ -85,7 +98,7 @@ enum ShareStatsImage {
                 }
 
                 // Pirámide.
-                var y: CGFloat = 920
+                var y: CGFloat = 1070
                 draw("PIRÁMIDE DE GRADOS", x: 80, y: y,
                      font: UIFont.monospacedSystemFont(ofSize: 29, weight: .bold),
                      color: inkSoft, centered: false, kern: 5)
@@ -116,6 +129,38 @@ enum ShareStatsImage {
                     let name = parts.count == 2 ? months[(Int(parts[1]) ?? 1) - 1] : bm
                     draw("Mejor mes: \(name) (\(s.bestMonthCount) ascensos)",
                          x: w / 2, y: y, font: .systemFont(ofSize: 42), color: ink)
+                }
+
+                // N9: ultimas 12 semanas + grado por trimestre (llenar el hueco).
+                if let p = progression {
+                    var py: CGFloat = 1560
+                    draw("ÚLT. 12 SEMANAS", x: 80, y: py,
+                         font: UIFont.monospacedSystemFont(ofSize: 27, weight: .bold),
+                         color: inkSoft, centered: false, kern: 4)
+                    py += 44
+                    let cellW = (w - 160 - 11 * 8) / 12
+                    for (i, out) in p.weeksOut.enumerated() {
+                        (out.boolValue ? terra : rule).setFill()
+                        UIBezierPath(roundedRect: CGRect(x: 80 + CGFloat(i) * (cellW + 8), y: py,
+                                                         width: cellW, height: 40),
+                                     cornerRadius: 8).fill()
+                    }
+                    py += 66
+                    let quarters = Array(p.maxGradePerQuarter.suffix(4))
+                    if !quarters.isEmpty {
+                        let colW = (w - 160) / CGFloat(quarters.count)
+                        for (i, pair) in quarters.enumerated() {
+                            let qcx = 80 + colW * CGFloat(i) + colW / 2
+                            draw(pair.second! as String, x: qcx, y: py,
+                                 font: UIFont(name: "Georgia-Bold", size: 52)
+                                    ?? .systemFont(ofSize: 52, weight: .bold),
+                                 color: terra)
+                            draw((pair.first! as String).components(separatedBy: "-").last ?? "",
+                                 x: qcx, y: py + 62,
+                                 font: UIFont.monospacedSystemFont(ofSize: 25, weight: .bold),
+                                 color: inkSoft)
+                        }
+                    }
                 }
 
                 draw("Descarga Cumbre", x: w / 2, y: h - 230,

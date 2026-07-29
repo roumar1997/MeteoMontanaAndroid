@@ -53,13 +53,16 @@ struct AdminStatsTab: View {
                     if openList == "notes" {
                         if let list = notes {
                             ForEach(list, id: \.id) { n in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(n.text).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                                    Text([n.author, n.schoolId, (n.createdAt ?? "").isEmpty ? nil : String((n.createdAt ?? "").prefix(10))]
-                                            .compactMap { $0 }.joined(separator: " - "))
-                                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                                // P6: la nota abre su ESCUELA.
+                                Group {
+                                    if let sid = n.schoolId, !sid.isEmpty {
+                                        NavigationLink(destination: SchoolLoaderView(schoolId: sid)) {
+                                            adminNoteRow(n)
+                                        }.buttonStyle(.plain)
+                                    } else {
+                                        adminNoteRow(n)
+                                    }
                                 }
-                                .padding(.vertical, 8)
                                 Divider().overlay(Cumbre.rule)
                             }
                         } else { ProgressView().padding(.top, 30) }
@@ -67,6 +70,8 @@ struct AdminStatsTab: View {
                         if let list = users {
                             let shown = openList == "admins" ? list.filter { $0.isAdmin } : list
                             ForEach(shown, id: \.uid) { u in
+                                // P6: la fila abre el PERFIL del usuario.
+                                NavigationLink(destination: PublicProfileView(uid: u.uid)) {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
@@ -79,6 +84,7 @@ struct AdminStatsTab: View {
                                     Text(String((u.createdAt ?? "").prefix(10)))
                                         .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 }
+                                }.buttonStyle(.plain)
                                 .padding(.vertical, 8)
                                 Divider().overlay(Cumbre.rule)
                             }
@@ -229,4 +235,20 @@ struct AdminPushTab: View {
                 .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         }
     }
+}
+
+
+/// Fila de nota del panel admin (P6: pulsable → su escuela).
+@ViewBuilder
+fileprivate func adminNoteRow(_ n: AdminNoteRow) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+        Text(n.text).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+        Text([n.author, n.schoolId, (n.createdAt ?? "").isEmpty ? nil : String((n.createdAt ?? "").prefix(10))]
+                .compactMap { $0 }.joined(separator: " - "))
+            .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+        Text("Ver escuela ›").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .contentShape(Rectangle())
+    .padding(.vertical, 8)
 }

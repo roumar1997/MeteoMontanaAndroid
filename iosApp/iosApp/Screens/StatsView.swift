@@ -6,6 +6,7 @@ import Shared
 /// aquí solo se pinta. Selector de año desplegable (Todo/2026/2025…) + meses.
 struct StatsView: View {
     @StateObject private var store = StatsStore()
+    @State private var showDaysList = false
 
     private let monthShort = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"]
 
@@ -49,7 +50,9 @@ struct StatsView: View {
                 // ── Métricas ────────────────────────────────────────────────
                 if let s = store.summary {
                     HStack(spacing: 8) {
-                        metric("\(s.daysOut)", "DÍAS DE ROCA")
+                        Button { showDaysList = true } label: {
+                            metric("\(s.daysOut)", "DÍAS DE ROCA ▾")
+                        }.buttonStyle(.plain)
                         metric("\(s.currentStreakWeeks) sem", "RACHA", terra: true)
                     }
                     HStack(spacing: 8) {
@@ -78,7 +81,13 @@ struct StatsView: View {
                         }
                     }
                     if let bm = s.bestMonth {
-                        infoCard("Tu mejor mes: \(formatMonth(bm)) (\(s.bestMonthCount) ascensos).")
+                        Button {
+                            store.year = String(bm.prefix(4))
+                            store.month = String(bm.suffix(2))
+                            store.recompute()
+                        } label: {
+                            infoCard("Tu mejor mes: \(formatMonth(bm)) (\(s.bestMonthCount) ascensos). Toca para verlo ▾")
+                        }.buttonStyle(.plain)
                     }
                 }
 
@@ -118,15 +127,23 @@ struct StatsView: View {
 
                     Text("TUS ESCUELAS").eyebrow().padding(.top, 6)
                     ForEach(Array(p.perSchool.prefix(8).enumerated()), id: \.offset) { _, t in
-                        HStack {
-                            Text(t.first! as String).font(.system(size: 14))
-                                .foregroundStyle(Cumbre.ink)
-                            Spacer()
-                            Text("\(t.second!.intValue)"
-                                 + ((t.third as? String).map { " · máx \($0)" } ?? ""))
-                                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                        // N7: cada escuela abre TU diario de esa escuela.
+                        NavigationLink(destination: SchoolJournalSectorsView(
+                            schoolName: t.first! as String,
+                            entries: store.entriesForSchool(t.first! as String))) {
+                            HStack {
+                                Text(t.first! as String).font(.system(size: 14))
+                                    .foregroundStyle(Cumbre.ink)
+                                Spacer()
+                                Text("\(t.second!.intValue)"
+                                     + ((t.third as? String).map { " · máx \($0)" } ?? ""))
+                                    .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -149,7 +166,8 @@ struct StatsView: View {
                                 periodLabel: store.year.map { "MI \($0) EN ROCA" } ?? "MI DIARIO EN ROCA",
                                 disciplineLabel: store.discipline == "ROUTE" ? "VÍA" : "BLOQUE",
                                 summary: sum,
-                                maxGrade: (sum.pyramid.first?.first).map { $0 as String })
+                                maxGrade: (sum.pyramid.first?.first).map { $0 as String },
+                                progression: store.progression)
                         }
                     } label: {
                         Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.terra)
@@ -158,6 +176,26 @@ struct StatsView: View {
             }
         }
         .task { await store.load() }
+        .sheet(isPresented: $showDaysList) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("TUS DÍAS DE ROCA").font(Cumbre.mono(11, .bold)).tracking(1)
+                        .foregroundStyle(Cumbre.terra).padding(.bottom, 8)
+                    ForEach(store.daysWithCounts(), id: \.0) { day, count in
+                        HStack {
+                            Text(day).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                            Spacer()
+                            Text("\(count) ascensos").font(Cumbre.mono(10, .bold))
+                                .foregroundStyle(Cumbre.terra)
+                        }
+                        .padding(.vertical, 6)
+                        Divider().overlay(Cumbre.rule)
+                    }
+                }
+                .padding(16)
+            }
+            .presentationDetents([.medium, .large])
+        }
     }
 
     private func formatMonth(_ yyyyMm: String) -> String {
@@ -243,6 +281,32 @@ final class StatsStore: ObservableObject {
         }
         loading = false
         recompute()
+    }
+
+    /** N7: dias del filtro actual con nº de ascensos, recientes primero. */
+    func daysWithCounts() -> [(String, Int)] {
+        var counts: [String: Int] = [:]
+        for e in filteredEntries() { counts[e.date, default: 0] += 1 }
+        return counts.sorted { $0.key > $1.key }.map { ($0.key, $0.value) }
+    }
+
+    /** N7: entradas del filtro actual de UNA escuela (para navegar a su diario). */
+    func entriesForSchool(_ school: String) -> [JournalSession] {
+        filteredEntries().filter { ($0.schoolName ?? $0.schoolId ?? "—") == school }
+    }
+
+    private func filteredEntries() -> [JournalSession] {
+        let calc = JournalStatsCalculator.shared
+        var filtered = calc.filter(entries: entries, discipline: discipline, year: year)
+        if let m = month {
+            filtered = filtered.filter { e in
+                guard e.date.count >= 7 else { return false }
+                let start = e.date.index(e.date.startIndex, offsetBy: 5)
+                let end = e.date.index(e.date.startIndex, offsetBy: 7)
+                return String(e.date[start..<end]) == m
+            }
+        }
+        return filtered
     }
 
     func recompute() {

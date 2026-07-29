@@ -29,7 +29,7 @@ enum ShareProfileImage {
                      boulders: boulders, routes: routes, schools: schools)
         }
         let text = "Perfil de \(displayLabel) en Cumbre:\n"
-            + "https://api.climbingteams.com/s/u/\(handle)"
+            + "\(ShareBase.url)/s/u/\(handle)"
         await present([image, text])
     }
 

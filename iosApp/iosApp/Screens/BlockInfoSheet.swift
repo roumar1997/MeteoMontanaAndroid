@@ -125,7 +125,7 @@ struct BlockInfoSheet: View {
                                     HStack(spacing: 8) {
                                         Text("FOTO \(faceIdx + 1)").eyebrow()
                                         // C2: cada cara de un muro vota su orientacion.
-                                        VotableChip(text: community.summaryFor(originalIdx)?.consensus ?? "ORIENT.") {
+                                        VotableChip(text: community.summaryFor(originalIdx)?.consensus.map { "PARED " + $0 } ?? "ORIENTAR ESTA CARA") {
                                             orientationTarget = OrientationTarget(photoIndex: originalIdx)
                                             Task { await community.loadSun(blockId: block.id, photoIndex: originalIdx) }
                                         }
@@ -167,7 +167,10 @@ struct BlockInfoSheet: View {
                                                     block: block, line: l, schoolName: schoolName,
                                                     tickedIds: tickedLines, projectIds: projectLines,
                                                     sectorName: sectorName,
-                                                    orientationBadge: community.summaryFor(nil)?.consensus,
+                                                    orientationBadge: community.summaryFor(nil)?.consensus
+                                                        ?? (try? await AppDependencies.shared.container
+                                                            .getOrientation.invoke(blockId: block.id))?
+                                                            .first(where: { $0.photoIndex == nil })?.consensus,
                                                     setterGradeRef: {
                                                         guard let g = community.grade,
                                                               g.lineId == l.id,
@@ -254,6 +257,28 @@ struct BlockInfoSheet: View {
                         .font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3).padding(.top, 2)
 
                     DirectionsButton(lat: block.lat, lon: block.lon, label: block.name).padding(.top, 8)
+
+                    // N10: COMPARTIR PIEDRA — portada con TODAS sus vias.
+                    if block.type.uppercased() == "BLOCK", let firstLine = block.lines.first {
+                        Button {
+                            Task {
+                                let badge = community.summaryFor(nil)?.consensus
+                                    ?? (try? await AppDependencies.shared.container
+                                        .getOrientation.invoke(blockId: block.id))?
+                                        .first(where: { $0.photoIndex == nil })?.consensus
+                                await ShareLineImage.share(
+                                    block: block, line: firstLine, schoolName: schoolName,
+                                    tickedIds: tickedLines, projectIds: projectLines,
+                                    sectorName: sectorName, orientationBadge: badge)
+                            }
+                        } label: {
+                            Text("COMPARTIR PIEDRA").font(Cumbre.mono(11, .bold)).tracking(0.8)
+                                .foregroundStyle(Cumbre.ink)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
 
                     // Desplegable OPCIONES (editar vías / sector / eliminar).
                     if onEditLines != nil || onAssignSector != nil || onDelete != nil {

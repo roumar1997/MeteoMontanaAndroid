@@ -531,11 +531,28 @@ struct SchoolListView: View {
                     // Mini-topo: foto de la cara con la linea dibujada (si el
                     // backend mando foto; las piedras salen sin trazo).
                     if let photo = h.photoPath, !photo.isEmpty {
-                        let pts = TopoParse.points(h.linePath)
-                        TopoPhotoView(photoUrl: photo, lines: pts.count >= 2 ? [
-                            TopoLineVM(id: h.lineId ?? "hit", name: h.lineName,
-                                       grade: h.grade, startType: h.startType, points: pts)
-                        ] : [])
+                        // P8: dedup de puntos casi identicos (trazos antiguos
+                        // fusionaban los guiones -> linea continua) y la FOTO
+                        // tambien abre la piedra (paridad Android).
+                        let raw = TopoParse.points(h.linePath)
+                        var pts: [CGPoint] = []
+                        for pt in raw {
+                            if let last = pts.last,
+                               abs(pt.x - last.x) + abs(pt.y - last.y) < 0.004 { continue }
+                            pts.append(pt)
+                        }
+                        Button {
+                            if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
+                                navVia = h.lineId ?? h.lineName ?? h.blockName
+                                navSchool = school
+                            }
+                        } label: {
+                            TopoPhotoView(photoUrl: photo, lines: pts.count >= 2 ? [
+                                TopoLineVM(id: h.lineId ?? "hit", name: h.lineName,
+                                           grade: h.grade, startType: h.startType, points: pts)
+                            ] : [])
+                        }
+                        .buttonStyle(.plain)
                         .padding(.horizontal, 12).padding(.bottom, 10)
                     }
                 }

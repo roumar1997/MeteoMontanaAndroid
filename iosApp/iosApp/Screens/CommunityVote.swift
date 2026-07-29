@@ -252,8 +252,13 @@ struct SunStripView: View {
     var body: some View {
         if !sun.hours.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
-                Text("SOL EN ESTA PARED · HOY")
-                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                // N1: titulo + leyenda en la MISMA fila (aprovechar espacio).
+                HStack {
+                    Text("SOL EN ESTA PARED · HOY")
+                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                    Spacer()
+                    legend(sunColor, "Sol"); legend(shadeColor, "Sombra")
+                }
                 HStack(spacing: 2) {
                     ForEach(Array(sun.hours.enumerated()), id: \.offset) { _, h in
                         VStack(spacing: 2) {
@@ -264,9 +269,6 @@ struct SunStripView: View {
                                 .foregroundStyle(Cumbre.ink3)
                         }
                     }
-                }
-                HStack(spacing: 12) {
-                    legend(sunColor, "Al sol"); legend(shadeColor, "Sombra")
                 }
             }
         }

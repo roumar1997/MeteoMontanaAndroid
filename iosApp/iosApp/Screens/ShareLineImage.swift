@@ -288,3 +288,17 @@ enum ShareLineImage {
         top.present(vc, animated: true)
     }
 }
+
+
+/// P7: base de los enlaces compartidos SEGUN EL BUILD. Debug -> staging
+/// (donde viven los datos de prueba); release -> prod. Abrir la app directa
+/// (Universal Links) solo funciona con el dominio de prod.
+enum ShareBase {
+    static var url: String {
+        #if DEBUG
+        return "https://meteomontanaapi-staging.up.railway.app"
+        #else
+        return "https://api.climbingteams.com"
+        #endif
+    }
+}

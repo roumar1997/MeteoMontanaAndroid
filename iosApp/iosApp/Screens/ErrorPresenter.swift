@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Presentador GLOBAL de errores de usuario — el helper que faltaba de la
 /// regla P2.1 (ARCHITECTURE.md §2): las acciones del usuario nunca fallan en
@@ -18,10 +19,48 @@ final class ErrorPresenter: ObservableObject {
     func show(_ text: String) {
         hideTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) { message = text }
+        // P1: ADEMAS del banner SwiftUI (que las hojas presentadas tapan),
+        // un toast UIKit en la VENTANA — visible sobre sheets y covers.
+        Self.showWindowToast(text)
         hideTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 4_000_000_000)
             guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.2)) { self?.message = nil }
+        }
+    }
+
+    /// Toast UIKit anclado a la ventana activa: se ve por encima de cualquier
+    /// sheet/fullScreenCover (el overlay SwiftUI de RootView no).
+    private static func showWindowToast(_ text: String) {
+        guard let scene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive }),
+              let window = scene.keyWindow else { return }
+
+        let label = UILabel()
+        label.text = "  \u{26A0} " + text + "  "
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = UIColor(red: 0.10, green: 0.10, blue: 0.10, alpha: 1)
+        label.backgroundColor = UIColor(red: 0.94, green: 0.92, blue: 0.85, alpha: 1)
+        label.layer.borderColor = UIColor(red: 0.75, green: 0.33, blue: 0.17, alpha: 1).cgColor
+        label.layer.borderWidth = 1
+        label.layer.cornerRadius = 6
+        label.clipsToBounds = true
+        label.numberOfLines = 2
+        label.textAlignment = .center
+        label.alpha = 0
+
+        let maxW = window.bounds.width - 32
+        let size = label.sizeThatFits(CGSize(width: maxW, height: 80))
+        label.frame = CGRect(x: (window.bounds.width - min(size.width + 8, maxW)) / 2,
+                             y: window.safeAreaInsets.top + 8,
+                             width: min(size.width + 8, maxW), height: size.height + 14)
+        window.addSubview(label)
+        UIView.animate(withDuration: 0.2) { label.alpha = 1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            UIView.animate(withDuration: 0.25, animations: { label.alpha = 0 }) { _ in
+                label.removeFromSuperview()
+            }
         }
     }
 

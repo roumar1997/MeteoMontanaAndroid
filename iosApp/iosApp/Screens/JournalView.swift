@@ -26,10 +26,17 @@ final class JournalViewModel: ObservableObject {
         self.deleteEntry = deleteEntry
     }
 
+    /** C3: agrupacion por mes PRECOMPUTADA (el body solo la lee). */
+    @Published var entriesByMonth: [String: [JournalSession]] = [:]
+    @Published var monthKeys: [String] = []
+
     func load() async {
         loading = true
         entries = (try? await getMyJournal.invoke()) ?? []
         stats = try? await getMyStats.invoke()
+        entriesByMonth = Dictionary(grouping: entries.sorted { $0.date > $1.date },
+                                    by: { String($0.date.prefix(7)) })
+        monthKeys = entriesByMonth.keys.sorted(by: >)
         loading = false
     }
 
@@ -89,10 +96,11 @@ struct JournalView: View {
                             Text("Aún no has registrado bloques.")
                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(32)
                         } else {
-                            // C3: agrupado por MES ("JULIO 2026 - N").
-                            let byMonth = Dictionary(grouping: vm.entries.sorted { $0.date > $1.date },
-                                                     by: { String($0.date.prefix(7)) })
-                            ForEach(byMonth.keys.sorted(by: >), id: \.self) { month in
+                            // C3: agrupado por MES. PRECOMPUTADO en el VM — hacerlo
+                            // en el body relanzaba el calculo en cada frame (watchdog
+                            // 0x8BADF00D del 29-jul).
+                            let byMonth = vm.entriesByMonth
+                            ForEach(vm.monthKeys, id: \.self) { month in
                                 Text(JournalView.monthHeader(month) + " · \(byMonth[month]!.count)")
                                     .font(Cumbre.mono(10, .bold)).tracking(1)
                                     .foregroundStyle(Cumbre.terra)
