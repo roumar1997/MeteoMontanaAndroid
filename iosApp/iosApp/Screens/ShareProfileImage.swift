@@ -29,7 +29,7 @@ enum ShareProfileImage {
                      boulders: boulders, routes: routes, schools: schools)
         }
         let text = "Perfil de \(displayLabel) en Cumbre:\n"
-            + "https://api.climbingteams.com/s/u/\(handle)"
+            + "\(ShareBase.url)/s/u/\(handle)"
         await present([image, text])
     }
 
@@ -185,6 +185,20 @@ enum ShareProfileImage {
         UIFont(name: "SourceSerif4-Bold", size: size) ?? .systemFont(ofSize: size, weight: .bold)
     }
 
+
+    /// Compartir UIImage tal cual hace que el share sheet la RECOMPRIMA a
+    /// JPEG (salía borrosa — feedback de Rodrigo). Se vuelca a un PNG
+    /// temporal y se comparte el fichero: píxeles intactos.
+    fileprivate static func asPngItems(_ items: [Any]) -> [Any] {
+        items.map { item in
+            guard let img = item as? UIImage, let data = img.pngData() else { return item }
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("cumbre-share-\(Int.random(in: 100000...999999)).png")
+            try? data.write(to: url)
+            return url
+        }
+    }
+
     @MainActor
     private static func present(_ items: [Any]) {
         guard let scene = UIApplication.shared.connectedScenes
@@ -193,7 +207,7 @@ enum ShareProfileImage {
         else { return }
         var top = root
         while let presented = top.presentedViewController { top = presented }
-        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let vc = UIActivityViewController(activityItems: asPngItems(items), applicationActivities: nil)
         if let pop = vc.popoverPresentationController {
             pop.sourceView = top.view
             pop.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.midY,

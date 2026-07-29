@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.data.map.MapStyles
+
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -430,22 +432,9 @@ internal fun bitmapForBlock(block: Block, isProposal: Boolean): Bitmap {
     }
 }
 
-// Estilo topográfico (igual que el selector "Topográfico" en SchoolMap)
-private val OSM_TOPO_STYLE = """
-{"version":8,"sources":{"topo":{"type":"raster","tiles":[
-  "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
-  "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
-  "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"
-],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"topo","type":"raster","source":"topo"}]}
-""".trimIndent()
-
-private val SAT_STYLE = """
-{"version":8,"sources":{"sat":{"type":"raster","tiles":[
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"sat","type":"raster","source":"sat"}]}
-""".trimIndent()
-
-internal fun fullStyleJson(id: String): String = if (id == "sat") SAT_STYLE else OSM_TOPO_STYLE
+// Estilos raster (fuente única en MapStyles); igual que el selector de SchoolMap.
+internal fun fullStyleJson(id: String): String =
+    if (id == "sat") MapStyles.satellite else MapStyles.topo
 
 /** Devuelve una copia del bitmap con alpha 0.35f. */
 private fun fadeBitmap(src: android.graphics.Bitmap): android.graphics.Bitmap {

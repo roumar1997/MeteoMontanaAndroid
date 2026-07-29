@@ -140,22 +140,7 @@ struct TopoEditorView: View {
     }
 
     private func drawLines(_ ctx: GraphicsContext, _ size: CGSize) {
-        // Tramos compartidos (existentes + en edición) → FRANJAS por vía.
-        // El índice de vía es GLOBAL (normales primero, luego las editables)
-        // para que las fases de las franjas y el abanico casen.
-        let allPoints = normalLines.map { $0.points } + blocks.map { $0.line }
-        let sharedKeys = TopoShared.sharedSegmentLines(allPoints)
-        let startFan = TopoShared.fanOffsets(allPoints.map { $0.first }, spacing: 12 * 2 + 4)
-        let endFan = TopoShared.fanOffsets(allPoints.map { $0.last }, spacing: 13 * 2 + 4)
-        // 1. Existentes que NO cambian → NORMALES (con número y tipo).
-        // (los badges van en una 2ª pasada al final, siempre encima)
-        for (i, line) in normalLines.enumerated() where !line.points.isEmpty {
-            drawTopoLine(ctx, size, points: line.points, grade: line.grade,
-                         startType: line.startType, number: i + 1, lineWidth: 5,
-                         lineIdx: i, shared: sharedKeys,
-                         startDx: startFan[i], endDx: endFan[i], strokesOnly: true)
-        }
-        // 2. SOLO la vía vieja que se corrige, difuminada (para distinguirla).
+        // La vía vieja que se corrige, difuminada (para distinguirla) — al fondo.
         for line in fadedLines where !line.points.isEmpty {
             let style = GradeColor.style(line.grade)
             let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
@@ -164,92 +149,18 @@ struct TopoEditorView: View {
             ctx.stroke(path, with: .color(style.stroke.opacity(0.4)),
                        style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round, dash: [6, 6]))
         }
-        // 3. Las que se están dibujando (editable), resaltadas.
-        for (idx, b) in blocks.enumerated() where !b.line.isEmpty {
-            let g = normalLines.count + idx
-            drawTopoLine(ctx, size, points: b.line, grade: b.grade, startType: b.startType,
-                         number: idx + 1, lineWidth: idx == selected ? 8 : 5,
-                         lineIdx: g, shared: sharedKeys,
-                         startDx: startFan[g], endDx: endFan[g], strokesOnly: true)
+        // Pintor único: índice de vía GLOBAL (normales primero, luego editables)
+        // para que las franjas y el abanico casen. La editable seleccionada va
+        // más gruesa (lineWidth override). Franjas/abanico/dos pasadas por dentro.
+        var vias = normalLines.enumerated().map { (i, l) in
+            TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points)
         }
-        // 4. BADGES de todas, encima de todas las líneas.
-        for (i, line) in normalLines.enumerated() where !line.points.isEmpty {
-            drawTopoLine(ctx, size, points: line.points, grade: line.grade,
-                         startType: line.startType, number: i + 1, lineWidth: 5,
-                         lineIdx: i, shared: sharedKeys,
-                         startDx: startFan[i], endDx: endFan[i], badgesOnly: true)
+        for (idx, b) in blocks.enumerated() {
+            vias.append(TopoVia(number: idx + 1, grade: b.grade, startType: b.startType,
+                                points: b.line, lineWidth: idx == selected ? 8 : 5))
         }
-        for (idx, b) in blocks.enumerated() where !b.line.isEmpty {
-            let g = normalLines.count + idx
-            drawTopoLine(ctx, size, points: b.line, grade: b.grade, startType: b.startType,
-                         number: idx + 1, lineWidth: idx == selected ? 8 : 5,
-                         lineIdx: g, shared: sharedKeys,
-                         startDx: startFan[g], endDx: endFan[g], badgesOnly: true)
-        }
+        TopoPainter.paint(GraphicsContextTarget(ctx: ctx), vias: vias, size: size,
+                          style: .editor(lineWidth: 5))
     }
 
-    private func drawTopoLine(_ ctx: GraphicsContext, _ size: CGSize, points: [CGPoint],
-                              grade: String?, startType: String?, number: Int, lineWidth: CGFloat,
-                              lineIdx: Int = 0, shared: [String: [Int]] = [:],
-                              startDx: CGFloat = 0, endDx: CGFloat = 0,
-                              strokesOnly: Bool = false, badgesOnly: Bool = false) {
-        let style = GradeColor.style(grade)
-        var pts = points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
-        guard !pts.isEmpty else { return }
-        // Rachas propias (color de grado) / compartidas (FRANJAS por vía).
-        if !badgesOnly {
-        for run in TopoShared.splitRuns(points, shared: shared) {
-            let runPts = run.pts.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
-            guard runPts.count > 1 else { continue }
-            var path = Path(); path.move(to: runPts[0])
-            for p in runPts.dropFirst() { path.addLine(to: p) }
-            if let stripe = TopoShared.stripeStyle(run, lineIdx: lineIdx) {
-                ctx.stroke(path, with: .color(style.stroke),
-                           style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt, lineJoin: .round,
-                                              dash: stripe.dash, dashPhase: stripe.phase))
-            } else {
-                // ESTILO GUÍA: discontinua siempre (no tapa la roca).
-                if style.dark {
-                    ctx.stroke(path, with: .color(.black.opacity(0.8)),
-                               style: StrokeStyle(lineWidth: lineWidth + 4, lineCap: .round, lineJoin: .round,
-                                                  dash: TopoShared.dash))
-                }
-                ctx.stroke(path, with: .color(style.stroke),
-                           style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round,
-                                              dash: TopoShared.dash))
-            }
-        }
-        }
-        if strokesOnly { return }
-        // Abanico: badges coincidentes separados en X.
-        if !pts.isEmpty {
-            pts[0] = CGPoint(x: pts[0].x + startDx, y: pts[0].y)
-            if pts.count > 1 { pts[pts.count - 1] = CGPoint(x: pts[pts.count - 1].x + endDx, y: pts[pts.count - 1].y) }
-        }
-        // Badge número en el inicio.
-        ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 12, y: pts[0].y - 12, width: 24, height: 24)), with: .color(.white))
-        ctx.fill(Path(ellipseIn: CGRect(x: pts[0].x - 9, y: pts[0].y - 9, width: 18, height: 18)), with: .color(style.stroke))
-        ctx.draw(Text("\(number)").font(.system(size: 12, weight: .bold))
-            .foregroundColor(style.dark ? .black : .white), at: pts[0], anchor: .center)
-        // Badge de tipo de inicio (PIE/SIT/LAN/TRV) al final.
-        if let label = startLabelShort(startType), let end = pts.last {
-            ctx.fill(Path(ellipseIn: CGRect(x: end.x - 13, y: end.y - 13, width: 26, height: 26)),
-                     with: .color(style.dark ? .black : .white))
-            ctx.fill(Path(ellipseIn: CGRect(x: end.x - 10.5, y: end.y - 10.5, width: 21, height: 21)),
-                     with: .color(style.stroke))
-            ctx.draw(Text(label).font(.system(size: 9, weight: .bold))
-                .foregroundColor(style.dark ? .black : .white), at: end, anchor: .center)
-        }
-    }
-
-    private func startLabelShort(_ t: String?) -> String? {
-        switch t?.uppercased() {
-        case "PIE", "STAND": return "PIE"
-        case "SIT": return "SIT"
-        case "SEMI": return "SEM"
-        case "LANCE", "JUMP": return "LAN"
-        case "TRAV": return "TRV"
-        default: return nil
-        }
-    }
 }

@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,11 +48,11 @@ fun AppRoot(
     onDeepLinkConsumed: () -> Unit = {},
     viewModel: AppRootViewModel = hiltViewModel()
 ) {
-    val authState by viewModel.authState.collectAsState()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
     // Actualización OBLIGATORIA: si el backend dice que esta versión es
     // demasiado vieja, gate no descartable con botón a la tienda. Tolerante a
     // fallos: sin red o error → null → la app abre normal.
-    val forceUpdateUrl by viewModel.forceUpdateUrl.collectAsState()
+    val forceUpdateUrl by viewModel.forceUpdateUrl.collectAsStateWithLifecycle()
 
     LaunchedEffect(authState) {
         if (authState is AuthManager.AuthState.SignedIn) viewModel.ensureUserProvisioned()

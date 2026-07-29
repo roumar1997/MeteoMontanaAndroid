@@ -33,7 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.meteomontana.android.data.api.MountainBulletinDto
+import com.meteomontana.android.domain.model.MountainBulletin
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
@@ -47,7 +47,7 @@ import com.meteomontana.android.ui.theme.Terra
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MountainBulletinSection(bulletin: MountainBulletinDto) {
+fun MountainBulletinSection(bulletin: MountainBulletin) {
     var expanded by remember { mutableStateOf(false) }
     val alert = bulletinAlert(bulletin)
     val borderColor = if (alert != null) Terra else MaterialTheme.colorScheme.outline
@@ -158,7 +158,7 @@ fun MountainBulletinSection(bulletin: MountainBulletinDto) {
  * Criterio: el apartado de tormentas no dice "No se esperan" (los redactados
  * de AEMET usan esa fórmula fija cuando está limpio).
  */
-private fun bulletinAlert(b: MountainBulletinDto): String? {
+private fun bulletinAlert(b: MountainBulletin): String? {
     val tormentas = b.texts["tormentas"] ?: return null
     if (tormentas.startsWith("No se esperan")) return null
     return "TORMENTAS: ${tormentas.removeSuffix(".").lowercase()}"

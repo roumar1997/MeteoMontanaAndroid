@@ -108,7 +108,36 @@ final class SchoolListViewModel: ObservableObject {
     }
     func clearCompare() { compareSelection.removeAll() }
 
+    // MEMOIZADO: es propiedad calculada y SwiftUI la evalúa en cada pasada de
+    // layout (prefetch de la lazy list incluido) — cada pasada recorría las
+    // 191 escuelas KOTLIN (puentes ObjC + GC). Con la firma de entradas solo
+    // se recalcula cuando cambia algo de verdad.
+    private var filteredCache: (sig: String, list: [School])? = nil
     var filtered: [School] {
+        // En pasos: 14 elementos en una expresión saturan el type-checker.
+        var parts: [String] = []
+        parts.append(query)
+        parts.append(style ?? "")
+        parts.append(rock ?? "")
+        parts.append(String(maxDistanceKm ?? -1))
+        parts.append(String(describing: showMode))
+        parts.append(String(describing: sortBy))
+        parts.append(String(rangeMode))
+        parts.append(String(schools.count))
+        parts.append(String(scores.count))
+        parts.append(String(rangeScores.count))
+        parts.append(String(favoriteIds.count))
+        parts.append(String(savedSchoolsList.count))
+        parts.append(String(userLat ?? 0))
+        parts.append(String(userLon ?? 0))
+        let sig = parts.joined(separator: "|")
+        if let c = filteredCache, c.sig == sig { return c.list }
+        let list = computeFiltered()
+        filteredCache = (sig, list)
+        return list
+    }
+
+    private func computeFiltered() -> [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
         // catálogo no está en caché (sin red, primera vez), las sintetizamos
@@ -148,22 +177,26 @@ final class SchoolListViewModel: ObservableObject {
             case .saved: break   // `base` ya está restringido a las guardadas
             }
         }
-        // Orden.
+        // Orden DECORATE-SORT: la clave se calcula UNA vez por escuela (cada
+        // acceso a un objeto Kotlin cruza el puente ObjC; hacerlo dentro del
+        // comparador eran ~3.000 cruces por orden).
         switch sortBy {
         case .score:
-            // Modo tramo → ordena por score combinado de los días elegidos.
             if rangeMode {
-                return list.sorted { (rangeScores[$0.id]?.combinedScore ?? -1) > (rangeScores[$1.id]?.combinedScore ?? -1) }
+                let keyed = list.map { ($0, rangeScores[$0.id]?.combinedScore ?? -1) }
+                return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
             }
-            return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+            let keyed = list.map { ($0, scores[$0.id]?.todayScore ?? -1) }
+            return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
         case .distance:
             guard let la = userLat, let lo = userLon else {
-                return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+                let keyed = list.map { ($0, scores[$0.id]?.todayScore ?? -1) }
+                return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
             }
-            return list.sorted {
-                Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon)
-                < Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $1.lat, lon2: $1.lon)
+            let keyed = list.map { s -> (School, Double) in
+                (s, Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: s.lat, lon2: s.lon))
             }
+            return keyed.sorted { $0.1 < $1.1 }.map { $0.0 }
         }
     }
 
@@ -320,15 +353,23 @@ final class SchoolListViewModel: ObservableObject {
         for chunk in stride(from: 0, to: ids.count, by: 50) {
             let slice = Array(ids[chunk..<min(chunk + 50, ids.count)])
             guard let batch = try? await getTodayScores.invoke(ids: slice) else { continue }
-            for s in batch { scores[s.id] = s }
+            // UNA publicación por lote (no por escuela): cada escritura de un
+            // @Published reordena y re-difea la lista ENTERA de 191 filas —
+            // ~200 seguidas atascaban el hilo principal >5s → watchdog
+            // 0x8BADF00D (los cierres de jul-2026).
+            var acc = scores
+            for s in batch { acc[s.id] = s }
+            scores = acc
         }
         // Offline (o ids que la red no devolvió): rellenar con el forecast
         // cacheado de cada escuela guardada/visitada, para que la lista pinte el
         // score guardado en vez de "—". El detalle ya lo mostraba (imagen 2).
         let container = AppDependencies.shared.container
-        for id in ids where scores[id] == nil {
-            if let s = try? await container.cachedTodayScore(schoolId: id) { scores[id] = s }
+        var acc = scores
+        for id in ids where acc[id] == nil {
+            if let s = try? await container.cachedTodayScore(schoolId: id) { acc[id] = s }
         }
+        if acc.count != scores.count { scores = acc }
     }
 
     private func uniqueValues(_ raw: [String?]) -> [String] {
@@ -343,13 +384,19 @@ struct SchoolListView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: 0, pinnedViews: []) {
+                // VStack NO perezoso a propósito: las 6 muertes por watchdog
+                // (jul-2026) ocurrieron DENTRO de la maquinaria de LazyVStack
+                // (prefetch, placement, motionVectors) recolocando estas ~191
+                // filas al reordenar/filtrar. Componerlas todas cuesta ~decenas
+                // de ms en Release y elimina esa maquinaria entera (mismo
+                // movimiento «piedras fluidas» que en Android).
+                VStack(spacing: 0) {
                     TopIconsRow(unreadCount: vm.unreadNotifications,
                                 chatUnread: vm.unreadChats,
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
                     HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
                     SearchField(text: $vm.query)
-                    if !viaHits.isEmpty && vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
+                    if vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
                         viaHitsSection
                     }
 
@@ -358,7 +405,7 @@ struct SchoolListView: View {
                         hintKey: "schools_map",
                         text: "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
                     )
-                    MapToggleAndPanel(vm: vm, onOpen: { navSchool = $0 })
+                    MapToggleAndPanel(vm: vm, onOpen: { navTarget = SchoolNavTarget(school: $0, via: nil) })
 
                     // Hint de filtros — justo antes de la barra de filtros
                     FirstTimeHint(
@@ -402,7 +449,7 @@ struct SchoolListView: View {
                                 )
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    if vm.compareSelection.isEmpty { navSchool = school }
+                                    if vm.compareSelection.isEmpty { navTarget = SchoolNavTarget(school: school, via: nil) }
                                     else { vm.toggleCompare(school.id) }
                                 }
                                 .onLongPressGesture(minimumDuration: 0.35) { vm.toggleCompare(school.id) }
@@ -414,18 +461,8 @@ struct SchoolListView: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(item: $navSchool) { SchoolDetailView(school: $0, openVia: navVia) }
-            .onChange(of: vm.query) { _, q in
-                viaSearchTask?.cancel()
-                let trimmed = q.trimmingCharacters(in: .whitespaces)
-                guard trimmed.count >= 2 else { viaHits = []; return }
-                viaSearchTask = Task {
-                    try? await Task.sleep(nanoseconds: 350_000_000)
-                    guard !Task.isCancelled else { return }
-                    let hits = (try? await AppDependencies.shared.container.schoolApi.searchLines(query: trimmed)) ?? []
-                    if !Task.isCancelled { viaHits = hits }
-                }
-            }
+            .navigationDestination(item: $navTarget) { SchoolDetailView(school: $0.school, openVia: $0.via) }
+            .onChange(of: vm.query) { _, _ in dispatchViaSearch() }
             .overlay(alignment: .bottom) {
                 if vm.compareSelection.count >= 1 {
                     CompareBar(count: vm.compareSelection.count,
@@ -449,23 +486,90 @@ struct SchoolListView: View {
     }
 
     @State private var showCompare = false
-    @State private var navSchool: School?
+    /// Destino de navegación: escuela + vía EN EL MISMO valor. Antes eran dos
+    /// @State sueltos y `navigationDestination(item:)` captura su closure ANTES
+    /// de que el body se reevalúe: el primer toque construía el detalle con la
+    /// vía TODAVÍA nil (abría la escuela a secas) y el segundo funcionaba
+    /// porque navVia conservaba el valor del intento anterior. Con un único
+    /// item la carrera desaparece.
+    /// Hashable A MANO por `id`: navigationDestination(item:) exige Hashable y
+    /// la síntesis automática no es fiable con `School` (clase de Kotlin).
+    struct SchoolNavTarget: Identifiable, Hashable {
+        let school: School
+        let via: String?
+        var id: String { school.id + "|" + (via ?? "") }
+        static func == (a: SchoolNavTarget, b: SchoolNavTarget) -> Bool { a.id == b.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    }
+    @State private var navTarget: SchoolNavTarget?
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
-    @State private var navVia: String?
-    @State private var viaHits: [LineSearchHitDto] = []
+    @State private var viaHits: [LineSearchHit] = []   // modelo de DOMINIO (via use case)
     @State private var viaSearchTask: Task<Void, Never>?
 
-    /// Resultados del buscador global (vías/bloques de TODO el catálogo).
+    /// Relanza la busqueda global (solo en modo vias/bloques), con debounce.
+    private func dispatchViaSearch() {
+        viaSearchTask?.cancel()
+        let trimmed = vm.query.trimmingCharacters(in: .whitespaces)
+        guard trimmed.count >= 2 else { viaHits = []; return }
+        viaSearchTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else { return }
+            // Regla DI: por el use case del container, no la API directa.
+            let hits = (try? await AppDependencies.shared.container.searchLines.invoke(query: trimmed)) ?? []
+            if !Task.isCancelled { viaHits = hits }
+        }
+    }
+
+    /// Resultados del buscador UNICO en DOS secciones (estilo Spotlight):
+    /// ESCUELAS (top 5, acceso directo) y VIAS Y BLOQUES (global + mini-topo).
+    /// Las cabeceras salen SIEMPRE al escribir: se aprende que busca ambas.
     private var viaHitsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("VÍAS Y BLOQUES").font(Cumbre.mono(10, .bold)).tracking(1.2)
-                .foregroundStyle(Cumbre.ink3)
-            VStack(spacing: 0) {
-                ForEach(Array(viaHits.enumerated()), id: \.offset) { _, h in
+            VStack(alignment: .leading, spacing: 0) {
+                Text("ESCUELAS").font(Cumbre.mono(10, .bold)).tracking(1.2)
+                    .foregroundStyle(Cumbre.ink3)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                let schoolMatches = Array(vm.filtered.prefix(5))
+                if schoolMatches.isEmpty {
+                    Text("Sin resultados").font(.system(size: 12))
+                        .foregroundStyle(Cumbre.ink3)
+                        .padding(.horizontal, 12).padding(.bottom, 8)
+                } else {
+                    ForEach(schoolMatches, id: \.id) { school in
+                        Button { navTarget = SchoolNavTarget(school: school, via: nil) } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(school.name).font(.system(size: 14))
+                                        .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    if let r = school.region, !r.isEmpty {
+                                        Text(r).font(.system(size: 12))
+                                            .foregroundStyle(Cumbre.ink3).lineLimit(1)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Divider().overlay(Cumbre.rule)
+                Text("VÍAS Y BLOQUES").font(Cumbre.mono(10, .bold)).tracking(1.2)
+                    .foregroundStyle(Cumbre.ink3)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                if viaHits.isEmpty {
+                    Text("Sin resultados").font(.system(size: 12))
+                        .foregroundStyle(Cumbre.ink3)
+                        .padding(.horizontal, 12).padding(.bottom, 8)
+                }
+                ForEach(viaHits, id: \.stableId) { h in
                     Button {
                         if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
-                            navVia = h.lineId ?? h.lineName ?? h.blockName
-                            navSchool = school
+                            navTarget = SchoolNavTarget(
+                                school: school, via: h.lineId ?? h.lineName ?? h.blockName)
                         }
                     } label: {
                         HStack {
@@ -485,6 +589,27 @@ struct SchoolListView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    // Mini-topo: foto de la cara con la linea dibujada (si el
+                    // backend mando foto; las piedras salen sin trazo).
+                    if let photo = h.photoPath, !photo.isEmpty {
+                        // P8: dedup de puntos casi identicos (trazos antiguos
+                        // fusionaban los guiones -> linea continua) y la FOTO
+                        // tambien abre la piedra (paridad Android).
+                        let pts = dedupPoints(TopoParse.points(h.linePath))
+                        Button {
+                            if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
+                                navTarget = SchoolNavTarget(
+                                    school: school, via: h.lineId ?? h.lineName ?? h.blockName)
+                            }
+                        } label: {
+                            TopoPhotoView(photoUrl: photo, lines: pts.count >= 2 ? [
+                                TopoLineVM(id: h.lineId ?? "hit", name: h.lineName,
+                                           grade: h.grade, startType: h.startType, points: pts)
+                            ] : [])
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 12).padding(.bottom, 10)
+                    }
                 }
             }
             .background(Cumbre.paper)
@@ -494,5 +619,23 @@ struct SchoolListView: View {
     }
 }
 
+/// Id estable de un hit del buscador (id: \.offset invalidaba las filas y
+/// sus TopoPhotoView en cada tecla).
+extension LineSearchHit {
+    var stableId: String { (lineId ?? "") + "|" + blockName + "|" + (schoolId ?? "") }
+}
+
 // School (clase Kotlin) Identifiable por su id — para navigationDestination(item:).
 extension School: Identifiable {}
+
+
+/// P8: quita puntos consecutivos casi identicos (trazos antiguos fusionaban
+/// los guiones y la linea salia continua en el buscador).
+fileprivate func dedupPoints(_ raw: [CGPoint]) -> [CGPoint] {
+    var pts: [CGPoint] = []
+    for pt in raw {
+        if let last = pts.last, abs(pt.x - last.x) + abs(pt.y - last.y) < 0.004 { continue }
+        pts.append(pt)
+    }
+    return pts
+}

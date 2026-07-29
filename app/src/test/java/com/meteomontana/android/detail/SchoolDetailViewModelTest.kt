@@ -73,7 +73,7 @@ class SchoolDetailViewModelTest {
     private lateinit var monthlyStatsRepo: com.meteomontana.android.data.stats.MonthlyStatsRepository
     private lateinit var savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository
     private lateinit var offlineTiles: com.meteomontana.android.data.map.OfflineTileManager
-    private lateinit var ktorAdminApi: com.meteomontana.android.data.api.KtorAdminApi
+    private lateinit var moveSchoolUseCase: com.meteomontana.android.domain.usecase.admin.MoveSchoolUseCase
     private lateinit var updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
     private lateinit var outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
     private lateinit var networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
@@ -125,7 +125,7 @@ class SchoolDetailViewModelTest {
         coEvery { savedSchoolRepo.loadOffline(any()) } returns null
         coEvery { savedSchoolRepo.loadCachedForecast(any()) } returns null
         offlineTiles = mockk(relaxed = true)
-        ktorAdminApi = mockk(relaxed = true)
+        moveSchoolUseCase = mockk(relaxed = true)
         updateBlockUseCase = mockk(relaxed = true)
         outboxRepo = mockk(relaxed = true)
         networkMonitor = mockk {
@@ -148,7 +148,7 @@ class SchoolDetailViewModelTest {
         val loader = com.meteomontana.android.ui.screens.detail.SchoolDetailLoader(
             getSchoolById, getForecast, getNotes, getMyFavorites, getBlocks,
             getMyProfile, savedSchoolRepo,
-            mockk<com.meteomontana.android.data.api.KtorMountainApi>(relaxed = true),
+            mockk<com.meteomontana.android.domain.usecase.weather.GetMountainBulletinUseCase>(relaxed = true),
             mockk<com.meteomontana.db.MeteoMontanaDb>(relaxed = true),  // preview: sin catalogo cacheado
             mockk(relaxed = true)   // blockRepo (getCachedBlocks -> null)
         )
@@ -176,9 +176,9 @@ class SchoolDetailViewModelTest {
             savedState(), loader, journal, contributions, tickFeed,
             getNotes, createNote, addFavorite, removeFavorite, getBlocks,
             createBlock, deleteBlockUC, photoUploader, fileReader,
-            monthlyStatsRepo, savedSchoolRepo, offlineTiles, ktorAdminApi,
+            monthlyStatsRepo, savedSchoolRepo, offlineTiles, moveSchoolUseCase,
             updateBlockUseCase, outboxRepo,
-            mockk<com.meteomontana.android.data.api.KtorNoteApi>(relaxed = true),
+            mockk<com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase>(relaxed = true),
             networkMonitor,
             mockk(relaxed = true)  // rateLineUseCase
         )

@@ -69,6 +69,57 @@ enum TopoShared {
         return ([stripe * s, stripe * s * (n - 1)], k * stripe * s)
     }
 
+    /// QUITA EL SOBRE-TRAZADO de trazos antiguos (espejo de dropRetrace de
+    /// TopoRenderer.kt): linePath que recorren la misma línea varias veces
+    /// («La ola»: 3 pasadas) rellenan los huecos del guion entre pasadas y la
+    /// línea se ve CONTINUA (y el canvas pinta 3×). Si hay varias pasadas y la
+    /// más larga cubre ≥80% del ancho, nos quedamos solo con esa.
+    static func dropRetrace(_ points: [CGPoint]) -> [CGPoint] {
+        guard points.count >= 8 else { return points }
+        let xs = points.map { $0.x }, ys = points.map { $0.y }
+        let spanX = (xs.max() ?? 0) - (xs.min() ?? 0)
+        let spanY = (ys.max() ?? 0) - (ys.min() ?? 0)
+        let horizontal = spanX >= spanY
+        let span = horizontal ? spanX : spanY
+        guard span > 1e-6 else { return points }
+        func axis(_ p: CGPoint) -> CGFloat { horizontal ? p.x : p.y }
+
+        var travelled: CGFloat = 0
+        for i in 0..<(points.count - 1) { travelled += abs(axis(points[i + 1]) - axis(points[i])) }
+        guard travelled >= span * 1.6 else { return points }
+
+        let tol: CGFloat = 0.01
+        var runs: [(Int, Int)] = []
+        var runStart = 0
+        var dir: CGFloat = 0
+        var reversal: CGFloat = 0
+        var reversalStart = -1
+        for i in 0..<(points.count - 1) {
+            let step = axis(points[i + 1]) - axis(points[i])
+            if dir == 0, abs(step) > 1e-6 {
+                dir = step > 0 ? 1 : -1
+            } else if dir != 0, step * dir < 0 {
+                if reversalStart < 0 { reversalStart = i }
+                reversal += abs(step)
+                if reversal > tol {
+                    runs.append((runStart, reversalStart))
+                    runStart = reversalStart
+                    dir = -dir
+                    reversal = 0; reversalStart = -1
+                }
+            } else {
+                reversal = 0; reversalStart = -1
+            }
+        }
+        runs.append((runStart, points.count - 1))
+        guard runs.count >= 2 else { return points }
+        let best = runs.max { abs(axis(points[$0.1]) - axis(points[$0.0]))
+                            < abs(axis(points[$1.1]) - axis(points[$1.0])) }!
+        let bestSpan = abs(axis(points[best.1]) - axis(points[best.0]))
+        guard bestSpan >= span * 0.8 else { return points }
+        return Array(points[best.0...best.1])
+    }
+
     /// IMÁN del editor: espejo exacto de magnetizeStroke de TopoRenderer.kt.
     /// v2: se compara contra CUALQUIER TRAMO de las otras vías (no solo sus
     /// vértices — antes era casi imposible acertar con el dedo) y se pega al

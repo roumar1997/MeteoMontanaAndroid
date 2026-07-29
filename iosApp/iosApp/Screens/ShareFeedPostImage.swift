@@ -225,95 +225,17 @@ enum ShareFeedPostImage {
             }
         }
         guard !vias.isEmpty else { return }
-        let s = rect.width / 380.0
-        // Tramos compartidos → FRANJAS por vía; badges en abanico si coinciden.
-        let shared = TopoShared.sharedSegmentLines(vias.map { $0.pts })
-        let startFan = TopoShared.fanOffsets(vias.map { $0.pts.first }, spacing: (14 * 2 + 4) * s)
-        let endFan = TopoShared.fanOffsets(vias.map { $0.pts.last }, spacing: (14 * 2 + 4) * s)
-        for (idx, via) in vias.enumerated() {
-            let style = GradeColor.style(via.grade)
-            let stroke = UIColor(style.stroke)
-            var pts = via.pts.map {
-                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-            }
-            if !pts.isEmpty {
-                pts[0].x += startFan[idx]
-                if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
-            }
-            for run in TopoShared.splitRuns(via.pts, shared: shared) {
-                let runPts = run.pts.map {
-                    CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-                }
-                guard runPts.count > 1 else { continue }
-                let path = UIBezierPath()
-                path.move(to: runPts[0])
-                for p in runPts.dropFirst() { path.addLine(to: p) }
-                path.lineJoinStyle = .round
-                if let stripe = TopoShared.stripeStyle(run, lineIdx: idx, scale: s) {
-                    path.lineCapStyle = .butt
-                    path.setLineDash(stripe.dash, count: stripe.dash.count, phase: stripe.phase)
-                } else {
-                    path.lineCapStyle = .round
-                    // ESTILO GUÍA: discontinua siempre (no tapa la roca).
-                    path.setLineDash(TopoShared.dash.map { $0 * s }, count: 2, phase: 0)
-                    if style.dark {
-                        path.lineWidth = 9 * s
-                        UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
-                    }
-                }
-                path.lineWidth = 5 * s
-                stroke.setStroke(); path.stroke()
-            }
+        // Pintor único (TopoPainter) sobre CGContext: trasladamos al origen del
+        // rect y pasamos rect.size. Estilo .share con base 380 (canvas del feed).
+        let painterVias = vias.enumerated().map { (i, v) in
+            TopoVia(number: i + 1, grade: v.grade, startType: v.startType, points: v.pts)
         }
-        // 2ª pasada: BADGES encima de TODAS las líneas.
-        for (idx, via) in vias.enumerated() {
-            let style = GradeColor.style(via.grade)
-            let stroke = UIColor(style.stroke)
-            var pts = via.pts.map {
-                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-            }
-            guard !pts.isEmpty else { continue }
-            pts[0].x += startFan[idx]
-            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
-            let textColor: UIColor = style.dark ? .black : .white
-            fillCircle(cg, pts[0], 14 * s, .white)
-            fillCircle(cg, pts[0], 11 * s, stroke)
-            drawCentered("\(idx + 1)", at: pts[0], size: 15 * s, color: textColor)
-            // Círculo del tipo de inicio en la base de la línea (= ShareLineImage).
-            if let label = startLabel(via.startType), pts.count > 1 {
-                let last = pts[pts.count - 1]
-                fillCircle(cg, last, 14 * s, style.dark ? .black : .white)
-                fillCircle(cg, last, 11 * s, stroke)
-                drawCentered(label, at: last, size: 9 * s, color: textColor)
-            }
-        }
-    }
-
-    /// Abreviatura del tipo de inicio (= startLabel de ShareLineImage, que es private allí).
-    private static func startLabel(_ t: String?) -> String? {
-        switch t?.uppercased() {
-        case "PIE", "STAND": return "PIE"
-        case "SIT": return "SIT"
-        case "SEMI": return "SEM"
-        case "LANCE", "JUMP": return "LAN"
-        case "TRAV": return "TRV"
-        default: return nil
-        }
-    }
-
-    // MARK: - Helpers de dibujo (= ShareLineImage; son private allí)
-
-    private static func fillCircle(_ cg: CGContext, _ c: CGPoint, _ r: CGFloat, _ color: UIColor) {
-        cg.setFillColor(color.cgColor)
-        cg.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
-    }
-
-    private static func drawCentered(_ text: String, at c: CGPoint, size: CGFloat, color: UIColor) {
-        let font = UIFont.systemFont(ofSize: size, weight: .bold)
-        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
-        let sz = (text as NSString).size(withAttributes: attrs)
-        (text as NSString).draw(at: CGPoint(x: c.x - sz.width / 2, y: c.y - sz.height / 2),
-                                withAttributes: attrs)
+        cg.saveGState()
+        cg.translateBy(x: rect.minX, y: rect.minY)
+        TopoPainter.paint(CGContextTarget(cg: cg), vias: painterVias, size: rect.size,
+                          style: .share(scale: rect.width / 380.0, badgeOuter: 14, badgeInner: 11,
+                                        badgeText: 15, startText: 9, fanStart: 14 * 2 + 4, fanEnd: 14 * 2 + 4))
+        cg.restoreGState()
     }
 
     private static func drawText(_ text: String, at rect: CGRect, font: UIFont, color: UIColor,
@@ -337,6 +259,20 @@ enum ShareFeedPostImage {
 
     // MARK: - Share sheet (patrón de ShareLineImage.present)
 
+
+    /// Compartir UIImage tal cual hace que el share sheet la RECOMPRIMA a
+    /// JPEG (salía borrosa — feedback de Rodrigo). Se vuelca a un PNG
+    /// temporal y se comparte el fichero: píxeles intactos.
+    fileprivate static func asPngItems(_ items: [Any]) -> [Any] {
+        items.map { item in
+            guard let img = item as? UIImage, let data = img.pngData() else { return item }
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("cumbre-share-\(Int.random(in: 100000...999999)).png")
+            try? data.write(to: url)
+            return url
+        }
+    }
+
     @MainActor
     private static func present(_ items: [Any]) {
         guard let scene = UIApplication.shared.connectedScenes
@@ -345,7 +281,7 @@ enum ShareFeedPostImage {
         else { return }
         var top = root
         while let presented = top.presentedViewController { top = presented }
-        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let vc = UIActivityViewController(activityItems: asPngItems(items), applicationActivities: nil)
         if let pop = vc.popoverPresentationController {
             pop.sourceView = top.view
             pop.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.midY,

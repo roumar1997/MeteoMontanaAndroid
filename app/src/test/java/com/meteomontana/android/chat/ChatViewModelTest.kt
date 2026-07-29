@@ -1,7 +1,8 @@
 package com.meteomontana.android.chat
 
 import androidx.lifecycle.SavedStateHandle
-import com.meteomontana.android.data.api.KtorChatPushApi
+import com.meteomontana.android.domain.usecase.chat.NotifyChatMessageUseCase
+import com.meteomontana.android.domain.usecase.chat.StartConversationUseCase
 import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.port.AuthService
@@ -44,7 +45,8 @@ class ChatViewModelTest {
     private lateinit var getPublic: GetPublicProfileUseCase
     private lateinit var getFollow: GetFollowStatusUseCase
     private lateinit var getMyProfile: GetMyProfileUseCase
-    private lateinit var pushApi: KtorChatPushApi
+    private lateinit var startConversation: StartConversationUseCase
+    private lateinit var notifyChatMessage: NotifyChatMessageUseCase
 
     private fun publicProfile(isPublic: Boolean) = PublicProfile(
         uid = "otro", username = "otro", displayName = "Otro", photoUrl = null,
@@ -59,14 +61,15 @@ class ChatViewModelTest {
         }
         auth = mockk { every { currentUid() } returns "me" }
         getPublic = mockk(); getFollow = mockk(); getMyProfile = mockk(relaxed = true)
-        pushApi = mockk(relaxed = true)
+        startConversation = mockk(relaxed = true)
+        notifyChatMessage = mockk(relaxed = true)
         coEvery { getMyProfile() } returns mockk(relaxed = true)
     }
     @After fun tearDown() = Dispatchers.resetMain()
 
     private fun vm() = ChatViewModel(
         SavedStateHandle(mapOf("uid" to "otro")),
-        chat, auth, getPublic, getFollow, getMyProfile, pushApi)
+        chat, auth, getPublic, getFollow, getMyProfile, startConversation, notifyChatMessage)
 
     @Test fun `canWrite true si el receptor es publico`() = runTest {
         coEvery { getPublic("otro") } returns publicProfile(isPublic = true)
@@ -101,7 +104,7 @@ class ChatViewModelTest {
     @Test fun `send con permiso muestra el eco optimista al momento`() = runTest {
         coEvery { getPublic("otro") } returns publicProfile(isPublic = true)
         coEvery { getFollow("otro") } returns FollowStatus(0, 0, false, false)
-        coEvery { pushApi.startConversation("otro") } returns Unit
+        coEvery { startConversation("otro") } returns Unit
         val vm = vm(); advanceUntilIdle()
         vm.send("hola")
         // Antes incluso de avanzar la corrutina de red, el mensaje ya se ve.

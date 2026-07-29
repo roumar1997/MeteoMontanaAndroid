@@ -72,14 +72,14 @@ class SchoolListViewModel @Inject constructor(
     private val chatService: com.meteomontana.android.domain.port.ChatService,
     private val outbox: com.meteomontana.android.data.outbox.OutboxRepository,
     private val getPublicProfile: com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase,
-    private val schoolApi: com.meteomontana.android.data.api.KtorSchoolApi,
+    private val searchLines: com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase,
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
 
     // Resultados del buscador GLOBAL de vías/bloques (el mismo campo de texto
     // busca escuelas en local y vías/bloques en el backend).
-    private val _viaHits = MutableStateFlow<List<com.meteomontana.android.data.api.LineSearchHitDto>>(emptyList())
-    val viaHits: StateFlow<List<com.meteomontana.android.data.api.LineSearchHitDto>> = _viaHits.asStateFlow()
+    private val _viaHits = MutableStateFlow<List<com.meteomontana.android.domain.model.LineSearchHit>>(emptyList())
+    val viaHits: StateFlow<List<com.meteomontana.android.domain.model.LineSearchHit>> = _viaHits.asStateFlow()
 
     // Perfiles ya cacheados esta sesión (para no repetir la llamada en cada
     // emisión del observador de conversaciones). Ver warmChatProfiles().
@@ -481,15 +481,20 @@ class SchoolListViewModel @Inject constructor(
         // ya no recarga en cada pulsación. Sí actualiza el filtro inmediato para
         // que la TextField siga responsiva.
         _filters.update { it.copy(query = q) }
+        dispatchSearch()
+    }
+
+    private fun dispatchSearch() {
         queryJob?.cancel()
         queryJob = viewModelScope.launch {
             kotlinx.coroutines.delay(200)
             load()
-            // Búsqueda global de vías/bloques (300 ms más de margen: red).
-            val q = q.trim()
+            // Búsqueda global de vías/bloques EN PARALELO a las escuelas (un solo
+            // buscador con dos secciones, estilo Spotlight; 300 ms más: red).
+            val q = _filters.value.query.trim()
             if (q.length >= 2) {
                 kotlinx.coroutines.delay(300)
-                _viaHits.value = runCatching { schoolApi.searchLines(q) }.getOrDefault(emptyList())
+                _viaHits.value = runCatching { searchLines(q) }.getOrDefault(emptyList())
             } else {
                 _viaHits.value = emptyList()
             }

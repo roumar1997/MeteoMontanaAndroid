@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -28,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,7 +58,7 @@ fun SchoolDetailScreen(
     onDayClick: (Int) -> Unit = {},
     viewModel: SchoolDetailViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val success = state as? SchoolDetailUiState.Success
     var addBlockOpen by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -228,7 +228,7 @@ private fun Content(
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit,
     onDayClick: (Int) -> Unit = {},
-    mountainBulletin: com.meteomontana.android.data.api.MountainBulletinDto? = null
+    mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null
 ) {
     // Columna NO perezosa (paridad con el ScrollView de iOS): toda la pantalla
     // se compone al entrar → los deep-links a piedras/vías (feed, diario,
@@ -325,7 +325,7 @@ private fun Content(
             onVote = { n, v -> viewModel.voteNote(n, v) })
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         // (Guardar offline movido al toolbar superior, como en iOS.)
-        val s = viewModel.uiState.collectAsState().value as? SchoolDetailUiState.Success
+        val s = viewModel.uiState.collectAsStateWithLifecycle().value as? SchoolDetailUiState.Success
         MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
         Spacer(Modifier.height(40.dp))
     }

@@ -83,10 +83,10 @@ targets:
         UIBackgroundModes:
           - remote-notification
         # Versión espejo de Android (versionName 2.4 / versionCode 18).
-        CFBundleShortVersionString: "2.20.1"
+        CFBundleShortVersionString: "2.21.0"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior. 12-25 ya subidos → 26.
-        CFBundleVersion: "103"
+        CFBundleVersion: "116"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
@@ -175,6 +175,11 @@ targets:
       # antes de publicar (necesita APNs key + capability, ver PushManager.swift).
       - package: Firebase
         product: FirebaseMessaging
+      # Crashlytics: reporte de cierres en producción (Firebase Console →
+      # Crashlytics). Sin esto la app iOS llevaba meses pública SIN visibilidad
+      # de crashes. Los dSYM: el .ipa de App Store los sube el workflow de prod.
+      - package: Firebase
+        product: FirebaseCrashlytics
       - package: GoogleSignIn
         product: GoogleSignIn
       - package: MapLibre

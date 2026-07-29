@@ -47,7 +47,9 @@ internal fun BlockOptionsSection(
     availableSectors: List<Block>?,
     onOpenSectorPicker: (() -> Unit)?,
     onEdit: (() -> Unit)?,
-    onRequestDelete: (() -> Unit)?
+    onRequestDelete: (() -> Unit)?,
+    /** N10: compartir la PIEDRA entera (portada + todas sus vias). */
+    onShareBlock: (() -> Unit)? = null
 ) {
     val hasOptions = !isProposal && (
         (onAddLines != null && block.type == "BLOCK") ||
@@ -70,6 +72,24 @@ internal fun BlockOptionsSection(
             Text(if (optionsOpen) "▴" else "▾",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.labelLarge)
+        }
+    }
+
+    // N10: COMPARTIR PIEDRA — la portada con TODAS sus vias dibujadas.
+    if (optionsOpen && onShareBlock != null && block.type == "BLOCK" && !isProposal
+        && block.lines.isNotEmpty()) {
+        Spacer(Modifier.height(Spacing.sm))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(2.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                .clickable(onClick = onShareBlock)
+                .padding(vertical = Spacing.md),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("COMPARTIR PIEDRA", style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurface)
         }
     }
 
@@ -224,12 +244,15 @@ internal fun shareVia(
     schoolName: String,
     tickedIds: Set<String>,
     projectIds: Set<String>,
-    sectorName: String?
+    sectorName: String?,
+    orientationBadge: String? = null,
+    setterGradeRef: String? = null
 ) {
     scope.launch {
         val shared = runCatching {
             com.meteomontana.android.ui.share.shareLineAsImage(
-                context, block, line, schoolName, tickedIds, projectIds, sectorName
+                context, block, line, schoolName, tickedIds, projectIds, sectorName,
+                orientationBadge, setterGradeRef
             )
         }.getOrDefault(false)
         if (!shared) shareLine(context, block, line, schoolName, sectorName)

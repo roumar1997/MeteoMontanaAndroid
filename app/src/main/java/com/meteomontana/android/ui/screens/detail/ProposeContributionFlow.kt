@@ -1,7 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -105,6 +105,8 @@ fun ProposeContributionFlow(
     var boulderTopoFaceIdx by remember { mutableStateOf<Int?>(null) }  // cara cuyo editor de líneas está abierto
     var boulderSectorBlockId by remember { mutableStateOf<String?>(null) }
     var boulderDiscipline by remember { mutableStateOf("BOULDER") }  // BOULDER (bloque) / ROUTE (vía)
+    // F: orientación de la piedra elegida por el autor (opcional).
+    var boulderOrientation by remember { mutableStateOf<String?>(null) }
     // Geometría en el mapa: POINT (marcador) o LINE (muro = polilínea trazada en el mapa).
     var boulderGeometry by remember { mutableStateOf("POINT") }
     // Sentido de numeración de las vías del muro: LTR (izq→der) / RTL (der→izq).
@@ -113,7 +115,7 @@ fun ProposeContributionFlow(
     var boulderPath by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
 
     // Sectores (ZONE) existentes en la escuela — alimentan el dropdown del BoulderForm.
-    val uiStateForSectors by viewModel.uiState.collectAsState()
+    val uiStateForSectors by viewModel.uiState.collectAsStateWithLifecycle()
     val sectorBlocks = (uiStateForSectors as? SchoolDetailUiState.Success)
         ?.blocks?.filter { it.type == "ZONE" } ?: emptyList()
 
@@ -289,6 +291,8 @@ fun ProposeContributionFlow(
                 onSectorChange = { boulderSectorBlockId = it },
                 discipline = boulderDiscipline,
                 onDisciplineChange = { boulderDiscipline = it },
+                blockOrientation = boulderOrientation,
+                onBlockOrientationChange = { boulderOrientation = it },
                 geometry = boulderGeometry,
                 onGeometryChange = { boulderGeometry = it },
                 direction = boulderDirection,
@@ -310,7 +314,8 @@ fun ProposeContributionFlow(
                         geometry = boulderGeometry,
                         path = if (boulderGeometry == "LINE" && boulderPath.isNotEmpty())
                             boulderPath.toPathJson() else null,
-                        direction = boulderDirection
+                        direction = boulderDirection,
+                        blockOrientation = boulderOrientation
                     )
                     if (result.isSuccess) step = ProposeStep.Success()
                     result.isSuccess

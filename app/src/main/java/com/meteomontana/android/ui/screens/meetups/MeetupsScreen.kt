@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -48,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,21 +77,26 @@ fun MeetupsScreen(
     onOpenChat: (String) -> Unit = {},
     onCreateMeetup: () -> Unit = {},
     onOpenAlert: () -> Unit = {},
+    visible: Boolean = true,
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
-    val state by viewModel.listState.collectAsState()
-    val alertState by viewModel.alertState.collectAsState()
-    val schoolResults by viewModel.schoolResults.collectAsState()
-    val myGender by viewModel.myGender.collectAsState()
-    val dayScores by viewModel.dayScores.collectAsState()
-    val uLat by viewModel.userLat.collectAsState()
-    val uLon by viewModel.userLon.collectAsState()
+    val state by viewModel.listState.collectAsStateWithLifecycle()
+    val alertState by viewModel.alertState.collectAsStateWithLifecycle()
+    val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
+    val myGender by viewModel.myGender.collectAsStateWithLifecycle()
+    val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
+    val uLat by viewModel.userLat.collectAsStateWithLifecycle()
+    val uLon by viewModel.userLon.collectAsStateWithLifecycle()
     var showSchoolFilter by remember { mutableStateOf(false) }
     var showWomenGateDialog by remember { mutableStateOf(false) }
     var mapExpanded by remember { mutableStateOf(false) }
     var filtersExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { viewModel.loadAlertState() }
+    // Recarga el estado de la alerta cada vez que la pestaña se hace VISIBLE sin
+    // overlay encima (p.ej. al CERRAR la hoja de configurar alerta, que usa otro
+    // VM instance) → el icono refleja siempre el estado real (activa/desactivada).
+    // Antes se quedaba con el de la primera carga (gris activa / activa desactivada).
+    LaunchedEffect(visible) { if (visible) viewModel.loadAlertState() }
 
     // Filtros aplicados localmente (recomputa cuando llega la ubicación)
     val displayedMeetups = remember(state.meetups, state.filterPrivacy, state.maxDistanceKm, state.filterDays, state.filterDiscipline, uLat, uLon) {

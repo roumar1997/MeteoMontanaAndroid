@@ -7,6 +7,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -453,7 +454,8 @@ fun MainScreen(
                         onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
                         onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
                         onOpenProjects = { openSheet(Routes.projects(null)) },
-                        onOpenMyPosts = { openSheet(Routes.MY_POSTS) }
+                        onOpenMyPosts = { openSheet(Routes.myPosts()) },
+                        onOpenStats = { openSheet(Routes.journalStats()) }
                     )
                 }
                         tabContainer(Tab.Community.route) {
@@ -464,7 +466,8 @@ fun MainScreen(
                         },
                         onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
                         onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
-                        onOpenPost = { postId -> openSheet(Routes.feedPost(postId)) }
+                        onOpenPost = { postId -> openSheet(Routes.feedPost(postId)) },
+                        visible = selectedTab == Tab.Community.route && !sheetVisible
                     )
                 }
                         tabContainer(Tab.Meetups.route) {
@@ -472,7 +475,10 @@ fun MainScreen(
                         onMeetupClick = { id -> openSheet(Routes.meetupDetail(id)) },
                         onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
                         onCreateMeetup = { openSheet(Routes.CREATE_MEETUP) },
-                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) }
+                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) },
+                        // Recarga el estado de la alerta al reaparecer la pestaña sin
+                        // overlay (al cerrar la hoja de alerta) → icono siempre real.
+                        visible = selectedTab == Tab.Meetups.route && !sheetVisible
                     )
                 }
                         // ── Overlay estilo Apple, DENTRO del contenido ──

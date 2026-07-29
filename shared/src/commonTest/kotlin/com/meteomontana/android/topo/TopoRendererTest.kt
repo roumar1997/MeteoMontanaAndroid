@@ -13,6 +13,32 @@ class TopoRendererTest {
     private val w = 400f
     private val h = 300f
 
+    @Test fun `un trazo con tres pasadas superpuestas se queda con la pasada limpia`() {
+        // Como «La ola»: ida (0.65→0.10), vuelta entera (→0.69), ida (→0.07).
+        val pass1 = (0..20).map { 0.65f - it * 0.0275f to 0.59f }
+        val pass2 = (1..21).map { 0.10f + it * 0.028f to 0.59f }
+        val pass3 = (1..22).map { 0.69f - it * 0.028f to 0.59f }
+        val cleaned = com.meteomontana.android.domain.util.dropRetrace(pass1 + pass2 + pass3)
+        // Se queda con UNA pasada (la de mayor recorrido), no con las tres.
+        assertTrue(cleaned.size < (pass1 + pass2 + pass3).size / 2,
+            "Debe quedarse con una sola pasada (quedaron ${cleaned.size} puntos)")
+        assertEquals(pass3.last(), cleaned.last())
+    }
+
+    @Test fun `un trazo normal de una pasada sale intacto`() {
+        val pts = (0..30).map { 0.1f + it * 0.02f to 0.5f + it * 0.001f }
+        assertEquals(pts, com.meteomontana.android.domain.util.dropRetrace(pts))
+    }
+
+    @Test fun `un zigzag real sin pasada dominante sale intacto`() {
+        // Sube-baja-sube en Y con tramos parecidos: ninguna pasada cubre el 80%.
+        val up = (0..10).map { 0.5f to 0.9f - it * 0.04f }
+        val down = (1..8).map { 0.5f + it * 0.001f to 0.5f + it * 0.03f }
+        val up2 = (1..10).map { 0.51f to 0.74f - it * 0.04f }
+        val pts = up + down + up2
+        assertEquals(pts, com.meteomontana.android.domain.util.dropRetrace(pts))
+    }
+
     @Test fun `linea vacia no genera ops`() {
         val result = renderTopo(listOf(TopoLineData(null, null, null, emptyList())), w, h)
         assertTrue(result.isEmpty())

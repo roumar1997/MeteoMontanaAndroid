@@ -51,7 +51,7 @@ sealed interface SchoolDetailUiState {
         /** Si !=null, el forecast viene de la caché local y se bajó en esa fecha (epoch ms). */
         val forecastCachedAt: Long? = null,
         /** Boletín de montaña AEMET si la escuela cae en uno de los 9 macizos. */
-        val mountainBulletin: com.meteomontana.android.data.api.MountainBulletinDto? = null
+        val mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null
     ) : SchoolDetailUiState
 }
 
@@ -84,10 +84,10 @@ class SchoolDetailViewModel @Inject constructor(
     private val monthlyStatsRepo: MonthlyStatsRepository,
     private val savedSchoolRepo: SavedSchoolRepository,
     private val offlineTiles: com.meteomontana.android.data.map.OfflineTileManager,
-    private val ktorAdminApi: com.meteomontana.android.data.api.KtorAdminApi,
+    private val moveSchoolUseCase: com.meteomontana.android.domain.usecase.admin.MoveSchoolUseCase,
     private val updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
-    private val noteApi: com.meteomontana.android.data.api.KtorNoteApi,
+    private val voteNoteUseCase: com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase,
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
     private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase
 ) : ViewModel() {
@@ -146,10 +146,11 @@ class SchoolDetailViewModel @Inject constructor(
         index: Int,
         schoolName: String,
         sectorName: String?,
-        markDone: Boolean? = null
+        markDone: Boolean? = null,
+        sessionDate: String? = null
     ): Result<Boolean> = journal.toggleLine(
         block, line, index, schoolName, sectorName, markDone,
-        doneViaKeys.value, projectViaKeys.value
+        doneViaKeys.value, projectViaKeys.value, sessionDate
     )
 
     /** Marca/DESMARCA una vía como PROYECTO. Ver [JournalTickController.toggleProject]. */
@@ -172,10 +173,12 @@ class SchoolDetailViewModel @Inject constructor(
         wasProject: Boolean,
         caption: String? = null,
         photoUri: String? = null,
-        onPhotoUploadFailed: (() -> Unit)? = null
+        onPhotoUploadFailed: (() -> Unit)? = null,
+        onPublishFailed: (() -> Unit)? = null
     ) {
         viewModelScope.launch {
-            tickFeed.publish(block, line, wasProject, caption, photoUri, onPhotoUploadFailed)
+            tickFeed.publish(block, line, wasProject, caption, photoUri,
+                onPhotoUploadFailed, onPublishFailed)
         }
     }
 
@@ -235,7 +238,7 @@ class SchoolDetailViewModel @Inject constructor(
     /** Voto de utilidad en una nota (1/-1; repetir retira). Actualiza en local. */
     fun voteNote(note: com.meteomontana.android.domain.model.Note, value: Int) {
         viewModelScope.launch {
-            val newVote = runCatching { noteApi.voteNote(note.id, value) }.getOrNull() ?: return@launch
+            val newVote = runCatching { voteNoteUseCase(note.id, value) }.getOrNull() ?: return@launch
             (_uiState.value as? SchoolDetailUiState.Success)?.let { s ->
                 _uiState.value = s.copy(notes = s.notes.map { nte ->
                     if (nte.id != note.id) nte else {
@@ -340,9 +343,11 @@ class SchoolDetailViewModel @Inject constructor(
         discipline: String = "BOULDER",
         geometry: String = "POINT",
         path: String? = null,
-        direction: String = "LTR"
+        direction: String = "LTR",
+        blockOrientation: String? = null
     ): Result<Unit> = contributions.submitBoulderFaces(
-        schoolId, lat, lon, name, faces, sectorBlockId, discipline, geometry, path, direction
+        schoolId, lat, lon, name, faces, sectorBlockId, discipline, geometry, path, direction,
+        blockOrientation
     )
 
     suspend fun submitAssignSectorContribution(
@@ -389,7 +394,7 @@ class SchoolDetailViewModel @Inject constructor(
 
     /** Admin: mueve la escuela directamente. */
     suspend fun adminMoveSchool(lat: Double, lon: Double): Result<Unit> = runCatching {
-        ktorAdminApi.moveSchool(schoolId, lat, lon)
+        moveSchoolUseCase(schoolId, lat, lon)
         load()  // refresca centerLat/Lon
     }
 

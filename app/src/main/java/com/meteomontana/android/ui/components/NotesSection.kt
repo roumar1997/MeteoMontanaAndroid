@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,7 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,7 +58,7 @@ fun NotesSection(
     var expanded by remember { mutableStateOf(false) }
     // Moderación: denunciar notas ajenas (bandera) + ocultar al instante.
     val moderation: ModerationViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-    val hiddenIds by moderation.hiddenIds.collectAsState()
+    val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
     var reportTarget by remember { mutableStateOf<Note?>(null) }
     val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 

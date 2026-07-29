@@ -9,8 +9,8 @@ struct AdminStatsTab: View {
     /// Cambia de pestaña (ESCUELAS → gestionar, PENDIENTES → propuestas).
     var onGoToTab: (AdminTab) -> Void = { _ in }
     @State private var openList: String? = nil
-    @State private var users: [AdminUserRowDto]? = nil
-    @State private var notes: [AdminNoteRowDto]? = nil
+    @State private var users: [AdminUserRow]? = nil
+    @State private var notes: [AdminNoteRow]? = nil
 
     var body: some View {
         ScrollView {
@@ -39,11 +39,11 @@ struct AdminStatsTab: View {
 
     private func loadUsers() {
         guard users == nil else { return }
-        Task { users = (try? await AppDependencies.shared.container.moderationApi.getAdminUsers()) ?? [] }
+        Task { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? [] }
     }
     private func loadNotes() {
         guard notes == nil else { return }
-        Task { notes = (try? await AppDependencies.shared.container.moderationApi.getAdminNotes()) ?? [] }
+        Task { notes = (try? await AppDependencies.shared.container.getAdminNotes.invoke()) ?? [] }
     }
 
     @ViewBuilder private var listSheet: some View {
@@ -53,13 +53,15 @@ struct AdminStatsTab: View {
                     if openList == "notes" {
                         if let list = notes {
                             ForEach(list, id: \.id) { n in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(n.text).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                                    Text([n.author, n.schoolId, (n.createdAt ?? "").isEmpty ? nil : String((n.createdAt ?? "").prefix(10))]
-                                            .compactMap { $0 }.joined(separator: " - "))
-                                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                                // P6: la nota abre su ESCUELA.
+                                Group {
+                                    // R12: la nota abre su DETALLE (texto
+                                    // entero + VER ESCUELA), no la escuela a
+                                    // secas donde no se veía la nota.
+                                    NavigationLink(destination: AdminNoteDetailView(note: n)) {
+                                        adminNoteRow(n)
+                                    }.buttonStyle(.plain)
                                 }
-                                .padding(.vertical, 8)
                                 Divider().overlay(Cumbre.rule)
                             }
                         } else { ProgressView().padding(.top, 30) }
@@ -67,6 +69,8 @@ struct AdminStatsTab: View {
                         if let list = users {
                             let shown = openList == "admins" ? list.filter { $0.isAdmin } : list
                             ForEach(shown, id: \.uid) { u in
+                                // P6: la fila abre el PERFIL del usuario.
+                                NavigationLink(destination: PublicProfileView(uid: u.uid)) {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
@@ -79,6 +83,7 @@ struct AdminStatsTab: View {
                                     Text(String((u.createdAt ?? "").prefix(10)))
                                         .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 }
+                                }.buttonStyle(.plain)
                                 .padding(.vertical, 8)
                                 Divider().overlay(Cumbre.rule)
                             }
@@ -228,5 +233,54 @@ struct AdminPushTab: View {
             TextField(ph, text: text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         }
+    }
+}
+
+
+/// Fila de nota del panel admin (P6: pulsable → su escuela).
+@ViewBuilder
+fileprivate func adminNoteRow(_ n: AdminNoteRow) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+        Text(n.text).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+        Text([n.author, n.schoolId, (n.createdAt ?? "").isEmpty ? nil : String((n.createdAt ?? "").prefix(10))]
+                .compactMap { $0 }.joined(separator: " - "))
+            .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+        Text("Ver escuela ›").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .contentShape(Rectangle())
+    .padding(.vertical, 8)
+}
+
+
+/// R12: detalle de una nota del panel admin — se LEE entera y desde aquí
+/// se salta a su escuela si hace falta.
+struct AdminNoteDetailView: View {
+    let note: AdminNoteRow
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("NOTA").font(Cumbre.mono(10, .bold)).tracking(1.5)
+                    .foregroundStyle(Cumbre.terra)
+                Text(note.text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                Text([note.author, note.schoolId,
+                      (note.createdAt ?? "").isEmpty ? nil : String((note.createdAt ?? "").prefix(10))]
+                        .compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                if let sid = note.schoolId, !sid.isEmpty {
+                    NavigationLink(destination: SchoolLoaderView(schoolId: sid)) {
+                        Text("VER ESCUELA ▸").font(Cumbre.mono(10, .bold)).tracking(1)
+                            .foregroundStyle(Cumbre.terra)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle("Nota")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

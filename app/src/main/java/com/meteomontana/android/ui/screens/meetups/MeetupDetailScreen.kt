@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,7 +53,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,11 +84,16 @@ fun MeetupDetailScreen(
     onOpenChat: (String) -> Unit = {},
     onOpenSchool: (String) -> Unit = {},
     onOpenProfile: (String) -> Unit = {},
+    onEditProfile: () -> Unit = {},
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
-    val state by viewModel.detailState.collectAsState()
-    val savingDescription by viewModel.savingDescription.collectAsState()
-    val dayScores by viewModel.dayScores.collectAsState()
+    val state by viewModel.detailState.collectAsStateWithLifecycle()
+    val genderGate by viewModel.genderGate.collectAsStateWithLifecycle()
+    if (genderGate) {
+        GenderGateDialog(onEditProfile = onEditProfile, onDismiss = { viewModel.clearGenderGate() })
+    }
+    val savingDescription by viewModel.savingDescription.collectAsStateWithLifecycle()
+    val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
     val myUid = FirebaseAuth.getInstance().currentUser?.uid
     var showReportDialog by remember { mutableStateOf(false) }
     var reportDone by remember { mutableStateOf(false) }
@@ -455,7 +460,7 @@ fun MeetupDetailScreen(
                                 Text("AFORO COMPLETO", style = EyebrowTextStyle,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            meetup.privacy == "WOMEN" && viewModel.myGender.collectAsState().value != "WOMAN" -> {
+                            meetup.privacy == "WOMEN" && viewModel.myGender.collectAsStateWithLifecycle().value != "WOMAN" -> {
                                 Text("Solo pueden unirse personas con género Mujer en su perfil.\nVe a Perfil → Editar perfil → Género.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)

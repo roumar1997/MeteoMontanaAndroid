@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -38,7 +39,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,18 +72,18 @@ fun SchoolListScreen(
     onViaHit: (schoolId: String, viaId: String?, viaName: String?) -> Unit = { s, _, _ -> onSchoolClick(s) },
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val filters by viewModel.filters.collectAsState()
-    val unread by viewModel.unreadCount.collectAsState()
-    val scores by viewModel.scores.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
-    val userLocation by viewModel.userLocation.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val compareSelection by viewModel.compareSelection.collectAsState()
-    val selectedDays by viewModel.selectedDays.collectAsState()
-    val rangeScores by viewModel.rangeScores.collectAsState()
-    val chatUnread by viewModel.chatUnread.collectAsState()
-    val viaHits by viewModel.viaHits.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
+    val unread by viewModel.unreadCount.collectAsStateWithLifecycle()
+    val scores by viewModel.scores.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val compareSelection by viewModel.compareSelection.collectAsStateWithLifecycle()
+    val selectedDays by viewModel.selectedDays.collectAsStateWithLifecycle()
+    val rangeScores by viewModel.rangeScores.collectAsStateWithLifecycle()
+    val chatUnread by viewModel.chatUnread.collectAsStateWithLifecycle()
+    val viaHits by viewModel.viaHits.collectAsStateWithLifecycle()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
@@ -142,6 +142,12 @@ fun SchoolListScreen(
     // (solo sale si username == null en el servidor; reinstalar no lo re-muestra).
     com.meteomontana.android.ui.onboarding.UsernameGate()
 
+    // M2: cámara del mapa de escuelas, recordada AQUÍ (fuera del LazyColumn) para
+    // que sobreviva al reciclado del item del mapa al scrollear.
+    // M2/M3: estado del mapa (cámara + ids encuadrados) recordado AQUÍ, fuera del
+    // LazyColumn, para que sobreviva al reciclado del item del mapa al scrollear.
+    val mapState = rememberSchoolsMapState()
+
     androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
@@ -171,14 +177,26 @@ fun SchoolListScreen(
                 )
             }
 
-            // Buscador
+            // Buscador ÚNICO estilo Spotlight: escuelas Y vías/bloques a la vez.
+            // El placeholder anuncia que busca ambas cosas, y al escribir salen
+            // las dos secciones (aunque una esté vacía) → se aprende solo.
             item {
                 Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
                     OutlinedTextField(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Busca tu escuela o vía/bloque…") },
+                        placeholder = { Text("Busca escuelas, vías y bloques…") },
+                        trailingIcon = {
+                            // P8: X para limpiar de un toque (paridad iOS).
+                            if (filters.query.isNotEmpty()) {
+                                androidx.compose.material3.Icon(
+                                    Icons.Outlined.Close,
+                                    contentDescription = stringResource(R.string.common_close),
+                                    modifier = Modifier.clickable { viewModel.setQuery("") }
+                                )
+                            }
+                        },
                         singleLine = true,
                         shape = MaterialTheme.shapes.small,
                         colors = TextFieldDefaults.colors(
@@ -189,14 +207,15 @@ fun SchoolListScreen(
                 }
             }
 
-            // Resultados del buscador GLOBAL de vías/bloques (mismo campo).
-            if (filters.query.trim().length >= 2 && viaHits.isNotEmpty()) {
+            // Resultados del buscador ÚNICO en DOS secciones (estilo Spotlight):
+            // ESCUELAS (top 5 del catálogo, acceso directo) y VÍAS Y BLOQUES
+            // (buscador global con mini-topo). Las cabeceras salen SIEMPRE al
+            // escribir — así se aprende que el campo busca ambas cosas.
+            if (filters.query.trim().length >= 2) {
                 item {
+                    val schoolMatches = (state as? SchoolListUiState.Success)
+                        ?.schools.orEmpty().take(5)
                     Column(Modifier.padding(horizontal = Spacing.lg)) {
-                        Text("VÍAS Y BLOQUES",
-                            style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp))
                         Column(
                             Modifier.fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.surface,
@@ -204,30 +223,101 @@ fun SchoolListScreen(
                                 .border(1.dp, MaterialTheme.colorScheme.outline,
                                     MaterialTheme.shapes.small)
                         ) {
+                            Text("ESCUELAS",
+                                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            if (schoolMatches.isEmpty()) {
+                                Text("Sin resultados",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                        .padding(bottom = 8.dp))
+                            } else {
+                                schoolMatches.forEach { s ->
+                                    Row(
+                                        Modifier.fillMaxWidth()
+                                            .clickable { onSchoolClick(s.id) }
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(s.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1)
+                                            s.region?.takeIf { it.isNotBlank() }?.let {
+                                                Text(it,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1)
+                                            }
+                                        }
+                                        Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            Text("VÍAS Y BLOQUES",
+                                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            if (viaHits.isEmpty()) {
+                                Text("Sin resultados",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                        .padding(bottom = 8.dp))
+                            }
                             viaHits.forEach { h ->
-                                Row(
+                                Column(
                                     Modifier.fillMaxWidth()
                                         .clickable { onViaHit(h.schoolId, h.lineId, h.lineName ?: h.blockName) }
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(horizontal = 12.dp, vertical = 10.dp)
                                 ) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(
-                                            (h.lineName ?: h.blockName) +
-                                                (h.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1)
-                                        Text(
-                                            listOf(h.blockName.takeIf { h.lineName != null },
-                                                   h.sectorName, h.schoolName)
-                                                .filterNotNull().filter { it.isNotBlank() }
-                                                .joinToString(" · "),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                (h.lineName ?: h.blockName) +
+                                                    (h.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1)
+                                            Text(
+                                                listOf(h.blockName.takeIf { h.lineName != null },
+                                                       h.sectorName, h.schoolName)
+                                                    .filterNotNull().filter { it.isNotBlank() }
+                                                    .joinToString(" · "),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1)
+                                        }
+                                        Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
-                                    Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    // Mini-topo: la foto de la cara con la línea dibujada
+                                    // (solo si el backend mandó foto; la piedra sale sin trazo).
+                                    h.photoPath?.takeIf { it.isNotBlank() }?.let { photo ->
+                                        // P8: dedup de puntos consecutivos casi identicos — en
+                                        // trazos a mano antiguos los duplicados fusionaban los
+                                        // guiones y la linea salia CONTINUA solo aqui.
+                                        val rawStroke = com.meteomontana.android.ui.screens.topo
+                                            .parseLineStroke(h.linePath)
+                                        val stroke = rawStroke.copy(points = rawStroke.points
+                                            .filterIndexed { i, pt ->
+                                                i == 0 || kotlin.math.abs(pt.x - rawStroke.points[i - 1].x) +
+                                                    kotlin.math.abs(pt.y - rawStroke.points[i - 1].y) > 0.004f
+                                            })
+                                        val topoLines = if (stroke.points.size >= 2) listOf(
+                                            com.meteomontana.android.ui.components.TopoLine(
+                                                name = h.lineName, grade = h.grade,
+                                                startType = h.startType, points = stroke.points)
+                                        ) else emptyList()
+                                        com.meteomontana.android.ui.components.TopoPhotoCanvas(
+                                            photoUrl = photo,
+                                            lines = topoLines,
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -254,7 +344,8 @@ fun SchoolListScreen(
                     userLon = userLocation?.lon,
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
-                    onSchoolDetail = onSchoolClick
+                    onSchoolDetail = onSchoolClick,
+                    mapState = mapState
                 )
             }
 
@@ -361,21 +452,24 @@ fun SchoolListScreen(
                     .fillMaxWidth()
                     .padding(Spacing.md)
                     .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.onBackground)
+                    // Fondo FIJO oscuro: onBackground se invierte en modo
+                    // oscuro y la barra salía blanca y deslumbrante.
+                    .background(androidx.compose.ui.graphics.Color(0xFF17170F))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                     .padding(start = Spacing.xs, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = viewModel::clearCompare) {
                     Icon(
                         Icons.Outlined.Close,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.background
+                        contentDescription = stringResource(R.string.common_close),
+                        tint = androidx.compose.ui.graphics.Color.White
                     )
                 }
                 Text(
                     "${compareSelection.size} seleccionada${if (compareSelection.size > 1) "s" else ""}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.background,
+                    color = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.weight(1f)
                 )
                 // Botón Comparar grande (a partir de 2). Con 1, pista de qué falta.
@@ -537,7 +631,7 @@ private fun TopIconsRow(
 @Composable
 private fun ThemeToggleButton() {
     val vm: ThemeToggleViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-    val mode by vm.mode.collectAsState()
+    val mode by vm.mode.collectAsStateWithLifecycle()
     val isDark = when (mode) {
         com.meteomontana.android.ui.theme.ThemeMode.DARK -> true
         com.meteomontana.android.ui.theme.ThemeMode.LIGHT -> false
@@ -546,7 +640,7 @@ private fun ThemeToggleButton() {
     IconButton(onClick = vm::toggle) {
         Icon(
             imageVector = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.a11y_toggle_theme),
             tint = MaterialTheme.colorScheme.onBackground
         )
     }

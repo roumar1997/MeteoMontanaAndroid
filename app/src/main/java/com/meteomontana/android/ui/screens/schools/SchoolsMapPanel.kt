@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.data.map.MapStyles
+
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -26,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +50,7 @@ import com.meteomontana.android.ui.theme.Spacing
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
@@ -72,6 +76,48 @@ import com.meteomontana.android.R
  * Markers se re-pintan con un Bitmap generado a mano (diamante rotado
  * + score blanco encima) para parecerse al pin de la PWA.
  */
+
+/**
+ * Estado del mapa que debe SOBREVIVIR al reciclado del item del `LazyColumn`
+ * (el `MapBody` vive dentro de la lista y se destruye/recrea al scrollear).
+ * Se recuerda en el propietario estable (`SchoolListScreen`) y se pasa aquí,
+ * de modo que la pantalla NO ve tipos de MapLibre — quedan encapsulados.
+ *  - [savedCamera]: la última cámara, para restaurarla al recrear el mapa.
+ *  - [fittedIds]: ids ya encuadrados, para no re-encuadrar salvo cambio de filtro.
+ */
+class SchoolsMapState {
+    val savedCamera: MutableState<CameraPosition?> = mutableStateOf(null)
+    val fittedIds: MutableState<Set<String>> = mutableStateOf(emptySet())
+}
+
+@Composable
+fun rememberSchoolsMapState(): SchoolsMapState = remember { SchoolsMapState() }
+
+/**
+ * Plan de cámara INICIAL cuando no hay ninguna guardada (primer abrir del mapa).
+ * Función pura (sin tipos de MapLibre) → testeable en JVM.
+ *  - 2+ escuelas → [fit] = true: encuadrar las visibles (igual que al filtrar).
+ *  - 1 escuela → centrar en ella (zoom cercano).
+ *  - 0 escuelas con ubicación → centrar en el usuario.
+ *  - 0 escuelas sin ubicación → vista de España.
+ */
+data class MapCameraPlan(
+    val lat: Double,
+    val lon: Double,
+    val zoom: Double,
+    val fit: Boolean
+)
+
+fun planInitialCamera(schools: List<School>, userLat: Double?, userLon: Double?): MapCameraPlan {
+    val single = schools.singleOrNull()
+    return when {
+        schools.size >= 2 -> MapCameraPlan(0.0, 0.0, 0.0, fit = true)
+        single != null -> MapCameraPlan(single.lat, single.lon, 13.5, fit = false)
+        userLat != null && userLon != null -> MapCameraPlan(userLat, userLon, 8.0, fit = false)
+        else -> MapCameraPlan(40.4, -3.7, 5.0, fit = false)
+    }
+}
+
 @Composable
 fun SchoolsMapPanel(
     schools: List<School>,
@@ -80,7 +126,13 @@ fun SchoolsMapPanel(
     userLon: Double?,
     expanded: Boolean,
     onToggle: () -> Unit,
-    onSchoolDetail: (String) -> Unit
+    onSchoolDetail: (String) -> Unit,
+    // M2: cámara persistida por el LLAMANTE (SchoolListScreen, que NO se recicla al
+    // scrollear). El mapa vive en un item de LazyColumn → al salir/entrar de pantalla
+    // se DESTRUYE y recrea, y volvía a la cámara inicial. Con el estado en el llamante
+    // (SchoolListScreen, que NO se recicla), el mapa reaparece donde lo dejaste y no
+    // re-encuadra salvo cambio de filtro. Ver [SchoolsMapState].
+    mapState: SchoolsMapState
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -124,7 +176,8 @@ fun SchoolsMapPanel(
                 scoresById = scoresById,
                 userLat = userLat,
                 userLon = userLon,
-                onSchoolDetail = onSchoolDetail
+                onSchoolDetail = onSchoolDetail,
+                mapState = mapState
             )
         }
     }
@@ -138,8 +191,11 @@ private fun MapBody(
     scoresById: Map<String, Int>,
     userLat: Double?,
     userLon: Double?,
-    onSchoolDetail: (String) -> Unit
+    onSchoolDetail: (String) -> Unit,
+    mapState: SchoolsMapState
 ) {
+    val savedCamera = mapState.savedCamera
+    val lastFittedIds = mapState.fittedIds
     val ctx = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     // Tiles oscuros si el tema actual es oscuro (CartoDB dark) — el mapa claro
@@ -151,7 +207,7 @@ private fun MapBody(
     var selectedSchool by remember { mutableStateOf<School?>(null) }
     // ids de la última lista pintada: solo re-encuadramos la cámara cuando
     // cambia QUÉ escuelas se ven (filtros), no cuando llegan scores nuevos.
-    val lastFittedIds = remember { mutableStateOf<Set<String>>(emptySet()) }
+    // (M2/M3: `lastFittedIds` llega como parámetro persistido por el padre.)
     // Etiquetas de nombre solo con zoom cercano (si no, se solapan).
     val labelsVisible = remember { mutableStateOf(false) }
     var isSatellite by remember { mutableStateOf(false) }
@@ -211,29 +267,40 @@ private fun MapBody(
                     }
                     getMapAsync { map ->
                         mapRef.value = map
+                        // M2: fijar lastFittedIds SÍNCRONAMENTE al recrear el mapa, para
+                        // que el LaunchedEffect no crea que "cambió la lista" y re-encuadre
+                        // pisando la cámara restaurada (carrera del reciclado del LazyColumn).
+                        lastFittedIds.value = schools.map { it.id }.toSet()
                         val styleJson = if (isDarkTheme) DARK_RASTER_STYLE else OSM_RASTER_STYLE
                         map.setStyle(Style.Builder().fromJson(styleJson)) {
                             // Si al abrir el mapa la lista ya viene filtrada a UNA
                             // escuela (buscador), centramos en ELLA (como iOS). Si no,
                             // con ubicación real cerca del usuario; sin ella, España.
-                            val single = schools.singleOrNull()
-                            val center = when {
-                                single != null -> LatLng(single.lat, single.lon)
-                                userLat != null && userLon != null -> LatLng(userLat, userLon)
-                                else -> LatLng(40.4, -3.7)
+                            // M2: si hay cámara guardada (el mapa se recreó al scrollear),
+                            // la restauramos → el mapa reaparece donde lo dejaste, no en
+                            // el encuadre inicial.
+                            // doFit = encuadrar las escuelas visibles (como al cambiar
+                            // de filtro). Así el mapa al ABRIR la app muestra LO MISMO
+                            // que tras filtrar a esa misma distancia (antes abría a un
+                            // zoom fijo centrado en ti y no coincidía).
+                            val restored = savedCamera.value
+                            val doFit: Boolean
+                            if (restored != null) {
+                                map.cameraPosition = restored           // M2: donde lo dejaste
+                                doFit = false
+                            } else {
+                                val plan = planInitialCamera(schools, userLat, userLon)
+                                doFit = plan.fit
+                                if (!plan.fit) {
+                                    map.cameraPosition = CameraPosition.Builder()
+                                        .target(LatLng(plan.lat, plan.lon)).zoom(plan.zoom).build()
+                                }
                             }
-                            val zoom = when {
-                                single != null -> 13.5
-                                userLat != null && userLon != null -> 8.0
-                                else -> 5.0
-                            }
-                            map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
-                                .target(center).zoom(zoom).build()
                             lastFittedIds.value = schools.map { it.id }.toSet()
                             syncMarkers(
                                 context, map, schools, scoresById,
                                 showLabels = labelsVisible.value,
-                                fitBounds = false,   // respetamos el centrado en el usuario
+                                fitBounds = doFit,
                                 userLat = userLat, userLon = userLon
                             ) { tappedSchool -> selectedSchool = tappedSchool }
                         }
@@ -246,6 +313,8 @@ private fun MapBody(
                         map.addOnCameraIdleListener {
                             val shouldShow = map.cameraPosition.zoom >= 8.5
                             if (shouldShow != labelsVisible.value) labelsVisible.value = shouldShow
+                            // M2: recordar la cámara para restaurarla si el mapa se recrea.
+                            savedCamera.value = map.cameraPosition
                         }
                     }
                     onStart()
@@ -631,19 +700,11 @@ private fun FilledAction(text: String, onClick: () -> Unit, modifier: Modifier =
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-/** Estilo MapLibre con tiles raster de OSM. Mismo origen que la PWA. */
-internal val OSM_RASTER_STYLE = """
-{"version":8,"sources":{"osm":{"type":"raster","tiles":["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png","https://b.tile.openstreetmap.org/{z}/{x}/{y}.png","https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"osm","type":"raster","source":"osm"}]}
-""".trimIndent()
-
-/** Tiles oscuros (CartoDB dark matter) para cuando el tema de la app es oscuro. */
-internal val DARK_RASTER_STYLE = """
-{"version":8,"sources":{"carto":{"type":"raster","tiles":["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenStreetMap © CARTO"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#1C1B18"}},{"id":"carto","type":"raster","source":"carto"}]}
-""".trimIndent()
-
-internal val SATELLITE_RASTER_STYLE = """
-{"version":8,"sources":{"esri":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"© Esri"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"esri","type":"raster","source":"esri"}]}
-""".trimIndent()
+/** Estilos MapLibre raster (fuente única en MapStyles). Mismo origen que la PWA. */
+internal val OSM_RASTER_STYLE get() = MapStyles.osmPaper
+internal val DARK_RASTER_STYLE get() = MapStyles.darkPaper
+internal val SATELLITE_RASTER_STYLE get() =
+    MapStyles.raster("esri", MapStyles.SATELLITE, "© Esri", MapStyles.PAPER_BG)
 
 @Composable
 private fun MapStyleChip(label: String, selected: Boolean, onClick: () -> Unit) {

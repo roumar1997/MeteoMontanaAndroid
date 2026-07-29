@@ -30,6 +30,8 @@ import com.meteomontana.android.R
 @Composable
 fun MyPostsScreen(
     onBack: () -> Unit,
+    /** H: false = publicaciones de OTRO usuario (título genérico). */
+    ownProfile: Boolean = true,
     onOpenUser: (uid: String) -> Unit,
     onOpenSchool: (schoolId: String, lineId: String?, lineName: String?, blockId: String?) -> Unit
 ) {
@@ -48,7 +50,9 @@ fun MyPostsScreen(
                 )
             }
             Text(
-                stringResource(R.string.feed_my_posts_section),
+                stringResource(
+                    if (ownProfile) R.string.feed_my_posts_section
+                    else R.string.feed_posts_section),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -63,7 +67,8 @@ fun MyPostsScreen(
             UserFeedSection(
                 onOpenUser = onOpenUser,
                 onOpenSchool = onOpenSchool,
-                titleRes = R.string.feed_my_posts_section,
+                titleRes = if (ownProfile) R.string.feed_my_posts_section
+                           else R.string.feed_posts_section,
                 ownProfile = true,
                 showTitle = false
             )

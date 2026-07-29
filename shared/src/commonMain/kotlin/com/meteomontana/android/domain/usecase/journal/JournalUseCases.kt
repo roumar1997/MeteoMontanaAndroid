@@ -25,6 +25,12 @@ class GetUserJournalUseCase(private val repo: JournalRepository) {
     suspend operator fun invoke(uid: String): List<JournalSession> = repo.getUserJournal(uid)
 }
 
+class UpdateJournalDateUseCase(private val repo: JournalRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(id: String, date: String): JournalSession =
+        repo.updateJournalDate(id, date)
+}
+
 class CreateJournalEntryUseCase(private val repo: JournalRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(req: CreateJournalRequest): JournalSession =

@@ -279,10 +279,21 @@ private func short(_ iso: String) -> String {
 
 /// Devuelve las próximas `count` horas A PARTIR DE LA HORA ACTUAL (no desde el
 /// inicio del día). Espejo de "PRÓXIMAS 16 HORAS desde ahora" de Android.
-private func upcomingHours(_ hours: [HourForecast], _ count: Int) -> [HourForecast] {
+private let hourFormatter: DateFormatter = {
     let f = DateFormatter()
     f.locale = Locale(identifier: "en_US_POSIX")
     f.dateFormat = "yyyy-MM-dd'T'HH:mm"
+    return f
+}()
+private let dayInFormatter: DateFormatter = {
+    let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+}()
+private let dayOutFormatter: DateFormatter = {
+    let f = DateFormatter(); f.locale = Locale(identifier: "es_ES"); f.dateFormat = "EEE d MMM"; return f
+}()
+
+private func upcomingHours(_ hours: [HourForecast], _ count: Int) -> [HourForecast] {
+    let f = hourFormatter
     let now = Date()
     let startIdx = hours.firstIndex { h in
         guard let d = f.date(from: String(h.time.prefix(16))) else { return false }
@@ -305,10 +316,8 @@ private func cloudLabel(_ c: Int) -> String {
 }
 
 private func dayLabel(_ iso: String) -> String {
-    let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
-    guard let d = f.date(from: String(iso.prefix(10))) else { return iso }
-    let out = DateFormatter(); out.locale = Locale(identifier: "es_ES"); out.dateFormat = "EEE d MMM"
-    return out.string(from: d).capitalized
+    guard let d = dayInFormatter.date(from: String(iso.prefix(10))) else { return iso }
+    return dayOutFormatter.string(from: d).capitalized
 }
 
 // `Note` (clase Kotlin vía SKIE) ya tiene `id: String`; con esto vale para

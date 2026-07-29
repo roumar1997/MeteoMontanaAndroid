@@ -34,7 +34,9 @@ class TickFeedPublisher @Inject constructor(
         /** URI local (content://) de la foto de celebración hecha en la hoja, o null. */
         photoUri: String? = null,
         /** Aviso discreto si la foto no se pudo subir (el post queda sin foto). */
-        onPhotoUploadFailed: (() -> Unit)? = null
+        onPhotoUploadFailed: (() -> Unit)? = null,
+        /** El POST del post fallo: el ascenso quedo en el diario pero NO publicado. */
+        onPublishFailed: (() -> Unit)? = null
     ) {
         val kind = if (wasProject) FeedKind.PROJECT_DONE else FeedKind.TICK
         // Modalidad de la piedra (misma distinción Bloque/Vía del detalle).
@@ -43,7 +45,12 @@ class TickFeedPublisher @Inject constructor(
             publishFeedPost(
                 block.id, line.id.takeIf { it.isNotBlank() }, kind, discipline, caption
             )
-        }.getOrNull() ?: return
+        }.getOrElse {
+            // P11: fallar EN SILENCIO escondio un bug real (secuencias de
+            // staging) durante horas. El fallo ahora avisa siempre.
+            onPublishFailed?.invoke()
+            return
+        }
         // Foto de celebración (opcional): comprimir (mismo pipeline que las
         // fotos de perfil/piedras, muy por debajo de los 5MB del backend) y
         // subirla como multipart. Si falla, el post queda sin foto.

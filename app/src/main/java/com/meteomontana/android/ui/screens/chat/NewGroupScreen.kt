@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.chat
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,8 +93,8 @@ fun NewGroupScreen(
     onCreated: (convId: String) -> Unit,
     viewModel: NewGroupViewModel = hiltViewModel()
 ) {
-    val contacts by viewModel.contacts.collectAsState()
-    val creating by viewModel.creating.collectAsState()
+    val contacts by viewModel.contacts.collectAsStateWithLifecycle()
+    val creating by viewModel.creating.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(setOf<String>()) }
     var query by remember { mutableStateOf("") }

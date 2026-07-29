@@ -154,7 +154,8 @@ class JournalTickController @Inject constructor(
         sectorName: String?,
         markDone: Boolean?,
         doneKeys: Set<String>,
-        projectKeys: Set<String>
+        projectKeys: Set<String>,
+        sessionDate: String? = null
     ): Result<Boolean> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
         // Clave por lineId (aguanta homónimas). La clave por NOMBRE se sigue
@@ -223,7 +224,7 @@ class JournalTickController @Inject constructor(
                 // No guardamos "Piedra: N": el número se recicla/borra y quedaría
                 // obsoleto. La vía se localiza por nombre al abrir la escuela.
                 notes = null,
-                date = java.time.LocalDate.now().toString(),
+                date = sessionDate ?: java.time.LocalDate.now().toString(),
                 // La modalidad la hereda la vía de su piedra: el contador del
                 // perfil sabrá si es BLOQUE o VÍA.
                 discipline = block.discipline,

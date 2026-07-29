@@ -68,4 +68,36 @@ class KtorBlockRepository(
     override suspend fun deleteBlock(blockId: String) {
         api.deleteBlock(blockId)
     }
+
+    override suspend fun rateLine(blockId: String, lineId: String, stars: Int) =
+        api.rateLine(blockId, lineId, stars).let {
+            com.meteomontana.android.domain.repository.LineRating(
+                it.avgStars, it.ratingCount, it.myStars)
+        }
+
+    override suspend fun unrateLine(blockId: String, lineId: String) =
+        api.unrateLine(blockId, lineId).let {
+            com.meteomontana.android.domain.repository.LineRating(
+                it.avgStars, it.ratingCount, it.myStars)
+        }
+
+    override suspend fun getComments(blockId: String) =
+        api.getComments(blockId).map { it.toDomainComment() }
+
+    override suspend fun addComment(blockId: String, lineId: String?, text: String) =
+        api.addComment(blockId,
+            com.meteomontana.android.data.api.dto.CreateLineCommentRequest(lineId, text)
+        ).toDomainComment()
+
+    override suspend fun voteComment(commentId: String, value: Int): Int =
+        api.voteComment(commentId, value)
+
+    override suspend fun deleteComment(commentId: String) = api.deleteComment(commentId)
 }
+
+private fun com.meteomontana.android.data.api.dto.LineCommentDto.toDomainComment() =
+    com.meteomontana.android.domain.model.LineComment(
+        id = id, blockId = blockId, lineId = lineId, author = author, uid = uid,
+        createdAt = createdAt, text = text, upvotesCount = upvotesCount,
+        downvotesCount = downvotesCount, myVote = myVote
+    )

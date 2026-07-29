@@ -60,6 +60,11 @@ object Routes {
     fun groupChat(convId: String) = "group-chats/$convId"
     const val TOPO_EDITOR = "topo/{blockId}"
     fun topoEditor(blockId: String) = "topo/$blockId"
+    const val JOURNAL_STATS = "journal/stats?uid={uid}"
+    /** G: estadísticas propias (uid=null) o de OTRO usuario (perfil público
+     *  o seguimiento aceptado — la privacidad la impone el backend). */
+    fun journalStats(uid: String? = null): String =
+        "journal/stats" + (uid?.let { "?uid=" + android.net.Uri.encode(it) } ?: "")
     const val JOURNAL_ENTRIES = "journal/entries?filter={filter}&uid={uid}"
     fun journalEntries(filter: String? = null, uid: String? = null): String {
         val f = filter ?: ""
@@ -92,7 +97,10 @@ object Routes {
     fun feedPost(postId: String) = "feed/$postId"
 
     // "Mis publicaciones": pantalla dedicada con el feed propio (scope=mine).
-    const val MY_POSTS = "profile/my-posts"
+    const val MY_POSTS = "profile/my-posts?uid={uid}"
+    /** H: publicaciones propias (uid=null) o de OTRO usuario. */
+    fun myPosts(uid: String? = null): String =
+        "profile/my-posts" + (uid?.let { "?uid=" + android.net.Uri.encode(it) } ?: "")
 
     const val MEETUP_DETAIL = "meetups/{meetupId}"
     fun meetupDetail(id: String) = "meetups/$id"

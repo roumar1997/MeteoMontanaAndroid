@@ -90,9 +90,10 @@ final class UserFeedViewModel: ObservableObject {
     }
 
     func addComment(_ postId: Int64, _ text: String, _ parentId: String?) async -> FeedComment? {
-        guard let created = try? await container.addFeedComment.invoke(
+        guard let created = await reporting("No se pudo enviar el comentario", {
+            try await container.addFeedComment.invoke(
             postId: postId, text: text, parentId: parentId)
-        else { return nil }
+        }) else { return nil }
         updatePost(postId) { copyPost($0, commentCount: $0.commentCount + 1) }
         return created
     }
@@ -260,16 +261,18 @@ struct UserFeedSection: View {
 /// UserFeedSection; se abre desde la fila del perfil. Espejo de
 /// MyPostsScreen.kt de Android.
 struct MyPostsView: View {
+    /// H: nil = las mías; uid = las de OTRO usuario (misma pantalla).
+    var uid: String? = nil
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                UserFeedSection(uid: nil, ownProfile: true, showTitle: false)
+                UserFeedSection(uid: uid, ownProfile: uid == nil, showTitle: false)
             }
             .padding(.horizontal, 16).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle("Mis publicaciones")
+        .navigationTitle(uid == nil ? "Mis publicaciones" : "Publicaciones")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

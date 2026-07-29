@@ -1,6 +1,5 @@
 package com.meteomontana.android.ui.screens.detail
 
-import com.meteomontana.android.data.api.KtorMountainApi
 import com.meteomontana.android.data.saved.SavedSchoolRepository
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
@@ -29,7 +28,7 @@ class SchoolDetailLoader @Inject constructor(
     private val getBlocks: GetBlocksUseCase,
     private val getMyProfile: GetMyProfileUseCase,
     private val savedSchoolRepo: SavedSchoolRepository,
-    private val mountainApi: KtorMountainApi,
+    private val getMountainBulletin: com.meteomontana.android.domain.usecase.weather.GetMountainBulletinUseCase,
     private val db: com.meteomontana.db.MeteoMontanaDb,
     private val blockRepo: com.meteomontana.android.domain.repository.BlockRepository
 ) {
@@ -112,7 +111,7 @@ class SchoolDetailLoader @Inject constructor(
                 // Boletín EN PARALELO con el resto — si se insertara tarde,
                 // recoloca la LazyColumn y Compose destruye el diálogo del
                 // deep-link del diario (bug del 2026-07-03).
-                val bulletinD = async { runCatching { mountainApi.getBulletin(school.lat, school.lon) }.getOrNull() }
+                val bulletinD = async { runCatching { getMountainBulletin(school.lat, school.lon) }.getOrNull() }
                 val forecastResult = forecastD.await()
                 // Forecast fresco → a la caché. Si la red falló → último
                 // forecast cacheado, marcando su antigüedad para que la UI

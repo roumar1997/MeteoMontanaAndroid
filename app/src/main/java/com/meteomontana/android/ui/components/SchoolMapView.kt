@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.data.map.MapStyles
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -94,8 +96,8 @@ private enum class MapStyleOption(val labelResId: Int) {
 }
 
 private fun styleJsonFor(style: MapStyleOption): String = when (style) {
-    MapStyleOption.SATELLITE -> """{"version":8,"sources":{"sat":{"type":"raster","tiles":["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],"tileSize":256,"attribution":"Tiles © Esri"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"sat","type":"raster","source":"sat"}]}"""
-    MapStyleOption.TOPO      -> """{"version":8,"sources":{"topo":{"type":"raster","tiles":["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"#F4F1E9"}},{"id":"topo","type":"raster","source":"topo"}]}"""
+    MapStyleOption.SATELLITE -> MapStyles.satellitePaper
+    MapStyleOption.TOPO      -> MapStyles.topoPaper
 }
 
 // Si el usuario está más lejos de esto del centro de los elementos de la
@@ -178,7 +180,7 @@ internal fun SchoolMapView(
     val onDismissBlockState by androidx.compose.runtime.rememberUpdatedState(onDismissBlock)
 
     // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
-    val isAdminUser = (viewModel.uiState.collectAsState().value
+    val isAdminUser = (viewModel.uiState.collectAsStateWithLifecycle().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
     val mapScope = androidx.compose.runtime.rememberCoroutineScope()
@@ -521,7 +523,7 @@ internal fun SchoolMapView(
                 androidx.compose.material3.Icon(
                     if (fullscreenMap) androidx.compose.material.icons.Icons.Outlined.CloseFullscreen
                     else androidx.compose.material.icons.Icons.Outlined.OpenInFull,
-                    contentDescription = null,
+                    contentDescription = androidx.compose.ui.res.stringResource(R.string.a11y_fullscreen_map),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(18.dp))
             }

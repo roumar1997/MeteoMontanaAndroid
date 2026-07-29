@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -40,7 +41,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,10 +62,10 @@ fun MeetupAlertScreen(
     onBack: () -> Unit = {},
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
-    val alertState by viewModel.alertState.collectAsState()
-    val schoolResults by viewModel.schoolResults.collectAsState()
-    val myGender by viewModel.myGender.collectAsState()
-    val alertError by viewModel.alertError.collectAsState()
+    val alertState by viewModel.alertState.collectAsStateWithLifecycle()
+    val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
+    val myGender by viewModel.myGender.collectAsStateWithLifecycle()
+    val alertError by viewModel.alertError.collectAsStateWithLifecycle()
 
     var enabled by remember(alertState) { mutableStateOf(alertState?.enabled == true) }
     var selectedDays by remember(alertState) {

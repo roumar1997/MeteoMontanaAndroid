@@ -14,6 +14,12 @@ import FirebaseAuth
 struct SchoolMapSection: View {
     let school: School
     var openVia: String? = nil
+
+    // Filtro por ORIENTACIÓN (consenso comunitario): filtra los marcadores
+    // de piedra del mapa. Piedras sin votos → solo en TODAS. Espejo de
+    // OrientationFilter.kt de Android.
+    @State private var blockOrientations: [String: String] = [:]
+    @State private var orientationFilter: String? = nil
     @State private var didAutoOpen = false
     @State private var expanded = false
     @State private var selectedBlock: Block?
@@ -112,9 +118,21 @@ struct SchoolMapSection: View {
         .onAppear {
             if let v = openVia, !v.isEmpty, !didAutoOpen, !expanded { expanded = true }
         }
+        // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
+        // el auto-abrir del deep-link (antes se quedaba en la escuela a secas).
+        // OJO: la firma incluye las VÍAS, no solo el número de bloques. La
+        // caché puede traer los mismos N bloques SIN sus vías: el auto-abrir
+        // fallaba (abría la escuela a secas) y como el count no cambiaba al
+        // llegar los datos reales, no se reintentaba (a la 2ª vez ya iba).
+        .onChange(of: vm.blocks.reduce(0) { $0 + 1 + $1.lines.count }) { _ in maybeAutoOpen() }
         // ¿Admin? → puede eliminar bloques desde su ficha.
         .task {
             await vm.loadAdminFlag()
+            // Consenso de orientación de TODAS las piedras (una llamada).
+            if let m = try? await AppDependencies.shared.container
+                .getSchoolOrientations.invoke(schoolId: school.id) {
+                blockOrientations = (m as NSDictionary as? [String: String]) ?? [:]
+            }
         }
         .alert("¿Eliminar «\(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
             Button("ELIMINAR", role: .destructive) {
@@ -138,7 +156,10 @@ struct SchoolMapSection: View {
         ZStack(alignment: .bottomTrailing) {
                     MapLibreView(
                         center: savedCenter ?? CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon),
-                        zoom: savedZoom ?? 14,
+                        // M1: 12.5 (antes 14). El autoFit hace return en el primer apply
+                        // (registra la base), así que la escuela abría al zoom INICIAL fijo
+                        // y salía muy cerca. Con 12.5 abre más abierta (se ve más contexto).
+                        zoom: savedZoom ?? 12.5,
                         markers: markers,
                         style: mapStyle,
                         // Encuadre inicial con TODOS los elementos (parkings/sectores/
@@ -405,6 +426,7 @@ struct SchoolMapSection: View {
                 .padding(.horizontal, 12).padding(.vertical, 9)
                 .background(Cumbre.paper)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            orientationChips
             let q = vm.searchQuery.trimmingCharacters(in: .whitespaces)
             if q.count >= 2 {
                 let hits = vm.searchHits(q)
@@ -445,6 +467,47 @@ struct SchoolMapSection: View {
                     .ignoresSafeArea()
             }
         }
+    }
+
+    private static let aspectOrder = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+
+    /// Chips TODAS / N / NE… con el nº de piedras de cada consenso.
+    @ViewBuilder
+    private var orientationChips: some View {
+        if !blockOrientations.isEmpty {
+            let counts = Dictionary(grouping: blockOrientations.values, by: { $0 })
+                .mapValues { $0.count }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    orientationChip("TODAS", active: orientationFilter == nil) {
+                        orientationFilter = nil
+                    }
+                    ForEach(Self.aspectOrder, id: \.self) { aspect in
+                        if let n = counts[aspect], n > 0 {
+                            orientationChip("\(aspect) · \(n)", active: orientationFilter == aspect) {
+                                orientationFilter = orientationFilter == aspect ? nil : aspect
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func orientationChip(_ label: String, active: Bool,
+                                 action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label).font(Cumbre.mono(10, .bold))
+                .foregroundStyle(active ? .white : Cumbre.terra)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 6)
+                    .fill(active ? Cumbre.terra : Cumbre.paper))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(Cumbre.terra.opacity(active ? 1 : 0.55),
+                            style: StrokeStyle(lineWidth: 1, dash: active ? [] : [4, 3])))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Vuelve al encuadre inicial de la escuela (todos los marcadores).
@@ -545,7 +608,7 @@ struct SchoolMapSection: View {
             proposedLon: KotlinDouble(double: nw.longitude), correctionReason: nil,
             targetBlockId: flow.corrTargetId, targetLineId: nil, sectorBlockId: nil,
             photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
-            geometry: nil, path: nil, direction: nil)
+            geometry: nil, path: nil, direction: nil, orientationsJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: school.id, req: req)) != nil
         cancelCorrection()
         if ok { afterSubmit() }
@@ -615,6 +678,8 @@ struct SchoolMapSection: View {
             guard b.type.uppercased() == "BLOCK", b.geometry.uppercased() == "LINE" else { return nil }
             if vm.hiddenTypes.contains("BLOCK") { return nil }
             if let sid = b.sectorBlockId, vm.collapsedSectors.contains(sid) { return nil }
+            // Filtro de orientación: los muros se ocultan igual que sus pines.
+            if let f = orientationFilter, blockOrientations[b.id] != f { return nil }
             let pts = parseWallPath(b.path)
             guard pts.count >= 2 else { return nil }
             return CumbrePolyline(id: "wall-\(b.id)", coordinates: pts, color: blockColor, width: 5)
@@ -641,6 +706,11 @@ struct SchoolMapSection: View {
             if vm.hiddenTypes.contains(b.type.uppercased()) { continue }
             // Piedra oculta si pertenece a un sector colapsado.
             if b.type.uppercased() == "BLOCK", let sid = b.sectorBlockId, vm.collapsedSectors.contains(sid) {
+                continue
+            }
+            // Filtro de orientación activo: solo piedras con ESE consenso.
+            if b.type.uppercased() == "BLOCK", let f = orientationFilter,
+               blockOrientations[b.id] != f {
                 continue
             }
             // Zona colapsada: muestra cuántas piedras tiene ocultas.

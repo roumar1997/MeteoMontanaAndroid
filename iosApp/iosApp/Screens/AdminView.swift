@@ -29,7 +29,7 @@ final class AdminViewModel: ObservableObject {
     func load() async {
         loading = true
         submissions = (try? await getSubs.invoke()) ?? []
-        contributions = (try? await getContribs.invoke()) ?? []
+        contributions = (try? await getContribs.invoke(status: nil)) ?? []
         loading = false
     }
 

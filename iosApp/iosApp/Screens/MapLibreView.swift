@@ -230,6 +230,7 @@ struct MapLibreView: UIViewRepresentable {
         var currentStyle: MapStyleKind = .topo
         var tapRecognizer: UITapGestureRecognizer?
         private var lastSignature: String = ""
+        var lastUserSignature = ""
         private var lastFittedIds: Set<String> = []
         private var didLoadFit = false
         // autoFitToMarkers: el fit inicial se hace en mapViewDidFinishLoadingMap
@@ -283,10 +284,35 @@ struct MapLibreView: UIViewRepresentable {
         }
 
         func applyMarkersIfChanged(to map: MLNMapView, markers: [CumbreMarker], force: Bool) {
-            let sig = markers.map { $0.drawSignature }.joined(separator: ";")
+            // Firma en DOS niveles: el marcador de usuario (brújula/GPS) cambia
+            // varias veces por segundo — si SOLO cambió él, se reemplaza esa
+            // anotación y punto. Antes se recreaban TODAS (~100) por cada giro
+            // de 15° → trabajo pesado sostenido en el hilo principal (watchdog).
+            let others = markers.filter { $0.id != "__USER__" }
+            let userMarker = markers.first { $0.id == "__USER__" }
+            let baseSig = others.map { $0.drawSignature }.joined(separator: ";")
                 + "||" + parent.polylines.map { $0.signature }.joined(separator: ";")
-            if !force && sig == lastSignature { return }
+            if !force && baseSig == lastSignature {
+                if let u = userMarker, u.drawSignature != lastUserSignature {
+                    lastUserSignature = u.drawSignature
+                    if let old = byAnnotation.first(where: { $0.value.id == "__USER__" }) {
+                        if let ann = map.annotations?.first(where: { ObjectIdentifier($0) == old.key }) {
+                            map.removeAnnotation(ann)
+                        }
+                        byAnnotation.removeValue(forKey: old.key)
+                    }
+                    let a = CumbreAnnotation()
+                    a.coordinate = u.coordinate
+                    a.title = u.title
+                    a.marker = u
+                    byAnnotation[ObjectIdentifier(a)] = u
+                    map.addAnnotation(a)
+                }
+                return
+            }
+            let sig = baseSig
             lastSignature = sig
+            lastUserSignature = userMarker?.drawSignature ?? ""
             if let existing = map.annotations, !existing.isEmpty { map.removeAnnotations(existing) }
             byAnnotation.removeAll()
             polylineStyle.removeAll()
@@ -375,12 +401,14 @@ struct MapLibreView: UIViewRepresentable {
             // favoritas): fitBounds podría disparar un zoom inestable y "pillar" el
             // mapa. En ese caso centramos con un zoom fijo cómodo.
             if markers.count == 1 {
-                map.setCenter(markers[0].coordinate, zoomLevel: 14, animated: true)
+                map.setCenter(markers[0].coordinate, zoomLevel: 13, animated: true)  // M1: menos cerca
                 return
             }
+            // M1: más padding (48→90) → el mapa de escuela abre más ABIERTO (se ven
+            // sectores/piedras y contexto), a la par que Android, en vez de tan pegado.
             map.setVisibleCoordinateBounds(
                 inflated(minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon),
-                edgePadding: UIEdgeInsets(top: 48, left: 48, bottom: 48, right: 48),
+                edgePadding: UIEdgeInsets(top: 90, left: 90, bottom: 90, right: 90),
                 animated: true)
         }
 
@@ -432,8 +460,11 @@ struct MapLibreView: UIViewRepresentable {
                     ne: CLLocationCoordinate2D(latitude: lats.max()!, longitude: lons.max()!))
                 mapView.setVisibleCoordinateBounds(bounds,
                     edgePadding: UIEdgeInsets(top: 90, left: 60, bottom: 90, right: 60), animated: false)
-                if mapView.zoomLevel > 16.5 {
-                    mapView.setCenter(mapView.centerCoordinate, zoomLevel: 16.5, animated: false)
+                // Tope de zoom inicial 15 (antes 16.5): el mapa de escuela abría
+                // demasiado cerca cuando los elementos estaban juntos; con 15 se ve
+                // más contexto, a la par que Android (M1).
+                if mapView.zoomLevel > 15.0 {
+                    mapView.setCenter(mapView.centerCoordinate, zoomLevel: 15.0, animated: false)
                 }
             }
             // autoFitToMarkers: makeUIView llama con force=true que salta el fit

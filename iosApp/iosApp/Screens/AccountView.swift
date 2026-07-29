@@ -108,6 +108,14 @@ final class AccountViewModel: ObservableObject {
         authBridge.signOut {}
     }
 
+    /** N6: cambiar la fecha de una entrada y recargar. */
+    func changeDate(_ id: String, _ newDate: String) async {
+        _ = await reporting("No se pudo cambiar la fecha", {
+            try await AppDependencies.shared.container.updateJournalDate.invoke(id: id, date: newDate)
+        })
+        await load()
+    }
+
     func deleteBlock(_ id: String) {
         entries.removeAll { $0.id == id }   // optimista
         // Refresca la caché ya sin el bloque → offline no reaparece al reabrir.
@@ -141,7 +149,7 @@ final class AccountViewModel: ObservableObject {
             // marcar el acceso al panel con un aviso.
             if p.isAdmin {
                 let subs = (try? await getPendingSubmissions.invoke())?.count ?? 0
-                let contribs = (try? await getPendingContributions.invoke())?.count ?? 0
+                let contribs = (try? await getPendingContributions.invoke(status: nil))?.count ?? 0
                 pendingReview = subs + contribs
             } else {
                 pendingReview = 0
@@ -478,6 +486,10 @@ private struct AccountJournalStatsNav: View {
                         cell("›", "MIS PUBLICACIONES")
                     }.buttonStyle(.plain)
                 }
+                // C4: MIS ESTADISTICAS (piramide, racha, progresion).
+                NavigationLink(destination: StatsView()) {
+                    cell("▃▅▇", "ESTADÍSTICAS")
+                }.buttonStyle(.plain)
             }
         }
     }
@@ -520,9 +532,23 @@ private struct AccountBlocksList: View {
                             hintKey: "journal_tap_via",
                             text: "Toca una vía para ir directamente a su piedra en la escuela."
                         )
-                        ForEach(entries, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id]) { vm.deleteBlock(e.id) }
-                            Divider().overlay(Cumbre.rule)
+                        // N6: agrupado por MES + fecha editable (aqui es donde
+                        // Rodrigo lo buscaba — la celda BLOQUES del perfil).
+                        let byMonth = Dictionary(grouping: entries.sorted { $0.date > $1.date },
+                                                 by: { String($0.date.prefix(7)) })
+                        ForEach(byMonth.keys.sorted(by: >), id: \.self) { month in
+                            Text(JournalView.monthHeader(month) + " · \(byMonth[month]!.count)")
+                                .font(Cumbre.mono(10, .bold)).tracking(1)
+                                .foregroundStyle(Cumbre.terra)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 16).padding(.vertical, 8)
+                            ForEach(byMonth[month]!, id: \.id) { e in
+                                JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id],
+                                           onChangeDate: { newDate in
+                                               Task { await vm.changeDate(e.id, newDate) }
+                                           }) { vm.deleteBlock(e.id) }
+                                Divider().overlay(Cumbre.rule)
+                            }
                         }
                     }
                 }

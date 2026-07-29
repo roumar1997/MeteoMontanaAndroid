@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,6 +109,31 @@ fun BlockDetailDialog(
     }
     val context = LocalContext.current
     val shareScope = rememberCoroutineScope()
+    // Votacion comunitaria (C2/C5): orientacion + sol/sombra + grado por consenso.
+    // Solo en piedras/sectores reales (no en propuestas pendientes).
+    val communityVm: CommunityVoteViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val orientationSummaries by communityVm.orientation.collectAsStateWithLifecycle()
+    val sunByPhoto by communityVm.sun.collectAsStateWithLifecycle()
+    val gradeSummary by communityVm.grade.collectAsStateWithLifecycle()
+    val communityError by communityVm.error.collectAsStateWithLifecycle()
+    var orientationTarget by remember { mutableStateOf<Int?>(null) }
+    var orientationOpen by remember { mutableStateOf(false) }
+    var gradeVoteLine by remember { mutableStateOf<com.meteomontana.android.domain.model.BlockLine?>(null) }
+    androidx.compose.runtime.LaunchedEffect(block.id, isProposal) {
+        if (!isProposal) {
+            communityVm.clearForBlock()
+            communityVm.loadOrientation(block.id)
+            communityVm.loadSun(block.id, null)
+        }
+    }
+    androidx.compose.runtime.LaunchedEffect(communityError) {
+        communityError?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            communityVm.consumeError()
+        }
+    }
+    fun orientationOf(photoIndex: Int?) =
+        orientationSummaries.firstOrNull { it.photoIndex == photoIndex }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }
     // "OPCIONES" plegado: la ficha ya tiene muchos botones; solo CÓMO LLEGAR
@@ -170,6 +196,27 @@ fun BlockDetailDialog(
                 }
             }
 
+            // C2: orientacion votable de la piedra/sector entero + tira de sol.
+            if (!isProposal) {
+                Spacer(Modifier.height(Spacing.sm))
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    VotableChip(
+                        text = orientationOf(null)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTACION",
+                    ) { orientationTarget = null; orientationOpen = true }
+                    val votesTotal = orientationOf(null)?.votes?.values?.sum() ?: 0
+                    if (votesTotal > 0) Text(
+                        votesTotal.toString() + " votos",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                sunByPhoto[null]?.takeIf { sh -> sh.hours.isNotEmpty() }?.let { sun ->
+                    Spacer(Modifier.height(Spacing.sm))
+                    SunStrip(sun)
+                }
+            }
+
             // Sector actual de la piedra (si lo tiene)
             if (block.type == "BLOCK" && block.sectorBlockId != null) {
                 Spacer(Modifier.height(Spacing.sm))
@@ -229,11 +276,23 @@ fun BlockDetailDialog(
                     if (!facePhoto.isNullOrBlank()) {
                         Spacer(Modifier.height(Spacing.sm))
                         if (orderedFaces.size > 1) {
-                            Text(
-                                "FOTO ${faceIdx + 1}",
-                                style = EyebrowTextStyle,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            val originalIdx = block.facesOrDerived().indexOf(face).takeIf { i -> i >= 0 } ?: faceIdx
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Text(
+                                    "FOTO ${faceIdx + 1}",
+                                    style = EyebrowTextStyle,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                // C2: cada cara de un muro vota su propia orientacion.
+                                if (!isProposal) VotableChip(
+                                    text = orientationOf(originalIdx)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTAR ESTA CARA",
+                                ) {
+                                    orientationTarget = originalIdx
+                                    orientationOpen = true
+                                    communityVm.loadSun(block.id, originalIdx)
+                                }
+                            }
                             Spacer(Modifier.height(Spacing.xs))
                         }
                         TopoPhotoCanvas(
@@ -272,7 +331,13 @@ fun BlockDetailDialog(
                                     )
                                 }
                                 if (lineGrade != null) {
-                                    Text(
+                                    // C5: el grado es VOTABLE (chip discontinuo terra).
+                                    if (!isProposal && line.id.isNotBlank()) {
+                                        VotableChip(text = lineGrade) {
+                                            gradeVoteLine = line
+                                            communityVm.loadGrade(line.id)
+                                        }
+                                    } else Text(
                                         lineGrade,
                                         style = MaterialTheme.typography.labelMedium,
                                         color = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
@@ -305,7 +370,20 @@ fun BlockDetailDialog(
                                             .clickable {
                                                 val sectorName = availableSectors
                                                     ?.firstOrNull { it.id == block.sectorBlockId }?.name
-                                                shareVia(shareScope, context, block, line, schoolName, tickedLines.toSet(), projectLines.toSet(), sectorName)
+                                                shareScope.launch {
+                                                // N10: los datos comunitarios se consultan AL
+                                                // compartir (best-effort, ~100ms) — el preload
+                                                // podia no haber llegado.
+                                                val badge = orientationOf(null)?.consensus
+                                                    ?: communityVm.fetchOrientationConsensus(block.id)
+                                                val setterRef = communityVm.fetchSetterGradeRef(line.id)
+                                                shareVia(
+                                                    shareScope, context, block, line, schoolName,
+                                                    tickedLines.toSet(), projectLines.toSet(), sectorName,
+                                                    orientationBadge = badge,
+                                                    setterGradeRef = setterRef
+                                                )
+                                            }
                                             }
                                             .padding(5.dp)
                                             .size(22.dp)
@@ -445,12 +523,66 @@ fun BlockDetailDialog(
                 onAddLines = onAddLines, availableSectors = availableSectors,
                 onOpenSectorPicker = if (onAssignSector != null) ({ showSectorPicker = true }) else null,
                 onEdit = onEdit,
-                onRequestDelete = if (onDelete != null) ({ showDeleteConfirm = true }) else null
+                onRequestDelete = if (onDelete != null) ({ showDeleteConfirm = true }) else null,
+                onShareBlock = {
+                    // N10: comparte la piedra entera usando su primera via como ancla
+                    // (la tarjeta ya lista TODAS las vias de la cara).
+                    block.lines.firstOrNull()?.let { first ->
+                        val blockSector = availableSectors
+                            ?.firstOrNull { z -> z.id == block.sectorBlockId }?.name
+                        shareScope.launch {
+                            val badge = orientationOf(null)?.consensus
+                                ?: communityVm.fetchOrientationConsensus(block.id)
+                            shareVia(shareScope, context, block, first, schoolName,
+                                tickedLines.toSet(), projectLines.toSet(), blockSector,
+                                orientationBadge = badge)
+                        }
+                    }
+                },
             )
         }
     }
 
     // Selector de via a corregir
+    // ── C2: diálogo de votar orientación ──────────────────────────────────
+    if (orientationOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { orientationOpen = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { orientationOpen = false }) {
+                    Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            text = {
+                OrientationVoteContent(
+                    summary = orientationOf(orientationTarget)
+                ) { aspect ->
+                    communityVm.voteOrientation(block.id, orientationTarget, aspect)
+                }
+            }
+        )
+    }
+
+    // ── C5: diálogo de votar grado ────────────────────────────────────────
+    gradeVoteLine?.let { gl ->
+        val canVote = tickedLines.contains(gl.id) || projectLines.contains(gl.id)
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { gradeVoteLine = null },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { gradeVoteLine = null }) {
+                    Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            text = {
+                GradeVoteContent(summary = gradeSummary, canVote = canVote) { g ->
+                    communityVm.voteGrade(gl.id, g)
+                }
+            }
+        )
+    }
+
     if (showLinePicker && onEditLine != null) {
         BlockLinePickerDialog(block,
             onPick = { showLinePicker = false; onEditLine(it) },

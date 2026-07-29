@@ -7,6 +7,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 
@@ -25,4 +26,10 @@ class KtorJournalApi(private val client: HttpClient) {
         client.get("users/$uid/journal").body()
 
     suspend fun deleteJournalSession(id: String) { client.delete("journal/$id") }
+
+    /** C3: cambiar la fecha de una entrada ("la hice el 12 de abril"). */
+    suspend fun updateJournalDate(id: String, date: String): JournalSessionDto =
+        client.patch("journal/$id/date") {
+            setBody(mapOf("date" to date))
+        }.body()
 }

@@ -36,8 +36,27 @@ data class BoulderBloqueForm(
 data class BoulderFaceForm(
     val id: String = UUID.randomUUID().toString(),
     val photoUri: Uri? = null,
-    val bloques: List<BoulderBloqueForm> = listOf(BoulderBloqueForm())
+    val bloques: List<BoulderBloqueForm> = listOf(BoulderBloqueForm()),
+    /** F: orientación de ESTA cara según el autor (opcional; su primer voto). */
+    val orientation: String? = null
 )
+
+/** Rumbos válidos de orientación (= AspectChip / OrientationFilter). */
+val BOULDER_ASPECTS = listOf("N", "NE", "E", "SE", "S", "SO", "O", "NO")
+
+/**
+ * F: {"block":"NE","faces":{"0":"N"}} — la orientación que marca el autor al
+ * proponer se convierte en su PRIMER voto al aprobarse (la comunidad puede
+ * seguir votando después). null si no marcó nada.
+ */
+fun buildOrientationsJson(blockOrientation: String?, faces: List<BoulderFaceForm>): String? {
+    val root = org.json.JSONObject()
+    blockOrientation?.let { root.put("block", it) }
+    val facesObj = org.json.JSONObject()
+    faces.forEachIndexed { idx, f -> f.orientation?.let { facesObj.put(idx.toString(), it) } }
+    if (facesObj.length() > 0) root.put("faces", facesObj)
+    return if (root.length() == 0) null else root.toString()
+}
 
 /** Serializa la polilínea del muro a JSON "[[lat,lon],...]" (formato de `Block.path`). */
 fun List<Pair<Double, Double>>.toPathJson(): String {

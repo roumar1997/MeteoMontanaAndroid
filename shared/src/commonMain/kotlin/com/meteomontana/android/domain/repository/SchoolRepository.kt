@@ -1,5 +1,6 @@
 package com.meteomontana.android.domain.repository
 
+import com.meteomontana.android.domain.model.LineSearchHit
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.SchoolCatalog
 
@@ -23,4 +24,7 @@ interface SchoolRepository {
     suspend fun getSchoolById(id: String): School
 
     suspend fun searchSchools(query: String, limit: Int = 10): List<School>
+
+    /** Buscador GLOBAL de vías/bloques (autocompletado "vía/bloque"). */
+    suspend fun searchLines(query: String): List<LineSearchHit>
 }

@@ -26,11 +26,35 @@ final class JournalViewModel: ObservableObject {
         self.deleteEntry = deleteEntry
     }
 
+    /** C3: agrupacion por mes PRECOMPUTADA (el body solo la lee). */
+    @Published var entriesByMonth: [String: [JournalSession]] = [:]
+    @Published var monthKeys: [String] = []
+    /// G: filtro por grado activo (nil = todos) + grados presentes ordenados.
+    @Published var gradeFilter: String? = nil
+    @Published var availableGrades: [String] = []
+
     func load() async {
         loading = true
         entries = (try? await getMyJournal.invoke()) ?? []
         stats = try? await getMyStats.invoke()
+        let calc = JournalStatsCalculator.shared
+        availableGrades = Set(entries.compactMap {
+            $0.grade?.trimmingCharacters(in: .whitespaces).lowercased()
+        }.filter { !$0.isEmpty })
+            .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
+        regroup()
         loading = false
+    }
+
+    /// Reagrupa por mes aplicando el filtro de grado (PRECOMPUTADO: nada de
+    /// agrupar en el body — lección del watchdog).
+    func regroup() {
+        let visible = gradeFilter.map { g in
+            entries.filter { $0.grade?.lowercased() == g }
+        } ?? entries
+        entriesByMonth = Dictionary(grouping: visible.sorted { $0.date > $1.date },
+                                    by: { String($0.date.prefix(7)) })
+        monthKeys = entriesByMonth.keys.sorted(by: >)
     }
 
     func add(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String, discipline: String) async {
@@ -49,6 +73,15 @@ final class JournalViewModel: ObservableObject {
         )
         _ = try? await createEntry.invoke(req: req)
         await load()
+    }
+
+    /** C3: cambiar la fecha de una entrada y recargar. */
+    func changeDate(_ id: String, _ newDate: String) async {
+        if await reporting("No se pudo cambiar la fecha", {
+            try await AppDependencies.shared.container.updateJournalDate.invoke(id: id, date: newDate)
+        }) != nil {
+            await load()
+        }
     }
 
     func delete(_ id: String) {
@@ -80,9 +113,23 @@ struct JournalView: View {
                             Text("Aún no has registrado bloques.")
                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(32)
                         } else {
-                            ForEach(vm.entries, id: \.id) { e in
-                                JournalRow(entry: e, schoolId: e.schoolId) { vm.delete(e.id) }
-                                Divider().overlay(Cumbre.rule)
+                            // C3: agrupado por MES. PRECOMPUTADO en el VM — hacerlo
+                            // en el body relanzaba el calculo en cada frame (watchdog
+                            // 0x8BADF00D del 29-jul).
+                            let byMonth = vm.entriesByMonth
+                            ForEach(vm.monthKeys, id: \.self) { month in
+                                Text(JournalView.monthHeader(month) + " · \(byMonth[month]!.count)")
+                                    .font(Cumbre.mono(10, .bold)).tracking(1)
+                                    .foregroundStyle(Cumbre.terra)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16).padding(.vertical, 8)
+                                ForEach(byMonth[month]!, id: \.id) { e in
+                                    JournalRow(entry: e, schoolId: e.schoolId,
+                                               onChangeDate: { newDate in
+                                                   Task { await vm.changeDate(e.id, newDate) }
+                                               }) { vm.delete(e.id) }
+                                    Divider().overlay(Cumbre.rule)
+                                }
                             }
                         }
                     }
@@ -127,8 +174,12 @@ struct JournalRow: View {
     var schoolId: String? = nil
     /// nº de piedra + sector resueltos en vivo del catálogo (no se guardan).
     var info: ViaCatalogInfo? = nil
+    /// C3: cambiar la fecha de la entrada (nil = no editable, diario ajeno).
+    var onChangeDate: ((String) -> Void)? = nil
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
     var onDelete: (() -> Void)? = nil
+    @State private var showDatePicker = false
+    @State private var pickedDate = Date()
 
     /// "Escuela · Piedra N · Sector" — lo que se pueda resolver del catálogo.
     private var subtitle: String {
@@ -175,7 +226,32 @@ struct JournalRow: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
-                Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                if onChangeDate != nil {
+                    Button { showDatePicker = true } label: {
+                        Text(String(entry.date.prefix(10))).font(Cumbre.mono(10, .bold))
+                            .foregroundStyle(Cumbre.terra)
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showDatePicker) {
+                        VStack(spacing: 12) {
+                            Text("CAMBIAR FECHA").font(Cumbre.mono(11, .bold)).tracking(1)
+                                .foregroundStyle(Cumbre.terra)
+                            DatePicker("", selection: $pickedDate, in: ...Date(),
+                                       displayedComponents: .date)
+                                .datePickerStyle(.graphical)
+                            Button("GUARDAR") {
+                                let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+                                onChangeDate?(df.string(from: pickedDate))
+                                showDatePicker = false
+                            }
+                            .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                        .padding(16)
+                        .presentationDetents([.medium])
+                    }
+                } else {
+                    Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                }
                 if let onDelete {
                     Button(action: onDelete) {
                         Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad)
@@ -699,11 +775,48 @@ struct JournalBlocksListView: View {
     var viaInfo: [String: ViaCatalogInfo] = [:]
     /// nil = todos · false = solo bloques (BOULDER) · true = solo vías (ROUTE).
     var routeOnly: Bool? = nil
-    private var shown: [JournalSession] {
+    /// G: filtro por grado (chips con la paleta de topos).
+    @State private var gradeFilter: String? = nil
+    private var byDiscipline: [JournalSession] {
         guard let r = routeOnly else { return entries }
         return entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
     }
+    private var shown: [JournalSession] {
+        guard let g = gradeFilter else { return byDiscipline }
+        return byDiscipline.filter { $0.grade?.lowercased() == g }
+    }
+    private var availableGrades: [String] {
+        let calc = JournalStatsCalculator.shared
+        return Set(byDiscipline.compactMap {
+            $0.grade?.trimmingCharacters(in: .whitespaces).lowercased()
+        }.filter { !$0.isEmpty })
+            .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
+    }
     var body: some View {
+        VStack(spacing: 0) {
+        if availableGrades.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(availableGrades, id: \.self) { g in
+                        let st = GradeColor.style(g)
+                        let accent = st.dark ? Cumbre.ink : st.stroke
+                        let active = gradeFilter == g
+                        Button { gradeFilter = active ? nil : g } label: {
+                            Text(g).font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(active ? .white : accent)
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(RoundedRectangle(cornerRadius: 6)
+                                    .fill(active ? accent : Cumbre.paper))
+                                .overlay(RoundedRectangle(cornerRadius: 6)
+                                    .stroke(accent, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .padding(.vertical, 8)
+        }
         Group {
             if shown.isEmpty {
                 Text(routeOnly == true ? "Sin vías registradas." : "Sin bloques registrados.")
@@ -720,6 +833,7 @@ struct JournalBlocksListView: View {
                 }
             }
         }
+        }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -735,6 +849,9 @@ struct JournalStatsNav: View {
     /// Si se indica, "PROYECTOS" navega a los proyectos de ESE usuario (perfil
     /// público); si es nil, a los proyectos propios.
     var projectsUid: String? = nil
+    /// H: en el perfil AJENO se añaden las celdas ESTADÍSTICAS y
+    /// PUBLICACIONES (en el propio ya viven en su pantalla de cuenta).
+    var showStatsAndPosts: Bool = false
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
@@ -757,6 +874,16 @@ struct JournalStatsNav: View {
             NavigationLink(destination: ProjectsView(uid: projectsUid)) {
                 cell("\(stats.projectCount)", "PROYECTOS")
             }.buttonStyle(.plain)
+            if showStatsAndPosts {
+                HStack(spacing: 8) {
+                    NavigationLink(destination: StatsView(uid: projectsUid)) {
+                        cell("▸", "ESTADÍSTICAS")
+                    }.buttonStyle(.plain)
+                    NavigationLink(destination: MyPostsView(uid: projectsUid)) {
+                        cell("▸", "PUBLICACIONES")
+                    }.buttonStyle(.plain)
+                }
+            }
         }
     }
     private func cell(_ v: String, _ l: String) -> some View {
@@ -772,3 +899,14 @@ struct JournalStatsNav: View {
 }
 
 private extension String { var nilIfBlank: String? { trimmingCharacters(in: .whitespaces).isEmpty ? nil : self } }
+
+
+extension JournalView {
+    static func monthHeader(_ yyyyMm: String) -> String {
+        let names = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
+                     "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]
+        let parts = yyyyMm.split(separator: "-")
+        guard parts.count == 2, let m = Int(parts[1]), m >= 1, m <= 12 else { return yyyyMm }
+        return names[m - 1] + " " + parts[0]
+    }
+}

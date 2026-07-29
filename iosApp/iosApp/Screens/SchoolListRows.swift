@@ -102,9 +102,14 @@ struct RainSummaryTag: View {
 }
 
 /// "2026-06-17" → "L"/"M"/"X"/"J"/"V"/"S"/"D".
+private let weekdayFormatter: DateFormatter = {
+    let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); return f
+}()
+
 func weekdayLetter(_ iso: String) -> String {
-    let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
-    guard let d = f.date(from: iso) else { return String(iso.suffix(2)) }
+    // Formatter ESTATICO: crear uno por celda (~ms) × cientos de celdas
+    // atascaba el hilo principal (hallazgo P4 del barrido anti-watchdog).
+    guard let d = weekdayFormatter.date(from: iso) else { return String(iso.suffix(2)) }
     let weekday = Calendar(identifier: .gregorian).component(.weekday, from: d) // 1=domingo
     let labels = ["D", "L", "M", "X", "J", "V", "S"]
     return labels[weekday - 1]

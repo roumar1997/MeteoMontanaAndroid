@@ -49,12 +49,17 @@ func feedKindLabel(_ kind: String, _ discipline: String?) -> String {
 }
 
 /// "hace 2 h" a partir de un createdAt "yyyy-MM-ddTHH:mm:ss" (hora del servidor).
-func feedRelativeTime(_ createdAt: String) -> String {
+private let feedTimeFormatter: DateFormatter = {
     let df = DateFormatter()
     df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
     df.locale = Locale(identifier: "en_US_POSIX")
     // La hora del servidor es UTC (interpretarla como local sumaba 2h en España).
     df.timeZone = TimeZone(identifier: "UTC")
+    return df
+}()
+
+func feedRelativeTime(_ createdAt: String) -> String {
+    let df = feedTimeFormatter
     guard let date = df.date(from: String(createdAt.prefix(19))) else { return "" }
     let minutes = max(Int(Date().timeIntervalSince(date) / 60), 0)
     if minutes < 1 { return "ahora" }
@@ -197,10 +202,12 @@ final class FeedViewModel: ObservableObject {
                     : try await container.unlikeFeedPost.invoke(postId: post.id)
                 updatePost(post.id) { copyPost($0, likedByMe: liked, likeCount: count.int64Value) }
             } catch {
-                // Revertir el optimismo si falló.
+                // Revertir el optimismo si falló + avisar (antes fallaba en silencio).
                 updatePost(post.id) {
                     copyPost($0, likedByMe: post.likedByMe, likeCount: post.likeCount)
                 }
+                ErrorPresenter.shared.show(
+                    ErrorPresenter.friendly(error, fallback: "No se pudo registrar el me gusta"))
             }
         }
     }
@@ -210,7 +217,10 @@ final class FeedViewModel: ObservableObject {
             do {
                 try await container.deleteFeedPost.invoke(postId: post.id)
                 posts.removeAll { $0.id == post.id }
-            } catch {}
+            } catch {
+                ErrorPresenter.shared.show(
+                    ErrorPresenter.friendly(error, fallback: "No se pudo borrar la publicación"))
+            }
         }
     }
 
@@ -225,9 +235,9 @@ final class FeedViewModel: ObservableObject {
     }
 
     func addComment(_ postId: Int64, _ text: String, _ parentId: String?) async -> FeedComment? {
-        guard let created = try? await container.addFeedComment.invoke(
-            postId: postId, text: text, parentId: parentId)
-        else { return nil }
+        guard let created = await reporting("No se pudo enviar el comentario", {
+            try await container.addFeedComment.invoke(postId: postId, text: text, parentId: parentId)
+        }) else { return nil }
         updatePost(postId) { copyPost($0, commentCount: $0.commentCount + 1) }
         return created
     }

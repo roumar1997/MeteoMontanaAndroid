@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.users
 import com.meteomontana.android.util.toUserMessage
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,7 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -143,17 +143,21 @@ fun PublicProfileScreen(
     onOpenSchools: (String) -> Unit = {},
     onOpenSchoolEntries: (uid: String, schoolName: String) -> Unit = { _, _ -> },
     onOpenProjects: (String) -> Unit = {},
+    /** G: estadísticas completas del usuario (privacidad: la impone el backend). */
+    onOpenStats: (String) -> Unit = {},
+    /** H: sus publicaciones en pantalla propia (como «Mis publicaciones»). */
+    onOpenPosts: (String) -> Unit = {},
     /** Abrir OTRO perfil (autor de un comentario del feed). */
     onOpenUserProfile: (String) -> Unit = {},
     /** Abrir la piedra de un post del feed (pantalla completa). */
     onOpenFeedSchool: (schoolId: String, lineId: String?, lineName: String?, blockId: String?) -> Unit = { _, _, _, _ -> },
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // Moderación: denunciar / bloquear a este usuario (menú ⋯).
     val moderation: com.meteomontana.android.ui.components.ModerationViewModel =
         hiltViewModel()
-    val blocked by moderation.blocked.collectAsState()
+    val blocked by moderation.blocked.collectAsStateWithLifecycle()
     var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var showReport by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { moderation.loadBlocked() }
@@ -247,6 +251,8 @@ fun PublicProfileScreen(
                 onOpenSchools = { onOpenSchools(s.profile.uid) },
                 onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) },
                 onOpenProjects = { onOpenProjects(s.profile.uid) },
+                onOpenStats = { onOpenStats(s.profile.uid) },
+                onOpenPosts = { onOpenPosts(s.profile.uid) },
                 onOpenUserProfile = onOpenUserProfile,
                 onOpenFeedSchool = onOpenFeedSchool
             )
@@ -280,6 +286,8 @@ private fun Body(
     onOpenSchools: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenProjects: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
+    onOpenPosts: () -> Unit = {},
     onOpenUserProfile: (String) -> Unit = {},
     onOpenFeedSchool: (String, String?, String?, String?) -> Unit = { _, _, _, _ -> }
 ) {
@@ -297,7 +305,7 @@ private fun Body(
         Column(modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally) {
             if (p.photoUrl != null) {
-                AsyncImage(model = p.photoUrl, contentDescription = null,
+                AsyncImage(model = p.photoUrl, contentDescription = stringResource(R.string.a11y_zoom_photo),
                     modifier = Modifier.size(96.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { zoomPhoto = p.photoUrl })
@@ -372,29 +380,12 @@ private fun Body(
                 onRoutesClick = onOpenRoutes,
                 onSchoolsClick = onOpenSchools,
                 onMaxClick = onOpenMaxGrade,
-                onProjectsClick = onOpenProjects
+                onProjectsClick = onOpenProjects,
+                onStatsClick = onOpenStats,
+                onPostsClick = onOpenPosts
             )
-            if (s.stats.bySchool.isNotEmpty()) {
-                Spacer(Modifier.height(16.dp))
-                Text(stringResource(R.string.profile_schools),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 4.dp))
-                Spacer(Modifier.height(8.dp))
-                s.stats.bySchool.forEach { school ->
-                    SchoolStatRow(school, onClick = { onOpenSchoolEntries(school.schoolName) })
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                }
-            }
-        }
-        if (!locked) {
-            // Publicaciones del usuario en el feed Comunidad (scope=user).
-            // El backend devuelve vacío si es privado y no le sigues.
-            Spacer(Modifier.height(16.dp))
-            com.meteomontana.android.ui.screens.community.UserFeedSection(
-                onOpenUser = onOpenUserProfile,
-                onOpenSchool = onOpenFeedSchool
-            )
+            // H: la lista de ESCUELAS ya no va inline (la celda ESCUELAS de
+            // arriba abre su pantalla) — igual que en el perfil propio.
         }
         if (locked) {
             Spacer(Modifier.height(32.dp))
@@ -418,7 +409,9 @@ private fun ActivityStatsRow(
     onRoutesClick: () -> Unit,
     onSchoolsClick: () -> Unit,
     onMaxClick: () -> Unit,
-    onProjectsClick: () -> Unit
+    onProjectsClick: () -> Unit,
+    onStatsClick: () -> Unit,
+    onPostsClick: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -442,6 +435,14 @@ private fun ActivityStatsRow(
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatBox(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f), onProjectsClick)
+        }
+        // H: ESTADÍSTICAS y PUBLICACIONES como CELDAS (igual que el resto del
+        // perfil) — antes eran texto rojo con flecha y un feed inline enorme.
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatBox("ESTADÍSTICAS", "▸", Modifier.weight(1f), onStatsClick)
+            StatBox(stringResource(R.string.feed_posts_section).uppercase(), "▸",
+                Modifier.weight(1f), onPostsClick)
         }
     }
 }

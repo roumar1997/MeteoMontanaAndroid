@@ -191,11 +191,15 @@ internal data class PendingTick(
 internal fun FeedPublishSheet(
     lineLabel: String,
     wasProject: Boolean,
-    onPublish: (always: Boolean, caption: String?, photoUri: Uri?) -> Unit,
-    onDiaryOnly: () -> Unit,
+    onPublish: (always: Boolean, caption: String?, photoUri: Uri?, sessionDate: String?) -> Unit,
+    onDiaryOnly: (sessionDate: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var always by remember { mutableStateOf(false) }
+    // C3: CUANDO la encadenaste. null = hoy (el 90% de los casos, cero friccion).
+    // La fecha se guarda en el diario SIEMPRE, publiques o no.
+    var sessionDate by remember { mutableStateOf<String?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
     // Descripción opcional del autor (viaja como "caption", max 500).
     var caption by remember { mutableStateOf("") }
     // Foto de celebración: cámara del sistema (TakePicture sobre un URI del
@@ -252,7 +256,30 @@ internal fun FeedPublishSheet(
             )
         }
     }
+    if (showDatePicker) {
+        val state = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = System.currentTimeMillis(),
+            selectableDates = object : androidx.compose.material3.SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) =
+                    utcTimeMillis <= System.currentTimeMillis()
+            })
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    state.selectedDateMillis?.let { ms ->
+                        sessionDate = java.time.Instant.ofEpochMilli(ms)
+                            .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            }
+        ) { androidx.compose.material3.DatePicker(state = state) }
+    }
+    // N5: abrir ENTERA (el boton 'Solo en mi diario' quedaba oculto).
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
     androidx.compose.material3.ModalBottomSheet(
+        sheetState = sheetState,
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.background
     ) {
@@ -284,6 +311,25 @@ internal fun FeedPublishSheet(
             )
             Spacer(Modifier.height(Spacing.md))
             // Autocompletado de @menciones al escribir la descripción.
+            // ── C3: ¿CUANDO LA ENCADENASTE? (Hoy / Ayer / Otra fecha) ────────
+            Text(
+                "CUANDO LA ENCADENASTE",
+                style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val today = java.time.LocalDate.now()
+                DateChip("Hoy", selected = sessionDate == null) { sessionDate = null }
+                DateChip("Ayer", selected = sessionDate == today.minusDays(1).toString()) {
+                    sessionDate = today.minusDays(1).toString()
+                }
+                val custom = sessionDate?.takeIf { it != today.minusDays(1).toString() }
+                DateChip(custom?.let { formatShortDate(it) } ?: "Otra fecha…",
+                    selected = custom != null) { showDatePicker = true }
+            }
+            Spacer(Modifier.height(12.dp))
+
             com.meteomontana.android.ui.components.MentionSuggestions(
                 text = caption, onReplace = { if (it.length <= 500) caption = it })
             // Descripción opcional del post.
@@ -428,7 +474,7 @@ internal fun FeedPublishSheet(
                 Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
                     .background(Terra)
-                    .clickable { onPublish(always, caption.trim().ifBlank { null }, photoUri) }
+                    .clickable { onPublish(always, caption.trim().ifBlank { null }, photoUri, sessionDate) }
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -443,7 +489,7 @@ internal fun FeedPublishSheet(
             Box(
                 Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
-                    .clickable(onClick = onDiaryOnly)
+                    .clickable(onClick = { onDiaryOnly(sessionDate) })
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -456,3 +502,27 @@ internal fun FeedPublishSheet(
         }
     }
 }
+
+
+/** Chip de fecha (Hoy/Ayer/Otra) — seleccionado = fondo Terra. */
+@androidx.compose.runtime.Composable
+private fun DateChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) Terra else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (selected) Terra else MaterialTheme.colorScheme.outlineVariant,
+                RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium,
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+internal fun formatShortDate(iso: String): String = runCatching {
+    val d = java.time.LocalDate.parse(iso)
+    "%d %s".format(d.dayOfMonth, listOf("ENE","FEB","MAR","ABR","MAY","JUN",
+        "JUL","AGO","SEP","OCT","NOV","DIC")[d.monthValue - 1])
+}.getOrDefault(iso)

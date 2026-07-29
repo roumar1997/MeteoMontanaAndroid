@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
 import android.net.Uri
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -44,8 +45,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,23 +76,30 @@ import kotlinx.coroutines.launch
 fun CreateMeetupScreen(
     onBack: () -> Unit = {},
     onCreated: (meetupId: String) -> Unit = {},
+    onEditProfile: () -> Unit = {},
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
-    val createError by viewModel.createError.collectAsState()
-    val uploadingPhoto by viewModel.uploadingPhoto.collectAsState()
-    val dayScores by viewModel.dayScores.collectAsState()
+    val createError by viewModel.createError.collectAsStateWithLifecycle()
+    val genderGate by viewModel.genderGate.collectAsStateWithLifecycle()
+    if (genderGate) {
+        GenderGateDialog(onEditProfile = onEditProfile, onDismiss = { viewModel.clearGenderGate() })
+    }
+    val uploadingPhoto by viewModel.uploadingPhoto.collectAsStateWithLifecycle()
+    val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
 
-    var name by remember { mutableStateOf("") }
-    var schoolId by remember { mutableStateOf("") }
-    var schoolName by remember { mutableStateOf("") }
-    var privacy by remember { mutableStateOf("OPEN") }
-    var discipline by remember { mutableStateOf<String?>(null) }
-    var limitText by remember { mutableStateOf("") }
+    // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
+    // (MIUI) o a un giro de pantalla — no se pierde lo escrito/elegido.
+    var name by rememberSaveable { mutableStateOf("") }
+    var schoolId by rememberSaveable { mutableStateOf("") }
+    var schoolName by rememberSaveable { mutableStateOf("") }
+    var privacy by rememberSaveable { mutableStateOf("OPEN") }
+    var discipline by rememberSaveable { mutableStateOf<String?>(null) }
+    var limitText by rememberSaveable { mutableStateOf("") }
     val selectedDays = remember { mutableStateOf<Set<String>>(emptySet()) }
     var submitting by remember { mutableStateOf(false) }
     var photoUrl by remember { mutableStateOf<String?>(null) }
     var showSchoolPicker by remember { mutableStateOf(false) }
-    val schoolResults by viewModel.schoolResults.collectAsState()
+    val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
 
     // Cargar scores de los días seleccionados cuando hay escuela
     LaunchedEffect(schoolId, selectedDays.value) {
@@ -105,11 +113,8 @@ fun CreateMeetupScreen(
     val scope = rememberCoroutineScope()
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
-        scope.launch {
-            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@launch
-            val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-            viewModel.uploadMeetupPhoto(bytes, mime) { url -> photoUrl = url }
-        }
+        // Pasamos el URI: el VM lee con readImageCompressed (hornea la rotación EXIF).
+        viewModel.uploadMeetupPhoto(uri.toString()) { url -> photoUrl = url }
     }
 
     // Para el selector de escuela, reusamos búsqueda simple (cadena schoolId manual por ahora)

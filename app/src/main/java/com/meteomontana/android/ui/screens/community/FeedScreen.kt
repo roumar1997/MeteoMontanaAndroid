@@ -2,6 +2,7 @@
 package com.meteomontana.android.ui.screens.community
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -46,7 +47,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,12 +85,21 @@ fun FeedScreen(
     // dibuja en su propia ventana y no empuja el campo por encima del teclado
     // (el texto que escribías quedaba tapado). El detalle sí lo hace bien.
     onOpenPost: (postId: String) -> Unit,
+    // true cuando la pestaña Feed está seleccionada Y sin overlay encima. Con las
+    // tabs keep-alive, cambiar de pestaña NO dispara ON_RESUME ni recompone →
+    // publicabas un ascenso en Escuelas y el Feed seguía enseñando la lista vieja
+    // ("mis publicaciones nuevas no salen"). Mismo patrón `visible` que
+    // ProfileScreen/MeetupsScreen (equivalente al .task {} de iOS).
+    visible: Boolean = true,
     viewModel: FeedViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
-    // Frescura: recarga silenciosa cada vez que la pestaña vuelve a primer
-    // plano (patrón ON_RESUME del panel admin/perfil).
+    // Frescura: recarga silenciosa al MOSTRARSE la pestaña (visible) y también
+    // en ON_RESUME (volver de background con la pestaña ya seleccionada).
+    androidx.compose.runtime.LaunchedEffect(visible) {
+        if (visible) viewModel.refreshSilent()
+    }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -106,7 +115,7 @@ fun FeedScreen(
     // Denuncias (moderación): post pendiente de denunciar + ids ocultados al
     // instante para quien denuncia (patrón notas/comentarios).
     val moderation: com.meteomontana.android.ui.components.ModerationViewModel = hiltViewModel()
-    val hiddenIds by moderation.hiddenIds.collectAsState()
+    val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
     var reportPost by remember { mutableStateOf<FeedPost?>(null) }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {

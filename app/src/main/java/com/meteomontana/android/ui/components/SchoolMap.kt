@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,7 +114,7 @@ fun SchoolMap(
 
     // Deep-link por id de PIEDRA (post "piedra nueva" del feed, sin vía):
     // abre la ficha directamente, SIN expandir el mapa.
-    val autoOpenBlockId by viewModel.autoOpenBlockId.collectAsState()
+    val autoOpenBlockId by viewModel.autoOpenBlockId.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(blocks, autoOpenBlockId) {
         val blockId = autoOpenBlockId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
         val target = blocks.firstOrNull { it.id == blockId } ?: return@LaunchedEffect
@@ -123,8 +123,8 @@ fun SchoolMap(
     }
     // Deep-link por vía (diario, buscador, enlaces): abre la piedra que la
     // contiene. Preferimos el id ESTABLE; si no, por nombre.
-    val autoOpenVia by viewModel.autoOpenVia.collectAsState()
-    val autoOpenViaId by viewModel.autoOpenViaId.collectAsState()
+    val autoOpenVia by viewModel.autoOpenVia.collectAsStateWithLifecycle()
+    val autoOpenViaId by viewModel.autoOpenViaId.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(blocks, autoOpenVia, autoOpenViaId) {
         val viaId = autoOpenViaId?.takeIf { it.isNotBlank() }
         val via = autoOpenVia?.takeIf { it.isNotBlank() }
@@ -196,10 +196,30 @@ fun SchoolMap(
             // Buscador de vías/bloques de ESTA escuela: solo con el mapa
             // abierto (como iOS). Elegir un resultado abre su piedra.
             SchoolViaSearchBar(blocks = blocks, viewModel = viewModel)
+            // Filtro por orientación (consenso comunitario): filtra la lista
+            // de marcadores del mapa. Piedras sin votos → solo en TODAS.
+            val orientationVm: OrientationFilterViewModel =
+                androidx.hilt.navigation.compose.hiltViewModel()
+            androidx.compose.runtime.LaunchedEffect(schoolId) { orientationVm.load(schoolId) }
+            val blockOrientations by orientationVm.orientations.collectAsStateWithLifecycle()
+            val orientationFilter by orientationVm.selected.collectAsStateWithLifecycle()
+            OrientationFilterChips(
+                orientations = blockOrientations,
+                selected = orientationFilter,
+                onSelect = orientationVm::select
+            )
+            val visibleBlocks = remember(blocks, blockOrientations, orientationFilter) {
+                val aspect = orientationFilter
+                if (aspect == null) blocks
+                else blocks.filter { b ->
+                    // Parkings y zonas siempre visibles: solo se filtran piedras/muros.
+                    b.type != "BLOCK" || blockOrientations[b.id] == aspect
+                }
+            }
             SchoolMapView(
                 centerLat     = centerLat,
                 centerLon     = centerLon,
-                blocks        = blocks,
+                blocks        = visibleBlocks,
                 schoolName    = schoolName,
                 schoolId      = schoolId,
                 viewModel     = viewModel,
@@ -241,18 +261,18 @@ fun SchoolMap(
     // la ficha sin arrancar MapLibre. Los taps de marker del mapa llegan por
     // onBlockSelected; el trazado de muro del editor expande el mapa.
     val fichaCtx = LocalContext.current
-    val fichaIsAdmin = (viewModel.uiState.collectAsState().value
+    val fichaIsAdmin = (viewModel.uiState.collectAsStateWithLifecycle().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
     selectedBlock?.let { block ->
         val sectors = blocks.filter { it.type == "ZONE" }
         // Vías ya hechas (diario + cola offline) → ✓ al abrir; PROYECTO igual.
         // La traducción claves→ids vive en matchedLineIds (pura y testeada).
-        val doneKeys by viewModel.doneViaKeys.collectAsState()
+        val doneKeys by viewModel.doneViaKeys.collectAsStateWithLifecycle()
         val doneLineIds = remember(block, doneKeys) {
             com.meteomontana.android.ui.screens.detail.matchedLineIds(block, doneKeys)
         }
-        val projectKeys by viewModel.projectViaKeys.collectAsState()
+        val projectKeys by viewModel.projectViaKeys.collectAsStateWithLifecycle()
         val projectLineIds = remember(block, projectKeys) {
             com.meteomontana.android.ui.screens.detail.matchedLineIds(block, projectKeys)
         }
@@ -347,17 +367,25 @@ fun SchoolMap(
             lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
                 (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
             wasProject = pt.wasProject,
-            onPublish = { always, caption, photoUri ->
+            onPublish = { always, caption, photoUri, sessionDate ->
                 if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
                     fichaCtx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
                 pendingTick = null
                 viewModel.viewModelScope.launch {
                     val r = viewModel.toggleLine(
-                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true)
+                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true,
+                        sessionDate = sessionDate)
                     if (r.getOrNull() == true) {
                         viewModel.publishTickToFeed(
                             pt.block, pt.line, pt.wasProject, caption,
                             photoUri = photoUri?.toString(),
+                            onPublishFailed = {
+                                android.widget.Toast.makeText(
+                                    fichaCtx,
+                                    "No se pudo publicar el ascenso (queda en tu diario)",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            },
                             onPhotoUploadFailed = {
                                 android.widget.Toast.makeText(
                                     fichaCtx, R.string.feed_photo_upload_failed,
@@ -368,10 +396,11 @@ fun SchoolMap(
                     }
                 }
             },
-            onDiaryOnly = {
+            onDiaryOnly = { sessionDate ->
                 pendingTick = null
                 viewModel.viewModelScope.launch {
-                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true)
+                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName,
+                        markDone = true, sessionDate = sessionDate)
                 }
             },
             onDismiss = { pendingTick = null }

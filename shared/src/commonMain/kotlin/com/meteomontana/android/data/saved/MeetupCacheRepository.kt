@@ -5,6 +5,7 @@ import com.meteomontana.android.data.api.dto.MeetupMemberDto
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.Meetup
 import com.meteomontana.db.MeteoMontanaDb
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -14,11 +15,20 @@ import kotlinx.datetime.Clock
  * Serialización manual de days y members como JSON simple (sin dependencia de kotlinx-serialization
  * que no siempre está disponible en commonMain de forma trivial).
  */
-class MeetupCacheRepository(private val db: MeteoMontanaDb) {
+class MeetupCacheRepository(
+    private val db: MeteoMontanaDb,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
+) {
 
     private val q get() = db.schemaQueries
 
-    suspend fun saveAll(meetups: List<MeetupDto>) = withContext(Dispatchers.Default) {
+    companion object {
+        /** Gracia de caducidad: `expiresAt` se parsea de la fecha (medianoche), así
+         *  que una quedada vale hasta el final de su día + margen de zona horaria. */
+        const val EXPIRY_GRACE_MS = 2L * 86_400_000L
+    }
+
+    suspend fun saveAll(meetups: List<MeetupDto>) = withContext(dispatcher) {
         val now = Clock.System.now().toEpochMilliseconds()
         meetups.forEach { m ->
             q.upsertMeetup(
@@ -44,11 +54,15 @@ class MeetupCacheRepository(private val db: MeteoMontanaDb) {
                 fetchedAt = now
             )
         }
-        // Limpiar caducadas
-        q.deleteExpiredMeetups(now)
+        // Limpiar caducadas — con 2 DÍAS de gracia. `expiresAt` se parsea de la
+        // fecha (medianoche) → sin gracia, una quedada de HOY se consideraba
+        // caducada a partir de las 00:00 y se borraba de la caché a media mañana,
+        // aunque el servidor la seguía mostrando online → offline desaparecía al
+        // recargar (bug Q3/Q4). La gracia cubre el día entero + zonas horarias.
+        q.deleteExpiredMeetups(now - EXPIRY_GRACE_MS)
     }
 
-    suspend fun getAll(): List<Meetup> = withContext(Dispatchers.Default) {
+    suspend fun getAll(): List<Meetup> = withContext(dispatcher) {
         q.allMeetups().executeAsList().map { row ->
             MeetupDto(
                 id = row.id,
@@ -74,7 +88,7 @@ class MeetupCacheRepository(private val db: MeteoMontanaDb) {
         }
     }
 
-    suspend fun getById(id: String): Meetup? = withContext(Dispatchers.Default) {
+    suspend fun getById(id: String): Meetup? = withContext(dispatcher) {
         q.findMeetup(id).executeAsOneOrNull()?.let { row ->
             MeetupDto(
                 id = row.id, schoolId = row.schoolId, schoolName = row.schoolName,
@@ -91,7 +105,7 @@ class MeetupCacheRepository(private val db: MeteoMontanaDb) {
     }
 
     suspend fun updateJoined(id: String, joined: Boolean, memberCount: Int) =
-        withContext(Dispatchers.Default) {
+        withContext(dispatcher) {
             val current = q.findMeetup(id).executeAsOneOrNull() ?: return@withContext
             q.upsertMeetup(
                 id = current.id, schoolId = current.schoolId, schoolName = current.schoolName,

@@ -112,6 +112,11 @@ object NetworkModule {
     @Provides @Singleton
     fun provideKtorJournalApi(client: HttpClient) = KtorJournalApi(client)
 
+    @Provides
+    @Singleton
+    fun provideKtorCommunityApi(client: HttpClient) =
+        com.meteomontana.android.data.api.KtorCommunityApi(client)
+
     @Provides @Singleton
     fun provideKtorChatPushApi(client: HttpClient) =
         com.meteomontana.android.data.api.KtorChatPushApi(client)

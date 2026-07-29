@@ -38,16 +38,25 @@ private fun FactorRow(factor: ScoreFactor) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        // Nombre SIN weight (tamaño natural) y descripción con weight + hueco
+        // mínimo garantizado: con textos largos («ROCA · GRANITO» + su frase)
+        // las dos mitades se rozaban (feedback de Rodrigo).
         Text(
             factor.name,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.width(16.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.End
+        ) {
             Text(
                 factor.display,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = androidx.compose.ui.text.style.TextAlign.End
             )
             Spacer(Modifier.width(12.dp))
             Icon(
