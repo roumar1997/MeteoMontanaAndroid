@@ -674,6 +674,8 @@ struct SchoolMapSection: View {
             guard b.type.uppercased() == "BLOCK", b.geometry.uppercased() == "LINE" else { return nil }
             if vm.hiddenTypes.contains("BLOCK") { return nil }
             if let sid = b.sectorBlockId, vm.collapsedSectors.contains(sid) { return nil }
+            // Filtro de orientación: los muros se ocultan igual que sus pines.
+            if let f = orientationFilter, blockOrientations[b.id] != f { return nil }
             let pts = parseWallPath(b.path)
             guard pts.count >= 2 else { return nil }
             return CumbrePolyline(id: "wall-\(b.id)", coordinates: pts, color: blockColor, width: 5)

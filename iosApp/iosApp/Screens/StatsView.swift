@@ -10,6 +10,14 @@ struct StatsView: View {
     // Fila de la pirámide tocada → hoja con las vías de ese grado.
     private struct GradeSel: Identifiable { let id = UUID(); let grade: String }
     @State private var gradeDetail: GradeSel? = nil
+    // Destino de navegación en la PILA PRINCIPAL: la hoja se cierra antes de
+    // navegar. Empujar pantallas DENTRO de la hoja dejaba una transición de
+    // sheet a medias → watchdog 0x8BADF00D al ir a segundo plano.
+    private struct StatsNav: Identifiable, Hashable {
+        let schoolId: String; let via: String
+        var id: String { schoolId + "|" + via }
+    }
+    @State private var statsNav: StatsNav? = nil
     // Escuela desplegada inline en TUS ESCUELAS (nil = ninguna).
     @State private var expandedSchool: String? = nil
 
@@ -191,31 +199,37 @@ struct StatsView: View {
         .task { await store.load() }
         .sheet(item: $gradeDetail) { sel in
             let grade = sel.grade
-            // Tus vías de ESE grado → cada una navega a su piedra.
-            NavigationStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(store.entriesForGrade(grade).enumerated()),
-                                id: \.offset) { _, e in
-                            if let sid = e.schoolId {
-                                NavigationLink(destination:
-                                    SchoolLoaderView(schoolId: sid, openVia: e.blockName)) {
-                                    gradeEntryRow(e, navigable: true)
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                gradeEntryRow(e, navigable: false)
+            // Tus vías de ESE grado. OJO: NO se navega dentro de la hoja — se
+            // CIERRA y se empuja en la pila principal (navegar dentro dejaba
+            // el sheet a medio cerrar y el watchdog mataba la app).
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("TUS \(grade.uppercased())")
+                        .font(Cumbre.mono(11, .bold)).tracking(1.5)
+                        .foregroundStyle(Cumbre.terra).padding(.bottom, 8)
+                    ForEach(Array(store.entriesForGrade(grade).enumerated()),
+                            id: \.offset) { _, e in
+                        if let sid = e.schoolId {
+                            Button {
+                                gradeDetail = nil
+                                statsNav = StatsNav(schoolId: sid, via: e.blockName)
+                            } label: {
+                                gradeEntryRow(e, navigable: true)
                             }
-                            Divider().overlay(Cumbre.rule)
+                            .buttonStyle(.plain)
+                        } else {
+                            gradeEntryRow(e, navigable: false)
                         }
+                        Divider().overlay(Cumbre.rule)
                     }
-                    .padding(16)
                 }
-                .background(Cumbre.bg.ignoresSafeArea())
-                .navigationTitle("Tus \(grade.uppercased())")
-                .navigationBarTitleDisplayMode(.inline)
+                .padding(16)
             }
+            .background(Cumbre.bg.ignoresSafeArea())
             .presentationDetents([.medium, .large])
+        }
+        .navigationDestination(item: $statsNav) { nav in
+            SchoolLoaderView(schoolId: nav.schoolId, openVia: nav.via)
         }
         .sheet(isPresented: $showDaysList) {
             ScrollView {

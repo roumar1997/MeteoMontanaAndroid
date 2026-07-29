@@ -332,12 +332,6 @@ internal fun EntryRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(e.date,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (onChangeDate != null) com.meteomontana.android.ui.theme.Terra
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = if (onChangeDate != null)
-                        Modifier.clickable { showDatePicker = true } else Modifier)
                 // Grado ACTUAL del catálogo (refleja correcciones) o, si no se
                 // pudo resolver, el guardado al marcar la vía.
                 val eGrade = info?.grade ?: e.grade
@@ -385,6 +379,14 @@ internal fun EntryRow(
                     color = MaterialTheme.colorScheme.onSurface)
             }
         }
+        // Fecha a la DERECHA (como iOS — feedback R2), pulsable si es editable.
+        Text(e.date,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (onChangeDate != null) com.meteomontana.android.ui.theme.Terra
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = (if (onChangeDate != null)
+                Modifier.clickable { showDatePicker = true } else Modifier)
+                .padding(horizontal = 4.dp))
         // Flecha que indica que la fila es pulsable → abre la piedra
         if (e.schoolId != null) {
             Icon(

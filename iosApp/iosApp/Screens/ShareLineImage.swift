@@ -73,7 +73,7 @@ enum ShareLineImage {
         let w: CGFloat = 1080, h: CGFloat = 1920, pad: CGFloat = 72
         let availW = w - 2 * pad
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 1   // px reales, no puntos (evita el 2x/3x del dispositivo)
+        format.scale = 2  // nitidez (= ShareStatsImage)   // px reales, no puntos (evita el 2x/3x del dispositivo)
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format)
 
         return renderer.image { rctx in

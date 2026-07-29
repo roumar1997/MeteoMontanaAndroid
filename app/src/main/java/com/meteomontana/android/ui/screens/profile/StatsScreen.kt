@@ -49,6 +49,7 @@ import com.meteomontana.android.ui.theme.Terra
  * DESPLEGABLE (Todo / 2026 / 2025…) con vista por meses opcional; mismo
  * lenguaje visual pulsable que la orientación y el grado (chip discontinuo).
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
     onBack: () -> Unit,
@@ -143,31 +144,33 @@ fun StatsScreen(
                     MetricCard("RACHA", "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
                 }
                 if (showDaysList) {
-                    androidx.compose.material3.AlertDialog(
+                    // Bottom sheet suave (paridad iOS), no dialog a pantalla
+                    // completa — feedback de Rodrigo.
+                    androidx.compose.material3.ModalBottomSheet(
                         onDismissRequest = { showDaysList = false },
-                        confirmButton = {
-                            androidx.compose.material3.TextButton(onClick = { showDaysList = false }) {
-                                Text("CERRAR", style = EyebrowTextStyle, color = Terra)
-                            }
-                        },
-                        title = { Text("Tus días de roca", fontFamily = FontFamily.Serif,
-                            fontWeight = FontWeight.Bold) },
-                        text = {
-                            val days = remember { viewModel.daysWithCounts() }
-                            LazyColumn(Modifier.height(360.dp)) {
+                        containerColor = MaterialTheme.colorScheme.background
+                    ) {
+                        val days = remember { viewModel.daysWithCounts() }
+                        Column(Modifier.padding(horizontal = Spacing.md)) {
+                            Text("TUS DÍAS DE ROCA", style = EyebrowTextStyle, color = Terra)
+                            Spacer(Modifier.height(Spacing.sm))
+                            LazyColumn(Modifier.height(420.dp)) {
                                 items(days.size) { i ->
                                     val (day, count) = days[i]
-                                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text(day, style = MaterialTheme.typography.bodyMedium)
+                                        Text(day, style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface)
                                         Text("$count ascensos",
                                             style = EyebrowTextStyle.copy(fontSize = 10.sp),
                                             color = Terra)
                                     }
+                                    androidx.compose.material3.HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                             }
                         }
-                    )
+                    }
                 }
                 Spacer(Modifier.height(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -204,17 +207,15 @@ fun StatsScreen(
                 // Detalle de un grado: qué vías de ese grado llevas (pulsables).
                 gradeDetail?.let { grade ->
                     val gradeEntries = remember(grade, state) { viewModel.entriesForGrade(grade) }
-                    androidx.compose.material3.AlertDialog(
+                    // Bottom sheet suave (paridad iOS), no dialog a pantalla.
+                    androidx.compose.material3.ModalBottomSheet(
                         onDismissRequest = { gradeDetail = null },
-                        confirmButton = {
-                            androidx.compose.material3.TextButton(onClick = { gradeDetail = null }) {
-                                Text("CERRAR", style = EyebrowTextStyle, color = Terra)
-                            }
-                        },
-                        title = { Text("Tus ${grade.uppercase()}", fontFamily = FontFamily.Serif,
-                            fontWeight = FontWeight.Bold) },
-                        text = {
-                            LazyColumn(Modifier.height(360.dp)) {
+                        containerColor = MaterialTheme.colorScheme.background
+                    ) {
+                        Column(Modifier.padding(horizontal = Spacing.md)) {
+                            Text("TUS ${grade.uppercase()}", style = EyebrowTextStyle, color = Terra)
+                            Spacer(Modifier.height(Spacing.sm))
+                            LazyColumn(Modifier.height(420.dp)) {
                                 items(gradeEntries.size) { i ->
                                     val e = gradeEntries[i]
                                     Column(Modifier.fillMaxWidth()
@@ -233,10 +234,12 @@ fun StatsScreen(
                                             style = EyebrowTextStyle.copy(fontSize = 9.sp),
                                             color = Terra)
                                     }
+                                    androidx.compose.material3.HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                             }
                         }
-                    )
+                    }
                 }
                 s.bestMonth?.let { bm ->
                     Spacer(Modifier.height(Spacing.sm))

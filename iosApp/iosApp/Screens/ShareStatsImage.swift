@@ -38,7 +38,9 @@ enum ShareStatsImage {
                                progression: JournalStatsCalculator.Progression?) -> UIImage {
         let w: CGFloat = 1080, h: CGFloat = 1920
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
+        // scale 2: a escala 1 salía BORROSA en los visores; Android pinta el
+        // bitmap con AA nativo y se ve nítida — igualamos.
+        format.scale = 2
         return UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format)
             .image { ctx in
                 let c = ctx.cgContext
@@ -168,11 +170,6 @@ enum ShareStatsImage {
                     }
                 }
 
-                draw("Descarga Cumbre", x: w / 2, y: h - 230,
-                     font: .systemFont(ofSize: 42), color: ink)
-                draw("CUMBRE", x: w / 2, y: h - 150,
-                     font: UIFont.monospacedSystemFont(ofSize: 38, weight: .bold),
-                     color: terra, kern: 6)
             }
     }
 }

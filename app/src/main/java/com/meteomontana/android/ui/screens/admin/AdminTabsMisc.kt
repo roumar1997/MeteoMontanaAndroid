@@ -201,11 +201,46 @@ internal fun StatsTab(
                                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             }
                         } else {
+                            // R12: pulsar la nota la ENSEÑA entera (con VER
+                            // ESCUELA); antes saltaba a la escuela y la nota
+                            // no se veía por ningún lado.
+                            var noteDetail by remember {
+                                androidx.compose.runtime.mutableStateOf<com.meteomontana.android.domain.model.AdminNoteRow?>(null)
+                            }
+                            noteDetail?.let { nd ->
+                                androidx.compose.material3.AlertDialog(
+                                    onDismissRequest = { noteDetail = null },
+                                    confirmButton = {
+                                        if (nd.schoolId != null) {
+                                            androidx.compose.material3.TextButton(onClick = {
+                                                noteDetail = null
+                                                nd.schoolId?.let(onOpenSchool)
+                                            }) { Text("VER ESCUELA ▸") }
+                                        }
+                                    },
+                                    dismissButton = {
+                                        androidx.compose.material3.TextButton(onClick = { noteDetail = null }) {
+                                            Text("CERRAR")
+                                        }
+                                    },
+                                    title = { Text("Nota de ${nd.author ?: "anónimo"}") },
+                                    text = {
+                                        Column {
+                                            Text(nd.text, style = MaterialTheme.typography.bodyMedium)
+                                            Spacer(Modifier.height(Spacing.sm))
+                                            Text(listOfNotNull(nd.schoolId, nd.createdAt?.take(10))
+                                                    .joinToString(" · "),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                )
+                            }
                             LazyColumn {
                                 items(list.size) { i ->
                                     val n = list[i]
                                     Column(Modifier.fillMaxWidth()
-                                        .clickable { n.schoolId?.let(onOpenSchool) }
+                                        .clickable { noteDetail = n }
                                         .padding(vertical = 8.dp)) {
                                         Text(n.text, style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurface)
