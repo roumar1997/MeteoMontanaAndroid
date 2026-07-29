@@ -29,15 +29,32 @@ final class JournalViewModel: ObservableObject {
     /** C3: agrupacion por mes PRECOMPUTADA (el body solo la lee). */
     @Published var entriesByMonth: [String: [JournalSession]] = [:]
     @Published var monthKeys: [String] = []
+    /// G: filtro por grado activo (nil = todos) + grados presentes ordenados.
+    @Published var gradeFilter: String? = nil
+    @Published var availableGrades: [String] = []
 
     func load() async {
         loading = true
         entries = (try? await getMyJournal.invoke()) ?? []
         stats = try? await getMyStats.invoke()
-        entriesByMonth = Dictionary(grouping: entries.sorted { $0.date > $1.date },
+        let calc = JournalStatsCalculator.shared
+        availableGrades = Set(entries.compactMap {
+            $0.grade?.trimmingCharacters(in: .whitespaces).lowercased()
+        }.filter { !$0.isEmpty })
+            .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
+        regroup()
+        loading = false
+    }
+
+    /// Reagrupa por mes aplicando el filtro de grado (PRECOMPUTADO: nada de
+    /// agrupar en el body — lección del watchdog).
+    func regroup() {
+        let visible = gradeFilter.map { g in
+            entries.filter { $0.grade?.lowercased() == g }
+        } ?? entries
+        entriesByMonth = Dictionary(grouping: visible.sorted { $0.date > $1.date },
                                     by: { String($0.date.prefix(7)) })
         monthKeys = entriesByMonth.keys.sorted(by: >)
-        loading = false
     }
 
     func add(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String, discipline: String) async {
@@ -92,6 +109,33 @@ struct JournalView: View {
                         }
                         .buttonStyle(.plain).padding(16)
                         Divider().overlay(Cumbre.rule)
+                        // G: chips de grado (paleta de topos) para filtrar.
+                        if vm.availableGrades.count > 1 {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(vm.availableGrades, id: \.self) { g in
+                                        let st = GradeColor.style(g)
+                                        let accent = st.dark ? Cumbre.ink : st.stroke
+                                        let active = vm.gradeFilter == g
+                                        Button {
+                                            vm.gradeFilter = active ? nil : g
+                                            vm.regroup()
+                                        } label: {
+                                            Text(g).font(.system(size: 12, weight: .bold))
+                                                .foregroundStyle(active ? .white : accent)
+                                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                                .background(RoundedRectangle(cornerRadius: 6)
+                                                    .fill(active ? accent : Cumbre.paper))
+                                                .overlay(RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(accent, lineWidth: 1))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                            }
+                            .padding(.vertical, 4)
+                        }
                         if vm.entries.isEmpty {
                             Text("Aún no has registrado bloques.")
                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(32)

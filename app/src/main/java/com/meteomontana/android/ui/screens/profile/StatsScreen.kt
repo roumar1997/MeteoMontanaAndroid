@@ -80,7 +80,7 @@ fun StatsScreen(
                 Text("MIS ESTADÍSTICAS", style = EyebrowTextStyle, color = Terra)
                 Spacer(Modifier.weight(1f))
                 // C6: compartir como imagen (formato historia, estilo Wrapped).
-                state.summary?.let { sum ->
+                state.summary?.takeIf { state.isOwn }?.let { sum ->
                     androidx.compose.material3.Icon(
                         Icons.Outlined.Share,
                         contentDescription = "Compartir estadísticas",
@@ -108,6 +108,19 @@ fun StatsScreen(
                 verticalAlignment = Alignment.CenterVertically) {
                 FilterChip("BLOQUE", state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
                 FilterChip("VÍA", state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
+                var gradeMenuOpen by remember { mutableStateOf(false) }
+                Box {
+                    VotableChip(text = state.grade?.uppercase() ?: "GRADO") { gradeMenuOpen = true }
+                    DropdownMenu(expanded = gradeMenuOpen, onDismissRequest = { gradeMenuOpen = false }) {
+                        DropdownMenuItem(text = { Text("Todos") },
+                            onClick = { viewModel.setGrade(null); gradeMenuOpen = false })
+                        state.availableGrades.forEach { g ->
+                            DropdownMenuItem(text = { Text(g, color = gradeAccent(g),
+                                fontWeight = FontWeight.Bold) },
+                                onClick = { viewModel.setGrade(g); gradeMenuOpen = false })
+                        }
+                    }
+                }
                 Box {
                     VotableChip(text = state.year ?: "TODO") { yearMenuOpen = true }
                     DropdownMenu(expanded = yearMenuOpen, onDismissRequest = { yearMenuOpen = false }) {
@@ -227,20 +240,21 @@ fun StatsScreen(
                 Spacer(Modifier.height(Spacing.xs))
                 val maxCount = s.pyramid.maxOfOrNull { it.second } ?: 1
                 s.pyramid.take(10).forEachIndexed { i, (grade, count) ->
+                    // G: cada barra con el color de SU grado (paleta de topos).
+                    val accent = gradeAccent(grade)
                     Row(Modifier
                         .clickable { gradeDetail = grade }
                         .padding(vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text(grade, style = EyebrowTextStyle.copy(fontSize = 11.sp),
-                            color = if (i == 0) Terra else MaterialTheme.colorScheme.onSurface,
+                            color = accent,
                             modifier = Modifier.width(36.dp))
                         Box(Modifier.weight(1f)) {
                             Box(Modifier
                                 .fillMaxWidth(count / maxCount.toFloat())
                                 .height(14.dp)
-                                .background(Terra.copy(alpha = 1f - i * 0.08f),
-                                    RoundedCornerShape(4.dp)))
+                                .background(accent, RoundedCornerShape(4.dp)))
                         }
                         Text(count.toString(), fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -316,7 +330,7 @@ fun StatsScreen(
                                     .background(Terra, CircleShape))
                                 Text(g, fontFamily = FontFamily.Serif,
                                     fontWeight = FontWeight.Bold, fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface)
+                                    color = gradeAccent(g))
                                 Text(q.substringAfter('-'), fontSize = 9.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
@@ -374,7 +388,8 @@ fun StatsScreen(
                                     Text(e.blockName, style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface)
                                     Text((e.grade ?: "—") + (if (e.schoolId != null) " ▸" else ""),
-                                        style = EyebrowTextStyle.copy(fontSize = 10.sp), color = Terra)
+                                        style = EyebrowTextStyle.copy(fontSize = 10.sp),
+                                        color = gradeAccent(e.grade))
                                 }
                             }
                             Text("VER EN EL DIARIO ▸", style = EyebrowTextStyle.copy(fontSize = 9.sp),
@@ -393,6 +408,14 @@ fun StatsScreen(
             }
         }
     }
+}
+
+/** G: color de barra/etiqueta por GRADO (misma paleta que los topos). Los
+ *  grados «blancos» (fáciles) no se ven sobre papel → tinta. */
+@Composable
+private fun gradeAccent(grade: String?): Color {
+    val gs = com.meteomontana.android.ui.theme.gradeStyle(grade)
+    return if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
 }
 
 private val MONTHS = listOf("ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC")

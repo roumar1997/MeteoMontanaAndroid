@@ -143,6 +143,8 @@ fun PublicProfileScreen(
     onOpenSchools: (String) -> Unit = {},
     onOpenSchoolEntries: (uid: String, schoolName: String) -> Unit = { _, _ -> },
     onOpenProjects: (String) -> Unit = {},
+    /** G: estadísticas completas del usuario (privacidad: la impone el backend). */
+    onOpenStats: (String) -> Unit = {},
     /** Abrir OTRO perfil (autor de un comentario del feed). */
     onOpenUserProfile: (String) -> Unit = {},
     /** Abrir la piedra de un post del feed (pantalla completa). */
@@ -247,6 +249,7 @@ fun PublicProfileScreen(
                 onOpenSchools = { onOpenSchools(s.profile.uid) },
                 onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) },
                 onOpenProjects = { onOpenProjects(s.profile.uid) },
+                onOpenStats = { onOpenStats(s.profile.uid) },
                 onOpenUserProfile = onOpenUserProfile,
                 onOpenFeedSchool = onOpenFeedSchool
             )
@@ -280,6 +283,7 @@ private fun Body(
     onOpenSchools: () -> Unit = {},
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenProjects: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
     onOpenUserProfile: (String) -> Unit = {},
     onOpenFeedSchool: (String, String?, String?, String?) -> Unit = { _, _, _, _ -> }
 ) {
@@ -374,6 +378,14 @@ private fun Body(
                 onMaxClick = onOpenMaxGrade,
                 onProjectsClick = onOpenProjects
             )
+            // G: sus estadísticas completas (pirámide, racha, progresión).
+            Spacer(Modifier.height(8.dp))
+            Text("VER ESTADÍSTICAS ▸",
+                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = com.meteomontana.android.ui.theme.Terra,
+                modifier = Modifier
+                    .clickable(onClick = onOpenStats)
+                    .padding(vertical = 8.dp, horizontal = 4.dp))
             if (s.stats.bySchool.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 Text(stringResource(R.string.profile_schools),

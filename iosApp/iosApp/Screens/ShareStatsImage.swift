@@ -116,14 +116,17 @@ enum ShareStatsImage {
                 let pyramid = Array(s.pyramid.prefix(6))
                 let maxCount = max(pyramid.map { $0.second!.intValue }.max() ?? 1, 1)
                 let barMaxW = w - 420
-                for (i, pair) in pyramid.enumerated() {
+                for (_, pair) in pyramid.enumerated() {
                     let grade = pair.first! as String
                     let count = pair.second!.intValue
+                    // G (opción B): color del grado (paleta de topos).
+                    let st = GradeColor.style(grade)
+                    let accent = st.dark ? ink : UIColor(st.stroke)
                     draw(grade, x: 80, y: y,
                          font: UIFont.monospacedSystemFont(ofSize: 42, weight: .bold),
-                         color: i == 0 ? terra : ink, centered: false)
+                         color: accent, centered: false)
                     let barW = max(barMaxW * CGFloat(count) / CGFloat(maxCount), 24)
-                    terra.withAlphaComponent(max(1 - CGFloat(i) * 0.09, 0.35)).setFill()
+                    accent.setFill()
                     UIBezierPath(roundedRect: CGRect(x: 220, y: y, width: barW, height: 50),
                                  cornerRadius: 12).fill()
                     draw("\(count)", x: 240 + barW, y: y + 6,

@@ -5,6 +5,9 @@ import Shared
 /// MISMO cerebro compartido (JournalStatsCalculator en shared, con tests);
 /// aquí solo se pinta. Selector de año desplegable (Todo/2026/2025…) + meses.
 struct StatsView: View {
+    /// G: nil = mis estadísticas; uid = las de OTRO usuario (perfil público
+    /// o seguimiento aceptado — la privacidad la impone el backend).
+    var uid: String? = nil
     @StateObject private var store = StatsStore()
     @State private var showDaysList = false
     // Fila de la pirámide tocada → hoja con las vías de ese grado.
@@ -35,6 +38,15 @@ struct StatsView: View {
                     }
                     filterChip("VÍA", selected: store.discipline == "ROUTE") {
                         store.discipline = "ROUTE"; store.recompute()
+                    }
+                    Menu {
+                        Button("Todos") { store.grade = nil; store.recompute() }
+                        ForEach(store.availableGrades, id: \.self) { g in
+                            Button(g) { store.grade = g; store.recompute() }
+                        }
+                    } label: {
+                        VotableChip(text: store.grade?.uppercased() ?? "GRADO") {}
+                            .allowsHitTesting(false)
                     }
                     Menu {
                         Button("Todo") { store.year = nil; store.month = nil; store.day = nil; store.recompute() }
@@ -84,16 +96,18 @@ struct StatsView: View {
                     Text("PIRÁMIDE DE GRADOS").eyebrow().padding(.top, 6)
                     let pyramid = s.pyramid.prefix(10)
                     let maxCount = pyramid.map { $0.second!.intValue }.max() ?? 1
-                    ForEach(Array(pyramid.enumerated()), id: \.offset) { i, pair in
-                        // Fila pulsable: abre la lista de vías de ESE grado.
+                    ForEach(Array(pyramid.enumerated()), id: \.offset) { _, pair in
+                        // G (opción B): cada barra con el color de SU grado
+                        // (misma paleta que las líneas de los topos).
+                        let accent = gradeAccent(pair.first! as String)
                         Button { gradeDetail = GradeSel(grade: pair.first! as String) } label: {
                             HStack(spacing: 8) {
                                 Text(pair.first! as String).font(Cumbre.mono(11, .bold))
-                                    .foregroundStyle(i == 0 ? Cumbre.terra : Cumbre.ink)
+                                    .foregroundStyle(accent)
                                     .frame(width: 36, alignment: .leading)
                                 GeometryReader { geo in
                                     RoundedRectangle(cornerRadius: 4)
-                                        .fill(Cumbre.terra.opacity(1.0 - Double(i) * 0.08))
+                                        .fill(accent)
                                         .frame(width: geo.size.width
                                             * CGFloat(pair.second!.intValue) / CGFloat(maxCount))
                                 }
@@ -130,7 +144,7 @@ struct StatsView: View {
                                 VStack(spacing: 2) {
                                     Circle().fill(Cumbre.terra).frame(width: 10, height: 10)
                                     Text(pair.second! as String).font(Cumbre.serif(14, .bold))
-                                        .foregroundStyle(Cumbre.ink)
+                                        .foregroundStyle(gradeAccent(pair.second! as String))
                                     Text((pair.first! as String).components(separatedBy: "-").last ?? "")
                                         .font(.system(size: 9)).foregroundStyle(Cumbre.ink3)
                                 }
@@ -186,7 +200,7 @@ struct StatsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // C6: compartir como imagen (formato historia, estilo Wrapped).
-            if let sum = store.summary {
+            if let sum = store.summary, uid == nil {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task {
@@ -203,7 +217,7 @@ struct StatsView: View {
                 }
             }
         }
-        .task { await store.load() }
+        .task { await store.load(uid: uid) }
         .sheet(item: $gradeDetail) { sel in
             let grade = sel.grade
             // Tus vías de ESE grado. OJO: NO se navega dentro de la hoja — se
@@ -359,6 +373,12 @@ struct StatsView: View {
         .contentShape(Rectangle())
     }
 
+    /// G: color por grado (paleta de topos); los grados blancos → tinta.
+    private func gradeAccent(_ grade: String) -> Color {
+        let st = GradeColor.style(grade)
+        return st.dark ? Cumbre.ink : st.stroke
+    }
+
     private func formatMonth(_ yyyyMm: String) -> String {
         let parts = yyyyMm.split(separator: "-")
         guard parts.count == 2, let m = Int(parts[1]) else { return yyyyMm }
@@ -430,19 +450,31 @@ final class StatsStore: ObservableObject {
     @Published var year: String? = nil
     @Published var month: String? = nil
     @Published var day: String? = nil    // "yyyy-MM-dd": estadísticas de UN día
+    @Published var grade: String? = nil  // G: filtrar por UN grado
     @Published var availableYears: [String] = []
     @Published var summary: JournalStatsCalculator.Summary? = nil
     @Published var progression: JournalStatsCalculator.Progression? = nil
 
     private var entries: [JournalSession] = []
 
-    func load() async {
+    func load(uid: String? = nil) async {
         guard entries.isEmpty else { return }
-        if let list = try? await AppDependencies.shared.container.getMyJournal.invoke() {
+        let container = AppDependencies.shared.container
+        if let uid {
+            if let list = try? await container.getUserJournal.invoke(uid: uid) { entries = list }
+        } else if let list = try? await container.getMyJournal.invoke() {
             entries = list
         }
         loading = false
         recompute()
+    }
+
+    /** G: grados presentes, del más duro al más fácil (para el filtro). */
+    var availableGrades: [String] {
+        let calc = JournalStatsCalculator.shared
+        let gs = Set(entries.compactMap { $0.grade?.trimmingCharacters(in: .whitespaces).lowercased() }
+            .filter { !$0.isEmpty })
+        return gs.sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
     }
 
     /** N7: dias del filtro actual con nº de ascensos, recientes primero. */
@@ -481,6 +513,7 @@ final class StatsStore: ObservableObject {
             }
         }
         if let d = day { filtered = filtered.filter { $0.date == d } }
+        if let g = grade { filtered = filtered.filter { $0.grade?.lowercased() == g } }
         return filtered
     }
 
@@ -499,6 +532,7 @@ final class StatsStore: ObservableObject {
             }
         }
         if let dd = day { filtered = filtered.filter { $0.date == dd } }
+        if let g = grade { filtered = filtered.filter { $0.grade?.lowercased() == g } }
         availableYears = calc.availableYears(entries: entries)
         summary = calc.summary(entries: filtered, allEntries: entries, today: today)
         progression = calc.progression(entries: filtered, today: today)

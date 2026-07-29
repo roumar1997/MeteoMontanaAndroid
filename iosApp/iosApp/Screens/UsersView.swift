@@ -239,6 +239,16 @@ struct PublicProfileView: View {
                         Divider().overlay(Cumbre.rule).padding(.vertical, 4)
                         Text("DIARIO").eyebrow().frame(maxWidth: .infinity, alignment: .leading)
                         JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo, projectsUid: uid)
+                        // G: sus estadísticas completas (pirámide, racha,
+                        // progresión) — misma pantalla que las tuyas.
+                        NavigationLink(destination: StatsView(uid: uid)) {
+                            Text("VER ESTADÍSTICAS ▸")
+                                .font(Cumbre.mono(10, .bold)).tracking(1.2)
+                                .foregroundStyle(Cumbre.terra)
+                                .padding(.vertical, 6)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
                     }
                     // Publicaciones del usuario en el feed Comunidad
                     // (scope=user; el backend devuelve vacío si es privado

@@ -225,7 +225,13 @@ private fun SheetNavHost(
                         )
                     }
                     // C4: MIS ESTADISTICAS (piramide, racha, progresion).
-                    composable(Routes.JOURNAL_STATS) {
+                    composable(
+                        Routes.JOURNAL_STATS,
+                        arguments = listOf(androidx.navigation.navArgument("uid") {
+                            type = androidx.navigation.NavType.StringType
+                            nullable = true; defaultValue = null
+                        })
+                    ) {
                         com.meteomontana.android.ui.screens.profile.StatsScreen(
                             onBack = popSheetOrDismiss,
                             onOpenSchool = { school ->
@@ -364,6 +370,7 @@ private fun SheetNavHost(
                             onOpenSchools = { uid -> sheetNav.navigate(Routes.journalSchools(uid)) },
                             onOpenSchoolEntries = { uid, schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName, uid)) },
                             onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) },
+                            onOpenStats = { uid -> sheetNav.navigate(Routes.journalStats(uid)) },
                             // Sección Publicaciones (feed) del perfil:
                             onOpenUserProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             onOpenFeedSchool = { schoolId, lineId, lineName, blockId ->

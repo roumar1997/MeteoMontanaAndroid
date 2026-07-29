@@ -202,6 +202,10 @@ fun JournalEntriesScreen(
     viewModel: JournalEntriesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // G: filtro por grado activo (null = todos).
+    var gradeFilter by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf<String?>(null)
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -255,9 +259,46 @@ fun JournalEntriesScreen(
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                             }
                         }
+                        // G: filtro por GRADO (chips con la paleta de topos).
+                        val grades = s.entries
+                            .mapNotNull { it.grade?.trim()?.lowercase()?.takeIf(String::isNotEmpty) }
+                            .distinct()
+                            .sortedByDescending {
+                                com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator.gradeRank(it)
+                            }
+                        if (grades.size > 1) {
+                            item(key = "grade-filter") {
+                                androidx.compose.foundation.lazy.LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                ) {
+                                    items(grades.size) { gi ->
+                                        val g = grades[gi]
+                                        val gs = com.meteomontana.android.ui.theme.gradeStyle(g)
+                                        val accent = if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
+                                        val active = gradeFilter == g
+                                        Box(Modifier
+                                            .background(
+                                                if (active) accent else MaterialTheme.colorScheme.surface,
+                                                RoundedCornerShape(6.dp))
+                                            .border(1.dp, accent, RoundedCornerShape(6.dp))
+                                            .clickable { gradeFilter = if (active) null else g }
+                                            .padding(horizontal = 10.dp, vertical = 5.dp)) {
+                                            Text(g, style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                color = if (active) androidx.compose.ui.graphics.Color.White
+                                                        else accent)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        val visibleEntries = gradeFilter?.let { g ->
+                            s.entries.filter { it.grade?.trim()?.equals(g, ignoreCase = true) == true }
+                        } ?: s.entries
                         // C3: agrupado por MES (cabecera "JULIO 2026 - N"), orden
                         // cronologico descendente por fecha de la sesion.
-                        val byMonth = s.entries.sortedByDescending { it.date }
+                        val byMonth = visibleEntries.sortedByDescending { it.date }
                             .groupBy { it.date.take(7) }
                         byMonth.forEach { (month, monthEntries) ->
                             item(key = "month-" + month) {

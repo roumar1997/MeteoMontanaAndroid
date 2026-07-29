@@ -143,16 +143,18 @@ private fun renderStatsCard(
     val maxCount = (pyramid.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
     val barMaxW = w - 420f
     pyramid.forEachIndexed { i, (grade, count) ->
+        // G (opción B): cada barra con el color de SU grado (paleta de topos).
+        val (argb, _, dark) = com.meteomontana.android.domain.util.gradeArgb(grade)
+        val accent = if (dark) INK else argb.toInt()
         val gradePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (i == 0) TERRA else INK; textSize = 44f
+            color = accent; textSize = 44f
             typeface = mono; isFakeBoldText = true
         }
         c.drawText(grade, 80f, y + 42f, gradePaint)
         val barW = barMaxW * count / maxCount.toFloat()
-        val alpha = (255 * (1f - i * 0.09f)).toInt().coerceAtLeast(90)
         c.drawRoundRect(
             RectF(220f, y, 220f + barW.coerceAtLeast(24f), y + 52f), 12f, 12f,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = TERRA; this.alpha = alpha }
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent }
         )
         c.drawText(count.toString(), 240f + barW.coerceAtLeast(24f), y + 42f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 36f })
