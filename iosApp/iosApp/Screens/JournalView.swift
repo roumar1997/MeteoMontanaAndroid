@@ -877,10 +877,10 @@ struct JournalStatsNav: View {
             if showStatsAndPosts {
                 HStack(spacing: 8) {
                     NavigationLink(destination: StatsView(uid: projectsUid)) {
-                        cell("\u25b8", "ESTAD\u00cdSTICAS")
+                        cell("▸", "ESTADÍSTICAS")
                     }.buttonStyle(.plain)
                     NavigationLink(destination: MyPostsView(uid: projectsUid)) {
-                        cell("\u25b8", "PUBLICACIONES")
+                        cell("▸", "PUBLICACIONES")
                     }.buttonStyle(.plain)
                 }
             }
