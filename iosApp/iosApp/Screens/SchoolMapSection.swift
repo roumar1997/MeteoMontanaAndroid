@@ -120,7 +120,11 @@ struct SchoolMapSection: View {
         }
         // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
         // el auto-abrir del deep-link (antes se quedaba en la escuela a secas).
-        .onChange(of: vm.blocks.count) { _ in maybeAutoOpen() }
+        // OJO: la firma incluye las VÍAS, no solo el número de bloques. La
+        // caché puede traer los mismos N bloques SIN sus vías: el auto-abrir
+        // fallaba (abría la escuela a secas) y como el count no cambiaba al
+        // llegar los datos reales, no se reintentaba (a la 2ª vez ya iba).
+        .onChange(of: vm.blocks.reduce(0) { $0 + 1 + $1.lines.count }) { _ in maybeAutoOpen() }
         // ¿Admin? → puede eliminar bloques desde su ficha.
         .task {
             await vm.loadAdminFlag()

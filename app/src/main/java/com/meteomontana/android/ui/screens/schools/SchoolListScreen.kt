@@ -452,7 +452,10 @@ fun SchoolListScreen(
                     .fillMaxWidth()
                     .padding(Spacing.md)
                     .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.onBackground)
+                    // Fondo FIJO oscuro: onBackground se invierte en modo
+                    // oscuro y la barra salía blanca y deslumbrante.
+                    .background(androidx.compose.ui.graphics.Color(0xFF17170F))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                     .padding(start = Spacing.xs, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -460,13 +463,13 @@ fun SchoolListScreen(
                     Icon(
                         Icons.Outlined.Close,
                         contentDescription = stringResource(R.string.common_close),
-                        tint = MaterialTheme.colorScheme.background
+                        tint = androidx.compose.ui.graphics.Color.White
                     )
                 }
                 Text(
                     "${compareSelection.size} seleccionada${if (compareSelection.size > 1) "s" else ""}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.background,
+                    color = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.weight(1f)
                 )
                 // Botón Comparar grande (a partir de 2). Con 1, pista de qué falta.

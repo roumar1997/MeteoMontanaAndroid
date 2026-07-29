@@ -19,7 +19,32 @@ import Shared
 /// fullScreenCover-dentro-de-sheet.
 @MainActor
 final class CapturedPhotoStore: ObservableObject {
-    @Published var image: UIImage?
+    /// Store Único (singleton). Antes cada hoja de publicar creaba el suyo con
+    /// @StateObject: si SwiftUI RECREABA la hoja mientras la cámara o la
+    /// galería estaban abiertas (ambas pasan la app por .inactive), el callback
+    /// escribía en el store viejo ya muerto y la foto se perdía EN SILENCIO
+    /// (bugs de jul-2026, cámara y galería). Con un store compartido la hoja
+    /// recreada lee siempre el MISMO objeto y la foto no puede perderse.
+    static let shared = CapturedPhotoStore()
+
+    @Published private(set) var image: UIImage?
+    /// Vía/bloque de la foto actual: nunca enseñar la de OTRO ascenso.
+    private(set) var context: String?
+
+    /// Foto de ESA vía (nil si la guardada es de otra o no hay).
+    func image(for context: String) -> UIImage? {
+        self.context == context ? image : nil
+    }
+
+    func capture(_ img: UIImage, for context: String) {
+        self.context = context
+        self.image = img
+    }
+
+    func clear() {
+        image = nil
+        context = nil
+    }
 
     /// RED DE SEGURIDAD (bug real 2026-07-18): si SwiftUI recrea la hoja de
     /// publicar mientras la cámara está abierta (la cámara pasa la app por
@@ -27,27 +52,15 @@ final class CapturedPhotoStore: ObservableObject {
     /// la foto "desaparecía" sin error. La última captura se guarda también
     /// aquí (global, con la vía a la que pertenece) y la hoja recreada la
     /// adopta al aparecer si la suya está vacía Y es de la MISMA vía.
-    static var lastCaptured: (image: UIImage, context: String, at: Date)?
-
-    /// Ventana en la que una captura huérfana se considera "de esta publicación".
-    static let recoveryWindow: TimeInterval = 180
-
+    /// Entrada Única desde los coordinadores de cámara/galería.
     static func remember(_ image: UIImage, for context: String) {
-        lastCaptured = (image, context, Date())
+        DispatchQueue.main.async { shared.capture(image, for: context) }
     }
 
-    /// Última captura reciente de ESA vía aún no consumida (nil si no hay,
-    /// es vieja, o era de otra vía — nunca adoptar la foto de otro ascenso).
-    static func recentOrphan(for context: String) -> UIImage? {
-        guard let last = lastCaptured, last.context == context,
-              Date().timeIntervalSince(last.at) < recoveryWindow else { return nil }
-        return last.image
-    }
-
-    /// Olvida el búfer (al publicar, quitar la foto con ✕ o cerrar la hoja),
-    /// para que una publicación posterior no adopte una foto vieja.
+    /// Olvida la foto (al publicar, quitarla con ✕ o cerrar la hoja), para que
+    /// una publicación posterior no enseñe una foto vieja.
     static func forget() {
-        lastCaptured = nil
+        DispatchQueue.main.async { shared.clear() }
     }
 }
 

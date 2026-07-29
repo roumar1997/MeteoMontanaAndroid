@@ -60,7 +60,7 @@ struct FeedPublishSheet: View {
     // Foto de celebración: hecha en el momento con la cámara del sistema. Se
     // guarda en un ObservableObject (no @State) porque la cámara se presenta
     // por UIKit y un @State captado en el callback no refrescaba la hoja.
-    @StateObject private var photoStore = CapturedPhotoStore()
+    @ObservedObject private var photoStore = CapturedPhotoStore.shared
     @State private var showCameraDenied = false
 
     private func requestCamera() {
@@ -70,13 +70,13 @@ struct FeedPublishSheet: View {
             // de la hoja). La foto capturada va al ObservableObject, que sí
             // refresca la miniatura. El lineLabel es la clave del búfer de
             // rescate (si la hoja se recrea, la recuperada es de ESTA vía).
-            presentSystemCamera(context: lineLabel) { img in photoStore.image = img }
+            presentSystemCamera(context: lineLabel) { _ in }   // el store compartido ya la recibe
         }
     }
 
     /// Elegir de la galería (PHPicker: sin permiso, mismo patrón UIKit).
     private func requestGallery() {
-        presentSystemPhotoPicker(context: lineLabel) { img in photoStore.image = img }
+        presentSystemPhotoPicker(context: lineLabel) { _ in }  // idem
     }
 
     var body: some View {
@@ -141,7 +141,7 @@ struct FeedPublishSheet: View {
 
             // Foto de celebración (opcional): fila para abrir la cámara o
             // miniatura 88×110 con ✕ para quitarla + "REPETIR FOTO".
-            if let photo = photoStore.image {
+            if let photo = photoStore.image(for: lineLabel) {
                 HStack(spacing: 12) {
                     ZStack(alignment: .topTrailing) {
                         Image(uiImage: photo)
@@ -154,7 +154,6 @@ struct FeedPublishSheet: View {
                         // ✕ quita la foto (y olvida el búfer: quitarla es
                         // deliberado, que no reaparezca si la hoja se recrea).
                         Button {
-                            photoStore.image = nil
                             CapturedPhotoStore.forget()
                         } label: {
                             Text("✕")
@@ -247,7 +246,7 @@ struct FeedPublishSheet: View {
             // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
             Button {
                 let c = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-                let photo = photoStore.image
+                let photo = photoStore.image(for: lineLabel)
                 CapturedPhotoStore.forget()   // consumida: no re-adoptar después
                 onPublish(always, c.isEmpty ? nil : c, photo, sessionDate)
             } label: {
@@ -283,14 +282,8 @@ struct FeedPublishSheet: View {
         // RESCATE: si esta hoja es una RECREACIÓN (SwiftUI la reconstruyó
         // mientras la cámara estaba abierta), su store nace vacío pero la foto
         // vive en el búfer global → adoptarla si es de ESTA misma vía.
-        .onAppear {
-            if photoStore.image == nil,
-               let orphan = CapturedPhotoStore.recentOrphan(for: lineLabel) {
-                photoStore.image = orphan
-            }
-        }
         // Más alta que antes: descripción + fila/miniatura de foto.
-        .presentationDetents([.height(photoStore.image == nil ? 480 : 560)])
+        .presentationDetents([.height(photoStore.image(for: lineLabel) == nil ? 480 : 560)])
         // Permiso denegado: llevar a Ajustes (iOS no re-pregunta).
         .alert("Cumbre necesita acceso a la cámara", isPresented: $showCameraDenied) {
             Button("Cancelar", role: .cancel) {}

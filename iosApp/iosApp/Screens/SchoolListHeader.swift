@@ -35,7 +35,15 @@ struct CompareBar: View {
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 8)
-        .background(Cumbre.ink)
+        // Fondo FIJO oscuro: Cumbre.ink se invierte en modo oscuro y la barra
+        // salía blanca y deslumbrante (feedback de Rodrigo). El texto es
+        // blanco en ambos temas; el borde la despega del fondo oscuro.
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(red: 0.09, green: 0.09, blue: 0.08))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(Cumbre.rule, lineWidth: 1))
+        )
         .padding(.horizontal, 12).padding(.bottom, 8)
     }
 }
