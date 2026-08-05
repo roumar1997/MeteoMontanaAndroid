@@ -28,8 +28,8 @@ android {
         applicationId = "com.meteomontana.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 88
-        versionName = "2.21.0"
+        versionCode = 89
+        versionName = "2.21.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

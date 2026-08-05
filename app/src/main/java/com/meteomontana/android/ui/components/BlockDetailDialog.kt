@@ -350,17 +350,13 @@ fun BlockDetailDialog(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                if (line.name.isNotBlank()) {
-                                    Text(
-                                        line.displayName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
+                                // El NOMBRE ya no vive en esta fila: va debajo, a todo
+                                // ancho (ver más abajo). Aquí solo quedan los chips y las
+                                // acciones, que así nunca se mueven ni se salen.
+                                Spacer(Modifier.weight(1f))
                                 // Compartir esta vía/bloque (WhatsApp etc.): enlace que
                                 // abre la app directamente en esta piedra con la línea.
                                 if (!isProposal) {
-                                    Spacer(Modifier.weight(1f))
                                     androidx.compose.material3.Icon(
                                         Icons.Outlined.Share,
                                         contentDescription = "Compartir",
@@ -448,6 +444,18 @@ fun BlockDetailDialog(
                                             .padding(horizontal = 6.dp)
                                     )
                                 }
+                            }
+                            // NOMBRE (+ variante) a todo ancho, alineado con la
+                            // descripción y los comentarios: se lee entero por largo que
+                            // sea y las acciones de arriba quedan siempre accesibles.
+                            if (line.name.isNotBlank()) {
+                                Text(
+                                    line.displayName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
+                                )
                             }
                             // Estrellas: valoración media + votar (si está habilitado)
                             if (onRateLine != null && !isProposal && block.type == "BLOCK") {
