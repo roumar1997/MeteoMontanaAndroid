@@ -336,6 +336,7 @@ internal fun PushTab(
 
         // Destinatario: buscador de usuarios o TODOS.
         if (targetUid == null) {
+            val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             OutlinedTextField(value = query,
                 onValueChange = { query = it; onSearchUser(it) },
                 placeholder = { Text("Buscar destinatario por @usuario o nombre…") },
@@ -347,6 +348,7 @@ internal fun PushTab(
                     userResults.take(6).forEach { u ->
                         Row(Modifier.fillMaxWidth()
                             .clickable {
+                                closeKeyboard()
                                 targetUid = u.uid
                                 targetLabel = u.username?.let { "@" + it } ?: u.displayName
                                 query = ""; onClearSearch()

@@ -94,6 +94,7 @@ internal fun SchoolViaSearchBar(
     viewModel: SchoolDetailViewModel
 ) {
     var query by remember { mutableStateOf("") }
+    val closeKeyboard = rememberKeyboardDismisser()
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         androidx.compose.material3.OutlinedTextField(
             value = query,
@@ -136,6 +137,7 @@ internal fun SchoolViaSearchBar(
                         Row(
                             modifier = Modifier.fillMaxWidth()
                                 .clickable {
+                                    closeKeyboard()
                                     viewModel.openVia(h.lineId, h.name)
                                     query = ""
                                 }

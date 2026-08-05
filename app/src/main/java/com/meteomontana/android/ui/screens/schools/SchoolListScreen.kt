@@ -101,6 +101,15 @@ fun SchoolListScreen(
     // recarga ordenado por mejor score + filtra 50 km desde la posición real.
     // En la primera apertura el permiso se pide al FINAL del onboarding,
     // después de explicar para qué sirve.
+    // El detalle se abre como overlay DENTRO de esta misma pantalla, así que
+    // el buscador conserva el foco y el teclado se queda encima de la ficha.
+    // Todo lo que navegue desde aquí lo cierra primero.
+    val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
+    val openSchool: (String) -> Unit = { id -> closeKeyboard(); onSchoolClick(id) }
+    val openVia: (String, String?, String?) -> Unit = { schoolId, viaId, viaName ->
+        closeKeyboard(); onViaHit(schoolId, viaId, viaName)
+    }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     var showOnboarding by remember {
         mutableStateOf(!com.meteomontana.android.ui.onboarding.isOnboardingDone(context))
@@ -198,6 +207,14 @@ fun SchoolListScreen(
                             }
                         },
                         singleLine = true,
+                        // La tecla de buscar del propio teclado lo cierra: la
+                        // lista ya filtra al escribir, no hay nada que enviar.
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Search
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onSearch = { closeKeyboard() }
+                        ),
                         shape = MaterialTheme.shapes.small,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor   = MaterialTheme.colorScheme.surface,
@@ -237,7 +254,7 @@ fun SchoolListScreen(
                                 schoolMatches.forEach { s ->
                                     Row(
                                         Modifier.fillMaxWidth()
-                                            .clickable { onSchoolClick(s.id) }
+                                            .clickable { openSchool(s.id) }
                                             .padding(horizontal = 12.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -272,7 +289,7 @@ fun SchoolListScreen(
                             viaHits.forEach { h ->
                                 Column(
                                     Modifier.fillMaxWidth()
-                                        .clickable { onViaHit(h.schoolId, h.lineId, h.lineName ?: h.blockName) }
+                                        .clickable { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) }
                                         .padding(horizontal = 12.dp, vertical = 10.dp)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -344,7 +361,7 @@ fun SchoolListScreen(
                     userLon = userLocation?.lon,
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
-                    onSchoolDetail = onSchoolClick,
+                    onSchoolDetail = openSchool,
                     mapState = mapState
                 )
             }
@@ -416,7 +433,7 @@ fun SchoolListScreen(
                                 onClick = {
                                     // En modo selección el tap también selecciona.
                                     if (compareSelection.isNotEmpty()) viewModel.toggleCompare(school.id)
-                                    else onSchoolClick(school.id)
+                                    else openSchool(school.id)
                                 },
                                 onLongClick = { viewModel.toggleCompare(school.id) },
                                 onToggleFavorite = { viewModel.toggleFavorite(school.id) }

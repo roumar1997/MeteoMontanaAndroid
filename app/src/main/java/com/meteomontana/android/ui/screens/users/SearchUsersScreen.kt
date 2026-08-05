@@ -86,6 +86,7 @@ fun SearchUsersScreen(
         .background(MaterialTheme.colorScheme.background)) {
         com.meteomontana.android.ui.components.SheetHeader(stringResource(R.string.search_users_title), onClose = onBack)
         Spacer(Modifier.padding(top = 8.dp))
+        val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
         OutlinedTextField(
             value = q, onValueChange = viewModel::setQuery,
             placeholder = { Text(stringResource(R.string.search_users_hint)) },
@@ -102,7 +103,7 @@ fun SearchUsersScreen(
         } else {
             LazyColumn {
                 items(results) { user ->
-                    UserRow(user) { onUserClick(user.uid) }
+                    UserRow(user) { closeKeyboard(); onUserClick(user.uid) }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
             }

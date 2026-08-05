@@ -204,6 +204,7 @@ fun FollowListScreen(
             Text(viewModel.title, style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
+        val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
         // Buscador dentro de la lista (por nombre o @usuario).
         androidx.compose.material3.OutlinedTextField(
             value = query,
@@ -239,7 +240,7 @@ fun FollowListScreen(
                         items(visible, key = { it.uid }) { u ->
                             UserRow(
                                 u = u,
-                                onClick = { onUserClick(u.uid) },
+                                onClick = { closeKeyboard(); onUserClick(u.uid) },
                                 isMe = u.uid == viewModel.myUid,
                                 iFollow = u.uid in s.following,
                                 requested = u.uid in s.requested,

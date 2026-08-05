@@ -246,6 +246,7 @@ fun AddBlockSheet(
                 color = MaterialTheme.colorScheme.onBackground)
 
             // ─── ESCUELA con autocomplete ───
+            val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             Label("ESCUELA")
             OutlinedTextField(
                 value = selectedSchool?.name ?: schoolQuery,
@@ -259,7 +260,9 @@ fun AddBlockSheet(
                     results.take(5).forEach { sch ->
                         SuggestionRow(
                             text = "${sch.name}${sch.region?.let { " · $it" } ?: ""}",
-                            onClick = { selectedSchool = sch; schoolQuery = sch.name }
+                            onClick = {
+                                closeKeyboard(); selectedSchool = sch; schoolQuery = sch.name
+                            }
                         )
                     }
                 }

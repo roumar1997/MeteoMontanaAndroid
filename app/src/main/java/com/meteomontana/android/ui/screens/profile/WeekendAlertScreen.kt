@@ -387,6 +387,7 @@ fun WeekendAlertScreen(
 
             if (s.selected.size < 3) {
                 Spacer(Modifier.height(Spacing.sm))
+                val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
                 OutlinedTextField(
                     value = s.query,
                     onValueChange = viewModel::setQuery,
@@ -403,7 +404,7 @@ fun WeekendAlertScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.addSchool(sugg) }
+                            .clickable { closeKeyboard(); viewModel.addSchool(sugg) }
                             .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

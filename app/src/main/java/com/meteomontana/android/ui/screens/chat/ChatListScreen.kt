@@ -160,6 +160,7 @@ private fun NewChatDialog(
             Text("Nuevo mensaje", style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.size(8.dp))
+            val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -176,7 +177,7 @@ private fun NewChatDialog(
                 LazyColumn(Modifier.heightIn(max = 360.dp)) {
                     items(filtered, key = { it.uid }) { p ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { onPick(p.uid) }
+                            Modifier.fillMaxWidth().clickable { closeKeyboard(); onPick(p.uid) }
                                 .padding(vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
