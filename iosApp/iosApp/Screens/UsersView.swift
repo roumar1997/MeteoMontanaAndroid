@@ -177,7 +177,16 @@ final class PublicProfileViewModel: ObservableObject {
 }
 
 struct PublicProfileView: View {
+    /// Lo que llega por la navegación: puede ser el uid O el username (las
+    /// menciones @usuario del feed solo conocen el username).
     let uid: String
+    /// El uid REAL. Todo lo que identifica a la persona —chat, listas de
+    /// seguidores, bloquear, denunciar— tiene que usar ESTE, no el de la ruta:
+    /// el chat compone el id de la conversación en Firestore ordenando los dos
+    /// uids, así que con un username apuntaba a una conversación inexistente
+    /// (salía vacía y el mensaje no se enviaba). Solo la carga del perfil usa
+    /// el identificador tal cual, porque el servidor sí resuelve las dos formas.
+    private var realUid: String { vm.profile?.uid ?? uid }
     @StateObject private var vm = PublicProfileViewModel()
     // Moderación: denunciar / bloquear a este usuario (menú superior).
     @ObservedObject private var moderation = ModerationStore.shared
@@ -216,17 +225,17 @@ struct PublicProfileView: View {
                     // MÁX VÍA del diario) en la sección DIARIO de abajo.
                     if let s = vm.status {
                         HStack(spacing: 24) {
-                            NavigationLink(destination: FollowListView(uid: uid, mode: .followers)) {
+                            NavigationLink(destination: FollowListView(uid: realUid, mode: .followers)) {
                                 stat("\(s.followers)", "SEGUIDORES")
                             }.buttonStyle(.plain)
-                            NavigationLink(destination: FollowListView(uid: uid, mode: .following)) {
+                            NavigationLink(destination: FollowListView(uid: realUid, mode: .following)) {
                                 stat("\(s.following)", "SIGUIENDO")
                             }.buttonStyle(.plain)
                         }
                         followButton(s)
                         // Chat 1-a-1 con este usuario (Firestore).
                         NavigationLink(destination: ChatView(
-                            otherUid: uid,
+                            otherUid: realUid,
                             otherName: vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")) {
                             Text(NSLocalizedString("chat_message", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
@@ -241,7 +250,7 @@ struct PublicProfileView: View {
                         // H: incluye las celdas ESTADÍSTICAS y PUBLICACIONES
                         // (pulsables, como el resto del perfil).
                         JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo,
-                                        projectsUid: uid, showStatsAndPosts: true)
+                                        projectsUid: realUid, showStatsAndPosts: true)
                     }
                     // H: las publicaciones ya NO van inline — se abren desde
                     // la celda PUBLICACIONES (igual que en el perfil propio).
@@ -287,12 +296,12 @@ struct PublicProfileView: View {
                     Button { showReport = true } label: {
                         Label("Denunciar usuario", systemImage: "flag")
                     }
-                    if moderation.blocked.contains(uid) {
-                        Button { moderation.unblock(uid) } label: {
+                    if moderation.blocked.contains(realUid) {
+                        Button { moderation.unblock(realUid) } label: {
                             Label("Desbloquear", systemImage: "hand.raised.slash")
                         }
                     } else {
-                        Button(role: .destructive) { moderation.block(uid) } label: {
+                        Button(role: .destructive) { moderation.block(realUid) } label: {
                             Label("Bloquear (no verás su contenido)", systemImage: "hand.raised")
                         }
                     }
@@ -304,8 +313,8 @@ struct PublicProfileView: View {
         .sheet(isPresented: $showReport) {
             ReportSheet(title: "DENUNCIAR USUARIO",
                         authorLabel: vm.profile?.username.map { "@" + $0 } ?? "usuario") { reason, alsoBlock in
-                moderation.report(targetType: "USER", targetId: uid, reason: reason,
-                                  alsoBlockUid: alsoBlock ? uid : nil)
+                moderation.report(targetType: "USER", targetId: realUid, reason: reason,
+                                  alsoBlockUid: alsoBlock ? realUid : nil)
             }
         }
         .task { await vm.load(uid: uid); await moderation.loadBlocked() }
@@ -321,7 +330,7 @@ struct PublicProfileView: View {
     @ViewBuilder private func followButton(_ s: FollowStatus) -> some View {
         let following = s.iFollowThem
         let pending = s.requestPending
-        Button { vm.toggleFollow(uid: uid) } label: {
+        Button { vm.toggleFollow(uid: realUid) } label: {
             Text(pending ? NSLocalizedString("profile_requested", comment: "") : (following ? NSLocalizedString("profile_unfollow", comment: "") : NSLocalizedString("profile_follow", comment: "")))
                 .font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(following || pending ? Cumbre.ink : .white)
