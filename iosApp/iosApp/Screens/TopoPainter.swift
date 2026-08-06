@@ -19,6 +19,11 @@ struct TopoVia {
     /// Override del ancho de trazo (el editor resalta la vía seleccionada más
     /// gruesa). nil = usar el de TopoStyle. El contorno oscuro pasa a ancho+4.
     var lineWidth: CGFloat? = nil
+    /// Vía "apagada": translúcida y sin número. Es el modo FOCO — al elegir una
+    /// vía, las demás bajan a un susurro pero NO desaparecen, porque hace falta
+    /// verlas para situar la elegida entre sus vecinas. Espejo de
+    /// TopoLineData.muted en el renderizador compartido.
+    var muted: Bool = false
 }
 
 /// Tamaños de un topo (varían entre editor / ficha / imágenes de compartir).
@@ -45,6 +50,17 @@ struct TopoStyle {
         badgeOuter: 9, badgeInner: 7, badgeText: 10,
         startOuter: 10.5, startInner: 8.5, startText: 7,
         fanStartSpacing: 9 * 2 + 4, fanEndSpacing: 10.5 * 2 + 4)
+
+    /// La ficha, con la foto ampliada: los mismos tamaños divididos por la
+    /// escala, para que el trazo siga midiendo lo mismo en pantalla en vez de
+    /// engordar con la foto hasta tapar la roca. z = 1 devuelve `.photo`.
+    static func photoScaled(_ z: CGFloat) -> TopoStyle {
+        TopoStyle(lineWidth: 3.5 * z, darkOutlineWidth: 6.5 * z,
+                  dash: TopoShared.dash.map { $0 * z },
+                  badgeOuter: 9 * z, badgeInner: 7 * z, badgeText: 10 * z,
+                  startOuter: 10.5 * z, startInner: 8.5 * z, startText: 7 * z,
+                  fanStartSpacing: (9 * 2 + 4) * z, fanEndSpacing: (10.5 * 2 + 4) * z)
+    }
 
     /// Editor de topos (TopoEditorView): badges más grandes para tocar.
     static func editor(lineWidth w: CGFloat) -> TopoStyle {
@@ -85,7 +101,8 @@ enum TopoPainter {
         // no, los guiones se rellenan entre pasadas y la línea sale continua).
         let cleaned = vias.map {
             TopoVia(number: $0.number, grade: $0.grade, startType: $0.startType,
-                    points: TopoShared.dropRetrace($0.points), lineWidth: $0.lineWidth)
+                    points: TopoShared.dropRetrace($0.points), lineWidth: $0.lineWidth,
+                    muted: $0.muted)
         }
         let solid = cleaned.filter { !$0.points.isEmpty }
         guard !solid.isEmpty else { return }
@@ -97,7 +114,10 @@ enum TopoPainter {
 
         // ── Pasada 1: trazos ──────────────────────────────────────────────
         for (idx, via) in solid.enumerated() {
+            // Apagada: mismo color de grado, alfa bajo. Un gris plano haría
+            // perder la referencia de dificultad de un vistazo.
             let stroke = UIColor(GradeColor.style(via.grade).stroke)
+                .withAlphaComponent(via.muted ? 0.24 : 1.0)
             let dark = GradeColor.style(via.grade).dark
             let lw = via.lineWidth ?? style.lineWidth
             let darkW = via.lineWidth != nil ? lw + 4 : style.darkOutlineWidth
@@ -121,6 +141,9 @@ enum TopoPainter {
 
         // ── Pasada 2: badges ──────────────────────────────────────────────
         for (idx, via) in solid.enumerated() {
+            // Apagada: sin número ni etiqueta. En un muro de 13 vías, dejar los
+            // 13 números encima anularía el foco.
+            if via.muted { continue }
             let s = GradeColor.style(via.grade)
             let stroke = UIColor(s.stroke)
             let textColor: UIColor = s.dark ? .black : .white

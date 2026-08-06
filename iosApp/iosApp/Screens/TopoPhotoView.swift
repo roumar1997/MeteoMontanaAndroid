@@ -104,10 +104,46 @@ struct TopoPhotoView: View {
     /// Vías difuminadas: SOLO la versión vieja de la vía que se corrige, para que
     /// se distinga del resto. Vacío = nada difuminado.
     var referenceLines: [TopoLineVM] = []
+    /// Con zoom y foco (tocar una vía apaga las demás). Se enciende SOLO donde
+    /// se mira UNA piedra —ficha, revisión del admin—; en el feed, el buscador
+    /// y las miniaturas se deja apagado, porque ahí la foto vive en una lista
+    /// que se desplaza y el pellizco pelearía con el scroll.
+    var interactive: Bool = false
     @State private var image: UIImage?
     @State private var ratio: CGFloat = 4.0 / 3.0
+    @State private var focus: Int?
 
     var body: some View {
+        Group {
+            if interactive {
+                TopoZoomLayer(
+                    editable: false,
+                    loupeEnabled: false,
+                    onTap: { nx, ny in
+                        // Tocar una vía la enfoca; tocar la roca vacía apaga.
+                        let todas = (normalLines + lines).map { l in
+                            l.points.map { KotlinPair(first: KotlinFloat(float: Float($0.x)),
+                                                      second: KotlinFloat(float: Float($0.y))) }
+                        }
+                        let idx = TopoHitTestKt.nearestLineIndex(
+                            lines: todas, px: Float(nx), py: Float(ny), maxDistance: 0.05)
+                        let nuevo = idx?.intValue
+                        focus = (nuevo == focus) ? nil : nuevo
+                    }
+                ) { zoom in
+                    lienzo(zoom: zoom)
+                }
+            } else {
+                lienzo(zoom: 1)
+            }
+        }
+        .aspectRatio(ratio, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .task(id: photoUrl) { await load() }
+    }
+
+    @ViewBuilder
+    private func lienzo(zoom: CGFloat) -> some View {
         ZStack {
             Color.black
             if let image {
@@ -116,13 +152,10 @@ struct TopoPhotoView: View {
                 ProgressView().tint(.white)
             }
             GeometryReader { geo in
-                Canvas { ctx, size in draw(ctx, size) }
+                Canvas { ctx, size in draw(ctx, size, zoom: zoom) }
                     .frame(width: geo.size.width, height: geo.size.height)
             }
         }
-        .aspectRatio(ratio, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 2))
-        .task(id: photoUrl) { await load() }
     }
 
     private func load() async {
@@ -136,7 +169,7 @@ struct TopoPhotoView: View {
         }
     }
 
-    private func draw(_ ctx: GraphicsContext, _ size: CGSize) {
+    private func draw(_ ctx: GraphicsContext, _ size: CGSize, zoom: CGFloat = 1) {
         // 1. SOLO la vía vieja que se corrige, difuminada (para distinguirla).
         for line in referenceLines where !line.points.isEmpty {
             let style = GradeColor.style(line.grade)
@@ -144,7 +177,8 @@ struct TopoPhotoView: View {
             var path = Path(); path.move(to: pts[0])
             for p in pts.dropFirst() { path.addLine(to: p) }
             ctx.stroke(path, with: .color(style.stroke.opacity(0.35)),
-                       style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round, dash: [6, 6]))
+                       style: StrokeStyle(lineWidth: 4 * zoom, lineCap: .round, lineJoin: .round,
+                                          dash: [6 * zoom, 6 * zoom]))
         }
         // 2. Existentes normales + propuesta, sólidas y numeradas en continuo.
         // Pintor único (TopoPainter): las franjas compartidas, el abanico y las
@@ -152,9 +186,13 @@ struct TopoPhotoView: View {
         // de la ficha/viewer.
         let solid = normalLines + lines
         let vias = solid.enumerated().map { (i, l) in
-            TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points)
+            TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points,
+                    lineWidth: nil, muted: focus != nil && focus != i)
         }
-        TopoPainter.paint(GraphicsContextTarget(ctx: ctx), vias: vias, size: size, style: .photo)
+        // Al ampliar, los grosores se dividen por la escala: si no, al 400% el
+        // trazo engorda con la foto y tapa la roca que ibas a mirar de cerca.
+        TopoPainter.paint(GraphicsContextTarget(ctx: ctx), vias: vias, size: size,
+                          style: .photoScaled(zoom))
     }
 
 }

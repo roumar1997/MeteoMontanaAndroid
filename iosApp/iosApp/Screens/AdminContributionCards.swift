@@ -315,7 +315,10 @@ struct ZoomableTopo: View {
                         .onTapGesture { open = false }
                     VStack {
                         Spacer()
-                        TopoPhotoView(photoUrl: photoUrl, lines: lines)
+                        // Con zoom y foco: es donde el admin decide si una
+                        // linea sigue la via o va por el aire, y a tamano de
+                        // tarjeta eso no se ve.
+                        TopoPhotoView(photoUrl: photoUrl, lines: lines, interactive: true)
                         Spacer()
                     }
                     Button("✕ CERRAR") { open = false }

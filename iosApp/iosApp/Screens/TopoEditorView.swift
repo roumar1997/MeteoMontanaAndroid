@@ -20,6 +20,15 @@ struct TopoEditorView: View {
     // Línea previa al gesto en curso: si el gesto acaba siendo un TOQUE (modo
     // por puntos), se restaura y se le añade solo el punto tocado.
     @State private var lineBeforeStroke: [CGPoint] = []
+    @State private var loupe = true
+
+    /// Vías con las que el trazo puede compartir tramo: las que ya existen en
+    /// la cara y las demás que se están dibujando ahora.
+    private func otherLines() -> [[CGPoint]] {
+        (normalLines.map { $0.points } +
+         blocks.enumerated().filter { $0.offset != selected }.map { $0.element.line })
+            .filter { $0.count >= 2 }
+    }
 
     private var image: UIImage? { photo ?? loaded }
     private var ratio: CGFloat {
@@ -49,64 +58,77 @@ struct TopoEditorView: View {
                 }
 
                 GeometryReader { geo in
-                    ZStack {
-                        Color.black
-                        if let img = image {
-                            Image(uiImage: img).resizable().scaledToFill()
-                        } else { ProgressView().tint(.white) }
-                        Canvas { ctx, size in drawLines(ctx, size) }
+                    // Los gestos y el zoom viven en TopoZoomLayer (espejo de
+                    // TopoZoomBox de Android, con la misma TopoCamera del
+                    // módulo compartido). Aquí solo queda lo que SIGNIFICA
+                    // cada gesto para el editor.
+                    TopoZoomLayer(
+                        editable: true,
+                        loupeEnabled: loupe,
+                        onStrokeStart: { nx, ny in
+                            guard blocks.indices.contains(selected) else { return }
+                            // Copia de seguridad: si el gesto acaba siendo un
+                            // pellizco o un toque, se restaura lo que había.
+                            lineBeforeStroke = blocks[selected].line
+                            blocks[selected].line = [CGPoint(x: nx, y: ny)]
+                        },
+                        onStrokePoint: { nx, ny in
+                            guard blocks.indices.contains(selected) else { return }
+                            blocks[selected].line.append(CGPoint(x: nx, y: ny))
+                        },
+                        onStrokeEnd: {
+                            guard blocks.indices.contains(selected) else { return }
+                            let stroke = blocks[selected].line
+                            guard stroke.count >= 2 else { return }
+                            // SUAVIZADO (fuera el temblor del pulso) e IMÁN a
+                            // las vías cercanas (tramo compartido exacto).
+                            let smooth = TopoShared.simplifyStroke(stroke)
+                            let otras = otherLines()
+                            blocks[selected].line = otras.isEmpty ? smooth
+                                : TopoShared.magnetizeStroke(smooth, others: otras)
+                            lineBeforeStroke = []
+                        },
+                        onStrokeCancel: {
+                            guard blocks.indices.contains(selected) else { return }
+                            blocks[selected].line = lineBeforeStroke
+                        },
+                        onTap: { nx, ny in
+                            guard blocks.indices.contains(selected) else { return }
+                            var line = lineBeforeStroke
+                            line.append(CGPoint(x: nx, y: ny))
+                            let otras = otherLines()
+                            blocks[selected].line = otras.isEmpty ? line
+                                : TopoShared.magnetizeStroke(line, others: otras)
+                            lineBeforeStroke = []
+                        }
+                    ) { zoomFactor in
+                        ZStack {
+                            Color.black
+                            if let img = image {
+                                Image(uiImage: img).resizable().scaledToFill()
+                            } else { ProgressView().tint(.white) }
+                            Canvas { ctx, size in drawLines(ctx, size, zoom: zoomFactor) }
+                        }
                     }
                     .frame(width: geo.size.width, height: geo.size.width / ratio)
-                    .clipped()
-                    .contentShape(Rectangle())
-                    .gesture(DragGesture(minimumDistance: 0).onChanged { v in
-                        let h = geo.size.width / ratio
-                        let nx = max(0, min(1, v.location.x / geo.size.width))
-                        let ny = max(0, min(1, v.location.y / h))
-                        guard blocks.indices.contains(selected) else { return }
-                        // Un ARRASTRE traza una línea nueva de cero; un TOQUE
-                        // suelto (se decide en onEnded) añade un punto a la
-                        // línea actual. Se guarda la línea previa para poder
-                        // restaurarla si al final resulta ser un toque.
-                        if !drawingActive {
-                            drawingActive = true
-                            lineBeforeStroke = blocks[selected].line
-                            blocks[selected].line = []
-                        }
-                        blocks[selected].line.append(CGPoint(x: nx, y: ny))
-                    }.onEnded { _ in
-                        drawingActive = false
-                        guard blocks.indices.contains(selected) else { return }
-                        let stroke = blocks[selected].line
-                        // Otras vías de la cara (existentes + del editor) para el imán.
-                        let others = (normalLines.map { $0.points } +
-                                      blocks.enumerated()
-                                        .filter { $0.offset != selected }
-                                        .map { $0.element.line })
-                            .filter { $0.count >= 2 }
-                        // ¿Fue un TOQUE? (sin apenas movimiento) → añade UN punto
-                        // a la línea que ya había (modo por toques).
-                        let isTap = stroke.count <= 2 || (
-                            stroke.count < 12 && zip(stroke, stroke.dropFirst()).allSatisfy {
-                                abs($0.0.x - $0.1.x) < 0.004 && abs($0.0.y - $0.1.y) < 0.004
-                            })
-                        if isTap, let tap = stroke.last {
-                            var line = lineBeforeStroke
-                            line.append(tap)
-                            blocks[selected].line = others.isEmpty ? line
-                                : TopoShared.magnetizeStroke(line, others: others)
-                        } else if stroke.count >= 2 {
-                            // TRAZO a mano: 1) SUAVIZADO (fuera el temblor del
-                            // pulso) y 2) IMÁN a las vías cercanas.
-                            let smooth = TopoShared.simplifyStroke(stroke)
-                            blocks[selected].line = others.isEmpty ? smooth
-                                : TopoShared.magnetizeStroke(smooth, others: others)
-                        }
-                        lineBeforeStroke = []
-                    })
                 }
                 .aspectRatio(ratio, contentMode: .fit)
                 .padding(.horizontal, 12)
+
+                // La lupa es lo único que no se puede juzgar sin el móvil en la
+                // mano: a unos les salva y a otros les tapa media foto.
+                HStack(spacing: 10) {
+                    Button { loupe.toggle() } label: {
+                        Text(loupe ? "LUPA SÍ" : "LUPA NO")
+                            .font(Cumbre.mono(11, .bold))
+                            .foregroundStyle(loupe ? Cumbre.terra : Cumbre.ink3)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .overlay(Rectangle().stroke(loupe ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                    }.buttonStyle(.plain)
+                    Text("Un dedo dibuja · pellizca para ampliar · doble toque acerca")
+                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                }
+                .padding(.horizontal, 16)
 
                 Text("Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido).")
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).padding(.horizontal, 16)
@@ -139,7 +161,7 @@ struct TopoEditorView: View {
         }
     }
 
-    private func drawLines(_ ctx: GraphicsContext, _ size: CGSize) {
+    private func drawLines(_ ctx: GraphicsContext, _ size: CGSize, zoom: CGFloat = 1) {
         // La vía vieja que se corrige, difuminada (para distinguirla) — al fondo.
         for line in fadedLines where !line.points.isEmpty {
             let style = GradeColor.style(line.grade)
@@ -147,7 +169,8 @@ struct TopoEditorView: View {
             var path = Path(); path.move(to: pts[0])
             for p in pts.dropFirst() { path.addLine(to: p) }
             ctx.stroke(path, with: .color(style.stroke.opacity(0.4)),
-                       style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round, dash: [6, 6]))
+                       style: StrokeStyle(lineWidth: 4 * zoom, lineCap: .round, lineJoin: .round,
+                                          dash: [6 * zoom, 6 * zoom]))
         }
         // Pintor único: índice de vía GLOBAL (normales primero, luego editables)
         // para que las franjas y el abanico casen. La editable seleccionada va
@@ -157,10 +180,10 @@ struct TopoEditorView: View {
         }
         for (idx, b) in blocks.enumerated() {
             vias.append(TopoVia(number: idx + 1, grade: b.grade, startType: b.startType,
-                                points: b.line, lineWidth: idx == selected ? 8 : 5))
+                                points: b.line, lineWidth: (idx == selected ? 8 : 5) * zoom))
         }
         TopoPainter.paint(GraphicsContextTarget(ctx: ctx), vias: vias, size: size,
-                          style: .editor(lineWidth: 5))
+                          style: .editor(lineWidth: 5 * zoom))
     }
 
 }

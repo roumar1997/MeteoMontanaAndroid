@@ -132,7 +132,8 @@ struct BlockInfoSheet: View {
                                     }
                                     .padding(.top, 4)
                                 }
-                                TopoPhotoView(photoUrl: photo, lines: face.lines.map { TopoLineVM($0) })
+                                TopoPhotoView(photoUrl: photo, lines: face.lines.map { TopoLineVM($0) },
+                                              interactive: true)
                                     .padding(.top, 4)
                             }
                             if !face.lines.isEmpty {
