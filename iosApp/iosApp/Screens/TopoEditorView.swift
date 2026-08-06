@@ -21,6 +21,9 @@ struct TopoEditorView: View {
     // por puntos), se restaura y se le añade solo el punto tocado.
     @State private var lineBeforeStroke: [CGPoint] = []
     @State private var loupe = true
+    /// Vértice agarrado para corregirlo. Sin esto, arreglar un punto torcido
+    /// obliga a volver a trazar la vía entera.
+    @State private var draggingVertex: Int?
 
     /// Vías con las que el trazo puede compartir tramo: las que ya existen en
     /// la cara y las demás que se están dibujando ahora.
@@ -70,25 +73,46 @@ struct TopoEditorView: View {
                             // Copia de seguridad: si el gesto acaba siendo un
                             // pellizco o un toque, se restaura lo que había.
                             lineBeforeStroke = blocks[selected].line
-                            blocks[selected].line = [CGPoint(x: nx, y: ny)]
+                            // Si el dedo cae sobre un vértice ya trazado, se
+                            // AGARRA ese punto para corregirlo. Solo con la vía
+                            // ya hecha: con dos puntos aún se está dibujando.
+                            let actual = blocks[selected].line
+                            let v: Int? = actual.count >= 3
+                                ? TopoShared.nearestVertexIndex(actual, x: nx, y: ny)
+                                : nil
+                            draggingVertex = v
+                            if let v {
+                                blocks[selected].line[v] = CGPoint(x: nx, y: ny)
+                            } else {
+                                blocks[selected].line = [CGPoint(x: nx, y: ny)]
+                            }
                         },
                         onStrokePoint: { nx, ny in
                             guard blocks.indices.contains(selected) else { return }
-                            blocks[selected].line.append(CGPoint(x: nx, y: ny))
+                            if let v = draggingVertex, blocks[selected].line.indices.contains(v) {
+                                blocks[selected].line[v] = CGPoint(x: nx, y: ny)
+                            } else {
+                                blocks[selected].line.append(CGPoint(x: nx, y: ny))
+                            }
                         },
                         onStrokeEnd: {
                             guard blocks.indices.contains(selected) else { return }
+                            let corrigiendo = draggingVertex != nil
+                            draggingVertex = nil
                             let stroke = blocks[selected].line
                             guard stroke.count >= 2 else { return }
-                            // SUAVIZADO (fuera el temblor del pulso) e IMÁN a
-                            // las vías cercanas (tramo compartido exacto).
-                            let smooth = TopoShared.simplifyStroke(stroke)
+                            // Corrigiendo un vértice NO se suaviza: el suavizado
+                            // quita puntos, y el que acabas de colocar a mano es
+                            // justo el que quieres conservar. El imán sí, para
+                            // no romper un tramo compartido.
+                            let base = corrigiendo ? stroke : TopoShared.simplifyStroke(stroke)
                             let otras = otherLines()
-                            blocks[selected].line = otras.isEmpty ? smooth
-                                : TopoShared.magnetizeStroke(smooth, others: otras)
+                            blocks[selected].line = otras.isEmpty ? base
+                                : TopoShared.magnetizeStroke(base, others: otras)
                             lineBeforeStroke = []
                         },
                         onStrokeCancel: {
+                            draggingVertex = nil
                             guard blocks.indices.contains(selected) else { return }
                             blocks[selected].line = lineBeforeStroke
                         },
@@ -184,6 +208,18 @@ struct TopoEditorView: View {
         }
         TopoPainter.paint(GraphicsContextTarget(ctx: ctx), vias: vias, size: size,
                           style: .editor(lineWidth: 5 * zoom))
+        // Vértices de la vía seleccionada: si no se ven, nadie adivina que se
+        // pueden arrastrar para corregirlos.
+        if blocks.indices.contains(selected) {
+            for p in blocks[selected].line {
+                let c = CGPoint(x: p.x * size.width, y: p.y * size.height)
+                let r: CGFloat = 5 * zoom
+                let caja = CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)
+                ctx.fill(Path(ellipseIn: caja), with: .color(.white))
+                ctx.stroke(Path(ellipseIn: caja), with: .color(.black.opacity(0.6)),
+                           lineWidth: 1.5 * zoom)
+            }
+        }
     }
 
 }

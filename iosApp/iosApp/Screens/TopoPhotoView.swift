@@ -121,13 +121,8 @@ struct TopoPhotoView: View {
                     loupeEnabled: false,
                     onTap: { nx, ny in
                         // Tocar una vía la enfoca; tocar la roca vacía apaga.
-                        let todas = (normalLines + lines).map { l in
-                            l.points.map { KotlinPair(first: KotlinFloat(float: Float($0.x)),
-                                                      second: KotlinFloat(float: Float($0.y))) }
-                        }
-                        let idx = TopoHitTestKt.nearestLineIndex(
-                            lines: todas, px: Float(nx), py: Float(ny), maxDistance: 0.05)
-                        let nuevo = idx?.intValue
+                        let nuevo = TopoShared.nearestLineIndex(
+                            (normalLines + lines).map { $0.points }, x: nx, y: ny)
                         focus = (nuevo == focus) ? nil : nuevo
                     }
                 ) { zoom in

@@ -2,6 +2,7 @@ package com.meteomontana.android.topo
 
 import com.meteomontana.android.domain.util.distanceToPolyline
 import com.meteomontana.android.domain.util.nearestLineIndex
+import com.meteomontana.android.domain.util.nearestVertexIndex
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -67,5 +68,38 @@ class TopoHitTestTest {
     fun sinViasNoRevienta() {
         assertNull(nearestLineIndex(emptyList(), 0.5f, 0.5f))
         assertEquals(Float.MAX_VALUE, distanceToPolyline(0.5f, 0.5f, emptyList()))
+    }
+
+    // ── Agarrar un vértice para corregirlo ──────────────────────────────
+
+    @Test
+    fun agarrasElVerticeQueTienesDebajo() {
+        assertEquals(1, nearestVertexIndex(izquierda, 0.205f, 0.505f))
+    }
+
+    @Test
+    fun lejosDeTodoVerticeNoAgarraNada() {
+        // Importante: empezar un trazo nuevo cerca de una vía NO debe
+        // secuestrar su vértice; eso cambiaría una vía que dabas por buena.
+        assertNull(nearestVertexIndex(izquierda, 0.26f, 0.5f))
+    }
+
+    @Test
+    fun entreDosVerticesAgarraElMasCercano() {
+        // Dentro del radio de agarre (0,03), gana el vértice más próximo.
+        assertEquals(2, nearestVertexIndex(izquierda, 0.2f, 0.12f))
+        assertEquals(1, nearestVertexIndex(izquierda, 0.2f, 0.52f))
+    }
+
+    @Test
+    fun elRadioDeAgarreEsMasEstrechoQueElDeSeleccion() {
+        // Un punto a 0,04: selecciona la vía pero NO agarra su vértice.
+        assertEquals(0, nearestLineIndex(dos, 0.24f, 0.9f))
+        assertNull(nearestVertexIndex(izquierda, 0.24f, 0.9f))
+    }
+
+    @Test
+    fun unaViaVaciaNoTieneVertices() {
+        assertNull(nearestVertexIndex(emptyList(), 0.5f, 0.5f))
     }
 }

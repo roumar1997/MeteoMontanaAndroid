@@ -72,3 +72,33 @@ fun nearestLineIndex(
     }
     return best
 }
+
+/**
+ * El vértice de una vía que has agarrado, o null si no hay ninguno cerca.
+ *
+ * Es lo que permite CORREGIR en vez de volver a trazar: hoy, para arreglar un
+ * punto torcido hay que redibujar la vía entera. El umbral es pequeño a
+ * propósito — más que en [nearestLineIndex] —, porque agarrar un vértice sin
+ * querer al empezar un trazo nuevo es peor que no agarrarlo: te cambia una vía
+ * que dabas por buena.
+ *
+ * @param maxDistance en coordenadas de foto; con la foto ampliada, el llamante
+ *        debe dividirlo por la escala para que el radio de agarre siga siendo
+ *        el mismo trozo de pantalla.
+ */
+fun nearestVertexIndex(
+    points: List<Pair<Float, Float>>,
+    px: Float,
+    py: Float,
+    maxDistance: Float = 0.03f
+): Int? {
+    var best: Int? = null
+    var bestD = maxDistance * maxDistance
+    points.forEachIndexed { i, (x, y) ->
+        val dx = px - x
+        val dy = py - y
+        val d = dx * dx + dy * dy
+        if (d < bestD) { bestD = d; best = i }
+    }
+    return best
+}

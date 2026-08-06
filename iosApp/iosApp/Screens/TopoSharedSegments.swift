@@ -224,3 +224,33 @@ enum TopoShared {
         return out
     }
 }
+
+// MARK: - Acierto de vía/vértice (puente directo al módulo compartido)
+
+extension TopoShared {
+
+    /// [CGPoint] → la lista de pares que espera el módulo compartido.
+    static func kpoints(_ pts: [CGPoint]) -> [KotlinPair<KotlinFloat, KotlinFloat>] {
+        pts.map { KotlinPair(first: KotlinFloat(float: Float($0.x)),
+                             second: KotlinFloat(float: Float($0.y))) }
+    }
+
+    /// Qué vía has tocado. **No se reimplementa aquí**: se llama al código
+    /// compartido, que es el que tiene los tests. Lo de arriba en este fichero
+    /// son espejos escritos a mano por historia; lo nuevo entra por el puente.
+    static func nearestLineIndex(_ lines: [[CGPoint]], x: CGFloat, y: CGFloat,
+                                 maxDistance: Float = 0.05) -> Int? {
+        TopoHitTestKt.nearestLineIndex(lines: lines.map { kpoints($0) },
+                                       px: Float(x), py: Float(y),
+                                       maxDistance: maxDistance)?.intValue
+    }
+
+    /// Qué vértice has agarrado para corregirlo (radio más estrecho: agarrar
+    /// uno sin querer cambia una vía que dabas por buena).
+    static func nearestVertexIndex(_ points: [CGPoint], x: CGFloat, y: CGFloat,
+                                   maxDistance: Float = 0.03) -> Int? {
+        TopoHitTestKt.nearestVertexIndex(points: kpoints(points),
+                                         px: Float(x), py: Float(y),
+                                         maxDistance: maxDistance)?.intValue
+    }
+}

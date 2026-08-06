@@ -87,6 +87,9 @@ fun ContributionTopoDialog(
     // Lo que habia en la via antes de empezar este trazo, para restaurarlo si
     // el gesto acaba siendo un pellizco.
     var lineBeforeStroke by remember { mutableStateOf<List<Offset>>(emptyList()) }
+    // Vertice agarrado para corregirlo. Sin esto, arreglar un punto torcido
+    // obliga a volver a trazar la via entera.
+    var draggingVertex by remember { mutableStateOf<Int?>(null) }
 
     // Una lista de puntos por bloque. SnapshotStateList para que el Canvas se redibuje en tiempo real.
     val lines = remember {
@@ -231,26 +234,48 @@ fun ContributionTopoDialog(
                             // mitad del trazo se restaura lo que habia, en vez
                             // de dejar la via a medio borrar.
                             lineBeforeStroke = current.toList()
-                            current.clear(); current.add(Offset(px, py))
+                            // Si el dedo cae encima de un vertice existente, se
+                            // AGARRA ese punto para corregirlo. Solo si la via
+                            // ya esta trazada: con dos puntos aun se esta
+                            // dibujando y agarrar estorbaria.
+                            val v = if (current.size >= 3)
+                                com.meteomontana.android.domain.util.nearestVertexIndex(
+                                    current.map { it.x to it.y }, px, py)
+                            else null
+                            draggingVertex = v
+                            if (v == null) { current.clear(); current.add(Offset(px, py)) }
+                            else current[v] = Offset(px, py)
                         }
                     },
-                    onStrokePoint = { px, py -> lines[selectedIdx]?.add(Offset(px, py)) },
+                    onStrokePoint = { px, py ->
+                        val current = lines[selectedIdx]
+                        val v = draggingVertex
+                        if (current != null) {
+                            if (v != null && v < current.size) current[v] = Offset(px, py)
+                            else current.add(Offset(px, py))
+                        }
+                    },
                     onStrokeCancel = {
                         val current = lines[selectedIdx]
                         if (current != null) {
                             current.clear(); current.addAll(lineBeforeStroke)
                         }
+                        draggingVertex = null
                     },
                     onStrokeEnd = {
-                        // Al soltar: SUAVIZADO (quita el temblor del pulso) e
-                        // IMAN (los puntos cerca de otra via se pegan a SUS
-                        // vertices, y el tramo comun se pinta a franjas).
                         val current = lines[selectedIdx]
+                        val corrigiendo = draggingVertex != null
+                        draggingVertex = null
                         if (current != null && current.size >= 2) {
-                            val smooth = com.meteomontana.android.domain.util.simplifyStroke(
+                            // Corrigiendo un vertice NO se suaviza: el suavizado
+                            // borra puntos, y el que acabas de colocar a mano es
+                            // justo el que quieres conservar. El iman si se
+                            // aplica, para no romper un tramo compartido.
+                            val base = if (corrigiendo) current.map { it.x to it.y }
+                            else com.meteomontana.android.domain.util.simplifyStroke(
                                 current.map { it.x to it.y })
                             val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
-                                smooth, otrasVias(existingLines, lines, selectedIdx))
+                                base, otrasVias(existingLines, lines, selectedIdx))
                             current.clear()
                             snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
                         }
@@ -318,6 +343,21 @@ fun ContributionTopoDialog(
                         dashPx = 12f * dens * z to 9f * dens * z,
                         stripePx = 22f * dens * z
                     ).forEach { op -> drawOp(op, nc) }
+                    // Vertices de la via seleccionada: si no se ven, nadie
+                    // adivina que se pueden arrastrar.
+                    lines[selectedIdx]?.forEach { pt ->
+                        drawCircle(
+                            androidx.compose.ui.graphics.Color.White,
+                            radius = 5f * z,
+                            center = Offset(pt.x * size.width, pt.y * size.height)
+                        )
+                        drawCircle(
+                            androidx.compose.ui.graphics.Color.Black,
+                            radius = 5f * z,
+                            center = Offset(pt.x * size.width, pt.y * size.height),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * z)
+                        )
+                    }
                     }
                 }
               }
