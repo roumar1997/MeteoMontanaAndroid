@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 
 // Tramos COMPARTIDOS entre vías + utilidades del editor — espejo Swift de
 // sharedSegmentLines / magnetizeStroke / simplifyStroke / fanOffsets de
