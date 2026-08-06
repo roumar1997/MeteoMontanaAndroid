@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.meteomontana.android.domain.util.nearestLineIndex
 import com.meteomontana.android.domain.util.renderTopo
 
 /**
@@ -45,9 +44,9 @@ fun TopoPhotoViewer(
     onFocusChange: (Int?) -> Unit = {}
 ) {
     var ratio by remember(photoUrl) { mutableStateOf(4f / 3f) }
-    // Foco propio si nadie lo gobierna desde fuera.
-    var innerFocus by remember(photoUrl) { mutableStateOf<Int?>(null) }
-    val focus = focusedIndex ?: innerFocus
+    // El foco ya NO se activa tocando la foto (a Rodrigo no le convencia): solo
+    // lo enciende quien llame desde fuera, p.ej. tocando la via en la lista.
+    val focus = focusedIndex
 
     Box(
         modifier = modifier
@@ -58,14 +57,7 @@ fun TopoPhotoViewer(
     ) {
         TopoZoomBox(
             modifier = Modifier.fillMaxSize(),
-            editable = false,
-            onTap = { px, py ->
-                // Tocar una vía la enfoca; tocar la roca vacía apaga el foco.
-                val idx = nearestLineIndex(lines.map { l -> l.points.map { it.x to it.y } }, px, py)
-                val nuevo = if (idx == focus) null else idx
-                innerFocus = nuevo
-                onFocusChange(nuevo)
-            }
+            editable = false
         ) { camera ->
             AsyncImage(
                 model = photoUrl,

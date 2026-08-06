@@ -111,21 +111,14 @@ struct TopoPhotoView: View {
     var interactive: Bool = false
     @State private var image: UIImage?
     @State private var ratio: CGFloat = 4.0 / 3.0
-    @State private var focus: Int?
+    /// El foco ya NO se enciende tocando la foto (a Rodrigo no le convencía).
+    /// Se deja el mecanismo por si algún día lo activa otra pantalla.
+    @State private var focus: Int? = nil
 
     var body: some View {
         Group {
             if interactive {
-                TopoZoomLayer(
-                    editable: false,
-                    loupeEnabled: false,
-                    onTap: { nx, ny in
-                        // Tocar una vía la enfoca; tocar la roca vacía apaga.
-                        let nuevo = TopoShared.nearestLineIndex(
-                            (normalLines + lines).map { $0.points }, x: nx, y: ny)
-                        focus = (nuevo == focus) ? nil : nuevo
-                    }
-                ) { zoom in
+                TopoZoomLayer(editable: false) { zoom in
                     lienzo(zoom: zoom)
                 }
             } else {

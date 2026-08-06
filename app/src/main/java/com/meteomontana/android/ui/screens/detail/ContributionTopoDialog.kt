@@ -86,9 +86,6 @@ fun ContributionTopoDialog(
 ) {
     var selectedIdx by remember { mutableStateOf(0) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    // Lupa: ayuda cuando el dedo tapa el punto y estorba si quieres ver la foto
-    // entera. Se decide en el momento, con el interruptor de la barra.
-    var loupe by remember { mutableStateOf(true) }
     // Lo que habia en la via antes de empezar este trazo, para restaurarlo si
     // el gesto acaba siendo un pellizco.
     var lineBeforeStroke by remember { mutableStateOf<List<Offset>>(emptyList()) }
@@ -111,6 +108,8 @@ fun ContributionTopoDialog(
     // cada cambio. Sin esto, mover una via sin querer al revisar la propuesta
     // de otro no tiene vuelta atras.
     val historial = remember { mutableStateListOf<Pair<Int, List<Offset>>>() }
+    // Radio del iman en coordenadas de foto, ajustado a la ampliacion actual.
+    var imanRadio by remember { mutableStateOf(0.04f) }
     fun apunta() {
         lines[selectedIdx]?.let { historial.add(selectedIdx to it.toList()) }
         if (historial.size > 40) historial.removeAt(0)
@@ -240,7 +239,6 @@ fun ContributionTopoDialog(
                 com.meteomontana.android.ui.components.TopoZoomBox(
                     modifier = Modifier.fillMaxSize(),
                     editable = true,
-                    loupeEnabled = loupe,
                     onStrokeStart = { px, py ->
                         val current = lines[selectedIdx]
                         if (current != null) {
@@ -267,7 +265,18 @@ fun ContributionTopoDialog(
                         val v = draggingVertex
                         if (current != null) {
                             if (v != null && v < current.size) current[v] = Offset(px, py)
-                            else current.add(Offset(px, py))
+                            else {
+                                // Solo si el dedo se ha movido de verdad: con el
+                                // dedo casi quieto llegaban decenas de puntos
+                                // identicos por segundo, y el limpiador de
+                                // pasadas superpuestas los tomaba por un
+                                // retrazado y dejaba la linea SIN PINTAR hasta
+                                // soltar. Era el "no veo lo que dibujo".
+                                val ult = current.lastOrNull()
+                                val lejos = ult == null ||
+                                    kotlin.math.abs(px - ult.x) + kotlin.math.abs(py - ult.y) > 0.003f
+                                if (lejos) current.add(Offset(px, py))
+                            }
                         }
                     },
                     onStrokeCancel = {
@@ -303,12 +312,15 @@ fun ContributionTopoDialog(
                             current.add(Offset(px, py))
                             val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
                                 current.map { it.x to it.y },
-                                otrasVias(existingLines, lines, selectedIdx))
+                                otrasVias(existingLines, lines, selectedIdx), imanRadio)
                             current.clear()
                             snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
                         }
                     }
                 ) { camera ->
+                    // El radio del iman se divide por la ampliacion: asi agarra
+                    // el mismo trozo de PANTALLA con la foto entera y ampliada.
+                    imanRadio = 0.04f * camera.strokeFactor()
                     AsyncImage(
                         model = photoUri,
                         contentDescription = null,
@@ -392,23 +404,6 @@ fun ContributionTopoDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(
-                            1.dp,
-                            if (loupe) Terra else MaterialTheme.colorScheme.outline,
-                            RoundedCornerShape(2.dp)
-                        )
-                        .clickable { loupe = !loupe }
-                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                ) {
-                    Text(
-                        if (loupe) "LUPA SÍ" else "LUPA NO",
-                        style = EyebrowTextStyle,
-                        color = if (loupe) Terra else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
                 val hayQueDeshacer = historial.isNotEmpty()
                 Box(
                     modifier = Modifier

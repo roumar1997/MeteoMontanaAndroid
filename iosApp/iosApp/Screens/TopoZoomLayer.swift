@@ -18,7 +18,6 @@ import Shared
 struct TopoZoomLayer<Content: View>: View {
 
     var editable: Bool = false
-    var loupeEnabled: Bool = true
     var onStrokeStart: (CGFloat, CGFloat) -> Void = { _, _ in }
     var onStrokePoint: (CGFloat, CGFloat) -> Void = { _, _ in }
     var onStrokeEnd: () -> Void = {}
@@ -36,7 +35,6 @@ struct TopoZoomLayer<Content: View>: View {
     @State private var drawing = false
     @State private var strokeMoved: CGFloat = 0
     @State private var lastPoint: CGPoint?
-    @State private var fingerAt: CGPoint?
 
     var body: some View {
         GeometryReader { geo in
@@ -49,9 +47,6 @@ struct TopoZoomLayer<Content: View>: View {
                     .scaleEffect(CGFloat(camera.scale), anchor: .topLeading)
                     .offset(x: CGFloat(camera.offsetX), y: CGFloat(camera.offsetY))
 
-                if loupeEnabled, editable, let f = fingerAt {
-                    loupe(at: f, size: geo.size)
-                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
@@ -62,7 +57,6 @@ struct TopoZoomLayer<Content: View>: View {
                     .onChanged { v in
                         if drawing {          // llegó el segundo dedo
                             drawing = false
-                            fingerAt = nil
                             onStrokeCancel()
                         }
                         if !pinching {
@@ -79,6 +73,10 @@ struct TopoZoomLayer<Content: View>: View {
                     }
                     .onEnded { _ in pinching = false }
             )
+            // El arrastre SOLO se engancha si hay algo que hacer con él: al
+            // dibujar, o con la foto ya ampliada. Sin ampliar, un visor no toca
+            // el gesto y la ficha vuelve a hacer scroll con normalidad — en el
+            // iPhone se lo comía entero y la ficha se quedaba clavada.
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { v in
@@ -104,7 +102,6 @@ struct TopoZoomLayer<Content: View>: View {
                                 lastPoint = v.location
                                 onStrokePoint(p.x, p.y)
                             }
-                            fingerAt = v.location
                         } else if camera.scale > 1 {
                             // Visor: con la foto ampliada, un dedo la mueve.
                             let dx = v.translation.width - panBase.width
@@ -114,7 +111,6 @@ struct TopoZoomLayer<Content: View>: View {
                         }
                     }
                     .onEnded { v in
-                        fingerAt = nil
                         panBase = .zero
                         let p = foto(v.location, w: w, h: h)
                         if drawing {
@@ -125,12 +121,10 @@ struct TopoZoomLayer<Content: View>: View {
                             } else {
                                 onStrokeEnd()
                             }
-                        } else if !pinching && !editable {
-                            let movido = abs(v.translation.width) + abs(v.translation.height)
-                            if movido < 12 { onTap(p.x, p.y) }
                         }
                         lastPoint = nil
-                    }
+                    },
+                including: (editable || camera.scale > 1) ? .all : .subviews
             )
             .simultaneousGesture(
                 SpatialTapGesture(count: 2)
@@ -149,33 +143,4 @@ struct TopoZoomLayer<Content: View>: View {
         return (CGFloat(truncating: r.first ?? 0), CGFloat(truncating: r.second ?? 0))
     }
 
-    /// Lupa: enseña ampliado lo que hay bajo el dedo, con una cruz en el punto
-    /// exacto. Resuelve lo que el zoom no arregla — que el dedo tapa el punto.
-    @ViewBuilder
-    private func loupe(at p: CGPoint, size: CGSize) -> some View {
-        let lado: CGFloat = 116
-        let margen: CGFloat = 12
-        let x = min(max(p.x - lado / 2, margen), size.width - lado - margen)
-        let arriba = p.y - lado - margen * 2
-        let y = arriba < margen
-            ? min(p.y + margen * 2, size.height - lado - margen)
-            : arriba
-        let z = CGFloat(camera.scale) * 2.4
-
-        ZStack {
-            content(CGFloat(camera.strokeFactor()))
-                .frame(width: size.width, height: size.height)
-                .scaleEffect(z, anchor: .topLeading)
-                .offset(x: -(p.x - CGFloat(camera.offsetX)) * 2.4 + lado / 2,
-                        y: -(p.y - CGFloat(camera.offsetY)) * 2.4 + lado / 2)
-            Circle().stroke(Color.white.opacity(0.95), lineWidth: 1.5).frame(width: 14, height: 14)
-        }
-        .frame(width: lado, height: lado)
-        .background(Color.black)
-        .clipShape(Circle())
-        .overlay(Circle().stroke(Color.white, lineWidth: 2))
-        .shadow(color: .black.opacity(0.5), radius: 5, y: 2)
-        .offset(x: x, y: y)
-        .allowsHitTesting(false)
-    }
 }

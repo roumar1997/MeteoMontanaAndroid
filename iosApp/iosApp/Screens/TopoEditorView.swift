@@ -20,7 +20,6 @@ struct TopoEditorView: View {
     // Línea previa al gesto en curso: si el gesto acaba siendo un TOQUE (modo
     // por puntos), se restaura y se le añade solo el punto tocado.
     @State private var lineBeforeStroke: [CGPoint] = []
-    @State private var loupe = true
     /// Vértice agarrado para corregirlo. Sin esto, arreglar un punto torcido
     /// obliga a volver a trazar la vía entera.
     @State private var draggingVertex: Int?
@@ -28,6 +27,8 @@ struct TopoEditorView: View {
     /// cambio. Sin esto, mover una vía sin querer al revisar la propuesta de
     /// otro no tiene vuelta atrás.
     @State private var historial: [(Int, [CGPoint])] = []
+    /// Radio del imán en coordenadas de foto, ajustado a la ampliación actual.
+    @State private var imanRadio: Float = 0.04
 
     /// Devuelve la vía a como estaba antes del último cambio.
     private func deshacer() {
@@ -79,7 +80,6 @@ struct TopoEditorView: View {
                     // cada gesto para el editor.
                     TopoZoomLayer(
                         editable: true,
-                        loupeEnabled: loupe,
                         onStrokeStart: { nx, ny in
                             guard blocks.indices.contains(selected) else { return }
                             // Copia de seguridad: si el gesto acaba siendo un
@@ -106,7 +106,15 @@ struct TopoEditorView: View {
                             if let v = draggingVertex, blocks[selected].line.indices.contains(v) {
                                 blocks[selected].line[v] = CGPoint(x: nx, y: ny)
                             } else {
-                                blocks[selected].line.append(CGPoint(x: nx, y: ny))
+                                // Solo si el dedo se ha movido de verdad: con el
+                                // dedo casi quieto llegaban decenas de puntos
+                                // idénticos por segundo y el limpiador de pasadas
+                                // superpuestas los tomaba por un retrazado,
+                                // dejando la línea sin pintar hasta soltar.
+                                let ult = blocks[selected].line.last
+                                let lejos = ult == nil ||
+                                    abs(nx - ult!.x) + abs(ny - ult!.y) > 0.003
+                                if lejos { blocks[selected].line.append(CGPoint(x: nx, y: ny)) }
                             }
                         },
                         onStrokeEnd: {
@@ -122,7 +130,8 @@ struct TopoEditorView: View {
                             let base = corrigiendo ? stroke : TopoShared.simplifyStroke(stroke)
                             let otras = otherLines()
                             blocks[selected].line = otras.isEmpty ? base
-                                : TopoShared.magnetizeStroke(base, others: otras)
+                                : TopoShared.magnetizeStroke(base, others: otras,
+                                                             threshold: CGFloat(imanRadio))
                             lineBeforeStroke = []
                         },
                         onStrokeCancel: {
@@ -136,10 +145,16 @@ struct TopoEditorView: View {
                             line.append(CGPoint(x: nx, y: ny))
                             let otras = otherLines()
                             blocks[selected].line = otras.isEmpty ? line
-                                : TopoShared.magnetizeStroke(line, others: otras)
+                                : TopoShared.magnetizeStroke(line, others: otras,
+                                                             threshold: CGFloat(imanRadio))
                             lineBeforeStroke = []
                         }
                     ) { zoomFactor in
+                        // El radio del imán se divide por la ampliación: así
+                        // agarra el mismo trozo de PANTALLA con la foto entera
+                        // y ampliada. Con radio fijo, al ampliar x4 el trazo
+                        // saltaba a vías que ni tocabas.
+                        let _ = { imanRadio = Float(0.04 * zoomFactor) }()
                         ZStack {
                             Color.black
                             if let img = image {
@@ -156,13 +171,6 @@ struct TopoEditorView: View {
                 // La lupa es lo único que no se puede juzgar sin el móvil en la
                 // mano: a unos les salva y a otros les tapa media foto.
                 HStack(spacing: 10) {
-                    Button { loupe.toggle() } label: {
-                        Text(loupe ? "LUPA SÍ" : "LUPA NO")
-                            .font(Cumbre.mono(11, .bold))
-                            .foregroundStyle(loupe ? Cumbre.terra : Cumbre.ink3)
-                            .padding(.horizontal, 10).padding(.vertical, 6)
-                            .overlay(Rectangle().stroke(loupe ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                    }.buttonStyle(.plain)
                     Button { deshacer() } label: {
                         Text("DESHACER")
                             .font(Cumbre.mono(11, .bold))

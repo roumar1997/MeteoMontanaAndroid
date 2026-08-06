@@ -60,7 +60,6 @@ import kotlin.math.roundToInt
 fun TopoZoomBox(
     modifier: Modifier = Modifier,
     editable: Boolean = false,
-    loupeEnabled: Boolean = true,
     onStrokeStart: (Float, Float) -> Unit = { _, _ -> },
     onStrokePoint: (Float, Float) -> Unit = { _, _ -> },
     onStrokeEnd: () -> Unit = {},
@@ -71,8 +70,6 @@ fun TopoZoomBox(
 ) {
     var camera by remember { mutableStateOf(TopoCamera.NONE) }
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
-    // Dónde está el dedo mientras dibuja: solo para la lupa (null = sin lupa).
-    var fingerAt by remember { mutableStateOf<Offset?>(null) }
 
     fun setCamera(c: TopoCamera) {
         camera = c
@@ -102,7 +99,6 @@ fun TopoZoomBox(
                     if (editable) {
                         val (px, py) = camera.toPhoto(down.position.x, down.position.y, w, h)
                         onStrokeStart(px, py)
-                        fingerAt = down.position
                         dibujando = true
                     }
 
@@ -116,7 +112,6 @@ fun TopoZoomBox(
                             // medias y pasamos a mover/ampliar.
                             if (dibujando) {
                                 dibujando = false
-                                fingerAt = null
                                 onStrokeCancel()
                             }
                             multiTouch = true
@@ -140,16 +135,18 @@ fun TopoZoomBox(
                         if (dibujando) {
                             val (px, py) = camera.toPhoto(ch.position.x, ch.position.y, w, h)
                             onStrokePoint(px, py)
-                            fingerAt = ch.position
                             if (ch.positionChanged()) ch.consume()
+                        } else if (!multiTouch && !camera.isIdentity && ch.positionChanged()) {
+                            // Visor AMPLIADO: un dedo mueve la foto. Sin ampliar
+                            // no se toca nada, y así la ficha sigue haciendo
+                            // scroll con normalidad: el gesto solo se "captura"
+                            // cuando el usuario ya ha decidido mirar de cerca.
+                            val d = ch.position - ch.previousPosition
+                            setCamera(camera.panBy(d.x, d.y, w, h))
+                            ch.consume()
                         }
-                        // En el VISOR un dedo no hace nada aquí: se deja pasar
-                        // para que la ficha siga desplazándose con normalidad.
-                        // Mover la foto es cosa de dos dedos, que es un gesto
-                        // que no compite con el scroll y no hay que aprender.
                     }
 
-                    fingerAt = null
                     if (dibujando) {
                         if (movido < toqueMaxPx) {
                             // Fue un toque, no un trazo: se descarta lo empezado
@@ -200,76 +197,5 @@ fun TopoZoomBox(
             content(camera)
         }
 
-        if (loupeEnabled && editable) {
-            TopoLoupe(fingerAt, camera, viewSize) { content(camera) }
-        }
     }
 }
-
-/**
- * Lupa: mientras el dedo está apoyado, enseña ampliado lo que hay debajo.
- *
- * Resuelve algo que el zoom por sí solo no arregla — **el dedo tapa justo el
- * punto que quieres marcar**. Es lo mismo que hace iOS al seleccionar texto.
- * Se coloca encima del dedo, y baja si no cabe arriba.
- */
-@Composable
-private fun BoxScope.TopoLoupe(
-    fingerAt: Offset?,
-    camera: TopoCamera,
-    viewSize: IntSize,
-    content: @Composable BoxScope.() -> Unit
-) {
-    val p = fingerAt ?: return
-    if (viewSize.width == 0) return
-    val density = LocalDensity.current
-    val ladoPx = with(density) { LOUPE_SIZE.toPx() }
-    val margen = with(density) { 12.dp.toPx() }
-
-    // Encima del dedo; si se sale por arriba, debajo.
-    val x = (p.x - ladoPx / 2f).coerceIn(margen, viewSize.width - ladoPx - margen)
-    val yArriba = p.y - ladoPx - margen * 2
-    val y = if (yArriba < margen) (p.y + margen * 2)
-            .coerceAtMost(viewSize.height - ladoPx - margen)
-    else yArriba
-
-    Box(
-        modifier = Modifier
-            .offset { IntOffset(x.roundToInt(), y.roundToInt()) }
-            .size(LOUPE_SIZE)
-            .clip(CircleShape)
-            .background(Color.Black)
-    ) {
-        // El mismo contenido, ampliado y centrado en el dedo.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer(
-                    scaleX = camera.scale * LOUPE_ZOOM,
-                    scaleY = camera.scale * LOUPE_ZOOM,
-                    translationX = -(p.x - camera.offsetX) * LOUPE_ZOOM + ladoPx / 2f
-                            + camera.offsetX * 0f,
-                    translationY = -(p.y - camera.offsetY) * LOUPE_ZOOM + ladoPx / 2f,
-                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0f)
-                )
-        ) {
-            content()
-        }
-        // Cruz en el punto exacto: sin ella la lupa enseña roca pero no dice
-        // DÓNDE va a caer el punto.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawWithContent {
-                    drawContent()
-                    val c = Offset(size.width / 2f, size.height / 2f)
-                    val r = 7f * density.density
-                    drawCircle(Color.White, radius = r, center = c,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density.density))
-                }
-        )
-    }
-}
-
-private val LOUPE_SIZE = 116.dp
-private const val LOUPE_ZOOM = 2.4f
