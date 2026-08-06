@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,8 +69,12 @@ private fun otrasVias(
     lines: Map<Int, SnapshotStateList<Offset>>,
     selectedIdx: Int
 ): List<List<Pair<Float, Float>>> =
-    existingLines.map { l -> l.points.map { it.x to it.y } } +
-        lines.filterKeys { it != selectedIdx }.values.map { pts -> pts.map { it.x to it.y } }
+    (existingLines.map { l -> l.points.map { it.x to it.y } } +
+        lines.filterKeys { it != selectedIdx }.values.map { pts -> pts.map { it.x to it.y } })
+        // Solo vias TRAZADAS. Una via con un unico punto suelto actuaba como
+        // iman y se llevaba el trazo a donde no era: es lo que hacia que unirse
+        // a mitad de otra via acabase pegado a su inicio. iOS ya lo filtraba.
+        .filter { it.size >= 2 }
 
 @Composable
 fun ContributionTopoDialog(
@@ -100,6 +105,15 @@ fun ContributionTopoDialog(
                 }
             }
         }
+    }
+
+    // Historial para DESHACER: (indice de via, como estaba). Se apila ANTES de
+    // cada cambio. Sin esto, mover una via sin querer al revisar la propuesta
+    // de otro no tiene vuelta atras.
+    val historial = remember { mutableStateListOf<Pair<Int, List<Offset>>>() }
+    fun apunta() {
+        lines[selectedIdx]?.let { historial.add(selectedIdx to it.toList()) }
+        if (historial.size > 40) historial.removeAt(0)
     }
 
     Dialog(
@@ -234,6 +248,7 @@ fun ContributionTopoDialog(
                             // mitad del trazo se restaura lo que habia, en vez
                             // de dejar la via a medio borrar.
                             lineBeforeStroke = current.toList()
+                            apunta()
                             // Si el dedo cae encima de un vertice existente, se
                             // AGARRA ese punto para corregirlo. Solo si la via
                             // ya esta trazada: con dos puntos aun se esta
@@ -341,7 +356,9 @@ fun ContributionTopoDialog(
                         startR = 26f * z to 22f * z,
                         startTextPx = 20f * z to 7f * z,
                         dashPx = 12f * dens * z to 9f * dens * z,
-                        stripePx = 22f * dens * z
+                        stripePx = 22f * dens * z,
+                        // Sin escalar, para que los badges no se junten al ampliar.
+                        fanSpacingPx = (16f * 2f + 4f) to (26f * 2f + 4f)
                     ).forEach { op -> drawOp(op, nc) }
                     // Vertices de la via seleccionada: si no se ven, nadie
                     // adivina que se pueden arrastrar.
@@ -390,6 +407,30 @@ fun ContributionTopoDialog(
                         if (loupe) "LUPA SÍ" else "LUPA NO",
                         style = EyebrowTextStyle,
                         color = if (loupe) Terra else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                val hayQueDeshacer = historial.isNotEmpty()
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .border(
+                            1.dp,
+                            if (hayQueDeshacer) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.outline,
+                            RoundedCornerShape(2.dp)
+                        )
+                        .clickable(enabled = hayQueDeshacer) {
+                            val (idx, antes) = historial.removeAt(historial.size - 1)
+                            lines[idx]?.let { l -> l.clear(); l.addAll(antes) }
+                            selectedIdx = idx
+                        }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                ) {
+                    Text(
+                        "DESHACER",
+                        style = EyebrowTextStyle,
+                        color = if (hayQueDeshacer) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Text(

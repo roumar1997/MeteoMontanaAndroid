@@ -99,7 +99,11 @@ fun TopoPhotoViewer(
                         startR = 10.5f * d * z to 8.5f * d * z,
                         startTextPx = 7f * d * z to 2.5f * d * z,
                         dashPx = 12f * d * z to 9f * d * z,
-                        stripePx = 22f * d * z
+                        stripePx = 22f * d * z,
+                        // SIN el zoom: si el abanico encoge al ampliar, los
+                        // numeros se van juntando y parece que la linea se
+                        // desliza sobre la roca.
+                        fanSpacingPx = (9f * d * 2f + 4f) to (10.5f * d * 2f + 4f)
                     )
                     val nc = drawContext.canvas.nativeCanvas
                     ops.forEach { op -> drawOp(op, nc) }

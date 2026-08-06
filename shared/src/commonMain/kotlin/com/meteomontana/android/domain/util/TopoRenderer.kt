@@ -314,7 +314,16 @@ fun renderTopo(
      *  para no tapar la roca. El caller lo escala (density / canvas 1080). */
     dashPx: Pair<Float, Float> = 12f to 9f,
     /** Largo de cada franja de tramo compartido, en px (escalar como dashPx). */
-    stripePx: Float = SHARED_STRIPE_PX
+    stripePx: Float = SHARED_STRIPE_PX,
+    /**
+     * Separacion del abanico de badges (inicio, fin) en px. Por defecto se
+     * deduce del tamano del badge, que es lo razonable sin zoom.
+     *
+     * Con la foto ampliada hay que pasarla SIN escalar: los tamanos encogen
+     * para que el trazo no engorde, pero si el abanico encoge con ellos los
+     * numeros se van juntando y parece que la linea se desliza sobre la roca.
+     */
+    fanSpacingPx: Pair<Float, Float>? = null
 ): List<DrawOp> {
     val ops = mutableListOf<DrawOp>()
     // Los BADGES se acumulan aparte y se emiten al FINAL: si no, la línea de
@@ -330,9 +339,11 @@ fun renderTopo(
     // Abanico de badges: cuando varios inicios/finales coinciden en el mismo
     // punto, cada badge se desplaza en X para no taparse.
     val startFan = fanOffsets(
-        lines.map { it.points.firstOrNull() }, badgeR.first * 2f + 4f)
+        lines.map { it.points.firstOrNull() },
+        fanSpacingPx?.first ?: (badgeR.first * 2f + 4f))
     val endFan = fanOffsets(
-        lines.map { it.points.lastOrNull() }, startR.first * 2f + 4f)
+        lines.map { it.points.lastOrNull() },
+        fanSpacingPx?.second ?: (startR.first * 2f + 4f))
 
     lines.forEachIndexed { idx, line ->
         if (line.points.isEmpty()) return@forEachIndexed

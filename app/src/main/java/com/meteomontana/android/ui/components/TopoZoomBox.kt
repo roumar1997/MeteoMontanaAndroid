@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -82,6 +83,9 @@ fun TopoZoomBox(
         modifier = modifier
             .onSizeChanged { viewSize = it }
             .background(Color.Black)
+            // Sin recortar, la foto ampliada se sale del marco y tapa lo de
+            // alrededor: parecia que al ampliar desaparecian las vias de arriba.
+            .clipToBounds()
             .pointerInput(editable, viewSize) {
                 if (viewSize.width == 0) return@pointerInput
                 val w = viewSize.width.toFloat()
@@ -138,14 +142,11 @@ fun TopoZoomBox(
                             onStrokePoint(px, py)
                             fingerAt = ch.position
                             if (ch.positionChanged()) ch.consume()
-                        } else if (!multiTouch && !editable) {
-                            // Visor: un dedo mueve la foto (solo si está ampliada).
-                            if (!camera.isIdentity && ch.positionChanged()) {
-                                val d = ch.position - ch.previousPosition
-                                setCamera(camera.panBy(d.x, d.y, w, h))
-                                ch.consume()
-                            }
                         }
+                        // En el VISOR un dedo no hace nada aquí: se deja pasar
+                        // para que la ficha siga desplazándose con normalidad.
+                        // Mover la foto es cosa de dos dedos, que es un gesto
+                        // que no compite con el scroll y no hay que aprender.
                     }
 
                     fingerAt = null
@@ -159,10 +160,11 @@ fun TopoZoomBox(
                         } else {
                             onStrokeEnd()
                         }
-                    } else if (!multiTouch && movido < toqueMaxPx) {
-                        val (px, py) = camera.toPhoto(down.position.x, down.position.y, w, h)
-                        onTap(px, py)
                     }
+                    // El toque del VISOR no se resuelve aquí sino en el detector
+                    // de abajo, que ESPERA por si viene un segundo toque. Si no,
+                    // al hacer doble toque para ampliar se enfocaba de paso una
+                    // vía que ni querías tocar.
                 }
             }
             // El doble toque va en su propio detector para no enredar el bucle
@@ -172,7 +174,15 @@ fun TopoZoomBox(
                 val w = viewSize.width.toFloat()
                 val h = viewSize.height.toFloat()
                 detectTapGestures(
-                    onDoubleTap = { p -> setCamera(camera.toggleZoomAt(p.x, p.y, w, h)) }
+                    onDoubleTap = { p -> setCamera(camera.toggleZoomAt(p.x, p.y, w, h)) },
+                    // onTap solo se dispara cuando ha pasado el margen del doble
+                    // toque: por eso el foco vive aquí y no en el bucle de arriba.
+                    onTap = { p ->
+                        if (!editable) {
+                            val (px, py) = camera.toPhoto(p.x, p.y, w, h)
+                            onTap(px, py)
+                        }
+                    }
                 )
             }
     ) {

@@ -59,7 +59,9 @@ struct TopoStyle {
                   dash: TopoShared.dash.map { $0 * z },
                   badgeOuter: 9 * z, badgeInner: 7 * z, badgeText: 10 * z,
                   startOuter: 10.5 * z, startInner: 8.5 * z, startText: 7 * z,
-                  fanStartSpacing: (9 * 2 + 4) * z, fanEndSpacing: (10.5 * 2 + 4) * z)
+                  // El abanico NO se escala: si encoge con el zoom, los badges
+                  // se van juntando y parece que la linea se mueve sobre la roca.
+                  fanStartSpacing: 9 * 2 + 4, fanEndSpacing: 10.5 * 2 + 4)
     }
 
     /// Editor de topos (TopoEditorView): badges más grandes para tocar.

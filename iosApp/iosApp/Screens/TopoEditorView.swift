@@ -24,6 +24,18 @@ struct TopoEditorView: View {
     /// Vértice agarrado para corregirlo. Sin esto, arreglar un punto torcido
     /// obliga a volver a trazar la vía entera.
     @State private var draggingVertex: Int?
+    /// Historial para DESHACER: (vía, cómo estaba). Se apila antes de cada
+    /// cambio. Sin esto, mover una vía sin querer al revisar la propuesta de
+    /// otro no tiene vuelta atrás.
+    @State private var historial: [(Int, [CGPoint])] = []
+
+    /// Devuelve la vía a como estaba antes del último cambio.
+    private func deshacer() {
+        guard let (idx, antes) = historial.popLast(),
+              blocks.indices.contains(idx) else { return }
+        blocks[idx].line = antes
+        selected = idx
+    }
 
     /// Vías con las que el trazo puede compartir tramo: las que ya existen en
     /// la cara y las demás que se están dibujando ahora.
@@ -73,6 +85,8 @@ struct TopoEditorView: View {
                             // Copia de seguridad: si el gesto acaba siendo un
                             // pellizco o un toque, se restaura lo que había.
                             lineBeforeStroke = blocks[selected].line
+                            historial.append((selected, blocks[selected].line))
+                            if historial.count > 40 { historial.removeFirst() }
                             // Si el dedo cae sobre un vértice ya trazado, se
                             // AGARRA ese punto para corregirlo. Solo con la vía
                             // ya hecha: con dos puntos aún se está dibujando.
@@ -149,7 +163,15 @@ struct TopoEditorView: View {
                             .padding(.horizontal, 10).padding(.vertical, 6)
                             .overlay(Rectangle().stroke(loupe ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                     }.buttonStyle(.plain)
-                    Text("Un dedo dibuja · pellizca para ampliar · doble toque acerca")
+                    Button { deshacer() } label: {
+                        Text("DESHACER")
+                            .font(Cumbre.mono(11, .bold))
+                            .foregroundStyle(historial.isEmpty ? Cumbre.ink3 : Cumbre.ink)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .overlay(Rectangle().stroke(
+                                historial.isEmpty ? Cumbre.rule : Cumbre.ink, lineWidth: 1))
+                    }.buttonStyle(.plain).disabled(historial.isEmpty)
+                    Text("Un dedo dibuja · pellizca para ampliar")
                         .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                 }
                 .padding(.horizontal, 16)
