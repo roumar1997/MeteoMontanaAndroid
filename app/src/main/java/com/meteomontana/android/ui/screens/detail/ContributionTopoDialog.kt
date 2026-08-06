@@ -59,6 +59,18 @@ import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.gradeStyle
 
+/**
+ * Todas las vias con las que el trazo puede compartir tramo: las que ya existen
+ * en la piedra y las demas que se estan dibujando ahora.
+ */
+private fun otrasVias(
+    existingLines: List<com.meteomontana.android.ui.components.TopoLine>,
+    lines: Map<Int, SnapshotStateList<Offset>>,
+    selectedIdx: Int
+): List<List<Pair<Float, Float>>> =
+    existingLines.map { l -> l.points.map { it.x to it.y } } +
+        lines.filterKeys { it != selectedIdx }.values.map { pts -> pts.map { it.x to it.y } }
+
 @Composable
 fun ContributionTopoDialog(
     photoUri: Uri,
@@ -69,6 +81,12 @@ fun ContributionTopoDialog(
 ) {
     var selectedIdx by remember { mutableStateOf(0) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    // Lupa: ayuda cuando el dedo tapa el punto y estorba si quieres ver la foto
+    // entera. Se decide en el momento, con el interruptor de la barra.
+    var loupe by remember { mutableStateOf(true) }
+    // Lo que habia en la via antes de empezar este trazo, para restaurarlo si
+    // el gesto acaba siendo un pellizco.
+    var lineBeforeStroke by remember { mutableStateOf<List<Offset>>(emptyList()) }
 
     // Una lista de puntos por bloque. SnapshotStateList para que el Canvas se redibuje en tiempo real.
     val lines = remember {
@@ -198,90 +216,85 @@ fun ContributionTopoDialog(
                     }
                 )
 
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        // MODO POR TOQUES: cada toque añade un punto a la línea
-                        // (mucho más preciso que el dedo arrastrando). Convive
-                        // con el trazado a mano: un arrastre REDIBUJA de cero.
-                        .pointerInput(selectedIdx, canvasSize) {
-                            detectTapGestures(onTap = { offset: Offset ->
-                                if (canvasSize.width > 0 && canvasSize.height > 0) {
-                                    val current = lines[selectedIdx] ?: return@detectTapGestures
-                                    current.add(
-                                        Offset(
-                                        offset.x / canvasSize.width,
-                                        offset.y / canvasSize.height
-                                    ))
-                                    // Imán inmediato del punto recién colocado.
-                                    val others =
-                                        existingLines.map { l -> l.points.map { it.x to it.y } } +
-                                            lines.filterKeys { it != selectedIdx }
-                                                .values.map { pts -> pts.map { it.x to it.y } }
-                                    val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
-                                        current.map { it.x to it.y }, others)
-                                    current.clear()
-                                    snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
-                                }
-                            })
+                // -- Gestos y zoom -------------------------------------
+                // Todo el reparto de dedos vive en TopoZoomBox (un dedo dibuja,
+                // dos amplian y mueven, doble toque acerca). Aqui solo queda lo
+                // que SIGNIFICA cada gesto para el editor.
+                com.meteomontana.android.ui.components.TopoZoomBox(
+                    modifier = Modifier.fillMaxSize(),
+                    editable = true,
+                    loupeEnabled = loupe,
+                    onStrokeStart = { px, py ->
+                        val current = lines[selectedIdx]
+                        if (current != null) {
+                            // Copia de seguridad: si entra un segundo dedo a
+                            // mitad del trazo se restaura lo que habia, en vez
+                            // de dejar la via a medio borrar.
+                            lineBeforeStroke = current.toList()
+                            current.clear(); current.add(Offset(px, py))
                         }
-                        .pointerInput(selectedIdx, canvasSize) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    if (canvasSize.width > 0 && canvasSize.height > 0) {
-                                        val norm = Offset(
-                                            offset.x / canvasSize.width,
-                                            offset.y / canvasSize.height
-                                        )
-                                        lines[selectedIdx]?.clear()
-                                        lines[selectedIdx]?.add(norm)
-                                    }
-                                },
-                                onDrag = { change, _ ->
-                                    if (canvasSize.width > 0 && canvasSize.height > 0) {
-                                        val norm = Offset(
-                                            change.position.x / canvasSize.width,
-                                            change.position.y / canvasSize.height
-                                        )
-                                        lines[selectedIdx]?.add(norm)
-                                    }
-                                },
-                                onDragEnd = {
-                                    // Al soltar: 1) SUAVIZADO (quita el temblor
-                                    // del pulso, deja una línea limpia de guía) y
-                                    // 2) IMÁN: los puntos cerca de otra vía se
-                                    // ajustan a SUS vértices exactos → el tramo
-                                    // común se pinta a franjas compartidas.
-                                    val current = lines[selectedIdx]
-                                    if (current != null && current.size >= 2) {
-                                        val smooth = com.meteomontana.android.domain.util.simplifyStroke(
-                                            current.map { it.x to it.y })
-                                        val others =
-                                            existingLines.map { l -> l.points.map { it.x to it.y } } +
-                                                lines.filterKeys { it != selectedIdx }
-                                                    .values.map { pts -> pts.map { it.x to it.y } }
-                                        val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
-                                            smooth, others)
-                                        current.clear()
-                                        snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
-                                    }
-                                }
+                    },
+                    onStrokePoint = { px, py -> lines[selectedIdx]?.add(Offset(px, py)) },
+                    onStrokeCancel = {
+                        val current = lines[selectedIdx]
+                        if (current != null) {
+                            current.clear(); current.addAll(lineBeforeStroke)
+                        }
+                    },
+                    onStrokeEnd = {
+                        // Al soltar: SUAVIZADO (quita el temblor del pulso) e
+                        // IMAN (los puntos cerca de otra via se pegan a SUS
+                        // vertices, y el tramo comun se pinta a franjas).
+                        val current = lines[selectedIdx]
+                        if (current != null && current.size >= 2) {
+                            val smooth = com.meteomontana.android.domain.util.simplifyStroke(
+                                current.map { it.x to it.y })
+                            val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
+                                smooth, otrasVias(existingLines, lines, selectedIdx))
+                            current.clear()
+                            snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
+                        }
+                    },
+                    onTap = { px, py ->
+                        // Punto a punto: mas preciso que el dedo a mano, y con
+                        // el zoom se vuelve preciso de verdad.
+                        val current = lines[selectedIdx]
+                        if (current != null) {
+                            current.add(Offset(px, py))
+                            val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
+                                current.map { it.x to it.y },
+                                otrasVias(existingLines, lines, selectedIdx))
+                            current.clear()
+                            snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
+                        }
+                    }
+                ) { camera ->
+                    AsyncImage(
+                        model = photoUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onSuccess = { state ->
+                            photoRatio = com.meteomontana.android.ui.components.topoAspectRatio(
+                                state.result.drawable.intrinsicWidth,
+                                state.result.drawable.intrinsicHeight
                             )
                         }
-                ) {
-                    // Líneas existentes: se renderizan con su grado/color/badge/tipo
-                    // para que el usuario vea exactamente dónde están las vías ya
-                    // trazadas y no dibuje encima sin querer.
+                    )
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                    // Al ampliar, todo se dibuja dentro de una capa escalada:
+                    // sin dividir por la escala, al 400% el trazo y los badges
+                    // engordarian hasta tapar la roca que ibas a mirar.
+                    val z = camera.strokeFactor()
                     val existing = existingLines.map { line ->
                         TopoLineData(
                             name = line.name,
                             grade = line.grade,
                             startType = line.startType,
                             points = line.points.map { it.x to it.y },
-                            strokeWidthPx = 5f
+                            strokeWidthPx = 5f * z
                         )
                     }
-                    // Líneas nuevas (editables) — se numeran a continuación de las existentes.
                     val editorLines = lines.entries.sortedBy { it.key }.map { (idx, points) ->
                         val bloque = bloques.getOrNull(idx)
                         val strokeW = if (idx == selectedIdx) 8f else 5f
@@ -290,7 +303,7 @@ fun ContributionTopoDialog(
                             grade = bloque?.grade,
                             startType = bloque?.startType,
                             points = points.map { it.x to it.y },
-                            strokeWidthPx = strokeW
+                            strokeWidthPx = strokeW * z
                         )
                     }
                     val nc = drawContext.canvas.nativeCanvas
@@ -298,18 +311,55 @@ fun ContributionTopoDialog(
                     val dens = drawContext.density.density
                     renderTopo(
                         existing + editorLines, size.width, size.height,
-                        badgeR = 16f to 13f,
-                        badgeTextPx = 26f to 9f,
-                        startR = 26f to 22f,
-                        startTextPx = 20f to 7f,
-                        dashPx = 12f * dens to 9f * dens,
-                        stripePx = 22f * dens
+                        badgeR = 16f * z to 13f * z,
+                        badgeTextPx = 26f * z to 9f * z,
+                        startR = 26f * z to 22f * z,
+                        startTextPx = 20f * z to 7f * z,
+                        dashPx = 12f * dens * z to 9f * dens * z,
+                        stripePx = 22f * dens * z
                     ).forEach { op -> drawOp(op, nc) }
+                    }
                 }
               }
             }
 
             // ── Hint ────────────────────────────────────────────────────────────
+            // Ayuda + controles de vista. La lupa es lo unico que no se puede
+            // juzgar sin el movil en la mano: a unos les salva y a otros les
+            // tapa media foto. Interruptor, y que decida quien dibuja.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .border(
+                            1.dp,
+                            if (loupe) Terra else MaterialTheme.colorScheme.outline,
+                            RoundedCornerShape(2.dp)
+                        )
+                        .clickable { loupe = !loupe }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                ) {
+                    Text(
+                        if (loupe) "LUPA SÍ" else "LUPA NO",
+                        style = EyebrowTextStyle,
+                        color = if (loupe) Terra else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    "Un dedo dibuja · dos amplían y mueven · doble toque acerca",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
             Text(
                 "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido).",
                 modifier = Modifier
