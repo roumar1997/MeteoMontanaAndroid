@@ -362,6 +362,9 @@ private fun buildUpdateRequest(
                     else                -> null
                 }
                 CreateBlockLineRequest(
+                    // La via ya existia: se manda su id para que el servidor la
+                    // reconozca y no tenga que adivinar cual era cual.
+                    id = b.existingLineId,
                     name = b.name.ifBlank { "Sin nombre" },
                     grade = b.grade,
                     startType = startTypeBackend,
