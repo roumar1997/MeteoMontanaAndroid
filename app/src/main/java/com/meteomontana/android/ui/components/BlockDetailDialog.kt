@@ -295,7 +295,10 @@ fun BlockDetailDialog(
                             }
                             Spacer(Modifier.height(Spacing.xs))
                         }
-                        TopoPhotoCanvas(
+                        // Visor con zoom y foco: en piedras con muchas vias
+                        // (el muro de Teverga tiene 13) es la unica forma de
+                        // distinguirlas a tamano de movil.
+                        TopoPhotoViewer(
                             photoUrl = facePhoto,
                             lines = face.lines.toTopoLines()
                         )

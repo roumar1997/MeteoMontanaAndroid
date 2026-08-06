@@ -14,8 +14,18 @@ data class TopoLineData(
     val grade: String?,
     val startType: String?,
     val points: List<Pair<Float, Float>>,
-    val strokeWidthPx: Float = 5f
+    val strokeWidthPx: Float = 5f,
+    /**
+     * Vía "apagada": se pinta translúcida y sin badge. Es el modo FOCO — al
+     * tocar una vía en una piedra con muchas, las demás bajan a un susurro
+     * en vez de desaparecer, para no perder de vista dónde está respecto a
+     * sus vecinas. Un muro de 13 vías es ilegible sin esto.
+     */
+    val muted: Boolean = false
 )
+
+/** Opacidad de una vía apagada (canal alfa sobre su color de grado). */
+const val MUTED_ALPHA = 0x3Cu
 
 /**
  * Calcula el color ARGB32 (como Long) para un grado de escalada.
@@ -326,7 +336,11 @@ fun renderTopo(
 
     lines.forEachIndexed { idx, line ->
         if (line.points.isEmpty()) return@forEachIndexed
-        val (strokeArgb, dashed, dark) = gradeArgb(line.grade)
+        val (rawArgb, dashed, dark) = gradeArgb(line.grade)
+        // Apagada: mismo color, alfa bajo. Se conserva el color de grado a
+        // propósito (gris plano haría perder la referencia de dificultad).
+        val strokeArgb = if (line.muted)
+            (rawArgb and 0x00FFFFFFL) or (MUTED_ALPHA.toLong() shl 24) else rawArgb
         val pts = line.points.map { (nx, ny) -> nx * w to ny * h }
         val textArgb = if (dark) 0xFF000000L else 0xFFFFFFFFL
 
@@ -383,6 +397,7 @@ fun renderTopo(
         // Badge numérico en el punto de inicio (desplazado si hay abanico)
         val (fx0, fy) = pts.first()
         val fx = fx0 + startFan[idx]
+        if (line.muted) return@forEachIndexed   // apagada: sin número ni etiqueta
         badgeOps += DrawOp.FilledCircle(fx, fy, badgeR.first, 0xFFFFFFFFL)
         badgeOps += DrawOp.FilledCircle(fx, fy, badgeR.second, strokeArgb)
         badgeOps += DrawOp.TextLabel(fx, fy, "${idx + 1}", textArgb, badgeTextPx.first, bold = true, badgeTextPx.second)

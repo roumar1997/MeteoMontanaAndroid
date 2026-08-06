@@ -122,9 +122,15 @@ internal fun ZoomableTopo(photoUrl: String, lines: List<TopoLine>) {
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
         ) {
             androidx.compose.foundation.layout.Box(
-                Modifier.fillMaxSize().background(Color.Black).clickable { open = false }
+                // Ya no se cierra tocando el fondo: dentro se puede ampliar y
+                // enfocar vias, y cada toque cerraria el dialogo. Se cierra con
+                // la X, que ademas es lo que el usuario ya conoce.
+                Modifier.fillMaxSize().background(Color.Black)
             ) {
-                TopoPhotoCanvas(photoUrl = photoUrl, lines = lines,
+                // Con zoom y foco: es la pantalla donde el admin decide si una
+                // linea sigue la via o va por el aire, y a 160 dp no se ve.
+                com.meteomontana.android.ui.components.TopoPhotoViewer(
+                    photoUrl = photoUrl, lines = lines,
                     modifier = Modifier.align(Alignment.Center))
                 Text("✕ CERRAR", style = EyebrowTextStyle, color = Color.White,
                     modifier = Modifier
