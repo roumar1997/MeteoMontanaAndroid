@@ -58,6 +58,33 @@ class TopoMagnetTest {
     }
 
     @Test
+    fun encenderElImanNoUneLoQueYaHabiasDibujado() {
+        // El fallo que Rodrigo vio en el Xiaomi: dibujó el arranque pegado a
+        // otra vía con el imán APAGADO, lo encendió para el tramo del medio, y
+        // se unió también el arranque, que ya había decidido dejar suelto.
+        var via = listOf<Pair<Float, Float>>()
+        // Dos puntos con el imán apagado, a 0,01 de la otra vía.
+        via = TopoMagnet.appendPoint(via, 0.41f to 0.90f, listOf(otra), enabled = false)
+        via = TopoMagnet.appendPoint(via, 0.41f to 0.70f, listOf(otra), enabled = false)
+        val arranque = via
+        // Ahora se enciende y se sigue.
+        via = TopoMagnet.appendPoint(via, 0.40f to 0.50f, listOf(otra), enabled = true)
+
+        assertEquals(arranque, via.take(arranque.size),
+            "los puntos ya colocados no se tocan al encender el imán")
+        assertTrue(via.last() in otra, "el punto nuevo sí debía engancharse: ${via.last()}")
+    }
+
+    @Test
+    fun elPuntoNuevoTraeConsigoLosVerticesIntermedios() {
+        // Del vértice de abajo al de arriba hay dos vértices por el medio: si no
+        // se insertan, el tramo no queda compartido, solo se tocan las puntas.
+        val via = TopoMagnet.appendPoint(
+            listOf(0.40f to 0.90f), 0.40f to 0.30f, listOf(otra), enabled = true)
+        assertTrue(via.size > 2, "esperaba los vértices intermedios de la otra vía: $via")
+    }
+
+    @Test
     fun sinOtrasViasNoHayNadaUnido() {
         assertTrue(TopoMagnet.joinedIndices(listOf(0.4f to 0.7f), emptyList()).isEmpty())
     }

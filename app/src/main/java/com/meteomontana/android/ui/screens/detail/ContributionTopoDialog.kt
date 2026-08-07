@@ -332,9 +332,11 @@ fun ContributionTopoDialog(
                         // el zoom se vuelve preciso de verdad.
                         val current = lines[selectedIdx]
                         if (current != null) {
-                            current.add(Offset(px, py))
-                            val snapped = com.meteomontana.android.domain.util.TopoMagnet.apply(
-                                current.map { it.x to it.y },
+                            // Solo se decide sobre el punto NUEVO: encender el
+                            // iman no debe unir de golpe lo que ya dibujaste
+                            // suelto a proposito.
+                            val snapped = com.meteomontana.android.domain.util.TopoMagnet.appendPoint(
+                                current.map { it.x to it.y }, px to py,
                                 otrasVias(existingLines, lines, selectedIdx), 0.04f * zoom,
                                 enabled = iman)
                             current.clear()

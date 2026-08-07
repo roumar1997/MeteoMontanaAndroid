@@ -131,6 +131,21 @@ enum TopoShared {
         enabled ? magnetizeStroke(stroke, others: others, threshold: threshold) : stroke
     }
 
+    /// Anade UN punto al final, imantando SOLO ese punto -- espejo de
+    /// TopoMagnet.appendPoint. Lo ya colocado no se toca: encender el iman a
+    /// mitad de una via no debe unir de golpe el arranque que dejaste suelto.
+    static func appendPoint(_ line: [CGPoint], _ point: CGPoint, others: [[CGPoint]],
+                            threshold: CGFloat = 0.04, enabled: Bool) -> [CGPoint] {
+        guard enabled, !others.isEmpty else { return line + [point] }
+        guard let ultimo = line.last else {
+            return magnetizeStroke([point], others: others, threshold: threshold)
+        }
+        // Se imanta el tramo "ultimo punto -> nuevo" y se descarta el primero:
+        // ese ya estaba puesto y no se discute.
+        let cola = magnetizeStroke([ultimo, point], others: others, threshold: threshold)
+        return line + cola.dropFirst()
+    }
+
     /// Indices de `line` que han quedado UNIDOS: los que caen exactamente sobre
     /// un vertice de otra via -- espejo de TopoMagnet.joinedIndices. Se marcan
     /// en el editor para no tener que adivinar si el iman engancho.

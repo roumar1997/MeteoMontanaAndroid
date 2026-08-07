@@ -44,7 +44,18 @@ struct TopoScene {
     var fadedAlpha: CGFloat = 0.4
 }
 
-final class TopoCanvasUIView: UIView {
+/// Arrastre que empieza AL TOCAR, sin esperar a que el dedo se mueva. Un
+/// `UIPanGestureRecognizer` normal no arranca hasta que hay unos milímetros de
+/// movimiento, y en un editor de trazos eso se traduce en que el principio de
+/// cada línea se pierde.
+final class ArrastreInmediato: UIPanGestureRecognizer {
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        super.touchesBegan(touches, with: event)
+        if state == .possible { state = .began }
+    }
+}
+
+final class TopoCanvasUIView: UIView, UIGestureRecognizerDelegate {
 
     var image: UIImage? { didSet { setNeedsDisplay() } }
     var scene = TopoScene() { didSet { setNeedsDisplay() } }
@@ -64,13 +75,13 @@ final class TopoCanvasUIView: UIView {
     private var camera = TopoCamera.companion.NONE
     private var live: [CGPoint]?
     private var dibujando = false
-    private var multiTouch = false
     private var movido: CGFloat = 0
-    private var ultimo: CGPoint = .zero
     private var inicio: CGPoint = .zero
-    private var pinchPrev: (dist: CGFloat, centro: CGPoint)?
-    /// Scroll del contenedor, apagado mientras la foto está ampliada.
-    private weak var scrollPausado: UIScrollView?
+
+    private let arrastre = ArrastreInmediato()
+    private let pellizco = UIPinchGestureRecognizer()
+    private let dobleToque = UITapGestureRecognizer()
+    private let toqueSuelto = UITapGestureRecognizer()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -79,107 +90,127 @@ final class TopoCanvasUIView: UIView {
         clipsToBounds = true
         contentMode = .redraw
 
-        let doble = UITapGestureRecognizer(target: self, action: #selector(dobleToque))
-        doble.numberOfTapsRequired = 2
-        // Sin esto, el reconocedor corta el flujo de toques y se pierde el
-        // trazo que ya estaba en marcha.
-        doble.cancelsTouchesInView = false
-        addGestureRecognizer(doble)
+        arrastre.addTarget(self, action: #selector(alArrastrar))
+        arrastre.delegate = self
+        addGestureRecognizer(arrastre)
+
+        pellizco.addTarget(self, action: #selector(alPellizcar))
+        pellizco.delegate = self
+        addGestureRecognizer(pellizco)
+
+        dobleToque.addTarget(self, action: #selector(alDobleToque))
+        dobleToque.numberOfTapsRequired = 2
+        addGestureRecognizer(dobleToque)
+
+        // El toque suelto solo lo gestiona el visor: en el editor, el punto se
+        // coloca al terminar el arrastre (que empieza al tocar).
+        toqueSuelto.addTarget(self, action: #selector(alTocar))
+        toqueSuelto.require(toFail: dobleToque)
+        addGestureRecognizer(toqueSuelto)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) no se usa") }
 
+    // ── Negociación con los contenedores ─────────────────────────────────
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard window != nil else { return }
+        // A los arrastres de los contenedores (la hoja que se cierra tirando
+        // hacia abajo, el scroll de la ficha) se les pide que ESPEREN a que el
+        // nuestro falle. Sin esto la hoja se lleva el dedo y no se puede
+        // dibujar; con esto, y como el nuestro falla cuando no nos interesa el
+        // gesto, cada uno recibe lo suyo.
+        var v: UIView? = superview
+        while let actual = v {
+            actual.gestureRecognizers?.forEach { g in
+                if g is UIPanGestureRecognizer { g.require(toFail: arrastre) }
+            }
+            v = actual.superview
+        }
+    }
+
+    /// El arrastre solo nos interesa si vamos a dibujar o si la foto está
+    /// ampliada. Si no, se deja pasar: la ficha sigue desplazándose normal.
+    func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
+        if g === arrastre { return editable || !camera.isIdentity }
+        return true
+    }
+
+    func gestureRecognizer(_ g: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otro: UIGestureRecognizer) -> Bool {
+        // Los nuestros sí conviven entre ellos: con dos dedos hay que ampliar y
+        // mover a la vez. Con los de fuera, no.
+        (g === arrastre || g === pellizco) && (otro === arrastre || otro === pellizco)
+    }
+
     // ── Gestos ───────────────────────────────────────────────────────────
 
-    @objc private func dobleToque(_ g: UITapGestureRecognizer) {
+    @objc private func alDobleToque(_ g: UITapGestureRecognizer) {
         let p = g.location(in: self)
         setCamera(camera.toggleZoomAt(x: Float(p.x), y: Float(p.y),
                                       viewW: Float(bounds.width), viewH: Float(bounds.height),
                                       zoomedScale: 2.5))
     }
 
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        let activos = (event?.touches(for: self) ?? touches).filter {
-            $0.phase != .ended && $0.phase != .cancelled
-        }
-        if activos.count >= 2 {
+    @objc private func alTocar(_ g: UITapGestureRecognizer) {
+        guard !editable else { return }
+        let p = foto(g.location(in: self))
+        onTap?(p.x, p.y)
+    }
+
+    @objc private func alPellizcar(_ g: UIPinchGestureRecognizer) {
+        switch g.state {
+        case .began:
+            // Llegó el segundo dedo: se descarta el trazo a medias.
             cancelarTrazo()
-            multiTouch = true
-            pinchPrev = nil
-            return
-        }
-        guard let t = touches.first else { return }
-        inicio = t.location(in: self)
-        ultimo = inicio
-        movido = 0
-        multiTouch = false
-        if editable {
-            let p = foto(inicio)
-            live = onStrokeStart?(p.x, p.y)
-            dibujando = true
-            setNeedsDisplay()
+        case .changed:
+            let c = g.location(in: self)
+            setCamera(camera.zoomBy(factor: Float(g.scale),
+                                    focusX: Float(c.x), focusY: Float(c.y),
+                                    viewW: Float(bounds.width), viewH: Float(bounds.height)))
+            g.scale = 1
+        default: break
         }
     }
 
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        let activos = (event?.touches(for: self) ?? touches).filter {
-            $0.phase != .ended && $0.phase != .cancelled
-        }
-        if activos.count >= 2 {
-            if dibujando { cancelarTrazo() }
-            multiTouch = true
-            let ps = activos.map { $0.location(in: self) }
-            let a = ps[0], b = ps[1]
-            let dist = hypot(b.x - a.x, b.y - a.y)
-            let centro = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
-            if let prev = pinchPrev, prev.dist > 0 {
-                var c = camera
-                let factor = dist / prev.dist
-                if abs(factor - 1) > 0.0001 {
-                    c = c.zoomBy(factor: Float(factor),
-                                 focusX: Float(centro.x), focusY: Float(centro.y),
-                                 viewW: Float(bounds.width), viewH: Float(bounds.height))
-                }
-                let dx = centro.x - prev.centro.x, dy = centro.y - prev.centro.y
-                if dx != 0 || dy != 0 {
-                    c = c.panBy(dx: Float(dx), dy: Float(dy),
-                                viewW: Float(bounds.width), viewH: Float(bounds.height))
-                }
-                setCamera(c)
+    @objc private func alArrastrar(_ g: ArrastreInmediato) {
+        let p = g.location(in: self)
+        switch g.state {
+        case .began:
+            inicio = p
+            movido = 0
+            g.setTranslation(.zero, in: self)
+            if editable && g.numberOfTouches <= 1 {
+                let f = foto(p)
+                live = onStrokeStart?(f.x, f.y)
+                dibujando = true
+                setNeedsDisplay()
             }
-            pinchPrev = (dist, centro)
-            return
+        case .changed:
+            let t = g.translation(in: self)
+            g.setTranslation(.zero, in: self)
+            movido += abs(t.x) + abs(t.y)
+            if g.numberOfTouches >= 2 {
+                // Dos dedos: mover la foto (el pellizco se encarga de ampliar).
+                if dibujando { cancelarTrazo() }
+                setCamera(camera.panBy(dx: Float(t.x), dy: Float(t.y),
+                                       viewW: Float(bounds.width), viewH: Float(bounds.height)))
+            } else if dibujando {
+                let f = foto(p)
+                live = onStrokePoint?(f.x, f.y)
+                setNeedsDisplay()
+            } else if !camera.isIdentity {
+                // Visor AMPLIADO: un dedo mueve la foto.
+                setCamera(camera.panBy(dx: Float(t.x), dy: Float(t.y),
+                                       viewW: Float(bounds.width), viewH: Float(bounds.height)))
+            }
+        case .ended:
+            terminar()
+        case .cancelled, .failed:
+            cancelarTrazo()
+        default: break
         }
-        guard let t = activos.first ?? touches.first else { return }
-        let p = t.location(in: self)
-        movido += hypot(p.x - ultimo.x, p.y - ultimo.y)
-        let d = CGPoint(x: p.x - ultimo.x, y: p.y - ultimo.y)
-        ultimo = p
-
-        if dibujando {
-            let f = foto(p)
-            live = onStrokePoint?(f.x, f.y)
-            setNeedsDisplay()
-        } else if !multiTouch && !camera.isIdentity {
-            // Visor AMPLIADO: un dedo mueve la foto. Sin ampliar no se toca
-            // nada, y así la lista de la ficha sigue desplazándose normal.
-            setCamera(camera.panBy(dx: Float(d.x), dy: Float(d.y),
-                                   viewW: Float(bounds.width), viewH: Float(bounds.height)))
-        }
-    }
-
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        let quedan = (event?.touches(for: self) ?? []).filter {
-            $0.phase != .ended && $0.phase != .cancelled
-        }
-        guard quedan.isEmpty else { return }
-        terminar()
-    }
-
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        cancelarTrazo()
-        multiTouch = false
-        pinchPrev = nil
     }
 
     private func terminar() {
@@ -194,13 +225,8 @@ final class TopoCanvasUIView: UIView {
             } else {
                 onStrokeEnd?()
             }
-        } else if !editable && movido < 12 {
-            let p = foto(inicio)
-            onTap?(p.x, p.y)
         }
         live = nil
-        multiTouch = false
-        pinchPrev = nil
         setNeedsDisplay()
     }
 
@@ -222,38 +248,8 @@ final class TopoCanvasUIView: UIView {
         guard c != camera else { return }
         let antes = camera.strokeFactor()
         camera = c
-        pausarScrollSiHaceFalta()
         setNeedsDisplay()
         if c.strokeFactor() != antes { onZoomChange?(CGFloat(c.strokeFactor())) }
-    }
-
-    /// Mientras la foto está ampliada, el scroll del contenedor se apaga: si no,
-    /// se lleva el dedo a mitad de gesto y mover la foto va a saltos. Es el
-    /// equivalente del `requestDisallowInterceptTouchEvent` de Android.
-    private func pausarScrollSiHaceFalta() {
-        if camera.isIdentity {
-            scrollPausado?.isScrollEnabled = true
-            scrollPausado = nil
-            return
-        }
-        guard scrollPausado == nil else { return }
-        var v: UIView? = superview
-        while let actual = v {
-            if let sv = actual as? UIScrollView {
-                sv.isScrollEnabled = false
-                scrollPausado = sv
-                return
-            }
-            v = actual.superview
-        }
-    }
-
-    override func willMove(toWindow newWindow: UIWindow?) {
-        super.willMove(toWindow: newWindow)
-        if newWindow == nil {          // al salir, devolver el scroll
-            scrollPausado?.isScrollEnabled = true
-            scrollPausado = nil
-        }
     }
 
     // ── Dibujo ───────────────────────────────────────────────────────────

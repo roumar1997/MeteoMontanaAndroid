@@ -157,10 +157,12 @@ struct TopoEditorView: View {
                         onTap: { nx, ny in
                             trazando = false
                             guard blocks.indices.contains(selected) else { return }
-                            var line = lineBeforeStroke
-                            line.append(CGPoint(x: nx, y: ny))
-                            blocks[selected].line = TopoShared.applyMagnet(
-                                line, others: otherLines(), threshold: 0.04 * zoom, enabled: iman)
+                            // Solo se decide sobre el punto NUEVO: encender el
+                            // imán no debe unir de golpe lo que ya dibujaste
+                            // suelto a propósito.
+                            blocks[selected].line = TopoShared.appendPoint(
+                                lineBeforeStroke, CGPoint(x: nx, y: ny),
+                                others: otherLines(), threshold: 0.04 * zoom, enabled: iman)
                             lineBeforeStroke = []
                         },
                         onZoomChange: { zoom = $0 }

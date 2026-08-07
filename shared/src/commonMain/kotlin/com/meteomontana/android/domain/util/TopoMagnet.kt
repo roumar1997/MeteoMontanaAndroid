@@ -30,6 +30,35 @@ object TopoMagnet {
         if (!enabled) stroke else magnetizeStroke(stroke, others, threshold)
 
     /**
+     * Añade UN punto al final de [line], imantando solo ese punto.
+     *
+     * Es el modo "punto a punto". Existe aparte de [apply] porque aplicar el
+     * imán a la vía entera cada vez tiene un efecto que sorprende: dibujas un
+     * arranque pegado a otra vía con el imán apagado, lo enciendes para el
+     * tramo de en medio, y de golpe se une TAMBIÉN el arranque, que ya habías
+     * decidido dejar suelto. Lo ya colocado no se toca: solo se decide sobre el
+     * punto que estás poniendo ahora.
+     *
+     * Entre el punto anterior y el nuevo sí se insertan los vértices
+     * intermedios de la vía a la que se enganche, que es lo que hace que el
+     * tramo quede compartido de verdad y no solo tocándose en las puntas.
+     */
+    fun appendPoint(
+        line: List<Pair<Float, Float>>,
+        point: Pair<Float, Float>,
+        others: List<List<Pair<Float, Float>>>,
+        threshold: Float = 0.04f,
+        enabled: Boolean = true
+    ): List<Pair<Float, Float>> {
+        if (!enabled || others.isEmpty()) return line + point
+        if (line.isEmpty()) return magnetizeStroke(listOf(point), others, threshold)
+        // Se imanta el tramo "último punto → nuevo", y del resultado se
+        // descarta el primero: ese ya estaba puesto y no se discute.
+        val cola = magnetizeStroke(listOf(line.last(), point), others, threshold)
+        return line + cola.drop(1)
+    }
+
+    /**
      * Índices de [line] que han quedado UNIDOS: los que caen exactamente sobre
      * un vértice de otra vía.
      *
