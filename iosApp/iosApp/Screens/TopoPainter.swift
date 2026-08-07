@@ -95,22 +95,70 @@ protocol TopoDrawTarget {
 
 enum TopoPainter {
 
+    /// Lo caro de pintar, ya calculado: vias limpias (sin pasadas repetidas y
+    /// sin las vacias), que tramos comparten, y como se reparten los badges que
+    /// caen en el mismo punto.
+    private struct Plan {
+        let puntos: [[CGPoint]]      // por via SOLIDA, ya limpia
+        let origen: [Int]            // indice de la via original de cada una
+        let shared: [String: [Int]]
+        let startFan: [CGFloat]
+        let endFan: [CGFloat]
+    }
+
+    /// Una sola entrada: el caso que importa es repintar LO MISMO muchas veces
+    /// seguidas (paneo, zoom). Guardar mas seria memoria sin uso.
+    private static var cache: (clave: Int, plan: Plan)?
+
+    /// Identidad del dibujo: las lineas y los tamanos que afectan al reparto.
+    private static func clave(_ vias: [TopoVia], _ style: TopoStyle) -> Int {
+        var h = Hasher()
+        h.combine(style.fanStartSpacing)
+        h.combine(style.fanEndSpacing)
+        h.combine(style.stripeScale)
+        for v in vias {
+            h.combine(v.points.count)
+            for p in v.points { h.combine(p.x); h.combine(p.y) }
+        }
+        return h.finalize()
+    }
+
+    private static func plan(_ vias: [TopoVia], _ style: TopoStyle) -> Plan {
+        let k = clave(vias, style)
+        if let c = cache, c.clave == k { return c.plan }
+        var puntos: [[CGPoint]] = []
+        var origen: [Int] = []
+        for (i, v) in vias.enumerated() {
+            let limpia = TopoShared.dropRetrace(v.points)
+            if !limpia.isEmpty { puntos.append(limpia); origen.append(i) }
+        }
+        let nuevo = Plan(
+            puntos: puntos,
+            origen: origen,
+            shared: TopoShared.sharedSegmentLines(puntos),
+            startFan: TopoShared.fanOffsets(puntos.map { $0.first }, spacing: style.fanStartSpacing),
+            endFan: TopoShared.fanOffsets(puntos.map { $0.last }, spacing: style.fanEndSpacing))
+        cache = (k, nuevo)
+        return nuevo
+    }
+
     /// Pinta todas las vías sobre `size` (px del backend). Dos pasadas: primero
     /// TODOS los trazos, luego TODOS los badges (si no, la línea de una vía
     /// posterior taparía los badges de las anteriores).
     static func paint(_ target: TopoDrawTarget, vias: [TopoVia], size: CGSize, style: TopoStyle) {
         // Trazos antiguos con pasadas superpuestas: solo la pasada limpia (si
         // no, los guiones se rellenan entre pasadas y la línea sale continua).
-        let cleaned = vias.map {
-            TopoVia(number: $0.number, grade: $0.grade, startType: $0.startType,
-                    points: TopoShared.dropRetrace($0.points), lineWidth: $0.lineWidth,
-                    muted: $0.muted)
+        // Todo esto sale de la memoria mientras las lineas no cambien: al mover
+        // o ampliar la foto se repinta muchas veces lo MISMO.
+        let p = plan(vias, style)
+        guard !p.puntos.isEmpty else { return }
+        let solid = zip(p.origen, p.puntos).map { (i, pts) in
+            TopoVia(number: vias[i].number, grade: vias[i].grade, startType: vias[i].startType,
+                    points: pts, lineWidth: vias[i].lineWidth, muted: vias[i].muted)
         }
-        let solid = cleaned.filter { !$0.points.isEmpty }
-        guard !solid.isEmpty else { return }
-        let shared = TopoShared.sharedSegmentLines(solid.map { $0.points })
-        let startFan = TopoShared.fanOffsets(solid.map { $0.points.first }, spacing: style.fanStartSpacing)
-        let endFan = TopoShared.fanOffsets(solid.map { $0.points.last }, spacing: style.fanEndSpacing)
+        let shared = p.shared
+        let startFan = p.startFan
+        let endFan = p.endFan
 
         func px(_ p: CGPoint) -> CGPoint { CGPoint(x: p.x * size.width, y: p.y * size.height) }
 

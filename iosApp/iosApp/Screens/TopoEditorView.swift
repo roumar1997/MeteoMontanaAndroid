@@ -33,6 +33,11 @@ struct TopoEditorView: View {
     @State private var zoom: CGFloat = 1
     /// ¿El dedo está trazando ahora mismo?
     @State private var trazando = false
+    /// El trazo del gesto EN CURSO. Es estado local a proposito: escribirlo en
+    /// el Binding `blocks` no repinta el lienzo mientras arrastras, y la linea
+    /// no aparecia hasta soltar. Al terminar el gesto se vuelca a `blocks` y
+    /// esto vuelve a nil.
+    @State private var trazoVivo: [CGPoint]?
 
     /// Devuelve la vía a como estaba antes del último cambio.
     private func deshacer() {
@@ -105,9 +110,11 @@ struct TopoEditorView: View {
                             } else {
                                 blocks[selected].line = [CGPoint(x: nx, y: ny)]
                             }
+                            trazoVivo = blocks[selected].line
                         },
                         onStrokePoint: { nx, ny in
                             guard blocks.indices.contains(selected) else { return }
+                            defer { trazoVivo = blocks[selected].line }
                             if let v = draggingVertex, blocks[selected].line.indices.contains(v) {
                                 blocks[selected].line[v] = CGPoint(x: nx, y: ny)
                             } else {
@@ -129,6 +136,7 @@ struct TopoEditorView: View {
                         },
                         onStrokeEnd: {
                             trazando = false
+                            trazoVivo = nil
                             guard blocks.indices.contains(selected) else { return }
                             let corrigiendo = draggingVertex != nil
                             draggingVertex = nil
@@ -147,6 +155,7 @@ struct TopoEditorView: View {
                         },
                         onStrokeCancel: {
                             trazando = false
+                            trazoVivo = nil
                             draggingVertex = nil
                             guard blocks.indices.contains(selected) else { return }
                             blocks[selected].line = lineBeforeStroke
@@ -154,6 +163,7 @@ struct TopoEditorView: View {
                         onZoomChange: { zoom = $0 },
                         onTap: { nx, ny in
                             trazando = false
+                            trazoVivo = nil
                             guard blocks.indices.contains(selected) else { return }
                             var line = lineBeforeStroke
                             line.append(CGPoint(x: nx, y: ny))
@@ -242,8 +252,11 @@ struct TopoEditorView: View {
             TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points)
         }
         for (idx, b) in blocks.enumerated() {
+            // La via que se esta trazando se pinta desde el estado local, que es
+            // el unico que se refresca a cada punto.
+            let pts = (idx == selected ? (trazoVivo ?? b.line) : b.line)
             vias.append(TopoVia(number: idx + 1, grade: b.grade, startType: b.startType,
-                                points: b.line, lineWidth: (idx == selected ? 8 : 5) * zoom))
+                                points: pts, lineWidth: (idx == selected ? 8 : 5) * zoom))
         }
         TopoPainter.paint(GraphicsContextTarget(ctx: ctx), vias: vias, size: size,
                           style: .editor(lineWidth: 5 * zoom))

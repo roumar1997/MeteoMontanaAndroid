@@ -85,7 +85,16 @@ final class AccountViewModel: ObservableObject {
             if ids.contains(e.id) { return false }
             let key = "\(e.schoolId ?? "")|\(e.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
             if keys.contains(key) { return false }
-            let dedupKey = "\(e.schoolId ?? "")|\((e.sector ?? "").trimmingCharacters(in: .whitespaces).lowercased())|\(e.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+            // Dedup POR lineId. Con la clave por NOMBRE, dos vias homonimas
+            // ("La ola" y "La ola (directa)") colapsaban en una sola y la
+            // segunda desaparecia del diario aunque estuviera marcada. El
+            // nombre solo se usa como LEGADO, entre entradas sin lineId.
+            let dedupKey: String
+            if let lid = e.lineId, !lid.isEmpty {
+                dedupKey = "#\(lid)"
+            } else {
+                dedupKey = "\(e.schoolId ?? "")|\((e.sector ?? "").trimmingCharacters(in: .whitespaces).lowercased())|\(e.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
+            }
             return seen.insert(dedupKey).inserted
         }
     }
@@ -526,10 +535,33 @@ private struct AccountBlocksList: View {
     /// nil = todos · false = solo bloques (BOULDER) · true = solo vías (ROUTE).
     /// Las entradas viejas sin modalidad cuentan como BOULDER (igual que stats).
     var routeOnly: Bool? = nil
+    /// Grado por el que se filtra (nil = todos).
+    @State private var gradeFilter: String? = nil
     private var entries: [JournalSession] {
         guard let r = routeOnly else { return vm.entries }
         return vm.entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
     }
+    /// Grado con el que se FILTRA: el del catalogo si se ha podido resolver,
+    /// que es el que la fila ensena. Si aqui se mirara solo `entry.grade`, los
+    /// chips ofrecerian grados distintos de los que se ven en pantalla.
+    private func gradeOf(_ e: JournalSession) -> String? {
+        let g = (vm.viaInfo[e.id]?.grade ?? e.grade)?
+            .trimmingCharacters(in: .whitespaces).lowercased()
+        return (g?.isEmpty ?? true) ? nil : g
+    }
+
+    /// Grados presentes, de mas duro a mas facil.
+    private var availableGrades: [String] {
+        let calc = JournalStatsCalculator.shared
+        return Set(entries.compactMap(gradeOf))
+            .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
+    }
+
+    private var visibles: [JournalSession] {
+        guard let g = gradeFilter else { return entries }
+        return entries.filter { gradeOf($0) == g }
+    }
+
     var body: some View {
         Group {
             if entries.isEmpty {
@@ -546,9 +578,33 @@ private struct AccountBlocksList: View {
                             hintKey: "journal_tap_via",
                             text: "Toca una vía para ir directamente a su piedra en la escuela."
                         )
+                        // Filtro por GRADO. Estaba escrito en JournalView, que
+                        // es una pantalla a la que no se llega desde el perfil:
+                        // el diario que se abre es ESTE.
+                        if availableGrades.count > 1 {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(availableGrades, id: \.self) { g in
+                                        let estilo = GradeColor.style(g)
+                                        let color = estilo.dark ? Cumbre.ink : estilo.stroke
+                                        let activo = gradeFilter == g
+                                        Button { gradeFilter = activo ? nil : g } label: {
+                                            Text(g)
+                                                .font(Cumbre.mono(11, .bold))
+                                                .foregroundStyle(activo ? .white : color)
+                                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                                .background(activo ? color : Color.clear)
+                                                .overlay(RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(color, lineWidth: 1))
+                                        }.buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 16).padding(.vertical, 6)
+                            }
+                        }
                         // N6: agrupado por MES + fecha editable (aqui es donde
                         // Rodrigo lo buscaba — la celda BLOQUES del perfil).
-                        let byMonth = Dictionary(grouping: entries.sorted { $0.date > $1.date },
+                        let byMonth = Dictionary(grouping: visibles.sorted { $0.date > $1.date },
                                                  by: { String($0.date.prefix(7)) })
                         ForEach(byMonth.keys.sorted(by: >), id: \.self) { month in
                             Text(JournalView.monthHeader(month) + " · \(byMonth[month]!.count)")

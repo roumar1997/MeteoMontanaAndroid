@@ -354,13 +354,19 @@ fun ContributionTopoDialog(
                     // sin dividir por la escala, al 400% el trazo y los badges
                     // engordarian hasta tapar la roca que ibas a mirar.
                     val z = camera.strokeFactor()
+                    // density: el grosor va en PIXELES FISICOS. Sin multiplicar
+                    // por la densidad, los 5 de iOS (que son puntos = dp) aqui
+                    // se quedaban en ~1,8 dp en el Xiaomi: un hilo. Por eso el
+                    // trazo se veia diminuto y dos vias que comparten tramo se
+                    // pisaban en vez de verse a franjas.
+                    val densTrazo = drawContext.density.density
                     val existing = existingLines.map { line ->
                         TopoLineData(
                             name = line.name,
                             grade = line.grade,
                             startType = line.startType,
                             points = line.points.map { it.x to it.y },
-                            strokeWidthPx = 5f * z
+                            strokeWidthPx = 5f * densTrazo * z
                         )
                     }
                     val editorLines = lines.entries.sortedBy { it.key }.map { (idx, points) ->
@@ -371,12 +377,12 @@ fun ContributionTopoDialog(
                             grade = bloque?.grade,
                             startType = bloque?.startType,
                             points = points.map { it.x to it.y },
-                            strokeWidthPx = strokeW * z
+                            strokeWidthPx = strokeW * densTrazo * z
                         )
                     }
                     val nc = drawContext.canvas.nativeCanvas
                     // density para que rayitas/franjas midan lo mismo que en la ficha.
-                    val dens = drawContext.density.density
+                    val dens = densTrazo
                     renderTopo(
                         existing + editorLines, size.width, size.height,
                         badgeR = 16f * z to 13f * z,
