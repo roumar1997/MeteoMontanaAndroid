@@ -148,6 +148,13 @@ jobs:
           API_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8" \
             node .github/scripts/asc_make_profile.js
 
+      - name: Sello de compilacion
+        run: |
+          # Se ve en Ajustes: responde de un vistazo "que build tengo instalado".
+          SELLO=$(TZ=Europe/Madrid date '+%-d %b %H:%M')
+          sed -i '' "s/static let buildStamp = \"local\"/static let buildStamp = \"$SELLO\"/" iosApp/iosApp/DI/AppDependencies.swift
+          grep -q "buildStamp = \"$SELLO\"" iosApp/iosApp/DI/AppDependencies.swift
+
       - name: XcodeGen generate
         working-directory: iosApp
         run: xcodegen generate

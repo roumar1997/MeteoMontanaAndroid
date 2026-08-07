@@ -13,6 +13,14 @@ import Shared
 /// compilar; el workflow de prod no lo toca (queda false → producción).
 enum BuildFlags {
     static let ciStaging = false
+
+    /// Sello de compilación, que se ve en Ajustes. El CI lo sustituye por la
+    /// fecha real al construir el `.ipa`; en local queda "local".
+    ///
+    /// Existe porque hoy nos ha costado media mañana distinguir "no te ha
+    /// llegado el arreglo" de "no lo has arreglado": con la fecha a la vista, la
+    /// pregunta se responde en dos segundos.
+    static let buildStamp = "local"
 }
 
 enum AppConfig {

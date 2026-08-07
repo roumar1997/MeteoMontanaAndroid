@@ -411,6 +411,7 @@ struct AccountSettingsView: View {
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
                         .padding(.vertical, 8).frame(maxWidth: .infinity)
                 }.buttonStyle(.plain)
+                selloDeVersion
             }
             .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 24)
         }
@@ -437,6 +438,19 @@ struct AccountSettingsView: View {
             .foregroundStyle(Cumbre.ink3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 16).padding(.bottom, 2)
+    }
+
+    /// Qué build es este. Sin esto, "no me ha llegado el arreglo" y "no lo has
+    /// arreglado" son indistinguibles.
+    private var selloDeVersion: some View {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        let entorno = AppConfig.apiBaseUrl.contains("staging") ? " · staging" : ""
+        return Text("Cumbre \(v) (build \(b)) · \(BuildFlags.buildStamp)\(entorno)")
+            .font(Cumbre.mono(11))
+            .foregroundStyle(Cumbre.ink3)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
     }
 
     private func menuRow<Dest: View>(_ title: String, _ icon: String, _ dest: Dest) -> some View {
