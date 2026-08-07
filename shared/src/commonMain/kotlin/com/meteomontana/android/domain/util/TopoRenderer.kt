@@ -232,6 +232,32 @@ fun magnetizeStroke(
     // TRAMO de las otras vías (no solo sus vértices — antes era casi imposible
     // acertar con el dedo) y, si cae bajo el umbral, se pega al vértice más
     // cercano de ese tramo. Así el tramo común sigue siendo EXACTO.
+    // Punto exacto al que pegarse cuando el vertice queda lejos: la proyeccion
+    // sobre el tramo. Sin esto, tocar a mitad de una via larga te llevaba a su
+    // vertice mas cercano, que puede estar a medio muro de distancia (feedback
+    // de Rodrigo con capturas: apuntaba al medio y acababa en la union de
+    // abajo). Ahi se pierde el tramo compartido exacto, pero la linea cae donde
+    // el usuario dijo, que es lo que importa.
+    fun proyeccion(p: Pair<Float, Float>): Pair<Float, Float>? {
+        var mejor: Pair<Float, Float>? = null
+        var mejorD = threshold * threshold
+        others.forEach { pts ->
+            for (si in 0 until pts.size - 1) {
+                val a = pts[si]; val b = pts[si + 1]
+                val abx = b.first - a.first; val aby = b.second - a.second
+                val len2 = abx * abx + aby * aby
+                val t = if (len2 < 1e-12f) 0f else
+                    (((p.first - a.first) * abx + (p.second - a.second) * aby) / len2)
+                        .coerceIn(0f, 1f)
+                val qx = a.first + t * abx; val qy = a.second + t * aby
+                val dx = p.first - qx; val dy = p.second - qy
+                val d = dx * dx + dy * dy
+                if (d < mejorD) { mejorD = d; mejor = qx to qy }
+            }
+        }
+        return mejor
+    }
+
     fun snap(p: Pair<Float, Float>): Pair<Int, Int>? {
         var best: Pair<Int, Int>? = null
         var bestD = threshold * threshold
@@ -264,9 +290,19 @@ fun magnetizeStroke(
     }
 
     data class Node(val point: Pair<Float, Float>, val snapped: Pair<Int, Int>?)
+    // Radio para pegarse a un VERTICE. Es mas estrecho que el del iman: el
+    // vertice solo gana si lo tienes casi debajo. Si estas cerca de la via pero
+    // lejos de sus vertices, el trazo cae en la PROYECCION, o sea donde
+    // apuntaste. Antes siempre ganaba el vertice y te llevaba a otro sitio.
+    val radioVertice = threshold * 0.45f
     val nodes = drawn.map { p ->
         val s = snap(p)
-        Node(if (s != null) others[s.first][s.second] else p, s)
+        if (s != null) {
+            val v = others[s.first][s.second]
+            val dx = p.first - v.first; val dy = p.second - v.second
+            val cerca = dx * dx + dy * dy <= radioVertice * radioVertice
+            if (cerca) Node(v, s) else Node(proyeccion(p) ?: p, null)
+        } else Node(p, null)
     }
 
     val out = mutableListOf<Pair<Float, Float>>()

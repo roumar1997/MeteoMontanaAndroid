@@ -23,6 +23,11 @@ struct TopoZoomLayer<Content: View>: View {
     var onStrokeEnd: () -> Void = {}
     var onStrokeCancel: () -> Void = {}
     var onTap: (CGFloat, CGFloat) -> Void = { _, _ in }
+    /// Avisa de la ampliación actual. Se llama SIEMPRE desde un gesto, nunca
+    /// desde el cuerpo de la vista: escribir estado mientras SwiftUI construye
+    /// la vista deja el refresco en un estado indefinido — es lo que hacía que
+    /// en el iPhone no se viese el trazo mientras dibujabas.
+    var onZoomChange: (CGFloat) -> Void = { _ in }
     /// El contenido recibe el factor por el que dividir grosores: al ampliar,
     /// el trazo debe seguir midiendo lo mismo en pantalla y no engordar con la
     /// foto hasta tapar la roca.
@@ -33,6 +38,10 @@ struct TopoZoomLayer<Content: View>: View {
     @State private var pinchBase: Float = 1
     @State private var panBase: CGSize = .zero
     @State private var drawing = false
+    /// ¿Ya ha llegado el primer movimiento de este arrastre? El primero solo
+    /// fija el origen: si se usara como desplazamiento, la foto pegaría un
+    /// salto al empezar a moverla (se notaba en el iPhone).
+    @State private var panIniciado = false
     @State private var strokeMoved: CGFloat = 0
     @State private var lastPoint: CGPoint?
 
@@ -70,6 +79,7 @@ struct TopoZoomLayer<Content: View>: View {
                             factor: factor,
                             focusX: Float(v.startLocation.x), focusY: Float(v.startLocation.y),
                             viewW: w, viewH: h)
+                        onZoomChange(CGFloat(camera.strokeFactor()))
                     }
                     .onEnded { _ in pinching = false }
             )
@@ -104,6 +114,11 @@ struct TopoZoomLayer<Content: View>: View {
                             }
                         } else if camera.scale > 1 {
                             // Visor: con la foto ampliada, un dedo la mueve.
+                            if !panIniciado {
+                                panIniciado = true
+                                panBase = v.translation
+                                return
+                            }
                             let dx = v.translation.width - panBase.width
                             let dy = v.translation.height - panBase.height
                             panBase = v.translation
@@ -112,6 +127,7 @@ struct TopoZoomLayer<Content: View>: View {
                     }
                     .onEnded { v in
                         panBase = .zero
+                        panIniciado = false
                         let p = foto(v.location, w: w, h: h)
                         if drawing {
                             drawing = false
@@ -132,6 +148,7 @@ struct TopoZoomLayer<Content: View>: View {
                         camera = camera.toggleZoomAt(
                             x: Float(v.location.x), y: Float(v.location.y),
                             viewW: w, viewH: h, zoomedScale: 2.5)
+                        onZoomChange(CGFloat(camera.strokeFactor()))
                     }
             )
         }

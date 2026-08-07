@@ -27,8 +27,10 @@ struct TopoEditorView: View {
     /// cambio. Sin esto, mover una vía sin querer al revisar la propuesta de
     /// otro no tiene vuelta atrás.
     @State private var historial: [(Int, [CGPoint])] = []
-    /// Radio del imán en coordenadas de foto, ajustado a la ampliación actual.
-    @State private var imanRadio: Float = 0.04
+    /// Factor de la ampliación actual (1 = foto entera, 0,25 = ampliada ×4). De
+    /// aquí salen el radio del imán y el paso mínimo del trazo, para que los dos
+    /// midan siempre el mismo trozo de PANTALLA.
+    @State private var zoom: CGFloat = 1
 
     /// Devuelve la vía a como estaba antes del último cambio.
     private func deshacer() {
@@ -112,8 +114,13 @@ struct TopoEditorView: View {
                                 // superpuestas los tomaba por un retrazado,
                                 // dejando la línea sin pintar hasta soltar.
                                 let ult = blocks[selected].line.last
+                                // El paso mínimo también se divide por la
+                                // ampliación: con un valor fijo, ampliado ×4 se
+                                // tragaba cuatro veces más movimiento y el trazo
+                                // salía a trompicones.
+                                let paso = 0.003 * zoom
                                 let lejos = ult == nil ||
-                                    abs(nx - ult!.x) + abs(ny - ult!.y) > 0.003
+                                    abs(nx - ult!.x) + abs(ny - ult!.y) > paso
                                 if lejos { blocks[selected].line.append(CGPoint(x: nx, y: ny)) }
                             }
                         },
@@ -131,7 +138,7 @@ struct TopoEditorView: View {
                             let otras = otherLines()
                             blocks[selected].line = otras.isEmpty ? base
                                 : TopoShared.magnetizeStroke(base, others: otras,
-                                                             threshold: CGFloat(imanRadio))
+                                                             threshold: 0.04 * zoom)
                             lineBeforeStroke = []
                         },
                         onStrokeCancel: {
@@ -139,6 +146,7 @@ struct TopoEditorView: View {
                             guard blocks.indices.contains(selected) else { return }
                             blocks[selected].line = lineBeforeStroke
                         },
+                        onZoomChange: { zoom = $0 },
                         onTap: { nx, ny in
                             guard blocks.indices.contains(selected) else { return }
                             var line = lineBeforeStroke
@@ -146,15 +154,10 @@ struct TopoEditorView: View {
                             let otras = otherLines()
                             blocks[selected].line = otras.isEmpty ? line
                                 : TopoShared.magnetizeStroke(line, others: otras,
-                                                             threshold: CGFloat(imanRadio))
+                                                             threshold: 0.04 * zoom)
                             lineBeforeStroke = []
                         }
                     ) { zoomFactor in
-                        // El radio del imán se divide por la ampliación: así
-                        // agarra el mismo trozo de PANTALLA con la foto entera
-                        // y ampliada. Con radio fijo, al ampliar x4 el trazo
-                        // saltaba a vías que ni tocabas.
-                        let _ = { imanRadio = Float(0.04 * zoomFactor) }()
                         ZStack {
                             Color.black
                             if let img = image {

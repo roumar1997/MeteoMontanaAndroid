@@ -108,8 +108,10 @@ fun ContributionTopoDialog(
     // cada cambio. Sin esto, mover una via sin querer al revisar la propuesta
     // de otro no tiene vuelta atras.
     val historial = remember { mutableStateListOf<Pair<Int, List<Offset>>>() }
-    // Radio del iman en coordenadas de foto, ajustado a la ampliacion actual.
-    var imanRadio by remember { mutableStateOf(0.04f) }
+    // Factor de la ampliacion actual (1 = foto entera, 0,25 = ampliada x4).
+    // De el salen el radio del iman y el paso minimo del trazo, para que los dos
+    // midan siempre el mismo trozo de PANTALLA.
+    var zoom by remember { mutableStateOf(1f) }
     fun apunta() {
         lines[selectedIdx]?.let { historial.add(selectedIdx to it.toList()) }
         if (historial.size > 40) historial.removeAt(0)
@@ -239,6 +241,11 @@ fun ContributionTopoDialog(
                 com.meteomontana.android.ui.components.TopoZoomBox(
                     modifier = Modifier.fillMaxSize(),
                     editable = true,
+                    // La ampliacion llega por AVISO, no escribiendo estado desde
+                    // el cuerpo de la pantalla: eso ultimo deja el refresco en
+                    // un estado indefinido (en iPhone dejo de verse el trazo
+                    // entero mientras dibujabas).
+                    onCameraChange = { zoom = it.strokeFactor() },
                     onStrokeStart = { px, py ->
                         val current = lines[selectedIdx]
                         if (current != null) {
@@ -273,8 +280,13 @@ fun ContributionTopoDialog(
                                 // retrazado y dejaba la linea SIN PINTAR hasta
                                 // soltar. Era el "no veo lo que dibujo".
                                 val ult = current.lastOrNull()
+                                // El paso minimo tambien se divide por la
+                                // ampliacion: con un valor fijo, ampliado x4 se
+                                // tragaba cuatro veces mas movimiento y el trazo
+                                // salia a trompicones.
+                                val paso = 0.003f * zoom
                                 val lejos = ult == null ||
-                                    kotlin.math.abs(px - ult.x) + kotlin.math.abs(py - ult.y) > 0.003f
+                                    kotlin.math.abs(px - ult.x) + kotlin.math.abs(py - ult.y) > paso
                                 if (lejos) current.add(Offset(px, py))
                             }
                         }
@@ -312,15 +324,12 @@ fun ContributionTopoDialog(
                             current.add(Offset(px, py))
                             val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
                                 current.map { it.x to it.y },
-                                otrasVias(existingLines, lines, selectedIdx), imanRadio)
+                                otrasVias(existingLines, lines, selectedIdx), 0.04f * zoom)
                             current.clear()
                             snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
                         }
                     }
                 ) { camera ->
-                    // El radio del iman se divide por la ampliacion: asi agarra
-                    // el mismo trozo de PANTALLA con la foto entera y ampliada.
-                    imanRadio = 0.04f * camera.strokeFactor()
                     AsyncImage(
                         model = photoUri,
                         contentDescription = null,
