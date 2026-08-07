@@ -22,12 +22,12 @@ struct TopoZoomLayer<Content: View>: View {
     var onStrokePoint: (CGFloat, CGFloat) -> Void = { _, _ in }
     var onStrokeEnd: () -> Void = {}
     var onStrokeCancel: () -> Void = {}
-    var onTap: (CGFloat, CGFloat) -> Void = { _, _ in }
     /// Avisa de la ampliación actual. Se llama SIEMPRE desde un gesto, nunca
     /// desde el cuerpo de la vista: escribir estado mientras SwiftUI construye
     /// la vista deja el refresco en un estado indefinido — es lo que hacía que
     /// en el iPhone no se viese el trazo mientras dibujabas.
     var onZoomChange: (CGFloat) -> Void = { _ in }
+    var onTap: (CGFloat, CGFloat) -> Void = { _, _ in }
     /// El contenido recibe el factor por el que dividir grosores: al ampliar,
     /// el trazo debe seguir midiendo lo mismo en pantalla y no engordar con la
     /// foto hasta tapar la roca.
