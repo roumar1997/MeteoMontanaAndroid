@@ -33,11 +33,10 @@ struct TopoEditorView: View {
     @State private var zoom: CGFloat = 1
     /// ¿El dedo está trazando ahora mismo?
     @State private var trazando = false
-    /// El trazo del gesto EN CURSO. Es estado local a proposito: escribirlo en
-    /// el Binding `blocks` no repinta el lienzo mientras arrastras, y la linea
-    /// no aparecia hasta soltar. Al terminar el gesto se vuelca a `blocks` y
-    /// esto vuelve a nil.
-    @State private var trazoVivo: [CGPoint]?
+    /// Imán: encendido por defecto (el caso normal es querer unir). Se puede
+    /// apagar y volver a encender EN MITAD del dibujo, que es lo que permite
+    /// compartir solo el tramo del medio. Se recuerda entre vías.
+    @State private var iman = true
 
     /// Devuelve la vía a como estaba antes del último cambio.
     private func deshacer() {
@@ -83,14 +82,16 @@ struct TopoEditorView: View {
                 }
 
                 GeometryReader { geo in
-                    // Los gestos y el zoom viven en TopoZoomLayer (espejo de
-                    // TopoZoomBox de Android, con la misma TopoCamera del
-                    // módulo compartido). Aquí solo queda lo que SIGNIFICA
+                    // Los gestos y el zoom viven en TopoCanvas (lienzo UIKit,
+                    // espejo de TopoZoomBox de Android, con la misma TopoCamera
+                    // del módulo compartido). Aquí solo queda lo que SIGNIFICA
                     // cada gesto para el editor.
-                    TopoZoomLayer(
+                    TopoCanvas(
+                        image: image,
+                        scene: escena,
                         editable: true,
                         onStrokeStart: { nx, ny in
-                            guard blocks.indices.contains(selected) else { return }
+                            guard blocks.indices.contains(selected) else { return [] }
                             // Copia de seguridad: si el gesto acaba siendo un
                             // pellizco o un toque, se restaura lo que había.
                             lineBeforeStroke = blocks[selected].line
@@ -110,33 +111,30 @@ struct TopoEditorView: View {
                             } else {
                                 blocks[selected].line = [CGPoint(x: nx, y: ny)]
                             }
-                            trazoVivo = blocks[selected].line
+                            return blocks[selected].line
                         },
                         onStrokePoint: { nx, ny in
-                            guard blocks.indices.contains(selected) else { return }
-                            defer { trazoVivo = blocks[selected].line }
+                            guard blocks.indices.contains(selected) else { return [] }
                             if let v = draggingVertex, blocks[selected].line.indices.contains(v) {
                                 blocks[selected].line[v] = CGPoint(x: nx, y: ny)
                             } else {
                                 // Solo si el dedo se ha movido de verdad: con el
                                 // dedo casi quieto llegaban decenas de puntos
                                 // idénticos por segundo y el limpiador de pasadas
-                                // superpuestas los tomaba por un retrazado,
-                                // dejando la línea sin pintar hasta soltar.
+                                // superpuestas los tomaba por un retrazado.
+                                // El paso mínimo se divide por la ampliación: con
+                                // un valor fijo, ampliado x4 se tragaba cuatro
+                                // veces más movimiento.
                                 let ult = blocks[selected].line.last
-                                // El paso mínimo también se divide por la
-                                // ampliación: con un valor fijo, ampliado ×4 se
-                                // tragaba cuatro veces más movimiento y el trazo
-                                // salía a trompicones.
                                 let paso = 0.003 * zoom
                                 let lejos = ult == nil ||
                                     abs(nx - ult!.x) + abs(ny - ult!.y) > paso
                                 if lejos { blocks[selected].line.append(CGPoint(x: nx, y: ny)) }
                             }
+                            return blocks[selected].line
                         },
                         onStrokeEnd: {
                             trazando = false
-                            trazoVivo = nil
                             guard blocks.indices.contains(selected) else { return }
                             let corrigiendo = draggingVertex != nil
                             draggingVertex = nil
@@ -144,51 +142,34 @@ struct TopoEditorView: View {
                             guard stroke.count >= 2 else { return }
                             // Corrigiendo un vértice NO se suaviza: el suavizado
                             // quita puntos, y el que acabas de colocar a mano es
-                            // justo el que quieres conservar. El imán sí, para
-                            // no romper un tramo compartido.
+                            // justo el que quieres conservar.
                             let base = corrigiendo ? stroke : TopoShared.simplifyStroke(stroke)
-                            let otras = otherLines()
-                            blocks[selected].line = otras.isEmpty ? base
-                                : TopoShared.magnetizeStroke(base, others: otras,
-                                                             threshold: 0.04 * zoom)
+                            blocks[selected].line = TopoShared.applyMagnet(
+                                base, others: otherLines(), threshold: 0.04 * zoom, enabled: iman)
                             lineBeforeStroke = []
                         },
                         onStrokeCancel: {
                             trazando = false
-                            trazoVivo = nil
                             draggingVertex = nil
                             guard blocks.indices.contains(selected) else { return }
                             blocks[selected].line = lineBeforeStroke
                         },
-                        onZoomChange: { zoom = $0 },
                         onTap: { nx, ny in
                             trazando = false
-                            trazoVivo = nil
                             guard blocks.indices.contains(selected) else { return }
                             var line = lineBeforeStroke
                             line.append(CGPoint(x: nx, y: ny))
-                            let otras = otherLines()
-                            blocks[selected].line = otras.isEmpty ? line
-                                : TopoShared.magnetizeStroke(line, others: otras,
-                                                             threshold: 0.04 * zoom)
+                            blocks[selected].line = TopoShared.applyMagnet(
+                                line, others: otherLines(), threshold: 0.04 * zoom, enabled: iman)
                             lineBeforeStroke = []
-                        }
-                    ) { zoomFactor in
-                        ZStack {
-                            Color.black
-                            if let img = image {
-                                Image(uiImage: img).resizable().scaledToFill()
-                            } else { ProgressView().tint(.white) }
-                            Canvas { ctx, size in drawLines(ctx, size, zoom: zoomFactor) }
-                        }
-                    }
+                        },
+                        onZoomChange: { zoom = $0 }
+                    )
                     .frame(width: geo.size.width, height: geo.size.width / ratio)
                 }
                 .aspectRatio(ratio, contentMode: .fit)
                 .padding(.horizontal, 12)
 
-                // La lupa es lo único que no se puede juzgar sin el móvil en la
-                // mano: a unos les salva y a otros les tapa media foto.
                 HStack(spacing: 10) {
                     Button { deshacer() } label: {
                         Text("DESHACER")
@@ -198,12 +179,24 @@ struct TopoEditorView: View {
                             .overlay(Rectangle().stroke(
                                 historial.isEmpty ? Cumbre.rule : Cumbre.ink, lineWidth: 1))
                     }.buttonStyle(.plain).disabled(historial.isEmpty)
+                    // UNIR: se puede apagar y encender EN MITAD del dibujo, que
+                    // es lo que permite compartir solo el tramo del medio.
+                    Button { iman.toggle() } label: {
+                        Text(iman ? "UNIR: SÍ" : "UNIR: NO")
+                            .font(Cumbre.mono(11, .bold))
+                            .foregroundStyle(iman ? .white : Cumbre.ink)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(iman ? Cumbre.terra : Color.clear)
+                            .overlay(Rectangle().stroke(iman ? Cumbre.terra : Cumbre.ink, lineWidth: 1))
+                    }.buttonStyle(.plain)
                     Text("Un dedo dibuja · pellizca para ampliar")
                         .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                 }
                 .padding(.horizontal, 16)
 
-                Text("Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido).")
+                Text(iman
+                     ? "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido)."
+                     : "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra vía.")
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).padding(.horizontal, 16)
                 Spacer()
 
@@ -234,46 +227,27 @@ struct TopoEditorView: View {
         }
     }
 
-    private func drawLines(_ ctx: GraphicsContext, _ size: CGSize, zoom: CGFloat = 1) {
-        // La vía vieja que se corrige, difuminada (para distinguirla) — al fondo.
-        for line in fadedLines where !line.points.isEmpty {
-            let style = GradeColor.style(line.grade)
-            let pts = line.points.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
-            var path = Path(); path.move(to: pts[0])
-            for p in pts.dropFirst() { path.addLine(to: p) }
-            ctx.stroke(path, with: .color(style.stroke.opacity(0.4)),
-                       style: StrokeStyle(lineWidth: 4 * zoom, lineCap: .round, lineJoin: .round,
-                                          dash: [6 * zoom, 6 * zoom]))
-        }
-        // Pintor único: índice de vía GLOBAL (normales primero, luego editables)
-        // para que las franjas y el abanico casen. La editable seleccionada va
-        // más gruesa (lineWidth override). Franjas/abanico/dos pasadas por dentro.
+    /// Lo que hay que pintar. El lienzo no sabe nada de vías ni de grados:
+    /// recibe datos ya masticados.
+    private var escena: TopoScene {
         var vias = normalLines.enumerated().map { (i, l) in
             TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points)
         }
+        // Índice de vía GLOBAL (normales primero, luego editables) para que las
+        // franjas del tramo compartido y el abanico de badges casen.
         for (idx, b) in blocks.enumerated() {
-            // La via que se esta trazando se pinta desde el estado local, que es
-            // el unico que se refresca a cada punto.
-            let pts = (idx == selected ? (trazoVivo ?? b.line) : b.line)
             vias.append(TopoVia(number: idx + 1, grade: b.grade, startType: b.startType,
-                                points: pts, lineWidth: (idx == selected ? 8 : 5) * zoom))
+                                points: b.line, lineWidth: (idx == selected ? 8 : 5)))
         }
-        TopoPainter.paint(GraphicsContextTarget(ctx: ctx), vias: vias, size: size,
-                          style: .editor(lineWidth: 5 * zoom))
-        // Vértices de la vía seleccionada: si no se ven, nadie adivina que se
-        // pueden arrastrar para corregirlos.
-        // Igual que en Android: los vértices NO se pintan mientras el dedo
-        // traza. En un arrastre son cientos y tapan la línea de color.
-        if !trazando, blocks.indices.contains(selected) {
-            for p in blocks[selected].line {
-                let c = CGPoint(x: p.x * size.width, y: p.y * size.height)
-                let r: CGFloat = 5 * zoom
-                let caja = CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)
-                ctx.fill(Path(ellipseIn: caja), with: .color(.white))
-                ctx.stroke(Path(ellipseIn: caja), with: .color(.black.opacity(0.6)),
-                           lineWidth: 1.5 * zoom)
-            }
-        }
+        let seleccionada = blocks.indices.contains(selected) ? blocks[selected].line : []
+        return TopoScene(
+            faded: fadedLines.map { ($0.points, $0.grade) },
+            vias: vias,
+            dots: seleccionada,
+            joined: TopoShared.joinedIndices(seleccionada, others: otherLines()),
+            liveIndex: normalLines.count + selected,
+            style: { z in TopoStyle.editor(lineWidth: 5 * z) },
+            fadedAlpha: 0.4)
     }
 
 }

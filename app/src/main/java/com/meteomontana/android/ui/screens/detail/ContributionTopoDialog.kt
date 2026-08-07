@@ -115,6 +115,9 @@ fun ContributionTopoDialog(
     // ¿El dedo esta encima trazando? Mientras lo este, los puntos de los
     // vertices no se pintan: en un arrastre son cientos y tapan la linea.
     var trazando by remember { mutableStateOf(false) }
+    // Iman: encendido por defecto (el caso normal es querer unir). Se recuerda
+    // mientras el editor este abierto, tambien al cambiar de via.
+    var iman by remember { mutableStateOf(true) }
     fun apunta() {
         lines[selectedIdx]?.let { historial.add(selectedIdx to it.toList()) }
         if (historial.size > 40) historial.removeAt(0)
@@ -316,8 +319,9 @@ fun ContributionTopoDialog(
                             val base = if (corrigiendo) current.map { it.x to it.y }
                             else com.meteomontana.android.domain.util.simplifyStroke(
                                 current.map { it.x to it.y })
-                            val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
-                                base, otrasVias(existingLines, lines, selectedIdx))
+                            val snapped = com.meteomontana.android.domain.util.TopoMagnet.apply(
+                                base, otrasVias(existingLines, lines, selectedIdx),
+                                enabled = iman)
                             current.clear()
                             snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
                         }
@@ -329,9 +333,10 @@ fun ContributionTopoDialog(
                         val current = lines[selectedIdx]
                         if (current != null) {
                             current.add(Offset(px, py))
-                            val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
+                            val snapped = com.meteomontana.android.domain.util.TopoMagnet.apply(
                                 current.map { it.x to it.y },
-                                otrasVias(existingLines, lines, selectedIdx), 0.04f * zoom)
+                                otrasVias(existingLines, lines, selectedIdx), 0.04f * zoom,
+                                enabled = iman)
                             current.clear()
                             snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
                         }
@@ -398,7 +403,14 @@ fun ContributionTopoDialog(
                     // adivina que se pueden arrastrar. Pero NO mientras el dedo
                     // traza: ahi son cientos y lo unico que se ve es una fila de
                     // puntitos blancos encima de la linea.
-                    if (!trazando) lines[selectedIdx]?.forEach { pt ->
+                    // Puntos UNIDOS a otra via: anillo mas grande. Sin esto,
+                    // saber si el iman habia enganchado obligaba a fijarse en si
+                    // salian las franjas del tramo compartido.
+                    val unidos = if (trazando) emptySet() else
+                        com.meteomontana.android.domain.util.TopoMagnet.joinedIndices(
+                            lines[selectedIdx]?.map { it.x to it.y } ?: emptyList(),
+                            otrasVias(existingLines, lines, selectedIdx))
+                    if (!trazando) lines[selectedIdx]?.forEachIndexed { iPt, pt ->
                         drawCircle(
                             androidx.compose.ui.graphics.Color.White,
                             radius = 5f * z,
@@ -410,6 +422,15 @@ fun ContributionTopoDialog(
                             center = Offset(pt.x * size.width, pt.y * size.height),
                             style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * z)
                         )
+                        if (iPt in unidos) {
+                            // Unido a otra via: anillo blanco alrededor.
+                            drawCircle(
+                                androidx.compose.ui.graphics.Color.White,
+                                radius = 10f * z,
+                                center = Offset(pt.x * size.width, pt.y * size.height),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f * z)
+                            )
+                        }
                     }
                     }
                 }
@@ -452,6 +473,26 @@ fun ContributionTopoDialog(
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                // UNIR: se puede apagar y encender EN MITAD del dibujo, que es
+                // lo que permite compartir solo el tramo del medio.
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(if (iman) Terra else Color.Transparent)
+                        .border(
+                            1.dp,
+                            if (iman) Terra else MaterialTheme.colorScheme.onSurface,
+                            RoundedCornerShape(2.dp)
+                        )
+                        .clickable { iman = !iman }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                ) {
+                    Text(
+                        if (iman) "UNIR: SÍ" else "UNIR: NO",
+                        style = EyebrowTextStyle,
+                        color = if (iman) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
+                }
                 Text(
                     "Un dedo dibuja · dos amplían y mueven · doble toque acerca",
                     style = MaterialTheme.typography.bodySmall,
@@ -461,7 +502,10 @@ fun ContributionTopoDialog(
                 )
             }
             Text(
-                "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido).",
+                if (iman)
+                    "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido)."
+                else
+                    "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra vía.",
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)

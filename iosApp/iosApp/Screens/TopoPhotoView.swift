@@ -118,9 +118,9 @@ struct TopoPhotoView: View {
     var body: some View {
         Group {
             if interactive {
-                TopoZoomLayer(editable: false) { zoom in
-                    lienzo(zoom: zoom)
-                }
+                // Lienzo UIKit: los toques y el repintado son nuestros, que es
+                // lo que hace que mover la foto ampliada vaya fino.
+                TopoCanvas(image: image, scene: escena, editable: false)
             } else {
                 lienzo(zoom: 1)
             }
@@ -155,6 +155,19 @@ struct TopoPhotoView: View {
                 ratio = (w > 0 && h > 0) ? min(max(w / h, 0.55), 2.2) : 4.0 / 3.0
             }
         }
+    }
+
+    /// Lo mismo que pinta `draw`, pero como datos para el lienzo UIKit.
+    private var escena: TopoScene {
+        let solid = normalLines + lines
+        return TopoScene(
+            faded: referenceLines.map { ($0.points, $0.grade) },
+            vias: solid.enumerated().map { (i, l) in
+                TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points,
+                        lineWidth: nil, muted: focus != nil && focus != i)
+            },
+            style: { TopoStyle.photoScaled($0) },
+            fadedAlpha: 0.35)
     }
 
     private func draw(_ ctx: GraphicsContext, _ size: CGSize, zoom: CGFloat = 1) {

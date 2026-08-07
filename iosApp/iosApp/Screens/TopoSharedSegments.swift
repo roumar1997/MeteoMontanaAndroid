@@ -121,6 +121,26 @@ enum TopoShared {
         return Array(points[best.0...best.1])
     }
 
+    /// Aplica el iman SOLO si esta activado -- espejo de TopoMagnet.apply.
+    ///
+    /// El interruptor existe porque el iman acertado no siempre es el deseado:
+    /// dos vias pueden pasar muy cerca al arrancar sin compartir nada y
+    /// juntarse solo a media pared. Quien decide eso es quien mira la roca.
+    static func applyMagnet(_ stroke: [CGPoint], others: [[CGPoint]],
+                            threshold: CGFloat = 0.04, enabled: Bool) -> [CGPoint] {
+        enabled ? magnetizeStroke(stroke, others: others, threshold: threshold) : stroke
+    }
+
+    /// Indices de `line` que han quedado UNIDOS: los que caen exactamente sobre
+    /// un vertice de otra via -- espejo de TopoMagnet.joinedIndices. Se marcan
+    /// en el editor para no tener que adivinar si el iman engancho.
+    static func joinedIndices(_ line: [CGPoint], others: [[CGPoint]]) -> Set<Int> {
+        guard !line.isEmpty, !others.isEmpty else { return [] }
+        var vertices = Set<String>()
+        for pts in others { for p in pts { vertices.insert(pointKey(p)) } }
+        return Set(line.indices.filter { vertices.contains(pointKey(line[$0])) })
+    }
+
     /// IMÁN del editor: espejo exacto de magnetizeStroke de TopoRenderer.kt.
     /// v2: se compara contra CUALQUIER TRAMO de las otras vías (no solo sus
     /// vértices — antes era casi imposible acertar con el dedo) y se pega al
