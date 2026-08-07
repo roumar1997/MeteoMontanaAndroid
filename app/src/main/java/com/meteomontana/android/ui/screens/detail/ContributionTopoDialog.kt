@@ -112,6 +112,9 @@ fun ContributionTopoDialog(
     // De el salen el radio del iman y el paso minimo del trazo, para que los dos
     // midan siempre el mismo trozo de PANTALLA.
     var zoom by remember { mutableStateOf(1f) }
+    // ¿El dedo esta encima trazando? Mientras lo este, los puntos de los
+    // vertices no se pintan: en un arrastre son cientos y tapan la linea.
+    var trazando by remember { mutableStateOf(false) }
     fun apunta() {
         lines[selectedIdx]?.let { historial.add(selectedIdx to it.toList()) }
         if (historial.size > 40) historial.removeAt(0)
@@ -253,6 +256,7 @@ fun ContributionTopoDialog(
                             // mitad del trazo se restaura lo que habia, en vez
                             // de dejar la via a medio borrar.
                             lineBeforeStroke = current.toList()
+                            trazando = true
                             apunta()
                             // Si el dedo cae encima de un vertice existente, se
                             // AGARRA ese punto para corregirlo. Solo si la via
@@ -297,11 +301,13 @@ fun ContributionTopoDialog(
                             current.clear(); current.addAll(lineBeforeStroke)
                         }
                         draggingVertex = null
+                        trazando = false
                     },
                     onStrokeEnd = {
                         val current = lines[selectedIdx]
                         val corrigiendo = draggingVertex != null
                         draggingVertex = null
+                        trazando = false
                         if (current != null && current.size >= 2) {
                             // Corrigiendo un vertice NO se suaviza: el suavizado
                             // borra puntos, y el que acabas de colocar a mano es
@@ -317,6 +323,7 @@ fun ContributionTopoDialog(
                         }
                     },
                     onTap = { px, py ->
+                        trazando = false
                         // Punto a punto: mas preciso que el dedo a mano, y con
                         // el zoom se vuelve preciso de verdad.
                         val current = lines[selectedIdx]
@@ -382,8 +389,10 @@ fun ContributionTopoDialog(
                         fanSpacingPx = (16f * 2f + 4f) to (26f * 2f + 4f)
                     ).forEach { op -> drawOp(op, nc) }
                     // Vertices de la via seleccionada: si no se ven, nadie
-                    // adivina que se pueden arrastrar.
-                    lines[selectedIdx]?.forEach { pt ->
+                    // adivina que se pueden arrastrar. Pero NO mientras el dedo
+                    // traza: ahi son cientos y lo unico que se ve es una fila de
+                    // puntitos blancos encima de la linea.
+                    if (!trazando) lines[selectedIdx]?.forEach { pt ->
                         drawCircle(
                             androidx.compose.ui.graphics.Color.White,
                             radius = 5f * z,

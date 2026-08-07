@@ -31,6 +31,8 @@ struct TopoEditorView: View {
     /// aquí salen el radio del imán y el paso mínimo del trazo, para que los dos
     /// midan siempre el mismo trozo de PANTALLA.
     @State private var zoom: CGFloat = 1
+    /// ¿El dedo está trazando ahora mismo?
+    @State private var trazando = false
 
     /// Devuelve la vía a como estaba antes del último cambio.
     private func deshacer() {
@@ -87,6 +89,7 @@ struct TopoEditorView: View {
                             // Copia de seguridad: si el gesto acaba siendo un
                             // pellizco o un toque, se restaura lo que había.
                             lineBeforeStroke = blocks[selected].line
+                            trazando = true
                             historial.append((selected, blocks[selected].line))
                             if historial.count > 40 { historial.removeFirst() }
                             // Si el dedo cae sobre un vértice ya trazado, se
@@ -125,6 +128,7 @@ struct TopoEditorView: View {
                             }
                         },
                         onStrokeEnd: {
+                            trazando = false
                             guard blocks.indices.contains(selected) else { return }
                             let corrigiendo = draggingVertex != nil
                             draggingVertex = nil
@@ -142,12 +146,14 @@ struct TopoEditorView: View {
                             lineBeforeStroke = []
                         },
                         onStrokeCancel: {
+                            trazando = false
                             draggingVertex = nil
                             guard blocks.indices.contains(selected) else { return }
                             blocks[selected].line = lineBeforeStroke
                         },
                         onZoomChange: { zoom = $0 },
                         onTap: { nx, ny in
+                            trazando = false
                             guard blocks.indices.contains(selected) else { return }
                             var line = lineBeforeStroke
                             line.append(CGPoint(x: nx, y: ny))
@@ -243,7 +249,9 @@ struct TopoEditorView: View {
                           style: .editor(lineWidth: 5 * zoom))
         // Vértices de la vía seleccionada: si no se ven, nadie adivina que se
         // pueden arrastrar para corregirlos.
-        if blocks.indices.contains(selected) {
+        // Igual que en Android: los vértices NO se pintan mientras el dedo
+        // traza. En un arrastre son cientos y tapan la línea de color.
+        if !trazando, blocks.indices.contains(selected) {
             for p in blocks[selected].line {
                 let c = CGPoint(x: p.x * size.width, y: p.y * size.height)
                 let r: CGFloat = 5 * zoom
