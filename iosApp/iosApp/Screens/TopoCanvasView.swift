@@ -132,7 +132,7 @@ final class TopoCanvasUIView: UIView, UIGestureRecognizerDelegate {
 
     /// El arrastre solo nos interesa si vamos a dibujar o si la foto está
     /// ampliada. Si no, se deja pasar: la ficha sigue desplazándose normal.
-    func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
+    override func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
         if g === arrastre { return editable || !camera.isIdentity }
         return true
     }
