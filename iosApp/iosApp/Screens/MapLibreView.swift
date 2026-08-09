@@ -131,6 +131,11 @@ struct MapLibreView: UIViewRepresentable {
     var onZoomChange: ((Double) -> Void)? = nil
     /// Notifica centro+zoom al moverse (para restaurar la cámara si el view se recrea).
     var onCameraChange: ((CLLocationCoordinate2D, Double) -> Void)? = nil
+    /// Notifica el GIRO del mapa (0 = norte arriba), para la rosa de los vientos.
+    var onBearingChange: ((Double) -> Void)? = nil
+    /// Devuelve el mapa al norte cuando este contador cambia (mismo patrón que
+    /// `focusToken`: incrementarlo es la orden).
+    var northToken: Int = 0
     /// Se llama al tocar un marcador (por id).
     var onTapMarker: ((String) -> Void)? = nil
     /// Si está presente, un tap en el mapa (no en un marcador) devuelve la
@@ -201,6 +206,10 @@ struct MapLibreView: UIViewRepresentable {
 
         // Foco explícito (p. ej. pulsar un parking en la lista): solo cuando
         // `focusToken` cambia, para no recentrar en cada recomposición.
+        if northToken != context.coordinator.lastNorthToken {
+            context.coordinator.lastNorthToken = northToken
+            if northToken > 0 { map.setDirection(0, animated: true) }
+        }
         if focusToken != context.coordinator.lastFocusToken,
            (focusCoordinate != nil || focusFitCoordinates.count >= 2) {
             context.coordinator.lastFocusToken = focusToken
@@ -236,6 +245,8 @@ struct MapLibreView: UIViewRepresentable {
         // autoFitToMarkers: el fit inicial se hace en mapViewDidFinishLoadingMap
         // (makeUIView no tiene layout aún). Esta bandera evita re-fit en cambio de estilo.
         private var didAutoFitOnLoad = false
+        /// Último `northToken` aplicado — evita re-orientar en cada update.
+        var lastNorthToken = 0
         /// Último `focusToken` aplicado — evita recentrar de más en cada update.
         var lastFocusToken = 0
         /// Mapa annotation→marker para resolver taps sin depender del título.
@@ -442,6 +453,7 @@ struct MapLibreView: UIViewRepresentable {
         func mapView(_ mapView: MLNMapView, regionDidChangeAnimated animated: Bool) {
             parent.onZoomChange?(mapView.zoomLevel)
             parent.onCameraChange?(mapView.centerCoordinate, mapView.zoomLevel)
+            parent.onBearingChange?(mapView.direction)
         }
 
         // Encuadre inicial a ≥2 coords (corrección viejo+nuevo). Se hace aquí —

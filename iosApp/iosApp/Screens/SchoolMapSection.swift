@@ -42,6 +42,10 @@ struct SchoolMapSection: View {
     // Foco explícito al pulsar un parking en la lista (recentra el mapa ahí).
     @State private var focusCoord: CLLocationCoordinate2D?
     @State private var focusToken = 0
+    /// Giro del mapa (0 = norte arriba) y orden de volver al norte, para la rosa
+    /// de los vientos. Es el giro del MAPA, no el rumbo del móvil.
+    @State private var mapBearing: Double = 0
+    @State private var northToken = 0
     // Encuadre de bounds (parking + su zona) — tiene prioridad sobre focusCoord.
     @State private var focusFit: [CLLocationCoordinate2D] = []
     // Capas ocultas por el usuario (leyenda pulsable): PARKING/BLOCK/ZONE.
@@ -170,6 +174,8 @@ struct SchoolMapSection: View {
                         autoFitToMarkers: savedZoom == nil,
                         onZoomChange: { mapZoom = $0 },
                         onCameraChange: { c, z in savedCenter = c; savedZoom = z },
+                        onBearingChange: { mapBearing = $0 },
+                        northToken: northToken,
                         onTapMarker: { id in
                             if flow.correctionMode && !flow.corrActive {
                                 selectCorrectionTarget(id)
@@ -292,6 +298,14 @@ struct SchoolMapSection: View {
                             HStack {
                                 Spacer()
                                 VStack(spacing: 8) {
+                                // Rosa de los vientos: la PRIMERA, porque saber
+                                // dónde cae el norte es lo que te sitúa antes de
+                                // tocar nada. Un toque devuelve el mapa al norte.
+                                sideButton(active: true) {
+                                    northToken += 1
+                                } content: {
+                                    CompassRoseIcon(mapBearing: mapBearing)
+                                }
                                 sideButton(active: true) {
                                     recenterOnSchool()
                                 } content: {
