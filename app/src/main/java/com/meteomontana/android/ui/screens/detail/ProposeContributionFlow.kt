@@ -288,17 +288,23 @@ fun ProposeContributionFlow(
         is ProposeStep.PhotoConfirm -> {
             // Nada de diálogo: la pregunta va en un banner y la piedra se PINTA
             // en el mapa. Un diálogo encima tapaba justo lo que hay que mirar.
-            onPhotoConfirmChange(
-                s.lat to s.lon,
-                { step = ProposeStep.BoulderForm(s.lat, s.lon) },
-                {
-                    // A partir de aquí manda el toque en el mapa: el flujo de
-                    // siempre lleva de WaitingMapTap al formulario.
-                    onPhotoConfirmChange(null, null, null)
-                    step = ProposeStep.WaitingMapTap
-                    onStartWaitingTap()
-                }
-            )
+            //
+            // Va en un efecto y no suelto: avisar desde el cuerpo de la
+            // composición es escribir estado MIENTRAS se dibuja, y Compose no
+            // garantiza que eso llegue — el marcador no aparecía.
+            androidx.compose.runtime.LaunchedEffect(s.lat, s.lon) {
+                onPhotoConfirmChange(
+                    s.lat to s.lon,
+                    { step = ProposeStep.BoulderForm(s.lat, s.lon) },
+                    {
+                        // A partir de aquí manda el toque en el mapa: el flujo
+                        // de siempre lleva de WaitingMapTap al formulario.
+                        onPhotoConfirmChange(null, null, null)
+                        step = ProposeStep.WaitingMapTap
+                        onStartWaitingTap()
+                    }
+                )
+            }
         }
 
         is ProposeStep.Form -> ParkingFormDialog(

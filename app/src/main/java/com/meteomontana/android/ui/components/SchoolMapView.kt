@@ -284,6 +284,18 @@ internal fun SchoolMapView(
 
     // Re-pinta markers cuando cambia el ghost, el preview del muro, se colapsa
     // un sector, te mueves o giras (brújula del punto azul).
+    // Con una foto por confirmar, el mapa se centra en su punto: la estrella
+    // puede caer fuera de pantalla y entonces no hay nada que juzgar.
+    androidx.compose.runtime.LaunchedEffect(bridge.photoConfirm) {
+        val punto = bridge.photoConfirm ?: return@LaunchedEffect
+        mapRef.value?.let { map ->
+            runCatching {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                    LatLng(punto.first, punto.second), 16.5))
+            }
+        }
+    }
+
     androidx.compose.runtime.LaunchedEffect(bridge.correctionGhost, visibleMarkers, activePreview, userLoc, deviceHeading) {
         val map = mapRef.value ?: return@LaunchedEffect
         placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview, deviceHeading) { tapped ->
@@ -505,8 +517,15 @@ internal fun SchoolMapView(
                                 isCompassEnabled = true
                                 setCompassFadeFacingNorth(false)
                                 setCompassGravity(android.view.Gravity.TOP or android.view.Gravity.START)
-                                val m = (12 * ctx.resources.displayMetrics.density).toInt()
-                                setCompassMargins(m, m * 5, m, m)
+                                // Debajo del boton de ampliar, no encima de el.
+                                val d = ctx.resources.displayMetrics.density
+                                setCompassMargins((12 * d).toInt(), (56 * d).toInt(), 0, 0)
+                                // La brujula de serie es una flecha suelta que
+                                // sobre el satelite no se ve: se sustituye por
+                                // la nuestra, igual que la de iOS.
+                                androidx.core.content.ContextCompat.getDrawable(
+                                    ctx, com.meteomontana.android.R.drawable.ic_brujula_mapa
+                                )?.let { setCompassImage(it) }
                             }
                             map.addOnMapClickListener { point ->
                                 when {

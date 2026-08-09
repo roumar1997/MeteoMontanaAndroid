@@ -168,6 +168,10 @@ struct MapLibreView: UIViewRepresentable {
         // Se deja SIEMPRE visible; antes se desvanecia mirando al norte, y por
         // eso llegamos a dibujar otra al lado.
         map.compassView.compassVisibility = .visible
+        // A la IZQUIERDA y bajo el boton de ampliar, igual que en Android.
+        // Arriba a la derecha chocaba con el boton de PROPONER.
+        map.compassViewPosition = .topLeft
+        map.compassViewMargins = CGPoint(x: 12, y: 56)
         map.styleURL = style.styleURL()
         map.setCenter(center, zoomLevel: zoom, animated: false)
         map.delegate = context.coordinator

@@ -36,20 +36,71 @@ data class PhotoLocation(
  * el permiso `ACCESS_MEDIA_LOCATION`. Sin ese paso, esta función devolvería
  * null en fotos que sí tienen coordenadas.
  */
-fun readPhotoLocation(context: Context, uri: Uri): PhotoLocation? = runCatching {
+fun readPhotoLocation(context: Context, uri: Uri): PhotoLocation? {
     val enMediaStore = aMediaStore(uri)
-    val real = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        runCatching { MediaStore.setRequireOriginal(enMediaStore) }.getOrDefault(enMediaStore)
-    } else enMediaStore
+    // Rastro para diagnosticar en dispositivo: los selectores de fotos entregan
+    // COPIAS distintas segun de donde vengan, y hasta no ver de cual se trata no
+    // se puede saber por que una foto con coordenadas llega sin ellas.
+    android.util.Log.i(TAG, "uri=$uri authority=${uri.authority} -> media=$enMediaStore")
 
-    context.contentResolver.openInputStream(real)?.use { input ->
+    // 1) El original de MediaStore (el unico con la ubicacion intacta).
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val original = runCatching { MediaStore.setRequireOriginal(enMediaStore) }.getOrNull()
+        if (original != null) {
+            leer(context, original)?.let {
+                android.util.Log.i(TAG, "coordenadas del ORIGINAL: ok")
+                return it
+            }
+            android.util.Log.i(TAG, "el original no dio coordenadas")
+        }
+    }
+    // 2) El FICHERO, por su ruta. Es el camino que no pasa por el recorte del
+    //    proveedor: desde Android 11, con permiso de galeria, se puede leer el
+    //    archivo tal cual esta en disco. Es lo que salva el caso en el que el
+    //    permiso figura concedido pero el sistema sigue devolviendo una copia
+    //    sin ubicacion (visto en el Xiaomi de Rodrigo).
+    rutaDe(context, enMediaStore)?.let { ruta ->
+        runCatching {
+            val exif = ExifInterface(ruta)
+            val coords = exif.latLong
+            if (coords != null) {
+                android.util.Log.i(TAG, "coordenadas del FICHERO: ok")
+                return PhotoLocation(coords[0], coords[1],
+                    exif.getAttribute(ExifInterface.TAG_GPS_IMG_DIRECTION)
+                        ?.let { fraccionADecimal(it) })
+            }
+        }.onFailure { android.util.Log.i(TAG, "fallo leyendo el fichero $ruta: $it") }
+    }
+
+    // 3) Lo que haya llegado, tal cual. Puede bastar si el proveedor no redacta.
+    leer(context, uri)?.let {
+        android.util.Log.i(TAG, "coordenadas de la copia: ok")
+        return it
+    }
+    android.util.Log.i(TAG, "sin coordenadas por ningun camino")
+    return null
+}
+
+/** Ruta en disco de una foto de la galeria, si el sistema la expone. */
+private fun rutaDe(context: Context, uri: Uri): String? = runCatching {
+    context.contentResolver.query(
+        uri, arrayOf(MediaStore.Images.Media.DATA), null, null, null
+    )?.use { c ->
+        if (c.moveToFirst()) c.getString(0)?.takeIf { java.io.File(it).canRead() } else null
+    }
+}.getOrNull()
+
+private const val TAG = "CumbreFoto"
+
+private fun leer(context: Context, uri: Uri): PhotoLocation? = runCatching {
+    context.contentResolver.openInputStream(uri)?.use { input ->
         val exif = ExifInterface(input)
         val coords = exif.latLong ?: return@use null
         val rumbo = exif.getAttribute(ExifInterface.TAG_GPS_IMG_DIRECTION)
             ?.let { fraccionADecimal(it) }
         PhotoLocation(coords[0], coords[1], rumbo)
     }
-}.getOrNull()
+}.onFailure { android.util.Log.i(TAG, "fallo leyendo $uri: $it") }.getOrNull()
 
 /**
  * Traduce la URI a una de MediaStore, que es la unica sobre la que se puede

@@ -77,7 +77,9 @@ fun SchoolListScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     if (eligiendoFoto) {
         SubmitBlockPhotoFlow(
-            schools = (state as? SchoolListUiState.Success)?.schools.orEmpty(),
+            // El catálogo ENTERO, no lo que el filtro deja ver: la escuela de la
+            // foto puede estar fuera del filtro activo.
+            schools = viewModel.catalogoCompleto(),
             seedStore = viewModel.photoSeed,
             onOpenSchool = { id -> eligiendoFoto = false; onSchoolClick(id) },
             onDismiss = { eligiendoFoto = false }

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Brújula del mapa. Se dibuja aquí en vez de usar la de serie de MapLibre
+  porque la suya es una flecha suelta que no se lee: sin fondo ni cardinales,
+  sobre una foto de satélite desaparece. Esta es la misma idea que la de iOS:
+  círculo oscuro, aguja terracota al norte y la N marcada.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+    <path
+        android:fillColor="#E62B2B28"
+        android:pathData="M20,2 A18,18 0 1,1 19.99,2 Z" />
+    <path
+        android:strokeColor="#66FFFFFF"
+        android:strokeWidth="1"
+        android:fillColor="#00000000"
+        android:pathData="M20,2 A18,18 0 1,1 19.99,2 Z" />
+    <!-- Aguja norte -->
+    <path
+        android:fillColor="#B4532A"
+        android:pathData="M20,7 L24,21 L20,19 L16,21 Z" />
+    <!-- Aguja sur -->
+    <path
+        android:fillColor="#8A8478"
+        android:pathData="M20,33 L24,19 L20,21 L16,19 Z" />
+</vector>

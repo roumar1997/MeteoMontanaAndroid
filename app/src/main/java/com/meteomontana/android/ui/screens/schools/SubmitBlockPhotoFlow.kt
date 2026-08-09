@@ -4,9 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,21 +22,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.core.content.ContextCompat
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.util.PhotoPlacement
 import com.meteomontana.android.ui.components.readPhotoLocation
 import com.meteomontana.android.ui.theme.Spacing
 
 /**
- * "Enviar piedra": eliges una foto y la app deduce en qué escuela se hizo.
+ * "Enviar piedra": eliges una foto y la app deduce en que escuela se hizo.
  *
- * La cámara guarda las coordenadas dentro de la foto, así que no hace falta
- * buscar la escuela en la lista. A partir de ahí sigue el flujo de proponer
- * piedra de siempre —dibujar vías, orientación, más caras—, con la foto ya
- * puesta como primera cara.
+ * La camara guarda las coordenadas dentro de la foto, asi que no hace falta
+ * buscar la escuela en la lista. A partir de ahi sigue el flujo de proponer
+ * piedra de siempre, con la foto ya puesta como primera cara.
  *
- * Lo que NO hace, y es a propósito: **elegir la piedra**. El GPS de un móvil se
- * equivoca entre 10 y 30 metros en un canchal, y las piedras están a metros unas
+ * Lo que NO hace, y es a proposito: **elegir la piedra**. El GPS de un movil se
+ * equivoca entre 10 y 30 metros en un canchal y las piedras estan a metros unas
  * de otras. Sirve para acertar la escuela; el punto exacto lo pone el usuario
  * sobre el mapa, que se abre centrado donde se hizo la foto.
  */
@@ -51,29 +49,50 @@ fun SubmitBlockPhotoFlow(
 ) {
     val context = LocalContext.current
     var aviso by remember { mutableStateOf<String?>(null) }
-    var lanzado by remember { mutableStateOf(false) }
-    // Estado en vez de un lambda con lateinit: el selector se abre cuando esto
-    // se pone a true, venga del permiso o de que ya estuviera concedido.
-    var abrirSelector by remember { mutableStateOf(false) }
+    var permisosPedidos by remember { mutableStateOf(false) }
+    var galeriaLista by remember { mutableStateOf(false) }
 
-    // En Android 10+ hay que PEDIR el permiso de ubicacion de las fotos: sin el,
-    // el sistema entrega la imagen con las coordenadas borradas y parece que la
-    // foto no las tuviera. Se pide justo antes de abrir el selector.
-    val permiso = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { _ -> abrirSelector = true }
-
-    val picker = rememberLauncherForActivityResult(
-        ElegirFotoDeLaGaleria()
-    ) { uri: Uri? ->
-        if (uri == null) {
-            onDismiss()
-            return@rememberLauncherForActivityResult
+    /**
+     * Lo que hace falta para leer DONDE se hizo una foto:
+     * - leer la galeria (si no, no hay fotos que ensenar);
+     * - ACCESS_MEDIA_LOCATION (Android 10+), sin el cual el sistema entrega la
+     *   imagen con las coordenadas borradas -- el sintoma es identico al de una
+     *   foto que no las tiene, y por eso costo tanto dar con ello.
+     */
+    val necesarios = buildList {
+        add(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                Manifest.permission.READ_MEDIA_IMAGES
+            else Manifest.permission.READ_EXTERNAL_STORAGE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            add(Manifest.permission.ACCESS_MEDIA_LOCATION)
         }
+    }
+
+    val permisos = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { concedidos ->
+        // Si falta el de leer la galeria no se puede ensenar nada; el de la
+        // ubicacion se avisa cuando falle la foto, no antes.
+        galeriaLista = concedidos[necesarios.first()] == true
+        if (!galeriaLista) {
+            aviso = "Sin permiso para ver tus fotos no podemos saber dónde las hiciste."
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (permisosPedidos) return@LaunchedEffect
+        permisosPedidos = true
+        val faltan = necesarios.filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (faltan.isEmpty()) galeriaLista = true else permisos.launch(faltan.toTypedArray())
+    }
+
+    fun elegida(uri: Uri) {
         val donde = readPhotoLocation(context, uri)
         if (donde == null) {
             aviso = context.getString(R.string.photo_no_coords)
-            return@rememberLauncherForActivityResult
+            return
         }
         when (val r = PhotoPlacement.schoolFor(donde.lat, donde.lon, schools)) {
             is PhotoPlacement.Result.Found -> {
@@ -97,27 +116,16 @@ fun SubmitBlockPhotoFlow(
         }
     }
 
-    // El selector del sistema no necesita permiso de fototeca: solo entrega la
-    // foto elegida. Lo que hace falta es ACCESS_MEDIA_LOCATION, para que esa
-    // foto conserve sus coordenadas.
-    LaunchedEffect(Unit) {
-        if (!lanzado) {
-            lanzado = true
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_MEDIA_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED
-            ) {
-                // Si lo deniega, se sigue igualmente: la foto puede traer las
-                // coordenadas de todas formas, y si no, el aviso lo explica.
-                permiso.launch(Manifest.permission.ACCESS_MEDIA_LOCATION)
-            } else {
-                abrirSelector = true
-            }
+    if (galeriaLista && aviso == null) {
+        // A pantalla completa: emitida en medio del contenido de la lista se
+        // quedaba sin sitio y no se veia nada.
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = onDismiss,
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false)
+        ) {
+            GaleriaReciente(onElegir = { elegida(it) }, onCancelar = onDismiss)
         }
-    }
-
-    LaunchedEffect(abrirSelector) {
-        if (abrirSelector) picker.launch(Unit)
     }
 
     aviso?.let { texto ->
@@ -134,23 +142,4 @@ fun SubmitBlockPhotoFlow(
             }
         )
     }
-}
-
-/**
- * Elige una foto de la galeria devolviendo una URI de **MediaStore**.
- *
- * No se usa el Photo Picker del sistema (`PickVisualMedia`) a proposito: entrega
- * URIs propias con la ubicacion REDACTADA y sin forma de pedir el original, asi
- * que la foto llega siempre "sin coordenadas" aunque las tenga. Con ACTION_PICK
- * la URI es de MediaStore y, con ACCESS_MEDIA_LOCATION concedido, se puede pedir
- * el fichero original con su EXIF intacto.
- */
-private class ElegirFotoDeLaGaleria : androidx.activity.result.contract.ActivityResultContract<Unit, Uri?>() {
-    override fun createIntent(context: android.content.Context, input: Unit) =
-        android.content.Intent(android.content.Intent.ACTION_PICK,
-            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            .apply { type = "image/*" }
-
-    override fun parseResult(resultCode: Int, intent: android.content.Intent?): Uri? =
-        if (resultCode == android.app.Activity.RESULT_OK) intent?.data else null
 }

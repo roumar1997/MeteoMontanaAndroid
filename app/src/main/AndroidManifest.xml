@@ -12,6 +12,12 @@
          devuelve la imagen con el EXIF de ubicacion borrado (API 29+) y no se
          puede saber en que escuela se hizo. -->
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+    <!-- Leer la galeria para ensenar tus ultimas fotos al aportar una piedra.
+         Hace falta preguntar NOSOTROS a la galeria: los selectores del sistema
+         entregan copias con la ubicacion borrada. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <application
         android:name=".MeteoMontanaApp"
         android:allowBackup="true"

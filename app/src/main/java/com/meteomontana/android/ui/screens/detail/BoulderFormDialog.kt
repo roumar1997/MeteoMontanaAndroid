@@ -94,9 +94,24 @@ internal fun BoulderFormDialog(
         onFacesChange(faces.toMutableList().also { it[faceIdx] = transform(it[faceIdx]) })
     }
 
+    val ctxFoto = androidx.compose.ui.platform.LocalContext.current
     val photoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri -> if (uri != null) updateFace { it.copy(photoUri = uri) } }
+    ) { uri ->
+        if (uri != null) {
+            // Si la foto guarda hacia donde apuntaba la camara, la orientacion
+            // de la cara viene ya marcada: la pared mira al reves que la camara.
+            // Es el mismo dato que usa "aportar piedra desde una foto"; no tiene
+            // sentido pedirlo a mano cuando la foto ya lo trae.
+            val sugerida = com.meteomontana.android.ui.components
+                .readPhotoLocation(ctxFoto, uri)?.cameraDegrees
+                ?.let { com.meteomontana.android.domain.util.PhotoPlacement
+                    .aspectFromCameraDirection(it) }
+            updateFace { cara ->
+                cara.copy(photoUri = uri, orientation = cara.orientation ?: sugerida)
+            }
+        }
+    }
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
         Text("Nueva piedra",

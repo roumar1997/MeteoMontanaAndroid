@@ -98,6 +98,16 @@ class SchoolListViewModel @Inject constructor(
     // semántica que el backend (equalsIgnoreCase + haversine), pero sin red.
     private var allSchools: List<School> = emptyList()
 
+    /**
+     * Catálogo COMPLETO, sin los filtros de la pantalla.
+     *
+     * Lo usa "Aportar una piedra desde una foto": la escuela donde se hizo la
+     * foto no tiene por qué estar entre las que el filtro deja ver. Con la lista
+     * filtrada, una foto hecha en Valsaín acababa comparándose con Peña Pintada,
+     * a 7 km — que es justo lo que vio Rodrigo.
+     */
+    fun catalogoCompleto(): List<School> = allSchools
+
     // Fallback Madrid si no hay permiso de ubicación; se sobreescribe al cargar.
     private var userLat: Double = 40.4168
     private var userLon: Double = -3.7038
