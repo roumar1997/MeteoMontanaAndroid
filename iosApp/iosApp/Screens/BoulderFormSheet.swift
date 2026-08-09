@@ -118,6 +118,8 @@ struct BoulderFormSheet: View {
                 guard !semillaPuesta, let foto = seedPhoto else { return }
                 semillaPuesta = true
                 faces = [BoulderFaceForm(photo: foto, orientation: seedAspect)]
+                // Tambien la de la piedra: es la que se ve con una sola foto.
+                if blockOrientation == nil { blockOrientation = seedAspect }
             }
             // El sensor gasta batería: solo mientras el formulario está abierto.
             .onDisappear { brujula.stop() }
@@ -260,10 +262,12 @@ struct BoulderFormSheet: View {
                                 faces[idx].photo = donde.image
                                 // La orientación sale de ESTA foto: cada cara
                                 // mira a donde mire su pared.
-                                if faces[idx].orientation == nil,
-                                   let sugerida = PhotoPlacement.shared.aspectFromCameraDirection(
-                                       cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) }) {
-                                    faces[idx].orientation = sugerida
+                                if let sugerida = PhotoPlacement.shared.aspectFromCameraDirection(
+                                    cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) }) {
+                                    if faces[idx].orientation == nil { faces[idx].orientation = sugerida }
+                                    // Y la de la PIEDRA, que es el chip que se
+                                    // ve con una sola foto.
+                                    if blockOrientation == nil { blockOrientation = sugerida }
                                 }
                                 sendError = nil
                             }

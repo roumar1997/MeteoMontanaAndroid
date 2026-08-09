@@ -112,6 +112,11 @@ internal fun BoulderFormDialog(
             updateFace { cara ->
                 cara.copy(photoUri = uri, orientation = cara.orientation ?: sugerida)
             }
+            // Y la de la PIEDRA, que es el chip que se ve con una sola foto:
+            // marcar solo la de la cara no lo enseñaba en ningún sitio.
+            if (sugerida != null && blockOrientation == null) {
+                onBlockOrientationChange(sugerida)
+            }
         }
     }
 
