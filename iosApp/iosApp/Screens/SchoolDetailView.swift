@@ -353,7 +353,8 @@ struct SchoolDetailLoaderView: View {
 #Preview {
     NavigationStack {
         SchoolDetailView(school: School(id: "x", name: "Demo", location: "Demo", region: "Aragón",
-                                        style: "Boulder", rockType: "Caliza", lat: 0, lon: 0, source: nil))
+                                        style: "Boulder", rockType: "Caliza", lat: 0, lon: 0, source: nil,
+                                        country: "ES"))
     }
 }
 

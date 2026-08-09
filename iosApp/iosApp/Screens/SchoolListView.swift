@@ -147,7 +147,8 @@ final class SchoolListViewModel: ObservableObject {
             base = savedSchoolsList.map { sv in
                 schools.first { $0.id == sv.id }
                     ?? School(id: sv.id, name: sv.name, location: nil, region: sv.region,
-                              style: nil, rockType: sv.rockType, lat: sv.lat, lon: sv.lon, source: nil)
+                              style: nil, rockType: sv.rockType, lat: sv.lat, lon: sv.lon, source: nil,
+                              country: "ES")
             }
         } else {
             base = schools

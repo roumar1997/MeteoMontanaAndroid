@@ -32,7 +32,7 @@ data class CatalogOptions(
 class SubmitSchoolViewModel @Inject constructor(
     private val submitSchool: SubmitSchoolUseCase,
     private val getSchools: GetSchoolsUseCase,
-    private val geoApi: com.meteomontana.android.data.api.KtorGeoApi
+    private val getCountries: com.meteomontana.android.domain.usecase.geo.GetCountriesUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow<SubmitState>(SubmitState.Idle)
     val state: StateFlow<SubmitState> = _state.asStateFlow()
@@ -42,9 +42,9 @@ class SubmitSchoolViewModel @Inject constructor(
 
     private var schools: List<School> = emptyList()
 
-    /** Países abiertos, con sus regiones. Del servidor: ver [KtorGeoApi]. */
-    private val _countries = MutableStateFlow<List<com.meteomontana.android.data.api.CountryDto>>(emptyList())
-    val countries: StateFlow<List<com.meteomontana.android.data.api.CountryDto>> = _countries.asStateFlow()
+    /** Países abiertos, con sus regiones. */
+    private val _countries = MutableStateFlow<List<com.meteomontana.android.domain.model.Country>>(emptyList())
+    val countries: StateFlow<List<com.meteomontana.android.domain.model.Country>> = _countries.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -58,8 +58,8 @@ class SubmitSchoolViewModel @Inject constructor(
         viewModelScope.launch {
             // Sin red se cae a España: es lo que había antes del catálogo y
             // cubre el 100% de las escuelas de hoy.
-            _countries.value = runCatching { geoApi.countries() }.getOrDefault(
-                listOf(com.meteomontana.android.data.api.CountryDto(
+            _countries.value = runCatching { getCountries() }.getOrDefault(
+                listOf(com.meteomontana.android.domain.model.Country(
                     code = "ES", name = "España",
                     regions = unique(schools.map { it.region })))
             )

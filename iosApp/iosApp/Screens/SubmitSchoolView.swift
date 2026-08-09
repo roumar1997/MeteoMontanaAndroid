@@ -27,7 +27,7 @@ final class SubmitSchoolViewModel: ObservableObject {
     /// Países abiertos, con sus regiones. Vienen del SERVIDOR, no de las
     /// escuelas existentes: si se dedujeran de ellas, el primer país que se
     /// abre tendría el desplegable vacío y nadie podría proponer allí.
-    @Published var countries: [CountryDto] = []
+    @Published var countries: [Country] = []
     @Published var regionOptions: [String] = []
     @Published var styleOptions: [String] = []
     @Published var rockOptions: [String] = []
@@ -51,8 +51,8 @@ final class SubmitSchoolViewModel: ObservableObject {
         schools = list
         regionOptions = unique(list.map { $0.region })
         // Sin red se cae a España, que es lo que había antes del catálogo.
-        countries = (try? await AppDependencies.shared.container.geoApi.countries())
-            ?? [CountryDto(code: "ES", name: "España", regions: regionOptions)]
+        countries = (try? await AppDependencies.shared.container.getCountries.invoke())
+            ?? [Country(code: "ES", name: "España", regions: regionOptions)]
         styleOptions = unique(list.map { $0.style })
         rockOptions = unique(list.map { $0.rockType })
     }

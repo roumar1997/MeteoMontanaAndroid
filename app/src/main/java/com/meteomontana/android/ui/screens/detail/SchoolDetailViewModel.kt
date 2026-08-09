@@ -68,7 +68,6 @@ sealed interface SchoolDetailUiState {
 @HiltViewModel
 class SchoolDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val photoProposal: com.meteomontana.android.ui.screens.schools.PhotoProposalSeed,
     private val loader: SchoolDetailLoader,
     private val journal: JournalTickController,
     private val contributions: SchoolContributionSender,
@@ -90,7 +89,9 @@ class SchoolDetailViewModel @Inject constructor(
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
     private val voteNoteUseCase: com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase,
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
-    private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase
+    private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase,
+    /** Foto de "Enviar piedra" a la espera de que se abra su escuela. */
+    private val photoProposal: com.meteomontana.android.ui.screens.schools.PhotoProposalSeed
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])

@@ -76,6 +76,19 @@ object NetworkModule {
     fun provideKtorGeoApi(client: HttpClient) =
         com.meteomontana.android.data.api.KtorGeoApi(client)
 
+    @Provides
+    @Singleton
+    fun provideCountryRepository(
+        api: com.meteomontana.android.data.api.KtorGeoApi
+    ): com.meteomontana.android.domain.repository.CountryRepository =
+        com.meteomontana.android.data.repository.KtorCountryRepository(api)
+
+    @Provides
+    @Singleton
+    fun provideGetCountries(
+        repo: com.meteomontana.android.domain.repository.CountryRepository
+    ) = com.meteomontana.android.domain.usecase.geo.GetCountriesUseCase(repo)
+
     @Provides @Singleton
     fun provideKtorBlockApi(client: HttpClient) = KtorBlockApi(client)
 
