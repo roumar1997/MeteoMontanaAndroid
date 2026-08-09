@@ -690,12 +690,21 @@ private fun HeaderEscuelas(
     /** Elegir una foto y proponer la piedra en la escuela donde se hizo. */
     onSubmitBlockPhoto: () -> Unit
 ) {
-    Column(
+    var aportando by remember { mutableStateOf(false) }
+    if (aportando) {
+        AportarSheet(
+            onDismiss = { aportando = false },
+            onPiedra = { aportando = false; onSubmitBlockPhoto() },
+            onEscuela = { aportando = false; onSubmitSchool() }
+        )
+    }
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 stringResource(R.string.schools_title),
                 style = MaterialTheme.typography.headlineLarge,
@@ -709,24 +718,60 @@ private fun HeaderEscuelas(
                 )
             }
         }
-        // Los dos botones en su PROPIA fila, a mitad y mitad: compartiendo linea
-        // con el titulo se partian en dos de forma distinta segun el movil.
-        Spacer(Modifier.height(Spacing.xs))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedCumbreButton(text = stringResource(R.string.schools_submit_block),
-                    onClick = onSubmitBlockPhoto, textColor = Terra,
-                    modifier = Modifier.fillMaxWidth())
-            }
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedCumbreButton(text = stringResource(R.string.schools_submit),
-                    onClick = onSubmitSchool, textColor = Terra,
-                    modifier = Modifier.fillMaxWidth())
-            }
+        // UN solo boton: corto, entra en cualquier pantalla y con el texto
+        // grande de accesibilidad. Las dos formas de aportar viven en la hoja,
+        // donde cada una cabe con su explicacion.
+        OutlinedCumbreButton(text = stringResource(R.string.schools_contribute),
+            onClick = { aportando = true }, textColor = Terra)
+    }
+}
+
+/** Las dos formas de aportar al catalogo, cada una con su porque. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun AportarSheet(
+    onDismiss: () -> Unit,
+    onPiedra: () -> Unit,
+    onEscuela: () -> Unit
+) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Spacing.lg)) {
+            Text(
+                stringResource(R.string.contribute_title),
+                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = Terra
+            )
+            Spacer(Modifier.height(Spacing.md))
+            AportarOpcion(
+                titulo = stringResource(R.string.contribute_block),
+                detalle = stringResource(R.string.contribute_block_hint),
+                onClick = onPiedra
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            AportarOpcion(
+                titulo = stringResource(R.string.contribute_school),
+                detalle = stringResource(R.string.contribute_school_hint),
+                onClick = onEscuela
+            )
+            Spacer(Modifier.height(Spacing.xl))
         }
+    }
+}
+
+@Composable
+private fun AportarOpcion(titulo: String, detalle: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(Spacing.md)
+    ) {
+        Text(titulo, style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground)
+        Text(detalle, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
