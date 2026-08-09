@@ -91,6 +91,19 @@ class PhotoPlacementTest {
     }
 
     @Test
+    fun laVersionPlanaDiceLoMismo() {
+        // Es la que usa iOS: tiene que coincidir con la sellada, o las dos apps
+        // colocarian la foto en escuelas distintas.
+        val escuelas = listOf(pedriza, zarzalejo)
+        assertEquals("zarzalejo",
+            PhotoPlacement.nearestSchoolWithin(40.5565, -4.1836, escuelas)?.id)
+        assertNull(PhotoPlacement.nearestSchoolWithin(35.0, -20.0, escuelas))
+        assertNull(PhotoPlacement.nearestSchoolWithin(40.0, -4.0, emptyList()))
+        assertTrue((PhotoPlacement.nearestSchoolKm(35.0, -20.0, escuelas) ?: 0.0) > 100.0)
+        assertNull(PhotoPlacement.nearestSchoolKm(40.0, -4.0, emptyList()))
+    }
+
+    @Test
     fun laParedMiraAlReVesQueLaCamara() {
         // Disparas hacia el norte → la pared que sale en la foto mira al sur.
         assertEquals("S", PhotoPlacement.aspectFromCameraDirection(0f))

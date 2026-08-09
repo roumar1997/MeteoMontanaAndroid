@@ -130,6 +130,8 @@ struct TopIconsRow: View {
 
 struct HeaderEscuelas: View {
     let count: Int?
+    /// "Enviar piedra": elegir una foto y proponerla en la escuela donde se hizo.
+    var onSubmitBlockPhoto: () -> Void = {}
     @State private var showSubmit = false
     var body: some View {
         HStack(alignment: .center) {
@@ -144,10 +146,16 @@ struct HeaderEscuelas: View {
                 }
             }
             Spacer()
-            Button { showSubmit = true } label: {
-                OutlinedCumbreButton(text: NSLocalizedString("schools_submit", comment: ""), tint: Cumbre.terra)
+            HStack(spacing: 6) {
+                Button { onSubmitBlockPhoto() } label: {
+                    OutlinedCumbreButton(text: "+ Enviar piedra", tint: Cumbre.terra)
+                }
+                .buttonStyle(.plain)
+                Button { showSubmit = true } label: {
+                    OutlinedCumbreButton(text: NSLocalizedString("schools_submit", comment: ""), tint: Cumbre.terra)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)

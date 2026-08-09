@@ -25,6 +25,10 @@ struct SchoolMapSection: View {
     @State private var selectedBlock: Block?
     // Flujo proponer/corregir agrupado (espejo de ProposalMapBridge en Android).
     @StateObject private var flow = MapProposalFlowStore()
+    /// Foto de "Enviar piedra" que esperaba a esta escuela. Se lee UNA vez: si
+    /// se quedara puesta, volver a entrar reabriría el flujo de proponer sin
+    /// que nadie lo haya pedido.
+    @State private var fotoSemilla: PhotoProposalSeedStore.Seed?
     // Datos del mapa (bloques/capas/buscador/admin) — ver SchoolMapViewModel.
     @StateObject private var vm = SchoolMapViewModel()
     @State private var mapStyle: MapStyleKind = .satellite  // paridad con Android
@@ -121,6 +125,16 @@ struct SchoolMapSection: View {
         // Deep-link desde el diario: despliega el mapa al entrar.
         .onAppear {
             if let v = openVia, !v.isEmpty, !didAutoOpen, !expanded { expanded = true }
+            // "Enviar piedra": la foto ya dijo qué se propone y dónde se hizo.
+            // Se abre el mapa y se espera un toque para el sitio exacto: el GPS
+            // se equivoca entre 10 y 30 metros y las piedras están a metros.
+            if fotoSemilla == nil,
+               let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) {
+                fotoSemilla = semilla
+                expanded = true
+                flow.proposeType = "BOULDER"
+                flow.waitingTap = true
+            }
         }
         // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
         // el auto-abrir del deep-link (antes se quedaba en la escuela a secas).
@@ -378,8 +392,11 @@ struct SchoolMapSection: View {
                 .sheet(item: boulderCoordItem) { item in
                     BoulderFormSheet(schoolId: school.id, coord: item.coord,
                                      sectors: vm.blocks.filter { $0.type.uppercased() == "ZONE" },
-                                     contextMarkers: traceContextMarkers) { ok in
+                                     contextMarkers: traceContextMarkers,
+                                     seedPhoto: fotoSemilla?.image,
+                                     seedAspect: fotoSemilla?.aspect) { ok in
                         flow.boulderCoord = nil
+                        fotoSemilla = nil
                         if ok { afterSubmit() }
                     }
                 }

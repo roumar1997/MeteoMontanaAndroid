@@ -394,7 +394,8 @@ struct SchoolListView: View {
                     TopIconsRow(unreadCount: vm.unreadNotifications,
                                 chatUnread: vm.unreadChats,
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
-                    HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
+                    HeaderEscuelas(count: vm.loading ? nil : vm.schools.count,
+                                   onSubmitBlockPhoto: { eligiendoFoto = true })
                     SearchField(text: $vm.query)
                     if vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
                         viaHitsSection
@@ -462,6 +463,19 @@ struct SchoolListView: View {
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(item: $navTarget) { SchoolDetailView(school: $0.school, openVia: $0.via) }
+            .overlay {
+                if eligiendoFoto {
+                    SubmitBlockPhotoFlow(
+                        schools: vm.schools,
+                        onOpenSchool: { id in
+                            eligiendoFoto = false
+                            if let s = vm.schools.first(where: { $0.id == id }) {
+                                navTarget = SchoolNavTarget(school: s, via: nil)
+                            }
+                        },
+                        onDismiss: { eligiendoFoto = false })
+                }
+            }
             .onChange(of: vm.query) { _, _ in dispatchViaSearch() }
             .overlay(alignment: .bottom) {
                 if vm.compareSelection.count >= 1 {
@@ -502,6 +516,8 @@ struct SchoolListView: View {
         func hash(into hasher: inout Hasher) { hasher.combine(id) }
     }
     @State private var navTarget: SchoolNavTarget?
+    /// "Enviar piedra": el selector de fotos está abierto.
+    @State private var eligiendoFoto = false
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
     @State private var viaHits: [LineSearchHit] = []   // modelo de DOMINIO (via use case)
     @State private var viaSearchTask: Task<Void, Never>?

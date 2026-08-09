@@ -52,6 +52,24 @@ object PhotoPlacement {
     }
 
     /**
+     * Versión plana de [schoolFor] para Swift: la escuela, o null.
+     *
+     * Existe porque una clase sellada cruza mal la frontera con Swift y aquí no
+     * aporta nada: la pantalla de iOS solo necesita saber si hay escuela y, si
+     * no la hay, a qué distancia quedó la más próxima ([nearestSchoolKm]).
+     */
+    fun nearestSchoolWithin(
+        lat: Double,
+        lon: Double,
+        schools: List<School>,
+        radiusKm: Double = RADIO_ESCUELA_KM
+    ): School? = (schoolFor(lat, lon, schools, radiusKm) as? Result.Found)?.school
+
+    /** Distancia a la escuela más cercana, haya entrado en el radio o no. */
+    fun nearestSchoolKm(lat: Double, lon: Double, schools: List<School>): Double? =
+        schools.minOfOrNull { Geo.haversineKm(lat, lon, it.lat, it.lon) }
+
+    /**
      * Piedras que podrían ser la de la foto, de más cerca a más lejos.
      *
      * Sirve para avisar antes de crear una piedra repetida: si la foto cae

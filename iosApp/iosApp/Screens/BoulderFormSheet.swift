@@ -13,6 +13,10 @@ struct BoulderFormSheet: View {
     /// Piedras/sectores/parkings + mi ubicación, para orientarme al trazar el
     /// muro (contexto de solo lectura). Los pasa SchoolMapSection.
     var contextMarkers: [CumbreMarker] = []
+    /// Foto de "Enviar piedra": entra como primera cara, con la orientación que
+    /// sugiere el rumbo con el que se hizo (si la foto lo traía).
+    var seedPhoto: UIImage? = nil
+    var seedAspect: String? = nil
     let onDone: (Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -21,6 +25,9 @@ struct BoulderFormSheet: View {
     @State private var discipline = "BOULDER"   // BOULDER (bloque) / ROUTE (vía)
     // Una piedra grande no cabe en una foto → varias CARAS (foto + sus vías).
     @State private var faces: [BoulderFaceForm] = [BoulderFaceForm()]
+    /// La foto de la semilla se coloca UNA vez: repetirlo en cada refresco
+    /// borraría lo que el usuario vaya escribiendo.
+    @State private var semillaPuesta = false
     @State private var selectedFace = 0
     @State private var pickerItem: PhotosPickerItem?
     @State private var showEditor = false
@@ -88,6 +95,15 @@ struct BoulderFormSheet: View {
     private var isWall: Bool { geometry == "LINE" }
 
     var body: some View {
+        contenido
+            .onAppear {
+                guard !semillaPuesta, let foto = seedPhoto else { return }
+                semillaPuesta = true
+                faces = [BoulderFaceForm(photo: foto, orientation: seedAspect)]
+            }
+    }
+
+    private var contenido: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
