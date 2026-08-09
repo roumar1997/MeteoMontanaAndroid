@@ -121,7 +121,7 @@ private fun aMediaStore(uri: Uri): Uri {
  * El EXIF guarda el rumbo como fracción ("2700/100"). También se acepta un
  * número suelto, que es como lo escriben algunas cámaras.
  */
-private fun fraccionADecimal(raw: String): Float? {
+internal fun fraccionADecimal(raw: String): Float? {
     val partes = raw.split("/")
     return when {
         partes.size == 2 -> {

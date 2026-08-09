@@ -95,10 +95,12 @@ internal fun BoulderFormDialog(
     }
 
     val ctxFoto = androidx.compose.ui.platform.LocalContext.current
-    val photoLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
+    // El MISMO selector que en "aportar piedra desde una foto". Los selectores
+    // del sistema entregan copias sin ubicacion, asi que con ellos la
+    // orientacion no se podria sugerir nunca aqui.
+    var eligiendoFoto by remember { mutableStateOf(false) }
+    val ponerFoto: (android.net.Uri) -> Unit = { uri ->
+        run {
             // Si la foto guarda hacia donde apuntaba la camara, la orientacion
             // de la cara viene ya marcada: la pared mira al reves que la camara.
             // Es el mismo dato que usa "aportar piedra desde una foto"; no tiene
@@ -110,6 +112,18 @@ internal fun BoulderFormDialog(
             updateFace { cara ->
                 cara.copy(photoUri = uri, orientation = cara.orientation ?: sugerida)
             }
+        }
+    }
+
+    if (eligiendoFoto) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { eligiendoFoto = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false)
+        ) {
+            com.meteomontana.android.ui.screens.schools.GaleriaReciente(
+                onElegir = { eligiendoFoto = false; ponerFoto(it) },
+                onCancelar = { eligiendoFoto = false })
         }
     }
 
@@ -381,7 +395,7 @@ internal fun BoulderFormDialog(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
                     .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable { photoLauncher.launch("image/*") }
+                    .clickable { eligiendoFoto = true }
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
@@ -395,7 +409,7 @@ internal fun BoulderFormDialog(
                     .height(100.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { photoLauncher.launch("image/*") },
+                    .clickable { eligiendoFoto = true },
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
