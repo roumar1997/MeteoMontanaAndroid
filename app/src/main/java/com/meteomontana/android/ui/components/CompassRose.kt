@@ -18,53 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.meteomontana.android.ui.theme.Terra
 
-/**
- * Rosa de los vientos del mapa: dice hacia dónde queda el norte cuando has
- * girado el mapa con dos dedos, y al tocarla lo devuelve al norte.
- *
- * Ojo con lo que representa: aquí NO se dibuja el rumbo del móvil sino el
- * **giro del mapa**, que son cosas distintas. El rumbo del móvil es lo que se
- * usa en la brújula de elegir orientación ([CompassDial]).
- *
- * Espejo de `CompassRose.swift` en iOS.
- */
-@Composable
-fun CompassRoseIcon(mapBearing: Float) {
-    // Los cardinales giran CON la aguja: son parte de la rosa, no del marco.
-    // Asi se lee "el norte esta hacia alli" sin tener que interpretar nada.
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(38.dp)) {
-        Canvas(modifier = Modifier.size(38.dp)) {
-            rotate(degrees = -mapBearing, pivot = center) {
-                aguja()
-                // Las letras van al 78% del radio: pegadas al borde se salian
-                // del lienzo y no se veia ninguna.
-                val r = size.minDimension / 2f * 0.78f
-                val cx = size.width / 2f
-                val cy = size.height / 2f
-                cardinal("N", cx, cy - r, Terra)
-                cardinal("S", cx, cy + r, Color(0xFF8A8478))
-                cardinal("E", cx + r, cy, Color(0xFF8A8478))
-                cardinal("O", cx - r, cy, Color(0xFF8A8478))
-            }
-        }
-    }
-}
-
-/** Letra de un punto cardinal, centrada en (x, y). */
-private fun DrawScope.cardinal(letra: String, x: Float, y: Float, color: Color) {
-    drawContext.canvas.nativeCanvas.apply {
-        val paint = android.graphics.Paint().apply {
-            this.color = color.toArgb()
-            textSize = 9f * density
-            textAlign = android.graphics.Paint.Align.CENTER
-            isFakeBoldText = true
-            isAntiAlias = true
-        }
-        // El baseline va bajo el centro: sin esto la letra queda alta.
-        drawText(letra, x, y + paint.textSize * 0.35f, paint)
-    }
-}
-
 /** Aguja de dos puntas: la que apunta al norte va en terracota. */
 private fun DrawScope.aguja() {
     val cx = size.width / 2f

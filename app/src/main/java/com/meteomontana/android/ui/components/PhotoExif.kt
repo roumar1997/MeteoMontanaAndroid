@@ -37,9 +37,10 @@ data class PhotoLocation(
  * null en fotos que sí tienen coordenadas.
  */
 fun readPhotoLocation(context: Context, uri: Uri): PhotoLocation? = runCatching {
+    val enMediaStore = aMediaStore(uri)
     val real = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        runCatching { MediaStore.setRequireOriginal(uri) }.getOrDefault(uri)
-    } else uri
+        runCatching { MediaStore.setRequireOriginal(enMediaStore) }.getOrDefault(enMediaStore)
+    } else enMediaStore
 
     context.contentResolver.openInputStream(real)?.use { input ->
         val exif = ExifInterface(input)
@@ -49,6 +50,21 @@ fun readPhotoLocation(context: Context, uri: Uri): PhotoLocation? = runCatching 
         PhotoLocation(coords[0], coords[1], rumbo)
     }
 }.getOrNull()
+
+/**
+ * Traduce la URI a una de MediaStore, que es la unica sobre la que se puede
+ * pedir el fichero ORIGINAL (con su ubicacion).
+ *
+ * Si ya lo es, se devuelve tal cual. Si viene del proveedor de documentos
+ * ("image:1234"), se reconstruye. Cualquier otra cosa se deja pasar: se leera
+ * lo que haya, que es mejor que no leer nada.
+ */
+private fun aMediaStore(uri: Uri): Uri {
+    if (uri.authority == "media") return uri
+    val id = uri.lastPathSegment?.substringAfterLast(':')?.toLongOrNull() ?: return uri
+    return android.content.ContentUris.withAppendedId(
+        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+}
 
 /**
  * El EXIF guarda el rumbo como fracción ("2700/100"). También se acepta un

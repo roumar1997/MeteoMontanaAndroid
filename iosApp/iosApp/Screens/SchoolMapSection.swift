@@ -48,10 +48,6 @@ struct SchoolMapSection: View {
     // Foco explícito al pulsar un parking en la lista (recentra el mapa ahí).
     @State private var focusCoord: CLLocationCoordinate2D?
     @State private var focusToken = 0
-    /// Giro del mapa (0 = norte arriba) y orden de volver al norte, para la rosa
-    /// de los vientos. Es el giro del MAPA, no el rumbo del móvil.
-    @State private var mapBearing: Double = 0
-    @State private var northToken = 0
     // Encuadre de bounds (parking + su zona) — tiene prioridad sobre focusCoord.
     @State private var focusFit: [CLLocationCoordinate2D] = []
     // Capas ocultas por el usuario (leyenda pulsable): PARKING/BLOCK/ZONE.
@@ -198,8 +194,6 @@ struct SchoolMapSection: View {
                         autoFitToMarkers: savedZoom == nil,
                         onZoomChange: { mapZoom = $0 },
                         onCameraChange: { c, z in savedCenter = c; savedZoom = z },
-                        onBearingChange: { mapBearing = $0 },
-                        northToken: northToken,
                         onTapMarker: { id in
                             if flow.correctionMode && !flow.corrActive {
                                 selectCorrectionTarget(id)
@@ -319,14 +313,6 @@ struct SchoolMapSection: View {
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundStyle(Cumbre.ink)
                                         .frame(width: 34, height: 34)
-                                        .background(Cumbre.bg)
-                                        .clipShape(Circle())
-                                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                                Button { northToken += 1 } label: {
-                                    CompassRoseIcon(mapBearing: mapBearing)
-                                        .frame(width: 44, height: 44)
                                         .background(Cumbre.bg)
                                         .clipShape(Circle())
                                         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))

@@ -163,9 +163,6 @@ internal fun SchoolMapView(
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
     val mapViewRef   = remember { mutableStateOf<MapView?>(null) }
     val mapRef       = remember { mutableStateOf<MapLibreMap?>(null) }
-    // Giro del mapa (0 = norte arriba), para la rosa de los vientos. Es el giro
-    // del MAPA, no el rumbo del movil: son cosas distintas.
-    var mapBearing by remember { mutableStateOf(0f) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Última ubicación conocida del usuario → punto azul en el mapa.
@@ -332,10 +329,6 @@ internal fun SchoolMapView(
         if (currentStyle != option) {
             currentStyle = option
             mapViewRef.value?.getMapAsync { map ->
-                map.addOnCameraMoveListener {
-                    val b = map.cameraPosition.bearing.toFloat()
-                    if (kotlin.math.abs(b - mapBearing) > 0.5f) mapBearing = b
-                }
                 map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
                     placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview) { tapped ->
                         if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
@@ -505,6 +498,15 @@ internal fun SchoolMapView(
                             map.uiSettings.apply {
                                 isRotateGesturesEnabled = true
                                 isTiltGesturesEnabled   = false
+                                // La brujula del propio mapa: gira sola y al
+                                // tocarla vuelve al norte. Antes se escondia al
+                                // estar a norte, y por eso llegamos a dibujar
+                                // otra al lado; ahora se queda siempre.
+                                isCompassEnabled = true
+                                setCompassFadeFacingNorth(false)
+                                setCompassGravity(android.view.Gravity.TOP or android.view.Gravity.START)
+                                val m = (12 * ctx.resources.displayMetrics.density).toInt()
+                                setCompassMargins(m, m * 5, m, m)
                             }
                             map.addOnMapClickListener { point ->
                                 when {
@@ -545,27 +547,6 @@ internal fun SchoolMapView(
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
-            }
-
-            // Rosa de los vientos: a la IZQUIERDA, bajo el boton de ampliar.
-            // En la botonera de la derecha desplazaba lo que ya estaba colocado,
-            // y ademas necesita mas tamano para que se lean los cardinales.
-            Box(
-                modifier = Modifier.align(Alignment.TopStart)
-                    .padding(start = Spacing.sm, top = 56.dp)
-                    .size(48.dp)
-                    .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(MaterialTheme.colorScheme.background)
-                    .border(1.dp, MaterialTheme.colorScheme.outline,
-                        androidx.compose.foundation.shape.CircleShape)
-                    .clickable {
-                        mapRef.value?.let { map ->
-                            runCatching { map.animateCamera(CameraUpdateFactory.bearingTo(0.0)) }
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                CompassRoseIcon(mapBearing)
             }
 
             // Ampliar / salir de pantalla completa — ARRIBA a la izquierda.

@@ -64,7 +64,7 @@ fun SubmitBlockPhotoFlow(
     ) { _ -> abrirSelector = true }
 
     val picker = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
+        ElegirFotoDeLaGaleria()
     ) { uri: Uri? ->
         if (uri == null) {
             onDismiss()
@@ -117,9 +117,7 @@ fun SubmitBlockPhotoFlow(
     }
 
     LaunchedEffect(abrirSelector) {
-        if (abrirSelector) {
-            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }
+        if (abrirSelector) picker.launch(Unit)
     }
 
     aviso?.let { texto ->
@@ -136,4 +134,23 @@ fun SubmitBlockPhotoFlow(
             }
         )
     }
+}
+
+/**
+ * Elige una foto de la galeria devolviendo una URI de **MediaStore**.
+ *
+ * No se usa el Photo Picker del sistema (`PickVisualMedia`) a proposito: entrega
+ * URIs propias con la ubicacion REDACTADA y sin forma de pedir el original, asi
+ * que la foto llega siempre "sin coordenadas" aunque las tenga. Con ACTION_PICK
+ * la URI es de MediaStore y, con ACCESS_MEDIA_LOCATION concedido, se puede pedir
+ * el fichero original con su EXIF intacto.
+ */
+private class ElegirFotoDeLaGaleria : androidx.activity.result.contract.ActivityResultContract<Unit, Uri?>() {
+    override fun createIntent(context: android.content.Context, input: Unit) =
+        android.content.Intent(android.content.Intent.ACTION_PICK,
+            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            .apply { type = "image/*" }
+
+    override fun parseResult(resultCode: Int, intent: android.content.Intent?): Uri? =
+        if (resultCode == android.app.Activity.RESULT_OK) intent?.data else null
 }
