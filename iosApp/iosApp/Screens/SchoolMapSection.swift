@@ -139,6 +139,9 @@ struct SchoolMapSection: View {
                 // mapa se centra ahí para poder juzgar si el sitio es bueno.
                 confirmandoFoto = CLLocationCoordinate2D(latitude: semilla.lat,
                                                          longitude: semilla.lon)
+                // A pantalla completa: la pregunta "¿es el sitio?" solo se puede
+                // responder viendo el mapa con holgura.
+                fullscreenMap = true
                 focusCoord = confirmandoFoto
                 focusToken += 1
             }
@@ -796,6 +799,13 @@ struct SchoolMapSection: View {
         if let u = userCoord {
             ms.append(CumbreMarker(id: "__USER__", coordinate: u, title: "", kind: .user,
                                    score: headingProvider.heading))
+        }
+        // Punto donde se hizo la foto, pendiente de confirmar. Sin marcador, la
+        // pregunta "¿es el sitio?" no se puede responder: no se ve dónde cae.
+        if let f = confirmandoFoto {
+            ms.append(CumbreMarker(
+                id: "__FOTO__", coordinate: f, title: "Aquí se hizo la foto",
+                kind: .block, color: UIColor(hex: 0xF59E0B), name: "★"))
         }
         // Fantasma de la nueva posición al corregir.
         if let nw = flow.corrNew {

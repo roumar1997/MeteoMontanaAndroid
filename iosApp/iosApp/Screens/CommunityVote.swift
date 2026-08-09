@@ -153,6 +153,7 @@ struct OrientationVoteSheet: View {
             if let rumbo = brujula.heading {
                 VStack(spacing: 4) {
                     CompassDial(headingDegrees: Double(rumbo))
+                        .frame(width: 120, height: 120)
                     Text("Estás mirando al " + Aspect.shared.fromDegrees(degrees: Float(rumbo)) +
                          " · " + Aspect.shared.degreesLabel(degrees: Float(rumbo)))
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)

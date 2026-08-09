@@ -32,17 +32,19 @@ import com.meteomontana.android.ui.theme.Terra
 fun CompassRoseIcon(mapBearing: Float) {
     // Los cardinales giran CON la aguja: son parte de la rosa, no del marco.
     // Asi se lee "el norte esta hacia alli" sin tener que interpretar nada.
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(44.dp)) {
-        Canvas(modifier = Modifier.size(44.dp)) {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(38.dp)) {
+        Canvas(modifier = Modifier.size(38.dp)) {
             rotate(degrees = -mapBearing, pivot = center) {
                 aguja()
-                val r = size.minDimension / 2f
+                // Las letras van al 78% del radio: pegadas al borde se salian
+                // del lienzo y no se veia ninguna.
+                val r = size.minDimension / 2f * 0.78f
                 val cx = size.width / 2f
                 val cy = size.height / 2f
-                cardinal("N", cx, cy - r + 5f, Terra)
-                cardinal("S", cx, cy + r - 5f, Color(0xFF8A8478))
-                cardinal("E", cx + r - 5f, cy, Color(0xFF8A8478))
-                cardinal("O", cx - r + 5f, cy, Color(0xFF8A8478))
+                cardinal("N", cx, cy - r, Terra)
+                cardinal("S", cx, cy + r, Color(0xFF8A8478))
+                cardinal("E", cx + r, cy, Color(0xFF8A8478))
+                cardinal("O", cx - r, cy, Color(0xFF8A8478))
             }
         }
     }
@@ -67,7 +69,7 @@ private fun DrawScope.cardinal(letra: String, x: Float, y: Float, color: Color) 
 private fun DrawScope.aguja() {
     val cx = size.width / 2f
     val cy = size.height / 2f
-    val largo = size.minDimension * 0.42f
+    val largo = size.minDimension * 0.32f
     val ancho = size.minDimension * 0.16f
 
     fun punta(haciaArriba: Boolean, color: Color) {

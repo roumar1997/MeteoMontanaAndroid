@@ -82,6 +82,11 @@ fun ProposeContributionFlow(
      * exacto lo pone el usuario, viendo alrededor el resto de la escuela.
      */
     photoSeed: PhotoSeed? = null,
+    /**
+     * Avisa del punto de la foto pendiente de confirmar y de qué hacer con él.
+     * SchoolMap lo pinta como marcador y saca el banner de sí/mover.
+     */
+    onPhotoConfirmChange: (Pair<Double, Double>?, (() -> Unit)?, (() -> Unit)?) -> Unit = { _, _, _ -> },
     schoolLat: Double = 0.0,
     schoolLon: Double = 0.0,
     waitingForTap: Boolean,
@@ -280,31 +285,21 @@ fun ProposeContributionFlow(
             // El banner "PULSA EN EL MAPA" lo pinta SchoolMap leyendo waitingForTap.
         }
 
-        is ProposeStep.PhotoConfirm -> androidx.compose.material3.AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { androidx.compose.material3.Text("¿La piedra está aquí?") },
-            text = {
-                androidx.compose.material3.Text(
-                    "Hemos colocado la piedra donde se hizo la foto. El GPS se " +
-                    "equivoca entre 10 y 30 metros, así que mira el mapa: si el " +
-                    "sitio no es exacto, muévela tú.",
-                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    step = ProposeStep.BoulderForm(s.lat, s.lon)
-                }) { androidx.compose.material3.Text("SÍ, SIGUE") }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    // A partir de aquí, el toque en el mapa manda: el flujo de
+        is ProposeStep.PhotoConfirm -> {
+            // Nada de diálogo: la pregunta va en un banner y la piedra se PINTA
+            // en el mapa. Un diálogo encima tapaba justo lo que hay que mirar.
+            onPhotoConfirmChange(
+                s.lat to s.lon,
+                { step = ProposeStep.BoulderForm(s.lat, s.lon) },
+                {
+                    // A partir de aquí manda el toque en el mapa: el flujo de
                     // siempre lleva de WaitingMapTap al formulario.
+                    onPhotoConfirmChange(null, null, null)
                     step = ProposeStep.WaitingMapTap
                     onStartWaitingTap()
-                }) { androidx.compose.material3.Text("MOVERLA") }
-            }
-        )
+                }
+            )
+        }
 
         is ProposeStep.Form -> ParkingFormDialog(
             lat = s.lat,

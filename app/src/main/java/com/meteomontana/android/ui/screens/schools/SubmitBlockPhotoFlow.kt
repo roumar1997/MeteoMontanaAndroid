@@ -1,6 +1,10 @@
 package com.meteomontana.android.ui.screens.schools
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -48,6 +52,16 @@ fun SubmitBlockPhotoFlow(
     val context = LocalContext.current
     var aviso by remember { mutableStateOf<String?>(null) }
     var lanzado by remember { mutableStateOf(false) }
+    // Estado en vez de un lambda con lateinit: el selector se abre cuando esto
+    // se pone a true, venga del permiso o de que ya estuviera concedido.
+    var abrirSelector by remember { mutableStateOf(false) }
+
+    // En Android 10+ hay que PEDIR el permiso de ubicacion de las fotos: sin el,
+    // el sistema entrega la imagen con las coordenadas borradas y parece que la
+    // foto no las tuviera. Se pide justo antes de abrir el selector.
+    val permiso = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> abrirSelector = true }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -84,14 +98,27 @@ fun SubmitBlockPhotoFlow(
     }
 
     // El selector del sistema no necesita permiso de fototeca: solo entrega la
-    // foto elegida. El permiso ACCESS_MEDIA_LOCATION del manifiesto es lo que
-    // hace que esa foto conserve sus coordenadas.
+    // foto elegida. Lo que hace falta es ACCESS_MEDIA_LOCATION, para que esa
+    // foto conserve sus coordenadas.
     LaunchedEffect(Unit) {
         if (!lanzado) {
             lanzado = true
-            picker.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_MEDIA_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED
+            ) {
+                // Si lo deniega, se sigue igualmente: la foto puede traer las
+                // coordenadas de todas formas, y si no, el aviso lo explica.
+                permiso.launch(Manifest.permission.ACCESS_MEDIA_LOCATION)
+            } else {
+                abrirSelector = true
+            }
+        }
+    }
+
+    LaunchedEffect(abrirSelector) {
+        if (abrirSelector) {
+            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
     }
 

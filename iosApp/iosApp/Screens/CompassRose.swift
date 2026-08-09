@@ -27,7 +27,7 @@ struct CompassRoseIcon: View {
             cardinal(g, "E", CGPoint(x: r - 6, y: 0), Cumbre.ink3)
             cardinal(g, "O", CGPoint(x: -r + 6, y: 0), Cumbre.ink3)
         }
-        .frame(width: 44, height: 44)
+        .frame(width: 38, height: 38)
     }
 }
 
@@ -65,7 +65,8 @@ struct CompassDial: View {
                 Text("E").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
             }
         }
-        .frame(width: 120, height: 120)
+        // El tamaño lo decide QUIEN la usa: con 120 fijos aquí dentro, el
+        // formulario de crear piedra se la comía entera y tapaba lo de al lado.
     }
 }
 

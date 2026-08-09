@@ -145,6 +145,8 @@ internal fun SchoolMapView(
     blocks: List<Block>,
     schoolName: String,
     schoolId: String,
+    /** Abrir ya a pantalla completa (llegando desde "Aportar" con una foto). */
+    startFullscreen: Boolean = false,
     viewModel: SchoolDetailViewModel,
     /** Puente con el flujo "+ PROPONER": flags y callbacks SIEMPRE frescos
      *  (es @Stable con mutableStateOf → los listeners del factory leen por
@@ -206,7 +208,10 @@ internal fun SchoolMapView(
     // Capas ocultas por el usuario (toggles de la leyenda): PARKING/BLOCK/ZONE.
     var hiddenTypes by remember { mutableStateOf(setOf<String>()) }
     // Mapa a pantalla completa (estilo Radar: el mapa es la pantalla).
-    var fullscreenMap by remember { mutableStateOf(false) }
+    // Con una foto por confirmar, el mapa arranca a PANTALLA COMPLETA: la
+    // pregunta "¿es el sitio?" solo se puede responder viendo el mapa con
+    // holgura, y en la tarjeta de 280 dp no se distingue nada.
+    var fullscreenMap by remember { mutableStateOf(startFullscreen) }
 
     val visibleMarkers = remember(blocks, schoolMarker, collapsedSectors, hiddenTypes) {
         listOf(schoolMarker) + blocks.filter { b ->
@@ -380,6 +385,33 @@ internal fun SchoolMapView(
                     ) {
                         Text("✓ ACEPTAR", style = EyebrowTextStyle, color = Terra)
                     }
+                }
+            }
+        }
+
+        // Banner de "la foto se hizo aqui": la piedra ya esta puesta en el mapa
+        // (marcador fantasma) y solo falta decir si el sitio vale.
+        bridge.photoConfirm?.let { _ ->
+            Column(
+                modifier = Modifier.fillMaxWidth().background(Terra)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            ) {
+                Text("ℹ LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
+                    style = EyebrowTextStyle, color = Color.White)
+                Spacer(Modifier.size(Spacing.sm))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Box(modifier = Modifier.weight(1f)
+                        .background(Color.White)
+                        .clickable { bridge.photoAccept?.invoke() }
+                        .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) { Text("✓ SÍ, SIGUE", style = EyebrowTextStyle, color = Terra) }
+                    Box(modifier = Modifier.weight(1f)
+                        .border(1.dp, Color.White)
+                        .clickable { bridge.photoMove?.invoke() }
+                        .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) { Text("MOVERLA", style = EyebrowTextStyle, color = Color.White) }
                 }
             }
         }

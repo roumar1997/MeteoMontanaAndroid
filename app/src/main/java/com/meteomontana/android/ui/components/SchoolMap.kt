@@ -233,6 +233,7 @@ fun SchoolMap(
                 blocks        = visibleBlocks,
                 schoolName    = schoolName,
                 schoolId      = schoolId,
+                startFullscreen = photoSeed != null,
                 viewModel     = viewModel,
                 bridge        = bridge,
                 wallEdit      = wallEdit,
@@ -248,6 +249,16 @@ fun SchoolMap(
         ProposeContributionFlow(
             schoolName      = schoolName,
             photoSeed       = photoSeed,
+            onPhotoConfirmChange = { punto, aceptar, mover ->
+                bridge.photoConfirm = punto
+                bridge.photoAccept = aceptar
+                bridge.photoMove = mover
+                // El marcador fantasma es lo que hace visible DÓNDE cae.
+                bridge.correctionGhost = punto?.let {
+                    com.meteomontana.android.ui.screens.detail.CorrectionGhost(
+                        originalId = "__FOTO__", newLat = it.first, newLon = it.second)
+                }
+            },
             schoolLat       = centerLat,
             schoolLon       = centerLon,
             waitingForTap   = bridge.waitingMapTap,
