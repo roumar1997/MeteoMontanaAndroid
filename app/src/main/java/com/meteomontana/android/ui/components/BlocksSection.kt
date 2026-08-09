@@ -42,6 +42,15 @@ fun BlocksSection(
     onMyProposals: () -> Unit = {}
 ) {
     if (schoolLat == null || schoolLon == null || viewModel == null) return
+    // Foto de "Enviar piedra": se lee UNA vez al componer, y el mapa se encarga
+    // de abrir el flujo de proponer con ella.
+    val photoSeed = androidx.compose.runtime.remember(schoolId) {
+        viewModel.takePhotoSeed()?.let {
+            com.meteomontana.android.ui.screens.detail.PhotoSeed(
+                photoUri = android.net.Uri.parse(it.photoUri),
+                lat = it.lat, lon = it.lon, aspect = it.aspect)
+        }
+    }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         SchoolMap(
             centerLat     = schoolLat,
@@ -50,6 +59,7 @@ fun BlocksSection(
             schoolName    = schoolName,
             schoolId      = schoolId,
             viewModel     = viewModel,
+            photoSeed     = photoSeed,
             onMyProposals = onMyProposals
         )
     }

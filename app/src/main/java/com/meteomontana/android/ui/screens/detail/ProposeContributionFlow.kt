@@ -28,11 +28,22 @@ data class CorrectionGhost(
     val newLon: Double?
 )
 
+/** Foto de "Enviar piedra" con lo que se pudo leer de su EXIF. */
+data class PhotoSeed(
+    val photoUri: android.net.Uri,
+    val lat: Double,
+    val lon: Double,
+    /** Orientación sugerida por el rumbo de la cámara, si la foto lo traía. */
+    val aspect: String?
+)
+
 private sealed interface ProposeStep {
     data object TypePicker    : ProposeStep
     data object WaitingMapTap : ProposeStep
     data class  Form(val lat: Double, val lon: Double)        : ProposeStep  // PARKING
     data class  BoulderForm(val lat: Double, val lon: Double) : ProposeStep  // BOULDER
+    /** Foto ya colocada donde se hizo: solo falta confirmar el sitio. */
+    data class  PhotoConfirm(val lat: Double, val lon: Double) : ProposeStep
     data class  WallTracing(val lat: Double, val lon: Double) : ProposeStep  // trazar muro en el mapa
     data class  SectorForm(val lat: Double, val lon: Double)  : ProposeStep  // SECTOR
     data object CorrectionPickTarget : ProposeStep                          // espera tap en marker existente
@@ -62,6 +73,20 @@ private sealed interface ProposeStep {
 @Composable
 fun ProposeContributionFlow(
     schoolName: String,
+    /**
+     * Si se llega desde "Enviar piedra", la foto elegida y dónde se hizo.
+     *
+     * El flujo arranca directamente en "pulsa en el mapa", con el mapa centrado
+     * en ese punto y la foto ya puesta como primera cara. NO se coloca sola: el
+     * GPS se equivoca entre 10 y 30 metros en un canchal, así que el punto
+     * exacto lo pone el usuario, viendo alrededor el resto de la escuela.
+     */
+    photoSeed: PhotoSeed? = null,
+    /**
+     * Avisa del punto de la foto pendiente de confirmar y de qué hacer con él.
+     * SchoolMap lo pinta como marcador y saca el banner de sí/mover.
+     */
+    onPhotoConfirmChange: (Pair<Double, Double>?, (() -> Unit)?, (() -> Unit)?) -> Unit = { _, _, _ -> },
     schoolLat: Double = 0.0,
     schoolLon: Double = 0.0,
     waitingForTap: Boolean,
@@ -95,7 +120,14 @@ fun ProposeContributionFlow(
     onMyProposals: () -> Unit,
     viewModel: SchoolDetailViewModel
 ) {
-    var step by remember { mutableStateOf<ProposeStep>(ProposeStep.TypePicker) }
+    var step by remember {
+        mutableStateOf<ProposeStep>(
+            // Con foto ya sabemos qué se propone (una piedra) y dónde se hizo:
+            // se coloca sola en ese punto y solo queda confirmarlo.
+            if (photoSeed != null) ProposeStep.PhotoConfirm(photoSeed.lat, photoSeed.lon)
+            else ProposeStep.TypePicker
+        )
+    }
     var boulderMode by remember { mutableStateOf(false) }
 
     // Estado del borrador BOULDER (elevado aquí para persistir entre BoulderForm y TopoDialog).
@@ -123,7 +155,18 @@ fun ProposeContributionFlow(
     val context = LocalContext.current
 
     // Tipo de la última opción elegida en el picker — guía el WaitingMapTap a qué Form ir.
-    var pickedType by remember { mutableStateOf("PARKING") }
+    var pickedType by remember { mutableStateOf(if (photoSeed != null) "BOULDER" else "PARKING") }
+
+    // La foto entra como primera cara, con su orientación sugerida. Solo una
+    // vez: si se repitiera en cada recomposición, borraría lo que el usuario
+    // vaya escribiendo en el formulario.
+    androidx.compose.runtime.LaunchedEffect(photoSeed) {
+        if (photoSeed != null) {
+            boulderFaces = listOf(BoulderFaceForm(
+                photoUri = photoSeed.photoUri, orientation = photoSeed.aspect))
+            boulderOrientation = photoSeed.aspect
+        }
+    }
 
     onMapTap { lat, lon ->
         when (val cur = step) {
@@ -240,6 +283,28 @@ fun ProposeContributionFlow(
 
         is ProposeStep.WaitingMapTap -> {
             // El banner "PULSA EN EL MAPA" lo pinta SchoolMap leyendo waitingForTap.
+        }
+
+        is ProposeStep.PhotoConfirm -> {
+            // Nada de diálogo: la pregunta va en un banner y la piedra se PINTA
+            // en el mapa. Un diálogo encima tapaba justo lo que hay que mirar.
+            //
+            // Va en un efecto y no suelto: avisar desde el cuerpo de la
+            // composición es escribir estado MIENTRAS se dibuja, y Compose no
+            // garantiza que eso llegue — el marcador no aparecía.
+            androidx.compose.runtime.LaunchedEffect(s.lat, s.lon) {
+                onPhotoConfirmChange(
+                    s.lat to s.lon,
+                    { step = ProposeStep.BoulderForm(s.lat, s.lon) },
+                    {
+                        // A partir de aquí manda el toque en el mapa: el flujo
+                        // de siempre lleva de WaitingMapTap al formulario.
+                        onPhotoConfirmChange(null, null, null)
+                        step = ProposeStep.WaitingMapTap
+                        onStartWaitingTap()
+                    }
+                )
+            }
         }
 
         is ProposeStep.Form -> ParkingFormDialog(

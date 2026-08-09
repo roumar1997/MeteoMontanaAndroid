@@ -5,7 +5,7 @@ import Shared
 /// Regla de diseño (DESIGN.md): todo lo VOTABLE lleva el mismo lenguaje —
 /// chip con borde DISCONTINUO terra + ▾. Se aprende una vez.
 
-let ASPECTS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+let ASPECTS = Aspect.shared.ALL
 
 /// Chip pulsable con borde discontinuo terra + ▾.
 struct VotableChip: View {
@@ -128,6 +128,9 @@ struct OrientationVoteSheet: View {
     let blockId: String
     let photoIndex: Int?
     @Environment(\.dismiss) private var dismiss
+    /// Paso fino (2º): aquí se lee el número de grados, no basta con los 15º
+    /// del cono de dirección del mapa.
+    @StateObject private var brujula = HeadingProvider(stepDegrees: 2)
 
     var body: some View {
         let summary = store.summaryFor(photoIndex)
@@ -143,6 +146,19 @@ struct OrientationVoteSheet: View {
             } else {
                 Text("Sin votos todavía. ¡Sé el primero!")
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            }
+            // Brújula: INFORMA, no decide. Estando en la roca dice hacia dónde
+            // miras; el punto cardinal lo eliges tú tocando su chip, porque la
+            // brújula del móvil se descalibra con facilidad.
+            if let rumbo = brujula.heading {
+                VStack(spacing: 4) {
+                    CompassDial(headingDegrees: Double(rumbo))
+                        .frame(width: 120, height: 120)
+                    Text("Estás mirando al " + Aspect.shared.fromDegrees(degrees: Float(rumbo)) +
+                         " · " + Aspect.shared.degreesLabel(degrees: Float(rumbo)))
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                .frame(maxWidth: .infinity)
             }
             let cols = [GridItem(.adaptive(minimum: 56), spacing: 6)]
             LazyVGrid(columns: cols, spacing: 6) {
@@ -168,7 +184,10 @@ struct OrientationVoteSheet: View {
                 .frame(maxWidth: .infinity).padding(.top, 6)
         }
         .padding(16)
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
+        // La brújula solo mientras la hoja está abierta: el sensor gasta batería.
+        .onAppear { brujula.start() }
+        .onDisappear { brujula.stop() }
     }
 }
 

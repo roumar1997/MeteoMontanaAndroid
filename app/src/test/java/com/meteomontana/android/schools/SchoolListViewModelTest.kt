@@ -106,7 +106,7 @@ class SchoolListViewModelTest {
     private fun newVm() = SchoolListViewModel(
         getSchoolCatalog, getTodayScores, getRangeScores, getMyFavorites, addFavorite, removeFavorite,
         getMyNotifications, location, savedRepo, cachedRepo, etagStore, chatService, outbox, getPublicProfile,
-        searchLines, appContext
+        searchLines, appContext, com.meteomontana.android.ui.screens.schools.PhotoProposalSeed()
     )
 
     @Test fun `init baja el catalogo completo sin filtros y filtra en local`() = runTest {

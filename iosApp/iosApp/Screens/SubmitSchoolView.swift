@@ -8,6 +8,9 @@ import Shared
 @MainActor
 final class SubmitSchoolViewModel: ObservableObject {
     @Published var name = ""
+    /// País elegido (ISO alfa-2). España por defecto: es de donde son todas las
+    /// escuelas de hoy.
+    @Published var country = "ES"
     @Published var region = ""
     @Published var style = ""
     @Published var rockType = ""
@@ -21,6 +24,10 @@ final class SubmitSchoolViewModel: ObservableObject {
     @Published var done = false
 
     // Valores existentes del catálogo para los desplegables (evita erratas).
+    /// Países abiertos, con sus regiones. Vienen del SERVIDOR, no de las
+    /// escuelas existentes: si se dedujeran de ellas, el primer país que se
+    /// abre tendría el desplegable vacío y nadie podría proponer allí.
+    @Published var countries: [Country] = []
     @Published var regionOptions: [String] = []
     @Published var styleOptions: [String] = []
     @Published var rockOptions: [String] = []
@@ -43,8 +50,18 @@ final class SubmitSchoolViewModel: ObservableObject {
         ) else { return }
         schools = list
         regionOptions = unique(list.map { $0.region })
+        // Sin red se cae a España, que es lo que había antes del catálogo.
+        countries = (try? await AppDependencies.shared.container.getCountries.invoke())
+            ?? [Country(code: "ES", name: "España", regions: regionOptions)]
         styleOptions = unique(list.map { $0.style })
         rockOptions = unique(list.map { $0.rockType })
+    }
+
+    /// Regiones del país elegido, del catálogo del servidor.
+    var regionsForCountry: [String] {
+        let delCatalogo = countries.first { $0.code == country }?.regions ?? []
+        // Si el catálogo no llegó (sin red), se sigue con lo que se sabe.
+        return delCatalogo.isEmpty ? regionOptions : delCatalogo
     }
 
     /// Localidades del catálogo, filtradas por la región elegida (si la hay).
@@ -86,7 +103,8 @@ final class SubmitSchoolViewModel: ObservableObject {
             lat: la, lon: lo,
             location: location.nilIfBlank,
             source: nil,
-            notes: notes.nilIfBlank
+            notes: notes.nilIfBlank,
+            country: country
         )
         do {
             _ = try await submitSchool.invoke(req: req)
@@ -141,7 +159,17 @@ struct SubmitSchoolView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 field("NOMBRE", $vm.name, "ej: La Pedriza")
-                pickerField("REGIÓN", $vm.region, vm.regionOptions)
+                // PAÍS antes que REGIÓN: las regiones dependen del país.
+                if vm.countries.count > 1 {
+                    pickerField("PAÍS", Binding(
+                        get: { vm.countries.first { $0.code == vm.country }?.name ?? "España" },
+                        set: { nombre in
+                            vm.country = vm.countries.first { $0.name == nombre }?.code ?? "ES"
+                            vm.region = ""      // cada país tiene sus regiones
+                            vm.location = ""
+                        }), vm.countries.map { $0.name })
+                }
+                pickerField("REGIÓN", $vm.region, vm.regionsForCountry)
                     .onChange(of: vm.region) { _, _ in vm.location = "" }   // resetea localidad al cambiar región
                 pickerField("ESTILO", $vm.style, vm.styleOptions)
                 pickerField("TIPO DE ROCA", $vm.rockType, vm.rockOptions)

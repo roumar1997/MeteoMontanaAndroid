@@ -117,7 +117,9 @@ struct SchoolBlocksManageSheet: View {
     private func move(to coord: CLLocationCoordinate2D) async {
         guard let b = moving else { return }
         let lines = b.lines.map {
-            CreateBlockLineRequest(name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant)
+            // Se manda el id de la via existente: sin el, el servidor tiene que
+            // adivinar cual era cual y puede mover el ✓ del diario de alguien.
+            CreateBlockLineRequest(id: $0.id, name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant)
         }
         let req = CreateBlockRequest(type: b.type, name: b.name,
                                      lat: coord.latitude, lon: coord.longitude,
@@ -241,7 +243,9 @@ struct BlockManageSheet: View {
         let lon = Double(lonText) ?? block.lon
         // Preservamos type/foto/sector y las VÍAS (si no, se borrarían).
         let lines = block.lines.map {
-            CreateBlockLineRequest(name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant)
+            // Se manda el id de la via existente: sin el, el servidor tiene que
+            // adivinar cual era cual y puede mover el ✓ del diario de alguien.
+            CreateBlockLineRequest(id: $0.id, name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant)
         }
         let trimmed = desc.trimmingCharacters(in: .whitespacesAndNewlines)
         let req = CreateBlockRequest(type: block.type, name: name, lat: lat, lon: lon,

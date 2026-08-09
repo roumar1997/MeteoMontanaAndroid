@@ -113,6 +113,34 @@ struct JournalView: View {
                             Text("Aún no has registrado bloques.")
                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(32)
                         } else {
+                            // Filtro por GRADO, con la paleta de los topos. El VM
+                            // ya lo calculaba y lo aplicaba, pero los chips no se
+                            // pintaban: la función estaba, sin manera de usarla
+                            // (Android sí los tenía).
+                            if vm.availableGrades.count > 1 {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        ForEach(vm.availableGrades, id: \.self) { g in
+                                            let estilo = GradeColor.style(g)
+                                            let color = estilo.dark ? Cumbre.ink : estilo.stroke
+                                            let activo = vm.gradeFilter == g
+                                            Button {
+                                                vm.gradeFilter = activo ? nil : g
+                                                vm.regroup()
+                                            } label: {
+                                                Text(g)
+                                                    .font(Cumbre.mono(11, .bold))
+                                                    .foregroundStyle(activo ? .white : color)
+                                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                                    .background(activo ? color : Color.clear)
+                                                    .overlay(RoundedRectangle(cornerRadius: 6)
+                                                        .stroke(color, lineWidth: 1))
+                                            }.buttonStyle(.plain)
+                                        }
+                                    }
+                                    .padding(.horizontal, 16).padding(.vertical, 6)
+                                }
+                            }
                             // C3: agrupado por MES. PRECOMPUTADO en el VM — hacerlo
                             // en el body relanzaba el calculo en cada frame (watchdog
                             // 0x8BADF00D del 29-jul).

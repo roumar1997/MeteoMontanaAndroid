@@ -127,6 +127,11 @@ jobs:
           # se activa el flag en codigo (el override de compilation conditions
           # por linea de comandos rompia los paquetes SPM de Firebase).
           sed -i '' 's/static let ciStaging = false/static let ciStaging = true/' iosApp/iosApp/DI/AppDependencies.swift
+          # Sello de compilacion visible en Ajustes: responde de un vistazo
+          # "que build tengo instalado", que nos costo media maniana.
+          SELLO=$(TZ=Europe/Madrid date '+%-d %b %H:%M')
+          sed -i '' "s/static let buildStamp = \"local\"/static let buildStamp = \"$SELLO\"/" iosApp/iosApp/DI/AppDependencies.swift
+          grep -q "buildStamp = \"$SELLO\"" iosApp/iosApp/DI/AppDependencies.swift
           grep -q "ciStaging = true" iosApp/iosApp/DI/AppDependencies.swift
           xcodebuild \
             -project iosApp/MeteoMontana.xcodeproj \

@@ -33,5 +33,7 @@ data class SubmitSchoolRequest(
     val lon: Double,
     val location: String? = null,
     val source: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    /** ISO alfa-2. Por defecto Espana, que es de donde son todas las de hoy. */
+    val country: String = "ES"
 )

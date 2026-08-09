@@ -31,7 +31,8 @@ data class CatalogOptions(
 @HiltViewModel
 class SubmitSchoolViewModel @Inject constructor(
     private val submitSchool: SubmitSchoolUseCase,
-    private val getSchools: GetSchoolsUseCase
+    private val getSchools: GetSchoolsUseCase,
+    private val getCountries: com.meteomontana.android.domain.usecase.geo.GetCountriesUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow<SubmitState>(SubmitState.Idle)
     val state: StateFlow<SubmitState> = _state.asStateFlow()
@@ -40,6 +41,10 @@ class SubmitSchoolViewModel @Inject constructor(
     val options: StateFlow<CatalogOptions> = _options.asStateFlow()
 
     private var schools: List<School> = emptyList()
+
+    /** Países abiertos, con sus regiones. */
+    private val _countries = MutableStateFlow<List<com.meteomontana.android.domain.model.Country>>(emptyList())
+    val countries: StateFlow<List<com.meteomontana.android.domain.model.Country>> = _countries.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -50,7 +55,24 @@ class SubmitSchoolViewModel @Inject constructor(
                 rockTypes = unique(schools.map { it.rockType })
             )
         }
+        viewModelScope.launch {
+            // Sin red se cae a España: es lo que había antes del catálogo y
+            // cubre el 100% de las escuelas de hoy.
+            _countries.value = runCatching { getCountries() }.getOrDefault(
+                listOf(com.meteomontana.android.domain.model.Country(
+                    code = "ES", name = "España",
+                    regions = unique(schools.map { it.region })))
+            )
+        }
     }
+
+    /**
+     * Regiones de un país. Salen del catálogo del servidor, NO de las escuelas
+     * existentes: si se dedujeran de ellas, el primer país que se abre tendría
+     * el desplegable vacío y nadie podría proponer su primera escuela.
+     */
+    fun regionOptions(countryCode: String): List<String> =
+        _countries.value.firstOrNull { it.code == countryCode }?.regions ?: emptyList()
 
     /** Localidades del catálogo filtradas por región (mismo criterio que iOS). */
     fun locationOptions(region: String): List<String> {

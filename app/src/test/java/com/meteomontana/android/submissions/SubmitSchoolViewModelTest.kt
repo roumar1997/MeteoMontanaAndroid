@@ -43,14 +43,18 @@ class SubmitSchoolViewModelTest {
         school("4", "Madrid", "Bloque", null, "  "),   // rock null y loc en blanco → se filtran
     )
 
+    private val getCountries: com.meteomontana.android.domain.usecase.geo.GetCountriesUseCase = mockk()
+
     @Before fun setUp() {
         Dispatchers.setMain(d)
         submit = mockk(); getSchools = mockk()
         coEvery { getSchools() } returns catalog
+        coEvery { getCountries() } returns listOf(
+            com.meteomontana.android.domain.model.Country("ES", "España", listOf("Madrid")))
     }
     @After fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = SubmitSchoolViewModel(submit, getSchools)
+    private fun vm() = SubmitSchoolViewModel(submit, getSchools, getCountries)
 
     @Test fun `opciones son unicas ordenadas y sin blancos`() = runTest {
         val vm = vm(); advanceUntilIdle()

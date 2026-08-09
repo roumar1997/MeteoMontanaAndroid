@@ -14,5 +14,11 @@ data class School(
     val rockType: String?,
     val lat: Double,
     val lon: Double,
-    val source: String?
+    val source: String?,
+    /**
+     * Pais ISO 3166-1 alfa-2. Por defecto "ES": las escuelas anteriores al
+     * catalogo son espanolas, y una respuesta vieja del servidor tampoco lo
+     * trae. Decide si aplican radar y boletin de montana, que son de AEMET.
+     */
+    val country: String = "ES"
 )

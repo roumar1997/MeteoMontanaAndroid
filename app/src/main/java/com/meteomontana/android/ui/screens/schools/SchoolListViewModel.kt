@@ -73,7 +73,9 @@ class SchoolListViewModel @Inject constructor(
     private val outbox: com.meteomontana.android.data.outbox.OutboxRepository,
     private val getPublicProfile: com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase,
     private val searchLines: com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
+    /** Foto elegida en "Enviar piedra", a la espera de que se abra su escuela. */
+    val photoSeed: PhotoProposalSeed
 ) : ViewModel() {
 
     // Resultados del buscador GLOBAL de vías/bloques (el mismo campo de texto
@@ -95,6 +97,16 @@ class SchoolListViewModel @Inject constructor(
     // Los filtros (estilo, roca, distancia, texto) se aplican en local — misma
     // semántica que el backend (equalsIgnoreCase + haversine), pero sin red.
     private var allSchools: List<School> = emptyList()
+
+    /**
+     * Catálogo COMPLETO, sin los filtros de la pantalla.
+     *
+     * Lo usa "Aportar una piedra desde una foto": la escuela donde se hizo la
+     * foto no tiene por qué estar entre las que el filtro deja ver. Con la lista
+     * filtrada, una foto hecha en Valsaín acababa comparándose con Peña Pintada,
+     * a 7 km — que es justo lo que vio Rodrigo.
+     */
+    fun catalogoCompleto(): List<School> = allSchools
 
     // Fallback Madrid si no hay permiso de ubicación; se sobreescribe al cargar.
     private var userLat: Double = 40.4168

@@ -14,8 +14,18 @@ data class TopoLineData(
     val grade: String?,
     val startType: String?,
     val points: List<Pair<Float, Float>>,
-    val strokeWidthPx: Float = 5f
+    val strokeWidthPx: Float = 5f,
+    /**
+     * Vía "apagada": se pinta translúcida y sin badge. Es el modo FOCO — al
+     * tocar una vía en una piedra con muchas, las demás bajan a un susurro
+     * en vez de desaparecer, para no perder de vista dónde está respecto a
+     * sus vecinas. Un muro de 13 vías es ilegible sin esto.
+     */
+    val muted: Boolean = false
 )
+
+/** Opacidad de una vía apagada (canal alfa sobre su color de grado). */
+const val MUTED_ALPHA = 0x3Cu
 
 /**
  * Calcula el color ARGB32 (como Long) para un grado de escalada.
@@ -222,6 +232,32 @@ fun magnetizeStroke(
     // TRAMO de las otras vías (no solo sus vértices — antes era casi imposible
     // acertar con el dedo) y, si cae bajo el umbral, se pega al vértice más
     // cercano de ese tramo. Así el tramo común sigue siendo EXACTO.
+    // Punto exacto al que pegarse cuando el vertice queda lejos: la proyeccion
+    // sobre el tramo. Sin esto, tocar a mitad de una via larga te llevaba a su
+    // vertice mas cercano, que puede estar a medio muro de distancia (feedback
+    // de Rodrigo con capturas: apuntaba al medio y acababa en la union de
+    // abajo). Ahi se pierde el tramo compartido exacto, pero la linea cae donde
+    // el usuario dijo, que es lo que importa.
+    fun proyeccion(p: Pair<Float, Float>): Pair<Float, Float>? {
+        var mejor: Pair<Float, Float>? = null
+        var mejorD = threshold * threshold
+        others.forEach { pts ->
+            for (si in 0 until pts.size - 1) {
+                val a = pts[si]; val b = pts[si + 1]
+                val abx = b.first - a.first; val aby = b.second - a.second
+                val len2 = abx * abx + aby * aby
+                val t = if (len2 < 1e-12f) 0f else
+                    (((p.first - a.first) * abx + (p.second - a.second) * aby) / len2)
+                        .coerceIn(0f, 1f)
+                val qx = a.first + t * abx; val qy = a.second + t * aby
+                val dx = p.first - qx; val dy = p.second - qy
+                val d = dx * dx + dy * dy
+                if (d < mejorD) { mejorD = d; mejor = qx to qy }
+            }
+        }
+        return mejor
+    }
+
     fun snap(p: Pair<Float, Float>): Pair<Int, Int>? {
         var best: Pair<Int, Int>? = null
         var bestD = threshold * threshold
@@ -254,9 +290,19 @@ fun magnetizeStroke(
     }
 
     data class Node(val point: Pair<Float, Float>, val snapped: Pair<Int, Int>?)
+    // Radio para pegarse a un VERTICE. Es mas estrecho que el del iman: el
+    // vertice solo gana si lo tienes casi debajo. Si estas cerca de la via pero
+    // lejos de sus vertices, el trazo cae en la PROYECCION, o sea donde
+    // apuntaste. Antes siempre ganaba el vertice y te llevaba a otro sitio.
+    val radioVertice = threshold * 0.45f
     val nodes = drawn.map { p ->
         val s = snap(p)
-        Node(if (s != null) others[s.first][s.second] else p, s)
+        if (s != null) {
+            val v = others[s.first][s.second]
+            val dx = p.first - v.first; val dy = p.second - v.second
+            val cerca = dx * dx + dy * dy <= radioVertice * radioVertice
+            if (cerca) Node(v, s) else Node(proyeccion(p) ?: p, null)
+        } else Node(p, null)
     }
 
     val out = mutableListOf<Pair<Float, Float>>()
@@ -304,7 +350,16 @@ fun renderTopo(
      *  para no tapar la roca. El caller lo escala (density / canvas 1080). */
     dashPx: Pair<Float, Float> = 12f to 9f,
     /** Largo de cada franja de tramo compartido, en px (escalar como dashPx). */
-    stripePx: Float = SHARED_STRIPE_PX
+    stripePx: Float = SHARED_STRIPE_PX,
+    /**
+     * Separacion del abanico de badges (inicio, fin) en px. Por defecto se
+     * deduce del tamano del badge, que es lo razonable sin zoom.
+     *
+     * Con la foto ampliada hay que pasarla SIN escalar: los tamanos encogen
+     * para que el trazo no engorde, pero si el abanico encoge con ellos los
+     * numeros se van juntando y parece que la linea se desliza sobre la roca.
+     */
+    fanSpacingPx: Pair<Float, Float>? = null
 ): List<DrawOp> {
     val ops = mutableListOf<DrawOp>()
     // Los BADGES se acumulan aparte y se emiten al FINAL: si no, la línea de
@@ -320,13 +375,19 @@ fun renderTopo(
     // Abanico de badges: cuando varios inicios/finales coinciden en el mismo
     // punto, cada badge se desplaza en X para no taparse.
     val startFan = fanOffsets(
-        lines.map { it.points.firstOrNull() }, badgeR.first * 2f + 4f)
+        lines.map { it.points.firstOrNull() },
+        fanSpacingPx?.first ?: (badgeR.first * 2f + 4f))
     val endFan = fanOffsets(
-        lines.map { it.points.lastOrNull() }, startR.first * 2f + 4f)
+        lines.map { it.points.lastOrNull() },
+        fanSpacingPx?.second ?: (startR.first * 2f + 4f))
 
     lines.forEachIndexed { idx, line ->
         if (line.points.isEmpty()) return@forEachIndexed
-        val (strokeArgb, dashed, dark) = gradeArgb(line.grade)
+        val (rawArgb, dashed, dark) = gradeArgb(line.grade)
+        // Apagada: mismo color, alfa bajo. Se conserva el color de grado a
+        // propósito (gris plano haría perder la referencia de dificultad).
+        val strokeArgb = if (line.muted)
+            (rawArgb and 0x00FFFFFFL) or (MUTED_ALPHA.toLong() shl 24) else rawArgb
         val pts = line.points.map { (nx, ny) -> nx * w to ny * h }
         val textArgb = if (dark) 0xFF000000L else 0xFFFFFFFFL
 
@@ -383,6 +444,7 @@ fun renderTopo(
         // Badge numérico en el punto de inicio (desplazado si hay abanico)
         val (fx0, fy) = pts.first()
         val fx = fx0 + startFan[idx]
+        if (line.muted) return@forEachIndexed   // apagada: sin número ni etiqueta
         badgeOps += DrawOp.FilledCircle(fx, fy, badgeR.first, 0xFFFFFFFFL)
         badgeOps += DrawOp.FilledCircle(fx, fy, badgeR.second, strokeArgb)
         badgeOps += DrawOp.TextLabel(fx, fy, "${idx + 1}", textArgb, badgeTextPx.first, bold = true, badgeTextPx.second)

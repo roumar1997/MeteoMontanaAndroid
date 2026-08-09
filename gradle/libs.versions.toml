@@ -37,6 +37,7 @@ navigationCompose = "2.8.4"
 
 # Image loading
 coil = "2.7.0"
+exifinterface = "1.4.1"
 
 # Firebase
 firebaseBom = "33.5.1"
@@ -131,6 +132,7 @@ accompanist-navigation-material = { group = "com.google.accompanist", name = "ac
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 
 # Credential Manager (Google Sign-In)
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }

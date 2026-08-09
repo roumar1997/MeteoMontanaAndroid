@@ -464,6 +464,18 @@ private fun ProfileSettingsScreen(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
             MenuRow(Icons.AutoMirrored.Outlined.Logout, stringResource(R.string.profile_logout), onSignOut)
+            // Que version es esta. Sin esto, "no me ha llegado el arreglo" y
+            // "no lo has arreglado" son indistinguibles.
+            Text(
+                "Cumbre " + com.meteomontana.android.BuildConfig.VERSION_NAME +
+                    " (vc" + com.meteomontana.android.BuildConfig.VERSION_CODE + ") · " +
+                    com.meteomontana.android.BuildConfig.BUILD_TIME +
+                    if (com.meteomontana.android.BuildConfig.DEBUG) " · staging" else "",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
             var showDelete by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { showDelete = true }

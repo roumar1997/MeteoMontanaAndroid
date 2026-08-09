@@ -130,7 +130,19 @@ struct TopIconsRow: View {
 
 struct HeaderEscuelas: View {
     let count: Int?
+    /// "Enviar piedra": elegir una foto y proponerla en la escuela donde se hizo.
+    var onSubmitBlockPhoto: () -> Void = {}
     @State private var showSubmit = false
+    @State private var aportando = false
+
+    /// Ejecuta [accion] cuando la hoja ya se ha cerrado del todo.
+    ///
+    /// Encadenar dos presentaciones en SwiftUI (cerrar una hoja y abrir otra en
+    /// el mismo instante) hace que la segunda se pierda sin decir nada. Es lo
+    /// que dejaba "Una piedra, desde una foto" sin hacer nada.
+    private func trasCerrar(_ accion: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: accion)
+    }
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
@@ -144,14 +156,23 @@ struct HeaderEscuelas: View {
                 }
             }
             Spacer()
-            Button { showSubmit = true } label: {
-                OutlinedCumbreButton(text: NSLocalizedString("schools_submit", comment: ""), tint: Cumbre.terra)
+            // UN solo botón: corto, entra en cualquier pantalla. Las dos formas
+            // de aportar viven en la hoja, donde cada una cabe con su
+            // explicación — "enviar piedra" no se entiende a secas.
+            Button { aportando = true } label: {
+                OutlinedCumbreButton(text: "+ Aportar", tint: Cumbre.terra)
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .sheet(isPresented: $showSubmit) { SubmitSchoolView() }
+        .sheet(isPresented: $aportando) {
+            AportarSheet(
+                onPiedra: { aportando = false; trasCerrar { onSubmitBlockPhoto() } },
+                onEscuela: { aportando = false; trasCerrar { showSubmit = true } })
+                .presentationDetents([.height(260)])
+        }
     }
 }
 
@@ -450,5 +471,42 @@ struct FilterChips: View {
             .padding(.horizontal, 12).padding(.vertical, 7)
             .background(active ? Cumbre.terra : Cumbre.paper)
             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+    }
+}
+
+/// Las dos formas de aportar al catálogo, cada una con su porqué.
+/// Espejo de `AportarSheet` en Android.
+struct AportarSheet: View {
+    var onPiedra: () -> Void
+    var onEscuela: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("APORTAR AL CATÁLOGO")
+                .font(Cumbre.mono(11, .bold)).tracking(1.2)
+                .foregroundStyle(Cumbre.terra)
+            opcion("Una piedra, desde una foto",
+                   "La foto dice en qué escuela se hizo", onPiedra)
+            opcion("Una escuela nueva",
+                   "Si el sitio no está en el catálogo", onEscuela)
+            Spacer()
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Cumbre.bg.ignoresSafeArea())
+    }
+
+    private func opcion(_ titulo: String, _ detalle: String,
+                        _ accion: @escaping () -> Void) -> some View {
+        Button(action: accion) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(titulo).font(.system(size: 16)).foregroundStyle(Cumbre.ink)
+                Text(detalle).font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .overlay(Rectangle().stroke(Cumbre.ink, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }

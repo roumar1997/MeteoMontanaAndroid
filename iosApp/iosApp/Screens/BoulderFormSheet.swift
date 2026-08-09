@@ -13,6 +13,10 @@ struct BoulderFormSheet: View {
     /// Piedras/sectores/parkings + mi ubicación, para orientarme al trazar el
     /// muro (contexto de solo lectura). Los pasa SchoolMapSection.
     var contextMarkers: [CumbreMarker] = []
+    /// Foto de "Enviar piedra": entra como primera cara, con la orientación que
+    /// sugiere el rumbo con el que se hizo (si la foto lo traía).
+    var seedPhoto: UIImage? = nil
+    var seedAspect: String? = nil
     let onDone: (Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -21,6 +25,11 @@ struct BoulderFormSheet: View {
     @State private var discipline = "BOULDER"   // BOULDER (bloque) / ROUTE (vía)
     // Una piedra grande no cabe en una foto → varias CARAS (foto + sus vías).
     @State private var faces: [BoulderFaceForm] = [BoulderFaceForm()]
+    /// La foto de la semilla se coloca UNA vez: repetirlo en cada refresco
+    /// borraría lo que el usuario vaya escribiendo.
+    @State private var semillaPuesta = false
+    /// Paso fino (2º): aquí se lee el número de grados.
+    @StateObject private var brujula = HeadingProvider(stepDegrees: 2)
     @State private var selectedFace = 0
     @State private var pickerItem: PhotosPickerItem?
     @State private var showEditor = false
@@ -41,7 +50,7 @@ struct BoulderFormSheet: View {
 
     private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
 
-    private static let aspects = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    private static let aspects = Aspect.shared.ALL
 
     /// F: chips de orientación (mismo lenguaje discontinuo-terra de votable).
     @ViewBuilder
@@ -50,6 +59,21 @@ struct BoulderFormSheet: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(Cumbre.mono(9, .bold)).tracking(1.2)
                 .foregroundStyle(Cumbre.ink3)
+            // Brújula también AQUÍ, creando la piedra: es cuando estás delante
+            // de ella y sabes hacia dónde mira. Informa; el chip lo eliges tú.
+            if let rumbo = brujula.heading {
+                HStack(spacing: 8) {
+                    CompassDial(headingDegrees: Double(rumbo))
+                        .frame(width: 64, height: 64)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Estás mirando al " + Aspect.shared.fromDegrees(degrees: Float(rumbo)) +
+                             " · " + Aspect.shared.degreesLabel(degrees: Float(rumbo)))
+                        Text("Si estás mirando la pared, ella mira al contrario.")
+                    }
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                .padding(.bottom, 4)
+            }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(Self.aspects, id: \.self) { a in
@@ -88,6 +112,20 @@ struct BoulderFormSheet: View {
     private var isWall: Bool { geometry == "LINE" }
 
     var body: some View {
+        contenido
+            .onAppear {
+                brujula.start()
+                guard !semillaPuesta, let foto = seedPhoto else { return }
+                semillaPuesta = true
+                faces = [BoulderFaceForm(photo: foto, orientation: seedAspect)]
+                // Tambien la de la piedra: es la que se ve con una sola foto.
+                if blockOrientation == nil { blockOrientation = seedAspect }
+            }
+            // El sensor gasta batería: solo mientras el formulario está abierto.
+            .onDisappear { brujula.stop() }
+    }
+
+    private var contenido: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -209,12 +247,38 @@ struct BoulderFormSheet: View {
                         Image(uiImage: photo).resizable().scaledToFit()
                             .frame(maxHeight: 200).clipShape(RoundedRectangle(cornerRadius: 2))
                     }
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                    // Mismo selector que "aportar desde una foto": el de
+                    // SwiftUI entrega una copia SIN ubicación, y entonces la
+                    // orientación no se podría sugerir nunca.
+                    Button {
+                        let idx = faceIdx
+                        presentPhotoPickerResult { result in
+                            guard let result else { return }
+                            Task { @MainActor in
+                                guard let donde = await PhotoExifReader.read(result) else {
+                                    sendError = "No se pudo cargar la foto elegida. Inténtalo otra vez."
+                                    return
+                                }
+                                faces[idx].photo = donde.image
+                                // La orientación sale de ESTA foto: cada cara
+                                // mira a donde mire su pared.
+                                if let sugerida = PhotoPlacement.shared.aspectFromCameraDirection(
+                                    cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) }) {
+                                    if faces[idx].orientation == nil { faces[idx].orientation = sugerida }
+                                    // Y la de la PIEDRA, que es el chip que se
+                                    // ve con una sola foto.
+                                    if blockOrientation == nil { blockOrientation = sugerida }
+                                }
+                                sendError = nil
+                            }
+                        }
+                    } label: {
                         Text(faces[faceIdx].photo == nil ? "SELECCIONAR FOTO" : "CAMBIAR FOTO")
                             .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
                             .frame(maxWidth: .infinity).padding(.vertical, 10)
                             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                     }
+                    .buttonStyle(.plain)
 
                     // F: orientación de ESTA cara (opcional). Solo tiene
                     // sentido con varias fotos; con una sola vale la general.

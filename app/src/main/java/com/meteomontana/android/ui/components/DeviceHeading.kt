@@ -15,12 +15,14 @@ import androidx.compose.ui.platform.LocalContext
 
 /**
  * Rumbo del móvil (0-360º, norte = 0) desde el sensor de rotación, cuantizado
- * a pasos de 15º para no re-pintar el marcador del mapa a 50 Hz. Null si el
+ * a pasos de [stepDegrees] para no re-pintar a 50 Hz. 15º basta para el cono de
+ * dirección; la brújula de elegir orientación pide un paso fino (2º), porque
+ * ahí se lee el número de grados. Null si el
  * dispositivo no tiene sensor. Se usa para el cono de dirección del punto
  * azul ("¿estoy mirando hacia la piedra?").
  */
 @Composable
-fun rememberDeviceHeading(): Float? {
+fun rememberDeviceHeading(stepDegrees: Float = 15f): Float? {
     val context = LocalContext.current
     var heading by remember { mutableStateOf<Float?>(null) }
 
@@ -35,7 +37,7 @@ fun rememberDeviceHeading(): Float? {
                 SensorManager.getOrientation(rot, orient)
                 val az = Math.toDegrees(orient[0].toDouble()).toFloat()
                 val normalized = (az + 360f) % 360f
-                val quantized = (Math.round(normalized / 15f) * 15f) % 360f
+                val quantized = (Math.round(normalized / stepDegrees) * stepDegrees) % 360f
                 if (quantized != heading) heading = quantized
             }
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}

@@ -42,7 +42,7 @@ data class BoulderFaceForm(
 )
 
 /** Rumbos válidos de orientación (= AspectChip / OrientationFilter). */
-val BOULDER_ASPECTS = listOf("N", "NE", "E", "SE", "S", "SO", "O", "NO")
+val BOULDER_ASPECTS = com.meteomontana.android.domain.util.Aspect.ALL
 
 /**
  * F: {"block":"NE","faces":{"0":"N"}} — la orientación que marca el autor al

@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 
 // Tramos COMPARTIDOS entre vías + utilidades del editor — espejo Swift de
 // sharedSegmentLines / magnetizeStroke / simplifyStroke / fanOffsets de
@@ -120,6 +121,41 @@ enum TopoShared {
         return Array(points[best.0...best.1])
     }
 
+    /// Aplica el iman SOLO si esta activado -- espejo de TopoMagnet.apply.
+    ///
+    /// El interruptor existe porque el iman acertado no siempre es el deseado:
+    /// dos vias pueden pasar muy cerca al arrancar sin compartir nada y
+    /// juntarse solo a media pared. Quien decide eso es quien mira la roca.
+    static func applyMagnet(_ stroke: [CGPoint], others: [[CGPoint]],
+                            threshold: CGFloat = 0.04, enabled: Bool) -> [CGPoint] {
+        enabled ? magnetizeStroke(stroke, others: others, threshold: threshold) : stroke
+    }
+
+    /// Anade UN punto al final, imantando SOLO ese punto -- espejo de
+    /// TopoMagnet.appendPoint. Lo ya colocado no se toca: encender el iman a
+    /// mitad de una via no debe unir de golpe el arranque que dejaste suelto.
+    static func appendPoint(_ line: [CGPoint], _ point: CGPoint, others: [[CGPoint]],
+                            threshold: CGFloat = 0.04, enabled: Bool) -> [CGPoint] {
+        guard enabled, !others.isEmpty else { return line + [point] }
+        guard let ultimo = line.last else {
+            return magnetizeStroke([point], others: others, threshold: threshold)
+        }
+        // Se imanta el tramo "ultimo punto -> nuevo" y se descarta el primero:
+        // ese ya estaba puesto y no se discute.
+        let cola = magnetizeStroke([ultimo, point], others: others, threshold: threshold)
+        return line + cola.dropFirst()
+    }
+
+    /// Indices de `line` que han quedado UNIDOS: los que caen exactamente sobre
+    /// un vertice de otra via -- espejo de TopoMagnet.joinedIndices. Se marcan
+    /// en el editor para no tener que adivinar si el iman engancho.
+    static func joinedIndices(_ line: [CGPoint], others: [[CGPoint]]) -> Set<Int> {
+        guard !line.isEmpty, !others.isEmpty else { return [] }
+        var vertices = Set<String>()
+        for pts in others { for p in pts { vertices.insert(pointKey(p)) } }
+        return Set(line.indices.filter { vertices.contains(pointKey(line[$0])) })
+    }
+
     /// IMÁN del editor: espejo exacto de magnetizeStroke de TopoRenderer.kt.
     /// v2: se compara contra CUALQUIER TRAMO de las otras vías (no solo sus
     /// vértices — antes era casi imposible acertar con el dedo) y se pega al
@@ -222,5 +258,35 @@ enum TopoShared {
             }
         }
         return out
+    }
+}
+
+// MARK: - Acierto de vía/vértice (puente directo al módulo compartido)
+
+extension TopoShared {
+
+    /// [CGPoint] → la lista de pares que espera el módulo compartido.
+    static func kpoints(_ pts: [CGPoint]) -> [KotlinPair<KotlinFloat, KotlinFloat>] {
+        pts.map { KotlinPair(first: KotlinFloat(float: Float($0.x)),
+                             second: KotlinFloat(float: Float($0.y))) }
+    }
+
+    /// Qué vía has tocado. **No se reimplementa aquí**: se llama al código
+    /// compartido, que es el que tiene los tests. Lo de arriba en este fichero
+    /// son espejos escritos a mano por historia; lo nuevo entra por el puente.
+    static func nearestLineIndex(_ lines: [[CGPoint]], x: CGFloat, y: CGFloat,
+                                 maxDistance: Float = 0.05) -> Int? {
+        TopoHitTestKt.nearestLineIndex(lines: lines.map { kpoints($0) },
+                                       px: Float(x), py: Float(y),
+                                       maxDistance: maxDistance)?.intValue
+    }
+
+    /// Qué vértice has agarrado para corregirlo (radio más estrecho: agarrar
+    /// uno sin querer cambia una vía que dabas por buena).
+    static func nearestVertexIndex(_ points: [CGPoint], x: CGFloat, y: CGFloat,
+                                   maxDistance: Float = 0.03) -> Int? {
+        TopoHitTestKt.nearestVertexIndex(points: kpoints(points),
+                                         px: Float(x), py: Float(y),
+                                         maxDistance: maxDistance)?.intValue
     }
 }

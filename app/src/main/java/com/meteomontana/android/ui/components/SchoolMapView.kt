@@ -145,6 +145,8 @@ internal fun SchoolMapView(
     blocks: List<Block>,
     schoolName: String,
     schoolId: String,
+    /** Abrir ya a pantalla completa (llegando desde "Aportar" con una foto). */
+    startFullscreen: Boolean = false,
     viewModel: SchoolDetailViewModel,
     /** Puente con el flujo "+ PROPONER": flags y callbacks SIEMPRE frescos
      *  (es @Stable con mutableStateOf → los listeners del factory leen por
@@ -203,7 +205,10 @@ internal fun SchoolMapView(
     // Capas ocultas por el usuario (toggles de la leyenda): PARKING/BLOCK/ZONE.
     var hiddenTypes by remember { mutableStateOf(setOf<String>()) }
     // Mapa a pantalla completa (estilo Radar: el mapa es la pantalla).
-    var fullscreenMap by remember { mutableStateOf(false) }
+    // Con una foto por confirmar, el mapa arranca a PANTALLA COMPLETA: la
+    // pregunta "¿es el sitio?" solo se puede responder viendo el mapa con
+    // holgura, y en la tarjeta de 280 dp no se distingue nada.
+    var fullscreenMap by remember { mutableStateOf(startFullscreen) }
 
     val visibleMarkers = remember(blocks, schoolMarker, collapsedSectors, hiddenTypes) {
         listOf(schoolMarker) + blocks.filter { b ->
@@ -279,6 +284,21 @@ internal fun SchoolMapView(
 
     // Re-pinta markers cuando cambia el ghost, el preview del muro, se colapsa
     // un sector, te mueves o giras (brújula del punto azul).
+    // Con una foto por confirmar, el mapa se centra en su punto: la estrella
+    // puede caer fuera de pantalla y entonces no hay nada que juzgar.
+    // OJO con la clave: tambien el MAPA. Al pasar a pantalla completa el mapa se
+    // RECREA, asi que la orden de centrar llegaba cuando el mapa nuevo aun no
+    // existia y se perdia -- el marcador estaba puesto, pero fuera de la vista
+    // (Rodrigo: "solo veo el bosque").
+    androidx.compose.runtime.LaunchedEffect(bridge.photoConfirm, mapRef.value) {
+        val punto = bridge.photoConfirm ?: return@LaunchedEffect
+        val map = mapRef.value ?: return@LaunchedEffect
+        runCatching {
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                LatLng(punto.first, punto.second), 16.5))
+        }
+    }
+
     androidx.compose.runtime.LaunchedEffect(bridge.correctionGhost, visibleMarkers, activePreview, userLoc, deviceHeading) {
         val map = mapRef.value ?: return@LaunchedEffect
         placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview, deviceHeading) { tapped ->
@@ -377,6 +397,33 @@ internal fun SchoolMapView(
             }
         }
 
+        // Banner de "la foto se hizo aqui": la piedra ya esta puesta en el mapa
+        // (marcador fantasma) y solo falta decir si el sitio vale.
+        bridge.photoConfirm?.let { _ ->
+            Column(
+                modifier = Modifier.fillMaxWidth().background(Terra)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            ) {
+                Text("ℹ LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
+                    style = EyebrowTextStyle, color = Color.White)
+                Spacer(Modifier.size(Spacing.sm))
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Box(modifier = Modifier.weight(1f)
+                        .background(Color.White)
+                        .clickable { bridge.photoAccept?.invoke() }
+                        .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) { Text("✓ SÍ, SIGUE", style = EyebrowTextStyle, color = Terra) }
+                    Box(modifier = Modifier.weight(1f)
+                        .border(1.dp, Color.White)
+                        .clickable { bridge.photoMove?.invoke() }
+                        .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center
+                    ) { Text("MOVERLA", style = EyebrowTextStyle, color = Color.White) }
+                }
+            }
+        }
+
         // Banner del trazado de muro: cada tap añade un punto; DESHACER / LISTO.
         // Sirve para el flujo CREAR (bridge.wallTracing) y el de EDITAR (wallEdit.tracing).
         if (bridge.wallTracing || wallEdit.tracing) {
@@ -466,6 +513,22 @@ internal fun SchoolMapView(
                             map.uiSettings.apply {
                                 isRotateGesturesEnabled = true
                                 isTiltGesturesEnabled   = false
+                                // La brujula del propio mapa: gira sola y al
+                                // tocarla vuelve al norte. Antes se escondia al
+                                // estar a norte, y por eso llegamos a dibujar
+                                // otra al lado; ahora se queda siempre.
+                                isCompassEnabled = true
+                                setCompassFadeFacingNorth(false)
+                                setCompassGravity(android.view.Gravity.TOP or android.view.Gravity.START)
+                                // Debajo del boton de ampliar, no encima de el.
+                                val d = ctx.resources.displayMetrics.density
+                                setCompassMargins((12 * d).toInt(), (56 * d).toInt(), 0, 0)
+                                // La brujula de serie es una flecha suelta que
+                                // sobre el satelite no se ve: se sustituye por
+                                // la nuestra, igual que la de iOS.
+                                androidx.core.content.ContextCompat.getDrawable(
+                                    ctx, com.meteomontana.android.R.drawable.ic_brujula_mapa
+                                )?.let { setCompassImage(it) }
                             }
                             map.addOnMapClickListener { point ->
                                 when {

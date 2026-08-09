@@ -30,13 +30,27 @@ internal const val PIEDRA_COLOR = "#C2410C"
  * tras muchas re-sync el atlas se corrompe y los markers se pintan como
  * bandas rayadas gigantes por el mapa (visto al hacer zoom en La Pedriza).
  * Reutilizar el mismo Icon por clave lo evita de raíz.
+ *
+ * **La clave incluye QUÉ MAPA lo creó**, y no es un detalle: un `Icon` pertenece
+ * al atlas del MapView que lo fabricó. Cuando el mapa se recrea —al pasar a
+ * pantalla completa, al cambiar de estilo, al volver a entrar— los iconos
+ * guardados apuntan a un atlas que ya no existe, y el mapa nuevo los pinta como
+ * bandas estiradas. Era exactamente el mismo síntoma que la caché venía a
+ * evitar, pero por la otra punta: la caché sobrevivía al mapa.
  */
-private val iconCache = HashMap<String, Icon>()
+private val iconCache = HashMap<Pair<Int, String>, Icon>()
+
 internal fun cachedIcon(
     factory: IconFactory,
     key: String,
     make: () -> Bitmap
-): Icon = iconCache.getOrPut(key) { factory.fromBitmap(make()) }
+): Icon {
+    val delMapa = System.identityHashCode(factory) to key
+    // Al aparecer un mapa nuevo, lo del anterior ya no sirve: fuera, o la
+    // memoria crece sin fin mientras se navega.
+    if (iconCache.keys.none { it.first == delMapa.first }) iconCache.clear()
+    return iconCache.getOrPut(delMapa) { factory.fromBitmap(make()) }
+}
 
 /** Versión atenuada (alpha ~35%) del bitmap si [faded]; tal cual si no. */
 internal fun Bitmap.fadedIf(faded: Boolean): Bitmap {

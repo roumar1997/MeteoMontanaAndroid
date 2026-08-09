@@ -72,7 +72,19 @@ fun SchoolListScreen(
     onViaHit: (schoolId: String, viaId: String?, viaName: String?) -> Unit = { s, _, _ -> onSchoolClick(s) },
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
+    // "Enviar piedra": el selector de fotos está abierto.
+    var eligiendoFoto by remember { mutableStateOf(false) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    if (eligiendoFoto) {
+        SubmitBlockPhotoFlow(
+            // El catálogo ENTERO, no lo que el filtro deja ver: la escuela de la
+            // foto puede estar fuera del filtro activo.
+            schools = viewModel.catalogoCompleto(),
+            seedStore = viewModel.photoSeed,
+            onOpenSchool = { id -> eligiendoFoto = false; onSchoolClick(id) },
+            onDismiss = { eligiendoFoto = false }
+        )
+    }
     val filters by viewModel.filters.collectAsStateWithLifecycle()
     val unread by viewModel.unreadCount.collectAsStateWithLifecycle()
     val scores by viewModel.scores.collectAsStateWithLifecycle()
@@ -182,7 +194,8 @@ fun SchoolListScreen(
             item {
                 HeaderEscuelas(
                     count = (state as? SchoolListUiState.Success)?.schools?.size,
-                    onSubmitSchool = onSubmitSchool
+                    onSubmitSchool = onSubmitSchool,
+                    onSubmitBlockPhoto = { eligiendoFoto = true }
                 )
             }
 
@@ -675,8 +688,18 @@ class ThemeToggleViewModel @javax.inject.Inject constructor(
 @Composable
 private fun HeaderEscuelas(
     count: Int?,
-    onSubmitSchool: () -> Unit
+    onSubmitSchool: () -> Unit,
+    /** Elegir una foto y proponer la piedra en la escuela donde se hizo. */
+    onSubmitBlockPhoto: () -> Unit
 ) {
+    var aportando by remember { mutableStateOf(false) }
+    if (aportando) {
+        AportarSheet(
+            onDismiss = { aportando = false },
+            onPiedra = { aportando = false; onSubmitBlockPhoto() },
+            onEscuela = { aportando = false; onSubmitSchool() }
+        )
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -697,7 +720,60 @@ private fun HeaderEscuelas(
                 )
             }
         }
-        OutlinedCumbreButton(text = stringResource(R.string.schools_submit), onClick = onSubmitSchool, textColor = Terra)
+        // UN solo boton: corto, entra en cualquier pantalla y con el texto
+        // grande de accesibilidad. Las dos formas de aportar viven en la hoja,
+        // donde cada una cabe con su explicacion.
+        OutlinedCumbreButton(text = stringResource(R.string.schools_contribute),
+            onClick = { aportando = true }, textColor = Terra)
+    }
+}
+
+/** Las dos formas de aportar al catalogo, cada una con su porque. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun AportarSheet(
+    onDismiss: () -> Unit,
+    onPiedra: () -> Unit,
+    onEscuela: () -> Unit
+) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Spacing.lg)) {
+            Text(
+                stringResource(R.string.contribute_title),
+                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = Terra
+            )
+            Spacer(Modifier.height(Spacing.md))
+            AportarOpcion(
+                titulo = stringResource(R.string.contribute_block),
+                detalle = stringResource(R.string.contribute_block_hint),
+                onClick = onPiedra
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            AportarOpcion(
+                titulo = stringResource(R.string.contribute_school),
+                detalle = stringResource(R.string.contribute_school_hint),
+                onClick = onEscuela
+            )
+            Spacer(Modifier.height(Spacing.xl))
+        }
+    }
+}
+
+@Composable
+private fun AportarOpcion(titulo: String, detalle: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(Spacing.md)
+    ) {
+        Text(titulo, style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground)
+        Text(detalle, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -819,9 +895,15 @@ private fun DonateDialog(onDismiss: () -> Unit) {
  * padding excesivos, así que lo construimos como Box clickable.
  */
 @Composable
-private fun OutlinedCumbreButton(text: String, onClick: () -> Unit, textColor: Color? = null) {
+private fun OutlinedCumbreButton(
+    text: String,
+    onClick: () -> Unit,
+    textColor: Color? = null,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
+        contentAlignment = Alignment.Center,
+        modifier = modifier
             .clip(MaterialTheme.shapes.small)
             .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
             .clickable(onClick = onClick)

@@ -94,9 +94,43 @@ internal fun BoulderFormDialog(
         onFacesChange(faces.toMutableList().also { it[faceIdx] = transform(it[faceIdx]) })
     }
 
-    val photoLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri -> if (uri != null) updateFace { it.copy(photoUri = uri) } }
+    val ctxFoto = androidx.compose.ui.platform.LocalContext.current
+    // El MISMO selector que en "aportar piedra desde una foto". Los selectores
+    // del sistema entregan copias sin ubicacion, asi que con ellos la
+    // orientacion no se podria sugerir nunca aqui.
+    var eligiendoFoto by remember { mutableStateOf(false) }
+    val ponerFoto: (android.net.Uri) -> Unit = { uri ->
+        run {
+            // Si la foto guarda hacia donde apuntaba la camara, la orientacion
+            // de la cara viene ya marcada: la pared mira al reves que la camara.
+            // Es el mismo dato que usa "aportar piedra desde una foto"; no tiene
+            // sentido pedirlo a mano cuando la foto ya lo trae.
+            val sugerida = com.meteomontana.android.ui.components
+                .readPhotoLocation(ctxFoto, uri)?.cameraDegrees
+                ?.let { com.meteomontana.android.domain.util.PhotoPlacement
+                    .aspectFromCameraDirection(it) }
+            updateFace { cara ->
+                cara.copy(photoUri = uri, orientation = cara.orientation ?: sugerida)
+            }
+            // Y la de la PIEDRA, que es el chip que se ve con una sola foto:
+            // marcar solo la de la cara no lo enseñaba en ningún sitio.
+            if (sugerida != null && blockOrientation == null) {
+                onBlockOrientationChange(sugerida)
+            }
+        }
+    }
+
+    if (eligiendoFoto) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { eligiendoFoto = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false)
+        ) {
+            com.meteomontana.android.ui.screens.schools.GaleriaReciente(
+                onElegir = { eligiendoFoto = false; ponerFoto(it) },
+                onCancelar = { eligiendoFoto = false })
+        }
+    }
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
         Text("Nueva piedra",
@@ -366,7 +400,7 @@ internal fun BoulderFormDialog(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
                     .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable { photoLauncher.launch("image/*") }
+                    .clickable { eligiendoFoto = true }
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
@@ -380,7 +414,7 @@ internal fun BoulderFormDialog(
                     .height(100.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { photoLauncher.launch("image/*") },
+                    .clickable { eligiendoFoto = true },
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -653,6 +687,31 @@ private fun OrientationPickRow(label: String, selected: String?, onPick: (String
         Text(label, style = EyebrowTextStyle.copy(fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp)),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
+        // Brujula tambien AQUI, creando la piedra: es cuando estas delante de
+        // ella y sabes hacia donde mira. Informa; el chip lo eliges tu.
+        val rumbo = com.meteomontana.android.ui.components.rememberDeviceHeading(stepDegrees = 2f)
+        if (rumbo != null) {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 6.dp)) {
+                com.meteomontana.android.ui.components.CompassDial(
+                    rumbo, modifier = Modifier.size(64.dp))
+                Column {
+                    Text(
+                        "Estás mirando al " +
+                            com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo) +
+                            " · " + com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Si estás mirando la pared, ella mira al contrario.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
         androidx.compose.foundation.lazy.LazyRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {

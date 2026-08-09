@@ -123,7 +123,9 @@ private var cameraCoordinatorKey: UInt8 = 0
 
 /// View-controller superior actualmente presentado (para presentar sobre él).
 @MainActor
-private func topPresentedViewController() -> UIViewController? {
+/// Vista desde la que presentar algo por UIKit. La usan la cámara de
+/// celebración y el selector de "Enviar piedra".
+func topPresentedViewController() -> UIViewController? {
     let keyWindow = UIApplication.shared.connectedScenes
         .compactMap { $0 as? UIWindowScene }
         .flatMap { $0.windows }

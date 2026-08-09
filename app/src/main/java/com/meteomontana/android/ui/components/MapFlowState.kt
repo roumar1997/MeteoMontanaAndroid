@@ -30,6 +30,17 @@ internal class ProposalMapBridge {
     var correctionMode by mutableStateOf(false)
     /** Marker fantasma con la posición candidata (corrección). */
     var correctionGhost by mutableStateOf<CorrectionGhost?>(null)
+    /**
+     * Punto donde se hizo la foto de "Aportar", a la espera de confirmarlo.
+     *
+     * Va por el puente y no por un dialogo porque la pregunta ("¿es el sitio?")
+     * solo se puede responder VIENDO el mapa: con un dialogo encima, tapado,
+     * no habia forma de saber donde habia caido la piedra.
+     */
+    var photoConfirm by mutableStateOf<Pair<Double, Double>?>(null)
+    /** Lo que hay que hacer al aceptar / al pedir moverla. */
+    var photoAccept: (() -> Unit)? = null
+    var photoMove: (() -> Unit)? = null
     /** Nombre del elemento que se está corrigiendo (para el banner). */
     var correctionTargetName by mutableStateOf<String?>(null)
     /** Trazado de muro del flujo CREAR activo. */
@@ -64,6 +75,9 @@ internal class ProposalMapBridge {
         waitingMapTap = false
         correctionMode = false
         correctionGhost = null
+        photoConfirm = null
+        photoAccept = null
+        photoMove = null
         correctionTargetName = null
         wallTracing = false
         wallPreview = emptyList()

@@ -180,7 +180,8 @@ class SchoolDetailViewModelTest {
             updateBlockUseCase, outboxRepo,
             mockk<com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase>(relaxed = true),
             networkMonitor,
-            mockk(relaxed = true)  // rateLineUseCase
+            mockk(relaxed = true),  // rateLineUseCase
+            com.meteomontana.android.ui.screens.schools.PhotoProposalSeed()
         )
     }
 

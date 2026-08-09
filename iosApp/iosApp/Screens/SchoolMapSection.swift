@@ -25,6 +25,12 @@ struct SchoolMapSection: View {
     @State private var selectedBlock: Block?
     // Flujo proponer/corregir agrupado (espejo de ProposalMapBridge en Android).
     @StateObject private var flow = MapProposalFlowStore()
+    /// Foto de "Enviar piedra" que esperaba a esta escuela. Se lee UNA vez: si
+    /// se quedara puesta, volver a entrar reabriría el flujo de proponer sin
+    /// que nadie lo haya pedido.
+    @State private var fotoSemilla: PhotoProposalSeedStore.Seed?
+    /// Punto donde se hizo la foto, a la espera de que el usuario lo confirme.
+    @State private var confirmandoFoto: CLLocationCoordinate2D?
     // Datos del mapa (bloques/capas/buscador/admin) — ver SchoolMapViewModel.
     @StateObject private var vm = SchoolMapViewModel()
     @State private var mapStyle: MapStyleKind = .satellite  // paridad con Android
@@ -117,6 +123,29 @@ struct SchoolMapSection: View {
         // Deep-link desde el diario: despliega el mapa al entrar.
         .onAppear {
             if let v = openVia, !v.isEmpty, !didAutoOpen, !expanded { expanded = true }
+            // "Enviar piedra": la foto ya dijo qué se propone y dónde se hizo.
+            // Se abre el mapa y se espera un toque para el sitio exacto: el GPS
+            // se equivoca entre 10 y 30 metros y las piedras están a metros.
+            if fotoSemilla == nil,
+               let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) {
+                fotoSemilla = semilla
+                expanded = true
+                flow.proposeType = "BOULDER"
+                // Se coloca DONDE SE HIZO la foto y solo queda confirmarlo. El
+                // mapa se centra ahí para poder juzgar si el sitio es bueno.
+                confirmandoFoto = CLLocationCoordinate2D(latitude: semilla.lat,
+                                                         longitude: semilla.lon)
+                // A pantalla completa: la pregunta "¿es el sitio?" solo se puede
+                // responder viendo el mapa con holgura.
+                fullscreenMap = true
+                focusCoord = confirmandoFoto
+                // Dos veces a proposito: al pasar a pantalla completa el mapa se
+                // RECREA, y la primera orden puede perderse con el mapa viejo.
+                focusToken += 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    if confirmandoFoto != nil { focusToken += 1 }
+                }
+            }
         }
         // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
         // el auto-abrir del deep-link (antes se quedaba en la escuela a secas).
@@ -226,7 +255,22 @@ struct SchoolMapSection: View {
                     .frame(height: height)
 
 
-                    if flow.waitingTap {
+                    if let punto = confirmandoFoto {
+                        // La foto ya está colocada: aceptar o moverla. El GPS se
+                        // equivoca entre 10 y 30 metros y las piedras están a
+                        // metros, así que la última palabra es del usuario.
+                        mapBanner("LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
+                                  accept: {
+                                      confirmandoFoto = nil
+                                      flow.boulderCoord = punto
+                                  },
+                                  aceptarTexto: "SÍ, SIGUE",
+                                  cancelarTexto: "MOVERLA",
+                                  cancel: {
+                                      confirmandoFoto = nil
+                                      flow.waitingTap = true   // toca tú el sitio
+                                  })
+                    } else if flow.waitingTap {
                         // Banner "PULSA EN EL MAPA" (parking/sector/piedra).
                         mapBanner("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN",
                                   cancel: { flow.waitingTap = false })
@@ -264,7 +308,11 @@ struct SchoolMapSection: View {
                     // (debajo de los chips de estilo) + botonera lateral en fullscreen.
                     if !flow.waitingTap && !flow.correctionMode {
                         VStack {
-                            HStack {
+                            HStack(alignment: .top) {
+                                // A la IZQUIERDA: ampliar arriba y, debajo, la
+                                // rosa de los vientos. En la botonera de la
+                                // derecha desplazaba lo que ya estaba colocado.
+                                VStack(spacing: 8) {
                                 Button { fullscreenMap.toggle() } label: {
                                     Image(systemName: fullscreenMap
                                           ? "arrow.down.right.and.arrow.up.left"
@@ -277,6 +325,7 @@ struct SchoolMapSection: View {
                                         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
+                                }
                                 Spacer()
                             }
                             .padding(.top, fullscreenMap ? 54 : 0)
@@ -364,8 +413,11 @@ struct SchoolMapSection: View {
                 .sheet(item: boulderCoordItem) { item in
                     BoulderFormSheet(schoolId: school.id, coord: item.coord,
                                      sectors: vm.blocks.filter { $0.type.uppercased() == "ZONE" },
-                                     contextMarkers: traceContextMarkers) { ok in
+                                     contextMarkers: traceContextMarkers,
+                                     seedPhoto: fotoSemilla?.image,
+                                     seedAspect: fotoSemilla?.aspect) { ok in
                         flow.boulderCoord = nil
+                        fotoSemilla = nil
                         if ok { afterSubmit() }
                     }
                 }
@@ -469,7 +521,7 @@ struct SchoolMapSection: View {
         }
     }
 
-    private static let aspectOrder = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    private static let aspectOrder = Aspect.shared.ALL
 
     /// Chips TODAS / N / NE… con el nº de piedras de cada consenso.
     @ViewBuilder
@@ -622,25 +674,36 @@ struct SchoolMapSection: View {
 
     /// Banner superior + botón cancelar (y aceptar opcional) sobre el mapa.
     private func mapBanner(_ text: String, accept: (() -> Void)? = nil,
+                           aceptarTexto: String = "ACEPTAR",
+                           cancelarTexto: String = "CANCELAR",
                            cancel: @escaping () -> Void) -> some View {
+        // Los botones van PEGADOS al texto, dentro de la misma tira terracota:
+        // sueltos abajo y en blanco y negro parecían de otra cosa. Espejo del
+        // banner de Android.
         VStack {
-            Text(text)
-                .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .frame(maxWidth: .infinity).background(Cumbre.terra)
+            // ABAJO, como en Android: arriba tapaba el mapa justo donde hay que
+            // mirar, y ademas cada app lo ponia en un sitio.
             Spacer()
-            HStack(spacing: 8) {
-                Button("CANCELAR", action: cancel)
-                    .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
-                    .padding(.horizontal, 12).padding(.vertical, 6).background(Cumbre.ink)
-                if let accept {
-                    Button("✓ ACEPTAR", action: accept)
-                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 6).background(.white)
+            VStack(spacing: 8) {
+                Text(text)
+                    .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 8) {
+                    if let accept {
+                        Button(aceptarTexto, action: accept)
+                            .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                            .frame(maxWidth: .infinity).padding(.vertical, 8)
+                            .background(.white)
+                    }
+                    Button(cancelarTexto, action: cancel)
+                        .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 8)
+                        .overlay(Rectangle().stroke(.white, lineWidth: 1))
                 }
-            }.padding(.bottom, 8)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .frame(maxWidth: .infinity).background(Cumbre.terra)
         }
-        .frame(height: 280)
     }
 
     // Wrapper Identifiable para presentar el formulario con la coordenada fijada.
@@ -740,6 +803,13 @@ struct SchoolMapSection: View {
         if let u = userCoord {
             ms.append(CumbreMarker(id: "__USER__", coordinate: u, title: "", kind: .user,
                                    score: headingProvider.heading))
+        }
+        // Punto donde se hizo la foto, pendiente de confirmar. Sin marcador, la
+        // pregunta "¿es el sitio?" no se puede responder: no se ve dónde cae.
+        if let f = confirmandoFoto {
+            ms.append(CumbreMarker(
+                id: "__FOTO__", coordinate: f, title: "Aquí se hizo la foto",
+                kind: .block, color: UIColor(hex: 0xF59E0B), name: "★"))
         }
         // Fantasma de la nueva posición al corregir.
         if let nw = flow.corrNew {

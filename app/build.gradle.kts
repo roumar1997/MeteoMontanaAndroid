@@ -1,3 +1,7 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,6 +12,10 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
 }
+
+// Sello de compilacion (hora local) que se ensena en Ajustes.
+val selloDeCompilacion: String =
+    SimpleDateFormat("d MMM HH:mm", Locale("es")).format(Date())
 
 android {
     namespace = "com.meteomontana.android"
@@ -28,8 +36,8 @@ android {
         applicationId = "com.meteomontana.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 90
-        versionName = "2.21.2"
+        versionCode = 91
+        versionName = "2.22.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -43,6 +51,11 @@ android {
             // 192.168.0.12 = móvil físico en la misma red que el PC (Ethernet)
             // buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
             buildConfigField("String", "API_BASE_URL", "\"https://meteomontanaapi-staging.up.railway.app/api/\"")
+        }
+        // Sello de compilacion: se ve en Ajustes. Sirve para responder de un
+        // vistazo "que build tengo instalado", que hoy nos costo media manana.
+        applicationVariants.all {
+            buildConfigField("String", "BUILD_TIME", "\"" + selloDeCompilacion + "\"")
         }
         release {
             // R8 activado: Compose sin minificar es notablemente más lento (jank).
@@ -110,6 +123,8 @@ dependencies {
 
     // Imágenes
     implementation(libs.coil.compose)
+    // Leer las coordenadas que la camara guarda dentro de la foto (EXIF).
+    implementation(libs.androidx.exifinterface)
 
     // Firebase
     implementation(platform(libs.firebase.bom))

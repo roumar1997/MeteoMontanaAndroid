@@ -87,11 +87,24 @@ class SharedSegmentsTest {
         }
     }
 
-    @Test fun `magnetize v2 pega tocando el TRAMO, no solo el vertice`() {
-        // Toque en mitad de un tramo largo (lejos de ambos vértices) → debe
-        // pegarse al vértice más cercano de ese tramo.
+    @Test fun `magnetize v3 cae DONDE APUNTAS si el vertice queda lejos`() {
+        // Cambio de regla del 2026-08-07, con capturas de Rodrigo delante: antes
+        // el toque en mitad de un tramo largo se iba al vértice más cercano, que
+        // en un muro dibujado con 3 puntos puede estar a medio muro. Ahora se
+        // pega a la PROYECCIÓN sobre el tramo, o sea donde apuntaste. Se pierde
+        // el vértice compartido exacto (y con él la franja en ese punto), pero
+        // la línea cae donde el usuario dijo, que es lo que importa.
         val longLine = listOf(0.10f to 0.50f, 0.90f to 0.50f)
         val drawn = listOf(0.35f to 0.51f)   // a 0.01 del tramo, lejos de vértices
+        val out = magnetizeStroke(drawn, listOf(longLine))
+        assertEquals(listOf(0.35f to 0.50f), out)
+    }
+
+    @Test fun `magnetize v3 sigue clavando el vertice si lo tienes debajo`() {
+        // Lo que NO cambia: con el vértice casi debajo del dedo se comparte
+        // EXACTO, que es lo que hace posible la franja de dos colores.
+        val longLine = listOf(0.10f to 0.50f, 0.90f to 0.50f)
+        val drawn = listOf(0.105f to 0.505f)
         val out = magnetizeStroke(drawn, listOf(longLine))
         assertEquals(listOf(0.10f to 0.50f), out)
     }

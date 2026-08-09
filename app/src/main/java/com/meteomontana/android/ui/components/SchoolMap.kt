@@ -94,6 +94,8 @@ fun SchoolMap(
     onMyProposals: () -> Unit = {},
     schoolName: String = "",
     schoolId: String = "",
+    /** Foto de "Enviar piedra": abre el flujo de proponer piedra ya con ella. */
+    photoSeed: com.meteomontana.android.ui.screens.detail.PhotoSeed? = null,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -145,6 +147,15 @@ fun SchoolMap(
 
     // Puente mapa ↔ flujo de propuestas (antes: 7 estados + 5 callbacks sueltos).
     val bridge = remember { ProposalMapBridge() }
+
+    // Con foto, el flujo de proponer se abre solo: el usuario ya dijo lo que
+    // queria al elegirla, y el mapa se despliega para poder colocarla.
+    androidx.compose.runtime.LaunchedEffect(photoSeed) {
+        if (photoSeed != null) {
+            expanded = true
+            bridge.proposeOpen = true
+        }
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
 
@@ -222,6 +233,7 @@ fun SchoolMap(
                 blocks        = visibleBlocks,
                 schoolName    = schoolName,
                 schoolId      = schoolId,
+                startFullscreen = photoSeed != null,
                 viewModel     = viewModel,
                 bridge        = bridge,
                 wallEdit      = wallEdit,
@@ -236,6 +248,17 @@ fun SchoolMap(
     if (bridge.proposeOpen) {
         ProposeContributionFlow(
             schoolName      = schoolName,
+            photoSeed       = photoSeed,
+            onPhotoConfirmChange = { punto, aceptar, mover ->
+                bridge.photoConfirm = punto
+                bridge.photoAccept = aceptar
+                bridge.photoMove = mover
+                // El marcador fantasma es lo que hace visible DÓNDE cae.
+                bridge.correctionGhost = punto?.let {
+                    com.meteomontana.android.ui.screens.detail.CorrectionGhost(
+                        originalId = "__FOTO__", newLat = it.first, newLon = it.second)
+                }
+            },
             schoolLat       = centerLat,
             schoolLon       = centerLon,
             waitingForTap   = bridge.waitingMapTap,
