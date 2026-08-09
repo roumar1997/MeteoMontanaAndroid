@@ -8,6 +8,9 @@ import Shared
 struct MountainBulletinSection: View {
     let lat: Double
     let lon: Double
+    /// País de la escuela. Fuera de España no hay boletín de AEMET: la sección
+    /// no se pinta ni se pide, en vez de enseñar un hueco vacío.
+    var country: String? = nil
 
     @State private var bulletin: MountainBulletinDto? = nil
     @State private var expanded = false
@@ -24,6 +27,7 @@ struct MountainBulletinSection: View {
             }
         }
         .task {
+            guard SpainOnlyFeatures.shared.showsMountainBulletin(countryCode: country) else { return }
             bulletin = try? await AppDependencies.shared.container.mountainApi
                 .getBulletin(lat: lat, lon: lon, day: 0)
         }

@@ -123,6 +123,8 @@ dependencies {
 
     // Imágenes
     implementation(libs.coil.compose)
+    // Leer las coordenadas que la camara guarda dentro de la foto (EXIF).
+    implementation(libs.androidx.exifinterface)
 
     // Firebase
     implementation(platform(libs.firebase.bom))

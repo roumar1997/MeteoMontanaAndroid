@@ -71,6 +71,11 @@ object NetworkModule {
     fun provideKtorAppVersionApi(client: HttpClient) =
         com.meteomontana.android.data.api.KtorAppVersionApi(client)
 
+    @Provides
+    @Singleton
+    fun provideKtorGeoApi(client: HttpClient) =
+        com.meteomontana.android.data.api.KtorGeoApi(client)
+
     @Provides @Singleton
     fun provideKtorBlockApi(client: HttpClient) = KtorBlockApi(client)
 

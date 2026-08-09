@@ -36,7 +36,9 @@ import com.meteomontana.android.domain.model.TopContributor
 // School
 fun SchoolDto.toDomain() = School(
     id = id, name = name, location = location, region = region,
-    style = style, rockType = rockType, lat = lat, lon = lon, source = source
+    style = style, rockType = rockType, lat = lat, lon = lon, source = source,
+    // Un servidor antiguo no manda pais: lo que existia era espanol.
+    country = country?.uppercase()?.takeIf { it.isNotBlank() } ?: "ES"
 )
 
 // Forecast

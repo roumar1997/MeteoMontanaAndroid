@@ -132,6 +132,11 @@
     <string name="schools_title">Escuelas</string>
     <string name="schools_count">%d escuelas</string>
     <string name="schools_submit">+ Enviar escuela</string>
+    <string name="schools_submit_block">+ Enviar piedra</string>
+    <string name="photo_no_coords">Esta foto no guarda dónde se hizo, así que no se puede saber a qué escuela pertenece. Prueba con otra: tiene que ser una foto tomada por ti, con la ubicación activada en la cámara.</string>
+    <string name="photo_no_school">La foto se hizo lejos de cualquier escuela del catálogo (%1$s). Si la escuela no existe todavía, puedes proponerla desde «Enviar escuela».</string>
+    <string name="photo_school_found">Esta foto se hizo en %1$s, a %2$s.</string>
+    <string name="photo_place_hint">Pulsa en el mapa donde está la piedra. Se abre centrado donde se hizo la foto; muévelo si no cae exacto.</string>
     <string name="schools_view_map">VER MAPA</string>
     <string name="schools_hide_map">OCULTAR MAPA</string>
     <string name="schools_filter_all">Todas</string>

@@ -72,7 +72,17 @@ fun SchoolListScreen(
     onViaHit: (schoolId: String, viaId: String?, viaName: String?) -> Unit = { s, _, _ -> onSchoolClick(s) },
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
+    // "Enviar piedra": el selector de fotos está abierto.
+    var eligiendoFoto by remember { mutableStateOf(false) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    if (eligiendoFoto) {
+        SubmitBlockPhotoFlow(
+            schools = (state as? SchoolListUiState.Success)?.schools.orEmpty(),
+            seedStore = viewModel.photoSeed,
+            onOpenSchool = { id -> eligiendoFoto = false; onSchoolClick(id) },
+            onDismiss = { eligiendoFoto = false }
+        )
+    }
     val filters by viewModel.filters.collectAsStateWithLifecycle()
     val unread by viewModel.unreadCount.collectAsStateWithLifecycle()
     val scores by viewModel.scores.collectAsStateWithLifecycle()
@@ -182,7 +192,8 @@ fun SchoolListScreen(
             item {
                 HeaderEscuelas(
                     count = (state as? SchoolListUiState.Success)?.schools?.size,
-                    onSubmitSchool = onSubmitSchool
+                    onSubmitSchool = onSubmitSchool,
+                    onSubmitBlockPhoto = { eligiendoFoto = true }
                 )
             }
 
@@ -675,7 +686,9 @@ class ThemeToggleViewModel @javax.inject.Inject constructor(
 @Composable
 private fun HeaderEscuelas(
     count: Int?,
-    onSubmitSchool: () -> Unit
+    onSubmitSchool: () -> Unit,
+    /** Elegir una foto y proponer la piedra en la escuela donde se hizo. */
+    onSubmitBlockPhoto: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -697,7 +710,12 @@ private fun HeaderEscuelas(
                 )
             }
         }
-        OutlinedCumbreButton(text = stringResource(R.string.schools_submit), onClick = onSubmitSchool, textColor = Terra)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            OutlinedCumbreButton(text = stringResource(R.string.schools_submit_block),
+                onClick = onSubmitBlockPhoto, textColor = Terra)
+            OutlinedCumbreButton(text = stringResource(R.string.schools_submit),
+                onClick = onSubmitSchool, textColor = Terra)
+        }
     }
 }
 

@@ -28,6 +28,15 @@ data class CorrectionGhost(
     val newLon: Double?
 )
 
+/** Foto de "Enviar piedra" con lo que se pudo leer de su EXIF. */
+data class PhotoSeed(
+    val photoUri: android.net.Uri,
+    val lat: Double,
+    val lon: Double,
+    /** Orientación sugerida por el rumbo de la cámara, si la foto lo traía. */
+    val aspect: String?
+)
+
 private sealed interface ProposeStep {
     data object TypePicker    : ProposeStep
     data object WaitingMapTap : ProposeStep
@@ -62,6 +71,15 @@ private sealed interface ProposeStep {
 @Composable
 fun ProposeContributionFlow(
     schoolName: String,
+    /**
+     * Si se llega desde "Enviar piedra", la foto elegida y dónde se hizo.
+     *
+     * El flujo arranca directamente en "pulsa en el mapa", con el mapa centrado
+     * en ese punto y la foto ya puesta como primera cara. NO se coloca sola: el
+     * GPS se equivoca entre 10 y 30 metros en un canchal, así que el punto
+     * exacto lo pone el usuario, viendo alrededor el resto de la escuela.
+     */
+    photoSeed: PhotoSeed? = null,
     schoolLat: Double = 0.0,
     schoolLon: Double = 0.0,
     waitingForTap: Boolean,
@@ -95,7 +113,13 @@ fun ProposeContributionFlow(
     onMyProposals: () -> Unit,
     viewModel: SchoolDetailViewModel
 ) {
-    var step by remember { mutableStateOf<ProposeStep>(ProposeStep.TypePicker) }
+    var step by remember {
+        mutableStateOf<ProposeStep>(
+            // Con foto ya sabemos qué se propone (una piedra) y dónde se hizo:
+            // el selector de tipo sobra y se va directo a colocarla en el mapa.
+            if (photoSeed != null) ProposeStep.WaitingMapTap else ProposeStep.TypePicker
+        )
+    }
     var boulderMode by remember { mutableStateOf(false) }
 
     // Estado del borrador BOULDER (elevado aquí para persistir entre BoulderForm y TopoDialog).
@@ -123,7 +147,19 @@ fun ProposeContributionFlow(
     val context = LocalContext.current
 
     // Tipo de la última opción elegida en el picker — guía el WaitingMapTap a qué Form ir.
-    var pickedType by remember { mutableStateOf("PARKING") }
+    var pickedType by remember { mutableStateOf(if (photoSeed != null) "BOULDER" else "PARKING") }
+
+    // La foto entra como primera cara, con su orientación sugerida. Solo una
+    // vez: si se repitiera en cada recomposición, borraría lo que el usuario
+    // vaya escribiendo en el formulario.
+    androidx.compose.runtime.LaunchedEffect(photoSeed) {
+        if (photoSeed != null) {
+            boulderFaces = listOf(BoulderFaceForm(
+                photoUri = photoSeed.photoUri, orientation = photoSeed.aspect))
+            boulderOrientation = photoSeed.aspect
+            onStartWaitingTap()
+        }
+    }
 
     onMapTap { lat, lon ->
         when (val cur = step) {

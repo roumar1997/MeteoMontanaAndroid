@@ -154,6 +154,8 @@ class IosDependencyContainer(
     val radarApi = KtorRadarApi(httpClient)
     val mountainApi = KtorMountainApi(httpClient)
     val appVersionApi = com.meteomontana.android.data.api.KtorAppVersionApi(httpClient)
+    /** Catalogo de paises y regiones para el desplegable de proponer escuela. */
+    val geoApi = com.meteomontana.android.data.api.KtorGeoApi(httpClient)
     private val favoritesApi = KtorFavoritesApi(httpClient)
     val noteApi = KtorNoteApi(httpClient)
     private val profileApi = KtorProfileApi(httpClient)

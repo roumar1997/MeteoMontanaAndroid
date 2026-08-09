@@ -56,6 +56,9 @@ fun SubmitSchoolScreen(
     // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
     // (MIUI lo hace agresivamente) o a un giro de pantalla — no se pierde lo escrito.
     var name by rememberSaveable { mutableStateOf("") }
+    // Pais primero: de el salen las regiones. Espana por defecto, que es de
+    // donde son todas las escuelas de hoy.
+    var country by rememberSaveable { mutableStateOf("ES") }
     var region by rememberSaveable { mutableStateOf("") }
     var style by rememberSaveable { mutableStateOf("") }
     var rockType by rememberSaveable { mutableStateOf("") }
@@ -91,10 +94,28 @@ fun SubmitSchoolScreen(
         ) {
             Field("NOMBRE", name, { name = it }, placeholder = "ej: La Pedriza")
             // Desplegables con valores del catálogo (+ "Otro…") para evitar erratas.
-            DropdownField("REGIÓN", region, options.regions, onChange = {
-                region = it
-                location = "" // resetea la localidad al cambiar de región
-            })
+            // PAIS antes que REGION: las regiones dependen del país elegido, y
+            // salen del catálogo del servidor — si se dedujeran de las escuelas
+            // existentes, el primer país abierto tendría el desplegable vacío.
+            val paises by viewModel.countries.collectAsStateWithLifecycle()
+            if (paises.size > 1) {
+                DropdownField(
+                    "PAÍS",
+                    paises.firstOrNull { it.code == country }?.name ?: "España",
+                    paises.map { it.name },
+                    onChange = { elegido ->
+                        country = paises.firstOrNull { it.name == elegido }?.code ?: "ES"
+                        region = ""      // cada país tiene sus regiones
+                        location = ""
+                    }
+                )
+            }
+            DropdownField("REGIÓN", region,
+                viewModel.regionOptions(country).ifEmpty { options.regions },
+                onChange = {
+                    region = it
+                    location = "" // resetea la localidad al cambiar de región
+                })
             DropdownField("ESTILO", style, options.styles, onChange = { style = it })
             DropdownField("TIPO DE ROCA", rockType, options.rockTypes, onChange = { rockType = it })
 
@@ -154,7 +175,8 @@ fun SubmitSchoolScreen(
                                 lat = latD, lon = lonD,
                                 location = location.takeIf { it.isNotBlank() },
                                 source = null,
-                                notes = notes.takeIf { it.isNotBlank() }
+                                notes = notes.takeIf { it.isNotBlank() },
+                                country = country
                             ))
                         }
                     },

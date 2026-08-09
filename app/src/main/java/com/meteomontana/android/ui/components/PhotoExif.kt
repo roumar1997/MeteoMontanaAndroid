@@ -1,0 +1,67 @@
+package com.meteomontana.android.ui.components
+
+import android.content.Context
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import androidx.exifinterface.media.ExifInterface
+
+/**
+ * Dónde se hizo una foto, leído de su EXIF.
+ *
+ * Es lo que permite proponer una piedra sin buscar la escuela a mano: la cámara
+ * guarda las coordenadas dentro del fichero.
+ *
+ * **Muchas fotos NO lo traen** y es normal: si llegó por WhatsApp, si se
+ * descargó de internet, o si tenías la ubicación desactivada en la cámara, el
+ * dato no está. Por eso todo aquí devuelve null sin dramatizar y quien llama
+ * enseña el aviso.
+ */
+data class PhotoLocation(
+    val lat: Double,
+    val lon: Double,
+    /**
+     * Hacia dónde apuntaba la cámara al disparar, si la foto lo trae. Sirve para
+     * sugerir la orientación de la pared (que mira justo al revés). La mayoría
+     * de fotos no lo tienen.
+     */
+    val cameraDegrees: Float?
+)
+
+/**
+ * Lee las coordenadas de la foto.
+ *
+ * En Android 10 y posteriores el sistema **borra la ubicación** de la copia que
+ * te entrega salvo que pidas el original con `setRequireOriginal`, y eso exige
+ * el permiso `ACCESS_MEDIA_LOCATION`. Sin ese paso, esta función devolvería
+ * null en fotos que sí tienen coordenadas.
+ */
+fun readPhotoLocation(context: Context, uri: Uri): PhotoLocation? = runCatching {
+    val real = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        runCatching { MediaStore.setRequireOriginal(uri) }.getOrDefault(uri)
+    } else uri
+
+    context.contentResolver.openInputStream(real)?.use { input ->
+        val exif = ExifInterface(input)
+        val coords = exif.latLong ?: return@use null
+        val rumbo = exif.getAttribute(ExifInterface.TAG_GPS_IMG_DIRECTION)
+            ?.let { fraccionADecimal(it) }
+        PhotoLocation(coords[0], coords[1], rumbo)
+    }
+}.getOrNull()
+
+/**
+ * El EXIF guarda el rumbo como fracción ("2700/100"). También se acepta un
+ * número suelto, que es como lo escriben algunas cámaras.
+ */
+private fun fraccionADecimal(raw: String): Float? {
+    val partes = raw.split("/")
+    return when {
+        partes.size == 2 -> {
+            val n = partes[0].toFloatOrNull() ?: return null
+            val d = partes[1].toFloatOrNull() ?: return null
+            if (d == 0f) null else n / d
+        }
+        else -> raw.toFloatOrNull()
+    }
+}

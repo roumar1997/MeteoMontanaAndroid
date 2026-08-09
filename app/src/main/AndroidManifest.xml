@@ -8,6 +8,10 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Notificaciones push (Android 13+ requiere permiso runtime) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Coordenadas guardadas DENTRO de la foto: sin este permiso, Android
+         devuelve la imagen con el EXIF de ubicacion borrado (API 29+) y no se
+         puede saber en que escuela se hizo. -->
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
     <application
         android:name=".MeteoMontanaApp"
         android:allowBackup="true"

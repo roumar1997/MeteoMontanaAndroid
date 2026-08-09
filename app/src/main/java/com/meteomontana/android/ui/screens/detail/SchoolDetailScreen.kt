@@ -273,8 +273,13 @@ private fun Content(
                 forecast = forecast,
                 afterCurrentWeather = {
                     Column {
-                        // Boletín de montaña AEMET (solo escuelas en un macizo).
-                        mountainBulletin?.let { b ->
+                        // Boletín de montaña AEMET: solo escuelas de un macizo
+                        // ESPAÑOL. Fuera de España no existe boletín, y enseñar
+                        // un hueco vacío es peor que no ofrecer la función.
+                        mountainBulletin?.takeIf {
+                            com.meteomontana.android.domain.util.SpainOnlyFeatures
+                                .showsMountainBulletin(school?.country)
+                        }?.let { b ->
                             com.meteomontana.android.ui.components.MountainBulletinSection(b)
                         }
                         blocksSection()

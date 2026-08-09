@@ -73,7 +73,9 @@ class SchoolListViewModel @Inject constructor(
     private val outbox: com.meteomontana.android.data.outbox.OutboxRepository,
     private val getPublicProfile: com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase,
     private val searchLines: com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
+    /** Foto elegida en "Enviar piedra", a la espera de que se abra su escuela. */
+    val photoSeed: PhotoProposalSeed
 ) : ViewModel() {
 
     // Resultados del buscador GLOBAL de vías/bloques (el mismo campo de texto
