@@ -196,6 +196,7 @@ internal class MarkerPlacer {
         }
     
         // Ghost marker en la nueva posición candidata.
+        android.util.Log.i("CumbreMapa", "marcadores=${blocks.size} fantasma=$ghost")
         if (ghost?.newLat != null && ghost.newLon != null) {
             map.addMarker(
                 MarkerOptions()

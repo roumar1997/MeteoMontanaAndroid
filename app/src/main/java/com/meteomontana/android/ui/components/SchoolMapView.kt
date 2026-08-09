@@ -286,13 +286,16 @@ internal fun SchoolMapView(
     // un sector, te mueves o giras (brújula del punto azul).
     // Con una foto por confirmar, el mapa se centra en su punto: la estrella
     // puede caer fuera de pantalla y entonces no hay nada que juzgar.
-    androidx.compose.runtime.LaunchedEffect(bridge.photoConfirm) {
+    // OJO con la clave: tambien el MAPA. Al pasar a pantalla completa el mapa se
+    // RECREA, asi que la orden de centrar llegaba cuando el mapa nuevo aun no
+    // existia y se perdia -- el marcador estaba puesto, pero fuera de la vista
+    // (Rodrigo: "solo veo el bosque").
+    androidx.compose.runtime.LaunchedEffect(bridge.photoConfirm, mapRef.value) {
         val punto = bridge.photoConfirm ?: return@LaunchedEffect
-        mapRef.value?.let { map ->
-            runCatching {
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                    LatLng(punto.first, punto.second), 16.5))
-            }
+        val map = mapRef.value ?: return@LaunchedEffect
+        runCatching {
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                LatLng(punto.first, punto.second), 16.5))
         }
     }
 

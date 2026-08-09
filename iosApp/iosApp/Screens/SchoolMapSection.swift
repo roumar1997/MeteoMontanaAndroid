@@ -139,7 +139,12 @@ struct SchoolMapSection: View {
                 // responder viendo el mapa con holgura.
                 fullscreenMap = true
                 focusCoord = confirmandoFoto
+                // Dos veces a proposito: al pasar a pantalla completa el mapa se
+                // RECREA, y la primera orden puede perderse con el mapa viejo.
                 focusToken += 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    if confirmandoFoto != nil { focusToken += 1 }
+                }
             }
         }
         // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
@@ -676,6 +681,9 @@ struct SchoolMapSection: View {
         // sueltos abajo y en blanco y negro parecían de otra cosa. Espejo del
         // banner de Android.
         VStack {
+            // ABAJO, como en Android: arriba tapaba el mapa justo donde hay que
+            // mirar, y ademas cada app lo ponia en un sitio.
+            Spacer()
             VStack(spacing: 8) {
                 Text(text)
                     .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
@@ -695,7 +703,6 @@ struct SchoolMapSection: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .frame(maxWidth: .infinity).background(Cumbre.terra)
-            Spacer()
         }
     }
 
