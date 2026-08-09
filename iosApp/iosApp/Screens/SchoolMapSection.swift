@@ -697,7 +697,11 @@ struct SchoolMapSection: View {
             .frame(maxWidth: .infinity).background(Cumbre.terra)
             Spacer()
         }
-    } },
+    }
+
+    // Wrapper Identifiable para presentar el formulario con la coordenada fijada.
+    private var coordItem: Binding<CoordItem?> {
+        Binding(get: { flow.formCoord.map { CoordItem(coord: $0) } },
                 set: { if $0 == nil { flow.formCoord = nil } })
     }
 
