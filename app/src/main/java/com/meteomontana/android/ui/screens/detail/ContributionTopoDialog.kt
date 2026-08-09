@@ -195,7 +195,9 @@ fun ContributionTopoDialog(
                                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         ) {
                             Text(
-                                "${b.name.ifBlank { "${idx + 1}" }} ${b.grade ?: ""}".trim(),
+                                com.meteomontana.android.domain.util.TopoChipLabel.of(
+                                    idx, b.name, b.variant, b.grade),
+                                maxLines = 1,
                                 style = EyebrowTextStyle,
                                 color = textColor
                             )

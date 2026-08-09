@@ -161,6 +161,9 @@ internal fun SchoolMapView(
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
     val mapViewRef   = remember { mutableStateOf<MapView?>(null) }
     val mapRef       = remember { mutableStateOf<MapLibreMap?>(null) }
+    // Giro del mapa (0 = norte arriba), para la rosa de los vientos. Es el giro
+    // del MAPA, no el rumbo del movil: son cosas distintas.
+    var mapBearing by remember { mutableStateOf(0f) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Última ubicación conocida del usuario → punto azul en el mapa.
@@ -324,6 +327,10 @@ internal fun SchoolMapView(
         if (currentStyle != option) {
             currentStyle = option
             mapViewRef.value?.getMapAsync { map ->
+                map.addOnCameraMoveListener {
+                    val b = map.cameraPosition.bearing.toFloat()
+                    if (kotlin.math.abs(b - mapBearing) > 0.5f) mapBearing = b
+                }
                 map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
                     placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview) { tapped ->
                         if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
@@ -541,6 +548,19 @@ internal fun SchoolMapView(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Rosa de los vientos: la PRIMERA, porque saber donde cae el
+                    // norte es lo que te situa antes de tocar nada. Un toque
+                    // devuelve el mapa al norte.
+                    SideMapButton(active = true, onClick = {
+                        mapRef.value?.let { map ->
+                            runCatching {
+                                map.animateCamera(
+                                    CameraUpdateFactory.bearingTo(0.0))
+                            }
+                        }
+                    }) {
+                        CompassRoseIcon(mapBearing)
+                    }
                     // Re-centrar en la escuela (vuelta al encuadre inicial).
                     SideMapButton(active = true, onClick = {
                         mapRef.value?.let { map ->

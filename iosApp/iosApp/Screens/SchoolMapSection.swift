@@ -469,7 +469,7 @@ struct SchoolMapSection: View {
         }
     }
 
-    private static let aspectOrder = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    private static let aspectOrder = Aspect.shared.ALL
 
     /// Chips TODAS / N / NE… con el nº de piedras de cada consenso.
     @ViewBuilder

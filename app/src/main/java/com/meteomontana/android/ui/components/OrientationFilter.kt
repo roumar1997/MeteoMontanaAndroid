@@ -71,7 +71,7 @@ class OrientationFilterViewModel @Inject constructor(
     }
 
     companion object {
-        val ASPECTS = listOf("N", "NE", "E", "SE", "S", "SO", "O", "NO")
+        val ASPECTS = com.meteomontana.android.domain.util.Aspect.ALL
     }
 }
 

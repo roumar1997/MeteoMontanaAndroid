@@ -41,7 +41,7 @@ struct BoulderFormSheet: View {
 
     private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
 
-    private static let aspects = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+    private static let aspects = Aspect.shared.ALL
 
     /// F: chips de orientación (mismo lenguaje discontinuo-terra de votable).
     @ViewBuilder

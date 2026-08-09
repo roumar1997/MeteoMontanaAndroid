@@ -5,7 +5,7 @@ import Shared
 /// Regla de diseño (DESIGN.md): todo lo VOTABLE lleva el mismo lenguaje —
 /// chip con borde DISCONTINUO terra + ▾. Se aprende una vez.
 
-let ASPECTS = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"]
+let ASPECTS = Aspect.shared.ALL
 
 /// Chip pulsable con borde discontinuo terra + ▾.
 struct VotableChip: View {

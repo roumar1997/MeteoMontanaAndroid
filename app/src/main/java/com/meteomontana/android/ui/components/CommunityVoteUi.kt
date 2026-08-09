@@ -38,7 +38,7 @@ import com.meteomontana.android.ui.theme.Terra
  * Se aprende una vez y se reconoce en toda la app.
  */
 
-val ASPECTS = listOf("N", "NE", "E", "SE", "S", "SO", "O", "NO")
+val ASPECTS = com.meteomontana.android.domain.util.Aspect.ALL
 
 /** Chip pulsable con borde discontinuo terra + ▾ (orientación, grado, año…). */
 @Composable
@@ -113,6 +113,24 @@ fun OrientationVoteContent(
                 fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(10.dp))
+        // Brujula: INFORMA, no decide. Estando en la roca dice hacia donde
+        // miras; el punto cardinal lo eliges tu tocando su chip, porque la
+        // brujula del movil se descalibra con facilidad.
+        val rumbo = rememberDeviceHeading(stepDegrees = 2f)
+        if (rumbo != null) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally,
+                   modifier = Modifier.fillMaxWidth()) {
+                CompassDial(rumbo)
+                Text(
+                    "Estás mirando al " +
+                        com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo) +
+                        " · " + com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ASPECTS.take(4).forEach { a -> AspectChip(a, summary?.myVote == a) { onVote(a) } }
         }

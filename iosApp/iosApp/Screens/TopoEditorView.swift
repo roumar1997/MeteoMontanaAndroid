@@ -70,7 +70,11 @@ struct TopoEditorView: View {
                         ForEach(Array(blocks.enumerated()), id: \.element.id) { idx, b in
                             let on = idx == selected
                             Button { selected = idx } label: {
-                                Text("\(idx + 1)\(b.grade.map { " · \($0)" } ?? "")")
+                                // Etiqueta compartida: numero (el que se pinta en
+                                // la roca) + nombre + variante + grado.
+                                Text(TopoChipLabel.shared.of(index: Int32(idx), name: b.name,
+                                                             variant: b.variant, grade: b.grade))
+                                    .lineLimit(1)
                                     .font(Cumbre.mono(11, .bold))
                                     .foregroundStyle(on ? .white : Cumbre.ink2)
                                     .padding(.horizontal, 10).padding(.vertical, 6)
