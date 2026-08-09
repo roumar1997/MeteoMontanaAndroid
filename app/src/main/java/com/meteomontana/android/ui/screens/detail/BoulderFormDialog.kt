@@ -1,8 +1,6 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -95,10 +93,8 @@ internal fun BoulderFormDialog(
     }
 
     val ctxFoto = androidx.compose.ui.platform.LocalContext.current
-    // El MISMO selector que en "aportar piedra desde una foto". Los selectores
-    // del sistema entregan copias sin ubicacion, asi que con ellos la
-    // orientacion no se podria sugerir nunca aqui.
-    var eligiendoFoto by remember { mutableStateOf(false) }
+    // El MISMO selector que en "aportar piedra desde una foto", para que elegir
+    // foto se sienta igual en los dos sitios.
     val ponerFoto: (android.net.Uri) -> Unit = { uri ->
         run {
             // Si la foto guarda hacia donde apuntaba la camara, la orientacion
@@ -120,16 +116,8 @@ internal fun BoulderFormDialog(
         }
     }
 
-    if (eligiendoFoto) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = { eligiendoFoto = false },
-            properties = androidx.compose.ui.window.DialogProperties(
-                usePlatformDefaultWidth = false)
-        ) {
-            com.meteomontana.android.ui.screens.schools.GaleriaReciente(
-                onElegir = { eligiendoFoto = false; ponerFoto(it) },
-                onCancelar = { eligiendoFoto = false })
-        }
+    val elegirFoto = com.meteomontana.android.ui.components.rememberSelectorDeFoto { uri ->
+        uri?.let(ponerFoto)   // null = salio del selector sin elegir: no hay nada que hacer
     }
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
@@ -400,7 +388,7 @@ internal fun BoulderFormDialog(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
                     .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable { eligiendoFoto = true }
+                    .clickable { elegirFoto() }
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
@@ -414,7 +402,7 @@ internal fun BoulderFormDialog(
                     .height(100.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { eligiendoFoto = true },
+                    .clickable { elegirFoto() },
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

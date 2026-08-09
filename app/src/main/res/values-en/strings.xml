@@ -77,6 +77,9 @@
     <string name="feed_photo_failed">The photo was not saved. Try again or pick it from the gallery.</string>
     <string name="feed_celebration_photo">Celebration photo</string>
     <string name="feed_photo_upload_failed">The photo could not be uploaded; posted without it</string>
+    <string name="photo_no_coords">This photo arrives without its location, so we cannot tell which crag it belongs to. You can still propose the boulder: open its crag and use “+ PROPOSE” on the map.</string>
+    <string name="photo_no_school">The photo was taken far from any crag in the catalogue (%1$s). If the crag is not there yet, you can propose it from “Submit crag”.</string>
+    <string name="photo_school_found">This photo was taken at %1$s, %2$s away.</string>
     <string name="profile_my_contributions">My contributions</string>
     <string name="profile_add_block">+ ADD BLOCK/ROUTE</string>
     <string name="profile_settings">Settings</string>

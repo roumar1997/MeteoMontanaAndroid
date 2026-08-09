@@ -1,11 +1,6 @@
 package com.meteomontana.android.ui.screens.schools
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,11 +13,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.core.content.ContextCompat
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.util.PhotoPlacement
 import com.meteomontana.android.ui.components.readPhotoLocation
@@ -49,44 +43,6 @@ fun SubmitBlockPhotoFlow(
 ) {
     val context = LocalContext.current
     var aviso by remember { mutableStateOf<String?>(null) }
-    var permisosPedidos by remember { mutableStateOf(false) }
-    var galeriaLista by remember { mutableStateOf(false) }
-
-    /**
-     * Lo que hace falta para leer DONDE se hizo una foto:
-     * - leer la galeria (si no, no hay fotos que ensenar);
-     * - ACCESS_MEDIA_LOCATION (Android 10+), sin el cual el sistema entrega la
-     *   imagen con las coordenadas borradas -- el sintoma es identico al de una
-     *   foto que no las tiene, y por eso costo tanto dar con ello.
-     */
-    val necesarios = buildList {
-        add(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                Manifest.permission.READ_MEDIA_IMAGES
-            else Manifest.permission.READ_EXTERNAL_STORAGE)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            add(Manifest.permission.ACCESS_MEDIA_LOCATION)
-        }
-    }
-
-    val permisos = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { concedidos ->
-        // Si falta el de leer la galeria no se puede ensenar nada; el de la
-        // ubicacion se avisa cuando falle la foto, no antes.
-        galeriaLista = concedidos[necesarios.first()] == true
-        if (!galeriaLista) {
-            aviso = "Sin permiso para ver tus fotos no podemos saber dónde las hiciste."
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        if (permisosPedidos) return@LaunchedEffect
-        permisosPedidos = true
-        val faltan = necesarios.filter {
-            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
-        }
-        if (faltan.isEmpty()) galeriaLista = true else permisos.launch(faltan.toTypedArray())
-    }
 
     fun elegida(uri: Uri) {
         val donde = readPhotoLocation(context, uri)
@@ -116,15 +72,17 @@ fun SubmitBlockPhotoFlow(
         }
     }
 
-    if (galeriaLista && aviso == null) {
-        // A pantalla completa: emitida en medio del contenido de la lista se
-        // quedaba sin sitio y no se veia nada.
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = onDismiss,
-            properties = androidx.compose.ui.window.DialogProperties(
-                usePlatformDefaultWidth = false)
-        ) {
-            GaleriaReciente(onElegir = { elegida(it) }, onCancelar = onDismiss)
+    // El selector del sistema es una pantalla suya, no algo que dibujemos: se
+    // lanza una sola vez al entrar y si el usuario sale sin elegir, se cierra
+    // todo el flujo (equivale al "✕" de la rejilla que habia antes).
+    val elegirFoto = com.meteomontana.android.ui.components.rememberSelectorDeFoto { uri ->
+        if (uri == null) onDismiss() else elegida(uri)
+    }
+    var lanzado by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!lanzado) {
+            lanzado = true
+            elegirFoto()
         }
     }
 

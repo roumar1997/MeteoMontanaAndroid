@@ -8,16 +8,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Notificaciones push (Android 13+ requiere permiso runtime) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Coordenadas guardadas DENTRO de la foto: sin este permiso, Android
-         devuelve la imagen con el EXIF de ubicacion borrado (API 29+) y no se
-         puede saber en que escuela se hizo. -->
-    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
-    <!-- Leer la galeria para ensenar tus ultimas fotos al aportar una piedra.
-         Hace falta preguntar NOSOTROS a la galeria: los selectores del sistema
-         entregan copias con la ubicacion borrada. -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+    <!-- AQUI NO VAN READ_MEDIA_IMAGES, READ_EXTERNAL_STORAGE NI ACCESS_MEDIA_LOCATION.
+         La politica de Google Play ("Permisos de fotos y videos") solo admite el
+         acceso amplio a la galeria si los selectores del sistema no bastan para
+         la funcionalidad PRINCIPAL de la app; la nuestra es proponer piedras, y
+         leer donde se hizo la foto es una comodidad. Con esos tres declarados,
+         Play bloqueo el envio a revision de la vc91.
+         La foto se elige con un selector del sistema. Ver PhotoPicker.kt. -->
     <application
         android:name=".MeteoMontanaApp"
         android:allowBackup="true"
