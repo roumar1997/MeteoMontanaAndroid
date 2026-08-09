@@ -134,6 +134,15 @@ struct HeaderEscuelas: View {
     var onSubmitBlockPhoto: () -> Void = {}
     @State private var showSubmit = false
     @State private var aportando = false
+
+    /// Ejecuta [accion] cuando la hoja ya se ha cerrado del todo.
+    ///
+    /// Encadenar dos presentaciones en SwiftUI (cerrar una hoja y abrir otra en
+    /// el mismo instante) hace que la segunda se pierda sin decir nada. Es lo
+    /// que dejaba "Una piedra, desde una foto" sin hacer nada.
+    private func trasCerrar(_ accion: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: accion)
+    }
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
@@ -160,8 +169,8 @@ struct HeaderEscuelas: View {
         .sheet(isPresented: $showSubmit) { SubmitSchoolView() }
         .sheet(isPresented: $aportando) {
             AportarSheet(
-                onPiedra: { aportando = false; onSubmitBlockPhoto() },
-                onEscuela: { aportando = false; showSubmit = true })
+                onPiedra: { aportando = false; trasCerrar { onSubmitBlockPhoto() } },
+                onEscuela: { aportando = false; trasCerrar { showSubmit = true } })
                 .presentationDetents([.height(260)])
         }
     }

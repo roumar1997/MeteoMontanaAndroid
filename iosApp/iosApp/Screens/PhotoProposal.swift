@@ -171,9 +171,22 @@ private var pickerResultCoordKey: UInt8 = 0
 
 /// Selector de fotos que devuelve el RESULTADO, no solo la imagen: hace falta
 /// su identificador para poder preguntarle a la fototeca dónde se hizo.
+/// - Parameter intentos: reintentos mientras UIKit no pueda presentar.
+///
+/// Hace falta porque a esto se llega justo despues de CERRAR la hoja de
+/// "Aportar": mientras la hoja se esta cerrando, presentar encima no hace nada
+/// -- silenciosamente. Se espera a que la animacion termine.
 @MainActor
-func presentPhotoPickerResult(onPick: @escaping (PHPickerResult?) -> Void) {
-    guard let presenter = topPresentedViewController() else { onPick(nil); return }
+func presentPhotoPickerResult(intentos: Int = 15,
+                              onPick: @escaping (PHPickerResult?) -> Void) {
+    let libre = topPresentedViewController().map { !$0.isBeingDismissed && $0.presentedViewController == nil } ?? false
+    guard let presenter = topPresentedViewController(), libre else {
+        guard intentos > 0 else { onPick(nil); return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            presentPhotoPickerResult(intentos: intentos - 1, onPick: onPick)
+        }
+        return
+    }
     var config = PHPickerConfiguration(photoLibrary: .shared())
     config.filter = .images
     config.selectionLimit = 1
