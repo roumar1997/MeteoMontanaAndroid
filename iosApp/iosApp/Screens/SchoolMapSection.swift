@@ -254,11 +254,13 @@ struct SchoolMapSection: View {
                         // La foto ya está colocada: aceptar o moverla. El GPS se
                         // equivoca entre 10 y 30 metros y las piedras están a
                         // metros, así que la última palabra es del usuario.
-                        mapBanner("LA FOTO SE HIZO AQUÍ · ¿ES EL SITIO?",
+                        mapBanner("LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
                                   accept: {
                                       confirmandoFoto = nil
                                       flow.boulderCoord = punto
                                   },
+                                  aceptarTexto: "SÍ, SIGUE",
+                                  cancelarTexto: "MOVERLA",
                                   cancel: {
                                       confirmandoFoto = nil
                                       flow.waitingTap = true   // toca tú el sitio
@@ -667,30 +669,35 @@ struct SchoolMapSection: View {
 
     /// Banner superior + botón cancelar (y aceptar opcional) sobre el mapa.
     private func mapBanner(_ text: String, accept: (() -> Void)? = nil,
+                           aceptarTexto: String = "ACEPTAR",
+                           cancelarTexto: String = "CANCELAR",
                            cancel: @escaping () -> Void) -> some View {
+        // Los botones van PEGADOS al texto, dentro de la misma tira terracota:
+        // sueltos abajo y en blanco y negro parecían de otra cosa. Espejo del
+        // banner de Android.
         VStack {
-            Text(text)
-                .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .frame(maxWidth: .infinity).background(Cumbre.terra)
-            Spacer()
-            HStack(spacing: 8) {
-                Button("CANCELAR", action: cancel)
-                    .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
-                    .padding(.horizontal, 12).padding(.vertical, 6).background(Cumbre.ink)
-                if let accept {
-                    Button("✓ ACEPTAR", action: accept)
-                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 6).background(.white)
+            VStack(spacing: 8) {
+                Text(text)
+                    .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 8) {
+                    if let accept {
+                        Button(aceptarTexto, action: accept)
+                            .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                            .frame(maxWidth: .infinity).padding(.vertical, 8)
+                            .background(.white)
+                    }
+                    Button(cancelarTexto, action: cancel)
+                        .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 8)
+                        .overlay(Rectangle().stroke(.white, lineWidth: 1))
                 }
-            }.padding(.bottom, 8)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .frame(maxWidth: .infinity).background(Cumbre.terra)
+            Spacer()
         }
-        .frame(height: 280)
-    }
-
-    // Wrapper Identifiable para presentar el formulario con la coordenada fijada.
-    private var coordItem: Binding<CoordItem?> {
-        Binding(get: { flow.formCoord.map { CoordItem(coord: $0) } },
+    } },
                 set: { if $0 == nil { flow.formCoord = nil } })
     }
 

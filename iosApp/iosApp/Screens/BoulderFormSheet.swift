@@ -245,12 +245,36 @@ struct BoulderFormSheet: View {
                         Image(uiImage: photo).resizable().scaledToFit()
                             .frame(maxHeight: 200).clipShape(RoundedRectangle(cornerRadius: 2))
                     }
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                    // Mismo selector que "aportar desde una foto": el de
+                    // SwiftUI entrega una copia SIN ubicación, y entonces la
+                    // orientación no se podría sugerir nunca.
+                    Button {
+                        let idx = faceIdx
+                        presentPhotoPickerResult { result in
+                            guard let result else { return }
+                            Task { @MainActor in
+                                guard let donde = await PhotoExifReader.read(result) else {
+                                    sendError = "No se pudo cargar la foto elegida. Inténtalo otra vez."
+                                    return
+                                }
+                                faces[idx].photo = donde.image
+                                // La orientación sale de ESTA foto: cada cara
+                                // mira a donde mire su pared.
+                                if faces[idx].orientation == nil,
+                                   let sugerida = PhotoPlacement.shared.aspectFromCameraDirection(
+                                       cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) }) {
+                                    faces[idx].orientation = sugerida
+                                }
+                                sendError = nil
+                            }
+                        }
+                    } label: {
                         Text(faces[faceIdx].photo == nil ? "SELECCIONAR FOTO" : "CAMBIAR FOTO")
                             .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
                             .frame(maxWidth: .infinity).padding(.vertical, 10)
                             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                     }
+                    .buttonStyle(.plain)
 
                     // F: orientación de ESTA cara (opcional). Solo tiene
                     // sentido con varias fotos; con una sola vale la general.
