@@ -28,6 +28,8 @@ struct BoulderFormSheet: View {
     /// La foto de la semilla se coloca UNA vez: repetirlo en cada refresco
     /// borraría lo que el usuario vaya escribiendo.
     @State private var semillaPuesta = false
+    /// Paso fino (2º): aquí se lee el número de grados.
+    @StateObject private var brujula = HeadingProvider(stepDegrees: 2)
     @State private var selectedFace = 0
     @State private var pickerItem: PhotosPickerItem?
     @State private var showEditor = false
@@ -57,6 +59,21 @@ struct BoulderFormSheet: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(Cumbre.mono(9, .bold)).tracking(1.2)
                 .foregroundStyle(Cumbre.ink3)
+            // Brújula también AQUÍ, creando la piedra: es cuando estás delante
+            // de ella y sabes hacia dónde mira. Informa; el chip lo eliges tú.
+            if let rumbo = brujula.heading {
+                HStack(spacing: 8) {
+                    CompassDial(headingDegrees: Double(rumbo))
+                        .frame(width: 64, height: 64)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Estás mirando al " + Aspect.shared.fromDegrees(degrees: Float(rumbo)) +
+                             " · " + Aspect.shared.degreesLabel(degrees: Float(rumbo)))
+                        Text("Si estás mirando la pared, ella mira al contrario.")
+                    }
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                .padding(.bottom, 4)
+            }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(Self.aspects, id: \.self) { a in
@@ -97,10 +114,13 @@ struct BoulderFormSheet: View {
     var body: some View {
         contenido
             .onAppear {
+                brujula.start()
                 guard !semillaPuesta, let foto = seedPhoto else { return }
                 semillaPuesta = true
                 faces = [BoulderFaceForm(photo: foto, orientation: seedAspect)]
             }
+            // El sensor gasta batería: solo mientras el formulario está abierto.
+            .onDisappear { brujula.stop() }
     }
 
     private var contenido: some View {

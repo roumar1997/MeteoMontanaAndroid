@@ -29,6 +29,8 @@ struct SchoolMapSection: View {
     /// se quedara puesta, volver a entrar reabriría el flujo de proponer sin
     /// que nadie lo haya pedido.
     @State private var fotoSemilla: PhotoProposalSeedStore.Seed?
+    /// Punto donde se hizo la foto, a la espera de que el usuario lo confirme.
+    @State private var confirmandoFoto: CLLocationCoordinate2D?
     // Datos del mapa (bloques/capas/buscador/admin) — ver SchoolMapViewModel.
     @StateObject private var vm = SchoolMapViewModel()
     @State private var mapStyle: MapStyleKind = .satellite  // paridad con Android
@@ -133,7 +135,12 @@ struct SchoolMapSection: View {
                 fotoSemilla = semilla
                 expanded = true
                 flow.proposeType = "BOULDER"
-                flow.waitingTap = true
+                // Se coloca DONDE SE HIZO la foto y solo queda confirmarlo. El
+                // mapa se centra ahí para poder juzgar si el sitio es bueno.
+                confirmandoFoto = CLLocationCoordinate2D(latitude: semilla.lat,
+                                                         longitude: semilla.lon)
+                focusCoord = confirmandoFoto
+                focusToken += 1
             }
         }
         // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
@@ -246,7 +253,20 @@ struct SchoolMapSection: View {
                     .frame(height: height)
 
 
-                    if flow.waitingTap {
+                    if let punto = confirmandoFoto {
+                        // La foto ya está colocada: aceptar o moverla. El GPS se
+                        // equivoca entre 10 y 30 metros y las piedras están a
+                        // metros, así que la última palabra es del usuario.
+                        mapBanner("LA FOTO SE HIZO AQUÍ · ¿ES EL SITIO?",
+                                  accept: {
+                                      confirmandoFoto = nil
+                                      flow.boulderCoord = punto
+                                  },
+                                  cancel: {
+                                      confirmandoFoto = nil
+                                      flow.waitingTap = true   // toca tú el sitio
+                                  })
+                    } else if flow.waitingTap {
                         // Banner "PULSA EN EL MAPA" (parking/sector/piedra).
                         mapBanner("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN",
                                   cancel: { flow.waitingTap = false })
@@ -284,7 +304,11 @@ struct SchoolMapSection: View {
                     // (debajo de los chips de estilo) + botonera lateral en fullscreen.
                     if !flow.waitingTap && !flow.correctionMode {
                         VStack {
-                            HStack {
+                            HStack(alignment: .top) {
+                                // A la IZQUIERDA: ampliar arriba y, debajo, la
+                                // rosa de los vientos. En la botonera de la
+                                // derecha desplazaba lo que ya estaba colocado.
+                                VStack(spacing: 8) {
                                 Button { fullscreenMap.toggle() } label: {
                                     Image(systemName: fullscreenMap
                                           ? "arrow.down.right.and.arrow.up.left"
@@ -297,6 +321,15 @@ struct SchoolMapSection: View {
                                         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
+                                Button { northToken += 1 } label: {
+                                    CompassRoseIcon(mapBearing: mapBearing)
+                                        .frame(width: 44, height: 44)
+                                        .background(Cumbre.bg)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                                }
                                 Spacer()
                             }
                             .padding(.top, fullscreenMap ? 54 : 0)
@@ -312,14 +345,6 @@ struct SchoolMapSection: View {
                             HStack {
                                 Spacer()
                                 VStack(spacing: 8) {
-                                // Rosa de los vientos: la PRIMERA, porque saber
-                                // dónde cae el norte es lo que te sitúa antes de
-                                // tocar nada. Un toque devuelve el mapa al norte.
-                                sideButton(active: true) {
-                                    northToken += 1
-                                } content: {
-                                    CompassRoseIcon(mapBearing: mapBearing)
-                                }
                                 sideButton(active: true) {
                                     recenterOnSchool()
                                 } content: {

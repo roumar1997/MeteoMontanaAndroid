@@ -690,13 +690,12 @@ private fun HeaderEscuelas(
     /** Elegir una foto y proponer la piedra en la escuela donde se hizo. */
     onSubmitBlockPhoto: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 stringResource(R.string.schools_title),
                 style = MaterialTheme.typography.headlineLarge,
@@ -710,11 +709,23 @@ private fun HeaderEscuelas(
                 )
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            OutlinedCumbreButton(text = stringResource(R.string.schools_submit_block),
-                onClick = onSubmitBlockPhoto, textColor = Terra)
-            OutlinedCumbreButton(text = stringResource(R.string.schools_submit),
-                onClick = onSubmitSchool, textColor = Terra)
+        // Los dos botones en su PROPIA fila, a mitad y mitad: compartiendo linea
+        // con el titulo se partian en dos de forma distinta segun el movil.
+        Spacer(Modifier.height(Spacing.xs))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedCumbreButton(text = stringResource(R.string.schools_submit_block),
+                    onClick = onSubmitBlockPhoto, textColor = Terra,
+                    modifier = Modifier.fillMaxWidth())
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedCumbreButton(text = stringResource(R.string.schools_submit),
+                    onClick = onSubmitSchool, textColor = Terra,
+                    modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }
@@ -837,9 +848,15 @@ private fun DonateDialog(onDismiss: () -> Unit) {
  * padding excesivos, así que lo construimos como Box clickable.
  */
 @Composable
-private fun OutlinedCumbreButton(text: String, onClick: () -> Unit, textColor: Color? = null) {
+private fun OutlinedCumbreButton(
+    text: String,
+    onClick: () -> Unit,
+    textColor: Color? = null,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
+        contentAlignment = Alignment.Center,
+        modifier = modifier
             .clip(MaterialTheme.shapes.small)
             .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
             .clickable(onClick = onClick)

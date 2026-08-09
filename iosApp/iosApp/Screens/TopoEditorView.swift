@@ -76,7 +76,12 @@ struct TopoEditorView: View {
                                                              variant: b.variant, grade: b.grade))
                                     .lineLimit(1)
                                     .font(Cumbre.mono(11, .bold))
-                                    .foregroundStyle(on ? .white : Cumbre.ink2)
+                                    // Los grados bajos son casi blancos: texto
+                                    // negro encima o el nombre desaparece al
+                                    // seleccionar el chip. Espejo de Android.
+                                    .foregroundStyle(on
+                                        ? (GradeColor.style(b.grade).dark ? Color.black : .white)
+                                        : Cumbre.ink2)
                                     .padding(.horizontal, 10).padding(.vertical, 6)
                                     .background(on ? GradeColor.color(b.grade) : Color.clear)
                                     .overlay(Rectangle().stroke(GradeColor.color(b.grade), lineWidth: 1))

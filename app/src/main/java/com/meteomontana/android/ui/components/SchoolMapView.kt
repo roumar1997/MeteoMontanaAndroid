@@ -515,6 +515,27 @@ internal fun SchoolMapView(
                 Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
             }
 
+            // Rosa de los vientos: a la IZQUIERDA, bajo el boton de ampliar.
+            // En la botonera de la derecha desplazaba lo que ya estaba colocado,
+            // y ademas necesita mas tamano para que se lean los cardinales.
+            Box(
+                modifier = Modifier.align(Alignment.TopStart)
+                    .padding(start = Spacing.sm, top = 56.dp)
+                    .size(48.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.background)
+                    .border(1.dp, MaterialTheme.colorScheme.outline,
+                        androidx.compose.foundation.shape.CircleShape)
+                    .clickable {
+                        mapRef.value?.let { map ->
+                            runCatching { map.animateCamera(CameraUpdateFactory.bearingTo(0.0)) }
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                CompassRoseIcon(mapBearing)
+            }
+
             // Ampliar / salir de pantalla completa — ARRIBA a la izquierda.
             Box(
                 modifier = Modifier.align(Alignment.TopStart)
@@ -548,19 +569,6 @@ internal fun SchoolMapView(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Rosa de los vientos: la PRIMERA, porque saber donde cae el
-                    // norte es lo que te situa antes de tocar nada. Un toque
-                    // devuelve el mapa al norte.
-                    SideMapButton(active = true, onClick = {
-                        mapRef.value?.let { map ->
-                            runCatching {
-                                map.animateCamera(
-                                    CameraUpdateFactory.bearingTo(0.0))
-                            }
-                        }
-                    }) {
-                        CompassRoseIcon(mapBearing)
-                    }
                     // Re-centrar en la escuela (vuelta al encuadre inicial).
                     SideMapButton(active = true, onClick = {
                         mapRef.value?.let { map ->

@@ -42,6 +42,8 @@ private sealed interface ProposeStep {
     data object WaitingMapTap : ProposeStep
     data class  Form(val lat: Double, val lon: Double)        : ProposeStep  // PARKING
     data class  BoulderForm(val lat: Double, val lon: Double) : ProposeStep  // BOULDER
+    /** Foto ya colocada donde se hizo: solo falta confirmar el sitio. */
+    data class  PhotoConfirm(val lat: Double, val lon: Double) : ProposeStep
     data class  WallTracing(val lat: Double, val lon: Double) : ProposeStep  // trazar muro en el mapa
     data class  SectorForm(val lat: Double, val lon: Double)  : ProposeStep  // SECTOR
     data object CorrectionPickTarget : ProposeStep                          // espera tap en marker existente
@@ -116,8 +118,9 @@ fun ProposeContributionFlow(
     var step by remember {
         mutableStateOf<ProposeStep>(
             // Con foto ya sabemos qué se propone (una piedra) y dónde se hizo:
-            // el selector de tipo sobra y se va directo a colocarla en el mapa.
-            if (photoSeed != null) ProposeStep.WaitingMapTap else ProposeStep.TypePicker
+            // se coloca sola en ese punto y solo queda confirmarlo.
+            if (photoSeed != null) ProposeStep.PhotoConfirm(photoSeed.lat, photoSeed.lon)
+            else ProposeStep.TypePicker
         )
     }
     var boulderMode by remember { mutableStateOf(false) }
@@ -157,7 +160,6 @@ fun ProposeContributionFlow(
             boulderFaces = listOf(BoulderFaceForm(
                 photoUri = photoSeed.photoUri, orientation = photoSeed.aspect))
             boulderOrientation = photoSeed.aspect
-            onStartWaitingTap()
         }
     }
 
@@ -277,6 +279,32 @@ fun ProposeContributionFlow(
         is ProposeStep.WaitingMapTap -> {
             // El banner "PULSA EN EL MAPA" lo pinta SchoolMap leyendo waitingForTap.
         }
+
+        is ProposeStep.PhotoConfirm -> androidx.compose.material3.AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { androidx.compose.material3.Text("¿La piedra está aquí?") },
+            text = {
+                androidx.compose.material3.Text(
+                    "Hemos colocado la piedra donde se hizo la foto. El GPS se " +
+                    "equivoca entre 10 y 30 metros, así que mira el mapa: si el " +
+                    "sitio no es exacto, muévela tú.",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    step = ProposeStep.BoulderForm(s.lat, s.lon)
+                }) { androidx.compose.material3.Text("SÍ, SIGUE") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    // A partir de aquí, el toque en el mapa manda: el flujo de
+                    // siempre lleva de WaitingMapTap al formulario.
+                    step = ProposeStep.WaitingMapTap
+                    onStartWaitingTap()
+                }) { androidx.compose.material3.Text("MOVERLA") }
+            }
+        )
 
         is ProposeStep.Form -> ParkingFormDialog(
             lat = s.lat,

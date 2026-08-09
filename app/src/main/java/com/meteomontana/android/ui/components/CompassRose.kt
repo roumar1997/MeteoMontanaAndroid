@@ -8,6 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -28,12 +30,36 @@ import com.meteomontana.android.ui.theme.Terra
  */
 @Composable
 fun CompassRoseIcon(mapBearing: Float) {
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(22.dp)) {
-        Canvas(modifier = Modifier.size(22.dp)) {
-            // El mapa girado `bearing` grados en sentido horario deja el norte
-            // `-bearing` respecto a la pantalla.
-            rotate(degrees = -mapBearing, pivot = center) { aguja() }
+    // Los cardinales giran CON la aguja: son parte de la rosa, no del marco.
+    // Asi se lee "el norte esta hacia alli" sin tener que interpretar nada.
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(44.dp)) {
+        Canvas(modifier = Modifier.size(44.dp)) {
+            rotate(degrees = -mapBearing, pivot = center) {
+                aguja()
+                val r = size.minDimension / 2f
+                val cx = size.width / 2f
+                val cy = size.height / 2f
+                cardinal("N", cx, cy - r + 5f, Terra)
+                cardinal("S", cx, cy + r - 5f, Color(0xFF8A8478))
+                cardinal("E", cx + r - 5f, cy, Color(0xFF8A8478))
+                cardinal("O", cx - r + 5f, cy, Color(0xFF8A8478))
+            }
         }
+    }
+}
+
+/** Letra de un punto cardinal, centrada en (x, y). */
+private fun DrawScope.cardinal(letra: String, x: Float, y: Float, color: Color) {
+    drawContext.canvas.nativeCanvas.apply {
+        val paint = android.graphics.Paint().apply {
+            this.color = color.toArgb()
+            textSize = 9f * density
+            textAlign = android.graphics.Paint.Align.CENTER
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        // El baseline va bajo el centro: sin esto la letra queda alta.
+        drawText(letra, x, y + paint.textSize * 0.35f, paint)
     }
 }
 
@@ -70,9 +96,9 @@ private fun DrawScope.aguja() {
  * la orientación la elige el usuario tocando su chip.
  */
 @Composable
-fun CompassDial(headingDegrees: Float?, modifier: Modifier = Modifier) {
-    Box(contentAlignment = Alignment.Center, modifier = modifier.size(120.dp)) {
-        Canvas(modifier = Modifier.size(120.dp)) {
+fun CompassDial(headingDegrees: Float?, modifier: Modifier = Modifier.size(120.dp)) {
+    Box(contentAlignment = Alignment.Center, modifier = modifier) {
+        Canvas(modifier = Modifier.matchParentSize()) {
             val r = size.minDimension / 2f
             drawCircle(Color(0xFFD8D4C8), radius = r - 2f, style =
                 androidx.compose.ui.graphics.drawscope.Stroke(width = 1f))

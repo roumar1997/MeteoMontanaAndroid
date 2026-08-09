@@ -13,13 +13,28 @@ struct CompassRoseIcon: View {
     var mapBearing: Double
 
     var body: some View {
+        // Los cardinales giran CON la aguja: son parte de la rosa, no del marco.
+        // Así se lee "el norte está hacia allí" sin interpretar nada.
         Canvas { ctx, size in
-            // El mapa girado `bearing` grados en sentido horario deja el norte
-            // `-bearing` respecto a la pantalla.
             dibujaAguja(ctx, size, rotacion: -mapBearing)
+            let r = min(size.width, size.height) / 2
+            let c = CGPoint(x: size.width / 2, y: size.height / 2)
+            var g = ctx
+            g.translateBy(x: c.x, y: c.y)
+            g.rotate(by: .degrees(-mapBearing))
+            cardinal(g, "N", CGPoint(x: 0, y: -r + 6), Cumbre.terra)
+            cardinal(g, "S", CGPoint(x: 0, y: r - 6), Cumbre.ink3)
+            cardinal(g, "E", CGPoint(x: r - 6, y: 0), Cumbre.ink3)
+            cardinal(g, "O", CGPoint(x: -r + 6, y: 0), Cumbre.ink3)
         }
-        .frame(width: 22, height: 22)
+        .frame(width: 44, height: 44)
     }
+}
+
+/// Letra de un punto cardinal, centrada en su sitio.
+private func cardinal(_ ctx: GraphicsContext, _ letra: String, _ p: CGPoint, _ color: Color) {
+    ctx.draw(Text(letra).font(Cumbre.mono(9, .bold)).foregroundColor(color),
+             at: p, anchor: .center)
 }
 
 /// Brújula grande para elegir la orientación de una pared: enseña el rumbo del

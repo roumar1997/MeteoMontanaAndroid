@@ -653,6 +653,31 @@ private fun OrientationPickRow(label: String, selected: String?, onPick: (String
         Text(label, style = EyebrowTextStyle.copy(fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp)),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
+        // Brujula tambien AQUI, creando la piedra: es cuando estas delante de
+        // ella y sabes hacia donde mira. Informa; el chip lo eliges tu.
+        val rumbo = com.meteomontana.android.ui.components.rememberDeviceHeading(stepDegrees = 2f)
+        if (rumbo != null) {
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 6.dp)) {
+                com.meteomontana.android.ui.components.CompassDial(
+                    rumbo, modifier = Modifier.size(64.dp))
+                Column {
+                    Text(
+                        "Estás mirando al " +
+                            com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo) +
+                            " · " + com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Si estás mirando la pared, ella mira al contrario.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
         androidx.compose.foundation.lazy.LazyRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
