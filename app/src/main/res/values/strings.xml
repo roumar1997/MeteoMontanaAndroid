@@ -327,7 +327,7 @@
     <string name="meetup_detail_report_done">Denuncia enviada</string>
 
     <!-- Create meetup -->
-    <string name="create_meetup_title">Crear quedada</string>
+    <string name="create_meetup_title">Nueva quedada</string>
     <string name="create_meetup_name">Nombre de la quedada</string>
     <string name="create_meetup_school">Escuela</string>
     <string name="create_meetup_school_search">Buscar escuela…</string>

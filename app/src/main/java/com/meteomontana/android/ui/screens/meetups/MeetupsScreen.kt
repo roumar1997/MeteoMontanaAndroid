@@ -160,9 +160,12 @@ fun MeetupsScreen(
             Column {
                 Text(stringResource(R.string.meetups_title).uppercase(), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // SIEMPRE "Quedar a escalar", como en iOS. Antes, en cuanto
+                // había alguna quedada, el título pasaba a ser "1 activas" — un
+                // contador donde el iPhone tiene el nombre de la pantalla. El
+                // número ya se ve en la lista, no hace falta de titular.
                 Text(
-                    text = if (displayedMeetups.isEmpty()) "Quedar a escalar"
-                           else "${displayedMeetups.size} activas",
+                    text = "Quedar a escalar",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -559,7 +562,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
 
 @Composable
 private fun FilterGroupLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.labelSmall,
+    Text(text, style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
         fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
@@ -578,7 +581,7 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
     ) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = fg,
+        Text(label, style = MaterialTheme.typography.labelSmall.copy(fontFamily = com.meteomontana.android.ui.theme.Mono), color = fg,
             fontWeight = FontWeight.Bold)
     }
 }
@@ -672,7 +675,7 @@ private fun scoreColor(score: Int): Color = when {
 }
 
 internal fun privacyLabel(privacy: String) = when (privacy) {
-    "FOLLOWERS" -> "Seguidos"
+    "FOLLOWERS" -> "Siguiendo"
     "WOMEN"     -> "No mixto"
     else        -> "Abierta"
 }

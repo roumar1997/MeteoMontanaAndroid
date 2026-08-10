@@ -30,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.AlertDialog
@@ -130,7 +131,7 @@ fun CreateMeetupScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_cancel))
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_cancel))
             }
             Text(stringResource(R.string.create_meetup_title), modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

@@ -142,18 +142,23 @@ fun CompareScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.onBackground)
+        // Cabecera como en iOS: "Cerrar" en una pastilla a la izquierda y el
+        // título CENTRADO — no una flecha con el texto pegado al lado. Y el
+        // título es "Comparar" a secas, que es lo que dice el iPhone.
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+            com.meteomontana.android.ui.components.CumbrePillGroup(
+                modifier = Modifier.align(Alignment.CenterStart)
+            ) {
+                androidx.compose.material3.TextButton(onClick = onBack) {
+                    Text("Cerrar",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.titleMedium)
+                }
             }
-            Text("Comparar escuelas", style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground)
+            Text("Comparar", style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.align(Alignment.Center))
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
             CompareUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -237,7 +242,7 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
         // Tabla de métricas, en una tarjeta con borde. Filas en bandas alternas y
         // columnas separadas por divisorias verticales para que se lea bien.
         val rows = listOf(
-            CompareMetric("ROCA", items.map { it.rockType?.uppercase() ?: "—" },
+            CompareMetric("ROCA", items.map { it.rockType?.replaceFirstChar { c -> c.uppercase() } ?: "—" },
                 items.indices.filter { items[it].dryRock }.toSet()),
             CompareMetric("DISTANCIA", items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
                 minIndices(items.map { it.distanceKm })),
@@ -249,7 +254,7 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
             CompareMetric("PROB. LLUVIA", items.map { "${it.rainProb}%" },
                 minIndices(items.map { it.rainProb.toDouble() })),
             CompareMetric("ÓPTIMO", items.map { it.optimal ?: "—" }, emptySet()),
-            CompareMetric("MEJOR DÍA", items.map { it.bestDay?.uppercase() ?: "—" }, emptySet())
+            CompareMetric("MEJOR DÍA", items.map { it.bestDay?.replaceFirstChar { c -> c.uppercase() } ?: "—" }, emptySet())
         )
         Column(
             Modifier.fillMaxWidth()

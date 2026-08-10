@@ -496,6 +496,12 @@ fun SchoolListScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    // POR ENCIMA de la cápsula de pestañas. Es una barra
+                    // flotante anclada abajo, así que el contentPadding de la
+                    // lista no la alcanza: se le da su propio hueco o el botón
+                    // COMPARAR queda debajo de las pestañas y no se puede
+                    // pulsar (lo cazó Rodrigo intentando comparar dos escuelas).
+                    .padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
                     .padding(Spacing.md)
                     .clip(MaterialTheme.shapes.small)
                     // Fondo FIJO oscuro: onBackground se invierte en modo
