@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.ui.components.CumbreChip
 
@@ -55,11 +56,12 @@ fun AddBlockToSchoolSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheet,
-        containerColor = MaterialTheme.colorScheme.background,
-        // Misma forma que el resto del armazon: todas las hojas con el mismo canto.
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         shape = com.meteomontana.android.ui.components.CumbreSheetShape
     ) {
-        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f).padding(16.dp),
+        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f)
+                   .cumbreSheetSurface(MaterialTheme.colorScheme.background)
+                   .padding(16.dp),
                verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.add_block_sheet_title),
                 style = MaterialTheme.typography.headlineMedium,

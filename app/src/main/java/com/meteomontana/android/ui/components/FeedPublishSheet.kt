@@ -281,12 +281,14 @@ internal fun FeedPublishSheet(
     androidx.compose.material3.ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.background,
-        // Misma forma que el resto del armazon: todas las hojas con el mismo canto.
-        shape = com.meteomontana.android.ui.components.CumbreSheetShape
+        // El fondo lo pone cumbreSheetSurface, conservando el color propio de
+        // esta hoja; si lo pintase el sheet, taparía el borde y el canto.
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = CumbreSheetShape
     ) {
         Column(
             Modifier.fillMaxWidth()
+                .cumbreSheetSurface(MaterialTheme.colorScheme.background)
                 .padding(horizontal = Spacing.md)
                 .padding(bottom = Spacing.lg)
         ) {

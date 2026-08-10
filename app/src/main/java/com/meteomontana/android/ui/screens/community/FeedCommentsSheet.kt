@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import com.meteomontana.android.domain.model.FeedComment
 import com.meteomontana.android.domain.model.FeedPost
 import com.meteomontana.android.domain.usecase.feed.FeedKind
@@ -123,12 +124,16 @@ internal fun FeedCommentsSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.background,
-        // Misma forma que el resto del armazon: todas las hojas con el mismo canto.
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         shape = com.meteomontana.android.ui.components.CumbreSheetShape
     ) {
         Column(
             Modifier.fillMaxWidth()
+                // ANTES del inset del teclado, no después: así el fondo llega
+                // hasta el borde de la hoja y el contenido se aparta del
+                // teclado. Al revés quedaría una franja transparente abajo
+                // justo al escribir un comentario.
+                .cumbreSheetSurface(MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
         ) {
             Text(

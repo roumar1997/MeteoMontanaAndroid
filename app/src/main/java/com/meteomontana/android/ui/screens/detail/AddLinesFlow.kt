@@ -54,6 +54,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.CumbreSheetShape
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.components.TopoLine
 import com.meteomontana.android.ui.components.TopoPhotoCanvas
@@ -176,13 +178,15 @@ internal fun AddLinesFlow(
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = CumbreSheetShape,
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.94f)
+                .cumbreSheetSurface()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.md)
                 .padding(bottom = Spacing.md)

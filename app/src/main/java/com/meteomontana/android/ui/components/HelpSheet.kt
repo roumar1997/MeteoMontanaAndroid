@@ -104,10 +104,18 @@ private fun helpIcon(name: String): ImageVector = when (name) {
 fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
     val topic: HelpTopic = HelpCatalog.byKey(topicKey) ?: return
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = CumbreSheetShape
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                // El fondo ANTES del scroll: puesto después se desplazaría con
+                // el contenido en vez de quedarse quieto detrás.
+                .cumbreSheetSurface()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)

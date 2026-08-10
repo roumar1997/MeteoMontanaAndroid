@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -236,12 +237,13 @@ fun AddBlockSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background,
-        // Misma forma que el resto del armazon: todas las hojas con el mismo canto.
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         shape = com.meteomontana.android.ui.components.CumbreSheetShape
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth()
+                .cumbreSheetSurface(MaterialTheme.colorScheme.background)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Añadir bloque", style = MaterialTheme.typography.headlineMedium,

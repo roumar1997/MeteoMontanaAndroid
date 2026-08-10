@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -166,13 +167,16 @@ fun StatsScreen(
                     // completa — feedback de Rodrigo.
                     androidx.compose.material3.ModalBottomSheet(
                         onDismissRequest = { showDaysList = false },
-                        containerColor = MaterialTheme.colorScheme.background
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                        shape = com.meteomontana.android.ui.components.CumbreSheetShape
                     ) {
                         val days = remember { viewModel.daysWithCounts() }
                         // Día pulsable -> se despliega con los ascensos de ese
                         // día (pulsables -> abren su piedra).
                         var expandedDay by remember { mutableStateOf<String?>(null) }
-                        Column(Modifier.padding(horizontal = Spacing.md)) {
+                        Column(Modifier.fillMaxWidth()
+                            .cumbreSheetSurface(MaterialTheme.colorScheme.background)
+                            .padding(horizontal = Spacing.md)) {
                             Text("TUS DÍAS DE ROCA", style = EyebrowTextStyle, color = Terra)
                             Spacer(Modifier.height(Spacing.sm))
                             LazyColumn(Modifier.height(420.dp)) {
@@ -266,9 +270,12 @@ fun StatsScreen(
                     // Bottom sheet suave (paridad iOS), no dialog a pantalla.
                     androidx.compose.material3.ModalBottomSheet(
                         onDismissRequest = { gradeDetail = null },
-                        containerColor = MaterialTheme.colorScheme.background
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                        shape = com.meteomontana.android.ui.components.CumbreSheetShape
                     ) {
-                        Column(Modifier.padding(horizontal = Spacing.md)) {
+                        Column(Modifier.fillMaxWidth()
+                            .cumbreSheetSurface(MaterialTheme.colorScheme.background)
+                            .padding(horizontal = Spacing.md)) {
                             Text("TUS ${grade.uppercase()}", style = EyebrowTextStyle, color = Terra)
                             Spacer(Modifier.height(Spacing.sm))
                             LazyColumn(Modifier.height(420.dp)) {

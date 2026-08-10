@@ -55,6 +55,8 @@ import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.TerraBg
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.CumbreSheetShape
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import kotlinx.coroutines.flow.first
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -736,8 +738,14 @@ private fun AportarSheet(
     onPiedra: () -> Unit,
     onEscuela: () -> Unit
 ) {
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(Spacing.lg)) {
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = com.meteomontana.android.ui.components.CumbreSheetShape
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()
+            .cumbreSheetSurface()
+            .padding(Spacing.lg)) {
             Text(
                 stringResource(R.string.contribute_title),
                 style = com.meteomontana.android.ui.theme.EyebrowTextStyle,

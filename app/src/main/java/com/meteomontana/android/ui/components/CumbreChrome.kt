@@ -154,11 +154,22 @@ val CumbreSheetShape: Shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.d
  * trabajada y no una losa de color plano, que era el problema real.
  */
 @Composable
-fun Modifier.cumbreSheetSurface(): Modifier {
+fun Modifier.cumbreSheetSurface(
+    /**
+     * El color de fondo de ESTA hoja.
+     *
+     * Es un parámetro y no una constante porque las hojas de Cumbre no
+     * comparten fondo: las de formulario van sobre `surface` (el papel más
+     * cálido) y las de contenido sobre `background`. Fijar uno de los dos aquí
+     * cambiaría el color de media app de rebote — que no es lo que se estaba
+     * arreglando.
+     */
+    color: Color = MaterialTheme.colorScheme.surface
+): Modifier {
     val tratamiento = LocalChromeTreatment.current
     val base = this
         .clip(CumbreSheetShape)
-        .background(MaterialTheme.colorScheme.surface)
+        .background(color)
         .border(1.dp, MaterialTheme.colorScheme.outline, CumbreSheetShape)
 
     return if (tratamiento == ChromeTreatment.CRISTAL) {
