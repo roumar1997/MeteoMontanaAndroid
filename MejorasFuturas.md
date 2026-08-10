@@ -47,6 +47,35 @@ y los bloques 5-6 (producto/monetización). Nada de ello es urgente.
 
 ---
 
+## 📌 PENDIENTE SUELTO — privacidad de iOS (para la próxima release)
+
+Detectado el 2026-08-09 y **aplazado a conciencia**: el build 119 ya estaba en
+TestFlight y Rodrigo prefirió no rehacerlo.
+
+`iosApp/iosApp/PrivacyInfo.xcprivacy` declara la ubicación como
+**`NSPrivacyCollectedDataTypeCoarseLocation`**, pero la app envía al backend
+**coordenadas precisas**: las de la piedra que se propone (desde siempre, con
+solo tocar el mapa) y, desde 2.22.0, las que se leen del EXIF de la foto. La
+declaración no describe lo que la app hace de verdad.
+
+**Arreglo:** cambiar esa entrada a `...PreciseLocation` (o añadirla junto a la
+aproximada) y marcar la casilla equivalente en **App Store Connect →
+Privacidad de la app**. El manifiesto viaja DENTRO del binario, así que exige
+build nuevo → hacerlo aprovechando el siguiente que toque subir, no uno
+dedicado.
+
+**Riesgo si se deja:** bajo (Apple rara vez audita ese fichero), pero es el tipo
+de inexactitud que se paga cara al monetizar, cuando la ficha se mira con lupa
+(ver §6.4).
+
+Android NO tiene equivalente: su capítulo de permisos de fotos se cerró en la
+vc92 quitando `READ_MEDIA_IMAGES`/`READ_EXTERNAL_STORAGE`/`ACCESS_MEDIA_LOCATION`
+y pasando al selector de DOCUMENTOS del sistema (el de FOTOS borra el EXIF; el
+de documentos no). Detalle en el comentario de `AndroidManifest.xml` y en
+`PhotoPicker.kt`.
+
+---
+
 ## BLOQUE 1 — Backend: lo barato que arregla mucho (1-2 sesiones)
 
 ### 1.1 Manejador global de errores (`@RestControllerAdvice`)

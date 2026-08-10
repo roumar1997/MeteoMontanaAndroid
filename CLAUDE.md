@@ -223,6 +223,18 @@ i18n ES/EN completo, alerta de tiempo/quedadas configurable, ayuda/onboarding
 contextual, comparador de escuelas, admin completo (propuestas, gestión de
 bloques, stats, logs, push manual).
 
+**📦 RELEASE EN CURSO — 2.22.0 (Android vc92 / iOS build 119), 2026-08-09/10.**
+Contenido: aportar piedra desde una foto (EXIF → escuela), brújula en el mapa y
+al votar orientación, chips del editor con el nombre de la vía, imán apagable,
+apertura a Francia y Portugal (backend `V63__schools_country` + `/api/geo/countries`,
+ya en PRODUCCIÓN) y arreglos de diario/mapas.
+**Play tumbó la vc91** por su política de permisos de fotos y vídeos; la vc92 la
+resuelve sin perder la feature — ver memoria `project_play_photo_picker_policy.md`
+(resumen: el selector de FOTOS borra el EXIF, el de DOCUMENTOS no). AAB firmado
+en `Desktop\cumbre-2.22.0-vc92.aab`. **iOS build 119 ya en TestFlight**, sin
+tocar: la política es solo de Google. Queda: Rodrigo sube el AAB a Producción y
+crea la versión 2.22.0 en App Store Connect con el build 119.
+
 **📅 PLAN PARA LA SESIÓN DEL 2026-07-17 (acordado con Rodrigo — ir paso a paso, él pide cada uno):**
 A. Cerrar release 2.18.5: (1) checks finales Xiaomi (compartir 2 posts distintos, piedra nueva con líneas, trazar muro), (2) checks iPhone build 88 (compartir piedra nueva, chat en foreground), (3) subir `Desktop\cumbre-2.18.5-vc64.aab` a Play, (4) ASC versión 2.18.5 con build 88.
 B. Preparar Instagram automático: (5) IG de Cumbre → cuenta profesional, (6) página de Facebook vinculada, (7) Rodrigo pasa plantillas/ejemplos de historias.
@@ -246,6 +258,10 @@ C. Montar automatización (ver memoria `project_n8n_instagram.md`): (8) diseñar
   Connect (verificación ~días, datos públicos en la ficha UE); (3) firmar
   el Acuerdo para apps de pago (Apple) / cuenta de comercio (Play).
 - APNs (push iOS con app cerrada) — capability lista, falta activarla.
+- **Próxima release de iOS**: `PrivacyInfo.xcprivacy` declara ubicación
+  APROXIMADA y la app envía coordenadas PRECISAS. Aplazado a conciencia el
+  2026-08-09 (el build 119 ya estaba subido). Detalle en `MejorasFuturas.md`
+  → "PENDIENTE SUELTO — privacidad de iOS".
 
 ## Notas operativas
 
