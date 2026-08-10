@@ -1,11 +1,11 @@
 package com.meteomontana.android.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DynamicFeed
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.List
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Radar
+import androidx.compose.material.icons.filled.DynamicFeed
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -14,14 +14,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 sealed class Tab(val route: String, val label: String, val icon: ImageVector) {
     // La primera pestaña se llama "Radar" (su vista principal es el radar);
     // dentro, el conmutador TIEMPO ⇄ RADAR da acceso a la previsión.
-    data object Weather  : Tab("weather",  "Radar",    Icons.Outlined.Radar)
-    data object Schools  : Tab("schools",  "Escuelas", Icons.Outlined.List)
-    data object Meetups  : Tab("meetups",  "Quedadas", Icons.Outlined.Groups)
+    data object Weather  : Tab("weather",  "Radar",    Icons.Filled.Sensors)
+    data object Schools  : Tab("schools",  "Escuelas", Icons.Filled.List)
+    data object Meetups  : Tab("meetups",  "Quedadas", Icons.Filled.Groups)
     // "Feed" (mismo nombre ES/EN); icono de tarjetas apiladas, distinto de
     // las personas de Quedadas/Perfil. La ruta sigue siendo "community"
     // (estado guardado / enlaces existentes).
-    data object Community : Tab("community", "Feed", Icons.Outlined.DynamicFeed)
-    data object Profile  : Tab("profile-tab", "Perfil", Icons.Outlined.Person)
+    data object Community : Tab("community", "Feed", Icons.Filled.DynamicFeed)
+    data object Profile  : Tab("profile-tab", "Perfil", Icons.Filled.Person)
 }
 
 // Perfil como pestaña desde 2026-07-03; Feed (feed social + ranking) desde

@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
@@ -271,24 +272,43 @@ fun MainScreen(
                 Box(
                     modifier = Modifier.fillMaxWidth()
                         .navigationBarsPadding()
+                        // Márgenes laterales: la cápsula ocupa el ancho MENOS
+                        // esto, igual que en iOS. Antes se encogía a lo que
+                        // ocupaban los iconos.
+                        .padding(horizontal = 12.dp)
                         .padding(bottom = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         modifier = Modifier
+                            // A todo el ancho disponible: es lo que permite
+                            // repartir las cinco pestañas por igual con weight,
+                            // sea cual sea el móvil.
+                            .fillMaxWidth()
                             // Fondo + borde del armazón en UNA sola llamada: según
                             // el tratamiento activo será color liso, esmerilado o
                             // esmerilado con canto de luz. La barra no sabe cuál.
                             .cumbreChromeSurface(CumbreCapsuleShape)
                             .padding(horizontal = 6.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         mainTabs.forEach { tab ->
                             val selected = selectedTab == tab.route
                             val tint = if (selected) MaterialTheme.colorScheme.primary
                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                            Row(
+                            // LOS CINCO RÓTULOS SIEMPRE, como en iOS: icono arriba
+                            // y nombre debajo. Antes solo se etiquetaba el activo
+                            // porque en horizontal no caben cinco nombres; en
+                            // vertical sí, y así sabes a dónde vas antes de pulsar.
+                            //
+                            // ADAPTABLE: `weight(1f)` reparte el ancho a partes
+                            // iguales sea cual sea la pantalla, y el rótulo se
+                            // recorta con puntos suspensivos si el móvil es muy
+                            // estrecho. Ni un ancho fijo, que es lo que descuadra
+                            // al cambiar de dispositivo.
+                            Column(
                                 modifier = Modifier
+                                    .weight(1f)
                                     .clip(RoundedCornerShape(24.dp))
                                     .background(
                                         if (selected) MaterialTheme.colorScheme.primaryContainer
@@ -300,20 +320,19 @@ fun MainScreen(
                                         if (sheetVisible) dismissSheet()
                                         if (!selected) selectedTab = tab.route
                                     }
-                                    // Con 4 tabs no caben los 4 rótulos: solo el
-                                    // seleccionado enseña su nombre (estilo iOS).
-                                    .padding(
-                                        horizontal = if (selected) 16.dp else 13.dp,
-                                        vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    .padding(horizontal = 2.dp, vertical = 7.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Icon(tab.icon, contentDescription = tab.label,
                                     tint = tint, modifier = Modifier.size(20.dp))
-                                if (selected) {
-                                    Text(tab.label, style = MaterialTheme.typography.labelMedium,
-                                        color = tint, maxLines = 1)
-                                }
+                                Text(
+                                    tab.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = tint,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }

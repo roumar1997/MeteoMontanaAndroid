@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -163,10 +165,14 @@ fun SchoolsMapPanel(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
-            Text(
-                if (expanded) "▴" else "▾",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium
+            // Chevron de verdad, no un triángulo de texto: es lo que dibuja
+            // iOS (`chevron.down`). El glifo ▾ se veía macizo y más pequeño,
+            // y además depende de la fuente que tenga el móvil.
+            androidx.compose.material3.Icon(
+                imageVector = if (expanded) Icons.Outlined.KeyboardArrowUp
+                              else Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
             )
         }
 

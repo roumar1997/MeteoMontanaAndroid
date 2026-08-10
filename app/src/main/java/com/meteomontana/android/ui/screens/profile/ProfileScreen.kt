@@ -364,22 +364,23 @@ private fun Header(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        // La bio, igual que en el perfil público y que en iOS.
-        //
-        // Faltaba SOLO aquí: se guardaba bien y se usaba en el perfil público y
-        // en la imagen de compartir, pero en tu propia pestaña no se pintaba en
-        // ningún sitio. O sea, la escribías y luego ibas a mirarla justo al
-        // único lugar donde no salía. Reportado por Rodrigo, que la ve en su
-        // iPhone y no en Android.
-        p.bio?.takeIf { it.isNotBlank() }?.let {
-            Spacer(Modifier.height(4.dp))
-            Text(it, style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        }
         p.email?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        // La bio, colocada como en iOS: DESPUÉS del email y con la tinta
+        // normal, no en gris de dato secundario.
+        //
+        // Es lo que el usuario ha escrito de su puño; el correo es un dato del
+        // sistema. Ponerla antes y en gris —como estaba en el primer intento—
+        // la hacía parecer una línea más de la ficha en vez de su presentación.
+        // Comparado con capturas de las dos apps a la vez.
+        p.bio?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(10.dp))
+            Text(it, style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
 
         // Píldoras ADMIN / PREMIUM (el grado máx ya está en las stats).
@@ -823,11 +824,17 @@ private fun StatsRow(
         // Fila 3: PROYECTOS + MIS PUBLICACIONES — mismas celdas pulsables que
         // el resto (decisión de Rodrigo: publicaciones con el estilo de stats,
         // no como fila de menú). Publicaciones no tiene contador barato → "›".
+        //
+        // DOS por fila, no tres: es lo que hace `AccountView.swift` en iOS.
+        // Metidas las tres, "Mis publicaciones" se partía en dos líneas y
+        // ESTADÍSTICAS quedaba diminuta — se vio comparando capturas de las dos
+        // apps a la vez.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f).clickable(onClick = onProjects))
-            StatCell(stringResource(R.string.feed_my_posts_section), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
-            StatCell("ESTADÍSTICAS", "▃▅▇", Modifier.weight(1f).clickable(onClick = onOpenStats))
+            StatCell(stringResource(R.string.feed_my_posts_section).uppercase(), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
         }
+        // Fila 4: ESTADÍSTICAS a todo el ancho, como en iOS.
+        StatCell("ESTADÍSTICAS", "▃▅▇", Modifier.fillMaxWidth().clickable(onClick = onOpenStats))
     }
 }
 

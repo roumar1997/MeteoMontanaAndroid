@@ -42,6 +42,17 @@ fun CumbreChip(
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = fg)
+        // MONO, como en iOS. Los chips son datos —"50 km", "Granito", "Bloque"—
+        // y allí van todos en JetBrains Mono; en Android iban con la sans
+        // normal, y por eso la misma pantalla parecía de otra app al ponerlas
+        // lado a lado. Es la diferencia que más cantaba en la comparación.
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontFamily = com.meteomontana.android.ui.theme.Mono
+            ),
+            color = fg,
+            maxLines = 1
+        )
     }
 }

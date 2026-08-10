@@ -211,6 +211,15 @@ fun SchoolListScreen(
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Busca escuelas, vías y bloques…") },
+                        // Lupa dentro del campo, como en iOS: sin ella el
+                        // buscador parece una caja de texto cualquiera.
+                        leadingIcon = {
+                            androidx.compose.material3.Icon(
+                                Icons.Outlined.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
                         trailingIcon = {
                             // P8: X para limpiar de un toque (paridad iOS).
                             if (filters.query.isNotEmpty()) {
@@ -639,6 +648,11 @@ private fun TopIconsRow(
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
+        // Tema ANTES que la campana: es el orden de iOS (?, buscar, chats,
+        // luna, campana). Estaban intercambiados y, al comparar las dos
+        // pantallas, la cabecera era lo primero que delataba que no eran la
+        // misma app.
+        ThemeToggleButton()
         IconButton(onClick = onNotifications) {
             if (unread > 0) {
                 BadgedBox(badge = {
@@ -654,7 +668,6 @@ private fun TopIconsRow(
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
-        ThemeToggleButton()
         // El perfil ya no va aquí: tiene su propia pestaña inferior.
     }
 }
