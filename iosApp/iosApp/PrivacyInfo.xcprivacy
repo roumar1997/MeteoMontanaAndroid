@@ -23,6 +23,24 @@
             <key>NSPrivacyCollectedDataTypePurposes</key>
             <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
         </dict>
+        <!--
+          Ubicación PRECISA. Va declarada ADEMÁS de la aproximada porque la app
+          la pide y la envía de verdad:
+            - el punto azul del mapa usa kCLLocationAccuracyBest (se subió la
+              precisión el 2026-07-04: con la aproximada bailaba entre 500 m y
+              1 km, inservible en monte);
+            - al proponer una piedra o crear una quedada se mandan al servidor
+              las coordenadas exactas del sitio.
+          Declarar solo la aproximada era decir menos de lo que se recoge.
+        -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypePreciseLocation</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key><true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key><false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array><string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string></array>
+        </dict>
         <!-- Email (login). -->
         <dict>
             <key>NSPrivacyCollectedDataType</key>
