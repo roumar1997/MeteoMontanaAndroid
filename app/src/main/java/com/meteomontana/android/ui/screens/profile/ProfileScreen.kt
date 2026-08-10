@@ -217,9 +217,9 @@ private fun ProfileTopBar(
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center))
         // Izquierda: ayuda (?) + acceso admin con nº de pendientes (solo admins).
-        Row(
-            modifier = Modifier.align(Alignment.CenterStart),
-            verticalAlignment = Alignment.CenterVertically
+        // Agrupados en una pastilla, como en iOS — ver CumbrePillGroup.
+        com.meteomontana.android.ui.components.CumbrePillGroup(
+            modifier = Modifier.align(Alignment.CenterStart)
         ) {
             com.meteomontana.android.ui.components.HelpButton(topicKey = "profile")
             if (onAdmin != null) {
@@ -246,9 +246,10 @@ private fun ProfileTopBar(
                 }
             }
         }
-        Row(
-            modifier = Modifier.align(Alignment.CenterEnd),
-            verticalAlignment = Alignment.CenterVertically
+        // Derecha: compartir + ajustes, también en pastilla (en iOS son las dos
+        // que van juntas arriba a la derecha).
+        com.meteomontana.android.ui.components.CumbrePillGroup(
+            modifier = Modifier.align(Alignment.CenterEnd)
         ) {
             if (onShare != null) IconButton(onClick = onShare) {
                 Icon(Icons.Outlined.Share, contentDescription = "Compartir perfil",

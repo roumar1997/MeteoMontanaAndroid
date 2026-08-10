@@ -170,45 +170,54 @@ private fun TopBar(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
-                tint = MaterialTheme.colorScheme.onBackground)
+        // DOS PASTILLAS, como en iOS: el "atrás" en la suya y las acciones
+        // agrupadas en otra. Sueltos sobre el fondo, como estaban, era una de
+        // las cosas que más delataban que no eran la misma app.
+        com.meteomontana.android.ui.components.CumbrePillGroup {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
+                    tint = MaterialTheme.colorScheme.onBackground)
+            }
         }
+        // El nombre se queda con el hueco sobrante y se recorta si no cabe: en
+        // una pantalla estrecha manda la pastilla de acciones, no el título.
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = Spacing.xs).weight(1f))
-        com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
-        if (onDirections != null) {
-            IconButton(onClick = onDirections, modifier = Modifier.size(38.dp)) {
-                Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions),
-                    tint = MaterialTheme.colorScheme.onBackground)
+            modifier = Modifier.padding(horizontal = Spacing.xs).weight(1f))
+        com.meteomontana.android.ui.components.CumbrePillGroup {
+            com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
+            if (onDirections != null) {
+                IconButton(onClick = onDirections, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions),
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
             }
-        }
-        if (onShare != null) {
-            IconButton(onClick = onShare, modifier = Modifier.size(38.dp)) {
-                Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share),
-                    tint = MaterialTheme.colorScheme.onBackground)
+            if (onShare != null) {
+                IconButton(onClick = onShare, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share),
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
             }
-        }
-        if (showSaveOffline) {
-            IconButton(onClick = onToggleSaveOffline, modifier = Modifier.size(38.dp)) {
-                Icon(
-                    imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
-                    contentDescription = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
-                    tint = if (isSavedOffline) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onBackground
-                )
+            if (showSaveOffline) {
+                IconButton(onClick = onToggleSaveOffline, modifier = Modifier.size(38.dp)) {
+                    Icon(
+                        imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
+                        contentDescription = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
+                        tint = if (isSavedOffline) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
-        }
-        if (showFavorite) {
-            IconButton(onClick = onToggleFavorite, modifier = Modifier.size(38.dp)) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
-                    tint = if (isFavorite) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onBackground
-                )
+            if (showFavorite) {
+                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(38.dp)) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
         }
     }

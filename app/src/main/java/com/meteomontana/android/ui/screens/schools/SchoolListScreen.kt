@@ -633,6 +633,10 @@ private fun TopIconsRow(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Los cinco iconos dentro de una pastilla, como en iOS. Sueltos sobre
+        // el fondo ocupaban toda la parte de arriba y era lo que hacía que la
+        // cabecera no se pareciera en nada a la del iPhone.
+        com.meteomontana.android.ui.components.CumbrePillGroup {
         com.meteomontana.android.ui.components.HelpButton(topicKey = "schools")
         IconButton(onClick = onSearchUsers) {
             Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_users_title),
@@ -672,6 +676,7 @@ private fun TopIconsRow(
                 Icon(Icons.Outlined.Notifications, contentDescription = stringResource(R.string.notifications_title),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
+        }
         }
         // El perfil ya no va aquí: tiene su propia pestaña inferior.
     }
