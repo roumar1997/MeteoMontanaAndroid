@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Download
@@ -463,6 +464,8 @@ private fun ProfileSettingsScreen(
                 android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
             }
 
+            OpenSourceLicensesRow()
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
             MenuRow(Icons.AutoMirrored.Outlined.Logout, stringResource(R.string.profile_logout), onSignOut)
             // Que version es esta. Sin esto, "no me ha llegado el arreglo" y
@@ -515,6 +518,75 @@ private fun SettingsSectionLabel(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 2.dp))
 }
+
+/**
+ * "Licencias de código abierto".
+ *
+ * No es un adorno: las licencias con las que se construye Cumbre —la OFL de
+ * las tipografías, la Apache 2.0 de casi todo lo demás— permiten usarlo y
+ * venderlo con la app, pero **obligan a conservar el aviso**. Sin esta
+ * pantalla la app estaba incumpliendo, y es justo la clase de fleco que se
+ * paga caro el día que se cobre por ella.
+ */
+@Composable
+private fun OpenSourceLicensesRow() {
+    var abierto by remember { androidx.compose.runtime.mutableStateOf(false) }
+    MenuRow(Icons.Outlined.Description, "Licencias de código abierto") { abierto = true }
+    if (abierto) {
+        AlertDialog(
+            onDismissRequest = { abierto = false },
+            title = { Text("Licencias de código abierto") },
+            text = {
+                Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                    Text(
+                        "Cumbre se apoya en trabajo de otras personas. Gracias a " +
+                            "quienes lo publicaron libremente.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    LICENCIAS.forEach { (nombre, licencia) ->
+                        Text(nombre, style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Text(licencia, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(10.dp))
+                    }
+                    Text(
+                        "Los datos meteorológicos proceden de Open-Meteo, y el radar " +
+                            "y el boletín de montaña de AEMET.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { abierto = false }) {
+                    Text(stringResource(R.string.common_close))
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Qué lleva dentro la app y bajo qué licencia.
+ *
+ * Cuando se añada o se quite una dependencia con licencia que exija atribución,
+ * esta lista se toca. Es corta a propósito: enumerar cada artefacto transitivo
+ * de AndroidX no informa a nadie: se agrupan por proyecto.
+ */
+private val LICENCIAS = listOf(
+    "Inter · Source Serif 4 · JetBrains Mono" to "SIL Open Font License 1.1",
+    "Jetpack Compose, AndroidX y Material" to "Apache License 2.0",
+    "Haze (Chris Banes)" to "Apache License 2.0",
+    "MapLibre Native" to "BSD 2-Clause",
+    "Kotlin, Coroutines y Ktor (JetBrains)" to "Apache License 2.0",
+    "Retrofit, OkHttp y Moshi (Square)" to "Apache License 2.0",
+    "Coil" to "Apache License 2.0",
+    "Dagger y Hilt (Google)" to "Apache License 2.0",
+    "Firebase SDK (Google)" to "Apache License 2.0",
+)
 
 /**
  * Fila de ajuste "Aspecto de la barra" — **TEMPORAL**.
