@@ -236,7 +236,9 @@ fun AddBlockSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        // Misma forma que el resto del armazon: todas las hojas con el mismo canto.
+        shape = com.meteomontana.android.ui.components.CumbreSheetShape
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),

@@ -123,7 +123,9 @@ internal fun FeedCommentsSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        // Misma forma que el resto del armazon: todas las hojas con el mismo canto.
+        shape = com.meteomontana.android.ui.components.CumbreSheetShape
     ) {
         Column(
             Modifier.fillMaxWidth()

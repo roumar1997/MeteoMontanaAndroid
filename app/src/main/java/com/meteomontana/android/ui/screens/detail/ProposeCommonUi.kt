@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.CumbreSheetShape
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
@@ -196,12 +198,16 @@ internal fun CumbreDialog(
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
+        // Transparente para que el fondo lo ponga el acabado de Cumbre: si el
+        // sheet pintase el suyo, taparía el borde y el canto de luz.
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = CumbreSheetShape,
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
         val colMod = Modifier
-            .then(if (fullHeight) Modifier.fillMaxWidth()
-                .fillMaxHeight(0.94f) else Modifier)
+            .fillMaxWidth()
+            .then(if (fullHeight) Modifier.fillMaxHeight(0.94f) else Modifier)
+            .cumbreSheetSurface()
             .padding(horizontal = Spacing.lg)
             .padding(bottom = Spacing.lg)
             .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)

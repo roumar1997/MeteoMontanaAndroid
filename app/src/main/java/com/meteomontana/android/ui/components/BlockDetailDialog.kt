@@ -143,13 +143,17 @@ fun BlockDetailDialog(
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
+        // El fondo lo pone cumbreSheetSurface (borde + canto de luz); si lo
+        // pintase el sheet, los taparía.
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = CumbreSheetShape,
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.94f)   // tarjeta a pantalla (casi) completa, como el resto de sheets
+                .cumbreSheetSurface()
                 // Sin esto el teclado tapa el campo/botón de comentar una vía.
                 .imePadding()
                 .verticalScroll(rememberScrollState())

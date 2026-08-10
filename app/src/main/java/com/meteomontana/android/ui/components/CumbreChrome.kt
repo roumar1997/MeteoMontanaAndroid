@@ -137,6 +137,51 @@ fun Modifier.cumbreChromeSurface(shape: Shape): Modifier {
 /** Forma de la cápsula de pestañas. Aquí para que barra y hojas no diverjan. */
 val CumbreCapsuleShape: Shape = RoundedCornerShape(30.dp)
 
+/** Forma de las hojas: solo las esquinas de arriba, que es por donde suben. */
+val CumbreSheetShape: Shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+
+/**
+ * Acabado de una HOJA (los ModalBottomSheet).
+ *
+ * **Por qué aquí no hay desenfoque, aunque el tratamiento sea de cristal.** Las
+ * hojas de Compose se dibujan en una VENTANA distinta a la del contenido de la
+ * app. El desenfoque necesita leer los píxeles de lo que hay detrás, y desde
+ * otra ventana esos píxeles sencillamente no están al alcance. No es que quede
+ * feo: es que no se puede, igual que pasa con las superficies de los mapas.
+ *
+ * Lo que sí se hereda es el resto del acabado: el canto de luz, el borde y una
+ * forma común con la barra. Es lo que hace que una hoja parezca una pieza
+ * trabajada y no una losa de color plano, que era el problema real.
+ */
+@Composable
+fun Modifier.cumbreSheetSurface(): Modifier {
+    val tratamiento = LocalChromeTreatment.current
+    val base = this
+        .clip(CumbreSheetShape)
+        .background(MaterialTheme.colorScheme.surface)
+        .border(1.dp, MaterialTheme.colorScheme.outline, CumbreSheetShape)
+
+    return if (tratamiento == ChromeTreatment.CRISTAL) {
+        base.border(
+            width = 1.dp,
+            brush = Brush.verticalGradient(
+                0f to Color.White.copy(alpha = BRILLO_CANTO),
+                0.35f to Color.Transparent,
+                1f to Color.Transparent
+            ),
+            shape = CumbreSheetShape
+        )
+    } else base
+}
+
+/**
+ * El color que hay que pasarle al ModalBottomSheet para que el acabado de
+ * [cumbreSheetSurface] se vea: si el propio sheet pinta su fondo opaco, tapa
+ * el borde y el canto.
+ */
+@Composable
+fun cumbreSheetContainerColor(): Color = Color.Transparent
+
 // Los números del armazón, juntos y con nombre, para no tenerlos sueltos por
 // las pantallas. Si el efecto queda muy fuerte o muy flojo, se tocan AQUÍ.
 private val RADIO_DESENFOQUE = 24.dp
