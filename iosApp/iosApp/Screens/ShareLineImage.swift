@@ -275,13 +275,21 @@ enum ShareLineImage {
     /// Compartir UIImage tal cual hace que el share sheet la RECOMPRIMA a
     /// JPEG (salía borrosa — feedback de Rodrigo). Se vuelca a un PNG
     /// temporal y se comparte el fichero: píxeles intactos.
+    ///
+    /// PERO ese arreglo se comía el ENLACE: al entregar la imagen como
+    /// FICHERO, WhatsApp la trata como documento y descarta el texto que va
+    /// al lado — así que el enlace para abrir la vía en Cumbre no llegaba
+    /// nunca (reportado por Rodrigo, en producción). En Android no pasa
+    /// porque su sistema de compartir lleva texto e imagen por separado.
+    ///
+    /// La solución no es elegir entre nitidez y enlace: es dar a cada destino
+    /// lo que sabe manejar. [ShareImageSource] entrega la UIImage a las apps
+    /// de mensajería —que así conservan el texto como pie— y el PNG intacto
+    /// al resto (Archivos, AirDrop, guardar en Fotos).
     fileprivate static func asPngItems(_ items: [Any]) -> [Any] {
         items.map { item in
-            guard let img = item as? UIImage, let data = img.pngData() else { return item }
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("cumbre-share-\(Int.random(in: 100000...999999)).png")
-            try? data.write(to: url)
-            return url
+            guard let img = item as? UIImage else { return item }
+            return ShareImageSource(image: img)
         }
     }
 
@@ -316,5 +324,44 @@ enum ShareBase {
             ? "https://meteomontanaapi-staging.up.railway.app"
             : "https://api.climbingteams.com"
         #endif
+    }
+}
+
+/// Cómo se entrega una imagen al menú de compartir de iOS.
+///
+/// **El problema que resuelve.** Una imagen se puede entregar de dos formas y
+/// ninguna vale para todo:
+///  - Como `UIImage`: las apps de mensajería la aceptan **junto con el texto**
+///    (WhatsApp la manda con el mensaje de pie), pero pueden recomprimirla.
+///  - Como fichero PNG: llega con los píxeles intactos, pero WhatsApp la trata
+///    como un documento y **tira el texto** — que es donde va el enlace para
+///    abrir la vía en Cumbre.
+///
+/// Elegir una sola obligaba a sacrificar la nitidez o el enlace. Aquí se decide
+/// por destino: mensajería recibe la imagen (y conserva el enlace), y lo demás
+/// —Archivos, AirDrop, guardar en Fotos— recibe el PNG sin tocar.
+final class ShareImageSource: NSObject, UIActivityItemSource {
+    private let image: UIImage
+    init(image: UIImage) { self.image = image }
+
+    func activityViewControllerPlaceholderItem(_ c: UIActivityViewController) -> Any { image }
+
+    func activityViewController(_ c: UIActivityViewController,
+                                itemForActivityType t: UIActivity.ActivityType?) -> Any? {
+        // Sin destino conocido (la fila de acciones del propio menú): la imagen,
+        // que es lo que todo el mundo entiende.
+        guard let raw = t?.rawValue.lowercased() else { return image }
+
+        // Mensajería: imagen, para que el texto sobreviva como pie.
+        let mensajeria = ["whatsapp", "telegram", "message", "mail",
+                          "instagram", "facebook", "twitter", "signal"]
+        if mensajeria.contains(where: { raw.contains($0) }) { return image }
+
+        // El resto (Archivos, AirDrop, Fotos): el PNG con los píxeles intactos.
+        guard let data = image.pngData() else { return image }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cumbre-share-\(Int.random(in: 100000...999999)).png")
+        try? data.write(to: url)
+        return url
     }
 }

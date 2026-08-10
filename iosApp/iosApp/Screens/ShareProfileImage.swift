@@ -191,11 +191,8 @@ enum ShareProfileImage {
     /// temporal y se comparte el fichero: píxeles intactos.
     fileprivate static func asPngItems(_ items: [Any]) -> [Any] {
         items.map { item in
-            guard let img = item as? UIImage, let data = img.pngData() else { return item }
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("cumbre-share-\(Int.random(in: 100000...999999)).png")
-            try? data.write(to: url)
-            return url
+            guard let img = item as? UIImage else { return item }
+            return ShareImageSource(image: img)
         }
     }
 
