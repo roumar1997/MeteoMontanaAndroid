@@ -216,7 +216,7 @@ fun FullScreenMapDialog(
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(lat, lon))
-                                            .title(markerTitle.ifBlank { "%.5f, %.5f".format(lat, lon) })
+                                            .title(markerTitle.ifBlank { "%.5f, %.5f".format(java.util.Locale.US, lat, lon) })
                                             .icon(iconFactory.fromBitmap(bmp))
                                     )
                                 }
@@ -366,7 +366,7 @@ fun FullScreenMapDialog(
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
             ) {
                 Text(
-                    "%.6f, %.6f".format(lat, lon),
+                    "%.5f, %.5f".format(java.util.Locale.US, lat, lon),
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White
                 )

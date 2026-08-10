@@ -142,23 +142,9 @@ fun CompareScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Cabecera como en iOS: "Cerrar" en una pastilla a la izquierda y el
-        // título CENTRADO — no una flecha con el texto pegado al lado. Y el
-        // título es "Comparar" a secas, que es lo que dice el iPhone.
-        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-            com.meteomontana.android.ui.components.CumbrePillGroup(
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-                androidx.compose.material3.TextButton(onClick = onBack) {
-                    Text("Cerrar",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.titleMedium)
-                }
-            }
-            Text("Comparar", style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.align(Alignment.Center))
-        }
+        // Encabezado común de hoja — mismo que Proponer, Editar y la ficha de
+        // piedra. Ver CumbreSheetHeader.
+        com.meteomontana.android.ui.components.CumbreSheetHeader("Comparar", onBack)
 
         when (val s = state) {
             CompareUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {

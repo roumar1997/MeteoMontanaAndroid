@@ -243,14 +243,14 @@ internal fun ContributionCard(
                 .padding(Spacing.sm)) {
                 Text("POSICIÓN ACTUAL", style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("%.6f, %.6f".format(c.lat, c.lon),
+                Text("%.5f, %.5f".format(java.util.Locale.US, c.lat, c.lon),
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (c.proposedLat != null && c.proposedLon != null) {
                     Spacer(Modifier.height(Spacing.xs))
                     Text("PROPONE MOVER A", style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("%.6f, %.6f".format(c.proposedLat, c.proposedLon),
+                    Text("%.5f, %.5f".format(java.util.Locale.US, c.proposedLat, c.proposedLon),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),
                         color = Terra)
                 }

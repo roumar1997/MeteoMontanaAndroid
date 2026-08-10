@@ -508,7 +508,7 @@ internal fun BoulderFormDialog(
         Text("COORDENADAS (LAT, LON)", style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
-        Text("%.6f, %.6f".format(lat, lon),
+        Text("%.5f, %.5f".format(java.util.Locale.US, lat, lon),
             style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Mono),
             color = Terra)
         Text("✓ POSICIÓN DESDE EL MAPA", style = EyebrowTextStyle,

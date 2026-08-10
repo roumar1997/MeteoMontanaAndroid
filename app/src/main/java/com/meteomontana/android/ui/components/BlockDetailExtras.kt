@@ -76,7 +76,12 @@ internal fun BlockOptionsSection(
     }
 
     // N10: COMPARTIR PIEDRA — la portada con TODAS sus vias dibujadas.
-    if (optionsOpen && onShareBlock != null && block.type == "BLOCK" && !isProposal
+    //
+    // FUERA de OPCIONES: en iOS es un botón de primer nivel, justo debajo de
+    // CÓMO LLEGAR, y aquí estaba escondido tras el desplegable. Una función que
+    // hay que descubrir abriendo un menú es una función que casi nadie usa, y
+    // esta es precisamente de las que traen gente nueva a la app.
+    if (onShareBlock != null && block.type == "BLOCK" && !isProposal
         && block.lines.isNotEmpty()) {
         Spacer(Modifier.height(Spacing.sm))
         Box(

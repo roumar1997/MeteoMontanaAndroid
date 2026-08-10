@@ -45,7 +45,7 @@ internal fun TypePickerDialog(
 ) {
     CumbreDialog(onDismiss = onDismiss) {
         Text(
-            "Proponer una mejora",
+            "Proponer mejora",
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -75,32 +75,32 @@ internal fun TypePickerDialog(
         Spacer(Modifier.height(Spacing.lg))
 
         TypeOption(
-            icon = "◆",
-            label = "AÑADIR PIEDRA",
+            icon = "▲",
+            label = "PIEDRA",
             description = "Una roca con sus vías de escalada. Podrás añadir fotos y dibujar las líneas de cada vía.",
             enabled = true,
             onClick = onBoulder
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Spacer(Modifier.height(Spacing.sm))
         TypeOption(
             icon = "+",
-            label = "AÑADIR SECTOR",
+            label = "SECTOR",
             description = "Una zona que agrupa varias piedras (ej: \"La Isla\", \"Vertedero\"). Luego podrás asignar piedras al sector.",
             enabled = true,
             onClick = onSector
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Spacer(Modifier.height(Spacing.sm))
         TypeOption(
-            icon = "■",
-            label = "AÑADIR PARKING",
+            icon = "▬",
+            label = "PARKING",
             description = "El punto donde se aparca para llegar a la escuela. Otros escaladores verán \"Cómo llegar\" con indicaciones.",
             enabled = true,
             onClick = onParking
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Spacer(Modifier.height(Spacing.sm))
         TypeOption(
             icon = "↔",
-            label = "CORREGIR POSICIÓN",
+            label = "CORREGIR",
             description = "¿Algo está mal colocado en el mapa? Toca el elemento y muévelo al sitio correcto.",
             enabled = true,
             onClick = onCorrection
@@ -130,15 +130,21 @@ private fun TypeOption(
     onClick: () -> Unit
 ) {
     val alpha = if (enabled) 1f else 0.4f
+    // TARJETA, no fila con separador: es lo que hace iOS, y además una tarjeta
+    // se lee como "esto se toca" mientras que una fila entre líneas parece
+    // texto informativo. Aquí cada opción ES la decisión de la pantalla.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surface)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = Spacing.md),
+            .padding(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        Text(icon, color = Terra.copy(alpha = alpha), style = MaterialTheme.typography.titleMedium)
+        Text(icon, color = Terra.copy(alpha = alpha),
+            style = MaterialTheme.typography.headlineMedium)
         Column {
             Text(label, style = EyebrowTextStyle, color = Terra.copy(alpha = alpha))
             Spacer(Modifier.height(2.dp))

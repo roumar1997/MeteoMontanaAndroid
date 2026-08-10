@@ -42,6 +42,8 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.CloseFullscreen
 import androidx.compose.material.icons.outlined.GpsFixed
 import androidx.compose.material.icons.outlined.OpenInFull
@@ -185,7 +187,13 @@ fun SchoolMap(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp)
                     )
-                    Text(stringResource(R.string.detail_school_map),
+                    // "VER MAPA · 43" / "OCULTAR MAPA · 43" — como en iOS: la
+                    // etiqueta dice qué va a pasar al tocar, y el número va
+                    // pegado, no suelto al otro extremo de la fila.
+                    Text(
+                        (if (expanded) stringResource(R.string.schools_hide_map)
+                         else stringResource(R.string.schools_view_map)) +
+                            " · ${blocks.size}",
                         color = MaterialTheme.colorScheme.onSurface,
                         style = EyebrowTextStyle)
                 }
@@ -193,12 +201,12 @@ fun SchoolMap(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
-                    Text("${blocks.size} elementos",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium)
-                    Text(if (expanded) "▲" else "▼",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelLarge)
+                    // Chevron de verdad, igual que en la lista de escuelas.
+                    Icon(
+                        imageVector = if (expanded) Icons.Outlined.KeyboardArrowUp
+                                      else Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

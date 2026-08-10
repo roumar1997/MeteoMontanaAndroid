@@ -507,7 +507,11 @@ fun BlockDetailDialog(
             // Coordenadas
             Spacer(Modifier.height(Spacing.sm))
             Text(
-                "%.6f, %.6f".format(block.lat, block.lon),
+                // Locale.US y 5 decimales, como iOS. Con el idioma del móvil en
+                // español salía "40,538180" con COMA, y unas coordenadas con
+                // coma no se pueden pegar en Google Maps — que es exactamente
+                // para lo que están ahí. Cinco decimales bastan: es ~1 metro.
+                "%.5f, %.5f".format(java.util.Locale.US, block.lat, block.lon),
                 style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
