@@ -223,6 +223,25 @@ i18n ES/EN completo, alerta de tiempo/quedadas configurable, ayuda/onboarding
 contextual, comparador de escuelas, admin completo (propuestas, gestión de
 bloques, stats, logs, push manual).
 
+**🎨 EN CURSO EN `develop` — "que Android no se vea antigua" (2026-08-10, SIN
+VALIDAR EN DISPOSITIVO).** Solo Android y solo presentación: **cero ficheros de
+`iosApp/` y de `shared/`** (verificado) → el build 119 de iOS no se toca.
+1) **Fuentes DENTRO del APK** — causa raíz del problema que arrastraba desde
+julio: el provider de Google Fonts va por Play Services y en MIUI cae a la
+tipografía del sistema. La serif y la mono son los MISMOS `.ttf` que iOS;
+Inter en variable. Fuera la dependencia `ui-text-google-fonts`.
+2) **Armazón con material** (`CumbreChrome.kt`, regla nueva en `DESIGN.md` §1.9):
+contenido plano, armazón con material. Barra + las **11 hojas**. Tres
+tratamientos conmutables desde Perfil→Ajustes→"Aspecto de la barra"
+(**TEMPORAL**: cuando Rodrigo elija, se fija y se borra el selector).
+3) **Movimiento con muelle** (`CumbreMotion`) en vez de `tween(280)`.
+4) **Pantalla de licencias** (obligación de OFL/Apache 2.0).
+Haze clavada a **1.5.4** (la última con Compose 1.7; de la 1.6 en adelante pide
+1.8+). BOM 2024.09→2024.12.
+**PENDIENTE**: instalar en el Android moderno de Rodrigo (el Redmi es Android
+11 → solo verá SÓLIDO) y **verificar el desenfoque sobre el mapa del radar**,
+que es el riesgo abierto. Nada de esto llega a `main` hasta que lo valide.
+
 **📦 RELEASE EN CURSO — 2.22.0 (Android vc92 / iOS build 119), 2026-08-09/10.**
 Contenido: aportar piedra desde una foto (EXIF → escuela), brújula en el mapa y
 al votar orientación, chips del editor con el nombre de la vía, imán apagable,
