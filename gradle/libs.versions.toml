@@ -41,7 +41,7 @@ coil = "2.7.0"
 exifinterface = "1.4.1"
 
 # Firebase
-firebaseBom = "33.5.1"
+firebaseBom = "34.16.0"
 googleServices = "4.4.2"
 crashlyticsPlugin = "3.0.2"
 
