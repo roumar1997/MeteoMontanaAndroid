@@ -66,11 +66,17 @@ class MainActivity : ComponentActivity() {
                 // El armazón envuelve TODA la app: la barra de pestañas necesita
                 // leer el contenido que tiene detrás, y para eso los dos tienen
                 // que colgar del mismo sitio.
-                val ctx = androidx.compose.ui.platform.LocalContext.current
-                val tratamiento by com.meteomontana.android.data.local.ChromePrefs
-                    .flow(ctx).collectAsStateWithLifecycle()
+                //
+                // CRISTAL fijo — elegido por Rodrigo tras comparar los tres
+                // tratamientos en el móvil, sobre la lista de escuelas y sobre
+                // el radar. El selector de Ajustes existía solo para esa
+                // decisión y ya no está: una app no le pregunta a su usuario
+                // cómo quiere que se dibuje.
+                //
+                // En móviles sin desenfoque (Android 11 o anterior) baja a
+                // sólido él solo — ver ChromeTreatment.paraApi.
                 com.meteomontana.android.ui.components.CumbreChromeHost(
-                    deseado = tratamiento ?: com.meteomontana.android.ui.theme.ChromeTreatment.SOLIDO
+                    deseado = com.meteomontana.android.ui.theme.ChromeTreatment.CRISTAL
                 ) {
                     AppRoot(deepLink = pendingDeepLink.value, onDeepLinkConsumed = { pendingDeepLink.value = null })
                 }

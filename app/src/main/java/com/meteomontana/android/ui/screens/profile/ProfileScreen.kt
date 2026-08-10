@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Download
@@ -476,14 +475,12 @@ private fun ProfileSettingsScreen(
             SettingsSectionLabel(stringResource(R.string.profile_section_prefs))
             MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
             FeedPublishSettingRow()
-            ChromeTreatmentSettingRow()
             val ctx = LocalContext.current
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
                 com.meteomontana.android.ui.components.resetAllHints(ctx)
                 android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
             }
 
-            OpenSourceLicensesRow()
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
             MenuRow(Icons.AutoMirrored.Outlined.Logout, stringResource(R.string.profile_logout), onSignOut)
@@ -538,169 +535,6 @@ private fun SettingsSectionLabel(text: String) {
         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 2.dp))
 }
 
-/**
- * "Licencias de código abierto".
- *
- * No es un adorno: las licencias con las que se construye Cumbre —la OFL de
- * las tipografías, la Apache 2.0 de casi todo lo demás— permiten usarlo y
- * venderlo con la app, pero **obligan a conservar el aviso**. Sin esta
- * pantalla la app estaba incumpliendo, y es justo la clase de fleco que se
- * paga caro el día que se cobre por ella.
- */
-@Composable
-private fun OpenSourceLicensesRow() {
-    var abierto by remember { androidx.compose.runtime.mutableStateOf(false) }
-    MenuRow(Icons.Outlined.Description, "Licencias de código abierto") { abierto = true }
-    if (abierto) {
-        AlertDialog(
-            onDismissRequest = { abierto = false },
-            title = { Text("Licencias de código abierto") },
-            text = {
-                Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
-                    Text(
-                        "Cumbre se apoya en trabajo de otras personas. Gracias a " +
-                            "quienes lo publicaron libremente.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    LICENCIAS.forEach { (nombre, licencia) ->
-                        Text(nombre, style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface)
-                        Text(licencia, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(10.dp))
-                    }
-                    Text(
-                        "Los datos meteorológicos proceden de Open-Meteo, y el radar " +
-                            "y el boletín de montaña de AEMET.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { abierto = false }) {
-                    Text(stringResource(R.string.common_close))
-                }
-            }
-        )
-    }
-}
-
-/**
- * Qué lleva dentro la app y bajo qué licencia.
- *
- * Cuando se añada o se quite una dependencia con licencia que exija atribución,
- * esta lista se toca. Es corta a propósito: enumerar cada artefacto transitivo
- * de AndroidX no informa a nadie: se agrupan por proyecto.
- */
-private val LICENCIAS = listOf(
-    "Inter · Source Serif 4 · JetBrains Mono" to "SIL Open Font License 1.1",
-    "Jetpack Compose, AndroidX y Material" to "Apache License 2.0",
-    "Haze (Chris Banes)" to "Apache License 2.0",
-    "MapLibre Native" to "BSD 2-Clause",
-    "Kotlin, Coroutines y Ktor (JetBrains)" to "Apache License 2.0",
-    "Retrofit, OkHttp y Moshi (Square)" to "Apache License 2.0",
-    "Coil" to "Apache License 2.0",
-    "Dagger y Hilt (Google)" to "Apache License 2.0",
-    "Firebase SDK (Google)" to "Apache License 2.0",
-)
-
-/**
- * Fila de ajuste "Aspecto de la barra" — **TEMPORAL**.
- *
- * Está aquí para que Rodrigo compare los tres tratamientos sobre contenido de
- * verdad y elija cuál le pega a Cumbre; ninguna app le pide a su usuario que
- * decida cómo se dibuja a sí misma. En cuanto haya elegido, se fija el valor
- * bueno en ChromePrefs y esta fila se borra.
- *
- * En un móvil sin desenfoque (Android 11 o anterior) los tres se ven igual: el
- * aviso de debajo lo explica en vez de dejar al usuario pensando que no
- * funciona.
- */
-@Composable
-private fun ChromeTreatmentSettingRow() {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    var actual by remember {
-        androidx.compose.runtime.mutableStateOf(
-            com.meteomontana.android.data.local.ChromePrefs.get(ctx))
-    }
-    var showDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
-    val puedeCristal = android.os.Build.VERSION.SDK_INT >=
-        com.meteomontana.android.ui.theme.ChromeTreatment.API_MINIMA_DESENFOQUE
-    val nombreDe: (com.meteomontana.android.ui.theme.ChromeTreatment) -> String = {
-        when (it) {
-            com.meteomontana.android.ui.theme.ChromeTreatment.SOLIDO -> "Sólida"
-            com.meteomontana.android.ui.theme.ChromeTreatment.ESMERILADO -> "Esmerilada"
-            com.meteomontana.android.ui.theme.ChromeTreatment.CRISTAL -> "Cristal"
-        }
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable { showDialog = true }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Icon(Icons.Outlined.Settings, contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-        Text("Aspecto de la barra", style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
-        Text(nombreDe(actual), style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Icon(Icons.Outlined.ChevronRight, contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-    }
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text("Aspecto de la barra") },
-            text = {
-                Column {
-                    Text(
-                        if (puedeCristal)
-                            "Cambia al momento. Míralo sobre una lista larga y sobre el radar."
-                        else
-                            "Este móvil es anterior a Android 12 y no tiene desenfoque, " +
-                                "así que las tres opciones se verán sólidas.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    com.meteomontana.android.ui.theme.ChromeTreatment.entries.forEach { t ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable {
-                                    com.meteomontana.android.data.local.ChromePrefs.set(ctx, t)
-                                    actual = t
-                                    showDialog = false
-                                }
-                                .padding(vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            androidx.compose.material3.RadioButton(
-                                selected = actual == t,
-                                onClick = {
-                                    com.meteomontana.android.data.local.ChromePrefs.set(ctx, t)
-                                    actual = t
-                                    showDialog = false
-                                }
-                            )
-                            Text(nombreDe(t), style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(R.string.common_close))
-                }
-            }
-        )
-    }
-}
 
 /**
  * Fila de ajuste "Publicar ascensos en el feed": muestra el valor actual y
