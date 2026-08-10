@@ -176,7 +176,12 @@ fun SchoolListScreen(
         onRefresh = viewModel::refresh,
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        // Hueco al final para que la ultima escuela no quede debajo de la capsula.
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
+    ) {
 
             // Fila de iconos top (no existe en la PWA pero hay que mantener
             // navegación a chats/notifs/perfil). Discreta para que el header

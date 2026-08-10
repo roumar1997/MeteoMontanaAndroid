@@ -86,7 +86,11 @@ fun WeatherScreen(
                     FavoriteChips(s.favorites, s.selectedFavoriteId, viewModel::selectFavorite)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
+                ) {
                     // Comparación de favoritas arriba (igual que iOS): ves de un
                     // vistazo el score medio por día de tus escuelas favoritas.
                     if (s.grid != null && s.grid.rows.isNotEmpty()) {

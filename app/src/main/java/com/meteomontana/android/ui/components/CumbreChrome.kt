@@ -45,6 +45,22 @@ val LocalChromeBackdrop = staticCompositionLocalOf<HazeState?> { null }
 val LocalChromeTreatment = staticCompositionLocalOf { ChromeTreatment.SOLIDO }
 
 /**
+ * Cuánto ocupa por abajo la cápsula de pestañas (más la barra del sistema).
+ *
+ * **Toda lista que scrollee dentro de una pestaña tiene que dejar este hueco al
+ * final.** El contenido corre por DETRÁS de la cápsula a propósito —es lo que
+ * le da algo que difuminar—, así que sin este margen la última fila queda
+ * tapada y no hay forma de llegar a ella. Es lo que le pasó a Rodrigo con la
+ * última escuela de la lista y con el botón de añadir bloque del perfil.
+ *
+ * En iOS el equivalente es el hueco en blanco que hay al final de cada lista.
+ *
+ * Se aplica como `contentPadding` (no como `padding` del contenedor) para que
+ * el contenido siga pasando por debajo al hacer scroll en vez de cortarse.
+ */
+val LocalTabBarInset = staticCompositionLocalOf { 0.dp }
+
+/**
  * Envuelve la app entera. Decide qué tratamiento cabe en ESTE móvil y prepara
  * el puente.
  *

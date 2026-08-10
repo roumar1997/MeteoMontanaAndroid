@@ -343,7 +343,10 @@ private fun FeedList(
             else -> LazyColumn(
                 Modifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = 12.dp, vertical = 12.dp
+                    start = 12.dp, end = 12.dp, top = 12.dp,
+                    // Hueco al final: el contenido corre por detrás de la
+                    // cápsula y sin esto el último post queda tapado.
+                    bottom = 12.dp + com.meteomontana.android.ui.components.LocalTabBarInset.current
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {

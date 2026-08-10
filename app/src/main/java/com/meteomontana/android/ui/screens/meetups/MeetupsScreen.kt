@@ -209,7 +209,8 @@ fun MeetupsScreen(
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = Spacing.xxl)
+                    contentPadding = PaddingValues(bottom = Spacing.xxl +
+                        com.meteomontana.android.ui.components.LocalTabBarInset.current)
                 ) {
                     // Toggle filtros
                     // Coach marks

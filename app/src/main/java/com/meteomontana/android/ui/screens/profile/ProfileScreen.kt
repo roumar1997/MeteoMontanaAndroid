@@ -286,7 +286,12 @@ private fun Content(
     onOpenMyPosts: () -> Unit = {},
     onOpenStats: () -> Unit = {}
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        // Sin esto no se llega al boton de anadir bloque/via.
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
+    ) {
         if (offline) {
             item {
                 Text(

@@ -404,6 +404,14 @@ fun MainScreen(
                     }
                     visited[selectedTab] = true
 
+                    // Publica el hueco que las listas de las pestañas tienen que
+                    // dejar al final para que su última fila no quede debajo de
+                    // la cápsula. Ver LocalTabBarInset.
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        com.meteomontana.android.ui.components.LocalTabBarInset provides
+                            (if (armazonConMaterial) reservaAbajo else 0.dp)
+                    ) {
+
                     // La pantalla de debajo retrocede mientras hay algo abierto
                     // encima. Con el MISMO muelle que el resto del movimiento
                     // (CumbreMotion): si esto fuese con otra curva, se vería que
@@ -633,6 +641,7 @@ fun MainScreen(
                             bottomInset = reservaAbajo
                         )
                         }
+                    }
                     }
                 }
                 composable(Routes.ADMIN) {
