@@ -102,7 +102,14 @@ dependencies {
     // de accompanist; se construye a mano con skipHalfExpanded=true en MainScreen).
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.compose.ui.text.google.fonts)
+
+    // Haze: difumina el FONDO que pasa por detrás de la barra de pestañas.
+    // El Modifier.blur de Compose no sirve aquí — difumina el propio elemento,
+    // no lo que hay detrás, y el efecto cristal es justo lo segundo. Apache 2.0.
+    // Versión clavada a la 1.5.4 A PROPÓSITO: es la última que funciona con la
+    // línea 1.7 de Compose. De la 1.6 en adelante exige Compose 1.8+, que es un
+    // salto de dos años con toda la app por revisar.
+    implementation(libs.haze)
 
     // Coroutines
     implementation(libs.coroutines.android)

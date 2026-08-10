@@ -2,58 +2,89 @@ package com.meteomontana.android.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
 
 // =============================================================================
-// CUMBRE Typography — paridad con la PWA (css/style.css :root).
+// CUMBRE Typography — las tres familias van DENTRO del APK.
 //
-// Las tres familias se descargan via el provider de Google Fonts (mismo
-// origen que la PWA: fonts.googleapis.com), así que el "look" tipográfico
-// es idéntico sin tener que empaquetar .ttf en la APK.
+// Antes se descargaban con el provider de Google Fonts, y ahí estaba el fallo
+// que hacía que la app se viera "genérica" en unos móviles y no en otros: ese
+// provider va a través de Google Play Services y, cuando no responde —MIUI de
+// Xiaomi es el caso típico—, Android cae a la tipografía del sistema. Sin la
+// mono de los eyebrows ni la serif de los titulares, la app pierde de golpe su
+// carácter, y el síntoma es difícil de atribuir porque no falla nada: solo se
+// ve distinta.
 //
-// Cuando hagamos iOS, se empaquetan los mismos archivos .ttf de Google Fonts
-// en el bundle y se exponen con los mismos nombres en Typography.swift.
+// PARIDAD CON iOS: la serif y la mono son EXACTAMENTE los mismos ficheros que
+// hay en `iosApp/iosApp/Fonts/`, así que las dos apps dibujan el mismo trazo.
+// Si algún día se cambia una, hay que cambiar la otra.
+//
+// Licencia: las tres son SIL Open Font License 1.1, que permite expresamente
+// incrustarlas y distribuirlas junto con software, incluido software de pago.
 // =============================================================================
 
-private val GoogleProvider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage   = "com.google.android.gms",
-    certificates      = R.array.com_google_android_gms_fonts_certs
-)
-
-private val InterGF       = GoogleFont("Inter")
-private val SourceSerif4GF = GoogleFont("Source Serif 4")
-private val JetBrainsMonoGF = GoogleFont("JetBrains Mono")
-
-// Replicamos exactamente los pesos que la PWA pide a Google Fonts en index.html.
+/**
+ * Inter en formato VARIABLE: un solo fichero contiene todos los pesos, de Thin
+ * a Black. Ocupa menos que los seis estáticos que harían falta si no, y permite
+ * pedir cualquier peso intermedio.
+ *
+ * iOS no la empaqueta —allí el texto corriente va con la fuente del sistema—,
+ * pero Inter se parece mucho más a la San Francisco de Apple que la sans
+ * genérica de Android, así que incrustarla acerca las dos apps en vez de
+ * separarlas.
+ */
 val InterFamily = FontFamily(
-    Font(googleFont = InterGF, fontProvider = GoogleProvider, weight = FontWeight.Light),
-    Font(googleFont = InterGF, fontProvider = GoogleProvider, weight = FontWeight.Normal),
-    Font(googleFont = InterGF, fontProvider = GoogleProvider, weight = FontWeight.Medium),
-    Font(googleFont = InterGF, fontProvider = GoogleProvider, weight = FontWeight.SemiBold),
-    Font(googleFont = InterGF, fontProvider = GoogleProvider, weight = FontWeight.Bold),
-    Font(googleFont = InterGF, fontProvider = GoogleProvider, weight = FontWeight.ExtraBold),
+    interWeight(FontWeight.Light),
+    interWeight(FontWeight.Normal),
+    interWeight(FontWeight.Medium),
+    interWeight(FontWeight.SemiBold),
+    interWeight(FontWeight.Bold),
+    interWeight(FontWeight.ExtraBold),
 )
 
+/**
+ * Una instancia de la variable fijada a un peso concreto.
+ *
+ * `FontVariation` sigue marcada como experimental en Compose, de ahí el opt-in.
+ * El riesgo es asumible: si la API cambia, **el build falla en voz alta** —no se
+ * degrada en silencio—, y la alternativa era empaquetar seis ficheros estáticos
+ * de Inter, casi un mega más de APK. Si algún día molesta, se cambia por los
+ * estáticos y aquí no se entera nadie más.
+ */
+@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+private fun interWeight(weight: FontWeight) = Font(
+    R.font.inter_variable,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight))
+)
+
+/**
+ * Source Serif 4 — nombres de escuela, titulares, cifras de score.
+ *
+ * Solo tres pesos, los mismos que iOS empaqueta. Los que falten (Light, Medium)
+ * los resuelve Compose con el más cercano, igual que hace `Cumbre.serif` en
+ * Swift: negrita para bold, semibold para medio, regular para el resto.
+ */
 val SourceSerif4Family = FontFamily(
-    Font(googleFont = SourceSerif4GF, fontProvider = GoogleProvider, weight = FontWeight.Light),
-    Font(googleFont = SourceSerif4GF, fontProvider = GoogleProvider, weight = FontWeight.Normal),
-    Font(googleFont = SourceSerif4GF, fontProvider = GoogleProvider, weight = FontWeight.SemiBold),
-    Font(googleFont = SourceSerif4GF, fontProvider = GoogleProvider, weight = FontWeight.Bold),
-    Font(googleFont = SourceSerif4GF, fontProvider = GoogleProvider, weight = FontWeight.Normal, style = FontStyle.Italic),
+    Font(R.font.source_serif4_regular, FontWeight.Normal),
+    Font(R.font.source_serif4_semibold, FontWeight.SemiBold),
+    Font(R.font.source_serif4_bold, FontWeight.Bold),
 )
 
+/**
+ * JetBrains Mono — eyebrows, dígitos y etiquetas técnicas.
+ *
+ * Regular y negrita, ni uno más: es exactamente lo que empaqueta iOS. Cuando
+ * se pide un peso intermedio, Compose elige el más próximo.
+ */
 val JetBrainsMonoFamily = FontFamily(
-    Font(googleFont = JetBrainsMonoGF, fontProvider = GoogleProvider, weight = FontWeight.Normal),
-    Font(googleFont = JetBrainsMonoGF, fontProvider = GoogleProvider, weight = FontWeight.Medium),
-    Font(googleFont = JetBrainsMonoGF, fontProvider = GoogleProvider, weight = FontWeight.SemiBold),
-    Font(googleFont = JetBrainsMonoGF, fontProvider = GoogleProvider, weight = FontWeight.Bold),
+    Font(R.font.jetbrains_mono_regular, FontWeight.Normal),
+    Font(R.font.jetbrains_mono_bold, FontWeight.Bold),
 )
 
 // Aliases con los nombres que usa la PWA en CSS para encontrarlos rápido.

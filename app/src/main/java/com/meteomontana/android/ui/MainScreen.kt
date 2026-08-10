@@ -78,6 +78,11 @@ import com.meteomontana.android.ui.screens.meetups.MeetupAlertScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupDetailScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupsScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
+import com.meteomontana.android.ui.components.CumbreCapsuleShape
+import com.meteomontana.android.ui.components.LocalChromeTreatment
+import com.meteomontana.android.ui.components.cumbreBackdrop
+import com.meteomontana.android.ui.components.cumbreChromeSurface
+import com.meteomontana.android.ui.theme.ChromeTreatment
 
 /** Ruta raíz (vacía) del NavHost interno del sheet: el sheet se abre vacío y se
  *  navega al destino real; al volver a ella se cierra la tarjeta. */
@@ -268,9 +273,10 @@ fun MainScreen(
                 ) {
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(30.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(30.dp))
+                            // Fondo + borde del armazón en UNA sola llamada: según
+                            // el tratamiento activo será color liso, esmerilado o
+                            // esmerilado con canto de luz. La barra no sabe cuál.
+                            .cumbreChromeSurface(CumbreCapsuleShape)
                             .padding(horizontal = 6.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
@@ -314,11 +320,24 @@ fun MainScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         // En Radar el mapa ocupa TODA la pantalla y la cápsula de tabs flota
-        // encima (el player del radar ya deja hueco). En el resto, padding normal.
-        val effectivePadding = if (currentRoute == TABS_HOST &&
-            selectedTab == Tab.Weather.route && weatherShowsRadar)
+        // encima (el player del radar ya deja hueco).
+        //
+        // Y con la cápsula de cristal, IGUAL en todas partes: si el contenido se
+        // parase justo encima de la barra, por detrás no habría nada que
+        // difuminar y el efecto no se vería. El precio es que la última fila de
+        // una lista queda debajo de la cápsula — por eso el modo SÓLIDO
+        // conserva el reparto de siempre y sirve de referencia para comparar.
+        val armazonConMaterial = LocalChromeTreatment.current != ChromeTreatment.SOLIDO
+        val effectivePadding = if (armazonConMaterial || (currentRoute == TABS_HOST &&
+                selectedTab == Tab.Weather.route && weatherShowsRadar))
             androidx.compose.foundation.layout.PaddingValues(0.dp) else padding
-        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize().padding(effectivePadding)) {
+        androidx.compose.foundation.layout.Column(
+            modifier = Modifier.fillMaxSize()
+                .padding(effectivePadding)
+                // Esto es lo que la barra lee para difuminarlo. Sin material, no
+                // hace nada ni cuesta nada.
+                .cumbreBackdrop()
+        ) {
             com.meteomontana.android.ui.components.NetworkBanner()
             NavHost(
                 navController = navController,

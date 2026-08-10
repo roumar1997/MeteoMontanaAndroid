@@ -63,7 +63,17 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.SYSTEM -> system
             }
             MeteoMontanaTheme(darkTheme = isDark) {
-                AppRoot(deepLink = pendingDeepLink.value, onDeepLinkConsumed = { pendingDeepLink.value = null })
+                // El armazón envuelve TODA la app: la barra de pestañas necesita
+                // leer el contenido que tiene detrás, y para eso los dos tienen
+                // que colgar del mismo sitio.
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val tratamiento by com.meteomontana.android.data.local.ChromePrefs
+                    .flow(ctx).collectAsStateWithLifecycle()
+                com.meteomontana.android.ui.components.CumbreChromeHost(
+                    deseado = tratamiento ?: com.meteomontana.android.ui.theme.ChromeTreatment.SOLIDO
+                ) {
+                    AppRoot(deepLink = pendingDeepLink.value, onDeepLinkConsumed = { pendingDeepLink.value = null })
+                }
             }
         }
     }
