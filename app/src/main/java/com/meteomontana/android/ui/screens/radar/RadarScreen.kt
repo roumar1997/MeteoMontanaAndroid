@@ -392,7 +392,15 @@ fun RadarScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .padding(horizontal = Spacing.sm)
-                .padding(bottom = 78.dp, top = Spacing.sm)
+                // El hueco de la cápsula, MEDIDO — no un 78.dp puesto a ojo.
+                // Un número fijo aquí es lo que se descuadra al cambiar de
+                // móvil; el radar es la única pantalla que se dibuja a sangre y
+                // por eso tiene que apartarse ella sola.
+                .padding(
+                    bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current
+                        .coerceAtLeast(78.dp),
+                    top = Spacing.sm
+                )
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f))

@@ -278,7 +278,11 @@ fun CreateMeetupScreen(
 
         // Botón crear
         HorizontalDivider()
-        Box(Modifier.fillMaxWidth().navigationBarsPadding()
+        // SIN navigationBarsPadding: esta pantalla vive dentro del overlay, y
+        // el overlay YA reserva abajo la cápsula de pestañas más la barra del
+        // sistema. Reservarlo otra vez aquí dejaba el botón flotando a media
+        // altura, con un hueco muerto debajo (visto en el Redmi Note 12).
+        Box(Modifier.fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface).padding(Spacing.md)) {
             Button(
                 onClick = {
