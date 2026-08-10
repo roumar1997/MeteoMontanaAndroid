@@ -346,22 +346,23 @@ final class ShareImageSource: NSObject, UIActivityItemSource {
 
     func activityViewControllerPlaceholderItem(_ c: UIActivityViewController) -> Any { image }
 
+    /// SIEMPRE la misma imagen, para todos los destinos.
+    ///
+    /// Hubo un intento de devolver el PNG como fichero a unos destinos y la
+    /// imagen a otros, para tener nitidez y enlace a la vez. Salió mal: iOS
+    /// anuncia el tipo con el placeholder y entrega otro distinto, y WhatsApp
+    /// e Instagram se cerraban sin compartir al elegirlos desde una vía
+    /// (build 120, cazado por Rodrigo). Entregar siempre lo mismo es lo que
+    /// funciona: el texto —y con él el enlace— sobrevive como pie.
     func activityViewController(_ c: UIActivityViewController,
                                 itemForActivityType t: UIActivity.ActivityType?) -> Any? {
-        // Sin destino conocido (la fila de acciones del propio menú): la imagen,
-        // que es lo que todo el mundo entiende.
-        guard let raw = t?.rawValue.lowercased() else { return image }
+        image
+    }
 
-        // Mensajería: imagen, para que el texto sobreviva como pie.
-        let mensajeria = ["whatsapp", "telegram", "message", "mail",
-                          "instagram", "facebook", "twitter", "signal"]
-        if mensajeria.contains(where: { raw.contains($0) }) { return image }
-
-        // El resto (Archivos, AirDrop, Fotos): el PNG con los píxeles intactos.
-        guard let data = image.pngData() else { return image }
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cumbre-share-\(Int.random(in: 100000...999999)).png")
-        try? data.write(to: url)
-        return url
+    /// Declarar PNG evita que el receptor asuma JPEG y recomprima de más, que
+    /// era el motivo original de aquel intento.
+    func activityViewController(_ c: UIActivityViewController,
+                                dataTypeIdentifierForActivityType t: UIActivity.ActivityType?) -> String {
+        "public.png"
     }
 }
