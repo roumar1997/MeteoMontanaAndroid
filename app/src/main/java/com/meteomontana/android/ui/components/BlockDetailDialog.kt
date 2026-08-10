@@ -167,6 +167,10 @@ fun BlockDetailDialog(
         shape = CumbreSheetShape,
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
+        // La cabecera va FUERA del área que scrollea: en iOS el "Cerrar" se
+        // queda fijo arriba por mucho que bajes, para que puedas salir en
+        // cualquier momento. Aquí se iba con el contenido y había que subir
+        // del todo para encontrarlo.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -174,29 +178,25 @@ fun BlockDetailDialog(
                 .cumbreSheetSurface()
                 // Sin esto el teclado tapa el campo/botón de comentar una vía.
                 .imePadding()
-                .verticalScroll(contenidoScroll)
-                .padding(horizontal = Spacing.md)
-                // Holgura abajo para que los últimos botones (p.ej. OPCIONES
-                // desplegado) queden por ENCIMA de la cápsula flotante de
-                // pestañas, que ahora está siempre visible y se dibuja sobre
-                // el contenido.
-                .padding(bottom = 100.dp)
         ) {
-            // CABECERA COMO EN iOS: "Cerrar" en pastilla arriba a la izquierda
-            // con el nombre centrado, y debajo el tipo de eyebrow con el nombre
-            // en grande. Antes era todo una sola fila apretada —insignia, nombre
-            // pequeño y una ✕ diminuta en la esquina— y no se parecía en nada.
             val (badgeColor, badgeLabel) = when {
                 isProposal              -> Color(0xFFF59E0B) to "PROPUESTA"
                 block.type == "PARKING" -> Color(0xFF1D6DD6) to "PARKING"
                 block.type == "ZONE"    -> Color(0xFF1FA84E) to "ZONA"
                 else                    -> Terra to "PIEDRA"
             }
-            CumbreSheetHeader(
-                titulo = block.name,
-                onClose = onDismiss,
-                modifier = Modifier.padding(horizontal = 0.dp)
-            )
+            CumbreSheetHeader(titulo = block.name, onClose = onDismiss)
+
+            Column(
+                modifier = Modifier
+                    .verticalScroll(contenidoScroll)
+                    .padding(horizontal = Spacing.md)
+                    // Holgura abajo para que los últimos botones (p.ej. OPCIONES
+                    // desplegado) queden por ENCIMA de la cápsula flotante de
+                    // pestañas, que ahora está siempre visible y se dibuja sobre
+                    // el contenido.
+                    .padding(bottom = 100.dp)
+            ) {
             Spacer(Modifier.height(Spacing.sm))
             Text(badgeLabel, style = EyebrowTextStyle, color = badgeColor)
             Spacer(Modifier.height(2.dp))
@@ -567,6 +567,7 @@ fun BlockDetailDialog(
                     }
                 },
             )
+            }
         }
     }
 
