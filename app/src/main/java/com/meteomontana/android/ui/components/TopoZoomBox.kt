@@ -142,8 +142,17 @@ fun TopoZoomBox(
                             // scroll con normalidad: el gesto solo se "captura"
                             // cuando el usuario ya ha decidido mirar de cerca.
                             val d = ch.position - ch.previousPosition
-                            setCamera(camera.panBy(d.x, d.y, w, h))
-                            ch.consume()
+                            val movida = camera.panBy(d.x, d.y, w, h)
+                            if (movida != camera) {
+                                setCamera(movida)
+                                ch.consume()
+                            }
+                            // Si la foto YA no puede moverse más en esa dirección
+                            // (tope del recorte), el gesto NO se consume y se lo
+                            // queda la ficha, que sigue con su scroll. Sin esto,
+                            // con la foto ampliada el dedo se quedaba atrapado en
+                            // ella y la ficha parecía atascada — reportado por
+                            // Rodrigo probando el Redmi Note 12.
                         }
                     }
 

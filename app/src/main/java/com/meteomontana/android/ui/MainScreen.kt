@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -83,6 +84,8 @@ import com.meteomontana.android.ui.components.LocalChromeTreatment
 import com.meteomontana.android.ui.components.cumbreBackdrop
 import com.meteomontana.android.ui.components.cumbreChromeSurface
 import com.meteomontana.android.ui.theme.ChromeTreatment
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 
 /** Ruta raíz (vacía) del NavHost interno del sheet: el sheet se abre vacío y se
  *  navega al destino real; al volver a ella se cierra la tarjeta. */
@@ -327,10 +330,31 @@ fun MainScreen(
         // difuminar y el efecto no se vería. El precio es que la última fila de
         // una lista queda debajo de la cápsula — por eso el modo SÓLIDO
         // conserva el reparto de siempre y sirve de referencia para comparar.
+        // Cuánto reservó el Scaffold abajo: la cápsula de pestañas MÁS la barra
+        // de navegación del móvil. Las dos cosas van juntas en el mismo número,
+        // y ahí estuvo el lío del 2026-08-10: al quitarlo para que el contenido
+        // pasara por detrás de la cápsula, se quitaba también el suelo de la
+        // barra del sistema, y el campo de escribir de comentar/chats se metía
+        // debajo de los botones del móvil.
+        //
+        // La regla ahora: se libera SOLO para el contenido de las pestañas —lo
+        // único que tiene que correr por detrás de la cápsula para que haya algo
+        // que difuminar— y se le DEVUELVE explícitamente a lo que se abre encima
+        // (ver `reservaAbajo` más abajo, donde se envuelve el overlay).
+        val reservaAbajo = padding.calculateBottomPadding()
         val armazonConMaterial = LocalChromeTreatment.current != ChromeTreatment.SOLIDO
-        val effectivePadding = if (armazonConMaterial || (currentRoute == TABS_HOST &&
-                selectedTab == Tab.Weather.route && weatherShowsRadar))
-            androidx.compose.foundation.layout.PaddingValues(0.dp) else padding
+        val layoutDir = androidx.compose.ui.platform.LocalLayoutDirection.current
+        val effectivePadding = when {
+            currentRoute == TABS_HOST && selectedTab == Tab.Weather.route && weatherShowsRadar ->
+                androidx.compose.foundation.layout.PaddingValues(0.dp)
+            armazonConMaterial -> androidx.compose.foundation.layout.PaddingValues(
+                start = padding.calculateStartPadding(layoutDir),
+                top = padding.calculateTopPadding(),
+                end = padding.calculateEndPadding(layoutDir),
+                bottom = 0.dp
+            )
+            else -> padding
+        }
         androidx.compose.foundation.layout.Column(
             modifier = Modifier.fillMaxSize()
                 .padding(effectivePadding)
@@ -360,6 +384,22 @@ fun MainScreen(
                         androidx.compose.runtime.mutableStateMapOf<String, Boolean>()
                     }
                     visited[selectedTab] = true
+
+                    // La pantalla de debajo retrocede mientras hay algo abierto
+                    // encima. Con el MISMO muelle que el resto del movimiento
+                    // (CumbreMotion): si esto fuese con otra curva, se vería que
+                    // van por su cuenta. 0.92 es suficiente para leer la
+                    // profundidad sin que parezca que la pantalla se cae.
+                    val escalaFondo by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (sheetVisible) 0.92f else 1f,
+                        animationSpec = com.meteomontana.android.ui.theme.CumbreMotion.opacidad,
+                        label = "escalaFondo"
+                    )
+                    val radioFondo by androidx.compose.animation.core.animateDpAsState(
+                        targetValue = if (sheetVisible) 18.dp else 0.dp,
+                        animationSpec = androidx.compose.animation.core.spring(),
+                        label = "radioFondo"
+                    )
                     Box(Modifier.fillMaxSize()) {
                         @androidx.compose.runtime.Composable
                         fun tabContainer(route: String, content: @androidx.compose.runtime.Composable () -> Unit) {
@@ -368,7 +408,18 @@ fun MainScreen(
                                 Box(
                                     Modifier.fillMaxSize()
                                         .zIndex(if (sel) 1f else 0f)
-                                        .graphicsLayer { alpha = if (sel) 1f else 0f }
+                                        .graphicsLayer {
+                                            alpha = if (sel) 1f else 0f
+                                            // Al abrir algo encima, esta pantalla
+                                            // se va al fondo: se encoge y se
+                                            // redondea. Es LO que hace que en un
+                                            // iPhone se sienta que hay capas y no
+                                            // pantallas sueltas apiladas.
+                                            scaleX = escalaFondo
+                                            scaleY = escalaFondo
+                                            shape = RoundedCornerShape(radioFondo)
+                                            clip = escalaFondo < 1f
+                                        }
                                 ) { content() }
                             }
                         }
@@ -506,6 +557,47 @@ fun MainScreen(
                         // encima del contenido) → la barra queda visible y pulsable.
                         // En función aparte para evitar la ambigüedad de overload de
                         // AnimatedVisibility con el ColumnScope que lo envuelve.
+                        // EL SUELO DEL OVERLAY, devuelto a mano.
+                        //
+                        // El contenido de las pestañas corre por detrás de la
+                        // cápsula a propósito (para que haya algo que
+                        // difuminar), pero lo que se abre ENCIMA no: sus
+                        // pantallas llevan campos de texto pegados abajo
+                        // —comentar, chats, editar perfil— y sin esta reserva
+                        // acaban debajo de los botones del sistema. Es
+                        // exactamente el fallo que cazó Rodrigo comentando en
+                        // el feed.
+                        // La franja donde flota la cápsula, tapada mientras hay
+                        // algo abierto encima.
+                        //
+                        // El contenido de las pestañas corre por detrás de la
+                        // cápsula (es lo que le da algo que difuminar), pero con
+                        // una publicación abierta esa franja enseñaba el mapa
+                        // del feed asomando bajo el campo de comentar. Va por
+                        // debajo del overlay (1.5) y por encima de las pestañas
+                        // (1); no se dibuja cuando no hay nada abierto, así que
+                        // el cristal se ve entero en el uso normal.
+                        if (sheetVisible && reservaAbajo > 0.dp) {
+                            Box(
+                                Modifier.align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .height(reservaAbajo)
+                                    .zIndex(1.5f)
+                                    .background(MaterialTheme.colorScheme.background)
+                            )
+                        }
+                        //
+                        // El zIndex NO es decorativo: el overlay se dibujaba en
+                        // el nivel 2 y las pestañas en el 1. Al meterlo dentro
+                        // de esta caja, el orden pasa a decidirlo la CAJA, y sin
+                        // esto se quedaba en el nivel 0 → la pestaña se pintaba
+                        // encima y se veía el feed y el radar a través de la
+                        // publicación.
+                        Box(
+                            Modifier.fillMaxSize()
+                                .zIndex(2f)
+                                .padding(bottom = reservaAbajo)
+                        ) {
                         SheetOverlay(
                             sheetVisible = sheetVisible,
                             onHide = { sheetVisible = false },
@@ -516,11 +608,12 @@ fun MainScreen(
                             openSheet = openSheet,
                             openFullScreen = openFullScreen,
                             popSheetOrDismiss = popSheetOrDismiss,
-                            // Lo que el Scaffold ya reservó abajo (cápsula de tabs +
-                            // navbar): las pantallas del overlay con teclado se lo
-                            // descuentan al imePadding para pegarse al teclado.
-                            bottomInset = effectivePadding.calculateBottomPadding()
+                            // Lo que el Box de arriba ya le reservó: las pantallas
+                            // con teclado se lo descuentan al imePadding para
+                            // pegarse al teclado sin dejar un hueco muerto.
+                            bottomInset = reservaAbajo
                         )
+                        }
                     }
                 }
                 composable(Routes.ADMIN) {
