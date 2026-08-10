@@ -364,6 +364,19 @@ private fun Header(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        // La bio, igual que en el perfil público y que en iOS.
+        //
+        // Faltaba SOLO aquí: se guardaba bien y se usaba en el perfil público y
+        // en la imagen de compartir, pero en tu propia pestaña no se pintaba en
+        // ningún sitio. O sea, la escribías y luego ibas a mirarla justo al
+        // único lugar donde no salía. Reportado por Rodrigo, que la ve en su
+        // iPhone y no en Android.
+        p.bio?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(4.dp))
+            Text(it, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        }
         p.email?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

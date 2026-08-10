@@ -287,6 +287,19 @@ fun GroupChatScreen(
     var text by remember { mutableStateOf("") }
     val context = LocalContext.current
 
+    // Mismo comportamiento que el chat 1-a-1: `reverseLayout` ancla lo último
+    // abajo al ABRIR, pero no mueve nada después, así que al escribir tu propio
+    // mensaje se quedaba fuera de la vista. Al mío se baja siempre; al ajeno,
+    // solo si ya estabas abajo — si no, te sacaría de donde estás leyendo cada
+    // vez que alguien del grupo escribe, que en un grupo es constante.
+    val ultimo = state.messages.lastOrNull()
+    LaunchedEffect(ultimo?.id) {
+        if (ultimo == null) return@LaunchedEffect
+        if (ultimo.fromUid == state.myUid || listState.firstVisibleItemIndex <= 1) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)
         .consumeWindowInsets(androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset))
