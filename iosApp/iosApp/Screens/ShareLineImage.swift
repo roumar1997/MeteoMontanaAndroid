@@ -272,27 +272,24 @@ enum ShareLineImage {
     // MARK: - Share sheet
 
 
-    /// Compartir UIImage tal cual hace que el share sheet la RECOMPRIMA a
-    /// JPEG (salía borrosa — feedback de Rodrigo). Se vuelca a un PNG
-    /// temporal y se comparte el fichero: píxeles intactos.
+    /// Los items van al menú de compartir **tal cual**: la `UIImage` y el texto.
     ///
-    /// PERO ese arreglo se comía el ENLACE: al entregar la imagen como
-    /// FICHERO, WhatsApp la trata como documento y descarta el texto que va
-    /// al lado — así que el enlace para abrir la vía en Cumbre no llegaba
-    /// nunca (reportado por Rodrigo, en producción). En Android no pasa
-    /// porque su sistema de compartir lleva texto e imagen por separado.
+    /// Aquí hubo dos intentos de ser más listos y los dos salieron mal, así que
+    /// queda escrito para no repetirlos:
     ///
-    /// La solución no es elegir entre nitidez y enlace: es dar a cada destino
-    /// lo que sabe manejar. [ShareImageSource] entrega la UIImage a las apps
-    /// de mensajería —que así conservan el texto como pie— y el PNG intacto
-    /// al resto (Archivos, AirDrop, guardar en Fotos).
-    fileprivate static func asPngItems(_ items: [Any]) -> [Any] {
-        items.map { item in
-            guard let img = item as? UIImage else { return item }
-            return ShareImageSource(image: img)
-        }
-    }
-
+    ///  1. Volcar la imagen a un PNG temporal y compartir el FICHERO, para que
+    ///     no la recomprimieran a JPEG (salía algo borrosa). Efecto colateral:
+    ///     WhatsApp trata el fichero como documento y **descarta el texto**, con
+    ///     lo que el enlace para abrir la vía en Cumbre no llegaba nunca.
+    ///  2. Un `UIActivityItemSource` que decidía por destino —imagen a
+    ///     mensajería, fichero al resto—. Peor: al elegir WhatsApp o Instagram
+    ///     desde una vía, el menú se cerraba **sin compartir nada** (builds 120
+    ///     y 122). El feed no lo sufría, con el mismo código, y esa asimetría no
+    ///     se llegó a explicar.
+    ///
+    /// Se vuelve a lo que funcionó durante meses. Si algún día molesta la
+    /// nitidez, el camino no es tocar esto a ciegas: hace falta un Mac para
+    /// depurar la extensión de verdad.
     @MainActor
     private static func present(_ items: [Any]) {
         guard let scene = UIApplication.shared.connectedScenes
@@ -301,7 +298,7 @@ enum ShareLineImage {
         else { return }
         var top = root
         while let presented = top.presentedViewController { top = presented }
-        let vc = UIActivityViewController(activityItems: asPngItems(items), applicationActivities: nil)
+        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
         if let pop = vc.popoverPresentationController {
             pop.sourceView = top.view
             pop.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.midY, width: 0, height: 0)
@@ -324,45 +321,5 @@ enum ShareBase {
             ? "https://meteomontanaapi-staging.up.railway.app"
             : "https://api.climbingteams.com"
         #endif
-    }
-}
-
-/// Cómo se entrega una imagen al menú de compartir de iOS.
-///
-/// **El problema que resuelve.** Una imagen se puede entregar de dos formas y
-/// ninguna vale para todo:
-///  - Como `UIImage`: las apps de mensajería la aceptan **junto con el texto**
-///    (WhatsApp la manda con el mensaje de pie), pero pueden recomprimirla.
-///  - Como fichero PNG: llega con los píxeles intactos, pero WhatsApp la trata
-///    como un documento y **tira el texto** — que es donde va el enlace para
-///    abrir la vía en Cumbre.
-///
-/// Elegir una sola obligaba a sacrificar la nitidez o el enlace. Aquí se decide
-/// por destino: mensajería recibe la imagen (y conserva el enlace), y lo demás
-/// —Archivos, AirDrop, guardar en Fotos— recibe el PNG sin tocar.
-final class ShareImageSource: NSObject, UIActivityItemSource {
-    private let image: UIImage
-    init(image: UIImage) { self.image = image }
-
-    func activityViewControllerPlaceholderItem(_ c: UIActivityViewController) -> Any { image }
-
-    /// SIEMPRE la misma imagen, para todos los destinos.
-    ///
-    /// Hubo un intento de devolver el PNG como fichero a unos destinos y la
-    /// imagen a otros, para tener nitidez y enlace a la vez. Salió mal: iOS
-    /// anuncia el tipo con el placeholder y entrega otro distinto, y WhatsApp
-    /// e Instagram se cerraban sin compartir al elegirlos desde una vía
-    /// (build 120, cazado por Rodrigo). Entregar siempre lo mismo es lo que
-    /// funciona: el texto —y con él el enlace— sobrevive como pie.
-    func activityViewController(_ c: UIActivityViewController,
-                                itemForActivityType t: UIActivity.ActivityType?) -> Any? {
-        image
-    }
-
-    /// Declarar PNG evita que el receptor asuma JPEG y recomprima de más, que
-    /// era el motivo original de aquel intento.
-    func activityViewController(_ c: UIActivityViewController,
-                                dataTypeIdentifierForActivityType t: UIActivity.ActivityType?) -> String {
-        "public.png"
     }
 }
