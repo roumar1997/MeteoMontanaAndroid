@@ -140,9 +140,27 @@ fun BlockDetailDialog(
     // queda a la vista y el resto (editar vías, sector, eliminar) va dentro.
     var optionsOpen by remember { mutableStateOf(false) }
 
+    // El scroll del contenido, en una variable: hace falta para decidir cuándo
+    // se puede cerrar la hoja arrastrando (ver confirmValueChange).
+    val contenidoScroll = rememberScrollState()
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        // ARRASTRAR PARA CERRAR, solo desde arriba.
+        //
+        // La ficha es larga y su gesto de cierre competía con el scroll: al
+        // deslizar para leer, muchas veces se cerraba la hoja en vez de mover
+        // el contenido (reportado por Rodrigo). Ahora solo se deja cerrar
+        // cuando el contenido ya está arriba del todo — que es exactamente
+        // como se comporta iOS: si estás leyendo por la mitad, el dedo mueve
+        // la ficha, no la cierra. El ✕ y el botón atrás siguen cerrando
+        // siempre, así que no se pierde ninguna salida.
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { valor ->
+                valor != androidx.compose.material3.SheetValue.Hidden ||
+                    contenidoScroll.value == 0
+            }
+        ),
         // El fondo lo pone cumbreSheetSurface (borde + canto de luz); si lo
         // pintase el sheet, los taparía.
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -156,7 +174,7 @@ fun BlockDetailDialog(
                 .cumbreSheetSurface()
                 // Sin esto el teclado tapa el campo/botón de comentar una vía.
                 .imePadding()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(contenidoScroll)
                 .padding(horizontal = Spacing.md)
                 // Holgura abajo para que los últimos botones (p.ej. OPCIONES
                 // desplegado) queden por ENCIMA de la cápsula flotante de
@@ -164,41 +182,29 @@ fun BlockDetailDialog(
                 // el contenido.
                 .padding(bottom = 100.dp)
         ) {
-            // Header
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                val (badgeColor, badgeLabel) = when {
-                    isProposal              -> Color(0xFFF59E0B) to "PROPUESTA"
-                    block.type == "PARKING" -> Color(0xFF1D6DD6) to "PARKING"
-                    block.type == "ZONE"    -> Color(0xFF1FA84E) to "ZONA"
-                    else                    -> Terra to "PIEDRA"
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(badgeColor)
-                        .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                ) {
-                    Text(badgeLabel, style = EyebrowTextStyle, color = Color.White)
-                }
-                Text(
-                    block.name,
-                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .clickable(onClick = onDismiss)
-                        .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                ) {
-                    Text("✕", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurface)
-                }
+            // CABECERA COMO EN iOS: "Cerrar" en pastilla arriba a la izquierda
+            // con el nombre centrado, y debajo el tipo de eyebrow con el nombre
+            // en grande. Antes era todo una sola fila apretada —insignia, nombre
+            // pequeño y una ✕ diminuta en la esquina— y no se parecía en nada.
+            val (badgeColor, badgeLabel) = when {
+                isProposal              -> Color(0xFFF59E0B) to "PROPUESTA"
+                block.type == "PARKING" -> Color(0xFF1D6DD6) to "PARKING"
+                block.type == "ZONE"    -> Color(0xFF1FA84E) to "ZONA"
+                else                    -> Terra to "PIEDRA"
             }
+            CumbreSheetHeader(
+                titulo = block.name,
+                onClose = onDismiss,
+                modifier = Modifier.padding(horizontal = 0.dp)
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            Text(badgeLabel, style = EyebrowTextStyle, color = badgeColor)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                block.name,
+                style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
+                color = MaterialTheme.colorScheme.onSurface
+            )
 
             // C2: orientacion votable de la piedra/sector entero + tira de sol.
             if (!isProposal) {
@@ -236,13 +242,15 @@ fun BlockDetailDialog(
                             .background(Color(0xFF1FA84E))
                             .padding(horizontal = Spacing.sm, vertical = 2.dp)
                     ) {
-                        Text("SECTOR", style = EyebrowTextStyle, color = Color.White)
+                        // El sector, TODO dentro de la misma pastilla verde:
+                        // "SECTOR · ALUNECER", como en iOS. Antes la insignia
+                        // llevaba solo la palabra y el nombre iba suelto al
+                        // lado, y se leían como dos cosas distintas.
+                        Text(
+                            "SECTOR · " + (sectorName ?: "SIN NOMBRE").uppercase(),
+                            style = EyebrowTextStyle, color = Color.White
+                        )
                     }
-                    Text(
-                        sectorName ?: "(sector desconocido)",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
                 }
             }
 
