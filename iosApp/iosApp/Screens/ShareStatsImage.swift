@@ -46,9 +46,13 @@ enum ShareStatsImage {
                                progression: JournalStatsCalculator.Progression?) -> UIImage {
         let w: CGFloat = 1080, h: CGFloat = 1920
         let format = UIGraphicsImageRendererFormat()
-        // scale 2: a escala 1 salía BORROSA en los visores; Android pinta el
-        // bitmap con AA nativo y se ve nítida — igualamos.
-        format.scale = 2
+        // ESCALA 1. Estaba a 2 por la misma razón que ShareLineImage —se veía
+        // algo borrosa— y arrastraba el mismo fallo: 2160×3840 son ~33 MB de
+        // bitmap y las extensiones de compartir de iOS no pueden con ellos
+        // (WhatsApp se cierra sin compartir). Aquí no se llegó a reportar
+        // porque se comparte mucho menos que una vía, pero el defecto era
+        // idéntico. 1080×1920 ya es la resolución del formato historia.
+        format.scale = 1
         return UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format)
             .image { ctx in
                 let c = ctx.cgContext

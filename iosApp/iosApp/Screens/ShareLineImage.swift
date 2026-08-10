@@ -73,7 +73,18 @@ enum ShareLineImage {
         let w: CGFloat = 1080, h: CGFloat = 1920, pad: CGFloat = 72
         let availW = w - 2 * pad
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 2  // nitidez (= ShareStatsImage)   // px reales, no puntos (evita el 2x/3x del dispositivo)
+        // ESCALA 1, y no se sube. `w`×`h` ya son PÍXELES: 1080×1920 es la
+        // resolución nativa del formato historia, así que la escala 2 no daba
+        // nitidez donde se mira — daba 2160×3840, un mapa de bits de ~33 MB.
+        //
+        // Y ese era el fallo: las extensiones de compartir de iOS corren con un
+        // presupuesto de memoria muy justo, y WhatsApp e Instagram se cerraban
+        // sin compartir al recibir la imagen de una vía (el feed, a escala 1 y
+        // ~8 MB, funcionaba con el MISMO código — esa fue la pista). Entró con
+        // el commit de "shares iOS nítidos" (build 105) y se diagnosticó mal
+        // dos veces: ni el fichero PNG ni el UIActivityItemSource tenían nada
+        // que ver, era el tamaño.
+        format.scale = 1
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format)
 
         return renderer.image { rctx in
