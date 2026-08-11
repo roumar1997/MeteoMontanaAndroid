@@ -29,6 +29,8 @@ struct SchoolMapSection: View {
     /// se quedara puesta, volver a entrar reabriría el flujo de proponer sin
     /// que nadie lo haya pedido.
     @State private var fotoSemilla: PhotoProposalSeedStore.Seed?
+    /// Atajo "piedra desde una foto" lanzado DESDE esta escuela.
+    @State private var eligiendoFoto = false
     /// Punto donde se hizo la foto, a la espera de que el usuario lo confirme.
     @State private var confirmandoFoto: CLLocationCoordinate2D?
     // Datos del mapa (bloques/capas/buscador/admin) — ver SchoolMapViewModel.
@@ -126,26 +128,7 @@ struct SchoolMapSection: View {
             // "Enviar piedra": la foto ya dijo qué se propone y dónde se hizo.
             // Se abre el mapa y se espera un toque para el sitio exacto: el GPS
             // se equivoca entre 10 y 30 metros y las piedras están a metros.
-            if fotoSemilla == nil,
-               let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) {
-                fotoSemilla = semilla
-                expanded = true
-                flow.proposeType = "BOULDER"
-                // Se coloca DONDE SE HIZO la foto y solo queda confirmarlo. El
-                // mapa se centra ahí para poder juzgar si el sitio es bueno.
-                confirmandoFoto = CLLocationCoordinate2D(latitude: semilla.lat,
-                                                         longitude: semilla.lon)
-                // A pantalla completa: la pregunta "¿es el sitio?" solo se puede
-                // responder viendo el mapa con holgura.
-                fullscreenMap = true
-                focusCoord = confirmandoFoto
-                // Dos veces a proposito: al pasar a pantalla completa el mapa se
-                // RECREA, y la primera orden puede perderse con el mapa viejo.
-                focusToken += 1
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    if confirmandoFoto != nil { focusToken += 1 }
-                }
-            }
+            consumirSemillaDeFoto()
         }
         // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
         // el auto-abrir del deep-link (antes se quedaba en la escuela a secas).
@@ -399,9 +382,24 @@ struct SchoolMapSection: View {
                         flow.showTypePicker = false
                         switch type {
                         case "PARKING", "SECTOR", "BOULDER": flow.proposeType = type; flow.waitingTap = true
+                        // La escuela ya la sabemos: solo hace falta la foto.
+                        case "BOULDER_PHOTO": eligiendoFoto = true
                         case "CORRECTION": flow.startCorrection()
                         default: break
                         }
+                    }
+                }
+                .overlay {
+                    if eligiendoFoto {
+                        SubmitBlockPhotoFlow(
+                            schools: [school],
+                            escuelaFijada: school,
+                            onOpenSchool: { _ in
+                                eligiendoFoto = false
+                                consumirSemillaDeFoto()
+                            },
+                            onDismiss: { eligiendoFoto = false })
+                        .allowsHitTesting(false)
                     }
                 }
                 .sheet(item: coordItem) { item in
@@ -670,6 +668,35 @@ struct SchoolMapSection: View {
         if !flow.corrActive { return "PULSA EL MARCADOR QUE QUIERES MOVER" }
         if flow.corrNew == nil { return "MOVIENDO «\(flow.corrTargetName)» · PULSA LA NUEVA POSICIÓN" }
         return "POSICIÓN FIJADA · PULSA OTRA VEZ PARA RECORREGIR O ACEPTA"
+    }
+
+    /// Recoge la foto que dejó el atajo "piedra desde una foto" y prepara el
+    /// mapa para confirmar el sitio.
+    ///
+    /// Se llama desde DOS sitios: al entrar en la escuela (atajo lanzado desde
+    /// la lista de escuelas) y justo después de elegir la foto dentro de la
+    /// propia escuela. Es el mismo trabajo, así que vive en un solo sitio.
+    private func consumirSemillaDeFoto() {
+        guard fotoSemilla == nil,
+              let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) else { return }
+        fotoSemilla = semilla
+        expanded = true
+        flow.proposeType = "BOULDER"
+        // Se coloca DONDE SE HIZO la foto y solo queda confirmarlo. El mapa se
+        // centra ahí para poder juzgar si el sitio es bueno: el GPS se equivoca
+        // entre 10 y 30 metros y las piedras están a metros.
+        confirmandoFoto = CLLocationCoordinate2D(latitude: semilla.lat,
+                                                 longitude: semilla.lon)
+        // A pantalla completa: la pregunta "¿es el sitio?" solo se puede
+        // responder viendo el mapa con holgura.
+        fullscreenMap = true
+        focusCoord = confirmandoFoto
+        // Dos veces a proposito: al pasar a pantalla completa el mapa se RECREA
+        // y la primera orden puede perderse con el mapa viejo.
+        focusToken += 1
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            if confirmandoFoto != nil { focusToken += 1 }
+        }
     }
 
     /// Banner superior + botón cancelar (y aceptar opcional) sobre el mapa.

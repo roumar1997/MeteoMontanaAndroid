@@ -113,6 +113,15 @@ enum PhotoExifReader {
 /// Presenta el selector y resuelve la escuela.
 struct SubmitBlockPhotoFlow: View {
     let schools: [School]
+    /// Si se entra DESDE una escuela (su mapa -> PROPONER), ya sabemos a cual
+    /// pertenece: no hay que buscarla por cercania ni rechazar la foto por
+    /// estar lejos del catalogo. Solo hace falta que la foto sepa donde se
+    /// hizo, para colocar la piedra en el punto.
+    ///
+    /// Se resuelve con un parametro en vez de un flujo aparte porque el resto
+    /// -selector, lectura de EXIF, semilla- es identico, y dos copias acaban
+    /// divergiendo.
+    var escuelaFijada: School? = nil
     var onOpenSchool: (String) -> Void
     var onDismiss: () -> Void
 
@@ -141,6 +150,17 @@ struct SubmitBlockPhotoFlow: View {
             Task { @MainActor in
                 guard let donde = await PhotoExifReader.read(result) else {
                     aviso = "Esta foto no guarda dónde se hizo, así que no se puede saber a qué escuela pertenece. Prueba con otra: tiene que ser una foto tomada por ti, con la ubicación activada en la cámara."
+                    return
+                }
+                // Desde el mapa de una escuela: la escuela ya esta decidida.
+                if let fijada = escuelaFijada {
+                    PhotoProposalSeedStore.shared.put(.init(
+                        schoolId: fijada.id,
+                        image: donde.image,
+                        lat: donde.lat, lon: donde.lon,
+                        aspect: PhotoPlacement.shared.aspectFromCameraDirection(
+                            cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) })))
+                    onOpenSchool(fijada.id)
                     return
                 }
                 // Versión PLANA a propósito: una clase sellada cruza mal la

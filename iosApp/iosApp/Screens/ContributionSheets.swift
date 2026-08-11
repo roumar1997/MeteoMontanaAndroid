@@ -28,6 +28,12 @@ struct ContributionTypePicker: View {
                     .background(Cumbre.terra.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
 
                 row("PIEDRA", "Una roca con sus vías. Podrás añadir fotos y dibujar las líneas.", "mountain.2.fill", enabled: true) { onPick("BOULDER") }
+                // Atajo: si la foto sabe donde se hizo, la piedra se coloca
+                // sola y no hay que tocar el mapa. Aqui la escuela ya se
+                // conoce, asi que -a diferencia del mismo atajo desde la lista
+                // de escuelas- no hay que buscarla por cercania. Pensado para
+                // encadenar varias piedras sin salir de la escuela.
+                row("PIEDRA DESDE UNA FOTO", "Elige una foto tuya de la piedra: se coloca sola en el punto donde la hiciste.", "photo.on.rectangle.angled", enabled: true) { onPick("BOULDER_PHOTO") }
                 row("SECTOR", "Una zona que agrupa piedras (ej: \"La Isla\"). Después asignarás piedras al sector.", "square.dashed", enabled: true) { onPick("SECTOR") }
                 row("PARKING", "El punto de aparcamiento. Otros escaladores verán \"Cómo llegar\".", "car.fill", enabled: true) { onPick("PARKING") }
                 row("CORREGIR", "¿Algo está mal colocado en el mapa? Tócalo y muévelo al sitio correcto.", "mappin.and.ellipse", enabled: true) { onPick("CORRECTION") }
