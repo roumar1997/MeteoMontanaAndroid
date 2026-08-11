@@ -192,6 +192,7 @@ struct AccountView: View {
     @StateObject private var vm = AccountViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var showAddBlock = false
+    @State private var showGear = false
     @State private var zoomUrl: String? = nil   // foto de perfil a pantalla completa
 
     private let authBridge = AppDependencies.shared.authBridge
@@ -245,6 +246,12 @@ struct AccountView: View {
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     if vm.profile != nil {
+                        // Mi material: vivia enterrado en Editar perfil y es de
+                        // lo que mas se cambia (dos crashpads un finde, tres el
+                        // siguiente). Aqui se llega en un toque.
+                        Button { showGear = true } label: {
+                            Image(systemName: "backpack")
+                        }.foregroundStyle(Cumbre.terra)
                         Button { shareProfile() } label: {
                             Image(systemName: "square.and.arrow.up")
                         }.foregroundStyle(Cumbre.terra)
@@ -257,6 +264,7 @@ struct AccountView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showGear) { MyGearSheet() }
             .sheet(isPresented: $showAddBlock) {
                 AddBlockSheet { block, grade, schoolId, school, sector, notes, discipline in
                     Task { await vm.addBlock(blockName: block, grade: grade, schoolId: schoolId,

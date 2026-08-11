@@ -177,6 +177,7 @@ struct SchoolDetailView: View {
         ScrollView {
             if vm.loading {
                 ProgressView().padding(.top, 60)
+                    .frame(maxWidth: .infinity, minHeight: 320)
             } else if let err = vm.errorText {
                 ContentUnavailableView("Sin previsión", systemImage: "cloud.slash", description: Text(err))
                     .padding(.top, 60)

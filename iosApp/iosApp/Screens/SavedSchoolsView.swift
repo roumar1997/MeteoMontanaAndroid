@@ -73,6 +73,7 @@ struct OfflineSchoolView: View {
         ScrollView {
             if loading {
                 ProgressView().padding(.top, 60)
+                    .frame(maxWidth: .infinity, minHeight: 320)
             } else if let s = snapshot {
                 if let f = s.forecast {
                     ForecastBodyView(

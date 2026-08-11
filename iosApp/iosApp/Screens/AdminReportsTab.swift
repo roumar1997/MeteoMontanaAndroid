@@ -216,6 +216,7 @@ struct UserModerationSheet: View {
             ScrollView {
                 if loading || mod == nil {
                     ProgressView().padding(.top, 40)
+                        .frame(maxWidth: .infinity, minHeight: 320)
                 } else if let m = mod {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(m.username.map { "@" + $0 } ?? (m.displayName ?? String(m.uid.prefix(10))))

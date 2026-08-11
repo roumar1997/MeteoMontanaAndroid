@@ -88,7 +88,13 @@ struct EditProfileView: View {
     var body: some View {
         ScrollView {
             if vm.loading {
+                // Sin ocupar el ancho, la vista se dimensiona al tamano de la
+                // ruedita, el fondo se encoge con ella y asoma la pantalla
+                // anterior por los lados: la "raya" al entrar que reporto
+                // Rodrigo. Pasa igual en las pantallas de admin con este mismo
+                // patron de carga.
                 ProgressView().padding(.top, 60)
+                    .frame(maxWidth: .infinity, minHeight: 320)
             } else {
                 VStack(alignment: .leading, spacing: 16) {
                     avatarPicker

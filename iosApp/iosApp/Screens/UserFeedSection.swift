@@ -155,6 +155,7 @@ struct UserFeedSection: View {
         Group {
             if vm.loading {
                 ProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 320)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 24)
             } else {
