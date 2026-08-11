@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,7 +64,16 @@ fun SchoolDetailScreen(
     var addBlockOpen by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize()
+        .pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                    android.util.Log.i("CUMBRE-MAPA", "PANTALLA recibe " + e.type + " en " + e.changes.firstOrNull()?.position)
+                }
+            }
+        }
+        .background(MaterialTheme.colorScheme.background)) {
         TopBar(
             title = success?.school?.name ?: "",
             isFavorite = success?.isFavorite ?: false,
@@ -266,7 +276,18 @@ private fun Content(
         // su sitio de siempre cuando hay forecast, y SIN esperar al forecast
         // mientras carga o si falla (antes las piedras no existían hasta que
         // el tiempo llegaba → los deep-links a piedras esperaban de más).
-        val blocksSection: @Composable () -> Unit = {
+        // movableContentOf, NO una lambda a secas.
+        //
+        // Esta seccion se pinta en DOS sitios: uno mientras carga el tiempo y
+        // otro dentro del bloque del tiempo cuando llega. Con una lambda normal,
+        // al llegar el tiempo se creaba una SEGUNDA instancia sin morir la
+        // primera —comprobado por registro: "MAPA CREADO #1" y "#2" seguidos—,
+        // y quedaban dos mapas vivos: veias uno y tocabas el otro. De ahi que
+        // "OCULTAR MAPA" no hiciera nada (Rodrigo, 2026-08-11).
+        //
+        // movableContentOf mueve el MISMO contenido de un sitio a otro
+        // conservando su identidad y su estado. Es justo para esto.
+        val blocksSection = androidx.compose.runtime.remember { androidx.compose.runtime.movableContentOf {
             Column {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                 BlocksSection(
@@ -276,7 +297,7 @@ private fun Content(
                     viewModel = viewModel, onMyProposals = onMyProposals
                 )
             }
-        }
+        } }
         if (forecast != null) {
             com.meteomontana.android.ui.components.ForecastBodyColumn(
                 forecast = forecast,
@@ -434,3 +455,5 @@ private fun shareSchool(
     }
     context.startActivity(android.content.Intent.createChooser(intent, "Compartir escuela"))
 }
+
+private val CONTADOR_DETALLES = java.util.concurrent.atomic.AtomicInteger(0)

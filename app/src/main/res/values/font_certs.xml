@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Certificados públicos del proveedor "com.google.android.gms.fonts".
+  Compose los necesita para verificar que el provider de Google Fonts del
+  dispositivo es legítimo antes de descargar la fuente. Son constantes
+  publicadas por Google y no varían entre apps.
+-->
+<resources>
+    <array name="com_google_android_gms_fonts_certs">
+        <item>@array/com_google_android_gms_fonts_certs_dev</item>
+        <item>@array/com_google_android_gms_fonts_certs_prod</item>
+    </array>
+    <string-array name="com_google_android_gms_fonts_certs_dev">
+        <item>
+            MIIEqDCCA5CgAwIBAgIJANWFuGx90071MA0GCSqGSIb3DQEBBAUAMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEQMA4GA1UEChMHQW5kcm9pZDEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDEiMCAGCSqGSIb3DQEJARYTYW5kcm9pZEBhbmRyb2lkLmNvbTAeFw0wODA0MTUyMzM2NTZaFw0zNTA5MDEyMzM2NTZaMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEQMA4GA1UEChMHQW5kcm9pZDEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDEiMCAGCSqGSIb3DQEJARYTYW5kcm9pZEBhbmRyb2lkLmNvbTCCASAwDQYJKoZIhvcNAQEBBQADggENADCCAQgCggEBANbOLggKv+IxTdGNs8/TGFy0PTP6DHThvbbR24kT9ixcOd9W+EaBPWW+wPPKQmsHxajtWjmQwWfna8mZuSeJS48LIgAZlKkpFeVyxW0qMBujb8X8ETrWy550NaFtI6t9+u7hZeTfHwqNvacKhp1RbE6dBRGWynwMVX8XW8N1+UjFaq6GCJukT4qmpN2afb8sCjUigq0GuMwHfp8jQioa4qwt/HhuKZws+PpiFsJrk/fTzhcD/c6L7B5Tjk7BzlnTizapfZBzR1WC5KrIz4pQHrnVfsBpEEMZAr2sCNkbckUjAYvXhxdNVKb+8mhxgKTjr6/A7AHkAB1tFs1+1Hp8wQUCAREwDQYJKoZIhvcNAQEEBQADggEBACWxvCdkB3VpdldHc2dHobaSb5+vzwSqf+gMnUIdQpsy9SduPnNJDWE/3UhQ7ujJaJzGdMA0/0SLJLgcXqgkXJ5MFmFwBeMI9ftaa3qB39LfTKwx2OnyhqDc9pkAhYWmqyHbFBu3rDDx7Pl+Hk7K3UuVgWAVrhvz/CT6CKKsdyTL9/PsKtPgZ02HuysZG6gKxhz3voqB1LkUlWAmkRkhJxsRwzMvFJujPWBpAg9V61KEs7tA67JzakV0pUcDvMxLLPmcG3kE2lW58TVAhJlVrFnLLR/vMmM0z3hdmpgvgmrG8ZinTGGu3JdtfgicHIcZ7QzM/9XlevnAmssjLZUd5g4=
+        </item>
+    </string-array>
+    <string-array name="com_google_android_gms_fonts_certs_prod">
+        <item>
+            MIIEQzCCAyugAwIBAgIJAMLgh0ZkSjCNMA0GCSqGSIb3DQEBBAUAMHQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDAeFw0wODA4MjEyMzEzMzRaFw0zNjAxMDcyMzEzMzRaMHQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDCCASAwDQYJKoZIhvcNAQEBBQADggENADCCAQgCggEBAKtWLgDYO6IIrgqWbxJOKdoR8qtW0I9Y4sypEwPpt1TTcvZApxsdyxMJZ2JORland2qSGT2y5b+3JKkedxiLDmpHpDsz2WCbdxgxRczfey5YZnTJ4VZbH0xqWVW/8lGmPav5xVwnIiJS6HXk+BVKZF+JcWjAsZ24CLY/RAyM5/sgL0iQ2/CV/Hp2GxNDxbtcOMlW7s5VKHN9JFGn+UJfgYxgYR4hX6Z9PFLOC8vqUEnVZvxEhf8aLN+jU3FDpO6CmZRWMOmaqUd2BzVZ04A5/jcZRDh4P/aSiSXVQRDUvIfx2x/oQUgxqUuvKwoUI59tdcXg/LE6L7Y3PaSnE2OmTECAREwDQYJKoZIhvcNAQEEBQADggEBAJSrKOEzHO7TL5cy6h3qh+3+JAk8HbGBW8cl8e6Dlfn3uA0iXoVGN0OnLuJOTW1HrwBN4JBHBbVYKfBxnEEUbqnIIY5pthMVbiRAknanvgbW6pgmBpvNFPoaqkrToyApUEPGwYWY3blAIuhxc9wp/JAQUVAo2bTPgo9Q3pBEzBcOQzWMa3l/EUO9yPa1FRrcjkpZdsBJ7CKzJud3gpDSV0RbNFCo7E1zlqlld+8Q3qatkc0lQyf6KvxkyKXxsB1pyEFY0eTQzzx+a4UegU+8R5RTbzG/4tDoVDfQOlV/d4F7+rsmCV+R2tk3kHzlxx+CEAuFiuWyRrZ2bH4Q4Z6FQM2A==
+        </item>
+    </string-array>
+</resources>

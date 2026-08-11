@@ -11,6 +11,8 @@ import FirebaseAuth
 // selector de tipo, formulario PARKING/SECTOR y confirmación.
 
 struct ContributionTypePicker: View {
+    /// True si hay una piedra a medias guardada en este movil.
+    var hayBorrador: Bool = false
     let onPick: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     var body: some View {
@@ -27,6 +29,13 @@ struct ContributionTypePicker: View {
                     .padding(12)
                     .background(Cumbre.terra.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
 
+                // Lo primero, porque es trabajo YA empezado: si esta ahi, es lo
+                // que el usuario venia a terminar.
+                if hayBorrador {
+                    row("CONTINUAR PIEDRA A MEDIAS",
+                        "Tienes una piedra sin terminar en esta escuela. Sigue donde lo dejaste.",
+                        "arrow.uturn.backward.circle", enabled: true) { onPick("BOULDER_DRAFT") }
+                }
                 row("PIEDRA", "Una roca con sus vías. Podrás añadir fotos y dibujar las líneas.", "mountain.2.fill", enabled: true) { onPick("BOULDER") }
                 // Atajo: si la foto sabe donde se hizo, la piedra se coloca
                 // sola y no hay que tocar el mapa. Aqui la escuela ya se

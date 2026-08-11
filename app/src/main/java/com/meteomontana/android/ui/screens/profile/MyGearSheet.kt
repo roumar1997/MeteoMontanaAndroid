@@ -70,7 +70,19 @@ fun MyGearSheet(
     Column(Modifier.fillMaxWidth()) {
         CumbreSheetHeader(
             titulo = "MI MATERIAL",
-            onClose = onClose
+            onClose = onClose,
+            accion = {
+                TextButton(
+                    onClick = { guardando = true; onSave(buildGearJson(gear)) },
+                    enabled = !guardando
+                ) {
+                    Text(
+                        if (guardando) "GUARDANDO…" else "GUARDAR",
+                        style = EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         )
         Column(
             Modifier
@@ -141,21 +153,6 @@ fun MyGearSheet(
                 }
             }
 
-            Spacer(Modifier.height(Spacing.lg))
-            TextButton(
-                onClick = {
-                    guardando = true
-                    onSave(buildGearJson(gear))
-                },
-                enabled = !guardando,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    if (guardando) "GUARDANDO…" else "GUARDAR",
-                    style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
         }
     }
 }

@@ -47,9 +47,12 @@ fun BlocksSection(
     // ESTADO, no valor fijo: ademas de la foto que llega desde la lista de
     // escuelas, ahora se puede elegir una AQUI mismo (PROPONER -> "piedra desde
     // una foto"), y el mapa reacciona al cambio para abrir el flujo.
-    var photoSeed by androidx.compose.runtime.saveable.rememberSaveable(
-        schoolId, stateSaver = androidx.compose.runtime.saveable.autoSaver()
-    ) {
+    // `remember` a secas, NO rememberSaveable: PhotoSeed no es de los tipos que
+    // Compose sabe guardar al rotar, y al intentarlo reventaba justo al cambiar
+    // la pantalla — el mapa dejaba de poder cerrarse (lo cazo Rodrigo).
+    // Si el sistema mata el proceso a mitad se pierde la foto elegida, que es
+    // exactamente lo que pasaba antes: no se empeora nada.
+    var photoSeed by androidx.compose.runtime.remember(schoolId) {
         androidx.compose.runtime.mutableStateOf(
             viewModel.takePhotoSeed()?.let {
                 com.meteomontana.android.ui.screens.detail.PhotoSeed(
@@ -59,6 +62,12 @@ fun BlocksSection(
         )
     }
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    val borradores = androidx.compose.runtime.remember(ctx) {
+        com.meteomontana.android.ui.screens.detail.BoulderDraftStore(ctx)
+    }
+    var borradorPiedra by androidx.compose.runtime.remember(schoolId) {
+        androidx.compose.runtime.mutableStateOf(borradores.load(schoolId))
+    }
     // Aqui la escuela YA se conoce: solo hace falta que la foto sepa donde se
     // hizo. Nada de buscarla por cercania como en la lista de escuelas.
     val elegirFotoDePiedra = com.meteomontana.android.ui.components.rememberSelectorDeFoto { uri ->
@@ -86,6 +95,10 @@ fun BlocksSection(
             viewModel     = viewModel,
             photoSeed     = photoSeed,
             onPickBoulderFromPhoto = elegirFotoDePiedra,
+            onPhotoSeedConsumed = { photoSeed = null },
+            borrador = borradorPiedra,
+            onGuardarBorrador = { d -> val con = d.copy(schoolId = schoolId); borradores.save(con); borradorPiedra = con },
+            onBorrarBorrador = { borradores.clear(schoolId); borradorPiedra = null },
             onMyProposals = onMyProposals
         )
     }

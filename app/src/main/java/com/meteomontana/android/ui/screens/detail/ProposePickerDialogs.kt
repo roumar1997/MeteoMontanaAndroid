@@ -41,6 +41,8 @@ internal fun TypePickerDialog(
     onBoulder: () -> Unit,
     /** Null si el atajo de la foto no aplica en este contexto. */
     onBoulderFromPhoto: (() -> Unit)? = null,
+    /** Null si no hay ninguna piedra a medias guardada en este movil. */
+    onContinuarBorrador: (() -> Unit)? = null,
     onSector: () -> Unit,
     onCorrection: () -> Unit,
     onDismiss: () -> Unit
@@ -76,6 +78,18 @@ internal fun TypePickerDialog(
         }
         Spacer(Modifier.height(Spacing.lg))
 
+        // Lo primero, porque es trabajo YA empezado: si esta ahi, es lo que el
+        // usuario venia a terminar.
+        if (onContinuarBorrador != null) {
+            TypeOption(
+                icon = "↺",
+                label = "CONTINUAR PIEDRA A MEDIAS",
+                description = "Tienes una piedra sin terminar en esta escuela. Sigue donde lo dejaste.",
+                enabled = true,
+                onClick = onContinuarBorrador
+            )
+            Spacer(Modifier.height(Spacing.sm))
+        }
         TypeOption(
             icon = "▲",
             label = "PIEDRA",

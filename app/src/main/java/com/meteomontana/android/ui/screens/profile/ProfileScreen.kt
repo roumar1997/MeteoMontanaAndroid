@@ -137,6 +137,10 @@ fun ProfileScreen(
     if (gearOpen && successState != null) {
         androidx.compose.material3.ModalBottomSheet(
             onDismissRequest = { gearOpen = false },
+            // Entera desde el principio: a media altura la cabecera queda fuera
+            // y con ella el boton de guardar (lo cazo Rodrigo en el Xiaomi).
+            sheetState = androidx.compose.material3.rememberModalBottomSheetState(
+                skipPartiallyExpanded = true),
             containerColor = MaterialTheme.colorScheme.background
         ) {
             MyGearSheet(
@@ -294,7 +298,9 @@ private fun ProfileTopBar(
             }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+    // SIN linea bajo las pastillas: en iOS no hay separador ahi, y con los
+    // botones ya agrupados en su capsula la raya solo parte la pantalla en dos
+    // sin separar nada (lo pidio Rodrigo).
 }
 
 @Composable

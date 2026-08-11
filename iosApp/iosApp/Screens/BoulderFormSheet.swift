@@ -17,6 +17,8 @@ struct BoulderFormSheet: View {
     /// sugiere el rumbo con el que se hizo (si la foto lo traía).
     var seedPhoto: UIImage? = nil
     var seedAspect: String? = nil
+    /// Piedra a medias guardada en este móvil, si la hay (la carga el mapa).
+    var borrador: BoulderDraftStore.Draft? = nil
     let onDone: (Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -47,6 +49,8 @@ struct BoulderFormSheet: View {
     @State private var direction = "LTR"
     @State private var wallPath: [CLLocationCoordinate2D] = []
     @State private var showTrace = false
+    /// Cerrar una piedra a medias: preguntar, no tirar el trabajo.
+    @State private var preguntandoGuardar = false
 
     private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
 
@@ -109,12 +113,44 @@ struct BoulderFormSheet: View {
         }
         return parts.isEmpty ? nil : "{" + parts.joined(separator: ",") + "}"
     }
+    /// Foto del formulario tal y como está ahora mismo.
+    private func borradorActual() -> BoulderDraftStore.Draft {
+        BoulderDraftStore.Draft(
+            schoolId: schoolId, lat: coord.latitude, lon: coord.longitude,
+            name: name, discipline: discipline, geometry: geometry,
+            direction: direction, sectorId: sectorId, orientation: blockOrientation,
+            path: wallPath.map { [$0.latitude, $0.longitude] },
+            faces: faces, savedAt: Date().timeIntervalSince1970
+        )
+    }
+
+    /// Deja el formulario como estaba al guardarlo.
+    private func aplicarBorrador(_ b: BoulderDraftStore.Draft) {
+        name = b.name
+        discipline = b.discipline
+        geometry = b.geometry
+        direction = b.direction
+        sectorId = b.sectorId
+        blockOrientation = b.orientation
+        wallPath = b.path.compactMap {
+            $0.count >= 2 ? CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1]) : nil
+        }
+        faces = b.faces
+    }
+
     private var isWall: Bool { geometry == "LINE" }
 
     var body: some View {
         contenido
             .onAppear {
                 brujula.start()
+                // Continuar una piedra a medias: manda sobre todo lo demas, es
+                // trabajo que el usuario ya habia hecho.
+                if !semillaPuesta, let b = borrador {
+                    semillaPuesta = true
+                    aplicarBorrador(b)
+                    return
+                }
                 guard !semillaPuesta, let foto = seedPhoto else { return }
                 semillaPuesta = true
                 faces = [BoulderFaceForm(photo: foto, orientation: seedAspect)]
@@ -346,7 +382,27 @@ struct BoulderFormSheet: View {
             .navigationTitle("Nueva piedra")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+                Button(NSLocalizedString("common_cancel", comment: "")) {
+                    // Una piedra son varios campos, una foto por cara y una
+                    // linea por via: cerrar no puede tirarlo sin preguntar.
+                    if BoulderDraftStore.tieneContenido(borradorActual()) {
+                        preguntandoGuardar = true
+                    } else {
+                        dismiss(); onDone(false)
+                    }
+                }.foregroundStyle(Cumbre.ink3) } }
+            .alert("¿Guardar para terminar luego?", isPresented: $preguntandoGuardar) {
+                Button("GUARDAR") {
+                    BoulderDraftStore.save(borradorActual())
+                    dismiss(); onDone(false)
+                }
+                Button("DESCARTAR", role: .destructive) {
+                    BoulderDraftStore.clear(schoolId: schoolId)
+                    dismiss(); onDone(false)
+                }
+            } message: {
+                Text("Se queda guardada en este móvil. No se envía a nadie hasta que la termines.")
+            }
             .alert("Guardada en tu móvil", isPresented: $queued) {
                 Button("CERRAR") { dismiss(); onDone(false) }
             } message: {

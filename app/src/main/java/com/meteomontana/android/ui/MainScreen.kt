@@ -424,7 +424,8 @@ fun MainScreen(
                     )
                     val radioFondo by androidx.compose.animation.core.animateDpAsState(
                         targetValue = if (sheetVisible) 18.dp else 0.dp,
-                        animationSpec = androidx.compose.animation.core.spring(),
+                        // Duracion fija: un muelle sin tope no termina nunca (ver CumbreMotion).
+                        animationSpec = androidx.compose.animation.core.tween(280),
                         label = "radioFondo"
                     )
                     Box(Modifier.fillMaxSize()) {
@@ -442,10 +443,25 @@ fun MainScreen(
                                             // redondea. Es LO que hace que en un
                                             // iPhone se sienta que hay capas y no
                                             // pantallas sueltas apiladas.
-                                            scaleX = escalaFondo
-                                            scaleY = escalaFondo
+                                            // SIN escalar. Encogia la pantalla
+                                            // al 92% para dar profundidad, pero
+                                            // Compose NO mueve las zonas de
+                                            // toque con la escala: se DIBUJA
+                                            // encogido y se TOCA donde estaba.
+                                            // Cuanto mas abajo el boton, mas se
+                                            // separaba lo que ves de donde hay
+                                            // que pulsar — la barra "OCULTAR
+                                            // MAPA" quedaba a mas de 100 px del
+                                            // dedo y no habia forma de cerrar
+                                            // el mapa (Rodrigo, 2026-08-11;
+                                            // medido: la barra decia estar en
+                                            // x=45, que es justo el margen que
+                                            // deja el 92%).
+                                            //
+                                            // El redondeo si se queda: no toca
+                                            // la geometria.
                                             shape = RoundedCornerShape(radioFondo)
-                                            clip = escalaFondo < 1f
+                                            clip = radioFondo > 0.dp
                                         }
                                 ) { content() }
                             }

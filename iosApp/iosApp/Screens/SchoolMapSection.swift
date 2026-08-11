@@ -21,7 +21,8 @@ struct SchoolMapSection: View {
     @State private var blockOrientations: [String: String] = [:]
     @State private var orientationFilter: String? = nil
     @State private var didAutoOpen = false
-    @State private var expanded = false
+    /// Bandera interna, ya no un boton: el mapa esta siempre visible (ver body).
+    @State private var expanded = true
     @State private var selectedBlock: Block?
     // Flujo proponer/corregir agrupado (espejo de ProposalMapBridge en Android).
     @StateObject private var flow = MapProposalFlowStore()
@@ -31,6 +32,10 @@ struct SchoolMapSection: View {
     @State private var fotoSemilla: PhotoProposalSeedStore.Seed?
     /// Atajo "piedra desde una foto" lanzado DESDE esta escuela.
     @State private var eligiendoFoto = false
+    /// Piedra a medias guardada en este movil (se lee al entrar).
+    @State private var borradorPiedra: BoulderDraftStore.Draft?
+    /// El formulario arranca precargado con el borrador.
+    @State private var continuandoBorrador = false
     /// Punto donde se hizo la foto, a la espera de que el usuario lo confirme.
     @State private var confirmandoFoto: CLLocationCoordinate2D?
     // Datos del mapa (bloques/capas/buscador/admin) — ver SchoolMapViewModel.
@@ -68,28 +73,18 @@ struct SchoolMapSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button { withAnimation { expanded.toggle() } } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "map").font(.system(size: 13))
-                    Text(expanded ? NSLocalizedString("schools_hide_map", comment: "") : NSLocalizedString("schools_view_map", comment: ""))
-                        .font(Cumbre.mono(11, .bold)).tracking(0.8)
-                    if !vm.blocks.isEmpty {
-                        Text("· \(vm.blocks.count)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
-                    }
-                    Spacer()
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12))
-                }
-                .foregroundStyle(Cumbre.ink2)
-                .padding(.horizontal, 12).padding(.vertical, 11)
-                .background(Cumbre.paper)
-                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                .padding(.horizontal, 16).padding(.vertical, 4)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if expanded {
+            // SIN barra de abrir/cerrar: el mapa se ve SIEMPRE.
+            //
+            // Decision de Rodrigo (2026-08-11). En Android ese boton dejo de
+            // responder dentro de una escuela y no se llego a aislar por que;
+            // ademas el mapa es lo mas util de esta pantalla, asi que quitarlo
+            // ahorra un toque a todo el mundo. Se quita en las DOS apps para no
+            // romper la paridad.
+            //
+            // `expanded` sigue existiendo como bandera interna: la usan el GPS
+            // (solo se sigue la ubicacion con el mapa a la vista) y el
+            // deep-link. Arranca en true y ya no la cambia ningun boton.
+            Group {
                 searchBar
                 if !fullscreenMap {
                     mapArea(height: 280)
@@ -128,6 +123,7 @@ struct SchoolMapSection: View {
             // "Enviar piedra": la foto ya dijo qué se propone y dónde se hizo.
             // Se abre el mapa y se espera un toque para el sitio exacto: el GPS
             // se equivoca entre 10 y 30 metros y las piedras están a metros.
+            borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
             consumirSemillaDeFoto()
         }
         // Si los bloques llegan DESPUÉS del task (caché/red lenta), reintenta
@@ -378,12 +374,20 @@ struct SchoolMapSection: View {
                 // instancia activa a la vez), el selector/formularios se
                 // presentan en el contexto correcto SIN salir de pantalla completa.
                 .sheet(isPresented: $flow.showTypePicker) {
-                    ContributionTypePicker { type in
+                    ContributionTypePicker(hayBorrador: borradorPiedra != nil) { type in
                         flow.showTypePicker = false
                         switch type {
                         case "PARKING", "SECTOR", "BOULDER": flow.proposeType = type; flow.waitingTap = true
                         // La escuela ya la sabemos: solo hace falta la foto.
                         case "BOULDER_PHOTO": eligiendoFoto = true
+                        // Continuar donde lo dejaste: al formulario directo, sin
+                        // pedir otra vez el sitio (ya esta en el borrador).
+                        case "BOULDER_DRAFT":
+                            if let b = borradorPiedra {
+                                continuandoBorrador = true
+                                flow.boulderCoord = CLLocationCoordinate2D(
+                                    latitude: b.lat, longitude: b.lon)
+                            }
                         case "CORRECTION": flow.startCorrection()
                         default: break
                         }
@@ -396,7 +400,8 @@ struct SchoolMapSection: View {
                             escuelaFijada: school,
                             onOpenSchool: { _ in
                                 eligiendoFoto = false
-                                consumirSemillaDeFoto()
+                                borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
+            consumirSemillaDeFoto()
                             },
                             onDismiss: { eligiendoFoto = false })
                         .allowsHitTesting(false)
@@ -413,9 +418,14 @@ struct SchoolMapSection: View {
                                      sectors: vm.blocks.filter { $0.type.uppercased() == "ZONE" },
                                      contextMarkers: traceContextMarkers,
                                      seedPhoto: fotoSemilla?.image,
-                                     seedAspect: fotoSemilla?.aspect) { ok in
+                                     seedAspect: fotoSemilla?.aspect,
+                                     borrador: continuandoBorrador ? borradorPiedra : nil) { ok in
                         flow.boulderCoord = nil
                         fotoSemilla = nil
+                        continuandoBorrador = false
+                        // Enviada o descartada: el borrador ya no aplica.
+                        if ok { BoulderDraftStore.clear(schoolId: school.id) }
+                        borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
                         if ok { afterSubmit() }
                     }
                 }
@@ -677,8 +687,11 @@ struct SchoolMapSection: View {
     /// la lista de escuelas) y justo después de elegir la foto dentro de la
     /// propia escuela. Es el mismo trabajo, así que vive en un solo sitio.
     private func consumirSemillaDeFoto() {
-        guard fotoSemilla == nil,
-              let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) else { return }
+        // OJO: NO se exige que `fotoSemilla` este vacia. Se exigia, y si quedaba
+        // una foto a medias —flujo abandonado sin cerrar el formulario— la
+        // SIGUIENTE no entraba y el boton parecia muerto (cazado por Rodrigo).
+        // Manda la foto nueva: es lo ultimo que ha pedido el usuario.
+        guard let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) else { return }
         fotoSemilla = semilla
         expanded = true
         flow.proposeType = "BOULDER"

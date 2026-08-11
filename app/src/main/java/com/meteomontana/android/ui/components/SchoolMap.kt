@@ -27,6 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -100,10 +103,12 @@ fun SchoolMap(
     photoSeed: com.meteomontana.android.ui.screens.detail.PhotoSeed? = null,
     /** Elegir una foto para proponer una piedra SIN salir de la escuela. */
     onPickBoulderFromPhoto: (() -> Unit)? = null,
+    onPhotoSeedConsumed: (() -> Unit)? = null,
+    borrador: com.meteomontana.android.ui.screens.detail.BoulderDraftStore.Draft? = null,
+    onGuardarBorrador: ((com.meteomontana.android.ui.screens.detail.BoulderDraftStore.Draft) -> Unit)? = null,
+    onBorrarBorrador: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     // ── Ficha de piedra IZADA a este nivel (no dentro del mapa expandido) ──
     // Antes vivía en InnerMap: abrir una piedra por deep-link (feed/diario)
     // exigía expandir el mapa y arrancar MapLibre (segundos en móviles lentos).
@@ -156,64 +161,28 @@ fun SchoolMap(
     // queria al elegirla, y el mapa se despliega para poder colocarla.
     androidx.compose.runtime.LaunchedEffect(photoSeed) {
         if (photoSeed != null) {
-            expanded = true
+            // Ya no hay nada que desplegar: el mapa esta siempre visible.
             bridge.proposeOpen = true
         }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
 
-        // ── Toggle "MAPA DE LA ESCUELA" ──────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(2.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                .clickable { expanded = !expanded }
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    Icon(
-                        Icons.Outlined.Map,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    // "VER MAPA · 43" / "OCULTAR MAPA · 43" — como en iOS: la
-                    // etiqueta dice qué va a pasar al tocar, y el número va
-                    // pegado, no suelto al otro extremo de la fila.
-                    Text(
-                        (if (expanded) stringResource(R.string.schools_hide_map)
-                         else stringResource(R.string.schools_view_map)) +
-                            " · ${blocks.size}",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = EyebrowTextStyle)
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    // Chevron de verdad, igual que en la lista de escuelas.
-                    Icon(
-                        imageVector = if (expanded) Icons.Outlined.KeyboardArrowUp
-                                      else Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-
-        if (expanded) {
+        // SIN barra de abrir/cerrar: el mapa se ve SIEMPRE.
+        //
+        // Decision de Rodrigo (2026-08-11) despues de una tarde entera con un
+        // fallo en ese boton: dentro de una escuela no habia forma de plegar el
+        // mapa —el toque llegaba a la pantalla pero no a la barra, y no se
+        // llego a aislar por que—. El mapa es lo mas util de esta pantalla y en
+        // iOS se entra viendolo, asi que quitar el toggle no es solo esquivar
+        // el fallo: es un toque menos para todo el mundo.
+        //
+        // COSTE ASUMIDO: MapLibre arranca siempre al abrir una escuela, aunque
+        // el usuario venga solo a mirar el tiempo. Si algun dia pesa, el sitio
+        // donde volver a mirarlo es aqui.
+        //
+        // El fallo de fondo NO esta resuelto: ver project_bug_mapa_no_cierra.
+        run {
             // Buscador de vías/bloques de ESTA escuela: solo con el mapa
             // abierto (como iOS). Elegir un resultado abre su piedra.
             SchoolViaSearchBar(blocks = blocks, viewModel = viewModel)
@@ -251,6 +220,8 @@ fun SchoolMap(
                 onBlockSelected = { selectedBlock = it },
                 onDismissBlock = { selectedBlock = null }
             )
+            
+
         }
     }
 
@@ -260,6 +231,10 @@ fun SchoolMap(
             schoolName      = schoolName,
             photoSeed       = photoSeed,
             onPickBoulderFromPhoto = onPickBoulderFromPhoto,
+            onPhotoSeedConsumed = onPhotoSeedConsumed,
+            borrador = borrador,
+            onGuardarBorrador = onGuardarBorrador,
+            onBorrarBorrador = onBorrarBorrador,
             onPhotoConfirmChange = { punto, aceptar, mover ->
                 bridge.photoConfirm = punto
                 bridge.photoAccept = aceptar
@@ -460,7 +435,6 @@ fun SchoolMap(
                 onTraceWall = {
                     wallEdit.startTracing()
                     selectedBlock = null  // deja ver el mapa para trazar
-                    expanded = true       // trazar exige el mapa abierto
                 },
                 onDismiss = { wallEdit.target = null; selectedBlock = null },
                 onSuccess = {

@@ -36,7 +36,16 @@ fun CumbreSheetHeader(
     titulo: String,
     onClose: () -> Unit,
     textoSalida: String = "Cerrar",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /**
+     * Accion principal a la DERECHA, en su propia pastilla (Guardar, Enviar...).
+     *
+     * Va en la cabecera y no al final del contenido porque la cabecera esta
+     * siempre a la vista: si la hoja se abre a media altura o el contenido es
+     * largo, un boton al fondo sencillamente no se ve —le paso a Rodrigo con
+     * "Mi material"—. En iOS es asi desde siempre.
+     */
+    accion: (@Composable () -> Unit)? = null
 ) {
     Box(modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
         CumbrePillGroup(modifier = Modifier.align(Alignment.CenterStart)) {
@@ -56,5 +65,8 @@ fun CumbreSheetHeader(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.align(Alignment.Center).padding(horizontal = 96.dp)
         )
+        if (accion != null) {
+            CumbrePillGroup(modifier = Modifier.align(Alignment.CenterEnd)) { accion() }
+        }
     }
 }

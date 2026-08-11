@@ -84,6 +84,19 @@ fun ProposeContributionFlow(
     photoSeed: PhotoSeed? = null,
     /** Elegir una foto aqui mismo: la escuela ya se conoce. */
     onPickBoulderFromPhoto: (() -> Unit)? = null,
+    /** Piedra a medias guardada en este movil, si la hay. */
+    borrador: BoulderDraftStore.Draft? = null,
+    onGuardarBorrador: ((BoulderDraftStore.Draft) -> Unit)? = null,
+    onBorrarBorrador: (() -> Unit)? = null,
+    /**
+     * Aviso de que la foto ya se ha recogido y hay que olvidarla.
+     *
+     * Sin esto la foto se queda pegada: al volver a abrir PROPONER reaparecia
+     * el "¿es aqui donde esta la piedra?" de la foto ANTERIOR (cazado por
+     * Rodrigo). El mismo fallo en iOS daba el sintoma contrario: como la foto
+     * vieja seguia puesta, la SIGUIENTE no entraba y el boton parecia muerto.
+     */
+    onPhotoSeedConsumed: (() -> Unit)? = null,
     /**
      * Avisa del punto de la foto pendiente de confirmar y de qué hacer con él.
      * SchoolMap lo pinta como marcador y saca el banner de sí/mover.
@@ -147,6 +160,8 @@ fun ProposeContributionFlow(
     var boulderDirection by remember { mutableStateOf("LTR") }
     // Polilínea trazada del muro: lista de puntos [lat,lon] (vacía mientras geometry=POINT).
     var boulderPath by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
+    /** Coordenadas del formulario abierto, para poder guardarlo a medias. */
+    var preguntandoGuardar by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
     // Sectores (ZONE) existentes en la escuela — alimentan el dropdown del BoulderForm.
     val uiStateForSectors by viewModel.uiState.collectAsStateWithLifecycle()
@@ -164,6 +179,7 @@ fun ProposeContributionFlow(
     // vaya escribiendo en el formulario.
     androidx.compose.runtime.LaunchedEffect(photoSeed) {
         if (photoSeed != null) {
+            onPhotoSeedConsumed?.invoke()
             boulderFaces = listOf(BoulderFaceForm(
                 photoUri = photoSeed.photoUri, orientation = photoSeed.aspect))
             boulderOrientation = photoSeed.aspect
@@ -252,8 +268,63 @@ fun ProposeContributionFlow(
         }
     }
 
+    // Cerrar una piedra a medias: preguntar, no tirar el trabajo.
+    preguntandoGuardar?.let { (lat, lon) ->
+        val enCurso = BoulderDraftStore.Draft(
+            // El id de la escuela lo rellena el ViewModel, que es quien lo sabe.
+            schoolId = "", lat = lat, lon = lon,
+            name = boulderName, discipline = boulderDiscipline,
+            geometry = boulderGeometry, direction = boulderDirection,
+            sectorBlockId = boulderSectorBlockId, orientation = boulderOrientation,
+            path = boulderPath, faces = boulderFaces, savedAt = System.currentTimeMillis()
+        )
+        if (!enCurso.tieneContenido()) {
+            // Formulario vacio: no hay nada que salvar, se cierra sin molestar.
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                preguntandoGuardar = null
+                onDismiss()
+            }
+        } else {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { preguntandoGuardar = null },
+                title = { androidx.compose.material3.Text("¿Guardar para terminar luego?") },
+                text = {
+                    androidx.compose.material3.Text("Se queda guardada en este móvil. No se envía a nadie hasta que la termines.")
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        onGuardarBorrador?.invoke(enCurso)
+                        preguntandoGuardar = null
+                        onDismiss()
+                    }) { androidx.compose.material3.Text("GUARDAR") }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        onBorrarBorrador?.invoke()
+                        preguntandoGuardar = null
+                        onDismiss()
+                    }) { androidx.compose.material3.Text("DESCARTAR") }
+                }
+            )
+        }
+    }
+
     when (val s = step) {
         is ProposeStep.TypePicker -> TypePickerDialog(
+            onContinuarBorrador = borrador?.let { b ->
+                {
+                    boulderMode = true; pickedType = "BOULDER"
+                    boulderName = b.name
+                    boulderFaces = b.faces
+                    boulderSectorBlockId = b.sectorBlockId
+                    boulderDiscipline = b.discipline
+                    boulderGeometry = b.geometry
+                    boulderDirection = b.direction
+                    boulderOrientation = b.orientation
+                    boulderPath = b.path
+                    step = ProposeStep.BoulderForm(b.lat, b.lon)
+                }
+            },
             onBoulderFromPhoto = onPickBoulderFromPhoto?.let {
                 { onDismiss(); it() }
             },
@@ -373,7 +444,9 @@ fun ProposeContributionFlow(
                     onWallTracingChange(true)
                     step = ProposeStep.WallTracing(s.lat, s.lon)
                 },
-                onCancel = onDismiss,
+                // Cerrar NO tira lo escrito sin preguntar: una piedra son
+                // varios campos, una foto por cara y una linea por via.
+                onCancel = { preguntandoGuardar = s.lat to s.lon },
                 onSubmit = {
                     val result = viewModel.submitBoulderFacesContribution(
                         lat = s.lat, lon = s.lon,
@@ -387,7 +460,7 @@ fun ProposeContributionFlow(
                         direction = boulderDirection,
                         blockOrientation = boulderOrientation
                     )
-                    if (result.isSuccess) step = ProposeStep.Success()
+                    if (result.isSuccess) { onBorrarBorrador?.invoke(); step = ProposeStep.Success() }
                     result.isSuccess
                 },
                 onSaveOffline = {
