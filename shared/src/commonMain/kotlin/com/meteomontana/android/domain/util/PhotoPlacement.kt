@@ -24,6 +24,19 @@ object PhotoPlacement {
     /** Piedras a menos de esto: candidatas a ser la misma. */
     const val RADIO_PIEDRA_M = 25.0
 
+    /**
+     * Kilómetros entre dos puntos. Lo usa la comprobación de "esta foto es de
+     * ESTA escuela" cuando se propone desde dentro de una: la piedra se coloca
+     * donde se hizo la foto, así que una foto de otro sitio la dejaría en el
+     * mapa a kilómetros de la escuela.
+     *
+     * Vive aquí y no en Geo para que Swift la vea junto al resto del cálculo de
+     * ubicación por foto (ambas apps llaman a la MISMA función; si mañana cambia
+     * el criterio, cambia en un sitio).
+     */
+    fun kmBetween(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double =
+        Geo.haversineKm(lat1, lon1, lat2, lon2)
+
     /** Qué se ha podido deducir de las coordenadas de la foto. */
     sealed class Result {
         /** La foto cae dentro del radio de una escuela. */

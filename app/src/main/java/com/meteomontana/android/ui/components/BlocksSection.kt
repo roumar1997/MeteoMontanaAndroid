@@ -77,6 +77,21 @@ fun BlocksSection(
                 android.widget.Toast.makeText(
                     ctx, ctx.getString(com.meteomontana.android.R.string.photo_no_coords),
                     android.widget.Toast.LENGTH_LONG).show()
+            } else if (com.meteomontana.android.domain.util.Geo.haversineKm(
+                    donde.lat, donde.lon, schoolLat, schoolLon
+                ) > com.meteomontana.android.domain.util.PhotoPlacement.RADIO_ESCUELA_KM) {
+                // La piedra se coloca DONDE SE HIZO LA FOTO. Si la foto es de
+                // otro sitio, acabaria en el mapa de esta escuela a kilometros
+                // de ella. Paso este control al entrar desde la escuela pensando
+                // que "ya sabemos cual es" — y Rodrigo colo una foto de Valsain
+                // en Zarzalejo, a 32 km.
+                val km = com.meteomontana.android.domain.util.Geo.haversineKm(
+                    donde.lat, donde.lon, schoolLat, schoolLon)
+                android.widget.Toast.makeText(
+                    ctx,
+                    "Esa foto se hizo a ${km.toInt()} km de $schoolName. " +
+                        "Elige una foto tomada en esta escuela.",
+                    android.widget.Toast.LENGTH_LONG).show()
             } else {
                 photoSeed = com.meteomontana.android.ui.screens.detail.PhotoSeed(
                     photoUri = uri,

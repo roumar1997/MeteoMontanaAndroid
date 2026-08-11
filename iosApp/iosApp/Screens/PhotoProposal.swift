@@ -154,6 +154,18 @@ struct SubmitBlockPhotoFlow: View {
                 }
                 // Desde el mapa de una escuela: la escuela ya esta decidida.
                 if let fijada = escuelaFijada {
+                    // La piedra se coloca DONDE SE HIZO LA FOTO. Si la foto es
+                    // de otro sitio, acabaria en el mapa de esta escuela a
+                    // kilometros de ella. Este control lo quite al entrar desde
+                    // la escuela pensando que "ya sabemos cual es" — y Rodrigo
+                    // colo una foto de Valsain en Zarzalejo, a 32 km.
+                    let km = PhotoPlacement.shared.kmBetween(
+                        lat1: donde.lat, lon1: donde.lon,
+                        lat2: fijada.lat, lon2: fijada.lon)
+                    if km > PhotoPlacement.shared.RADIO_ESCUELA_KM {
+                        aviso = "Esa foto se hizo a \(Int(km)) km de \(fijada.name). Elige una foto tomada en esta escuela."
+                        return
+                    }
                     PhotoProposalSeedStore.shared.put(.init(
                         schoolId: fijada.id,
                         image: donde.image,

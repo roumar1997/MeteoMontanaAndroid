@@ -391,6 +391,11 @@ struct BoulderFormSheet: View {
                         dismiss(); onDone(false)
                     }
                 }.foregroundStyle(Cumbre.ink3) } }
+            // Deslizar hacia abajo NO puede tirar el trabajo en silencio: con
+            // algo escrito, el gesto se desactiva y hay que usar "Cancelar",
+            // que es quien pregunta (lo cazo Rodrigo: cancelar preguntaba, el
+            // gesto no).
+            .interactiveDismissDisabled(BoulderDraftStore.tieneContenido(borradorActual()))
             .alert("¿Guardar para terminar luego?", isPresented: $preguntandoGuardar) {
                 Button("GUARDAR") {
                     BoulderDraftStore.save(borradorActual())
