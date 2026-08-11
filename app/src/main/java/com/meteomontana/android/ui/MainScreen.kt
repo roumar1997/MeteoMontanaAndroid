@@ -196,6 +196,11 @@ fun MainScreen(
     // Oculta el overlay y limpia el backstack del sheetNav. Ya no hay
     // ModalBottomSheet: basta con bajar la bandera (AnimatedVisibility hace la
     // animación de salida) y resetear el NavHost interno a su raíz.
+    // Un contador por pestaña: sube al volver a tocar la que ya esta activa, y
+    // la pantalla correspondiente lo escucha para subir arriba del todo.
+    val volverArriba = androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateMapOf<String, Int>()
+    }
     val dismissSheet: () -> Unit = {
         sheetVisible = false
         sheetNav.popBackStack(SHEET_ROOT, inclusive = false)
@@ -318,7 +323,15 @@ fun MainScreen(
                                         // Con el overlay abierto, pulsar una
                                         // pestaña lo cierra y cambia de tab.
                                         if (sheetVisible) dismissSheet()
-                                        if (!selected) selectedTab = tab.route
+                                        if (!selected) {
+                                            selectedTab = tab.route
+                                        } else {
+                                            // Ya estabas en esta pestaña: el
+                                            // segundo toque lleva arriba, como
+                                            // en cualquier app de movil.
+                                            volverArriba[tab.route] =
+                                                (volverArriba[tab.route] ?: 0) + 1
+                                        }
                                     }
                                     .padding(horizontal = 2.dp, vertical = 7.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -522,6 +535,7 @@ fun MainScreen(
                 }
                         tabContainer(Tab.Schools.route) {
                     SchoolListScreen(
+                        volverArribaSignal = volverArriba[Tab.Schools.route] ?: 0,
                         onSchoolClick = { id -> openSheet(Routes.schoolDetail(id)) },
                         onViaHit = { schoolId, viaId, viaName ->
                             openSheet(Routes.schoolDetail(schoolId, via = viaName, viaId = viaId))

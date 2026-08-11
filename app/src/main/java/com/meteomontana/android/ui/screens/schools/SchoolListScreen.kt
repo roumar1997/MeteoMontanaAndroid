@@ -62,6 +62,14 @@ import kotlinx.coroutines.flow.first
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun SchoolListScreen(
+    /**
+     * Sube contador cada vez que se pulsa la pestaña ESTANDO ya en ella.
+     *
+     * Es el gesto de siempre en un movil: volver a tocar la pestaña activa
+     * lleva arriba del todo. Con la lista a media altura y 191 escuelas, subir
+     * a mano es un arrastre largo.
+     */
+    volverArribaSignal: Int = 0,
     onSchoolClick: (String) -> Unit,
     onProfileClick: () -> Unit = {},
     onSubmitSchool: () -> Unit = {},
@@ -176,7 +184,12 @@ fun SchoolListScreen(
         onRefresh = viewModel::refresh,
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        androidx.compose.runtime.LaunchedEffect(volverArribaSignal) {
+            if (volverArribaSignal > 0) listState.animateScrollToItem(0)
+        }
         LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         // Hueco al final para que la ultima escuela no quede debajo de la capsula.
         contentPadding = androidx.compose.foundation.layout.PaddingValues(

@@ -70,33 +70,51 @@ fun BlocksSection(
     }
     // Aqui la escuela YA se conoce: solo hace falta que la foto sepa donde se
     // hizo. Nada de buscarla por cercania como en la lista de escuelas.
+    // Aviso de foto no valida: DIALOGO, no un mensajito abajo.
+    //
+    // Estaba como Toast y Rodrigo lo dijo comparando con iOS: "sale abajo un
+    // momento y listo". Si el aviso explica por que NO se ha creado nada, tiene
+    // que parar al usuario, no pasar de largo.
+    var avisoFoto by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    avisoFoto?.let { texto ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { avisoFoto = null },
+            title = { androidx.compose.material3.Text("No se puede usar esa foto") },
+            text = { androidx.compose.material3.Text(texto) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { avisoFoto = null }) {
+                    androidx.compose.material3.Text("ENTENDIDO")
+                }
+            }
+        )
+    }
+    // Aqui la escuela YA se conoce: solo hace falta que la foto sepa donde se
+    // hizo. Nada de buscarla por cercania como en la lista de escuelas.
     val elegirFotoDePiedra = com.meteomontana.android.ui.components.rememberSelectorDeFoto { uri ->
         if (uri != null) {
             val donde = com.meteomontana.android.ui.components.readPhotoLocation(ctx, uri)
+            val km = donde?.let {
+                com.meteomontana.android.domain.util.Geo.haversineKm(
+                    it.lat, it.lon, schoolLat, schoolLon)
+            }
             if (donde == null) {
-                android.widget.Toast.makeText(
-                    ctx, ctx.getString(com.meteomontana.android.R.string.photo_no_coords),
-                    android.widget.Toast.LENGTH_LONG).show()
-            } else if (com.meteomontana.android.domain.util.Geo.haversineKm(
-                    donde.lat, donde.lon, schoolLat, schoolLon
-                ) > com.meteomontana.android.domain.util.PhotoPlacement.RADIO_ESCUELA_KM) {
+                avisoFoto = ctx.getString(com.meteomontana.android.R.string.photo_no_coords)
+            } else if (km != null &&
+                km > com.meteomontana.android.domain.util.PhotoPlacement.RADIO_ESCUELA_KM) {
                 // La piedra se coloca DONDE SE HIZO LA FOTO. Si la foto es de
                 // otro sitio, acabaria en el mapa de esta escuela a kilometros
-                // de ella. Paso este control al entrar desde la escuela pensando
-                // que "ya sabemos cual es" — y Rodrigo colo una foto de Valsain
-                // en Zarzalejo, a 32 km.
-                val km = com.meteomontana.android.domain.util.Geo.haversineKm(
-                    donde.lat, donde.lon, schoolLat, schoolLon)
-                android.widget.Toast.makeText(
-                    ctx,
-                    "Esa foto se hizo a ${km.toInt()} km de $schoolName. " +
-                        "Elige una foto tomada en esta escuela.",
-                    android.widget.Toast.LENGTH_LONG).show()
+                // de ella. Quite este control al entrar desde la escuela
+                // pensando que "ya sabemos cual es" — y Rodrigo colo una foto de
+                // Valsain en Zarzalejo, a 32 km.
+                avisoFoto = "Esa foto se hizo a ${km.toInt()} km de $schoolName. " +
+                    "Elige una foto tomada en esta escuela."
             } else {
                 photoSeed = com.meteomontana.android.ui.screens.detail.PhotoSeed(
                     photoUri = uri,
                     lat = donde.lat, lon = donde.lon,
-                    aspect = donde.cameraDegrees?.let { com.meteomontana.android.domain.util.PhotoPlacement.aspectFromCameraDirection(it) })
+                    aspect = donde.cameraDegrees?.let {
+                        com.meteomontana.android.domain.util.PhotoPlacement.aspectFromCameraDirection(it)
+                    })
             }
         }
     }
