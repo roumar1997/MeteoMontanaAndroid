@@ -39,7 +39,16 @@ fun SubmitBlockPhotoFlow(
     schools: List<com.meteomontana.android.domain.model.School>,
     seedStore: PhotoProposalSeed,
     onOpenSchool: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    /**
+     * Si se entra DESDE una escuela (su mapa -> PROPONER), ya sabemos a cual
+     * pertenece: no hay que buscarla por cercania ni rechazar la foto por estar
+     * lejos del catalogo. Solo hace falta que la foto sepa donde se hizo.
+     *
+     * Es un parametro y no un flujo aparte porque el resto —selector, lectura
+     * de coordenadas, semilla— es identico, y dos copias acaban divergiendo.
+     */
+    escuelaFijada: com.meteomontana.android.domain.model.School? = null
 ) {
     val context = LocalContext.current
     var aviso by remember { mutableStateOf<String?>(null) }
@@ -48,6 +57,20 @@ fun SubmitBlockPhotoFlow(
         val donde = readPhotoLocation(context, uri)
         if (donde == null) {
             aviso = context.getString(R.string.photo_no_coords)
+            return
+        }
+        // Desde el mapa de una escuela: la escuela ya esta decidida.
+        if (escuelaFijada != null) {
+            seedStore.put(
+                PhotoProposalSeed.Seed(
+                    schoolId = escuelaFijada.id,
+                    photoUri = uri.toString(),
+                    lat = donde.lat,
+                    lon = donde.lon,
+                    aspect = PhotoPlacement.aspectFromCameraDirection(donde.cameraDegrees)
+                )
+            )
+            onOpenSchool(escuelaFijada.id)
             return
         }
         when (val r = PhotoPlacement.schoolFor(donde.lat, donde.lon, schools)) {

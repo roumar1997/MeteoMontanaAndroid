@@ -39,6 +39,8 @@ import com.meteomontana.android.ui.theme.Terra
 internal fun TypePickerDialog(
     onParking: () -> Unit,
     onBoulder: () -> Unit,
+    /** Null si el atajo de la foto no aplica en este contexto. */
+    onBoulderFromPhoto: (() -> Unit)? = null,
     onSector: () -> Unit,
     onCorrection: () -> Unit,
     onDismiss: () -> Unit
@@ -82,6 +84,21 @@ internal fun TypePickerDialog(
             onClick = onBoulder
         )
         Spacer(Modifier.height(Spacing.sm))
+        // Atajo: si la foto sabe donde se hizo, la piedra se coloca sola y no
+        // hay que tocar el mapa. Aqui la escuela ya se conoce, asi que —a
+        // diferencia del mismo atajo desde la lista de escuelas— no hay que
+        // buscarla por cercania. Pensado para encadenar varias piedras sin
+        // salir de la escuela.
+        if (onBoulderFromPhoto != null) {
+            TypeOption(
+                icon = "\u25A3",
+                label = "PIEDRA DESDE UNA FOTO",
+                description = "Elige una foto tuya de la piedra: se coloca sola en el punto donde la hiciste.",
+                enabled = true,
+                onClick = onBoulderFromPhoto
+            )
+            Spacer(Modifier.height(Spacing.sm))
+        }
         TypeOption(
             icon = "+",
             label = "SECTOR",

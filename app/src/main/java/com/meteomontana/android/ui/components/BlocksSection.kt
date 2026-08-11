@@ -44,11 +44,36 @@ fun BlocksSection(
     if (schoolLat == null || schoolLon == null || viewModel == null) return
     // Foto de "Enviar piedra": se lee UNA vez al componer, y el mapa se encarga
     // de abrir el flujo de proponer con ella.
-    val photoSeed = androidx.compose.runtime.remember(schoolId) {
-        viewModel.takePhotoSeed()?.let {
-            com.meteomontana.android.ui.screens.detail.PhotoSeed(
-                photoUri = android.net.Uri.parse(it.photoUri),
-                lat = it.lat, lon = it.lon, aspect = it.aspect)
+    // ESTADO, no valor fijo: ademas de la foto que llega desde la lista de
+    // escuelas, ahora se puede elegir una AQUI mismo (PROPONER -> "piedra desde
+    // una foto"), y el mapa reacciona al cambio para abrir el flujo.
+    var photoSeed by androidx.compose.runtime.saveable.rememberSaveable(
+        schoolId, stateSaver = androidx.compose.runtime.saveable.autoSaver()
+    ) {
+        androidx.compose.runtime.mutableStateOf(
+            viewModel.takePhotoSeed()?.let {
+                com.meteomontana.android.ui.screens.detail.PhotoSeed(
+                    photoUri = android.net.Uri.parse(it.photoUri),
+                    lat = it.lat, lon = it.lon, aspect = it.aspect)
+            }
+        )
+    }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    // Aqui la escuela YA se conoce: solo hace falta que la foto sepa donde se
+    // hizo. Nada de buscarla por cercania como en la lista de escuelas.
+    val elegirFotoDePiedra = com.meteomontana.android.ui.components.rememberSelectorDeFoto { uri ->
+        if (uri != null) {
+            val donde = com.meteomontana.android.ui.components.readPhotoLocation(ctx, uri)
+            if (donde == null) {
+                android.widget.Toast.makeText(
+                    ctx, ctx.getString(com.meteomontana.android.R.string.photo_no_coords),
+                    android.widget.Toast.LENGTH_LONG).show()
+            } else {
+                photoSeed = com.meteomontana.android.ui.screens.detail.PhotoSeed(
+                    photoUri = uri,
+                    lat = donde.lat, lon = donde.lon,
+                    aspect = donde.cameraDegrees?.let { com.meteomontana.android.domain.util.PhotoPlacement.aspectFromCameraDirection(it) })
+            }
         }
     }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -60,6 +85,7 @@ fun BlocksSection(
             schoolId      = schoolId,
             viewModel     = viewModel,
             photoSeed     = photoSeed,
+            onPickBoulderFromPhoto = elegirFotoDePiedra,
             onMyProposals = onMyProposals
         )
     }

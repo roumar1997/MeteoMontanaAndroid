@@ -98,6 +98,8 @@ fun SchoolMap(
     schoolId: String = "",
     /** Foto de "Enviar piedra": abre el flujo de proponer piedra ya con ella. */
     photoSeed: com.meteomontana.android.ui.screens.detail.PhotoSeed? = null,
+    /** Elegir una foto para proponer una piedra SIN salir de la escuela. */
+    onPickBoulderFromPhoto: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -257,6 +259,7 @@ fun SchoolMap(
         ProposeContributionFlow(
             schoolName      = schoolName,
             photoSeed       = photoSeed,
+            onPickBoulderFromPhoto = onPickBoulderFromPhoto,
             onPhotoConfirmChange = { punto, aceptar, mover ->
                 bridge.photoConfirm = punto
                 bridge.photoAccept = aceptar

@@ -27,6 +27,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.Backpack
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -52,6 +53,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -128,7 +130,22 @@ fun ProfileScreen(
     // verdad dentro del perfil: pantalla completa, y al volver de un sub-ajuste
     // (que navega encima) `settingsOpen` sigue true (rememberSaveable) → vuelves
     // a Ajustes, no al perfil. El back del sistema cierra Ajustes.
+    var gearOpen by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = gearOpen) { gearOpen = false }
     BackHandler(enabled = settingsOpen) { settingsOpen = false }
+
+    if (gearOpen && successState != null) {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { gearOpen = false },
+            containerColor = MaterialTheme.colorScheme.background
+        ) {
+            MyGearSheet(
+                gearJson = successState.profile.gearJson,
+                onClose = { gearOpen = false },
+                onSave = { json -> viewModel.saveGear(json) { gearOpen = false } }
+            )
+        }
+    }
 
     if (settingsOpen && successState != null) {
         ProfileSettingsScreen(
@@ -148,9 +165,12 @@ fun ProfileScreen(
             // Cabecera: ayuda (izq) · título · compartir + ajustes (der). Compartir
             // y ajustes solo cuando el perfil ha cargado (necesitan sus datos).
             ProfileTopBar(
-                title = stringResource(R.string.profile_title),
+                // Sin titulo: debajo ya estan tu foto, tu nombre y tu @usuario.
+                // Poner "Cuenta" encima solo repite donde estas y roba altura.
+                title = "",
                 showClose = showClose,
                 onBack = onBack,
+                onGear = successState?.let { { gearOpen = true } },
                 onShare = successState?.let { s -> { shareProfile(ctx, scope, s.profile, s.stats) } },
                 onSettings = successState?.let { { settingsOpen = true } },
                 onAdmin = successState?.takeIf { it.profile.isAdmin }?.let { { onAdmin() } },
@@ -207,6 +227,7 @@ private fun ProfileTopBar(
     title: String,
     showClose: Boolean,
     onBack: () -> Unit,
+    onGear: (() -> Unit)? = null,
     onShare: (() -> Unit)?,
     onSettings: (() -> Unit)?,
     onAdmin: (() -> Unit)? = null,
@@ -251,6 +272,14 @@ private fun ProfileTopBar(
         com.meteomontana.android.ui.components.CumbrePillGroup(
             modifier = Modifier.align(Alignment.CenterEnd)
         ) {
+            // Mi material: primero de los tres, igual que en iOS.
+            if (onGear != null) IconButton(onClick = onGear) {
+                Icon(
+                    Icons.Outlined.Backpack,
+                    contentDescription = "Mi material",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
             if (onShare != null) IconButton(onClick = onShare) {
                 Icon(Icons.Outlined.Share, contentDescription = "Compartir perfil",
                     tint = MaterialTheme.colorScheme.primary)

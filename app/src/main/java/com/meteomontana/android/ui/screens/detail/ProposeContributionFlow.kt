@@ -82,6 +82,8 @@ fun ProposeContributionFlow(
      * exacto lo pone el usuario, viendo alrededor el resto de la escuela.
      */
     photoSeed: PhotoSeed? = null,
+    /** Elegir una foto aqui mismo: la escuela ya se conoce. */
+    onPickBoulderFromPhoto: (() -> Unit)? = null,
     /**
      * Avisa del punto de la foto pendiente de confirmar y de qué hacer con él.
      * SchoolMap lo pinta como marcador y saca el banner de sí/mover.
@@ -252,6 +254,9 @@ fun ProposeContributionFlow(
 
     when (val s = step) {
         is ProposeStep.TypePicker -> TypePickerDialog(
+            onBoulderFromPhoto = onPickBoulderFromPhoto?.let {
+                { onDismiss(); it() }
+            },
             onParking = {
                 boulderMode = false; pickedType = "PARKING"
                 step = ProposeStep.WaitingMapTap
