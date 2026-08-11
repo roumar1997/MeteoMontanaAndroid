@@ -227,7 +227,9 @@ struct AccountView: View {
                 .padding(.horizontal, 24)
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle(NSLocalizedString("profile_title", comment: ""))
+            // Sin titulo: debajo ya estan tu foto, tu nombre y tu @usuario.
+            // Poner "Cuenta" encima solo repite donde estas y roba altura.
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
