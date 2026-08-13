@@ -45,3 +45,25 @@ fun ApproachPinDto.toDomain() = ApproachPin(
     id = id, lat = lat, lon = lon, positionIdx = positionIdx, kind = kind,
     message = message, photoPath = photoPath, authorUid = authorUid, status = status
 )
+
+@Serializable
+data class CreateApproachRequest(
+    val fromBlockId: String? = null,
+    val toBlockId: String? = null,
+    val name: String? = null,
+    val pathJson: String,
+    val distanceM: Int? = null,
+    val ascentM: Int? = null,
+    val durationMin: Int? = null,
+    val source: String = "RECORDED"
+)
+
+@Serializable
+data class AddApproachPinRequest(
+    val lat: Double,
+    val lon: Double,
+    val positionIdx: Int = 0,
+    val kind: String,
+    val message: String? = null,
+    val photoPath: String? = null
+)

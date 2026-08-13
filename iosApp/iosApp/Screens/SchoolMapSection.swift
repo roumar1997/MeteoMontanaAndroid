@@ -109,9 +109,9 @@ struct SchoolMapSection: View {
                 if !fullscreenMap {
                     mapArea(height: 280)
                 }
-                // Fase 1 de APPROACH_DESIGN.md — solo lectura por ahora.
-                ApproachesSection(loader: approachesLoader, schoolName: school.name,
-                                   following: $followingApproach)
+                // Grabar/chincheta SOLO ADMIN por ahora (APPROACH_DESIGN.md §2.6/§10).
+                ApproachesSection(loader: approachesLoader, school: school, blocks: vm.blocks,
+                                   isAdmin: vm.isAdmin, following: $followingApproach)
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).
                 parkingsList
@@ -455,7 +455,9 @@ struct SchoolMapSection: View {
                 }
                 .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: vm.isAdmin) }
                 .fullScreenCover(item: $followingApproach) { a in
-                    ApproachFollowView(approach: a, schoolName: school.name)
+                    ApproachFollowView(approach: a, schoolName: school.name, isAdmin: vm.isAdmin) {
+                        approachesLoader.reload(schoolId: school.id)
+                    }
                 }
                 // Ficha de piedra y sus acciones — también ancladas al mapa para
                 // que se presenten sobre la pantalla completa sin tener que salir.
