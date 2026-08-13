@@ -7,9 +7,16 @@
 
 ## 0. Resumen en una línea
 
-Dentro de la pantalla de Escuelas, una pestaña nueva **"Bloques"** junto a
-"Escuelas": filtras por grado, distancia y tipo de roca, y cada resultado es
-**una vía concreta** que te lleva directo a su piedra.
+Dos filtros hermanos, uno global y uno local:
+
+1. **Global** (§1-6): pestaña "Bloques" en Escuelas, filtra por grado/
+   cercanía/roca **en todo el catálogo**, backend nuevo.
+2. **Local** (§7): dentro de UNA escuela ya abierta, filtra por grado **sus
+   propias piedras** (ej. "todos los 7A-7B de Zarzalejo") — **sin backend**,
+   la escuela ya trae todas sus vías cargadas.
+
+Se implementan por separado, empezando por el local (más barato, valor
+inmediato) y luego el global.
 
 ---
 
@@ -136,7 +143,7 @@ navega a la escuela y abre esa vía. **Cero pantalla nueva de detalle.**
 
 ---
 
-## 5. Plan de implementación
+## 5. Plan de implementación (filtro GLOBAL)
 
 **Fase 1 — Backend**: migración V64 + `GradeScore.java` (puerto de
 `gradeArgb`) + ampliar `ContributionRequest`/casos de uso que crean/editan
@@ -154,6 +161,62 @@ Swift, paridad de tabs y filtros.
 
 **Fase 4 — Pulido**: "cargar más" (paginación por `offset`), persistir el
 último filtro usado (como ya se hace con `SchoolFilters`).
+
+---
+
+## 7. Filtro LOCAL — dentro de una escuela ya abierta
+
+### 7.1 Por qué es distinto y más barato
+
+`BlocksSection` ya recibe `blocks: List<Block>` con **todas** las vías de esa
+escuela ya cargadas (cada `Block` trae sus `lines` con `grade`). No hace
+falta llamar al servidor: es un `filter { }` en memoria, con la misma función
+de score de §1.3 (`gradeArgb`, que ya vive en `shared/commonMain` — Android e
+iOS la comparten sin puerto nuevo).
+
+### 7.2 Interfaz
+
+Encima de la lista/mapa de piedras de la escuela, una barra de chips de grado
+colapsable — mismo patrón visual que `SchoolFiltersBar` pero con **dos**
+selectores (mínimo/máximo), igual que §4.2. Por defecto oculta/plegada (no
+todo el mundo quiere filtrar); un icono de embudo la despliega.
+
+```
+[ 🔽 Filtrar por grado ]
+        ↓ (al tocar)
+GRADO   3A ────●───────●──── 8A+
+        (min: 7A)   (max: 7B)
+
+Mostrando 4 vías de 23
+```
+
+### 7.3 Comportamiento — "poder ejecutarlas"
+
+Con el filtro puesto:
+- **En el mapa**: solo se resaltan/activan los marcadores de piedras que
+  tengan AL MENOS una vía dentro del rango (el resto se atenúa, no
+  desaparece — sigues viendo el contexto del sector).
+- **En la lista de piedras** (si la vista es de lista): solo aparecen las
+  piedras con alguna vía en rango, y **dentro de la ficha de esa piedra**,
+  las vías fuera de rango se atenúan (mismo criterio que el mapa) — nunca se
+  ocultan vías dentro de una piedra que sí se muestra, porque perderías
+  contexto de qué más tiene esa pared.
+- Tocar una piedra o vía filtrada **abre exactamente el mismo flujo que
+  siempre** (`BlockDetailDialog`) — "ejecutarla" es el comportamiento normal
+  de tocar, no hay pantalla nueva.
+
+### 7.4 Plan de implementación (filtro LOCAL)
+
+Una sola fase, sin backend:
+- `shared`: función pura `filterLinesByGrade(blocks, min, max): Set<blockId>`
+  (o similar), commonMain, testeable con `commonTest`.
+- Android: estado de filtro en `SchoolDetailViewModel` (dos `MutableStateFlow`
+  min/max, `null`/`null` = sin filtrar), aplicarlo en `BlocksSection`/
+  `SchoolMap` (atenuar en vez de ocultar) y en la ficha de piedra.
+- iOS: espejo exacto en `SchoolDetailView`/`SchoolMapSection`.
+- Persistencia: NO se guarda entre sesiones (es un filtro de "ahora mismo
+  quiero ver esto"), se resetea al salir de la escuela — distinto del filtro
+  global de escuelas, que sí persiste.
 
 ---
 
