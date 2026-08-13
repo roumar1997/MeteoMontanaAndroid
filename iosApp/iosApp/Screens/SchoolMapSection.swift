@@ -25,6 +25,12 @@ struct SchoolMapSection: View {
     // en rango se ATENÚAN (no se ocultan): se conserva el contexto del sector.
     // No persiste al salir de la escuela, a diferencia del filtro de escuelas.
     @State private var selectedGrades: Set<String> = []
+    // Aproximaciones (caminos) — Fase 1 de APPROACH_DESIGN.md, solo lectura.
+    // El loader vive aquí (no dentro de ApproachesSection) para que la ficha
+    // mini de un sector/parking pueda ofrecer "SEGUIR" si hay un camino hasta
+    // él, no solo la sección de la ficha completa.
+    @StateObject private var approachesLoader = ApproachesLoader()
+    @State private var followingApproach: Approach?
     @State private var didAutoOpen = false
     /// Bandera interna, ya no un boton: el mapa esta siempre visible (ver body).
     @State private var expanded = true
@@ -103,6 +109,9 @@ struct SchoolMapSection: View {
                 if !fullscreenMap {
                     mapArea(height: 280)
                 }
+                // Fase 1 de APPROACH_DESIGN.md — solo lectura por ahora.
+                ApproachesSection(loader: approachesLoader, schoolName: school.name,
+                                   following: $followingApproach)
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).
                 parkingsList
@@ -114,6 +123,7 @@ struct SchoolMapSection: View {
                 _ = await vm.reloadBlocks(school: school, selectedId: nil)
             }
             maybeAutoOpen()
+            approachesLoader.load(schoolId: school.id)
             headingProvider.start()
             // Mi ubicación en CONTINUO mientras el mapa está abierto: el GPS se
             // mantiene caliente y afina en segundos (los fixes sueltos cada 5 s
@@ -444,6 +454,9 @@ struct SchoolMapSection: View {
                     }
                 }
                 .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: vm.isAdmin) }
+                .fullScreenCover(item: $followingApproach) { a in
+                    ApproachFollowView(approach: a, schoolName: school.name)
+                }
                 // Ficha de piedra y sus acciones — también ancladas al mapa para
                 // que se presenten sobre la pantalla completa sin tener que salir.
                 .sheet(item: $selectedBlock) { b in
@@ -997,6 +1010,19 @@ struct SchoolMapSection: View {
                     }.buttonStyle(.plain)
                     Button { confirmDeleteMini = true } label: {
                         Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad).padding(4)
+                    }.buttonStyle(.plain)
+                }
+                // Si hay un camino grabado que llega hasta este sector/parking,
+                // ofrecer seguirlo directo desde aquí — no hace falta ir a la
+                // sección APROXIMACIONES a buscarlo.
+                if let approach = approachesLoader.approach(to: mb.id) {
+                    Button {
+                        miniBlock = nil
+                        followingApproach = approach
+                    } label: {
+                        Text("SEGUIR").font(Cumbre.mono(10, .bold)).tracking(0.8)
+                            .foregroundStyle(Cumbre.terra).padding(.horizontal, 10).padding(.vertical, 8)
+                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Cumbre.terra, lineWidth: 1))
                     }.buttonStyle(.plain)
                 }
                 Button {

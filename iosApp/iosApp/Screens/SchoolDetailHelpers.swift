@@ -11,6 +11,7 @@ import FirebaseAuth
 // (ShareConditionsButton, muerta —el toolbar usa ShareLink directo—, eliminada.)
 
 extension Block: Identifiable {}
+extension Approach: Identifiable {}
 
 /// "hace 3 h" / "hace 2 d" / "el 14/06/26" a partir de un epoch en ms.
 func relativeUpdated(_ millis: Int64) -> String {

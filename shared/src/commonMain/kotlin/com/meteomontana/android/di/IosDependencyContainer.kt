@@ -191,6 +191,9 @@ class IosDependencyContainer(
     private val moderationRepository =
         com.meteomontana.android.data.repository.KtorModerationRepository(moderationApi)
     private val blockRepository = KtorBlockRepository(blockApi, database)
+    // Aproximaciones (caminos). Fase 1 de APPROACH_DESIGN.md — solo lectura.
+    private val approachRepository = com.meteomontana.android.data.repository
+        .KtorApproachRepository(com.meteomontana.android.data.api.KtorApproachApi(httpClient))
     private val communityRepository = com.meteomontana.android.data.repository
         .KtorCommunityRepository(com.meteomontana.android.data.api.KtorCommunityApi(httpClient))
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
@@ -305,6 +308,8 @@ class IosDependencyContainer(
     // Diario de escalada: entradas, stats (bloques/escuelas/grado máximo), crear/borrar.
     // Bloques de una escuela (para autocompletar el diario con vías/sectores reales).
     val getBlocks = GetBlocksUseCase(blockRepository)
+    val getApproaches = com.meteomontana.android.domain.usecase.approach
+        .GetApproachesUseCase(approachRepository)
 
     // Admin: cola de propuestas/contribuciones pendientes + aprobar/rechazar.
     val getPendingSubmissions = GetPendingSubmissionsUseCase(adminRepository)
