@@ -22,6 +22,10 @@ y se conecta al backend Spring Boot.
 >   **implementado**. Consultar antes de tocar geometría de vías/muros.
 > - [`MEETUPS_DESIGN.md`](./MEETUPS_DESIGN.md) — diseño de **Quedadas**,
 >   **implementado**. Consultar antes de tocar esa pestaña.
+> - [`APPROACH_DESIGN.md`](./APPROACH_DESIGN.md) — diseño de **aproximaciones**
+>   (grabar el camino parking→sector + chinchetas con foto/texto).
+>   **SIN IMPLEMENTAR**; la Fase 0 es un cambio de términos que debe ver un
+>   abogado antes de escribir código.
 > - [`APP_STORE_CHECKLIST.md`](./APP_STORE_CHECKLIST.md) — checklist de
 >   publicación en App Store (la app ya está en TestFlight; quedan pasos
 >   de ficha).
