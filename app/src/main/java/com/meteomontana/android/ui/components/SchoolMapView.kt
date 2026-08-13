@@ -157,7 +157,10 @@ internal fun SchoolMapView(
     // Ficha de piedra: izada a SchoolMap (los deep-links abren la ficha sin
     // arrancar MapLibre). El mapa solo notifica taps.
     onBlockSelected: (Block) -> Unit,
-    onDismissBlock: () -> Unit
+    onDismissBlock: () -> Unit,
+    /** Piedras sin ninguna vía en la selección del filtro de grado (ver
+     * BLOCK_SEARCH_DESIGN.md §7) — se pintan atenuadas en el mapa. */
+    gradeDimmedBlockIds: Set<String> = emptySet()
 ) {
     val ctx = LocalContext.current
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
@@ -299,9 +302,9 @@ internal fun SchoolMapView(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(bridge.correctionGhost, visibleMarkers, activePreview, userLoc, deviceHeading) {
+    androidx.compose.runtime.LaunchedEffect(bridge.correctionGhost, visibleMarkers, activePreview, userLoc, deviceHeading, gradeDimmedBlockIds) {
         val map = mapRef.value ?: return@LaunchedEffect
-        placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview, deviceHeading) { tapped ->
+        placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview, deviceHeading, gradeDimmedBlockIds) { tapped ->
             if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
             else onBlockTap(tapped)
         }
@@ -313,6 +316,7 @@ internal fun SchoolMapView(
     val visibleState = androidx.compose.runtime.rememberUpdatedState(visibleMarkers)
     val ghostState = androidx.compose.runtime.rememberUpdatedState(bridge.correctionGhost)
     val previewState = androidx.compose.runtime.rememberUpdatedState(activePreview)
+    val gradeDimmedState = androidx.compose.runtime.rememberUpdatedState(gradeDimmedBlockIds)
     androidx.compose.runtime.LaunchedEffect(mapRef.value) {
         val map = mapRef.value ?: return@LaunchedEffect
         var lastClusterZoom = map.cameraPosition.zoom
@@ -323,7 +327,7 @@ internal fun SchoolMapView(
                 // como vigilante anti-desapariciones del SDK.
                 lastClusterZoom = map.cameraPosition.zoom
                 placer.place(ctx, map, visibleState.value, ghostState.value,
-                    userLoc, previewState.value) { tapped ->
+                    userLoc, previewState.value, gradeDimmedBlockIds = gradeDimmedState.value) { tapped ->
                     if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
                     else onBlockTap(tapped)
                 }
@@ -345,7 +349,7 @@ internal fun SchoolMapView(
             currentStyle = option
             mapViewRef.value?.getMapAsync { map ->
                 map.setStyle(Style.Builder().fromJson(styleJsonFor(option))) {
-                    placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview) { tapped ->
+                    placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview, gradeDimmedBlockIds = gradeDimmedBlockIds) { tapped ->
                         if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
                         else onBlockTap(tapped)
                     }
@@ -493,7 +497,7 @@ internal fun SchoolMapView(
                                 map.cameraPosition = CameraPosition.Builder()
                                     .target(LatLng(centerLat, centerLon))
                                     .zoom(15.0).build()
-                                placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview) { tapped ->
+                                placer.place(ctx, map, visibleMarkers, bridge.correctionGhost, userLoc, activePreview, gradeDimmedBlockIds = gradeDimmedBlockIds) { tapped ->
                                     if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
                                     else onBlockTap(tapped)
                                 }
