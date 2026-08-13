@@ -26,6 +26,9 @@ y se conecta al backend Spring Boot.
 >   (grabar el camino parking→sector + chinchetas con foto/texto).
 >   **SIN IMPLEMENTAR**; la Fase 0 es un cambio de términos que debe ver un
 >   abogado antes de escribir código.
+> - [`BLOCK_SEARCH_DESIGN.md`](./BLOCK_SEARCH_DESIGN.md) — diseño del
+>   **buscador de vías por grado/cercanía/roca** (pestaña Bloques en
+>   Escuelas). **SIN IMPLEMENTAR**.
 > - [`APP_STORE_CHECKLIST.md`](./APP_STORE_CHECKLIST.md) — checklist de
 >   publicación en App Store (la app ya está en TestFlight; quedan pasos
 >   de ficha).
