@@ -17,6 +17,7 @@ Todo lo demás se consulta cuando toca, y por eso vive aparte.
 | **`HISTORIAL.md`** | bitácora por sesión: causas raíz, decisiones, trampas | cuando algo raro tenga historia detrás |
 | `DESIGN.md` | sistema de diseño Cumbre (tokens, espaciado, tipografía) | al tocar UI |
 | `WALLS_DESIGN.md` · `MEETUPS_DESIGN.md` · `FEED_DESIGN.md` | diseño de muros, quedadas y feed (implementados) | antes de tocar esas zonas |
+| `APPROACH_DESIGN.md` | aproximaciones parking→sector con chinchetas — **SIN IMPLEMENTAR**, la Fase 0 es un cambio de términos que debe ver un abogado | antes de empezar esa función |
 | `DEPLOYMENT.md` | publicar (Railway, Firebase, Play, App Store, keystore) | **leer antes de publicar** |
 | `MejorasFuturas.md` | plan priorizado de mejora post-lanzamiento | al elegir en qué invertir tiempo |
 | `KMP_MIGRATION.md` | patrón bridge Kotlin↔Swift (migración ya completada) | al portar un `suspend` nuevo a iOS |
@@ -284,6 +285,16 @@ C. Montar automatización (ver memoria `project_n8n_instagram.md`): (8) diseñar
 
 ## Notas operativas
 
+- **`climbingteams.com` lo sirve CLOUDFLARE PAGES, no Firebase Hosting**
+  (verificado 2026-08-13). La entrada del historial del 2026-07-15 dice que
+  basta `firebase deploy` + purgar caché: **es FALSO y hace perder el tiempo**.
+  Firebase solo actualiza `climbingteams.web.app`, que no visita nadie.
+  Para cambiar el dominio: **commit + push a `main` de
+  `roumar1997/MeteoMontana`** (`Desktop/MeteoMontana`) → Cloudflare Pages
+  despliega solo en ~1-2 min. Se reconoce por los ficheros `_headers` y
+  `_redirects` (convención de Pages) y porque el dominio devuelve la cabecera
+  `content-security-policy` que sale de `_headers`, mientras que
+  `firebase.json` no define cabeceras.
 - Arranque local: ver "⚡ Arranque rápido" arriba.
 - Migraciones Flyway del backend: consultar `api/src/main/resources/db/migration/`
   para la versión más reciente (no repetir aquí, cambia cada sesión).
