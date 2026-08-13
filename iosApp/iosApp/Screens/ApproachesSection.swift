@@ -46,6 +46,7 @@ struct ApproachesSection: View {
     let isAdmin: Bool
     @Binding var following: Approach?
     @State private var recording = false
+    @State private var deleting: Approach?
 
     private var schoolName: String { school.name }
 
@@ -89,13 +90,39 @@ struct ApproachesSection: View {
                 loader.reload(schoolId: school.id)
             }
         }
+        .alert("¿Borrar «\(deleting?.name ?? "esta aproximación")»?", isPresented: Binding(
+            get: { deleting != nil }, set: { if !$0 { deleting = nil } }
+        )) {
+            Button("CANCELAR", role: .cancel) { deleting = nil }
+            Button("BORRAR", role: .destructive) {
+                if let a = deleting {
+                    Task {
+                        _ = try? await AppDependencies.shared.container.approachApi.deleteApproach(approachId: a.id)
+                        loader.reload(schoolId: school.id)
+                    }
+                }
+                deleting = nil
+            }
+        } message: {
+            Text("Se borra el camino y todas sus chinchetas. No se puede deshacer.")
+        }
     }
 
     @ViewBuilder
     private func approachCard(_ a: Approach) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(a.name ?? "Aproximación")
-                .font(.system(size: 14, weight: .bold)).foregroundStyle(Cumbre.ink)
+            HStack(alignment: .top) {
+                Text(a.name ?? "Aproximación")
+                    .font(.system(size: 14, weight: .bold)).foregroundStyle(Cumbre.ink)
+                Spacer()
+                if isAdmin {
+                    Button {
+                        deleting = a
+                    } label: {
+                        Image(systemName: "trash").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                    }
+                }
+            }
             Text(summaryLine(a))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
             HStack {

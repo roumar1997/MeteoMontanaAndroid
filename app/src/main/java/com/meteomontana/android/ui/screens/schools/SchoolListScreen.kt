@@ -179,10 +179,32 @@ fun SchoolListScreen(
     // LazyColumn, para que sobreviva al reciclado del item del mapa al scrollear.
     val mapState = rememberSchoolsMapState()
 
-    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Fila de iconos top + header ("Escuelas" · [+ Aportar]) FUERA del
+        // PullToRefreshBox a propósito: dentro del área de arrastre, el gesto
+        // de refrescar competía por el toque con el botón APORTAR y a veces se
+        // quedaba con él (toque "fantasma" — el clic se perdía en silencio,
+        // solo colaba tocando la esquina superior derecha del botón, donde el
+        // arbitraje de gestos de Compose apenas tiene margen para dudar).
+        // Fijos aquí, nunca compiten con el pull-to-refresh de la lista.
+        TopIconsRow(
+            unread = unread,
+            chatUnread = chatUnread,
+            onSearchUsers = onSearchUsers,
+            onChats = onChats,
+            onNotifications = onNotifications,
+            onProfileClick = onProfileClick
+        )
+        HeaderEscuelas(
+            count = (state as? SchoolListUiState.Success)?.schools?.size,
+            onSubmitSchool = onSubmitSchool,
+            onSubmitBlockPhoto = { eligiendoFoto = true }
+        )
+
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+        modifier = Modifier.fillMaxSize()
     ) {
         val listState = androidx.compose.foundation.lazy.rememberLazyListState()
         androidx.compose.runtime.LaunchedEffect(volverArribaSignal) {
@@ -195,29 +217,6 @@ fun SchoolListScreen(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
     ) {
-
-            // Fila de iconos top (no existe en la PWA pero hay que mantener
-            // navegación a chats/notifs/perfil). Discreta para que el header
-            // siguiente sea el foco visual.
-            item {
-                TopIconsRow(
-                    unread = unread,
-                    chatUnread = chatUnread,
-                    onSearchUsers = onSearchUsers,
-                    onChats = onChats,
-                    onNotifications = onNotifications,
-                    onProfileClick = onProfileClick
-                )
-            }
-
-            // Header PWA: "Escuelas" · "193 escuelas" · [+ Enviar escuela]
-            item {
-                HeaderEscuelas(
-                    count = (state as? SchoolListUiState.Success)?.schools?.size,
-                    onSubmitSchool = onSubmitSchool,
-                    onSubmitBlockPhoto = { eligiendoFoto = true }
-                )
-            }
 
             // Buscador ÚNICO estilo Spotlight: escuelas Y vías/bloques a la vez.
             // El placeholder anuncia que busca ambas cosas, y al escribir salen
@@ -563,6 +562,7 @@ fun SchoolListScreen(
                 }
             }
         }
+    }
     }
 }
 
