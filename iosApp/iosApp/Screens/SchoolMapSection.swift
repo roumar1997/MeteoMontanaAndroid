@@ -103,6 +103,8 @@ struct SchoolMapSection: View {
                 if !fullscreenMap {
                     mapArea(height: 280)
                 }
+                // Fase 1 de APPROACH_DESIGN.md — solo lectura por ahora.
+                ApproachesSection(schoolId: school.id, schoolName: school.name)
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).
                 parkingsList
