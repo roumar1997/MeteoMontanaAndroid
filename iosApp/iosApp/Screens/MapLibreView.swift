@@ -520,10 +520,13 @@ struct MapStyleChips: View {
 }
 
 extension UIColor {
-    /// Clave estable por color.
+    /// Clave estable por color. INCLUYE el alfa: el filtro de grado atenúa los
+    /// pines fuera de rango (mismo RGB, distinto alfa) — sin el alfa aquí, la
+    /// caché de iconos daba la misma clave y el pin no se repintaba al filtrar.
     var hexKey: String {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         getRed(&r, green: &g, blue: &b, alpha: &a)
-        return String(format: "%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+        return String(format: "%02X%02X%02X%02X",
+                      Int(r * 255), Int(g * 255), Int(b * 255), Int(a * 255))
     }
 }
