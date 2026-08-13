@@ -115,6 +115,10 @@ fun SchoolMap(
     // Ahora la ficha abre directamente en cuanto hay bloques; el mapa solo se
     // expande cuando el usuario lo abre (o al trazar un muro desde el editor).
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
+    // Filtro LOCAL por GRADO (BLOCK_SEARCH_DESIGN.md §7). No persiste al salir
+    // de la escuela. Vive aquí (no dentro del `run {}` de más abajo) porque lo
+    // necesitan tanto la barra del mapa como la ficha de piedra (selectedBlock?.let).
+    var selectedGrades by remember { mutableStateOf(setOf<String>()) }
     // Vía objetivo del deep-link del diario → el detalle abre por su foto/cara.
     var highlightVia by remember { mutableStateOf<String?>(null) }
     // Tick pendiente de confirmar (hoja "Publicar en el feed").
@@ -206,6 +210,24 @@ fun SchoolMap(
                     b.type != "BLOCK" || blockOrientations[b.id] == aspect
                 }
             }
+            // Filtro LOCAL por GRADO (BLOCK_SEARCH_DESIGN.md §7). `selectedGrades`
+            // vive fuera de este `run {}` (ver arriba) — lo necesita también la
+            // ficha de piedra, más abajo.
+            val availableGrades = remember(visibleBlocks) {
+                com.meteomontana.android.domain.util.availableGrades(visibleBlocks)
+            }
+            val gradeFilter = remember(visibleBlocks, selectedGrades) {
+                com.meteomontana.android.domain.util.filterBlocksByGrades(visibleBlocks, selectedGrades)
+            }
+            GradeFilterBar(
+                selectedGrades = selectedGrades,
+                onSelectedGradesChange = { selectedGrades = it },
+                availableGrades = availableGrades,
+                result = gradeFilter,
+                onSelectLine = { match ->
+                    visibleBlocks.firstOrNull { it.id == match.blockId }?.let { selectedBlock = it }
+                }
+            )
             SchoolMapView(
                 centerLat     = centerLat,
                 centerLon     = centerLon,
@@ -218,7 +240,10 @@ fun SchoolMap(
                 wallEdit      = wallEdit,
                 // Ficha de piedra izada a ESTE nivel (deep-links sin MapLibre).
                 onBlockSelected = { selectedBlock = it },
-                onDismissBlock = { selectedBlock = null }
+                onDismissBlock = { selectedBlock = null },
+                gradeDimmedBlockIds = if (selectedGrades.isEmpty()) emptySet() else
+                    visibleBlocks.filter { it.type == "BLOCK" && it.id !in gradeFilter.matchingBlockIds }
+                        .map { it.id }.toSet()
             )
             
 
@@ -273,6 +298,12 @@ fun SchoolMap(
     val fichaIsAdmin = (viewModel.uiState.collectAsStateWithLifecycle().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
+    // Filtro por grado (BLOCK_SEARCH_DESIGN.md §7): qué vías caen en la
+    // selección, para atenuar el resto DENTRO de la ficha (no solo en el mapa).
+    val gradeFilter = remember(blocks, selectedGrades) {
+        com.meteomontana.android.domain.util.filterBlocksByGrades(blocks, selectedGrades)
+    }
+
     selectedBlock?.let { block ->
         val sectors = blocks.filter { it.type == "ZONE" }
         // Vías ya hechas (diario + cola offline) → ✓ al abrir; PROYECTO igual.
@@ -291,6 +322,7 @@ fun SchoolMap(
             highlightVia = highlightVia,
             initiallyTicked = doneLineIds,
             initiallyProjects = projectLineIds,
+            gradeMatchingLineIds = if (selectedGrades.isEmpty()) null else gradeFilter.matchingLineIds,
             onAddLines = if (block.type == "BLOCK") ({
                 // openFor puebla el estado ANTES de abrir (sin frame vacío).
                 // NO cerramos la ficha: el editor abre ENCIMA (su scrim tapa la

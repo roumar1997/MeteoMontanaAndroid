@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -90,6 +91,9 @@ fun BlockDetailDialog(
     /** Sectores (ZONE) disponibles para "ASIGNAR SECTOR". null = no mostrar el botón. */
     availableSectors: List<Block>? = null,
     onAssignSector: ((sectorBlockId: String) -> Unit)? = null,
+    /** Ids de vías que caen en el filtro de grado (BLOCK_SEARCH_DESIGN.md §7).
+     *  null = sin filtro, nada se atenúa. */
+    gradeMatchingLineIds: Set<String>? = null,
     onDismiss: () -> Unit
 ) {
     var showLinePicker by remember { mutableStateOf(false) }
@@ -326,6 +330,12 @@ fun BlockDetailDialog(
                         face.lines.forEachIndexed { idx, line ->
                             val lineGrade = line.grade
                             val style = gradeStyle(lineGrade)
+                            // Filtro por grado (BLOCK_SEARCH_DESIGN.md §7): vías fuera de
+                            // la selección se atenúan, no se ocultan (contexto de la piedra).
+                            val gradeDimmed = gradeMatchingLineIds != null && line.id !in gradeMatchingLineIds
+                            Column(
+                                Modifier.graphicsLayer(alpha = if (gradeDimmed) 0.35f else 1f)
+                            ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -496,6 +506,7 @@ fun BlockDetailDialog(
                                         myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
                                     )
                                 }
+                            }
                             }
                         }
                     }

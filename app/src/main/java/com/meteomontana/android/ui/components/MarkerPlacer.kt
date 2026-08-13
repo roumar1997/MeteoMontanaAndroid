@@ -100,6 +100,9 @@ internal class MarkerPlacer {
         userLoc: com.meteomontana.android.domain.model.UserLocation? = null,
         wallPreview: List<Pair<Double, Double>> = emptyList(),
         headingDeg: Float? = null,
+        /** Piedras (BLOCK) sin ninguna vía en la selección del filtro de grado:
+         * se pintan atenuadas, no se ocultan (BLOCK_SEARCH_DESIGN.md §7). */
+        gradeDimmedBlockIds: Set<String> = emptySet(),
         onBlockTap: (Block) -> Unit
     ) {
         map.clear()
@@ -129,6 +132,8 @@ internal class MarkerPlacer {
                 (ghost.originalId == null && b.id == "__SCHOOL__") ||
                 (ghost.originalId != null && b.id == ghost.originalId)
             )
+            val faded = isOriginalBeingMoved ||
+                (b.type.equals("BLOCK", true) && gradeDimmedBlockIds.contains(b.id))
             // MURO (geometry=LINE) con polilínea válida: se pinta como LÍNEA del MISMO
             // color que la piedra (no como marcador) → 1 muro = 1 línea, no 16 pines.
             // El número va en un marcador en el punto medio (tappable, mismo estilo).
@@ -139,7 +144,7 @@ internal class MarkerPlacer {
                     PolylineOptions()
                         .addAll(wallPath)
                         .color(android.graphics.Color.parseColor(PIEDRA_COLOR))
-                        .alpha(if (isOriginalBeingMoved) 0.35f else 1f)
+                        .alpha(if (faded) 0.35f else 1f)
                         .width(5f)
                 )
                 polylineBlockMap[polyline.id] = b
@@ -147,8 +152,8 @@ internal class MarkerPlacer {
                 val midMarker = map.addMarker(
                     MarkerOptions()
                         .position(mid)
-                        .icon(cachedIcon(iconFactory, "block:${b.name}:$isOriginalBeingMoved") {
-                            blockBitmap(b.name).fadedIf(isOriginalBeingMoved)
+                        .icon(cachedIcon(iconFactory, "block:${b.name}:$faded") {
+                            blockBitmap(b.name).fadedIf(faded)
                         })
                         .title(b.name)
                 )
@@ -163,8 +168,8 @@ internal class MarkerPlacer {
                     zoneBitmap().fadedIf(isOriginalBeingMoved) }
                 "SCHOOL"  -> cachedIcon(iconFactory, "school:${b.name}:$isOriginalBeingMoved") {
                     schoolBitmap(b.name).fadedIf(isOriginalBeingMoved) }
-                else      -> cachedIcon(iconFactory, "block:${b.name}:$isOriginalBeingMoved") {
-                    blockBitmap(b.name).fadedIf(isOriginalBeingMoved) }
+                else      -> cachedIcon(iconFactory, "block:${b.name}:$faded") {
+                    blockBitmap(b.name).fadedIf(faded) }
             }
             val marker = map.addMarker(
                 MarkerOptions()
