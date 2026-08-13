@@ -191,7 +191,7 @@ struct ApproachRecordView: View {
             .padding(16)
             .background(Cumbre.paper.opacity(0.98))
         }
-        .sheet(item: $newPinCoordItem) { item in
+        .sheet(item: newPinCoordItem) { item in
             NewPinDraftSheet(coord: item.coord) { kind, message, image in
                 pendingPins.append(PendingPin(coord: item.coord, kind: kind, message: message, image: image))
                 placingPin = false
