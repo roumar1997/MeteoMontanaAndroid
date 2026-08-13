@@ -20,6 +20,12 @@ struct SchoolMapSection: View {
     // OrientationFilter.kt de Android.
     @State private var blockOrientations: [String: String] = [:]
     @State private var orientationFilter: String? = nil
+    // Filtro LOCAL por GRADO (ver BLOCK_SEARCH_DESIGN.md §7). No llama al
+    // servidor: la escuela ya trae todas sus vías. Las piedras sin ninguna vía
+    // en rango se ATENÚAN (no se ocultan): se conserva el contexto del sector.
+    // No persiste al salir de la escuela, a diferencia del filtro de escuelas.
+    @State private var minGrade: String? = nil
+    @State private var maxGrade: String? = nil
     @State private var didAutoOpen = false
     /// Bandera interna, ya no un boton: el mapa esta siempre visible (ver body).
     @State private var expanded = true
@@ -86,6 +92,10 @@ struct SchoolMapSection: View {
             // deep-link. Arranca en true y ya no la cambia ningun boton.
             Group {
                 searchBar
+                GradeFilterBar(
+                    minGrade: $minGrade, maxGrade: $maxGrade,
+                    matchingLines: gradeFilter.matchingLines,
+                    totalLines: gradeFilter.totalLines)
                 if !fullscreenMap {
                     mapArea(height: 280)
                 }
@@ -458,7 +468,10 @@ struct SchoolMapSection: View {
                                 }
                                 if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
                             }
-                        })
+                        },
+                        // Filtro de grado activo → sus vías fuera de rango se
+                        // atenúan dentro de la ficha (nil = sin filtro).
+                        gradeMatchingLineIds: gradeFilterActive ? gradeFilter.matchingLineIds : nil)
                 }
                 .sheet(item: $editLinesBlock) { b in
                     EditLinesSheet(block: b, schoolId: school.id, focusVia: openVia,
@@ -799,6 +812,25 @@ struct SchoolMapSection: View {
         return CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
     }
 
+    /// Resultado del filtro de grado sobre las piedras cargadas. Espejo de
+    /// `filterBlocksByGrade` en shared (GradeFilter.kt).
+    private var gradeFilter: GradeFilterResult {
+        filterBlocksByGrade(vm.blocks, minGrade: minGrade, maxGrade: maxGrade)
+    }
+
+    /// ¿Hay filtro de grado puesto? Si no, nada se atenúa.
+    private var gradeFilterActive: Bool { minGrade != nil || maxGrade != nil }
+
+    /// Color del pin de una piedra, atenuado si el filtro de grado está puesto
+    /// y esa piedra no tiene ninguna vía en rango. Se ATENÚA, no se oculta:
+    /// así se conserva el contexto del sector (decisión de diseño §7.3).
+    private func blockColorFiltered(_ b: Block) -> UIColor {
+        let base = color(for: b.type)
+        guard gradeFilterActive, b.type.uppercased() == "BLOCK",
+              !gradeFilter.matchingBlockIds.contains(b.id) else { return base }
+        return base.withAlphaComponent(0.35)
+    }
+
     private var markers: [CumbreMarker] {
         var ms = [CumbreMarker(
             id: school.id,
@@ -825,7 +857,7 @@ struct SchoolMapSection: View {
                 title: b.name.isEmpty ? b.type : b.name,
                 subtitle: typeLabel(b.type),
                 kind: markerKind(for: b.type),
-                color: color(for: b.type),
+                color: blockColorFiltered(b),
                 name: collapsed && hidden > 0 ? "\(b.name) (+\(hidden))" : b.name,
                 // Nombre del sector visible al acercar (sin tener que pulsarlo).
                 showName: b.type.uppercased() == "ZONE" && !b.name.isEmpty && mapZoom >= 13.5))

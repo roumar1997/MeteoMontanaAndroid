@@ -38,6 +38,11 @@ struct BlockInfoSheet: View {
     var onDelete: (() -> Void)? = nil
     /// Valorar una vía. nil = no mostrar estrellas.
     var onRateLine: ((String, Int) -> Void)? = nil
+    /// Filtro de grado activo en la escuela (BLOCK_SEARCH_DESIGN.md §7.3): las
+    /// vías FUERA de rango se atenúan, nunca se ocultan — dentro de una piedra
+    /// que sí se muestra, esconder vías haría perder el contexto de la pared.
+    /// nil = sin filtro, todas a color pleno.
+    var gradeMatchingLineIds: Set<String>? = nil
     @Environment(\.dismiss) private var dismiss
 
     /// Caras de la piedra, SIEMPRE en el orden en que se introdujeron (FOTO 1,
@@ -69,6 +74,12 @@ struct BlockInfoSheet: View {
     private var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
         return sectors.first(where: { $0.id == sid })?.name
+    }
+
+    /// ¿Esta vía queda fuera del filtro de grado activo? (nil = sin filtro).
+    private func gradeDimmed(_ lineId: String) -> Bool {
+        guard let matching = gradeMatchingLineIds else { return false }
+        return !matching.contains(lineId)
     }
     var body: some View {
         NavigationStack {
@@ -248,6 +259,9 @@ struct BlockInfoSheet: View {
                                     LineCommentsThreadView(store: commentsStore,
                                                            blockId: block.id, lineId: l.id)
                                     } // VStack
+                                    // Filtro de grado: las vías fuera de rango se
+                                    // atenúan (siguen pulsables, ver §7.3).
+                                    .opacity(gradeDimmed(l.id) ? 0.35 : 1)
                                 }
                             }
                           }
