@@ -130,7 +130,7 @@ struct ApproachFollowView: View {
             ApproachPinDetailSheet(pin: pin)
                 .presentationDetents([.medium])
         }
-        .sheet(item: $newPinCoordItem) { item in
+        .sheet(item: newPinCoordItem) { item in
             NewApproachPinSheet(approachId: approach.id, coord: item.coord) {
                 placingPin = false
                 newPinCoord = nil
