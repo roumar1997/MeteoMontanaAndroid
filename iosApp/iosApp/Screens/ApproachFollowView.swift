@@ -44,6 +44,11 @@ struct ApproachFollowView: View {
                 zoom: 15,
                 markers: allMarkers,
                 style: .satellite,
+                onTapMarker: { id in
+                    guard id.hasPrefix("pin:") else { return }
+                    let pinId = String(id.dropFirst(4))
+                    selectedPin = approach.pins.first { $0.id == pinId }
+                },
                 fitToCoordinatesOnLoad: pathCoords,
                 polylines: [CumbrePolyline(
                     id: "approach",
@@ -51,12 +56,7 @@ struct ApproachFollowView: View {
                     color: UIColor(Cumbre.terra),
                     width: 4,
                     alpha: 1
-                )],
-                onTapMarker: { id in
-                    guard id.hasPrefix("pin:") else { return }
-                    let pinId = String(id.dropFirst(4))
-                    selectedPin = approach.pins.first { $0.id == pinId }
-                }
+                )]
             )
             .ignoresSafeArea(edges: .top)
 

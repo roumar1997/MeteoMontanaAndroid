@@ -88,9 +88,9 @@ struct ApproachesSection: View {
 
     private func summaryLine(_ a: Approach) -> String {
         var parts: [String] = []
-        if let d = a.distanceM { parts.append(d >= 1000 ? String(format: "%.1f km", Double(d) / 1000) : "\(d) m") }
-        if let asc = a.ascentM { parts.append("+\(asc) m") }
-        if let dur = a.durationMin { parts.append("~\(dur) min") }
+        if let d = a.distanceM?.intValue { parts.append(d >= 1000 ? String(format: "%.1f km", Double(d) / 1000) : "\(d) m") }
+        if let asc = a.ascentM?.intValue { parts.append("+\(asc) m") }
+        if let dur = a.durationMin?.intValue { parts.append("~\(dur) min") }
         let pinCount = a.pins.count
         if pinCount > 0 { parts.append(pinCount == 1 ? "1 chincheta" : "\(pinCount) chinchetas") }
         return parts.joined(separator: " · ")
