@@ -26,6 +26,12 @@ final class ApproachesLoader: ObservableObject {
         }
     }
 
+    /** Fuerza recargar (tras grabar/añadir chincheta), aunque sea la misma escuela. */
+    func reload(schoolId: String) {
+        loadedSchoolId = nil
+        load(schoolId: schoolId)
+    }
+
     /** Primer camino (verificado con preferencia) que llega hasta ese bloque. */
     func approach(to blockId: String) -> Approach? {
         approaches.first { $0.toBlockId == blockId && $0.isVerified }
@@ -35,12 +41,17 @@ final class ApproachesLoader: ObservableObject {
 
 struct ApproachesSection: View {
     @ObservedObject var loader: ApproachesLoader
-    let schoolName: String
+    let school: School
+    let blocks: [Block]
+    let isAdmin: Bool
     @Binding var following: Approach?
+    @State private var recording = false
+
+    private var schoolName: String { school.name }
 
     var body: some View {
         Group {
-            if !loader.approaches.isEmpty {
+            if !loader.approaches.isEmpty || isAdmin {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("APROXIMACIONES")
                         .font(Cumbre.mono(10, .bold)).tracking(1.8)
@@ -51,8 +62,31 @@ struct ApproachesSection: View {
                         approachCard(a)
                             .padding(.horizontal, 16)
                     }
+
+                    // Visible SOLO para admin por ahora — la pantalla que abre
+                    // es la definitiva, la que verá cualquier usuario cuando
+                    // se active para todos (ver APPROACH_DESIGN.md §2.6/§10).
+                    if isAdmin {
+                        Button {
+                            recording = true
+                        } label: {
+                            Text("+ GRABAR APROXIMACIÓN")
+                                .font(Cumbre.mono(11, .bold)).tracking(1.4)
+                                .foregroundStyle(Cumbre.terra)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .overlay(RoundedRectangle(cornerRadius: 2)
+                                    .strokeBorder(Cumbre.terra, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                        }
+                        .padding(.horizontal, 16)
+                    }
                 }
                 .padding(.vertical, 8)
+            }
+        }
+        .fullScreenCover(isPresented: $recording) {
+            ApproachRecordView(school: school, blocks: blocks) {
+                loader.reload(schoolId: school.id)
             }
         }
     }
