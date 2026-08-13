@@ -83,10 +83,13 @@ targets:
         UIBackgroundModes:
           - remote-notification
         # Versión espejo de Android (versionName 2.4 / versionCode 18).
-        CFBundleShortVersionString: "2.23.0"
+        # 2.23.0 quedó CERRADA al enviarla a revisión el 2026-08-11: Apple
+        # cierra el "train" de una versión en revisión y rechaza subir otro
+        # build con ese mismo número → se sube a 2.24.0.
+        CFBundleShortVersionString: "2.24.0"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior. 12-25 ya subidos → 26.
-        CFBundleVersion: "128"
+        CFBundleVersion: "129"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
