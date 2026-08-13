@@ -24,8 +24,7 @@ struct SchoolMapSection: View {
     // servidor: la escuela ya trae todas sus vías. Las piedras sin ninguna vía
     // en rango se ATENÚAN (no se ocultan): se conserva el contexto del sector.
     // No persiste al salir de la escuela, a diferencia del filtro de escuelas.
-    @State private var minGrade: String? = nil
-    @State private var maxGrade: String? = nil
+    @State private var selectedGrades: Set<String> = []
     @State private var didAutoOpen = false
     /// Bandera interna, ya no un boton: el mapa esta siempre visible (ver body).
     @State private var expanded = true
@@ -93,9 +92,14 @@ struct SchoolMapSection: View {
             Group {
                 searchBar
                 GradeFilterBar(
-                    minGrade: $minGrade, maxGrade: $maxGrade,
-                    matchingLines: gradeFilter.matchingLines,
-                    totalLines: gradeFilter.totalLines)
+                    selectedGrades: $selectedGrades,
+                    availableGrades: availableGrades(vm.blocks),
+                    result: gradeFilter,
+                    onSelectLine: { match in
+                        if let b = vm.blocks.first(where: { $0.id == match.blockId }) {
+                            selectedBlock = b
+                        }
+                    })
                 if !fullscreenMap {
                     mapArea(height: 280)
                 }
@@ -813,13 +817,13 @@ struct SchoolMapSection: View {
     }
 
     /// Resultado del filtro de grado sobre las piedras cargadas. Espejo de
-    /// `filterBlocksByGrade` en shared (GradeFilter.kt).
+    /// `filterBlocksByGrades` en shared (GradeFilter.kt).
     private var gradeFilter: GradeFilterResult {
-        filterBlocksByGrade(vm.blocks, minGrade: minGrade, maxGrade: maxGrade)
+        filterBlocksByGrades(vm.blocks, selectedGrades: selectedGrades)
     }
 
     /// ¿Hay filtro de grado puesto? Si no, nada se atenúa.
-    private var gradeFilterActive: Bool { minGrade != nil || maxGrade != nil }
+    private var gradeFilterActive: Bool { !selectedGrades.isEmpty }
 
     /// Color del pin de una piedra, atenuado si el filtro de grado está puesto
     /// y esa piedra no tiene ninguna vía en rango. Se ATENÚA, no se oculta:

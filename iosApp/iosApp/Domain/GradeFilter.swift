@@ -4,6 +4,7 @@ import Shared
 // Espejo de shared/.../domain/util/GradeFilter.kt — MISMA fórmula de score
 // que gradeArgb/GradeColor (un único criterio de orden de grados en toda la
 // app). Ver BLOCK_SEARCH_DESIGN.md §7 y ARCHITECTURE.md §4 (paridad).
+// Selección MÚLTIPLE de grados exactos (chips, como en el diario) — no rango.
 
 /// Convierte un grado francés ("6a", "7B+"...) al score numérico:
 /// score = número*100 + letra*10 + (+ ? 1 : 0). nil si no es reconocible.
@@ -23,37 +24,71 @@ func gradeScore(_ grade: String?) -> Int? {
     return num * 100 + letterScore * 10 + plus
 }
 
-/// Resultado del filtro: qué piedras y qué vías concretas caen en rango.
+/// Grados que EXISTEN de verdad en estas piedras, de más difícil a más fácil.
+func availableGrades(_ blocks: [Block]) -> [String] {
+    var seen = Set<String>()
+    var ordered: [String] = []
+    for block in blocks {
+        for line in block.lines {
+            let g = (line.grade ?? "").trimmingCharacters(in: .whitespaces).uppercased()
+            guard gradeScore(g) != nil, !seen.contains(g) else { continue }
+            seen.insert(g)
+            ordered.append(g)
+        }
+    }
+    return ordered.sorted { (gradeScore($0) ?? 0) > (gradeScore($1) ?? 0) }
+}
+
+/// Una vía que ha caído dentro de la selección de grados, con su piedra de origen.
+struct GradeMatch {
+    let lineId: String
+    let lineName: String
+    let blockId: String
+    let blockName: String
+    let grade: String
+}
+
+/// Resultado del filtro: qué piedras/vías caen en la selección, agrupadas por grado.
 struct GradeFilterResult {
     let matchingBlockIds: Set<String>
     let matchingLineIds: Set<String>
     let totalLines: Int
-    let matchingLines: Int
+    /// Grado (desc.) → vías con ese grado, en el mismo orden que availableGrades.
+    let groups: [(String, [GradeMatch])]
+    var matchingLines: Int { matchingLineIds.count }
 }
 
-/// @param minGrade grado mínimo (ej. "7A"), nil = sin suelo
-/// @param maxGrade grado máximo (ej. "7B+"), nil = sin techo
-/// Piedras con AL MENOS una vía en rango, y las vías concretas en rango (para
-/// atenuar el resto dentro de la ficha/mapa, no ocultarlas).
-func filterBlocksByGrade(_ blocks: [Block], minGrade: String?, maxGrade: String?) -> GradeFilterResult {
-    let minScore = gradeScore(minGrade) ?? Int.min
-    let maxScore = gradeScore(maxGrade) ?? Int.max
+/// @param selectedGrades grados exactos elegidos (ej. ["6A+", "7B"]), vacío = sin filtro.
+/// Piedras con AL MENOS una vía seleccionada, las vías concretas, y esas mismas
+/// vías agrupadas por grado para listarlas en la UI.
+func filterBlocksByGrades(_ blocks: [Block], selectedGrades: Set<String>) -> GradeFilterResult {
+    let selected = Set(selectedGrades.map { $0.trimmingCharacters(in: .whitespaces).uppercased() })
 
     var matchingBlocks = Set<String>()
     var matchingLines = Set<String>()
+    var byGrade: [String: [GradeMatch]] = [:]
+    var gradeOrder: [String] = []
     var total = 0
 
     for block in blocks {
         for line in block.lines {
             total += 1
-            guard let score = gradeScore(line.grade) else { continue }
-            if score >= minScore && score <= maxScore {
-                matchingLines.insert(line.id)
-                matchingBlocks.insert(block.id)
-            }
+            let g = (line.grade ?? "").trimmingCharacters(in: .whitespaces).uppercased()
+            guard !g.isEmpty, selected.contains(g) else { continue }
+            matchingLines.insert(line.id)
+            matchingBlocks.insert(block.id)
+            if byGrade[g] == nil { byGrade[g] = []; gradeOrder.append(g) }
+            byGrade[g]!.append(GradeMatch(
+                lineId: line.id, lineName: line.displayName,
+                blockId: block.id, blockName: block.name, grade: g))
         }
     }
+
+    let groups = gradeOrder
+        .sorted { (gradeScore($0) ?? 0) > (gradeScore($1) ?? 0) }
+        .map { ($0, byGrade[$0] ?? []) }
+
     return GradeFilterResult(
         matchingBlockIds: matchingBlocks, matchingLineIds: matchingLines,
-        totalLines: total, matchingLines: matchingLines.count)
+        totalLines: total, groups: groups)
 }
