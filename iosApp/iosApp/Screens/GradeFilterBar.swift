@@ -2,32 +2,23 @@ import SwiftUI
 import Shared
 
 // Filtro LOCAL por grado dentro de una escuela — ver BLOCK_SEARCH_DESIGN.md §7.
-// Espejo de SchoolFiltersBar.kt/SchoolFilterBar (Android): misma escala de
-// grados, mismo estilo de chip. Puramente de interfaz — la lógica de qué
-// piedra/vía cae en rango vive en shared (GradeFilter.kt, `filterBlocksByGrade`).
-
-/// Escala francesa completa usada en el resto de la app (editor de vías,
-/// estadísticas). Única fuente para no divergir entre pantallas.
-let GRADE_STEPS: [String] = {
-    var out: [String] = []
-    for num in 3...9 {
-        for letter in ["A", "B", "C", "D"] {
-            out.append("\(num)\(letter)")
-            out.append("\(num)\(letter)+")
-        }
-    }
-    return out
-}()
+// Chips multi-selección con la paleta de grados de la app (mismo patrón que
+// JournalBlocksListView), + lista de resultados agrupada por grado y
+// colapsable. La lógica de qué piedra/vía cae en la selección vive en shared
+// (GradeFilter.kt, `filterBlocksByGrades`) — este fichero es solo interfaz.
 
 struct GradeFilterBar: View {
-    @Binding var minGrade: String?
-    @Binding var maxGrade: String?
-    let matchingLines: Int
-    let totalLines: Int
+    @Binding var selectedGrades: Set<String>
+    let availableGrades: [String]
+    let result: GradeFilterResult
+    let onSelectLine: (GradeMatch) -> Void
 
     @State private var expanded = false
+    /// Grados con su grupo de resultados desplegado. Se conserva mientras la
+    /// escuela siga abierta (aunque se navegue a una vía y se vuelva atrás).
+    @State private var openGroups: Set<String> = []
 
-    private var isActive: Bool { minGrade != nil || maxGrade != nil }
+    private var isActive: Bool { !selectedGrades.isEmpty }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -44,9 +35,9 @@ struct GradeFilterBar: View {
                     Spacer()
                     if isActive {
                         Button {
-                            minGrade = nil; maxGrade = nil
+                            selectedGrades = []
                         } label: {
-                            Text("QUITAR")
+                            Text("QUITAR TODO")
                                 .font(Cumbre.mono(9, .bold)).tracking(1)
                                 .foregroundStyle(Cumbre.ink3)
                         }.buttonStyle(.plain)
@@ -61,17 +52,27 @@ struct GradeFilterBar: View {
             .buttonStyle(.plain)
 
             if expanded {
-                HStack(spacing: 8) {
-                    gradeMenu(title: "mínimo", selection: $minGrade)
-                    Text("a").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                    gradeMenu(title: "máximo", selection: $maxGrade)
-                }
-                .padding(.horizontal, 16)
-
-                if isActive {
-                    Text("Mostrando \(matchingLines) vías de \(totalLines)")
-                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                if availableGrades.isEmpty {
+                    Text("Esta escuela todavía no tiene vías con grado.")
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                         .padding(.horizontal, 16)
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(availableGrades, id: \.self) { g in
+                                gradeChip(g)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                    }
+
+                    if isActive {
+                        Text("Mostrando \(result.matchingLines) vías de \(result.totalLines)")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                            .padding(.horizontal, 16)
+
+                        resultsList
+                    }
                 }
             }
         }
@@ -79,25 +80,89 @@ struct GradeFilterBar: View {
     }
 
     @ViewBuilder
-    private func gradeMenu(title: String, selection: Binding<String?>) -> some View {
-        Menu {
-            Button("Sin límite") { selection.wrappedValue = nil }
-            ForEach(GRADE_STEPS, id: \.self) { g in
-                Button(g) { selection.wrappedValue = g }
+    private func gradeChip(_ g: String) -> some View {
+        let st = GradeColor.style(g)
+        let accent = st.dark ? Cumbre.ink : st.stroke
+        let active = selectedGrades.contains(g)
+        Button {
+            if active { selectedGrades.remove(g) } else { selectedGrades.insert(g) }
+        } label: {
+            Text(g.lowercased())
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(active ? .white : accent)
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(RoundedRectangle(cornerRadius: 2)
+                    .fill(active ? accent : Cumbre.paper))
+                .overlay(RoundedRectangle(cornerRadius: 2)
+                    .stroke(accent, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var resultsList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(result.groups, id: \.0) { grade, matches in
+                gradeGroup(grade: grade, matches: matches)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private func gradeGroup(grade: String, matches: [GradeMatch]) -> some View {
+        let st = GradeColor.style(grade)
+        let accent = st.dark ? Cumbre.ink : st.stroke
+        let isOpen = openGroups.contains(grade)
+
+        Button {
+            withAnimation(.easeInOut(duration: 0.12)) {
+                if isOpen { openGroups.remove(grade) } else { openGroups.insert(grade) }
             }
         } label: {
-            HStack {
-                Text(selection.wrappedValue ?? title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Cumbre.ink)
+            HStack(spacing: 8) {
+                Text(grade.lowercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 9).padding(.vertical, 3)
+                    .background(RoundedRectangle(cornerRadius: 2).fill(accent))
+                Text(matches.count == 1 ? "1 vía" : "\(matches.count) vías")
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 Spacer()
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
+                Image(systemName: isOpen ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
             }
-            .padding(.horizontal, 10).padding(.vertical, 8)
-            .background(Cumbre.paper)
-            .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
+
+        if isOpen {
+            VStack(spacing: 0) {
+                ForEach(matches, id: \.lineId) { match in
+                    Button {
+                        onSelectLine(match)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(match.lineName)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Cumbre.ink)
+                                Text(match.blockName)
+                                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11)).foregroundStyle(Cumbre.terra)
+                        }
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    Divider().background(Cumbre.rule)
+                }
+            }
+        }
     }
 }

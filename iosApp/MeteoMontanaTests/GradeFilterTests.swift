@@ -7,8 +7,8 @@ import Shared
 /// Estos tests son los MISMOS casos que GradeFilterTest.kt (commonTest).
 final class GradeFilterTests: XCTestCase {
 
-    private func line(_ id: String, _ grade: String?) -> BlockLine {
-        BlockLine(id: id, name: id, grade: grade, startType: nil, linePath: nil,
+    private func line(_ id: String, _ grade: String?, name: String? = nil) -> BlockLine {
+        BlockLine(id: id, name: name ?? id, grade: grade, startType: nil, linePath: nil,
                   sortOrder: 0, photoPath: nil, faceOrder: 0, avgStars: nil,
                   myStars: nil, lineDescription: nil, variant: nil)
     }
@@ -29,26 +29,34 @@ final class GradeFilterTests: XCTestCase {
         XCTAssertNil(gradeScore(nil))
     }
 
-    func testSoloLaPiedraConViaEnRangoQuedaMarcada() {
-        let alunecer = block("alunecer", [line("l1", "7A"), line("l2", "6A")])
-        let mordor = block("mordor", [line("l3", "6B")])
-        let result = filterBlocksByGrade([alunecer, mordor], minGrade: "7A", maxGrade: "7B")
+    func testAvailableGradesSoloListaLosQueExistenDeDificilAFacil() {
+        let b = block("b", [line("l1", "6A"), line("l2", "7B+"), line("l3", "PROY"), line("l4", "6A")])
+        XCTAssertEqual(availableGrades([b]), ["7B+", "6A"])
+    }
+
+    func testSoloLaPiedraConViaEnLaSeleccionQuedaMarcadaAgrupadaPorGrado() {
+        let alunecer = block("alunecer", [line("l1", "7A", name: "Via A"), line("l2", "6A", name: "Via B")])
+        let mordor = block("mordor", [line("l3", "6B", name: "Via C")])
+        let result = filterBlocksByGrades([alunecer, mordor], selectedGrades: ["7A"])
 
         XCTAssertEqual(result.matchingBlockIds, ["alunecer"])
         XCTAssertEqual(result.matchingLineIds, ["l1"])
         XCTAssertEqual(result.totalLines, 3)
         XCTAssertEqual(result.matchingLines, 1)
+        XCTAssertEqual(result.groups.map { $0.0 }, ["7A"])
+        XCTAssertEqual(result.groups[0].1[0].lineName, "Via A")
     }
 
-    func testSinMinimoOSinMaximoElRangoQuedaAbierto() {
-        let b = block("b", [line("l1", "3A"), line("l2", "8A+")])
-        XCTAssertEqual(filterBlocksByGrade([b], minGrade: "7A", maxGrade: nil).matchingLineIds, ["l2"])
-        XCTAssertEqual(filterBlocksByGrade([b], minGrade: nil, maxGrade: "4A").matchingLineIds, ["l1"])
+    func testVariosGradosAgrupanCadaUnoPorSeparadoDeDificilAFacil() {
+        let b = block("b", [line("l1", "6A"), line("l2", "8A+"), line("l3", "6A")])
+        let result = filterBlocksByGrades([b], selectedGrades: ["6A", "8A+"])
+        XCTAssertEqual(result.groups.map { $0.0 }, ["8A+", "6A"])
+        XCTAssertEqual(result.groups.last?.1.count, 2)
     }
 
-    func testViaConGradoNoReconocibleNuncaEntraEnRango() {
+    func testViaConGradoNoReconocibleNuncaEntraEnLaSeleccion() {
         let b = block("b", [line("l1", "PROY")])
-        let result = filterBlocksByGrade([b], minGrade: nil, maxGrade: nil)
+        let result = filterBlocksByGrades([b], selectedGrades: [])
         XCTAssertTrue(result.matchingLineIds.isEmpty)
     }
 }

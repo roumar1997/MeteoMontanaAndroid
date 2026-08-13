@@ -2,7 +2,8 @@ package com.meteomontana.android.topo
 
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.BlockLine
-import com.meteomontana.android.domain.util.filterBlocksByGrade
+import com.meteomontana.android.domain.util.availableGrades
+import com.meteomontana.android.domain.util.filterBlocksByGrades
 import com.meteomontana.android.domain.util.gradeScore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -10,8 +11,8 @@ import kotlin.test.assertNull
 
 class GradeFilterTest {
 
-    private fun line(id: String, grade: String?) = BlockLine(
-        id = id, name = id, grade = grade, startType = null, linePath = null, sortOrder = 0
+    private fun line(id: String, grade: String?, name: String = id) = BlockLine(
+        id = id, name = name, grade = grade, startType = null, linePath = null, sortOrder = 0
     )
 
     private fun block(id: String, vararg lines: BlockLine) = Block(
@@ -29,32 +30,37 @@ class GradeFilterTest {
         assertNull(gradeScore(null))
     }
 
-    @Test fun `solo la piedra con una via en rango queda marcada, la otra vias se atenuan`() {
+    @Test fun `availableGrades solo lista los grados que existen de verdad, de dificil a facil`() {
+        val b = block("b", line("l1", "6A"), line("l2", "7B+"), line("l3", "PROY"), line("l4", "6A"))
+        assertEquals(listOf("7B+", "6A"), availableGrades(listOf(b)))
+    }
+
+    @Test fun `solo la piedra con una via en la seleccion queda marcada, agrupada por grado`() {
         val alunecer = block("alunecer",
-            line("l1", "7A"),      // dentro
-            line("l2", "6A"))      // fuera
+            line("l1", "7A", "Via A"),      // seleccionada
+            line("l2", "6A", "Via B"))      // no seleccionada
         val mordor = block("mordor",
-            line("l3", "6B"))      // fuera
-        val result = filterBlocksByGrade(listOf(alunecer, mordor), "7A", "7B")
+            line("l3", "6B", "Via C"))      // no seleccionada
+        val result = filterBlocksByGrades(listOf(alunecer, mordor), setOf("7A"))
 
         assertEquals(setOf("alunecer"), result.matchingBlockIds)
         assertEquals(setOf("l1"), result.matchingLineIds)
         assertEquals(3, result.totalLines)
         assertEquals(1, result.matchingLines)
+        assertEquals(listOf("7A"), result.groups.map { it.first })
+        assertEquals("Via A", result.groups.single().second.single().lineName)
     }
 
-    @Test fun `sin minimo o sin maximo el rango queda abierto por ese lado`() {
-        val b = block("b", line("l1", "3A"), line("l2", "8A+"))
-        val soloMin = filterBlocksByGrade(listOf(b), "7A", null)
-        assertEquals(setOf("l2"), soloMin.matchingLineIds)
-
-        val soloMax = filterBlocksByGrade(listOf(b), null, "4A")
-        assertEquals(setOf("l1"), soloMax.matchingLineIds)
+    @Test fun `varios grados seleccionados agrupan cada uno por separado, de dificil a facil`() {
+        val b = block("b", line("l1", "6A"), line("l2", "8A+"), line("l3", "6A"))
+        val result = filterBlocksByGrades(listOf(b), setOf("6A", "8A+"))
+        assertEquals(listOf("8A+", "6A"), result.groups.map { it.first })
+        assertEquals(2, result.groups.last().second.size)
     }
 
-    @Test fun `una via con grado no reconocible (PROY) nunca entra en ningun rango`() {
+    @Test fun `una via con grado no reconocible (PROY) nunca entra en la seleccion`() {
         val b = block("b", line("l1", "PROY"))
-        val result = filterBlocksByGrade(listOf(b), null, null)
+        val result = filterBlocksByGrades(listOf(b), emptySet())
         assertEquals(emptySet(), result.matchingLineIds)
     }
 }
