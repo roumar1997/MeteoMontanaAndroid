@@ -4,6 +4,10 @@ import Shared
 // Sección APROXIMACIONES de la ficha de escuela — Fase 1 de
 // APPROACH_DESIGN.md §6.1. Solo lectura: alta por usuario (grabar, añadir
 // chincheta) llega en una fase posterior, sujeta a revisión legal.
+//
+// El loader vive en SchoolMapSection (no aquí) para que la ficha mini de un
+// sector/parking en el mapa también pueda ofrecer "SEGUIR" si existe un
+// camino que llega hasta él (ver miniBlockCard).
 
 @MainActor
 final class ApproachesLoader: ObservableObject {
@@ -21,13 +25,18 @@ final class ApproachesLoader: ObservableObject {
             loading = false
         }
     }
+
+    /** Primer camino (verificado con preferencia) que llega hasta ese bloque. */
+    func approach(to blockId: String) -> Approach? {
+        approaches.first { $0.toBlockId == blockId && $0.isVerified }
+            ?? approaches.first { $0.toBlockId == blockId }
+    }
 }
 
 struct ApproachesSection: View {
-    let schoolId: String
+    @ObservedObject var loader: ApproachesLoader
     let schoolName: String
-    @StateObject private var loader = ApproachesLoader()
-    @State private var following: Approach?
+    @Binding var following: Approach?
 
     var body: some View {
         Group {
@@ -45,10 +54,6 @@ struct ApproachesSection: View {
                 }
                 .padding(.vertical, 8)
             }
-        }
-        .onAppear { loader.load(schoolId: schoolId) }
-        .fullScreenCover(item: $following) { a in
-            ApproachFollowView(approach: a, schoolName: schoolName)
         }
     }
 
