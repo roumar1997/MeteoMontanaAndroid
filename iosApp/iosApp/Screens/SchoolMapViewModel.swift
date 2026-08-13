@@ -26,7 +26,12 @@ final class SchoolMapViewModel: ObservableObject {
     @Published var searchHighlight: String?
 
     func loadAdminFlag() async {
-        isAdmin = ((try? await container.getMyProfile.invoke())?.isAdmin) ?? false
+        var profile = try? await container.getMyProfile.invoke()
+        if profile == nil {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            profile = try? await container.getMyProfile.invoke()
+        }
+        isAdmin = profile?.isAdmin ?? false
     }
 
     func toggleLayer(_ type: String) {
@@ -61,8 +66,16 @@ final class SchoolMapViewModel: ObservableObject {
     /// el mapa, las piedras y sus vías salgan igual sin internet. Las fotos las
     /// resuelve `TopoPhotoView` desde `ImageCache`.
     private func loadBlocksOnlineOrOffline(school: School) async -> [Block] {
-        if let online = try? await container.getBlocks.invoke(schoolId: school.id),
-           !online.isEmpty {
+        // Un reintento tras 400ms si falla: cubre el hueco justo después de
+        // abrir la app/entrar en una escuela donde el token de Firebase aún
+        // no está listo (salía sin bloques la 1ª vez, bien al reentrar —
+        // reportado 2026-08-13).
+        var fetched = try? await container.getBlocks.invoke(schoolId: school.id)
+        if fetched == nil || fetched!.isEmpty {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            fetched = try? await container.getBlocks.invoke(schoolId: school.id)
+        }
+        if let online = fetched, !online.isEmpty {
             // Si el sitio está guardado offline, refresca su snapshot con lo recién
             // bajado (bloques + fotos) para que SIN conexión no se vea lo viejo tras
             // una modificación. Forecast nil = no se toca el ya cacheado.

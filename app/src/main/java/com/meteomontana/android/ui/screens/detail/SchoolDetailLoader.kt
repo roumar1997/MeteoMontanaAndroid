@@ -11,7 +11,21 @@ import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.util.toUserMessage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import javax.inject.Inject
+
+/**
+ * Un solo reintento tras 400ms si la llamada falla. Cubre el hueco justo
+ * después de abrir la app/entrar en una escuela donde el token de Firebase
+ * aún no está listo (bloques/admin salían vacíos la 1ª vez y solo se veían
+ * bien saliendo y volviendo a entrar — reportado 2026-08-13).
+ */
+private suspend fun <T> retryOnce(block: suspend () -> T): Result<T> {
+    val first = runCatching { block() }
+    if (first.isSuccess) return first
+    delay(400)
+    return runCatching { block() }
+}
 
 /**
  * Carga del detalle de escuela: llamadas paralelas al backend + fallback al
@@ -105,8 +119,8 @@ class SchoolDetailLoader @Inject constructor(
                 val forecastD = async { runCatching { getForecast(schoolId) } }
                 val notesD = async { runCatching { getNotes(schoolId) }.getOrDefault(emptyList()) }
                 val isFavD = async { runCatching { getMyFavorites().any { it.id == schoolId } }.getOrDefault(false) }
-                val blocksD = async { runCatching { getBlocks(schoolId) }.getOrDefault(emptyList()) }
-                val isAdminD = async { runCatching { getMyProfile().isAdmin }.getOrDefault(false) }
+                val blocksD = async { retryOnce { getBlocks(schoolId) }.getOrDefault(emptyList()) }
+                val isAdminD = async { retryOnce { getMyProfile().isAdmin }.getOrDefault(false) }
                 val isSavedD = async { runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false) }
                 // Boletín EN PARALELO con el resto — si se insertara tarde,
                 // recoloca la LazyColumn y Compose destruye el diálogo del
