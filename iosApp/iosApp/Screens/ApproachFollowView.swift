@@ -20,6 +20,8 @@ struct ApproachFollowView: View {
     @State private var selectedPin: ApproachPin?
     @State private var placingPin = false
     @State private var newPinCoord: CLLocationCoordinate2D?
+    @State private var confirmDelete = false
+    @State private var deleting = false
 
     private var pathCoords: [CLLocationCoordinate2D] { parseWallPath(approach.pathJson) }
 
@@ -80,6 +82,14 @@ struct ApproachFollowView: View {
                     Spacer()
                     if isAdmin {
                         Button {
+                            confirmDelete = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(Cumbre.bad)
+                                .padding(10)
+                                .background(Circle().fill(Cumbre.paper))
+                        }
+                        Button {
                             placingPin.toggle()
                         } label: {
                             Text(placingPin ? "TOCA EL MAPA" : "+ CHINCHETA")
@@ -137,6 +147,20 @@ struct ApproachFollowView: View {
                 onPinAdded?()
             }
             .presentationDetents([.large])
+        }
+        .alert("¿Borrar «\(approach.name ?? "esta aproximación")»?", isPresented: $confirmDelete) {
+            Button("CANCELAR", role: .cancel) {}
+            Button("BORRAR", role: .destructive) {
+                Task {
+                    deleting = true
+                    _ = try? await AppDependencies.shared.container.approachApi.deleteApproach(approachId: approach.id)
+                    deleting = false
+                    onPinAdded?()
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("Se borra el camino y todas sus chinchetas. No se puede deshacer.")
         }
     }
 
