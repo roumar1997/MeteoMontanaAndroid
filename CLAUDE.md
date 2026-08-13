@@ -819,6 +819,16 @@ topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 
 ## Notas operativas
 
+- **`climbingteams.com` lo sirve CLOUDFLARE PAGES, no Firebase Hosting**
+  (verificado 2026-08-13). La entrada del historial del 2026-07-15 dice que
+  basta `firebase deploy` + purgar caché: **es FALSO y hace perder el tiempo**.
+  Firebase solo actualiza `climbingteams.web.app`, que no visita nadie.
+  Para cambiar el dominio: **commit + push a `main` de
+  `roumar1997/MeteoMontana`** (`Desktop/MeteoMontana`) → Cloudflare Pages
+  despliega solo en ~1-2 min. Se reconoce por los ficheros `_headers` y
+  `_redirects` (convención de Pages) y porque el dominio devuelve la cabecera
+  `content-security-policy` que sale de `_headers`, mientras que
+  `firebase.json` no define cabeceras.
 - Arranque local: ver "⚡ Arranque rápido" arriba.
 - Migraciones Flyway del backend: consultar `api/src/main/resources/db/migration/`
   para la versión más reciente (no repetir aquí, cambia cada sesión).
