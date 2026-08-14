@@ -51,7 +51,9 @@ sealed interface SchoolDetailUiState {
         /** Si !=null, el forecast viene de la caché local y se bajó en esa fecha (epoch ms). */
         val forecastCachedAt: Long? = null,
         /** Boletín de montaña AEMET si la escuela cae en uno de los 9 macizos. */
-        val mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null
+        val mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null,
+        /** Aproximaciones (parking → sector) — APPROACH_DESIGN.md, admin-gated. */
+        val approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList()
     ) : SchoolDetailUiState
 }
 
@@ -91,7 +93,12 @@ class SchoolDetailViewModel @Inject constructor(
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
     private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase,
     /** Foto de "Enviar piedra" a la espera de que se abra su escuela. */
-    private val photoProposal: com.meteomontana.android.ui.screens.schools.PhotoProposalSeed
+    private val photoProposal: com.meteomontana.android.ui.screens.schools.PhotoProposalSeed,
+    // Aproximaciones (SOLO ADMIN crea/borra por ahora — APPROACH_DESIGN.md §2.6/§10).
+    private val getApproachesUseCase: com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase,
+    private val createApproachUseCase: com.meteomontana.android.domain.usecase.approach.CreateApproachUseCase,
+    private val addApproachPinUseCase: com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase,
+    private val deleteApproachUseCase: com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -461,6 +468,42 @@ class SchoolDetailViewModel @Inject constructor(
     /** Borra la valoración de una vía. */
     suspend fun unrateLine(blockId: String, lineId: String) = runCatching {
         rateLineUseCase.unrate(blockId, lineId)
+    }
+
+    // ── Aproximaciones (SOLO ADMIN por ahora, APPROACH_DESIGN.md §2.6/§10) ──
+
+    /** Refresca solo la lista de aproximaciones (tras grabar/borrar/añadir chincheta). */
+    fun reloadApproaches() {
+        viewModelScope.launch {
+            val approaches = runCatching { getApproachesUseCase(schoolId) }.getOrDefault(emptyList())
+            val cur = _uiState.value
+            if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(approaches = approaches)
+        }
+    }
+
+    /** Admin: sube el camino grabado + sus chinchetas pendientes (en memoria). */
+    suspend fun createApproach(
+        req: com.meteomontana.android.data.api.dto.CreateApproachRequest,
+        pins: List<com.meteomontana.android.data.api.dto.AddApproachPinRequest>
+    ): Result<Unit> = runCatching {
+        val approach = createApproachUseCase(schoolId, req)
+        pins.forEach { pinReq -> runCatching { addApproachPinUseCase(approach.id, pinReq) } }
+        reloadApproaches()
+    }
+
+    /** Cualquier usuario (hoy solo admin desde la UI): añade una chincheta a una aproximación ya publicada. */
+    suspend fun addApproachPin(
+        approachId: String,
+        req: com.meteomontana.android.data.api.dto.AddApproachPinRequest
+    ): Result<Unit> = runCatching {
+        addApproachPinUseCase(approachId, req)
+        reloadApproaches()
+    }
+
+    /** Admin: borra un camino entero (y sus chinchetas, en cascada en el backend). */
+    suspend fun deleteApproach(approachId: String): Result<Unit> = runCatching {
+        deleteApproachUseCase(approachId)
+        reloadApproaches()
     }
 }
 

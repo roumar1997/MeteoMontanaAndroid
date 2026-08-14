@@ -2,6 +2,7 @@ package com.meteomontana.android.ui.screens.detail
 
 import com.meteomontana.android.data.saved.SavedSchoolRepository
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
@@ -44,7 +45,8 @@ class SchoolDetailLoader @Inject constructor(
     private val savedSchoolRepo: SavedSchoolRepository,
     private val getMountainBulletin: com.meteomontana.android.domain.usecase.weather.GetMountainBulletinUseCase,
     private val db: com.meteomontana.db.MeteoMontanaDb,
-    private val blockRepo: com.meteomontana.android.domain.repository.BlockRepository
+    private val blockRepo: com.meteomontana.android.domain.repository.BlockRepository,
+    private val getApproaches: GetApproachesUseCase
 ) {
 
     /**
@@ -122,6 +124,9 @@ class SchoolDetailLoader @Inject constructor(
                 val blocksD = async { retryOnce { getBlocks(schoolId) }.getOrDefault(emptyList()) }
                 val isAdminD = async { retryOnce { getMyProfile().isAdmin }.getOrDefault(false) }
                 val isSavedD = async { runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false) }
+                // Aproximaciones (parking → sector): lectura, admin-gated en
+                // la UI (APPROACH_DESIGN.md §2.6/§10 — pendiente revisión legal).
+                val approachesD = async { runCatching { getApproaches(schoolId) }.getOrDefault(emptyList()) }
                 // Boletín EN PARALELO con el resto — si se insertara tarde,
                 // recoloca la LazyColumn y Compose destruye el diálogo del
                 // deep-link del diario (bug del 2026-07-03).
@@ -150,7 +155,8 @@ class SchoolDetailLoader @Inject constructor(
                     isSavedOffline = isSavedD.await(),
                     monthlyLoading = true,
                     forecastCachedAt = forecastCachedAt,
-                    mountainBulletin = bulletinD.await()
+                    mountainBulletin = bulletinD.await(),
+                    approaches = approachesD.await()
                 )
             }
         } catch (t: Throwable) {

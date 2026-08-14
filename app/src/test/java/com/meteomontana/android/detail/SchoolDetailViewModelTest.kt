@@ -150,7 +150,8 @@ class SchoolDetailViewModelTest {
             getMyProfile, savedSchoolRepo,
             mockk<com.meteomontana.android.domain.usecase.weather.GetMountainBulletinUseCase>(relaxed = true),
             mockk<com.meteomontana.db.MeteoMontanaDb>(relaxed = true),  // preview: sin catalogo cacheado
-            mockk(relaxed = true)   // blockRepo (getCachedBlocks -> null)
+            mockk(relaxed = true),   // blockRepo (getCachedBlocks -> null)
+            mockk<com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase>(relaxed = true)
         )
         val journal = com.meteomontana.android.ui.screens.detail.JournalTickController(
             mockk(relaxed = true),  // getMyJournal
@@ -181,7 +182,11 @@ class SchoolDetailViewModelTest {
             mockk<com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase>(relaxed = true),
             networkMonitor,
             mockk(relaxed = true),  // rateLineUseCase
-            com.meteomontana.android.ui.screens.schools.PhotoProposalSeed()
+            com.meteomontana.android.ui.screens.schools.PhotoProposalSeed(),
+            mockk<com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase>(relaxed = true),
+            mockk<com.meteomontana.android.domain.usecase.approach.CreateApproachUseCase>(relaxed = true),
+            mockk<com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase>(relaxed = true),
+            mockk<com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase>(relaxed = true)
         )
     }
 

@@ -170,4 +170,10 @@ object RepositoryModule {
         db: com.meteomontana.db.MeteoMontanaDb
     ): com.meteomontana.android.domain.repository.FeedRepository =
         com.meteomontana.android.data.repository.KtorFeedRepository(api, db)
+
+    @Provides @Singleton
+    fun provideApproachRepository(
+        api: com.meteomontana.android.data.api.KtorApproachApi
+    ): com.meteomontana.android.domain.repository.ApproachRepository =
+        com.meteomontana.android.data.repository.KtorApproachRepository(api)
 }

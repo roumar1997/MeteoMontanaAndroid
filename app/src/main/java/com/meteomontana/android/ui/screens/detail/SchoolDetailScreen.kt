@@ -50,6 +50,7 @@ import com.meteomontana.android.ui.components.NotesSection
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.Spacing
+import kotlinx.coroutines.launch
 
 @Composable
 fun SchoolDetailScreen(
@@ -144,7 +145,9 @@ fun SchoolDetailScreen(
                     viewModel = viewModel,
                     onMyProposals = onMyProposals,
                     onDayClick = onDayClick,
-                    mountainBulletin = s.mountainBulletin
+                    mountainBulletin = s.mountainBulletin,
+                    approaches = s.approaches,
+                    isAdmin = s.isCurrentUserAdmin
                 )
             }
         }
@@ -247,8 +250,14 @@ private fun Content(
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit,
     onDayClick: (Int) -> Unit = {},
-    mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null
+    mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null,
+    approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList(),
+    isAdmin: Boolean = false
 ) {
+    // Aproximaciones (parking → sector) — APPROACH_DESIGN.md, admin-gated.
+    var followingApproach by remember { mutableStateOf<com.meteomontana.android.domain.model.Approach?>(null) }
+    var recordingApproach by remember { mutableStateOf(false) }
+    val approachScope = androidx.compose.runtime.rememberCoroutineScope()
     // Columna NO perezosa (paridad con el ScrollView de iOS): toda la pantalla
     // se compone al entrar → los deep-links a piedras/vías (feed, diario,
     // buscador, enlaces) abren la ficha en cuanto cargan los bloques, sin
@@ -295,6 +304,16 @@ private fun Content(
                     schoolLat = school.lat, schoolLon = school.lon,
                     schoolName = school.name, schoolId = school.id,
                     viewModel = viewModel, onMyProposals = onMyProposals
+                )
+                // APROXIMACIONES: entre el mapa (dentro de BlocksSection) y el
+                // resto de la ficha — misma posición que ApproachesSection.swift
+                // en iOS ("el loader vive en SchoolMapSection").
+                com.meteomontana.android.ui.components.ApproachesSection(
+                    approaches = approaches,
+                    isAdmin = isAdmin,
+                    onFollow = { followingApproach = it },
+                    onRecord = { recordingApproach = true },
+                    onDelete = { a -> approachScope.launch { viewModel.deleteApproach(a.id) } }
                 )
             }
         } }
@@ -363,6 +382,35 @@ private fun Content(
         val s = viewModel.uiState.collectAsStateWithLifecycle().value as? SchoolDetailUiState.Success
         MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
         Spacer(Modifier.height(40.dp))
+    }
+
+    // Aproximaciones: pantallas completas (Dialog), fuera del scroll de arriba.
+    followingApproach?.let { a ->
+        com.meteomontana.android.ui.screens.approach.ApproachFollowScreen(
+            approach = a,
+            schoolName = school.name,
+            isAdmin = isAdmin,
+            onDismiss = { followingApproach = null },
+            onDeleteApproach = { toDelete ->
+                approachScope.launch { viewModel.deleteApproach(toDelete.id) }
+            },
+            onAddPin = { approachId, req ->
+                approachScope.launch {
+                    viewModel.addApproachPin(approachId, req)
+                    // Refresca la aproximación abierta con la chincheta nueva.
+                    followingApproach = (viewModel.uiState.value as? SchoolDetailUiState.Success)
+                        ?.approaches?.firstOrNull { it.id == approachId }
+                }
+            }
+        )
+    }
+    if (recordingApproach) {
+        com.meteomontana.android.ui.screens.approach.ApproachRecordScreen(
+            school = school,
+            blocks = blocks,
+            onDismiss = { recordingApproach = false },
+            onSave = { req, pins -> viewModel.createApproach(req, pins) }
+        )
     }
 }
 

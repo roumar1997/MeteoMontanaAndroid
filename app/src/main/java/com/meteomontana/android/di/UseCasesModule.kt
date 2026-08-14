@@ -231,6 +231,27 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideGetNotesUseCase(repo: NoteRepository) = GetNotesUseCase(repo)
 
+    // Approaches (aproximaciones)
+    @Provides @Singleton
+    fun provideGetApproachesUseCase(
+        repo: com.meteomontana.android.domain.repository.ApproachRepository
+    ) = com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase(repo)
+
+    @Provides @Singleton
+    fun provideCreateApproachUseCase(
+        repo: com.meteomontana.android.domain.repository.ApproachRepository
+    ) = com.meteomontana.android.domain.usecase.approach.CreateApproachUseCase(repo)
+
+    @Provides @Singleton
+    fun provideAddApproachPinUseCase(
+        repo: com.meteomontana.android.domain.repository.ApproachRepository
+    ) = com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase(repo)
+
+    @Provides @Singleton
+    fun provideDeleteApproachUseCase(
+        repo: com.meteomontana.android.domain.repository.ApproachRepository
+    ) = com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase(repo)
+
     @Provides @Singleton
     fun provideVoteNoteUseCase(repo: NoteRepository) =
         com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase(repo)
