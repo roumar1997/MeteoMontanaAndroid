@@ -91,7 +91,11 @@ final class SchoolListViewModel: ObservableObject {
         }
     }
 
-    var styles: [String] { uniqueValues(schools.map { $0.style }) }
+    // Estilos combinados ("Bloque,Vía") se descomponen en sus valores
+    // individuales — el filtro no debe ofrecer la combinación como su propia
+    // opción, solo Vía / Bloque, cada una recogiendo también las escuelas
+    // mixtas (ver `matchesStyle`).
+    var styles: [String] { uniqueValues(schools.flatMap { ($0.style ?? "").split(separator: ",").map { String($0) } }) }
     // Granito, Caliza y Arenisca primero (las mas buscadas); el resto alfabetico.
     var rocks: [String] {
         let all = uniqueValues(schools.map { $0.rockType })
@@ -162,7 +166,7 @@ final class SchoolListViewModel: ObservableObject {
             }
         } else {
             list = base.filter { s in
-                (style == nil || s.style?.caseInsensitiveCompare(style!) == .orderedSame)
+                (style == nil || matchesStyle(s.style, style!))
                 && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
             }
             // Distancia (solo si hay ubicación y límite elegido). En modo
@@ -375,6 +379,16 @@ final class SchoolListViewModel: ObservableObject {
 
     private func uniqueValues(_ raw: [String?]) -> [String] {
         Array(Set(raw.compactMap { $0 }.filter { !$0.isEmpty })).sorted()
+    }
+
+    // Una escuela "Bloque,Vía" tiene que salir al filtrar por Vía Y al
+    // filtrar por Bloque — mismo criterio que `hasStyle` en el backend
+    // (GetSchoolsUseCase.java).
+    private func matchesStyle(_ schoolStyle: String?, _ wanted: String) -> Bool {
+        guard let schoolStyle else { return false }
+        return schoolStyle.split(separator: ",").contains {
+            $0.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(wanted) == .orderedSame
+        }
     }
 }
 
