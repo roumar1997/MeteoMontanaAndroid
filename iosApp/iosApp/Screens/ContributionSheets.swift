@@ -46,6 +46,8 @@ struct ContributionTypePicker: View {
                 row("SECTOR", "Una zona que agrupa piedras (ej: \"La Isla\"). Después asignarás piedras al sector.", "square.dashed", enabled: true) { onPick("SECTOR") }
                 row("PARKING", "El punto de aparcamiento. Otros escaladores verán \"Cómo llegar\".", "car.fill", enabled: true) { onPick("PARKING") }
                 row("CORREGIR", "¿Algo está mal colocado en el mapa? Tócalo y muévelo al sitio correcto.", "mappin.and.ellipse", enabled: true) { onPick("CORRECTION") }
+                row("CORREGIR NOMBRE", "¿El nombre de la escuela está mal escrito? Propón el correcto.", "textformat", enabled: true) { onPick("SCHOOL_NAME_CORRECTION") }
+                row("CORREGIR ESTILO", "¿Esta escuela tiene vía Y bloque pero solo aparece uno? Corrígelo.", "checkmark.square", enabled: true) { onPick("SCHOOL_STYLE_CORRECTION") }
                 Spacer()
             }
             .padding(16)
@@ -171,6 +173,152 @@ struct ContributionFormSheet: View {
             TextField(ph, text: text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .padding(10).background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         }
+    }
+}
+
+/// Corregir el NOMBRE de la escuela — tipo SCHOOL_NAME_CORRECTION, sin tocar
+/// el mapa (a diferencia de CORRECTION, que mueve posiciones). Reutiliza el
+/// campo genérico `name` de ContributionRequest (libre en este tipo).
+struct SchoolNameCorrectionSheet: View {
+    let schoolId: String
+    let currentName: String
+    let coord: CLLocationCoordinate2D
+    let onDone: (Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var sending = false
+    @State private var sendError: String? = nil
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("NOMBRE ACTUAL").eyebrow()
+                        Text(currentName).font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("NOMBRE PROPUESTO").eyebrow()
+                        TextField("Nombre correcto", text: $name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                            .padding(10).background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+                    if let sendError {
+                        Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                    }
+                    Button { Task { await send() } } label: {
+                        HStack { if sending { ProgressView().tint(.white) }
+                            Text(sendError != nil ? "REINTENTAR" : NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                    }.buttonStyle(.plain)
+                        .disabled(sending || name.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .padding(.top, 4)
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Corregir nombre")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+        }
+    }
+
+    private func send() async {
+        sending = true
+        let req = ContributionRequest(
+            type: "SCHOOL_NAME_CORRECTION",
+            name: name.trimmingCharacters(in: .whitespaces),
+            lat: coord.latitude, lon: coord.longitude,
+            notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+            targetBlockId: nil, targetLineId: nil, sectorBlockId: nil,
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil, discipline: nil,
+            geometry: nil, path: nil, direction: nil, orientationsJson: nil)
+        let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
+        sending = false
+        if ok { dismiss(); onDone(true) }
+        else { sendError = "No se pudo enviar. Revisa la conexión." }
+    }
+}
+
+/// Corregir el ESTILO de la escuela — tipo SCHOOL_STYLE_CORRECTION. Chips
+/// Vía/Bloque con multi-selección (una escuela puede tener ambos, ej. La
+/// Pedriza). Reutiliza el campo `discipline` de ContributionRequest (libre
+/// en este tipo, igual que `name` en SCHOOL_NAME_CORRECTION).
+struct SchoolStyleCorrectionSheet: View {
+    let schoolId: String
+    let currentStyle: String?
+    let coord: CLLocationCoordinate2D
+    let onDone: (Bool) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var selected: Set<String> = []
+    @State private var sending = false
+    @State private var sendError: String? = nil
+
+    private var options: [String] {
+        var opts = Set((currentStyle ?? "").split(separator: ",").map(String.init))
+        opts.formUnion(["Vía", "Bloque"])
+        return opts.sorted()
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("ESTILO ACTUAL").eyebrow()
+                        Text(currentStyle?.isEmpty == false ? currentStyle! : "sin especificar")
+                            .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("ESTILO PROPUESTO").eyebrow()
+                        HStack(spacing: 8) {
+                            ForEach(options, id: \.self) { opt in
+                                let isSel = selected.contains(opt)
+                                Button {
+                                    if isSel { selected.remove(opt) } else { selected.insert(opt) }
+                                } label: {
+                                    Text(opt).font(Cumbre.mono(12, .bold)).tracking(0.5)
+                                        .foregroundStyle(isSel ? .white : Cumbre.ink)
+                                        .padding(.horizontal, 14).padding(.vertical, 8)
+                                        .background(isSel ? Cumbre.terra : Cumbre.paper)
+                                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                                }.buttonStyle(.plain)
+                            }
+                            Spacer()
+                        }
+                    }
+                    if let sendError {
+                        Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                    }
+                    Button { Task { await send() } } label: {
+                        HStack { if sending { ProgressView().tint(.white) }
+                            Text(sendError != nil ? "REINTENTAR" : NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                    }.buttonStyle(.plain).disabled(sending || selected.isEmpty).padding(.top, 4)
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Corregir estilo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+        }
+    }
+
+    private func send() async {
+        sending = true
+        let req = ContributionRequest(
+            type: "SCHOOL_STYLE_CORRECTION",
+            name: nil,
+            lat: coord.latitude, lon: coord.longitude,
+            notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+            targetBlockId: nil, targetLineId: nil, sectorBlockId: nil,
+            photoUrl: nil, bloquesJson: nil, topoLinesJson: nil,
+            discipline: selected.sorted().joined(separator: ","),
+            geometry: nil, path: nil, direction: nil, orientationsJson: nil)
+        let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
+        sending = false
+        if ok { dismiss(); onDone(true) }
+        else { sendError = "No se pudo enviar. Revisa la conexión." }
     }
 }
 

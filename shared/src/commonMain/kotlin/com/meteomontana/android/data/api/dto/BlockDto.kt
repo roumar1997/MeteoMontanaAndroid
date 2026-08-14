@@ -21,7 +21,11 @@ data class BlockDto(
     val path: String? = null,             // polilínea JSON si LINE
     val direction: String = "LTR",        // "LTR"/"RTL"
     // Caras = la piedra agrupada por foto (cada cara: foto + sus vías).
-    val faces: List<BlockFaceDto> = emptyList()
+    val faces: List<BlockFaceDto> = emptyList(),
+    // Solo en type=ZONE (sector): disciplinas de las piedras que contiene,
+    // calculadas por el backend al vuelo (["BOULDER"], ["ROUTE"], ambas si es
+    // mixto, [] si aún no tiene piedras). null en BLOCK/PARKING.
+    val sectorDisciplines: List<String>? = null
 )
 
 @Serializable

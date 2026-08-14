@@ -24,7 +24,11 @@ data class Block(
     // Caras de la piedra: cada cara es una foto + las vías dibujadas sobre ella.
     // Una piedra de una sola foto tiene una única cara. Si viene vacío, los
     // consumidores caen a (photoPath + lines) como cara única.
-    val faces: List<BlockFace> = emptyList()
+    val faces: List<BlockFace> = emptyList(),
+    // Solo en type="ZONE" (sector): disciplinas de las piedras que contiene,
+    // calculadas por el backend ("BOULDER"/"ROUTE", ambas si es mixto, vacía
+    // si aún no tiene piedras). null en BLOCK/PARKING — no aplica.
+    val sectorDisciplines: List<String>? = null
 ) {
     /**
      * Caras de la piedra para pintar. Si `faces` viene (online) se usa tal cual;

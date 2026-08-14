@@ -25,6 +25,10 @@ struct SchoolMapSection: View {
     // en rango se ATENÚAN (no se ocultan): se conserva el contexto del sector.
     // No persiste al salir de la escuela, a diferencia del filtro de escuelas.
     @State private var selectedGrades: Set<String> = []
+    /// Filtro Vía/Bloque del mapa: solo aparece si la escuela tiene AMBOS
+    /// estilos ("Vía,Bloque" en school.style) — si es de uno solo, no aporta
+    /// nada y no se muestra. Vacío = sin filtrar, se ve todo.
+    @State private var styleFilter: Set<String> = []
     // Aproximaciones (caminos) — Fase 1 de APPROACH_DESIGN.md, solo lectura.
     // El loader vive aquí (no dentro de ApproachesSection) para que la ficha
     // mini de un sector/parking pueda ofrecer "SEGUIR" si hay un camino hasta
@@ -49,6 +53,10 @@ struct SchoolMapSection: View {
     @State private var continuandoBorrador = false
     /// Punto donde se hizo la foto, a la espera de que el usuario lo confirme.
     @State private var confirmandoFoto: CLLocationCoordinate2D?
+    /// "CORREGIR NOMBRE" del selector — sin tocar el mapa, solo un campo.
+    @State private var correctingSchoolName = false
+    /// "CORREGIR ESTILO" del selector — sin tocar el mapa, solo chips.
+    @State private var correctingSchoolStyle = false
     // Datos del mapa (bloques/capas/buscador/admin) — ver SchoolMapViewModel.
     @StateObject private var vm = SchoolMapViewModel()
     @State private var mapStyle: MapStyleKind = .satellite  // paridad con Android
@@ -106,6 +114,7 @@ struct SchoolMapSection: View {
                             selectedBlock = b
                         }
                     })
+                if schoolHasBothStyles { styleFilterRow }
                 if !fullscreenMap {
                     mapArea(height: 280)
                 }
@@ -413,6 +422,8 @@ struct SchoolMapSection: View {
                                     latitude: b.lat, longitude: b.lon)
                             }
                         case "CORRECTION": flow.startCorrection()
+                        case "SCHOOL_NAME_CORRECTION": correctingSchoolName = true
+                        case "SCHOOL_STYLE_CORRECTION": correctingSchoolStyle = true
                         default: break
                         }
                     }
@@ -454,6 +465,18 @@ struct SchoolMapSection: View {
                     }
                 }
                 .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: vm.isAdmin) }
+                .sheet(isPresented: $correctingSchoolName) {
+                    SchoolNameCorrectionSheet(schoolId: school.id, currentName: school.name,
+                                              coord: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)) { ok in
+                        if ok { afterSubmit() }
+                    }
+                }
+                .sheet(isPresented: $correctingSchoolStyle) {
+                    SchoolStyleCorrectionSheet(schoolId: school.id, currentStyle: school.style,
+                                               coord: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)) { ok in
+                        if ok { afterSubmit() }
+                    }
+                }
                 .fullScreenCover(item: $followingApproach) { a in
                     ApproachFollowView(approach: a, schoolName: school.name, isAdmin: vm.isAdmin) {
                         approachesLoader.reload(schoolId: school.id)
@@ -840,6 +863,51 @@ struct SchoolMapSection: View {
     /// ¿Hay filtro de grado puesto? Si no, nada se atenúa.
     private var gradeFilterActive: Bool { !selectedGrades.isEmpty }
 
+    /// Solo tiene sentido el filtro Vía/Bloque si la escuela es de AMBOS
+    /// estilos a la vez (feature 2: school.style = "Vía,Bloque").
+    private var schoolHasBothStyles: Bool {
+        Set(school.style?.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []).count > 1
+    }
+
+    private var styleFilterRow: some View {
+        HStack(spacing: 8) {
+            ForEach(["Vía", "Bloque"], id: \.self) { opt in
+                let active = styleFilter.contains(opt)
+                Button {
+                    if active { styleFilter.remove(opt) } else { styleFilter.insert(opt) }
+                } label: {
+                    Text(opt.uppercased()).font(Cumbre.mono(11, .bold)).tracking(0.5)
+                        .foregroundStyle(active ? .white : Cumbre.ink2)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(active ? Cumbre.terra : Cumbre.paper)
+                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 4)
+    }
+
+    /// "ROUTE" en el backend = estilo "Vía"; "BOULDER" = "Bloque".
+    private func styleLabel(_ discipline: String) -> String {
+        discipline.uppercased() == "ROUTE" ? "Vía" : "Bloque"
+    }
+
+    /// ¿Esta piedra/sector pasa el filtro Vía/Bloque? Vacío = sin filtrar.
+    /// Un sector sin piedras dentro (sectorDisciplines vacío) siempre se ve —
+    /// no hay disciplina que comparar todavía (evita que desaparezca).
+    private func matchesStyleFilter(_ b: Block) -> Bool {
+        if styleFilter.isEmpty { return true }
+        switch b.type.uppercased() {
+        case "BLOCK": return styleFilter.contains(styleLabel(b.discipline))
+        case "ZONE":
+            let disciplines = b.sectorDisciplines ?? []
+            if disciplines.isEmpty { return true }
+            return disciplines.contains { styleFilter.contains(styleLabel($0)) }
+        default: return true
+        }
+    }
+
     /// Color del pin de una piedra, atenuado si el filtro de grado está puesto
     /// y esa piedra no tiene ninguna vía en rango. Se ATENÚA, no se oculta:
     /// así se conserva el contexto del sector (decisión de diseño §7.3).
@@ -867,6 +935,8 @@ struct SchoolMapSection: View {
                blockOrientations[b.id] != f {
                 continue
             }
+            // Filtro Vía/Bloque (solo en escuelas con ambos estilos).
+            if !matchesStyleFilter(b) { continue }
             // Zona colapsada: muestra cuántas piedras tiene ocultas.
             let collapsed = b.type.uppercased() == "ZONE" && vm.collapsedSectors.contains(b.id)
             let hidden = collapsed ? vm.blocks.filter { $0.sectorBlockId == b.id }.count : 0
