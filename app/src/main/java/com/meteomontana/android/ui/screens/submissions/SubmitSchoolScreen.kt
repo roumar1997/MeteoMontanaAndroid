@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -60,7 +61,14 @@ fun SubmitSchoolScreen(
     // donde son todas las escuelas de hoy.
     var country by rememberSaveable { mutableStateOf("ES") }
     var region by rememberSaveable { mutableStateOf("") }
-    var style by rememberSaveable { mutableStateOf("") }
+    // Estilo: multi-select (una escuela puede ser Bloque Y Vía, ej. La
+    // Pedriza) — se guarda como texto "Bloque,Vía" para sobrevivir a
+    // rememberSaveable (no hay Saver de Set<String> a mano) y se deriva el
+    // Set en cada recomposición.
+    var styleText by rememberSaveable { mutableStateOf("") }
+    val selectedStyles = remember(styleText) {
+        styleText.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+    }
     var rockType by rememberSaveable { mutableStateOf("") }
     var lat by rememberSaveable { mutableStateOf("") }
     var lon by rememberSaveable { mutableStateOf("") }
@@ -116,7 +124,24 @@ fun SubmitSchoolScreen(
                     region = it
                     location = "" // resetea la localidad al cambiar de región
                 })
-            DropdownField("ESTILO", style, options.styles, onChange = { style = it })
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("ESTILO", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(options.styles) { opt ->
+                        com.meteomontana.android.ui.components.CumbreChip(
+                            label = opt,
+                            selected = opt in selectedStyles,
+                            onClick = {
+                                val updated = if (opt in selectedStyles) selectedStyles - opt else selectedStyles + opt
+                                styleText = updated.sorted().joinToString(",")
+                            }
+                        )
+                    }
+                }
+            }
             DropdownField("TIPO DE ROCA", rockType, options.rockTypes, onChange = { rockType = it })
 
             // ── Pegar coordenadas de Google Maps (lat, lon) ──────────────────
@@ -170,7 +195,7 @@ fun SubmitSchoolScreen(
                             viewModel.submit(SubmitSchoolRequest(
                                 name = name.trim(),
                                 region = region.takeIf { it.isNotBlank() },
-                                style = style.takeIf { it.isNotBlank() },
+                                style = selectedStyles.sorted().joinToString(",").takeIf { it.isNotBlank() },
                                 rockType = rockType.takeIf { it.isNotBlank() },
                                 lat = latD, lon = lonD,
                                 location = location.takeIf { it.isNotBlank() },

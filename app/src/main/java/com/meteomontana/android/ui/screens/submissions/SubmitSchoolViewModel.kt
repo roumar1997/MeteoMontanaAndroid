@@ -51,7 +51,10 @@ class SubmitSchoolViewModel @Inject constructor(
             schools = runCatching { getSchools() }.getOrDefault(emptyList())
             _options.value = CatalogOptions(
                 regions = unique(schools.map { it.region }),
-                styles = unique(schools.map { it.style }),
+                // Split por coma ANTES de deduplicar: si no, una escuela con
+                // estilo combinado "Bloque,Vía" aparecía como SU PROPIA opción
+                // en vez de ofrecer Bloque y Vía por separado (paridad iOS).
+                styles = unique(schools.flatMap { it.style?.split(",") ?: emptyList() }),
                 rockTypes = unique(schools.map { it.rockType })
             )
         }
