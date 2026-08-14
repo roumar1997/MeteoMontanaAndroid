@@ -12,8 +12,8 @@ class KtorSocialRepository(private val api: KtorSocialApi) : SocialRepository {
         api.searchUsers(query, limit).map { it.toDomain() }
     override suspend fun getUserProfile(uid: String): PublicProfile =
         api.getUserProfile(uid).toDomain()
-    override suspend fun getTopContributors(limit: Int): List<TopContributor> =
-        api.getTopContributors(limit).map { it.toDomain() }
+    override suspend fun getTopContributors(limit: Int, year: Int?, month: Int?): List<TopContributor> =
+        api.getTopContributors(limit, year, month).map { it.toDomain() }
     override suspend fun follow(uid: String) = api.follow(uid)
     override suspend fun unfollow(uid: String) = api.unfollow(uid)
     override suspend fun removeFollower(uid: String) = api.removeFollower(uid)

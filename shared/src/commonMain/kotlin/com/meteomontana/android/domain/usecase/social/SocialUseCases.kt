@@ -41,8 +41,10 @@ class SearchUsersUseCase(private val repo: SocialRepository) {
 /** Ranking de mayores contribuidores (pantalla Comunidad). */
 class GetTopContributorsUseCase(private val repo: SocialRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(limit: Int = 20): List<com.meteomontana.android.domain.model.TopContributor> =
-        repo.getTopContributors(limit)
+    suspend operator fun invoke(
+        limit: Int = 20, year: Int? = null, month: Int? = null
+    ): List<com.meteomontana.android.domain.model.TopContributor> =
+        repo.getTopContributors(limit, year, month)
 }
 
 class GetFollowersUseCase(private val repo: SocialRepository) {

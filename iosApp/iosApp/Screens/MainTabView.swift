@@ -6,6 +6,21 @@ import SwiftUI
 // desapareció: el radar ES la vista por defecto de la primera pestaña.
 struct MainTabView: View {
     @State private var tab = 2 // 0=Radar/Tiempo, 1=Feed, 2=Escuelas, 3=Quedadas, 4=Perfil — arranca en Escuelas
+    /// Sube al pulsar "Feed" estando YA en esa pestaña — FeedView lo escucha
+    /// para volver arriba del todo (como Instagram/Twitter).
+    @State private var feedScrollToTopSignal = 0
+
+    /// Binding a mano: el `set` de TabView SÍ se llama aunque el valor no
+    /// cambie (tocar la pestaña activa), así se detecta el re-toque.
+    private var tabBinding: Binding<Int> {
+        Binding(
+            get: { tab },
+            set: { newValue in
+                if newValue == 1 && tab == 1 { feedScrollToTopSignal += 1 }
+                tab = newValue
+            }
+        )
+    }
 
     init() {
         // Tab bar con estilo Cumbre: fondo papel, acento terracota.
@@ -17,13 +32,13 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        TabView(selection: $tab) {
+        TabView(selection: tabBinding) {
             WeatherRadarTab()
                 .tabItem { Label("Radar", systemImage: "dot.radiowaves.left.and.right") }
                 .tag(0)
             // "Feed": icono de tarjetas apiladas (≈ DynamicFeed de Android),
             // distinto de las personas de Quedadas/Perfil.
-            FeedView()
+            FeedView(scrollToTopSignal: feedScrollToTopSignal)
                 .tabItem { Label(NSLocalizedString("tab_community", comment: ""), systemImage: "square.stack") }
                 .tag(1)
             SchoolListView()

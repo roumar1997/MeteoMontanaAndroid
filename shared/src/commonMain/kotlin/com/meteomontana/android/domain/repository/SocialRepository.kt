@@ -7,7 +7,7 @@ import com.meteomontana.android.domain.model.TopContributor
 interface SocialRepository {
     suspend fun searchUsers(query: String, limit: Int = 20): List<PublicProfile>
     suspend fun getUserProfile(uid: String): PublicProfile
-    suspend fun getTopContributors(limit: Int = 20): List<TopContributor>
+    suspend fun getTopContributors(limit: Int = 20, year: Int? = null, month: Int? = null): List<TopContributor>
     suspend fun follow(uid: String)
     suspend fun unfollow(uid: String)
     suspend fun removeFollower(uid: String)

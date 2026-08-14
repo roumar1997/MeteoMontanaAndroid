@@ -298,6 +298,9 @@ struct FeedView: View {
     @StateObject private var vm = FeedViewModel()
     @ObservedObject private var moderation = ModerationStore.shared
     @Environment(\.scenePhase) private var scenePhase
+    /// Vuelve a subir la lista arriba del todo — sube cada vez que se pulsa
+    /// la pestaña "Feed" estando YA en Feed (MainTabView lo incrementa).
+    var scrollToTopSignal: Int = 0
 
     @State private var commentsPost: FeedPost? = nil
     @State private var deleteCandidate: FeedPost? = nil
@@ -389,38 +392,44 @@ struct FeedView: View {
         .padding(.horizontal, 16).padding(.vertical, 10)
     }
 
-    /// Pestañas de texto subrayadas (tipo Instagram) + trofeo RANKING a la
-    /// derecha. Con el ranking activo, ninguna pestaña lleva subrayado.
+    /// Pestañas como celdas planas — mismo estilo "mochila" de las celdas de
+    /// estadísticas del perfil (bloque con borde fino, radio 8, activa con
+    /// borde interior terra), en vez del subrayado de antes.
     private var tabsRow: some View {
-        HStack(spacing: 20) {
-            feedTextTab("Explorar", selected: vm.tab == .all) { vm.selectTab(.all) }
-            feedTextTab("Siguiendo", selected: vm.tab == .following) { vm.selectTab(.following) }
-            feedTextTab("Mías", selected: vm.tab == .mine) { vm.selectTab(.mine) }
-            Spacer()
+        HStack(spacing: 8) {
+            feedCardTab("Explorar", selected: vm.tab == .all) { vm.selectTab(.all) }
+            feedCardTab("Siguiendo", selected: vm.tab == .following) { vm.selectTab(.following) }
+            feedCardTab("Mías", selected: vm.tab == .mine) { vm.selectTab(.mine) }
             Button { vm.selectTab(.ranking) } label: {
                 Image(systemName: "trophy")
-                    .font(.system(size: 17))
-                    .foregroundStyle(vm.tab == .ranking ? Cumbre.terra : Cumbre.ink3)
-                    .frame(width: 40, height: 40)
+                    .font(.system(size: 16))
+                    .foregroundStyle(vm.tab == .ranking ? Cumbre.terra : Cumbre.ink)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .background(Cumbre.paper)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                        vm.tab == .ranking ? Cumbre.terra : Cumbre.rule,
+                        lineWidth: vm.tab == .ranking ? 1.5 : 0.5))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .buttonStyle(.plain)
         }
-        .padding(.leading, 16).padding(.trailing, 4)
+        .padding(.horizontal, 16).padding(.vertical, 10)
     }
 
-    private func feedTextTab(_ label: String, selected: Bool,
+    private func feedCardTab(_ label: String, selected: Bool,
                              action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 0) {
-                Text(label)
-                    .font(.system(size: 14, weight: selected ? .bold : .regular))
-                    .foregroundStyle(selected ? Cumbre.ink : Cumbre.ink3)
-                    .padding(.top, 10).padding(.bottom, 6)
-                Rectangle()
-                    .fill(selected ? Cumbre.terra : Color.clear)
-                    .frame(height: 2)
-            }
-            .fixedSize()
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(selected ? Cumbre.terra : Cumbre.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .background(Cumbre.paper)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                    selected ? Cumbre.terra : Cumbre.rule,
+                    lineWidth: selected ? 1.5 : 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
     }
@@ -494,38 +503,44 @@ struct FeedView: View {
             }
             .refreshable { await vm.refreshSilent() }
         } else {
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    if visible.isEmpty {
-                        Text("No hay publicaciones con este filtro.")
-                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 40)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        Color.clear.frame(height: 0).id("feedTop")
+                        if visible.isEmpty {
+                            Text("No hay publicaciones con este filtro.")
+                                .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                        }
+                        ForEach(visible, id: \.id) { post in
+                            FeedPostCard(
+                                post: post,
+                                onOpenSchool: { id, _, lineName, blockId in
+                                    // Post de piedra nueva: sin vía → abre por id de piedra.
+                                    navTarget = .school(id, lineName ?? blockId)
+                                },
+                                onOpenUser: { navTarget = .user($0) },
+                                onToggleLike: { vm.toggleLike(post) },
+                                onOpenComments: { commentsPost = post },
+                                onDelete: { deleteCandidate = post },
+                                onReport: post.mine ? nil : { reportPost = post })
+                        }
+                        if !vm.endReached {
+                            // Sentinel: al aparecer (final de la lista) pide otra página.
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(16)
+                                .onAppear { Task { await vm.loadMore() } }
+                        }
                     }
-                    ForEach(visible, id: \.id) { post in
-                        FeedPostCard(
-                            post: post,
-                            onOpenSchool: { id, _, lineName, blockId in
-                                // Post de piedra nueva: sin vía → abre por id de piedra.
-                                navTarget = .school(id, lineName ?? blockId)
-                            },
-                            onOpenUser: { navTarget = .user($0) },
-                            onToggleLike: { vm.toggleLike(post) },
-                            onOpenComments: { commentsPost = post },
-                            onDelete: { deleteCandidate = post },
-                            onReport: post.mine ? nil : { reportPost = post })
-                    }
-                    if !vm.endReached {
-                        // Sentinel: al aparecer (final de la lista) pide otra página.
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(16)
-                            .onAppear { Task { await vm.loadMore() } }
-                    }
+                    .padding(.horizontal, 12).padding(.vertical, 12)
                 }
-                .padding(.horizontal, 12).padding(.vertical, 12)
+                .refreshable { await vm.refreshSilent() }
+                .onChange(of: scrollToTopSignal) { _, _ in
+                    withAnimation { proxy.scrollTo("feedTop", anchor: .top) }
+                }
             }
-            .refreshable { await vm.refreshSilent() }
         }
     }
 
