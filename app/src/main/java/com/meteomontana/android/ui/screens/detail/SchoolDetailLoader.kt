@@ -16,15 +16,20 @@ import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 /**
- * Un solo reintento tras 400ms si la llamada falla. Cubre el hueco justo
- * después de abrir la app/entrar en una escuela donde el token de Firebase
- * aún no está listo (bloques/admin salían vacíos la 1ª vez y solo se veían
- * bien saliendo y volviendo a entrar — reportado 2026-08-13).
+ * Hasta 2 reintentos con espera creciente (400ms, 1200ms) si la llamada
+ * falla. Cubre el hueco justo después de abrir la app/entrar en una escuela
+ * en frío — conexión TLS inicial al backend lenta, no un tema de token
+ * (bloques/admin salían vacíos la 1ª vez y solo se veían bien saliendo y
+ * volviendo a entrar — reportado 2026-08-13, un solo reintento de 400ms no
+ * bastaba en algunos dispositivos/redes — reportado de nuevo 2026-08-14).
  */
 private suspend fun <T> retryOnce(block: suspend () -> T): Result<T> {
     val first = runCatching { block() }
     if (first.isSuccess) return first
     delay(400)
+    val second = runCatching { block() }
+    if (second.isSuccess) return second
+    delay(1200)
     return runCatching { block() }
 }
 
