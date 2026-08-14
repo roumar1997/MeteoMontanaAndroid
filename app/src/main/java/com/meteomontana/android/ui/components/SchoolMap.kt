@@ -203,12 +203,29 @@ fun SchoolMap(
                 selected = orientationFilter,
                 onSelect = orientationVm::select
             )
-            val visibleBlocks = remember(blocks, blockOrientations, orientationFilter) {
+            // Filtro Vía/Bloque de ESTA escuela (feature 2: school.style con
+            // ambos estilos, ej. "Vía,Bloque"). Solo aporta si la escuela es de
+            // AMBOS a la vez — de una sola, siempre pasaría todo. Paridad con
+            // schoolHasBothStyles/styleFilterRow/matchesStyleFilter de
+            // SchoolMapSection.swift (iOS).
+            val schoolHasBothStyles = remember(schoolStyle) {
+                (schoolStyle ?: "").split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet().size > 1
+            }
+            var styleFilter by remember { mutableStateOf(setOf<String>()) }
+            if (schoolHasBothStyles) {
+                StyleFilterRow(
+                    selected = styleFilter,
+                    onToggle = { opt ->
+                        styleFilter = if (opt in styleFilter) styleFilter - opt else styleFilter + opt
+                    }
+                )
+            }
+            val visibleBlocks = remember(blocks, blockOrientations, orientationFilter, styleFilter) {
                 val aspect = orientationFilter
-                if (aspect == null) blocks
-                else blocks.filter { b ->
-                    // Parkings y zonas siempre visibles: solo se filtran piedras/muros.
-                    b.type != "BLOCK" || blockOrientations[b.id] == aspect
+                blocks.filter { b ->
+                    // Parkings y zonas siempre visibles ante orientación: solo se filtran piedras/muros.
+                    val passesOrientation = aspect == null || b.type != "BLOCK" || blockOrientations[b.id] == aspect
+                    passesOrientation && matchesStyleFilter(b, styleFilter)
                 }
             }
             // Filtro LOCAL por GRADO (BLOCK_SEARCH_DESIGN.md §7). `selectedGrades`
@@ -505,5 +522,59 @@ fun SchoolMap(
                 onMyProposals()
             }
         )
+    }
+}
+
+// ── Filtro Vía/Bloque de la escuela ─────────────────────────────────────
+// Paridad con styleFilterRow/matchesStyleFilter de SchoolMapSection.swift.
+
+@Composable
+private fun StyleFilterRow(
+    selected: Set<String>,
+    onToggle: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf("Vía", "Bloque").forEach { opt ->
+            val active = opt in selected
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(if (active) Terra else MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                    .clickable { onToggle(opt) }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    opt.uppercase(), style = EyebrowTextStyle,
+                    color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** "ROUTE" en el backend = estilo "Vía"; "BOULDER" = "Bloque". */
+private fun styleLabelForDiscipline(discipline: String): String =
+    if (discipline.uppercase() == "ROUTE") "Vía" else "Bloque"
+
+/**
+ * ¿Esta piedra/sector pasa el filtro Vía/Bloque? Vacío = sin filtrar. Un
+ * sector sin piedras dentro (sectorDisciplines vacío/null) siempre se ve —
+ * no hay disciplina que comparar todavía (evita que desaparezca).
+ */
+private fun matchesStyleFilter(b: Block, styleFilter: Set<String>): Boolean {
+    if (styleFilter.isEmpty()) return true
+    return when (b.type.uppercase()) {
+        "BLOCK" -> styleLabelForDiscipline(b.discipline) in styleFilter
+        "ZONE" -> {
+            val disciplines = b.sectorDisciplines ?: emptyList()
+            if (disciplines.isEmpty()) true
+            else disciplines.any { styleLabelForDiscipline(it) in styleFilter }
+        }
+        else -> true
     }
 }
