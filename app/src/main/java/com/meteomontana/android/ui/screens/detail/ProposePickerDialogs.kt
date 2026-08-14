@@ -45,6 +45,8 @@ internal fun TypePickerDialog(
     onContinuarBorrador: (() -> Unit)? = null,
     onSector: () -> Unit,
     onCorrection: () -> Unit,
+    onCorrectSchoolName: () -> Unit,
+    onCorrectSchoolStyle: () -> Unit,
     onDismiss: () -> Unit
 ) {
     CumbreDialog(onDismiss = onDismiss) {
@@ -135,6 +137,22 @@ internal fun TypePickerDialog(
             description = "¿Algo está mal colocado en el mapa? Toca el elemento y muévelo al sitio correcto.",
             enabled = true,
             onClick = onCorrection
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        TypeOption(
+            icon = "T",
+            label = "CORREGIR NOMBRE",
+            description = "¿El nombre de la escuela está mal escrito? Propón el correcto.",
+            enabled = true,
+            onClick = onCorrectSchoolName
+        )
+        Spacer(Modifier.height(Spacing.sm))
+        TypeOption(
+            icon = "☑",
+            label = "CORREGIR ESTILO",
+            description = "¿Esta escuela tiene vía Y bloque pero solo aparece uno? Corrígelo.",
+            enabled = true,
+            onClick = onCorrectSchoolStyle
         )
 
         Spacer(Modifier.height(Spacing.lg))

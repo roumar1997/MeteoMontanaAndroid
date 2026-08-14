@@ -98,6 +98,7 @@ fun SchoolMap(
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit = {},
     schoolName: String = "",
+    schoolStyle: String? = null,
     schoolId: String = "",
     /** Foto de "Enviar piedra": abre el flujo de proponer piedra ya con ella. */
     photoSeed: com.meteomontana.android.ui.screens.detail.PhotoSeed? = null,
@@ -254,6 +255,8 @@ fun SchoolMap(
     if (bridge.proposeOpen) {
         ProposeContributionFlow(
             schoolName      = schoolName,
+            schoolStyle     = schoolStyle,
+            schoolId        = schoolId,
             photoSeed       = photoSeed,
             onPickBoulderFromPhoto = onPickBoulderFromPhoto,
             onPhotoSeedConsumed = onPhotoSeedConsumed,

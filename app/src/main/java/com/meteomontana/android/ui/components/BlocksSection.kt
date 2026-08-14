@@ -37,6 +37,7 @@ fun BlocksSection(
     schoolLat: Double? = null,
     schoolLon: Double? = null,
     schoolName: String = "",
+    schoolStyle: String? = null,
     schoolId: String = "",
     viewModel: SchoolDetailViewModel? = null,
     onMyProposals: () -> Unit = {}
@@ -124,6 +125,7 @@ fun BlocksSection(
             centerLon     = schoolLon,
             blocks        = blocks,
             schoolName    = schoolName,
+            schoolStyle   = schoolStyle,
             schoolId      = schoolId,
             viewModel     = viewModel,
             photoSeed     = photoSeed,

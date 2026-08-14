@@ -46,6 +46,8 @@ private sealed interface ProposeStep {
     data class  PhotoConfirm(val lat: Double, val lon: Double) : ProposeStep
     data class  WallTracing(val lat: Double, val lon: Double) : ProposeStep  // trazar muro en el mapa
     data class  SectorForm(val lat: Double, val lon: Double)  : ProposeStep  // SECTOR
+    data object SchoolNameCorrection  : ProposeStep  // SCHOOL_NAME_CORRECTION, sin tocar el mapa
+    data object SchoolStyleCorrection : ProposeStep  // SCHOOL_STYLE_CORRECTION, sin tocar el mapa
     data object CorrectionPickTarget : ProposeStep                          // espera tap en marker existente
     data class  CorrectionMoving(
         val targetId: String?,    // null = mover escuela entera
@@ -73,6 +75,10 @@ private sealed interface ProposeStep {
 @Composable
 fun ProposeContributionFlow(
     schoolName: String,
+    /** Estilo actual de la escuela ("Bloque", "Vía" o "Bloque,Vía"), para
+     *  precargar CORREGIR NOMBRE / CORREGIR ESTILO. */
+    schoolStyle: String? = null,
+    schoolId: String = "",
     /**
      * Si se llega desde "Enviar piedra", la foto elegida y dónde se hizo.
      *
@@ -354,6 +360,8 @@ fun ProposeContributionFlow(
                 step = ProposeStep.CorrectionPickTarget
                 onCorrectionModeChange(true)
             },
+            onCorrectSchoolName = { step = ProposeStep.SchoolNameCorrection },
+            onCorrectSchoolStyle = { step = ProposeStep.SchoolStyleCorrection },
             onDismiss = onDismiss
         )
 
@@ -545,6 +553,45 @@ fun ProposeContributionFlow(
                     ))
                     step = ProposeStep.Success(queued = true)
                 }
+            }
+        )
+
+        is ProposeStep.SchoolNameCorrection -> SchoolNameCorrectionDialog(
+            currentName = schoolName,
+            onCancel = onDismiss,
+            onSubmit = { newName ->
+                val req = ContributionRequest(
+                    type = "SCHOOL_NAME_CORRECTION",
+                    name = newName,
+                    lat = schoolLat, lon = schoolLon,
+                    notes = null, description = null,
+                    proposedLat = null, proposedLon = null,
+                    correctionReason = null, targetBlockId = null,
+                    photoUrl = null, bloquesJson = null, topoLinesJson = null
+                )
+                val result = viewModel.submitContribution(req)
+                if (result.isSuccess) step = ProposeStep.Success()
+                result.isSuccess
+            }
+        )
+
+        is ProposeStep.SchoolStyleCorrection -> SchoolStyleCorrectionDialog(
+            currentStyle = schoolStyle,
+            onCancel = onDismiss,
+            onSubmit = { newStyle ->
+                val req = ContributionRequest(
+                    type = "SCHOOL_STYLE_CORRECTION",
+                    name = null,
+                    lat = schoolLat, lon = schoolLon,
+                    notes = null, description = null,
+                    proposedLat = null, proposedLon = null,
+                    correctionReason = null, targetBlockId = null,
+                    photoUrl = null, bloquesJson = null, topoLinesJson = null,
+                    discipline = newStyle
+                )
+                val result = viewModel.submitContribution(req)
+                if (result.isSuccess) step = ProposeStep.Success()
+                result.isSuccess
             }
         )
 

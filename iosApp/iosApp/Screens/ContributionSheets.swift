@@ -249,9 +249,20 @@ struct SchoolStyleCorrectionSheet: View {
     let coord: CLLocationCoordinate2D
     let onDone: (Bool) -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var selected: Set<String> = []
+    // Preselecciona lo que la escuela YA tiene: si no se toca nada, la
+    // propuesta no cambia el estilo. Antes arrancaba vacío y era fácil
+    // "corregir" borrando por descuido el estilo que ya estaba bien.
+    @State private var selected: Set<String>
     @State private var sending = false
     @State private var sendError: String? = nil
+
+    init(schoolId: String, currentStyle: String?, coord: CLLocationCoordinate2D, onDone: @escaping (Bool) -> Void) {
+        self.schoolId = schoolId
+        self.currentStyle = currentStyle
+        self.coord = coord
+        self.onDone = onDone
+        _selected = State(initialValue: Set((currentStyle ?? "").split(separator: ",").map(String.init)))
+    }
 
     private var options: [String] {
         var opts = Set((currentStyle ?? "").split(separator: ",").map(String.init))

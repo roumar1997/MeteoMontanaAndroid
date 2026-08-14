@@ -302,7 +302,7 @@ private fun Content(
                 BlocksSection(
                     blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
                     schoolLat = school.lat, schoolLon = school.lon,
-                    schoolName = school.name, schoolId = school.id,
+                    schoolName = school.name, schoolStyle = school.style, schoolId = school.id,
                     viewModel = viewModel, onMyProposals = onMyProposals
                 )
                 // APROXIMACIONES: entre el mapa (dentro de BlocksSection) y el
