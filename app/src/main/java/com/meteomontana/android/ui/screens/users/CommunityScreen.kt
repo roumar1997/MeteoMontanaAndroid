@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,6 +50,31 @@ sealed interface CommunityUiState {
     data class Error(val message: String) : CommunityUiState
 }
 
+/** Ámbito del ranking: total histórico, o un mes concreto (año+mes). */
+data class RankingScope(val year: Int? = null, val month: Int? = null) {
+    val isTotal: Boolean get() = year == null
+    companion object {
+        val Total = RankingScope()
+        /** Total + los últimos 6 meses (paridad con CommunityViewModel.availableScopes de iOS). */
+        fun lastSixMonths(now: java.util.Calendar = java.util.Calendar.getInstance()): List<RankingScope> {
+            val scopes = mutableListOf(Total)
+            val cal = now.clone() as java.util.Calendar
+            repeat(6) {
+                scopes.add(RankingScope(year = cal.get(java.util.Calendar.YEAR), month = cal.get(java.util.Calendar.MONTH) + 1))
+                cal.add(java.util.Calendar.MONTH, -1)
+            }
+            return scopes
+        }
+    }
+}
+
+private val SPANISH_MONTHS_ABBR = listOf(
+    "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+)
+
+fun RankingScope.label(): String =
+    if (isTotal) "Total" else SPANISH_MONTHS_ABBR[(month!! - 1).coerceIn(0, 11)]
+
 @HiltViewModel
 class CommunityViewModel @Inject constructor(
     private val getTopContributors: GetTopContributorsUseCase
@@ -56,12 +83,23 @@ class CommunityViewModel @Inject constructor(
     private val _state = MutableStateFlow<CommunityUiState>(CommunityUiState.Loading)
     val state: StateFlow<CommunityUiState> = _state.asStateFlow()
 
+    val availableScopes: List<RankingScope> = RankingScope.lastSixMonths()
+
+    private val _scope = MutableStateFlow(RankingScope.Total)
+    val scope: StateFlow<RankingScope> = _scope.asStateFlow()
+
     init { load() }
+
+    fun selectScope(s: RankingScope) {
+        _scope.value = s
+        load()
+    }
 
     fun load() {
         _state.value = CommunityUiState.Loading
+        val s = _scope.value
         viewModelScope.launch {
-            _state.value = runCatching { getTopContributors(20) }
+            _state.value = runCatching { getTopContributors(20, s.year, s.month) }
                 .fold(
                     onSuccess = { CommunityUiState.Success(it) },
                     onFailure = { CommunityUiState.Error(it.toUserMessage()) }
@@ -80,6 +118,7 @@ fun CommunityScreen(
     viewModel: CommunityViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val scope by viewModel.scope.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
@@ -93,6 +132,21 @@ fun CommunityScreen(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
         )
+        // Ámbito del ranking: Total + últimos 6 meses (paridad con
+        // CommunityViewModel.availableScopes/scopeRow de iOS).
+        LazyRow(
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            items(viewModel.availableScopes) { s ->
+                com.meteomontana.android.ui.components.CumbreChip(
+                    label = s.label(),
+                    selected = s == scope,
+                    onClick = { viewModel.selectScope(s) }
+                )
+            }
+        }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
