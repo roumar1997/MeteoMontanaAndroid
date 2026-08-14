@@ -434,7 +434,8 @@ struct FeedView: View {
         .buttonStyle(.plain)
     }
 
-    /// Fila "Mostrar:" con píldoras Todo / Ascensos / Piedras nuevas.
+    /// Fila "Mostrar:" — mismo estilo "mochila" que las pestañas de arriba
+    /// (celda plana, borde fino, activa con borde interior terra).
     private var filterRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
@@ -452,11 +453,13 @@ struct FeedView: View {
         Button(action: action) {
             Text(label)
                 .font(Cumbre.mono(11, .bold)).tracking(0.4)
-                .foregroundStyle(selected ? .white : Cumbre.ink3)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(selected ? Cumbre.terra : Cumbre.paper)
-                .clipShape(RoundedRectangle(cornerRadius: 2))
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                .foregroundStyle(selected ? Cumbre.terra : Cumbre.ink)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Cumbre.paper)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                    selected ? Cumbre.terra : Cumbre.rule,
+                    lineWidth: selected ? 1.5 : 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
     }
