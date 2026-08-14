@@ -41,11 +41,21 @@ object SchoolFilterEngine {
     ): List<School> {
         if (query.isNotBlank()) return filterByQuery(schools, query)
         var list = schools
-            .filter { styleApiValue == null || styleApiValue.equals(it.style, ignoreCase = true) }
+            .filter { styleApiValue == null || matchesStyle(it.style, styleApiValue) }
             .filter { rockTypes.isEmpty() || rockTypes.any { r -> r.equals(it.rockType, ignoreCase = true) } }
             .filter { maxDistanceKm == null || Geo.haversineKm(userLat, userLon, it.lat, it.lon) <= maxDistanceKm }
         if (onlyFavorites) list = list.filter { it.id in favoriteIds }
         return list
+    }
+
+    /** Una escuela con estilo combinado ("Bloque,Vía") debe salir al filtrar
+     *  por Vía Y al filtrar por Bloque — mismo criterio que hasStyle() en el
+     *  backend (GetSchoolsUseCase.java) y matchesStyle en SchoolListView.swift
+     *  (comparación exacta era el bug: "poniendo Vía o Bloque no aparecía La
+     *  Pedriza, solo con Todas" — reportado 2026-08-14). */
+    private fun matchesStyle(schoolStyle: String?, wanted: String): Boolean {
+        if (schoolStyle == null) return false
+        return schoolStyle.split(",").any { it.trim().equals(wanted, ignoreCase = true) }
     }
 
     /** Orden por distancia ascendente al usuario. */
