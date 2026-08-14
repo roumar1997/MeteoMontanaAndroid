@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
@@ -91,6 +92,10 @@ fun FeedScreen(
     // ("mis publicaciones nuevas no salen"). Mismo patrón `visible` que
     // ProfileScreen/MeetupsScreen (equivalente al .task {} de iOS).
     visible: Boolean = true,
+    // Sube cada vez que se vuelve a tocar la pestaña Feed estando YA en Feed
+    // (mismo patrón que SchoolListScreen.volverArribaSignal — lo publica
+    // MainScreen). La lista vuelve arriba del todo, como Instagram/Twitter.
+    volverArribaSignal: Int = 0,
     viewModel: FeedViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -132,36 +137,35 @@ fun FeedScreen(
             )
             com.meteomontana.android.ui.components.HelpButton(topicKey = "community")
         }
-        // Selector estilo "pestañas subrayadas" (tipo Instagram): Explorar |
-        // Siguiendo | Mías a la izquierda + trofeo (RANKING) a la derecha.
-        // Con el ranking activo, ninguna pestaña lleva subrayado.
+        // Pestañas estilo "mochila" (mismas celdas planas que las stats de
+        // Perfil): borde fino Rule, activa con borde interior Terra y texto
+        // Terra — reemplaza el subrayado tipo Instagram de antes.
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FeedTextTab(stringResource(R.string.feed_tab_explore), state.tab == FeedTab.ALL) {
-                viewModel.selectTab(FeedTab.ALL)
-            }
-            androidx.compose.foundation.layout.Spacer(Modifier.size(20.dp))
-            FeedTextTab(stringResource(R.string.feed_tab_following), state.tab == FeedTab.FOLLOWING) {
-                viewModel.selectTab(FeedTab.FOLLOWING)
-            }
-            androidx.compose.foundation.layout.Spacer(Modifier.size(20.dp))
-            FeedTextTab(stringResource(R.string.feed_tab_mine), state.tab == FeedTab.MINE) {
-                viewModel.selectTab(FeedTab.MINE)
-            }
-            androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-            IconButton(onClick = { viewModel.selectTab(FeedTab.RANKING) }) {
-                Icon(
-                    Icons.Outlined.EmojiEvents,
-                    contentDescription = stringResource(R.string.feed_tab_ranking),
-                    tint = if (state.tab == FeedTab.RANKING) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            FeedMochilaCard(
+                stringResource(R.string.feed_tab_explore), state.tab == FeedTab.ALL,
+                Modifier.weight(1f)
+            ) { viewModel.selectTab(FeedTab.ALL) }
+            FeedMochilaCard(
+                stringResource(R.string.feed_tab_following), state.tab == FeedTab.FOLLOWING,
+                Modifier.weight(1f)
+            ) { viewModel.selectTab(FeedTab.FOLLOWING) }
+            FeedMochilaCard(
+                stringResource(R.string.feed_tab_mine), state.tab == FeedTab.MINE,
+                Modifier.weight(1f)
+            ) { viewModel.selectTab(FeedTab.MINE) }
+            FeedMochilaIconCard(
+                icon = Icons.Outlined.EmojiEvents,
+                contentDescription = stringResource(R.string.feed_tab_ranking),
+                selected = state.tab == FeedTab.RANKING,
+                modifier = Modifier.weight(1f)
+            ) { viewModel.selectTab(FeedTab.RANKING) }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         // Fila de filtro "Mostrar:" (solo en las vistas de feed, no en ranking).
+        // Mismo estilo mochila que las pestañas de arriba.
         if (state.tab != FeedTab.RANKING) {
             Row(
                 modifier = Modifier.fillMaxWidth()
@@ -175,13 +179,13 @@ fun FeedScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                FilterPill(stringResource(R.string.feed_filter_all), state.filter == FeedFilter.ALL) {
+                FeedMochilaCard(stringResource(R.string.feed_filter_all), state.filter == FeedFilter.ALL) {
                     viewModel.selectFilter(FeedFilter.ALL)
                 }
-                FilterPill(stringResource(R.string.feed_filter_sends), state.filter == FeedFilter.SENDS) {
+                FeedMochilaCard(stringResource(R.string.feed_filter_sends), state.filter == FeedFilter.SENDS) {
                     viewModel.selectFilter(FeedFilter.SENDS)
                 }
-                FilterPill(stringResource(R.string.feed_filter_new), state.filter == FeedFilter.NEW_BLOCKS) {
+                FeedMochilaCard(stringResource(R.string.feed_filter_new), state.filter == FeedFilter.NEW_BLOCKS) {
                     viewModel.selectFilter(FeedFilter.NEW_BLOCKS)
                 }
             }
@@ -205,7 +209,8 @@ fun FeedScreen(
                 onSearchUsers = onSearchUsers,
                 onOpenComments = { onOpenPost(it.id.toString()) },
                 onDeletePost = { deleteCandidate = it },
-                onReportPost = { reportPost = it }
+                onReportPost = { reportPost = it },
+                volverArribaSignal = volverArribaSignal
             )
         }
     }
@@ -257,13 +262,18 @@ private fun FeedList(
     onSearchUsers: () -> Unit,
     onOpenComments: (FeedPost) -> Unit,
     onDeletePost: (FeedPost) -> Unit,
-    onReportPost: (FeedPost) -> Unit
+    onReportPost: (FeedPost) -> Unit,
+    volverArribaSignal: Int = 0
 ) {
     // Lo denunciado desaparece al instante para quien denuncia (Apple 1.2) y
     // el filtro "Mostrar:" solo OCULTA en cliente (la paginación trae todo).
     val visiblePosts = state.posts
         .filter { "FEED_POST:${it.id}" !in hiddenIds }
         .filter { matchesFilter(it, state.filter) }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(volverArribaSignal) {
+        if (volverArribaSignal > 0) listState.animateScrollToItem(0)
+    }
     PullToRefreshBox(
         isRefreshing = state.refreshing,
         onRefresh = { viewModel.refresh() },
@@ -342,6 +352,7 @@ private fun FeedList(
             }
             else -> LazyColumn(
                 Modifier.fillMaxSize(),
+                state = listState,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                     start = 12.dp, end = 12.dp, top = 12.dp,
                     // Hueco al final: el contenido corre por detrás de la
@@ -399,50 +410,74 @@ private fun matchesFilter(post: FeedPost, filter: FeedFilter): Boolean = when (f
     FeedFilter.NEW_BLOCKS -> post.kind == FeedKind.NEW_BLOCK || post.kind == FeedKind.NEW_LINE
 }
 
-/** Pestaña de texto con subrayado 2dp Terra cuando está activa (tipo Instagram). */
+/**
+ * Celda "mochila" — mismo estilo que las tarjetas de estadísticas de Perfil:
+ * fondo plano (Paper/surface), borde fino 1dp Rule por defecto; activa =
+ * borde 1.5dp Terra + texto Terra. NUNCA relleno Terra sólido (ese era el
+ * estilo antiguo, reemplazado a petición: paridad con iOS build 136).
+ */
 @Composable
-private fun FeedTextTab(label: String, selected: Boolean, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .width(androidx.compose.foundation.layout.IntrinsicSize.Max)
-            .clip(RoundedCornerShape(2.dp))
+private fun FeedMochilaCard(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(4.dp)
+    Box(
+        modifier = modifier
+            .heightIn(min = 40.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                if (selected) 1.5.dp else 1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                shape
+            )
             .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             label,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.onBackground
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 10.dp, bottom = 6.dp)
-        )
-        Box(
-            Modifier.fillMaxWidth().height(2.dp).background(
-                if (selected) MaterialTheme.colorScheme.primary
-                else androidx.compose.ui.graphics.Color.Transparent
-            )
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }
 
-/** Píldora pequeña del filtro "Mostrar:": activa fondo Terra + texto blanco,
- *  inactiva borde Rule. */
+/** Variante del icono del trofeo (RANKING) con la misma celda "mochila". */
 @Composable
-private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(2.dp)
-    Text(
-        label,
-        style = MaterialTheme.typography.labelMedium,
-        color = if (selected) androidx.compose.ui.graphics.Color.White
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
+private fun FeedMochilaIconCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(4.dp)
+    Box(
+        modifier = modifier
+            .heightIn(min = 40.dp)
             .clip(shape)
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surface
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                if (selected) 1.5.dp else 1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                shape
             )
-            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.size(18.dp)
+        )
+    }
 }

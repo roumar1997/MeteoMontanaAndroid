@@ -594,7 +594,8 @@ fun MainScreen(
                         onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
                         onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
                         onOpenPost = { postId -> openSheet(Routes.feedPost(postId)) },
-                        visible = selectedTab == Tab.Community.route && !sheetVisible
+                        visible = selectedTab == Tab.Community.route && !sheetVisible,
+                        volverArribaSignal = volverArriba[Tab.Community.route] ?: 0
                     )
                 }
                         tabContainer(Tab.Meetups.route) {
