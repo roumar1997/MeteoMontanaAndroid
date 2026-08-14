@@ -49,6 +49,8 @@ struct SchoolMapSection: View {
     @State private var continuandoBorrador = false
     /// Punto donde se hizo la foto, a la espera de que el usuario lo confirme.
     @State private var confirmandoFoto: CLLocationCoordinate2D?
+    /// "CORREGIR NOMBRE" del selector — sin tocar el mapa, solo un campo.
+    @State private var correctingSchoolName = false
     // Datos del mapa (bloques/capas/buscador/admin) — ver SchoolMapViewModel.
     @StateObject private var vm = SchoolMapViewModel()
     @State private var mapStyle: MapStyleKind = .satellite  // paridad con Android
@@ -413,6 +415,7 @@ struct SchoolMapSection: View {
                                     latitude: b.lat, longitude: b.lon)
                             }
                         case "CORRECTION": flow.startCorrection()
+                        case "SCHOOL_NAME_CORRECTION": correctingSchoolName = true
                         default: break
                         }
                     }
@@ -454,6 +457,12 @@ struct SchoolMapSection: View {
                     }
                 }
                 .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: vm.isAdmin) }
+                .sheet(isPresented: $correctingSchoolName) {
+                    SchoolNameCorrectionSheet(schoolId: school.id, currentName: school.name,
+                                              coord: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)) { ok in
+                        if ok { afterSubmit() }
+                    }
+                }
                 .fullScreenCover(item: $followingApproach) { a in
                     ApproachFollowView(approach: a, schoolName: school.name, isAdmin: vm.isAdmin) {
                         approachesLoader.reload(schoolId: school.id)
