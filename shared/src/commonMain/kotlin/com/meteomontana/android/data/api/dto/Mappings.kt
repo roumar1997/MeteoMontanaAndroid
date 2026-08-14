@@ -107,7 +107,8 @@ fun BlockDto.toDomain() = Block(
     sectorBlockId = sectorBlockId,
     discipline = discipline,
     geometry = geometry, path = path, direction = direction,
-    faces = faces.map { it.toDomain(photoPath) }
+    faces = faces.map { it.toDomain(photoPath) },
+    sectorDisciplines = sectorDisciplines
 )
 
 fun BlockLineDto.toDomain(coverPhoto: String? = null) =

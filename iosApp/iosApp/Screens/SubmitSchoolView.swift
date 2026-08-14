@@ -12,7 +12,10 @@ final class SubmitSchoolViewModel: ObservableObject {
     /// escuelas de hoy.
     @Published var country = "ES"
     @Published var region = ""
-    @Published var style = ""
+    /// Estilos marcados (Vía / Bloque) — una escuela puede tener ambos a la
+    /// vez (ej. La Pedriza). Se envían unidos por coma; el backend ya sabe
+    /// interpretarlo así (GetSchoolsUseCase.hasStyle).
+    @Published var selectedStyles: Set<String> = []
     @Published var rockType = ""
     @Published var lat = ""
     @Published var lon = ""
@@ -53,7 +56,9 @@ final class SubmitSchoolViewModel: ObservableObject {
         // Sin red se cae a España, que es lo que había antes del catálogo.
         countries = (try? await AppDependencies.shared.container.getCountries.invoke())
             ?? [Country(code: "ES", name: "España", regions: regionOptions)]
-        styleOptions = unique(list.map { $0.style })
+        // Las escuelas mixtas guardan "Vía,Bloque" en un solo campo — se
+        // trocea para que el desplegable/chips ofrezcan valores sueltos.
+        styleOptions = unique(list.flatMap { ($0.style ?? "").split(separator: ",").map(String.init) })
         rockOptions = unique(list.map { $0.rockType })
     }
 
@@ -98,7 +103,7 @@ final class SubmitSchoolViewModel: ObservableObject {
         let req = SubmitSchoolRequest(
             name: name.trimmingCharacters(in: .whitespaces),
             region: region.nilIfBlank,
-            style: style.nilIfBlank,
+            style: selectedStyles.isEmpty ? nil : selectedStyles.sorted().joined(separator: ","),
             rockType: rockType.nilIfBlank,
             lat: la, lon: lo,
             location: location.nilIfBlank,
@@ -171,7 +176,7 @@ struct SubmitSchoolView: View {
                 }
                 pickerField("REGIÓN", $vm.region, vm.regionsForCountry)
                     .onChange(of: vm.region) { _, _ in vm.location = "" }   // resetea localidad al cambiar región
-                pickerField("ESTILO", $vm.style, vm.styleOptions)
+                styleChips
                 pickerField("TIPO DE ROCA", $vm.rockType, vm.rockOptions)
 
                 // Pegar coordenadas de Google Maps.
@@ -230,6 +235,29 @@ struct SubmitSchoolView: View {
                 .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
+    }
+
+    /// Estilo: chips multi-selección — una escuela puede ser vía Y bloque a
+    /// la vez (ej. La Pedriza), a diferencia de los demás desplegables.
+    private var styleChips: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("ESTILO").eyebrow()
+            HStack(spacing: 8) {
+                ForEach(vm.styleOptions.isEmpty ? ["Vía", "Bloque"] : vm.styleOptions, id: \.self) { opt in
+                    let selected = vm.selectedStyles.contains(opt)
+                    Button {
+                        if selected { vm.selectedStyles.remove(opt) } else { vm.selectedStyles.insert(opt) }
+                    } label: {
+                        Text(opt).font(Cumbre.mono(12, .bold)).tracking(0.5)
+                            .foregroundStyle(selected ? .white : Cumbre.ink)
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .background(selected ? Cumbre.terra : Cumbre.paper)
+                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    }.buttonStyle(.plain)
+                }
+                Spacer()
+            }
+        }
     }
 
     private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {
