@@ -281,6 +281,57 @@ más grave de toda la lista.
 
 ---
 
+## 12. Guardar una escuela DEBE incluir sus fotos (prioridad de producto)
+
+**Rodrigo, 2026-08-16**: *"es importante que el usuario pueda guardarse escuelas
+con fotos, si no, nada nos diferencia de otras apps"*. Es la razón de ser del
+modo offline: en la roca no hay cobertura y el topo **es** la foto.
+
+**Causa**: `SavedSchoolRepository.saveOffline` guarda escuela, bloques, vías,
+trazados y forecast, pero de la foto **solo el `photoPath`** (la URL en texto,
+no los bytes). Las imágenes solo están si Coil las cacheó al mostrarlas antes —
+y la caché de Coil se limpia sola cuando el móvil necesita espacio.
+
+**El tamaño NO es problema** (medido en producción el 2026-08-16, ya con las
+fotos reducidas a ~280 KB de media):
+
+| Escuela | Piedras | Fotos | Peso |
+|---|---|---|---|
+| zarzalejo (la mayor) | 20 | 25 | **~7 MB** |
+| santa-gadea | 11 | 15 | ~4 MB |
+| la-pedriza | 11 | 11 | ~3 MB |
+| el resto | 1-5 | 0-7 | < 2 MB |
+
+**Todas las fotos de toda la plataforma juntas son 46 MB.** O sea que ni hace
+falta pedirle al usuario que vaya alternando escuelas: puede guardarlas todas y
+seguiría ocupando menos que un par de canciones. Aun así conviene enseñar el
+peso y dejar borrar, por respeto al usuario, no por necesidad técnica.
+
+**Solución**:
+1. Al guardar una escuela, **descargar también las fotos** (piedras y caras) a
+   almacenamiento propio de la app, con barra de progreso y posibilidad de
+   cancelar. Guardar la ruta local junto al `photoPath` remoto.
+2. Al pintar, **usar el fichero local si existe**; si no, la URL. Así funciona
+   igual con y sin cobertura.
+3. **Contenido nuevo en una escuela ya guardada**: `syncAllSaved`
+   (`SavedSchoolRepository.kt:81`) ya re-descarga bloques y forecast y reemplaza
+   el snapshot. Hay que **extenderlo a las fotos**: bajar solo las que falten
+   (comparando `photoPath`) y **borrar las que ya no estén** para que no se
+   acumule basura. Responde a la pregunta de Rodrigo: hoy los *datos* sí se
+   actualizan, las *fotos* no existen.
+4. Que se vea en la ficha **cuánto ocupa** y un botón de borrar.
+5. Descargar solo con **wifi** por defecto, con opción de forzar con datos.
+
+**Esfuerzo**: medio. **Ahora es viable**: antes de reducir las fotos, Zarzalejo
+habrían sido ~30 MB; ahora son 7.
+
+**OJO — no confundir con los puntos 5 y 10.** Que una escuela guardada "ni te
+deje entrar y se quede cargando" **no tiene nada que ver con las fotos**: es el
+bug del token (punto 5/10), y pasa igual con escuelas sin una sola foto. Son dos
+arreglos independientes y el del token va antes.
+
+---
+
 ## Orden que propongo
 
 | # | Qué | Por qué ahí | Esfuerzo |
@@ -288,8 +339,9 @@ más grave de toda la lista.
 | 1 | **5 y 10** (token en frío) | lo sufren todos, causa localizada, arreglo pequeño | bajo |
 | 2 | **3** (✓ de la foto) | bloquea una función entera | bajo |
 | 3 | **8** (zoom del mapa) | trivial y se ve feo | muy bajo |
-| 4 | **11** (fotos offline) | se pierde trabajo del usuario | medio |
-| 5 | **4** (caras de la piedra) | muy usado, y de paso aligera datos | medio |
+| 4 | **11** (fotos offline al subir) | se pierde trabajo del usuario | medio |
+| 5 | **12** (guardar escuela CON fotos) | es lo que diferencia la app; ya cabe en 7 MB | medio |
+| 6 | **4** (caras de la piedra) | muy usado, y de paso aligera datos | medio |
 | 6 | **2** (recorrido ida/vuelta) | la BD ya está lista, sale barato | medio-bajo |
 | 7 | **9** (parking → sectores) | function nueva golosa | medio |
 | 8 | **7** (auditoría offline) | ordenar antes de crecer | medio |
