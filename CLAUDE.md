@@ -19,6 +19,7 @@ Todo lo demás se consulta cuando toca, y por eso vive aparte.
 | `WALLS_DESIGN.md` · `MEETUPS_DESIGN.md` · `FEED_DESIGN.md` | diseño de muros, quedadas y feed (implementados) | antes de tocar esas zonas |
 | `APPROACH_DESIGN.md` | aproximaciones parking→sector con chinchetas — **SIN IMPLEMENTAR**, la Fase 0 es un cambio de términos que debe ver un abogado | antes de empezar esa función |
 | `DEPLOYMENT.md` | publicar (Railway, Firebase, Play, App Store, keystore) | **leer antes de publicar** |
+| **`PLAN_PENDIENTES.md`** | los 11 puntos que pidió Rodrigo el 2026-08-15, cada uno con causa YA investigada y solución — **nada implementado** | antes de tocar cualquiera de ellos |
 | `MejorasFuturas.md` | plan priorizado de mejora post-lanzamiento | al elegir en qué invertir tiempo |
 | `KMP_MIGRATION.md` | patrón bridge Kotlin↔Swift (migración ya completada) | al portar un `suspend` nuevo a iOS |
 | `APP_STORE_CHECKLIST.md` | pasos de ficha de App Store | al tocar la ficha |
