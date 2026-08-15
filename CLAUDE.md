@@ -243,7 +243,23 @@ Haze clavada a **1.5.4** (la última con Compose 1.7; de la 1.6 en adelante pide
 11 → solo verá SÓLIDO) y **verificar el desenfoque sobre el mapa del radar**,
 que es el riesgo abierto. Nada de esto llega a `main` hasta que lo valide.
 
-**📦 RELEASE EN CURSO — 2.22.0 (Android vc92 / iOS build 119), 2026-08-09/10.**
+**📦 EN LAS TIENDAS AHORA — Android vc96 (2.24.0) / iOS build 138**, confirmado
+por Rodrigo el 2026-08-15: ambos subidos y aceptados. La actualización
+obligatoria se fuerza desde Railway subiendo `MIN_ANDROID_VC` / `MIN_IOS_BUILD`
+en el servicio `MeteoMontanaAPI` (el gate lo sirve `AppVersionController`).
+El 2026-08-15 `MIN_IOS_BUILD` seguía en **117** → mientras no se suban esos
+números, los usuarios se quedan tranquilamente en la versión vieja.
+
+**🖼️ FOTOS — cómo se sirven (2026-08-15/16, EN PRODUCCIÓN).** Van por el dominio
+propio **`photos.climbingteams.com`** (Custom Domain del bucket R2), **NO** por
+el endpoint S3 (`r2.cloudflarestorage.com`) ni por `r2.dev`: ninguno de los dos
+es alcanzable desde móviles reales, y eso tuvo las fotos rotas sin que se notara.
+Se reducen a 1600px/q75 al subir (~350 KB en vez de 1,2 MB). **Si tocas una foto
+ya subida, purga la caché de Cloudflare** (Caching → Purge Everything) o se
+seguirá sirviendo la vieja hasta 4 h. Causa raíz, medidas y trampas:
+`HISTORIAL.md` del repo API, sesión 2026-08-15/16.
+
+**📦 RELEASE ANTERIOR — 2.22.0 (Android vc92 / iOS build 119), 2026-08-09/10.**
 Contenido: aportar piedra desde una foto (EXIF → escuela), brújula en el mapa y
 al votar orientación, chips del editor con el nombre de la vía, imán apagable,
 apertura a Francia y Portugal (backend `V63__schools_country` + `/api/geo/countries`,

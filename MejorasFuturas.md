@@ -76,6 +76,42 @@ de documentos no). Detalle en el comentario de `AndroidManifest.xml` y en
 
 ---
 
+## 📌 PENDIENTE SUELTO — salidos de la sesión de fotos del 2026-08-15/16
+
+**1) Guardar offline NO descarga las fotos (el más importante para el uso real).**
+`SavedSchoolRepository.saveOffline` guarda escuela, bloques, vías, trazados y
+forecast, pero de la foto **solo el `photoPath`** (la URL en texto, no los
+bytes). Resultado: en la roca sin cobertura tienes nombres, grados y líneas
+dibujadas, **pero no la foto sobre la que van dibujadas** — justo lo que hace
+falta. Las imágenes solo están si Coil las cacheó al mostrarlas antes.
+*Ahora es viable*: desde que se reducen a ~350 KB, bajar una escuela de 20
+piedras son ~7 MB, no 30. Hacerlo al guardar, con aviso de progreso.
+
+**2) El bucket de R2 quedó público ENTERO.** Al conectar el Custom Domain,
+`photos.climbingteams.com` sirve el bucket completo y se salta la lista de
+prefijos de `PhotoController` (`ALLOWED_PREFIXES`), que era quien decidía qué
+se podía servir. Afecta a `feed-photos/`, `piedra-photos/` y a las copias
+`originals/` que crea `PhotoShrinkService`. Riesgo bajo (claves UUID y
+Cloudflare no permite listar), pero se abrió sin querer.
+*Arreglo simple*: mover `originals/` a un bucket aparte **sin** dominio
+público — son copias de seguridad, nadie necesita servirlas por web.
+
+**3) `StartTypeConstraintTest` falla en `main`.** Comprobado que ya fallaba
+antes de esa sesión (se verificó con `git stash`): espera que
+`chk_start_type` permita `SIT/SEMI/STAND/JUMP/TRAV` pero está leyendo los
+valores de `chk_contribution_type`. Parece que el test coge la restricción
+equivocada desde que se amplió esa otra. Es un test roto, no una BD rota —
+pero mientras siga así **enmascara regresiones reales** de los tipos de inicio.
+
+**4) Opcional, sin ejecutar: `PHOTO_DIRECT_URLS=run`.** Reescribiría las URLs
+ya guardadas para que apunten directas al CDN y quitar el salto por el backend
+(~40% menos de tiempo, medido). El código está desplegado y las fotos nuevas ya
+nacen directas; solo faltan las antiguas. No se ejecutó porque con el
+redimensionado y la purga de caché ya iba bien. Al hacerlo, las apps
+re-descargarán cada foto una vez (cambia la URL) — eso es esperado.
+
+---
+
 ## BLOQUE 1 — Backend: lo barato que arregla mucho (1-2 sesiones)
 
 ### 1.1 Manejador global de errores (`@RestControllerAdvice`)
