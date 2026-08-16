@@ -66,10 +66,12 @@ final class SchoolMapViewModel: ObservableObject {
     /// el mapa, las piedras y sus vías salgan igual sin internet. Las fotos las
     /// resuelve `TopoPhotoView` desde `ImageCache`.
     private func loadBlocksOnlineOrOffline(school: School) async -> [Block] {
-        // Un reintento tras 400ms si falla: cubre el hueco justo después de
-        // abrir la app/entrar en una escuela donde el token de Firebase aún
-        // no está listo (salía sin bloques la 1ª vez, bien al reentrar —
-        // reportado 2026-08-13).
+        // Un reintento corto ante un fallo puntual de red. La CAUSA de "salía
+        // sin bloques la 1ª vez y bien al reentrar" (2026-08-13) era que el
+        // cliente HTTP esperaba SIN LÍMITE a que Firebase diera el token,
+        // incluso en rutas públicas que no lo necesitan; está arreglada en la
+        // capa compartida (TOKEN_WAIT_MS en ApiHttpClient), así que esto ya
+        // solo cubre un fallo de red de verdad.
         var fetched = try? await container.getBlocks.invoke(schoolId: school.id)
         if fetched == nil || fetched!.isEmpty {
             try? await Task.sleep(nanoseconds: 400_000_000)

@@ -48,11 +48,14 @@
                 <data android:scheme="https" android:host="meteomontanaapi-staging.up.railway.app" android:pathPrefix="/s/" />
             </intent-filter>
         </activity>
-        <!-- uCrop activity para recortar foto de perfil -->
+        <!-- uCrop activity para recortar foto de perfil. El tema propio
+             descuenta los márgenes del sistema: con el de AppCompat "pelado",
+             el borde a borde obligatorio de Android 15+ dejaba su barra (y el
+             ✓ de aceptar) debajo del reloj. Ver Theme.MeteoMontana.Crop. -->
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            android:theme="@style/Theme.MeteoMontana.Crop" />
 
         <!-- Icono y color por defecto para pushes con bloque notification
              (los que pinta el sistema sin pasar por PushService) -->

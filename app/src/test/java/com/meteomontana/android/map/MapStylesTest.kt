@@ -68,4 +68,32 @@ class MapStylesTest {
         assertTrue(json.contains("tile.openstreetmap.org"))
         assertFalse(json.contains("\"type\":\"background\""))
     }
+
+    // ── maxzoom: sin él salía "map data not yet available" al acercarse ──────
+
+    @Test
+    fun `raster declara el maxzoom cuando se le pasa`() {
+        val json = MapStyles.raster("topo", listOf("https://x/{z}/{x}/{y}.png"), maxZoom = 17)
+        assertTrue("maxzoom en la fuente", json.contains("\"maxzoom\":17"))
+    }
+
+    @Test
+    fun `raster omite el maxzoom si no se indica`() {
+        val json = MapStyles.raster("topo", listOf("https://x/{z}/{x}/{y}.png"))
+        assertFalse(json.contains("maxzoom"))
+    }
+
+    @Test
+    fun `TODOS los presets declaran su maxzoom real`() {
+        // Si alguien añade un preset sin maxzoom, vuelve el hueco con el mensaje
+        // de error al pasarse de zoom. Los valores son los límites REALES de
+        // cada proveedor, no números redondos.
+        assertTrue("topo corta en 17", MapStyles.topoPaper.contains("\"maxzoom\":17"))
+        assertTrue("Esri llega a 19", MapStyles.satellitePaper.contains("\"maxzoom\":19"))
+        assertTrue("OSM llega a 19", MapStyles.osmPaper.contains("\"maxzoom\":19"))
+        assertTrue("CARTO llega a 20", MapStyles.darkPaper.contains("\"maxzoom\":20"))
+        assertTrue(MapStyles.topo.contains("\"maxzoom\":17"))
+        assertTrue(MapStyles.satellite.contains("\"maxzoom\":19"))
+        assertTrue(MapStyles.osm.contains("\"maxzoom\":19"))
+    }
 }

@@ -3,6 +3,7 @@ package com.meteomontana.android.data.api
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.Charsets
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.header
@@ -10,7 +11,38 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+
+/**
+ * Cuánto se espera como MUCHO a que Firebase dé el token antes de mandar la
+ * petición sin él. Nace del bug de "entras en una escuela y no carga nada":
+ * al arrancar en frío el SDK de Firebase aún se está inicializando, y como se
+ * le pedía el token en CADA petición sin límite, las llamadas se quedaban
+ * paradas antes de salir — incluso las de rutas PÚBLICAS (el catálogo de
+ * escuelas y sus bloques; ver `SecurityConfig` del backend), que no necesitan
+ * token para nada. Se esperaba un permiso que no hacía falta.
+ *
+ * Con el límite, esas peticiones salen sin token y el backend las sirve igual.
+ * Las que sí exigen identidad fallarán con 401 y se reintentan cuando el SDK
+ * ya está listo, que es el comportamiento correcto y RÁPIDO (fallar pronto en
+ * vez de colgarse).
+ */
+internal const val TOKEN_WAIT_MS = 1_500L
+
+/** Timeouts de red. Sin ellos, una red que traga sin responder (portal wifi,
+ *  cobertura fantasma) deja la petición colgada indefinidamente. */
+private const val CONNECT_TIMEOUT_MS = 10_000L
+private const val REQUEST_TIMEOUT_MS = 30_000L
+private const val SOCKET_TIMEOUT_MS = 20_000L
+
+/**
+ * Token de Firebase, o null si tarda más de [TOKEN_WAIT_MS] o el provider falla.
+ * NUNCA propaga la excepción: quedarse sin token debe degradar la petición
+ * (sale sin identificar), no tumbarla.
+ */
+internal suspend fun tokenOrNull(provider: suspend () -> String?): String? =
+    runCatching { withTimeoutOrNull(TOKEN_WAIT_MS) { provider() } }.getOrNull()
 
 fun buildApiHttpClient(
     baseUrl: String,
@@ -19,10 +51,11 @@ fun buildApiHttpClient(
     // Plugin que adjunta el ID token de Firebase en CADA request, pidiéndoselo
     // al provider justo en el momento (no cachea). El SDK de Firebase ya refresca
     // el token internamente cuando está cerca de expirar.
+    // OJO: la espera está ACOTADA a propósito — ver TOKEN_WAIT_MS.
     val authPlugin = createClientPlugin("FirebaseBearerAuth") {
         onRequest { request, _ ->
             if (request.headers[HttpHeaders.Authorization] == null) {
-                tokenProvider()?.let {
+                tokenOrNull(tokenProvider)?.let {
                     request.header(HttpHeaders.Authorization, "Bearer $it")
                 }
             }
@@ -47,6 +80,11 @@ fun buildApiHttpClient(
             })
         }
         install(authPlugin)
+        install(HttpTimeout) {
+            connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            requestTimeoutMillis = REQUEST_TIMEOUT_MS
+            socketTimeoutMillis = SOCKET_TIMEOUT_MS
+        }
         defaultRequest {
             url(baseUrl)
             contentType(ContentType.Application.Json)

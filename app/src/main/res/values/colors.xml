@@ -16,4 +16,10 @@
     <color name="widget_stroke">#FFD6D2C4</color>
     <!-- Tarjeta de escuela: papel un punto más oscuro que el fondo (Paper). -->
     <color name="widget_card_bg">#FFEBE7DD</color>
+    <!-- Recorte de foto (uCrop): papel, tinta y terracota de Cumbre. Esa
+         pantalla es de terceros y está hecha con Vistas, así que necesita los
+         colores como recursos XML — no puede leer los tokens de Color.kt. -->
+    <color name="crop_toolbar">#FFF5F3EE</color>
+    <color name="crop_ink">#FF1C1B19</color>
+    <color name="crop_terra">#FFC0532B</color>
 </resources>

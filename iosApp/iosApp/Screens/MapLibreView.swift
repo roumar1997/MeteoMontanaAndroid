@@ -36,7 +36,7 @@ enum MapStyleKind: String, CaseIterable {
             json = """
             { "version": 8, "sources": { "sat": { "type": "raster",
               "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-              "tileSize": 256, "attribution": "Tiles © Esri" } },
+              "tileSize": 256, "maxzoom": 19, "attribution": "Tiles © Esri" } },
               "layers": [{ "id": "bg", "type": "background", "paint": { "background-color": "#F4F1E9" } }, { "id": "sat", "type": "raster", "source": "sat" }] }
             """
         }

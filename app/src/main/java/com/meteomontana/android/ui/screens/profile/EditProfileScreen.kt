@@ -54,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import androidx.core.content.ContextCompat
 import com.meteomontana.android.R
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 
@@ -154,6 +155,14 @@ private fun EditForm(
                     setFreeStyleCropEnabled(false)
                     setCompressionQuality(85)
                     setToolbarTitle("Recortar foto")
+                    // Colores Cumbre: barra de papel y el ✓/✕ en tinta encima
+                    // (con los de serie, blancos sobre blanco, el ✓ apenas se
+                    // distinguía). DÓNDE se dibuja la barra lo arregla
+                    // Theme.MeteoMontana.Crop — ver el AndroidManifest.
+                    setToolbarColor(ContextCompat.getColor(context, R.color.crop_toolbar))
+                    setStatusBarColor(ContextCompat.getColor(context, R.color.crop_toolbar))
+                    setToolbarWidgetColor(ContextCompat.getColor(context, R.color.crop_ink))
+                    setActiveControlsWidgetColor(ContextCompat.getColor(context, R.color.crop_terra))
                 })
                 .getIntent(context)
             cropLauncher.launch(intent)

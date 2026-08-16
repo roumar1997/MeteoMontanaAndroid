@@ -7,6 +7,25 @@
         <item name="android:windowBackground">@color/splash_bg</item>
     </style>
 
+    <!-- Recorte de la foto de perfil (uCrop, pantalla de terceros hecha con
+         Vistas, no con Compose).
+
+         POR QUÉ EXISTE: con targetSdk 35+ Android OBLIGA a dibujar de borde a
+         borde, y el tema que traía uCrop no descontaba los márgenes del
+         sistema → su barra superior quedaba DEBAJO del reloj y del notch, y el
+         ✓ de aceptar no se podía pulsar (reportado por Rodrigo 2026-08-15).
+         `fitsSystemWindows` hace que su contenido respete esos márgenes.
+
+         Es tema de AppCompat a propósito: UCropActivity extiende
+         AppCompatActivity y revienta con un tema que no lo sea. -->
+    <style name="Theme.MeteoMontana.Crop" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Barra clara con iconos oscuros: la de uCrop es blanca. -->
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
     <!-- Splash de arranque (Splash Screen API): fondo papel + montaña Terra.
          Se muestra al instante mientras la app inicializa. -->
     <style name="Theme.MeteoMontana.Splash" parent="Theme.SplashScreen">

@@ -53,6 +53,9 @@ kotlin {
         // en el JVM de Android (hallazgo de la auditoría 2026-07-19).
         commonTest.dependencies {
             implementation(kotlin("test"))
+            // runTest + tiempo virtual: deja probar esperas (p.ej. el límite de
+            // paciencia con el token de Firebase) sin que el test tarde de verdad.
+            implementation(libs.kotlinx.coroutines.test)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
