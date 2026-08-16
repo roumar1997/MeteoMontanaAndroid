@@ -73,6 +73,8 @@ struct SchoolMapSection: View {
     @State private var savedZoom: Double?
     // Foco explícito al pulsar un parking en la lista (recentra el mapa ahí).
     @State private var focusCoord: CLLocationCoordinate2D?
+    /// Zoom del próximo enfoque (mínimo: nuncaAlejar lo respeta).
+    @State private var focusZoom: Double = 15.2
     @State private var focusToken = 0
     // Encuadre de bounds (parking + su zona) — tiene prioridad sobre focusCoord.
     @State private var focusFit: [CLLocationCoordinate2D] = []
@@ -124,6 +126,7 @@ struct SchoolMapSection: View {
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).
                 parkingsList
+                sectoresList
             }
         }
         .task(id: expanded) {
@@ -261,6 +264,7 @@ struct SchoolMapSection: View {
                         // memberwise de Swift exige el mismo orden que la
                         // declaración del struct aunque los args vayan con nombre.
                         focusCoordinate: focusCoord,
+                        focusZoom: focusZoom,
                         // Enfocar acerca, pero NUNCA aleja: si ya te habías
                         // acercado con los dedos, tocar una piedra no debe
                         // devolverte atrás (antes tocaba rehacer el zoom al
@@ -1131,6 +1135,78 @@ struct SchoolMapSection: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
         .padding(.horizontal, 8).padding(.bottom, 8)
+    }
+
+    /// Fila de SECTORES, igual que la de parkings pero llevando a la zona con
+    /// zoom suficiente para distinguir sus piedras. Petición de Rodrigo
+    /// (2026-08-16): "igual que aparecen los parkings abajo, otra fila con los
+    /// sectores, y que hiciera zoom al pulsarlo". Antes había que buscarlos a
+    /// ojo en el mapa y ampliar a mano.
+    private var sectoresList: some View {
+        let sectores = vm.blocks.filter { $0.type.uppercased() == "ZONE" }.sorted { $0.name < $1.name }
+        return Group {
+            if !sectores.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("SECTORES").eyebrow()
+                        .padding(.horizontal, 16).padding(.top, 10)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(sectores, id: \.id) { s in
+                                Button {
+                                    miniBlock = s
+                                    irAlSector(s)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Text("Z")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .frame(width: 20, height: 20)
+                                            .background(Color(zoneColor))
+                                            .clipShape(Circle())
+                                        Text(etiquetaSector(s))
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    }
+                                    .padding(.horizontal, 10).padding(.vertical, 7)
+                                    .background(Cumbre.paper)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 6)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Nombre del sector + cuántas piedras tiene (lo que de verdad ayuda a
+    /// elegir a cuál ir).
+    private func etiquetaSector(_ s: Block) -> String {
+        let piedras = vm.blocks.filter { $0.sectorBlockId == s.id }.count
+        let nombre = s.name.isEmpty ? "Sector" : s.name
+        return piedras > 0 ? "\(nombre) · \(piedras)" : nombre
+    }
+
+    /// Lleva el mapa al sector y DESPLIEGA sus piedras, encuadrándolas para que
+    /// se vean todas. Mismo comportamiento que tocar el sector en el mapa.
+    private func irAlSector(_ s: Block) {
+        let piedras = vm.blocks.filter { $0.sectorBlockId == s.id }
+        vm.collapsedSectors.remove(s.id)
+        var coords = [CLLocationCoordinate2D(latitude: s.lat, longitude: s.lon)]
+        coords += piedras.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+        // Con piedras, encuadrarlas TODAS; con una sola (o ninguna), centrar con
+        // zoom cerrado — un encuadre de un punto solo daría un zoom absurdo.
+        if coords.count >= 2 {
+            focusFit = coords
+        } else {
+            focusFit = []
+            focusCoord = coords[0]
+            focusZoom = 16.5
+        }
+        focusToken += 1
     }
 
     private var parkingsList: some View {

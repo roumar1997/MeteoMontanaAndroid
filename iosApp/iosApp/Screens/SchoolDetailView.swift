@@ -10,6 +10,20 @@ import FirebaseAuth
 // SchoolForecastViews / SchoolMapSection / BlockInfoSheet / ContributionSheets /
 // SchoolNotesViews / SchoolDetailHelpers (espejo del reparto de Android).
 
+/// Lo que se ofrece descargar para ver la escuela sin cobertura. Espejo de
+/// `OfertaFotosOffline` en Android.
+struct OfertaFotosOffline {
+    let urls: [String]
+    let bytes: Int64
+
+    /// "7,0 MB" / "820 KB" — la unidad que se lee de un vistazo.
+    var pesoTexto: String {
+        let mb = Double(bytes) / (1024 * 1024)
+        if mb < 1 { return "\(Int(Double(bytes) / 1024)) KB" }
+        return String(format: "%.1f MB", mb).replacingOccurrences(of: ".", with: ",")
+    }
+}
+
 @MainActor
 final class SchoolDetailViewModel: ObservableObject {
     @Published var forecast: Forecast?
@@ -22,6 +36,9 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var monthlyBestRange: String?
     @Published var isSaved = false          // guardada para offline
     @Published var savingOffline = false
+    /// Si != nil, hay que preguntar al usuario si baja las fotos de la escuela.
+    @Published var ofertaFotos: OfertaFotosOffline?
+    @Published var descargandoFotos = false
     @Published var offlineForecast = false  // previsión mostrada desde caché (sin red)
     @Published var offlineSince: Int64?      // epoch ms de la última actualización cacheada
 
@@ -94,19 +111,38 @@ final class SchoolDetailViewModel: ObservableObject {
         isSaved = (try? await repo.loadOffline(id: schoolId)) != nil
     }
 
-    /// Guarda la escuela para OFFLINE: detalle + bloques + vías + forecast, y
-    /// pre-descarga las fotos de las piedras a la caché de imágenes.
+    /// Guarda la escuela para OFFLINE: detalle + bloques + vías + forecast. Las
+    /// FOTOS se preguntan aparte (ver `ofertaFotos`).
     func saveOffline(school: School) async {
         guard let repo = savedSchools else { return }
         savingOffline = true
         let blocks = (try? await getBlocks.invoke(schoolId: school.id)) ?? []
         try? await repo.saveOffline(school: school, blocks: blocks, forecast: forecast)
-        await ImageCache.prefetch(FotosDeEscuela.shared.urlsParaGuardar(blocks: blocks))
         // Tiles del mapa offline (mismo punto que Android): sin esto, offline el
         // mapa solo mostraba los marcadores, no el mapa de fondo, si no se había
         // visitado antes esa zona con red.
         OfflineTileManager.downloadFor(schoolId: school.id, lat: school.lat, lon: school.lon)
         isSaved = true; savingOffline = false
+        // Las fotos se PREGUNTAN (paridad con Android; petición de Rodrigo
+        // 2026-08-16: "que avise, así sienten que tienen el control"). Los datos
+        // pesan poco y se guardan sin molestar; las fotos son casi todo el peso
+        // y pueden estar gastando datos móviles.
+        let fotos = FotosDeEscuela.shared.urlsParaGuardar(blocks: blocks)
+        if !fotos.isEmpty {
+            ofertaFotos = OfertaFotosOffline(
+                urls: fotos,
+                bytes: FotosDeEscuela.shared.pesoEstimadoBytes(urls: fotos).int64Value
+            )
+        }
+    }
+
+    /// El usuario aceptó bajarse las fotos.
+    func descargarFotosOffline() async {
+        guard let oferta = ofertaFotos else { return }
+        ofertaFotos = nil
+        descargandoFotos = true
+        await ImageCache.prefetch(oferta.urls)
+        descargandoFotos = false
     }
 
     func removeOffline(schoolId: String) async {
@@ -284,6 +320,30 @@ struct SchoolDetailView: View {
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
         }
         .task { await vm.load(school: school) }
+        // ¿Bajamos también las fotos? Los datos ya están guardados; esto es solo
+        // por las fotos, que son casi todo el peso y pueden ir por datos.
+        .alert("¿Guardar también las fotos?",
+               isPresented: Binding(get: { vm.ofertaFotos != nil },
+                                    set: { if !$0 { vm.ofertaFotos = nil } })) {
+            Button("Descargar") { Task { await vm.descargarFotosOffline() } }
+            Button("Ahora no", role: .cancel) { vm.ofertaFotos = nil }
+        } message: {
+            if let o = vm.ofertaFotos {
+                Text("La escuela ya está guardada. Bajar sus \(o.urls.count) fotos (\(o.pesoTexto)) "
+                     + "te deja ver los topos en la roca aunque no haya cobertura.\n\n"
+                     + "Si dices que no, tendrás los nombres, los grados y las líneas, "
+                     + "pero no las fotos sobre las que van dibujadas.")
+            }
+        }
+        .overlay {
+            if vm.descargandoFotos {
+                ProgressView("Guardando las fotos…")
+                    .padding(20)
+                    .background(Cumbre.paper)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+            }
+        }
     }
 }
 
