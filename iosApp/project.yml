@@ -82,11 +82,17 @@ targets:
         # Push con la app cerrada (FCM data messages).
         UIBackgroundModes:
           - remote-notification
-        # Versión espejo de Android (versionName 2.4 / versionCode 18).
-        # 2.23.0 quedó CERRADA al enviarla a revisión el 2026-08-11: Apple
-        # cierra el "train" de una versión en revisión y rechaza subir otro
-        # build con ese mismo número → se sube a 2.24.0.
-        CFBundleShortVersionString: "2.24.0"
+        # Versión espejo de Android.
+        # REGLA (van ya DOS veces): Apple CIERRA el "train" de una versión en
+        # cuanto entra en revisión o se publica, y rechaza cualquier build nuevo
+        # con ese mismo CFBundleShortVersionString — por muy alto que sea el
+        # CFBundleVersion. El error es
+        # "Invalid Pre-Release Train. The train version 'X' is closed".
+        #   - 2.23.0 se cerró al enviarla a revisión (2026-08-11) → 2.24.0
+        #   - 2.24.0 se cerró al PUBLICARSE            (2026-08-16) → 2.24.1
+        # Es decir: para subir a TestFlight algo posterior a una versión ya
+        # publicada, hay que subir la VERSIÓN, no basta con el número de build.
+        CFBundleShortVersionString: "2.24.1"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
         CFBundleVersion: "139"
