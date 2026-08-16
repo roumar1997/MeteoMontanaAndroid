@@ -116,7 +116,12 @@ internal fun BoulderFormDialog(
         }
     }
 
-    val elegirFoto = com.meteomontana.android.ui.components.rememberSelectorDeFoto { uri ->
+    val elegirFoto = com.meteomontana.android.ui.components.rememberSelectorDeFoto(
+        // Si la copia falla se avisa AHORA, no al guardar: así una cara nunca se
+        // queda creyendo que tiene foto (era el camino por el que se perdían
+        // fotos en silencio).
+        onError = { error = "No se pudo usar esa foto. Prueba a elegirla otra vez." }
+    ) { uri ->
         uri?.let(ponerFoto)   // null = salio del selector sin elegir: no hay nada que hacer
     }
 

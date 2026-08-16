@@ -2,9 +2,9 @@ package com.meteomontana.android.data.outbox
 
 import androidx.compose.ui.geometry.Offset
 import com.meteomontana.android.ui.screens.detail.BoulderBloqueForm
+import com.meteomontana.android.data.photos.FotosLocales
 import com.meteomontana.android.ui.screens.detail.BoulderFaceForm
 import kotlinx.serialization.Serializable
-import java.util.UUID
 
 /**
  * Propuesta de PIEDRA guardada sin conexión (OutboxType.CONTRIBUTION_BOULDER).
@@ -44,20 +44,24 @@ data class QueuedBoulder(
 )
 
 /**
- * Copia la foto elegida al almacenamiento privado de la app y devuelve la ruta.
- * Un content:// del picker caduca al cerrar la app; un fichero propio no.
+ * Ruta de un fichero PROPIO con la foto de esa cara, lista para encolar.
+ *
+ * Desde 2026-08-16 las fotos se copian ya AL ELEGIRLAS (ver
+ * [com.meteomontana.android.data.photos.FotosLocales]), así que lo normal es que
+ * [uri] apunte a una copia nuestra y aquí solo se compruebe. Se sigue pudiendo
+ * copiar por los borradores guardados ANTES de ese cambio, que llevan dentro
+ * direcciones del selector del sistema ya caducadas; en ese caso esto devuelve
+ * null.
+ *
+ * @return la ruta, o null si no se pudo preparar. **Quien llama NO puede
+ *   ignorar el null**: encolar la cara sin su foto pierde el trabajo del
+ *   usuario en silencio, que es justo el bug que se arregló.
  */
-suspend fun copyPhotoToOutbox(context: android.content.Context, uri: android.net.Uri): String? =
-    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        runCatching {
-            val dir = java.io.File(context.filesDir, "outbox-photos").apply { mkdirs() }
-            val dest = java.io.File(dir, UUID.randomUUID().toString() + ".jpg")
-            context.contentResolver.openInputStream(uri)!!.use { input ->
-                dest.outputStream().use { input.copyTo(it) }
-            }
-            dest.absolutePath
-        }.getOrNull()
-    }
+suspend fun copyPhotoToOutbox(context: android.content.Context, uri: android.net.Uri): String? {
+    // Ya es copia nuestra y sigue ahí → nada que copiar.
+    if (uri.scheme == "file" && FotosLocales.existe(uri)) return uri.path
+    return FotosLocales.copiar(context, uri).getOrNull()?.path
+}
 
 fun BoulderBloqueForm.toQueued() = QueuedVia(
     name = name, grade = grade, startType = startType,

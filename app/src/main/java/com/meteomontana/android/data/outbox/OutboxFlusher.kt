@@ -75,8 +75,19 @@ class OutboxFlusher @Inject constructor(
                         faces.forEach { f ->
                             val path = localByFace[f.id]
                             urlByFace[f.id] = path?.let {
-                                val bytes = java.io.File(it).readBytes()
-                                photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", q.schoolId)
+                                val fichero = java.io.File(it)
+                                // Encolada CON foto pero el fichero ya no está:
+                                // lanzar deja la fila en la cola para reintentar.
+                                // Antes se subía la piedra SIN esa foto y se
+                                // borraba la fila — el usuario perdía el trabajo
+                                // sin enterarse ("subo 3 fotos y sube 1",
+                                // reportado 2026-08-15).
+                                if (!fichero.exists()) {
+                                    error("Falta la foto encolada de una cara: $it")
+                                }
+                                photoUploader.uploadBoulderPhoto(
+                                    fichero.readBytes(), "image/jpeg", q.schoolId
+                                )
                             }
                         }
                         val req = ContributionRequest(

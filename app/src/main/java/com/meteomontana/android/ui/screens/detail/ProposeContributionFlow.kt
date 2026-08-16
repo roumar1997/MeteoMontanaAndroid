@@ -168,6 +168,10 @@ fun ProposeContributionFlow(
     var boulderPath by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
     /** Coordenadas del formulario abierto, para poder guardarlo a medias. */
     var preguntandoGuardar by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    /** Fallo al preparar las fotos para la cola de envío. Se avisa y NO se
+     *  encola nada: guardar una piedra a la que le faltan fotos, y encima sin
+     *  decirlo, es perder trabajo del usuario. */
+    var offlineError by remember { mutableStateOf<String?>(null) }
 
     // Sectores (ZONE) existentes en la escuela — alimentan el dropdown del BoulderForm.
     val uiStateForSectors by viewModel.uiState.collectAsStateWithLifecycle()
@@ -275,6 +279,22 @@ fun ProposeContributionFlow(
     }
 
     // Cerrar una piedra a medias: preguntar, no tirar el trabajo.
+    // Alguna foto no se pudo preparar para la cola: se avisa y NO se encola
+    // nada. La piedra sigue en pantalla, así que se puede volver a elegir la
+    // foto sin perder las vías ya dibujadas.
+    offlineError?.let { mensaje ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { offlineError = null },
+            title = { androidx.compose.material3.Text("No se pudo guardar sin conexión") },
+            text = { androidx.compose.material3.Text(mensaje) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { offlineError = null }) {
+                    androidx.compose.material3.Text("ENTENDIDO")
+                }
+            }
+        )
+    }
+
     preguntandoGuardar?.let { (lat, lon) ->
         val enCurso = BoulderDraftStore.Draft(
             // El id de la escuela lo rellena el ViewModel, que es quien lo sabe.
@@ -473,13 +493,28 @@ fun ProposeContributionFlow(
                 },
                 onSaveOffline = {
                     scope.launch {
-                        // Copia cada foto al almacenamiento de la app (un
-                        // content:// del picker caduca; un fichero propio no).
-                        val qFaces = boulderFaces.map { f ->
+                        // Las fotos ya son copias nuestras (se copian al
+                        // elegirlas, ver FotosLocales); aquí solo se asegura la
+                        // ruta. Si alguna no se puede preparar NO se encola a
+                        // medias: antes se guardaba esa cara sin foto y en
+                        // silencio, y el usuario perdía el trabajo sin saberlo
+                        // ("subo tres fotos y sube una", 2026-08-15).
+                        val preparadas = boulderFaces.map { f ->
+                            f to f.photoUri?.let {
+                                com.meteomontana.android.data.outbox.copyPhotoToOutbox(context, it)
+                            }
+                        }
+                        val perdidas = preparadas.count { (f, ruta) -> f.photoUri != null && ruta == null }
+                        if (perdidas > 0) {
+                            offlineError = if (perdidas == 1)
+                                "No se pudo preparar una de las fotos. Vuelve a elegirla y reinténtalo."
+                            else
+                                "No se pudieron preparar $perdidas fotos. Vuelve a elegirlas y reinténtalo."
+                            return@launch
+                        }
+                        val qFaces = preparadas.map { (f, ruta) ->
                             com.meteomontana.android.data.outbox.QueuedFace(
-                                localPhotoPath = f.photoUri?.let {
-                                    com.meteomontana.android.data.outbox.copyPhotoToOutbox(context, it)
-                                },
+                                localPhotoPath = ruta,
                                 vias = f.bloques.map { it.toQueued() }
                             )
                         }
