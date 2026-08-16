@@ -149,6 +149,10 @@ struct MapLibreView: UIViewRepresentable {
     /// el re-centrado aunque la coordenada sea la misma que la última vez.
     var focusCoordinate: CLLocationCoordinate2D? = nil
     var focusZoom: Double = 15.2
+    /// Si true, `focusZoom` es un MÍNIMO: nunca aleja al usuario de donde ya
+    /// estaba. Lo usa el mapa de escuela; el radar no, porque allí enfocar
+    /// significa precisamente alejarse.
+    var nuncaAlejar: Bool = false
     var focusToken: Int = 0
     /// Si tiene ≥2 coordenadas, el foco ENCUADRA todas (bounds) en vez de
     /// centrar en focusCoordinate — p. ej. parking + sus sectores/piedras
@@ -225,7 +229,13 @@ struct MapLibreView: UIViewRepresentable {
                     edgePadding: UIEdgeInsets(top: 60, left: 50, bottom: 60, right: 50),
                     animated: true)
             } else if let coord = focusCoordinate {
-                map.setCenter(coord, zoomLevel: focusZoom, animated: true)
+                // Con nuncaAlejar, focusZoom es un MÍNIMO y no un valor exacto:
+                // si el usuario ya se había acercado con los dedos, tocar una
+                // piedra no debe devolverle atrás (al cerrar su ficha tocaba
+                // rehacer el zoom cada vez — Rodrigo, 2026-08-16). El radar NO
+                // lo usa: allí enfocar sí significa alejarse a ver toda España.
+                let zoom = nuncaAlejar ? max(map.zoomLevel, focusZoom) : focusZoom
+                map.setCenter(coord, zoomLevel: zoom, animated: true)
             }
         }
 

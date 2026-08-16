@@ -261,6 +261,11 @@ struct SchoolMapSection: View {
                         // memberwise de Swift exige el mismo orden que la
                         // declaración del struct aunque los args vayan con nombre.
                         focusCoordinate: focusCoord,
+                        // Enfocar acerca, pero NUNCA aleja: si ya te habías
+                        // acercado con los dedos, tocar una piedra no debe
+                        // devolverte atrás (antes tocaba rehacer el zoom al
+                        // cerrar cada ficha).
+                        nuncaAlejar: true,
                         focusToken: focusToken,
                         focusFitCoordinates: focusFit
                     )

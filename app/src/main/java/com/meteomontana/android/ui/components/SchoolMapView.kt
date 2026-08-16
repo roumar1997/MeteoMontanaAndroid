@@ -105,6 +105,19 @@ private fun styleJsonFor(style: MapStyleOption): String = when (style) {
 // desde casa" estire el zoom para abarcarte a ti también).
 private const val MAX_USER_LOCATION_INCLUDE_KM = 20.0
 
+// ── Cuánto se acerca el mapa al tocar algo ───────────────────────────────────
+// Son MÍNIMOS, nunca máximos: si el usuario ya está más cerca, se respeta su
+// zoom y solo se centra. Forzar un zoom exacto le deshacía el trabajo — se
+// acercaba con los dedos, tocaba una piedra y el mapa le alejaba de vuelta.
+//
+// Zoom FIJO y no encuadre calculado a propósito: los encuadres automáticos se
+// iban a los extremos según cómo estuvieran repartidos los datos (una piedra
+// despistada a 2 km dejaba el resto diminuto).
+/** Al tocar un SECTOR: lo bastante cerca para distinguir sus piedras sueltas. */
+private const val ZOOM_SECTOR = 16.5
+/** Al tocar una PIEDRA: un punto más cerca, ya estás mirando una en concreto. */
+private const val ZOOM_PIEDRA = 17.0
+
 /**
  * Encuadre inicial del mapa: TODOS los elementos de la escuela (parkings,
  * sectores, piedras), por muy separados que estén — antes era zoom fijo 15
@@ -262,7 +275,7 @@ internal fun SchoolMapView(
                             ) + stones.map { com.meteomontana.android.domain.usecase.map.GeoPoint(it.lat, it.lon) }
                             val c = com.meteomontana.android.domain.usecase.map.MapGeometry.centroid(pts)!!
                             // Nunca ALEJAR: si ya estás más cerca, solo centra.
-                            val targetZoom = maxOf(map.cameraPosition.zoom, 15.0)
+                            val targetZoom = maxOf(map.cameraPosition.zoom, ZOOM_SECTOR)
                             map.animateCamera(CameraUpdateFactory.newLatLngZoom(
                                 LatLng(c.lat, c.lon), targetZoom))
                         }
@@ -272,8 +285,14 @@ internal fun SchoolMapView(
                 else -> {
                     mapRef.value?.let { map ->
                         runCatching {
+                            // NUNCA alejar, igual que al pulsar un sector. Antes
+                            // forzaba 15.2 EXACTO: si te habías acercado con los
+                            // dedos para distinguir las piedras, tocar una te
+                            // devolvía atrás, y al cerrar su ficha tocaba rehacer
+                            // el zoom. Cada vez (Rodrigo, 2026-08-16).
+                            val targetZoom = maxOf(map.cameraPosition.zoom, ZOOM_PIEDRA)
                             map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                LatLng(tapped.lat, tapped.lon), 15.2))
+                                LatLng(tapped.lat, tapped.lon), targetZoom))
                         }
                     }
                     onBlockSelected(tapped)
