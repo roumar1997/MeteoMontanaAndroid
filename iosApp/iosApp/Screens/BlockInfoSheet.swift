@@ -70,6 +70,8 @@ struct BlockInfoSheet: View {
     @StateObject private var commentsStore = LineCommentsStore()
     // Desplegable OPCIONES: agrupa editar vías / sector / eliminar.
     @State private var optionsOpen = false
+    /// Cara marcada en las pestañas de salto (piedras con varias fotos).
+    @State private var caraVisible = 0
 
     private var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
@@ -81,9 +83,50 @@ struct BlockInfoSheet: View {
         guard let matching = gradeMatchingLineIds else { return false }
         return !matching.contains(lineId)
     }
+
+    /// Pestaña para saltar a una cara — misma celda "mochila" que el Feed:
+    /// plana, con borde fino; la activa marca borde y texto en terracota.
+    private func caraTab(_ label: String, selected: Bool,
+                         action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(Cumbre.mono(11, .bold))
+                .tracking(0.8)
+                .foregroundStyle(selected ? Cumbre.terra : Cumbre.ink)
+                .padding(.horizontal, 12)
+                .frame(height: 36)
+                .background(Cumbre.paper)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                    selected ? Cumbre.terra : Cumbre.rule,
+                    lineWidth: selected ? 1.5 : 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+    }
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
+            VStack(spacing: 0) {
+            // Saltar de una cara a otra sin scrollear. El scroll sigue
+            // funcionando igual: esto es un atajo, no un sustituto (petición de
+            // Rodrigo, 2026-08-16). Mismo estilo "mochila" que las pestañas del
+            // Feed. Solo aparece si de verdad hay varias fotos.
+            if block.type.uppercased() == "BLOCK",
+               orderedFaces.filter({ !($0.photoPath ?? "").isEmpty }).count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
+                            if !(face.photoPath ?? "").isEmpty {
+                                caraTab("FOTO \(faceIdx + 1)", selected: caraVisible == faceIdx) {
+                                    caraVisible = faceIdx
+                                    withAnimation { proxy.scrollTo(faceIdx, anchor: .top) }
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                }
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(typeLabel).font(Cumbre.mono(11, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
@@ -406,6 +449,7 @@ struct BlockInfoSheet: View {
                     withAnimation { proxy.scrollTo(i, anchor: .top) }
                 }
             }
+            }   // VStack: pestañas de cara + contenido
             }
         }
     }

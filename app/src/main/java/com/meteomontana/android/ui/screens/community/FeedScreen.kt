@@ -144,19 +144,19 @@ fun FeedScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FeedMochilaCard(
+            com.meteomontana.android.ui.components.MochilaCard(
                 stringResource(R.string.feed_tab_explore), state.tab == FeedTab.ALL,
                 Modifier.weight(1f)
             ) { viewModel.selectTab(FeedTab.ALL) }
-            FeedMochilaCard(
+            com.meteomontana.android.ui.components.MochilaCard(
                 stringResource(R.string.feed_tab_following), state.tab == FeedTab.FOLLOWING,
                 Modifier.weight(1f)
             ) { viewModel.selectTab(FeedTab.FOLLOWING) }
-            FeedMochilaCard(
+            com.meteomontana.android.ui.components.MochilaCard(
                 stringResource(R.string.feed_tab_mine), state.tab == FeedTab.MINE,
                 Modifier.weight(1f)
             ) { viewModel.selectTab(FeedTab.MINE) }
-            FeedMochilaIconCard(
+            com.meteomontana.android.ui.components.MochilaIconCard(
                 icon = Icons.Outlined.EmojiEvents,
                 contentDescription = stringResource(R.string.feed_tab_ranking),
                 selected = state.tab == FeedTab.RANKING,
@@ -179,13 +179,13 @@ fun FeedScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                FeedMochilaCard(stringResource(R.string.feed_filter_all), state.filter == FeedFilter.ALL) {
+                com.meteomontana.android.ui.components.MochilaCard(stringResource(R.string.feed_filter_all), state.filter == FeedFilter.ALL) {
                     viewModel.selectFilter(FeedFilter.ALL)
                 }
-                FeedMochilaCard(stringResource(R.string.feed_filter_sends), state.filter == FeedFilter.SENDS) {
+                com.meteomontana.android.ui.components.MochilaCard(stringResource(R.string.feed_filter_sends), state.filter == FeedFilter.SENDS) {
                     viewModel.selectFilter(FeedFilter.SENDS)
                 }
-                FeedMochilaCard(stringResource(R.string.feed_filter_new), state.filter == FeedFilter.NEW_BLOCKS) {
+                com.meteomontana.android.ui.components.MochilaCard(stringResource(R.string.feed_filter_new), state.filter == FeedFilter.NEW_BLOCKS) {
                     viewModel.selectFilter(FeedFilter.NEW_BLOCKS)
                 }
             }
@@ -408,76 +408,4 @@ private fun matchesFilter(post: FeedPost, filter: FeedFilter): Boolean = when (f
     FeedFilter.ALL -> true
     FeedFilter.SENDS -> post.kind == FeedKind.TICK || post.kind == FeedKind.PROJECT_DONE
     FeedFilter.NEW_BLOCKS -> post.kind == FeedKind.NEW_BLOCK || post.kind == FeedKind.NEW_LINE
-}
-
-/**
- * Celda "mochila" — mismo estilo que las tarjetas de estadísticas de Perfil:
- * fondo plano (Paper/surface), borde fino 1dp Rule por defecto; activa =
- * borde 1.5dp Terra + texto Terra. NUNCA relleno Terra sólido (ese era el
- * estilo antiguo, reemplazado a petición: paridad con iOS build 136).
- */
-@Composable
-private fun FeedMochilaCard(
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(4.dp)
-    Box(
-        modifier = modifier
-            .heightIn(min = 40.dp)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                if (selected) 1.5.dp else 1.dp,
-                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                shape
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-        )
-    }
-}
-
-/** Variante del icono del trofeo (RANKING) con la misma celda "mochila". */
-@Composable
-private fun FeedMochilaIconCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val shape = RoundedCornerShape(4.dp)
-    Box(
-        modifier = modifier
-            .heightIn(min = 40.dp)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                if (selected) 1.5.dp else 1.dp,
-                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                shape
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            icon,
-            contentDescription = contentDescription,
-            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.size(18.dp)
-        )
-    }
 }

@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -32,6 +35,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -191,6 +195,51 @@ fun BlockDetailDialog(
             }
             CumbreSheetHeader(titulo = block.name, onClose = onDismiss)
 
+            // Caras de la piedra, en el MISMO orden en que se pintan abajo. Se
+            // calcula aquí (y no dentro del scroll) porque las pestañas de
+            // salto necesitan conocerlas antes de que se dibuje el contenido.
+            val carasOrdenadas = remember(block, highlightVia) {
+                block.facesOrDerived().let { fs ->
+                    val viaName = highlightVia?.trim()
+                    if (viaName.isNullOrBlank()) fs
+                    else {
+                        val hit = fs.indexOfFirst { f ->
+                            f.lines.any { it.name.trim().equals(viaName, ignoreCase = true) }
+                        }
+                        if (hit > 0) listOf(fs[hit]) + fs.filterIndexed { i, _ -> i != hit } else fs
+                    }
+                }
+            }
+            // Dónde empieza cada cara dentro del scroll, para poder saltar.
+            val posicionDeCara = remember(block) { mutableStateMapOf<Int, Int>() }
+            // Cara visible ahora: la última cuyo inicio ya ha pasado por arriba.
+            val caraActual = posicionDeCara.entries
+                .filter { it.value <= contenidoScroll.value + 1 }
+                .maxByOrNull { it.value }?.key ?: 0
+
+            // Saltar de una cara a otra SIN scrollear. El scroll sigue igual:
+            // esto es un atajo, no un sustituto (petición de Rodrigo,
+            // 2026-08-16). Solo aparece si de verdad hay varias fotos.
+            if (carasOrdenadas.count { !it.photoPath.isNullOrBlank() } > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    carasOrdenadas.forEachIndexed { idx, cara ->
+                        if (!cara.photoPath.isNullOrBlank()) {
+                            MochilaCard(label = "FOTO ${idx + 1}", selected = idx == caraActual) {
+                                posicionDeCara[idx]?.let { y ->
+                                    shareScope.launch { contenidoScroll.animateScrollTo(y) }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .verticalScroll(contenidoScroll)
@@ -275,22 +324,22 @@ fun BlockDetailDialog(
                         text = "Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
                     )
                 }
-                // Si venimos de pulsar una vía (deep-link del diario), su foto/cara
-                // va primero para "llevar a la foto correspondiente".
-                val orderedFaces = block.facesOrDerived().let { fs ->
-                    val viaName = highlightVia?.trim()
-                    if (viaName.isNullOrBlank()) fs
-                    else {
-                        val hit = fs.indexOfFirst { f ->
-                            f.lines.any { it.name.trim().equals(viaName, ignoreCase = true) }
-                        }
-                        if (hit > 0) listOf(fs[hit]) + fs.filterIndexed { i, _ -> i != hit } else fs
-                    }
-                }
+                // Si venimos de pulsar una vía (deep-link del diario), su cara va
+                // primero. El orden se calculó arriba, junto a las pestañas de
+                // salto, para que las dos cosas usen exactamente el mismo.
+                val orderedFaces = carasOrdenadas
                 orderedFaces.forEachIndexed { faceIdx, face ->
                     val facePhoto = face.photoPath
                     if (!facePhoto.isNullOrBlank()) {
-                        Spacer(Modifier.height(Spacing.sm))
+                        // Se anota dónde empieza esta cara para que su pestaña
+                        // sepa a qué altura saltar.
+                        Spacer(
+                            Modifier
+                                .height(Spacing.sm)
+                                .onGloballyPositioned {
+                                    posicionDeCara[faceIdx] = it.positionInParent().y.toInt()
+                                }
+                        )
                         if (orderedFaces.size > 1) {
                             val originalIdx = block.facesOrDerived().indexOf(face).takeIf { i -> i >= 0 } ?: faceIdx
                             Row(verticalAlignment = Alignment.CenterVertically,
