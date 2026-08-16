@@ -67,8 +67,19 @@ class CacheFotosOffline(
             runCatching {
                 val destino = ficheroDe(url)
                 val temporal = File(destino.absolutePath + ".parcial")
-                URL(url).openStream().use { entrada ->
-                    temporal.outputStream().use { entrada.copyTo(it) }
+                // CON timeouts: una red que acepta la conexión y luego no
+                // responde (portal wifi, cobertura fantasma) dejaría la descarga
+                // colgada para siempre, y con ella el diálogo de progreso.
+                val conexion = (URL(url).openConnection() as java.net.HttpURLConnection).apply {
+                    connectTimeout = CONNECT_TIMEOUT_MS
+                    readTimeout = READ_TIMEOUT_MS
+                }
+                try {
+                    conexion.inputStream.use { entrada ->
+                        temporal.outputStream().use { entrada.copyTo(it) }
+                    }
+                } finally {
+                    conexion.disconnect()
                 }
                 // Renombrar al final: si se corta la descarga NO queda un
                 // fichero a medias haciéndose pasar por la foto buena.
@@ -112,5 +123,7 @@ class CacheFotosOffline(
 
     private companion object {
         const val CARPETA = "fotos-offline"
+        const val CONNECT_TIMEOUT_MS = 15_000
+        const val READ_TIMEOUT_MS = 30_000
     }
 }

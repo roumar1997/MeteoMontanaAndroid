@@ -158,6 +158,7 @@ internal fun AddLinesFlow(
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val faceIdx = selectedFace.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
     val face = faces.getOrElse(faceIdx) { EditFace(null, null, listOf(BoulderBloqueForm())) }
@@ -352,17 +353,27 @@ internal fun AddLinesFlow(
                                 //    el ÚNICO sin cola: editabas en la roca, no se
                                 //    podía enviar, y tocaba repetirlo en casa.
                                 if (!viewModel.isOnline()) {
-                                    // Las fotos ya son copias nuestras (se copian al
-                                    // elegirlas); si alguna no lo fuera, no
-                                    // sobreviviría a cerrar la app → se avisa.
-                                    if (faces.any { it.newPhotoUri != null && it.newPhotoUri?.path == null }) {
+                                    // OJO: esta pantalla usa el selector del
+                                    // sistema DIRECTO, así que newPhotoUri es un
+                                    // content:// prestado — no un fichero. Hay
+                                    // que copiarlo AHORA a almacenamiento propio:
+                                    // ese permiso caduca al cerrar la pantalla y
+                                    // la cola se quedaría buscando un fichero que
+                                    // no existe, reintentando para siempre.
+                                    val copiadas = faces.map { f ->
+                                        f.newPhotoUri?.let {
+                                            com.meteomontana.android.data.outbox
+                                                .copyPhotoToOutbox(context, it)
+                                        }
+                                    }
+                                    if (faces.indices.any { faces[it].newPhotoUri != null && copiadas[it] == null }) {
                                         error = "No se pudo preparar una de las fotos. Vuelve a elegirla."
                                         sending = false
                                         return@launch
                                     }
-                                    val caras = faces.map { f ->
+                                    val caras = faces.mapIndexed { i, f ->
                                         com.meteomontana.android.data.outbox.QueuedEditFace(
-                                            localPhotoPath = f.newPhotoUri?.path,
+                                            localPhotoPath = copiadas[i],
                                             existingPhotoPath = f.existingPhotoPath,
                                             vias = f.bloques.mapNotNull { v ->
                                                 if (v.existingLineId != null || v.grade != null ||

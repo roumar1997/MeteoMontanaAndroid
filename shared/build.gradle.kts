@@ -56,6 +56,9 @@ kotlin {
             // runTest + tiempo virtual: deja probar esperas (p.ej. el límite de
             // paciencia con el token de Firebase) sin que el test tarde de verdad.
             implementation(libs.kotlinx.coroutines.test)
+            // Motor HTTP falso: permite probar el comportamiento del cliente
+            // (espera del token, reintento ante 401) sin tocar la red.
+            implementation(libs.ktor.client.mock)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
