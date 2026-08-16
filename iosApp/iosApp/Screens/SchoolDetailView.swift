@@ -131,7 +131,7 @@ final class SchoolDetailViewModel: ObservableObject {
         if !fotos.isEmpty {
             ofertaFotos = OfertaFotosOffline(
                 urls: fotos,
-                bytes: FotosDeEscuela.shared.pesoEstimadoBytes(urls: fotos).int64Value
+                bytes: FotosDeEscuela.shared.pesoEstimadoBytes(urls: fotos)
             )
         }
     }
