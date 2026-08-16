@@ -44,6 +44,40 @@ data class QueuedBoulder(
 )
 
 /**
+ * Una cara al EDITAR una piedra existente. A diferencia de la de una piedra
+ * nueva, aquí una cara puede tener ya foto en el servidor y no tocarse:
+ *  - [localPhotoPath] != null → foto NUEVA nuestra, hay que subirla al reconectar.
+ *  - si no, [existingPhotoPath] es la que ya tenía y se manda tal cual.
+ */
+@Serializable
+data class QueuedEditFace(
+    val localPhotoPath: String?,
+    val existingPhotoPath: String?,
+    val vias: List<QueuedVia>
+)
+
+/**
+ * EDICIÓN de una piedra existente guardada sin red
+ * (OutboxType.CONTRIBUTION_EDIT_BLOCK): añadir vías, poner o cambiar la foto de
+ * una cara, retrazar un muro.
+ *
+ * Se manda el estado COMPLETO de las vías (las existentes con su
+ * [QueuedVia.targetLineId]), igual que el envío online: el backend reconcilia
+ * por ese id, así que los enganches del diario sobreviven.
+ */
+@Serializable
+data class QueuedBlockEdit(
+    val schoolId: String,
+    val targetBlockId: String,
+    val lat: Double,
+    val lon: Double,
+    val geometry: String,
+    val pathJson: String?,
+    val direction: String,
+    val faces: List<QueuedEditFace>
+)
+
+/**
  * Ruta de un fichero PROPIO con la foto de esa cara, lista para encolar.
  *
  * Desde 2026-08-16 las fotos se copian ya AL ELEGIRLAS (ver

@@ -396,6 +396,18 @@ class SchoolDetailViewModel @Inject constructor(
     suspend fun queueContributionOffline(req: ContributionRequest) =
         contributions.queueOffline(schoolId, req)
 
+    /** ¿Hay conexión ahora mismo? La pantalla de editar lo consulta para ofrecer
+     *  "guardar y enviar cuando haya cobertura" en vez de fallar. */
+    fun isOnline(): Boolean = networkMonitor.isOnline.value
+
+    suspend fun queueBlockEditOffline(
+        targetBlockId: String, lat: Double, lon: Double,
+        geometry: String, pathJson: String?, direction: String,
+        faces: List<com.meteomontana.android.data.outbox.QueuedEditFace>
+    ) = contributions.queueBlockEditOffline(
+        schoolId, targetBlockId, lat, lon, geometry, pathJson, direction, faces
+    )
+
     suspend fun queueBoulderOffline(
         lat: Double, lon: Double, name: String?,
         sectorBlockId: String?, discipline: String, geometry: String,

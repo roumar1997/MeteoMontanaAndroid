@@ -11,6 +11,7 @@ import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
 import com.meteomontana.android.domain.journal.journalViaKey
+import com.meteomontana.android.ui.screens.detail.toBloquesJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -110,6 +111,47 @@ class OutboxFlusher @Inject constructor(
                         submitContribution(q.schoolId, req)
                         // Limpia las fotos copiadas — ya viven en Storage.
                         localByFace.values.filterNotNull()
+                            .forEach { runCatching { java.io.File(it).delete() } }
+                    }
+                    OutboxType.CONTRIBUTION_EDIT_BLOCK -> {
+                        // Edición de una piedra existente guardada sin red: se
+                        // suben las fotos nuevas y se manda el estado completo,
+                        // igual que el envío online.
+                        val q = json.decodeFromString<QueuedBlockEdit>(row.payloadJson)
+                        val bloques = q.faces.flatMap { cara ->
+                            val fotoDeLaCara = cara.localPhotoPath?.let { ruta ->
+                                val fichero = java.io.File(ruta)
+                                // Igual que en la piedra nueva: si la foto
+                                // encolada ya no está, fallar y conservar la
+                                // fila. Mandar la cara sin foto colapsaría sus
+                                // vías en la portada, mezclándolas con otras.
+                                if (!fichero.exists()) error("Falta la foto encolada de una cara: $ruta")
+                                photoUploader.uploadBoulderPhoto(
+                                    fichero.readBytes(), "image/jpeg", q.schoolId
+                                )
+                            } ?: cara.existingPhotoPath
+                            cara.vias.map { v ->
+                                com.meteomontana.android.ui.screens.detail.BoulderBloqueForm(
+                                    name = v.name, grade = v.grade, startType = v.startType,
+                                    linePath = v.points.map { androidx.compose.ui.geometry.Offset(it[0], it[1]) },
+                                    facePhoto = fotoDeLaCara,
+                                    existingLineId = v.targetLineId
+                                )
+                            }
+                        }
+                        submitContribution(q.schoolId, ContributionRequest(
+                            type = "BOULDER", name = null, lat = q.lat, lon = q.lon,
+                            notes = null, description = null,
+                            proposedLat = null, proposedLon = null,
+                            correctionReason = null,
+                            targetBlockId = q.targetBlockId, targetLineId = null,
+                            photoUrl = null,
+                            bloquesJson = bloques.toBloquesJson(),
+                            topoLinesJson = null,
+                            geometry = q.geometry, path = q.pathJson, direction = q.direction
+                        ))
+                        // Las fotos ya viven en Storage.
+                        q.faces.mapNotNull { it.localPhotoPath }
                             .forEach { runCatching { java.io.File(it).delete() } }
                     }
                     OutboxType.NOTE -> {

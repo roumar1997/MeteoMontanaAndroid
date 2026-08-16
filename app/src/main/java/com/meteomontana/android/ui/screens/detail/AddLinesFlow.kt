@@ -57,6 +57,7 @@ import com.meteomontana.android.R
 import com.meteomontana.android.ui.components.CumbreSheetShape
 import com.meteomontana.android.ui.components.cumbreSheetSurface
 import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.data.outbox.toQueued
 import com.meteomontana.android.ui.components.TopoLine
 import com.meteomontana.android.ui.components.TopoPhotoCanvas
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
@@ -345,6 +346,46 @@ internal fun AddLinesFlow(
                             sending = true
                             error = null
                             scope.launch {
+                                // 0) SIN COBERTURA: se guarda y se envía solo al
+                                //    recuperar señal, igual que al proponer una
+                                //    piedra nueva. Hasta 2026-08-16 este flujo era
+                                //    el ÚNICO sin cola: editabas en la roca, no se
+                                //    podía enviar, y tocaba repetirlo en casa.
+                                if (!viewModel.isOnline()) {
+                                    // Las fotos ya son copias nuestras (se copian al
+                                    // elegirlas); si alguna no lo fuera, no
+                                    // sobreviviría a cerrar la app → se avisa.
+                                    if (faces.any { it.newPhotoUri != null && it.newPhotoUri?.path == null }) {
+                                        error = "No se pudo preparar una de las fotos. Vuelve a elegirla."
+                                        sending = false
+                                        return@launch
+                                    }
+                                    val caras = faces.map { f ->
+                                        com.meteomontana.android.data.outbox.QueuedEditFace(
+                                            localPhotoPath = f.newPhotoUri?.path,
+                                            existingPhotoPath = f.existingPhotoPath,
+                                            vias = f.bloques.mapNotNull { v ->
+                                                if (v.existingLineId != null || v.grade != null ||
+                                                    v.name.isNotBlank() || v.linePath.isNotEmpty())
+                                                    v.toQueued() else null
+                                            }
+                                        )
+                                    }
+                                    viewModel.queueBlockEditOffline(
+                                        targetBlockId = block.id,
+                                        lat = block.lat, lon = block.lon,
+                                        geometry = geometry,
+                                        pathJson = if (isWall) {
+                                            val tp = tracedPath
+                                            if (tp != null && tp.isNotEmpty()) tp.toPathJson() else block.path
+                                        } else null,
+                                        direction = direction,
+                                        faces = caras
+                                    )
+                                    sending = false
+                                    onSuccess()
+                                    return@launch
+                                }
                                 // 1) Sube la foto nueva de las caras que se cambiaron.
                                 val urlByFace = HashMap<Int, String>()
                                 var uploadFailed = -1

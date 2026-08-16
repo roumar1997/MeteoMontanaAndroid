@@ -16,6 +16,12 @@ object OutboxType {
     // y rutas LOCALES de las fotos (copiadas al almacenamiento de la app); el
     // flusher de cada plataforma sube las fotos y monta el request al reconectar.
     const val CONTRIBUTION_BOULDER = "CONTRIBUTION_BOULDER"
+    // EDICIÓN de una piedra que YA existe (añadir vías, poner o cambiar la foto
+    // de una cara, retrazar un muro) guardada sin red. Igual que la anterior,
+    // pero con targetBlockId: el backend reconcilia por lineId en vez de crear
+    // una piedra nueva. Hasta 2026-08-16 este flujo NO tenía cola — sin
+    // cobertura solo decía "no se pudo enviar" y había que repetirlo con red.
+    const val CONTRIBUTION_EDIT_BLOCK = "CONTRIBUTION_EDIT_BLOCK"
     const val NOTE         = "NOTE"
     const val SUBMISSION   = "SUBMISSION"
     const val JOURNAL        = "JOURNAL"        // vía marcada como hecha (POST /api/journal)

@@ -65,6 +65,32 @@ class SchoolContributionSender @Inject constructor(
         )
     }
 
+    /**
+     * Encola la EDICIÓN de una piedra existente (añadir vías, foto nueva en una
+     * cara, retrazar un muro). Las fotos nuevas viajan como ruta local y se
+     * suben al reconectar; las caras que no se tocaron llevan la suya de
+     * siempre. Se manda el estado COMPLETO de las vías, como el envío online.
+     */
+    suspend fun queueBlockEditOffline(
+        schoolId: String,
+        targetBlockId: String,
+        lat: Double, lon: Double,
+        geometry: String, pathJson: String?, direction: String,
+        faces: List<com.meteomontana.android.data.outbox.QueuedEditFace>
+    ) {
+        val q = com.meteomontana.android.data.outbox.QueuedBlockEdit(
+            schoolId = schoolId, targetBlockId = targetBlockId,
+            lat = lat, lon = lon,
+            geometry = geometry, pathJson = pathJson, direction = direction,
+            faces = faces
+        )
+        outboxRepo.enqueue(
+            OutboxType.CONTRIBUTION_EDIT_BLOCK, schoolId,
+            outboxJson.encodeToString(
+                com.meteomontana.android.data.outbox.QueuedBlockEdit.serializer(), q)
+        )
+    }
+
     suspend fun submitBoulder(
         schoolId: String,
         lat: Double, lon: Double,
