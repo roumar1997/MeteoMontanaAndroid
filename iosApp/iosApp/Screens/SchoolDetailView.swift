@@ -86,7 +86,7 @@ final class SchoolDetailViewModel: ObservableObject {
         guard let repo = savedSchools, let f = forecast else { return }
         let blocks = (try? await getBlocks.invoke(schoolId: school.id)) ?? []
         try? await repo.saveOffline(school: school, blocks: blocks, forecast: f)
-        await ImageCache.prefetch(blocks.compactMap { $0.photoPath })
+        await ImageCache.prefetch(FotosDeEscuela.shared.urlsParaGuardar(blocks: blocks))
     }
 
     func checkSaved(schoolId: String) async {
@@ -101,7 +101,7 @@ final class SchoolDetailViewModel: ObservableObject {
         savingOffline = true
         let blocks = (try? await getBlocks.invoke(schoolId: school.id)) ?? []
         try? await repo.saveOffline(school: school, blocks: blocks, forecast: forecast)
-        await ImageCache.prefetch(blocks.compactMap { $0.photoPath })
+        await ImageCache.prefetch(FotosDeEscuela.shared.urlsParaGuardar(blocks: blocks))
         // Tiles del mapa offline (mismo punto que Android): sin esto, offline el
         // mapa solo mostraba los marcadores, no el mapa de fondo, si no se había
         // visitado antes esa zona con red.

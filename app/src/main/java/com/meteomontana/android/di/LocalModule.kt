@@ -45,6 +45,14 @@ object LocalModule {
         com.meteomontana.android.data.map.OfflineTileManager =
         com.meteomontana.android.data.map.OfflineTileManager(ctx)
 
+    /** Fotos de las escuelas guardadas, para verlas sin cobertura (iOS ya lo
+     *  tenía con ImageCache; Android se fiaba de la caché de Coil, que el
+     *  sistema borra cuando le hace falta espacio). */
+    @Provides @Singleton
+    fun provideCacheFotosOffline(@ApplicationContext ctx: Context):
+        com.meteomontana.android.data.photos.CacheFotosOffline =
+        com.meteomontana.android.data.photos.CacheFotosOffline(ctx)
+
     @Provides @Singleton
     fun provideOutboxRepository(db: MeteoMontanaDb):
         com.meteomontana.android.data.outbox.OutboxRepository =

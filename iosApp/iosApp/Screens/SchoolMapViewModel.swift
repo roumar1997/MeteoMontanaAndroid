@@ -84,7 +84,7 @@ final class SchoolMapViewModel: ObservableObject {
             if let repo = container.savedSchools,
                (try? await repo.loadOffline(id: school.id)) != nil {
                 try? await repo.saveOffline(school: school, blocks: online, forecast: nil)
-                await ImageCache.prefetch(online.compactMap { $0.photoPath })
+                await ImageCache.prefetch(FotosDeEscuela.shared.urlsParaGuardar(blocks: online))
             }
             return online
         }

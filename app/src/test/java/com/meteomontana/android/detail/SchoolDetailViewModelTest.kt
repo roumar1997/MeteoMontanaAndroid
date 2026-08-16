@@ -177,7 +177,9 @@ class SchoolDetailViewModelTest {
             savedState(), loader, journal, contributions, tickFeed,
             getNotes, createNote, addFavorite, removeFavorite, getBlocks,
             createBlock, deleteBlockUC, photoUploader, fileReader,
-            monthlyStatsRepo, savedSchoolRepo, offlineTiles, moveSchoolUseCase,
+            monthlyStatsRepo, savedSchoolRepo, offlineTiles,
+            mockk(relaxed = true),  // cacheFotos — fotos de la escuela guardada
+            moveSchoolUseCase,
             updateBlockUseCase, outboxRepo,
             mockk<com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase>(relaxed = true),
             networkMonitor,

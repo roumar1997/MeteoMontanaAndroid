@@ -127,6 +127,18 @@ fun SchoolDetailScreen(
                 }
             }
             is SchoolDetailUiState.Success -> {
+                // Guardar offline: los datos se guardan sin preguntar (pesan
+                // poco), pero las FOTOS se consultan — son casi todo el peso y
+                // puede estar gastando datos. Sin ellas el topo no sirve en la
+                // roca, así que se dice qué se gana y cuánto cuesta.
+                FotosOfflineDialogs(
+                    oferta = s.ofertaFotosOffline,
+                    progreso = s.descargaFotos,
+                    fallidas = s.fotosOfflineFallidas,
+                    onDescargar = viewModel::descargarFotosOffline,
+                    onRechazar = viewModel::rechazarFotosOffline,
+                    onCerrarAviso = viewModel::limpiarAvisoFotos
+                )
                 if (s.offlineSnapshotAt != null) {
                     OfflineBanner(timestamp = s.offlineSnapshotAt)
                 }

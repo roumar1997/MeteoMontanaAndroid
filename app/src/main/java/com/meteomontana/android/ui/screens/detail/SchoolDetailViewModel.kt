@@ -12,6 +12,7 @@ import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.port.PhotoUploader
 import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.util.FotosDeEscuela
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
@@ -53,9 +54,20 @@ sealed interface SchoolDetailUiState {
         /** Boletín de montaña AEMET si la escuela cae en uno de los 9 macizos. */
         val mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null,
         /** Aproximaciones (parking → sector) — APPROACH_DESIGN.md, admin-gated. */
-        val approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList()
+        val approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList(),
+        /** Si !=null, hay que preguntar al usuario si baja las fotos (puede ir
+         *  por datos). Guardar los datos no se pregunta: pesan poco. */
+        val ofertaFotosOffline: OfertaFotosOffline? = null,
+        /** Progreso 0..1 mientras bajan las fotos; null = no hay descarga. */
+        val descargaFotos: Float? = null,
+        /** Cuántas fotos NO se pudieron bajar. Se avisa: prometer fotos que
+         *  luego faltan se descubre ya sin cobertura, cuando no hay remedio. */
+        val fotosOfflineFallidas: Int? = null
     ) : SchoolDetailUiState
 }
+
+/** Lo que se le ofrece al usuario descargar para ver la escuela sin cobertura. */
+data class OfertaFotosOffline(val cuantas: Int, val bytesEstimados: Long)
 
 /**
  * FACHADA del detalle de escuela: publica el estado y delega el trabajo en sus
@@ -86,6 +98,7 @@ class SchoolDetailViewModel @Inject constructor(
     private val monthlyStatsRepo: MonthlyStatsRepository,
     private val savedSchoolRepo: SavedSchoolRepository,
     private val offlineTiles: com.meteomontana.android.data.map.OfflineTileManager,
+    private val cacheFotos: com.meteomontana.android.data.photos.CacheFotosOffline,
     private val moveSchoolUseCase: com.meteomontana.android.domain.usecase.admin.MoveSchoolUseCase,
     private val updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
@@ -301,19 +314,67 @@ class SchoolDetailViewModel @Inject constructor(
 
     // ── Guardado offline / favoritas ───────────────────────────────────────
 
+    /**
+     * Quitar de guardadas borra también sus fotos; guardar PREGUNTA antes de
+     * descargarlas (puede ir por datos, y el usuario agradece decidir).
+     */
     fun toggleSaveOffline() {
         val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
         viewModelScope.launch {
             if (cur.isSavedOffline) {
+                val fotos = FotosDeEscuela.urlsParaGuardar(cur.blocks)
                 savedSchoolRepo.remove(cur.school.id)
                 runCatching { offlineTiles.removeFor(cur.school.id) }
+                runCatching { cacheFotos.borrar(fotos) }
                 _uiState.value = cur.copy(isSavedOffline = false)
             } else {
+                // Los DATOS (piedras, vías, trazados) se guardan ya: pesan poco
+                // y son lo mínimo para que la escuela abra sin cobertura.
                 savedSchoolRepo.saveOffline(cur.school, cur.blocks, cur.forecast)
                 runCatching { offlineTiles.downloadFor(cur.school.id, cur.school.lat, cur.school.lon) }
-                _uiState.value = cur.copy(isSavedOffline = true)
+                val fotos = FotosDeEscuela.urlsParaGuardar(cur.blocks)
+                _uiState.value = cur.copy(
+                    isSavedOffline = true,
+                    // Las FOTOS se preguntan aparte: sin ellas el topo no sirve
+                    // de nada en la roca, pero son casi todo el peso.
+                    ofertaFotosOffline = fotos.takeIf { it.isNotEmpty() }
+                        ?.let { OfertaFotosOffline(it.size, FotosDeEscuela.pesoEstimadoBytes(it)) }
+                )
             }
         }
+    }
+
+    /** El usuario dijo que sí a bajarse las fotos de la escuela guardada. */
+    fun descargarFotosOffline() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        val fotos = FotosDeEscuela.urlsParaGuardar(cur.blocks)
+        _uiState.value = cur.copy(ofertaFotosOffline = null, descargaFotos = 0f)
+        viewModelScope.launch {
+            val fallos = cacheFotos.descargar(fotos) { hechas, total ->
+                val estado = _uiState.value as? SchoolDetailUiState.Success ?: return@descargar
+                _uiState.value = estado.copy(
+                    descargaFotos = if (total == 0) 1f else hechas.toFloat() / total
+                )
+            }
+            val estado = _uiState.value as? SchoolDetailUiState.Success ?: return@launch
+            _uiState.value = estado.copy(
+                descargaFotos = null,
+                // Se avisa solo si falló algo: callar sería prometer unas fotos
+                // que luego no están, y eso se descubre ya sin cobertura.
+                fotosOfflineFallidas = fallos.takeIf { it > 0 }
+            )
+        }
+    }
+
+    /** Dijo que no: la escuela queda guardada solo con datos. */
+    fun rechazarFotosOffline() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        _uiState.value = cur.copy(ofertaFotosOffline = null)
+    }
+
+    fun limpiarAvisoFotos() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        _uiState.value = cur.copy(fotosOfflineFallidas = null)
     }
 
     fun toggleFavorite() {
