@@ -84,6 +84,13 @@ struct BlockInfoSheet: View {
         return !matching.contains(lineId)
     }
 
+    /// Ancla de scroll de una cara. Con NOMBRE y no el número suelto: las
+    /// pestañas de salto viven en el mismo `ScrollViewReader` y su `ForEach` ya
+    /// usa 0,1,2… como identidad, así que `scrollTo(1)` era ambiguo y se iba a
+    /// la PESTAÑA en vez de a la foto — al pulsar no pasaba nada visible
+    /// (reportado por Rodrigo probando el build 139).
+    private func anclaDeCara(_ idx: Int) -> String { "cara-\(idx)" }
+
     /// Pestaña para saltar a una cara — misma celda "mochila" que el Feed:
     /// plana, con borde fino; la activa marca borde y texto en terracota.
     private func caraTab(_ label: String, selected: Bool,
@@ -119,7 +126,7 @@ struct BlockInfoSheet: View {
                             if !(face.photoPath ?? "").isEmpty {
                                 caraTab("FOTO \(faceIdx + 1)", selected: caraVisible == faceIdx) {
                                     caraVisible = faceIdx
-                                    withAnimation { proxy.scrollTo(faceIdx, anchor: .top) }
+                                    withAnimation { proxy.scrollTo(anclaDeCara(faceIdx), anchor: .top) }
                                 }
                             }
                         }
@@ -308,7 +315,12 @@ struct BlockInfoSheet: View {
                                 }
                             }
                           }
-                          .id(faceIdx)
+                          // Ancla con nombre PROPIO, no el número suelto: las
+                          // pestañas de salto viven en el mismo ScrollViewReader
+                          // y su ForEach ya usa 0,1,2… como identidad. Con ids
+                          // duplicados, scrollTo(1) se iba a la PESTAÑA en vez
+                          // de a la foto y no pasaba nada visible.
+                          .id(anclaDeCara(faceIdx))
                         }
                     }
 
@@ -446,7 +458,7 @@ struct BlockInfoSheet: View {
             .onAppear {
                 guard let i = scrollFaceIndex, i > 0 else { return }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    withAnimation { proxy.scrollTo(i, anchor: .top) }
+                    withAnimation { proxy.scrollTo(anclaDeCara(i), anchor: .top) }
                 }
             }
             }   // VStack: pestañas de cara + contenido
