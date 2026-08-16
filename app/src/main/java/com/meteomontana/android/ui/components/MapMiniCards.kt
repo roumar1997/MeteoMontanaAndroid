@@ -3,6 +3,8 @@ package com.meteomontana.android.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import com.meteomontana.android.domain.util.SectorCercano
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -242,6 +245,12 @@ internal fun MiniBlockCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
+    /** Sectores de la escuela, para ofrecerlos desde la ficha del PARKING: el
+     *  parking es la puerta de entrada — aparcas y desde ahí decides a qué zona
+     *  subes. Cada uno con su distancia DESDE EL PARKING (no desde ti: lo que
+     *  importa ahí es cuánto queda por andar). Vacío = no se pinta la fila. */
+    sectores: List<SectorCercano> = emptyList(),
+    onSectorClick: (Block) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -313,6 +322,32 @@ internal fun MiniBlockCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.clip(RoundedCornerShape(8.dp))
                     .clickable(onClick = onClose).padding(Spacing.xs))
+        }
+        // El parking como puerta de entrada: desde aquí se salta a cualquier
+        // sector sin tener que buscarlo a ojo en el mapa. Al tocar uno pasa lo
+        // mismo que al tocarlo en el mapa (acercarse y desplegar sus piedras),
+        // así que no hay dos comportamientos distintos que mantener.
+        if (isParking && sectores.isNotEmpty()) {
+            Text(
+                "SECTORES DESDE AQUÍ",
+                style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.xs, bottom = 2.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                sectores.forEach { s ->
+                    MochilaCard(
+                        label = "${s.sector.name.ifBlank { "Sector" }} · ${s.distanciaTexto}" +
+                            if (s.piedras > 0) " · ${s.piedras}" else "",
+                        selected = false
+                    ) { onSectorClick(s.sector) }
+                }
+            }
         }
         // Toggle explícito de piedras del sector (antes: tap "silencioso" en el marker).
         if (!isParking && stoneCount > 0) {

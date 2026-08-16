@@ -690,6 +690,15 @@ internal fun SchoolMapView(
                     onEdit = { editingMiniBlock = mb },
                     onDelete = { confirmDeleteMini = mb },
                     onClose = { miniBlock = null },
+                    // Desde el parking se ofrecen los sectores, ordenados por lo
+                    // que queda por andar. Tocar uno hace EXACTAMENTE lo mismo
+                    // que tocarlo en el mapa (mismo camino de código: si algún
+                    // día cambia el zoom o el desplegado, cambia en los dos).
+                    sectores = if (mb.type == "PARKING")
+                        com.meteomontana.android.domain.util.SectoresDesdeParking
+                            .calcular(mb, blocks)
+                    else emptyList(),
+                    onSectorClick = { sector -> onBlockTap(sector) },
                     modifier = Modifier.align(Alignment.BottomCenter)
                         .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
                 )
