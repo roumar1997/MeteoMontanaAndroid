@@ -88,8 +88,8 @@ targets:
         # build con ese mismo número → se sube a 2.24.0.
         CFBundleShortVersionString: "2.24.0"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
-        # ÚNICO y mayor que el anterior. 12-25 ya subidos → 26.
-        CFBundleVersion: "138"
+        # ÚNICO y mayor que el anterior.
+        CFBundleVersion: "139"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
