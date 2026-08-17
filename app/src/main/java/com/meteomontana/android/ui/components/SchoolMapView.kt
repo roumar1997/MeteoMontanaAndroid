@@ -794,6 +794,63 @@ internal fun SchoolMapView(
                 }
             }
         }
+
+        // Fila de SECTORES, igual que la de parkings. Petición de Rodrigo
+        // (2026-08-16): poder ir a un sector desde una lista, en vez de buscarlo
+        // a ojo en el mapa y ampliar a mano. Al pulsar uno se hace lo MISMO que
+        // al tocarlo en el mapa (acercarse y desplegar sus piedras): un solo
+        // camino de código, así no divergen.
+        val sectores = remember(blocks) { blocks.filter { it.type == "ZONE" }.sortedBy { it.name } }
+        if (sectores.isNotEmpty()) {
+            Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
+                Text(
+                    "SECTORES",
+                    style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                )
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Spacing.md)
+                ) {
+                    items(sectores.size) { i ->
+                        val sector = sectores[i]
+                        // Cuántas piedras tiene: es lo que de verdad ayuda a
+                        // decidir a cuál subir.
+                        val piedras = blocks.count { it.sectorBlockId == sector.id }
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                                .clickable { onBlockTap(sector) }
+                                .padding(horizontal = Spacing.sm, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                        ) {
+                            Box(
+                                modifier = Modifier.size(20.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(Color(0xFF3F6B4A)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Z", color = Color.White,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold)
+                            }
+                            Text(
+                                sector.name.ifBlank { "Sector" } +
+                                    (if (piedras > 0) " · $piedras" else ""),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Dialog de detalles (foto + líneas + vías + CÓMO LLEGAR).

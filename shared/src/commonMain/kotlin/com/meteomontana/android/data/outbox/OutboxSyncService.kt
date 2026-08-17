@@ -173,6 +173,20 @@ class OutboxSyncService(
             .map { PendingContributionRow(it.id, it.schoolId, it.payloadJson) }
     }
 
+    /** Encola la EDICIÓN de una piedra existente guardada sin red (lo usa iOS;
+     *  en Android lo hace SchoolContributionSender con el payload tipado). */
+    suspend fun enqueueBlockEditContribution(schoolId: String, payloadJson: String) {
+        outbox?.enqueue(OutboxType.CONTRIBUTION_EDIT_BLOCK, schoolId, payloadJson)
+    }
+
+    /** Filas de EDICIÓN de piedra pendientes, para el flusher Swift. */
+    suspend fun pendingBlockEditContributions(): List<PendingContributionRow> {
+        val repo = outbox ?: return emptyList()
+        return repo.all()
+            .filter { it.type == OutboxType.CONTRIBUTION_EDIT_BLOCK }
+            .map { PendingContributionRow(it.id, it.schoolId, it.payloadJson) }
+    }
+
     /** Borra una fila del outbox (el flusher Swift la llama tras subir). */
     suspend fun deleteOutboxRow(id: Long) { outbox?.delete(id) }
 

@@ -13,9 +13,77 @@ enum ContributionOutboxFlusher {
         let c = AppDependencies.shared.container
         _ = try? await c.flushSimpleContributions()
 
-        guard let rows = try? await c.pendingBoulderContributions() else { return }
-        for row in rows {
-            await flushBoulder(row, container: c)
+        if let rows = try? await c.pendingBoulderContributions() {
+            for row in rows { await flushBoulder(row, container: c) }
+        }
+
+        // Ediciones de piedras que YA existen (añadir vías, foto nueva de una
+        // cara). Hasta 2026-08-17 iOS no las encolaba: sin cobertura solo decía
+        // "no se pudo enviar" y había que repetirlo entero con red.
+        if let edits = try? await c.pendingBlockEditContributions() {
+            for row in edits { await flushBlockEdit(row, container: c) }
+        }
+    }
+
+    /// Edición de una piedra existente: sube las fotos NUEVAS (las caras que no
+    /// se tocaron conservan la suya) y manda el estado COMPLETO de las vías,
+    /// para que el backend reconcilie por lineId y los enganches del diario
+    /// sobrevivan.
+    private static func flushBlockEdit(_ row: PendingContributionRow, container c: IosDependencyContainer) async {
+        guard let data = row.payloadJson.data(using: .utf8),
+              let q = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let targetBlockId = q["targetBlockId"] as? String,
+              let lat = q["lat"] as? Double, let lon = q["lon"] as? Double,
+              let facesArr = q["faces"] as? [[String: Any]] else { return }
+
+        var bloques: [[String: Any]] = []
+        var localPaths: [String] = []
+
+        for face in facesArr {
+            var fotoDeLaCara = face["existingPhotoPath"] as? String
+            if let local = face["localPhotoPath"] as? String {
+                // Si la foto encolada ya no está, se ABANDONA y la fila se
+                // conserva para reintentar: mandar la cara sin foto colapsaría
+                // sus vías en la portada, mezclándolas con las de otra cara.
+                guard FileManager.default.fileExists(atPath: local),
+                      let img = UIImage(contentsOfFile: local),
+                      let url = try? await StorageUploader.uploadBoulderPhoto(img, schoolId: row.schoolId)
+                else { return }
+                fotoDeLaCara = url
+                localPaths.append(local)
+            }
+            for via in (face["vias"] as? [[String: Any]] ?? []) {
+                bloques.append([
+                    "name": via["name"] as? String ?? "",
+                    "grade": via["grade"] as? String ?? NSNull(),
+                    "startType": via["startType"] as? String ?? NSNull(),
+                    "linePath": via["points"] as? [[Double]] ?? [],
+                    "facePhoto": fotoDeLaCara ?? NSNull(),
+                    "targetLineId": via["targetLineId"] as? String ?? NSNull()
+                ])
+            }
+        }
+
+        let bloquesJson = (try? JSONSerialization.data(withJSONObject: bloques))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        let req = ContributionRequest(
+            type: "BOULDER",
+            name: nil,
+            lat: lat, lon: lon,
+            notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
+            targetBlockId: targetBlockId, targetLineId: nil,
+            sectorBlockId: nil,
+            photoUrl: nil,
+            bloquesJson: bloquesJson, topoLinesJson: nil,
+            discipline: nil,
+            geometry: q["geometry"] as? String,
+            path: q["pathJson"] as? String,
+            direction: q["direction"] as? String,
+            orientationsJson: nil)
+
+        if (try? await c.submitContribution.invoke(schoolId: row.schoolId, req: req)) != nil {
+            try? await c.deleteOutboxRow(id: row.id)
+            for p in localPaths { try? FileManager.default.removeItem(atPath: p) }
         }
     }
 

@@ -26,6 +26,8 @@ struct EditLinesSheet: View {
     @State private var showEditor = false
     @State private var sending = false
     @State private var sendError: String? = nil
+    /// El envío falló: se ofrece guardarlo para mandarlo con cobertura.
+    @State private var ofrecerGuardarOffline = false
     @State private var loaded = false
     // Foto nueva elegida para una cara (mejorar la imagen). Al cambiarla, TODAS
     // las vías de esa cara se mueven a la foto nueva y se redibujan sobre ella.
@@ -246,6 +248,15 @@ struct EditLinesSheet: View {
                 pickerItem = nil   // permite volver a elegir la MISMA foto
             }
         }
+        // No se pudo enviar: se ofrece guardarlo en vez de perder el trabajo.
+        .alert("No se pudo enviar", isPresented: $ofrecerGuardarOffline) {
+            Button("Guardar y enviar luego") { Task { await guardarSinCobertura() } }
+            Button("Reintentar ahora") { Task { await send() } }
+            Button("Cancelar", role: .cancel) { }
+        } message: {
+            Text("Puedes guardarlo en este móvil y se enviará solo en cuanto recuperes cobertura. "
+                 + "Tus vías y fotos no se pierden.")
+        }
         .sheet(isPresented: $showEditor) {
             // Solo las vías de ESTA cara, sobre SU foto (la nueva si la cambiaste).
             if faceBlocks.indices.contains(faceIdx) {
@@ -315,6 +326,69 @@ struct EditLinesSheet: View {
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         if ok { dismiss(); onDone(true) }
-        else { sendError = "No se pudo enviar. Revisa la conexión — tus cambios siguen aquí." }
+        else {
+            // No se pudo enviar: en vez de dejarlo en "reinténtalo" (y que el
+            // usuario tenga que repetirlo todo en casa), se ofrece GUARDARLO
+            // para mandarlo al recuperar cobertura. Se PREGUNTA en vez de
+            // encolar solo: si el servidor rechazó por otra cosa, encolar a
+            // ciegas lo reintentaría eternamente.
+            ofrecerGuardarOffline = true
+        }
+    }
+
+    /// Guarda la edición para enviarla al recuperar cobertura. Las fotos nuevas
+    /// se copian a disco (las de las caras sin tocar conservan su URL), igual
+    /// que al proponer una piedra nueva sin red.
+    private func guardarSinCobertura() async {
+        let fm = FileManager.default
+        let dir = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("outbox-photos", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        var facesArr: [[String: Any]] = []
+        for (i, faceVias) in faceBlocks.enumerated() {
+            var localPath: Any = NSNull()
+            if let img = facePicked[i], let data = img.jpegData(compressionQuality: 0.85) {
+                let f = dir.appendingPathComponent(UUID().uuidString + ".jpg")
+                if (try? data.write(to: f)) != nil { localPath = f.path }
+            }
+            let vias: [[String: Any]] = faceVias.compactMap { b in
+                guard b.grade != nil || !b.name.isEmpty || !b.line.isEmpty else { return nil }
+                return [
+                    "name": b.name,
+                    "grade": b.grade ?? NSNull(),
+                    "startType": b.startType ?? NSNull(),
+                    "points": b.line.map { [Double($0.x), Double($0.y)] },
+                    "targetLineId": b.existingLineId ?? NSNull()
+                ]
+            }
+            facesArr.append([
+                "localPhotoPath": localPath,
+                "existingPhotoPath": b_existingPhoto(i) ?? NSNull(),
+                "vias": vias
+            ])
+        }
+        let payload: [String: Any] = [
+            "schoolId": schoolId,
+            "targetBlockId": block.id,
+            "lat": block.lat, "lon": block.lon,
+            "geometry": geometry,
+            "pathJson": isWall ? (tracedPath.isEmpty ? (block.path ?? NSNull()) : buildPathJson(tracedPath)) : NSNull(),
+            "direction": direction,
+            "faces": facesArr
+        ]
+        guard let d = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: d, encoding: .utf8) else { return }
+        try? await AppDependencies.shared.container
+            .enqueueBlockEditContribution(schoolId: schoolId, payloadJson: json)
+        dismiss(); onDone(false)
+    }
+
+    /// Foto que ya tenía esa cara en el servidor (nil si es cara nueva).
+    private func b_existingPhoto(_ i: Int) -> String? {
+        let caras = block.facesOrDerived()
+        guard i < caras.count else { return nil }
+        let p = caras[i].photoPath
+        return (p?.isEmpty == false) ? p : nil
     }
 }
