@@ -53,12 +53,32 @@ enum ContributionOutboxFlusher {
                 localPaths.append(local)
             }
             for via in (face["vias"] as? [[String: Any]] ?? []) {
+                // DOS fallos aquí (Rodrigo, build 145 en producción — piedra 6
+                // de Santa Gadea acabó con todas las vías en la foto de la
+                // PRIMERA cara y desapareció una foto entera):
+                //
+                // 1) La clave iba como "facePhoto"; el backend
+                //    (ContributionLineParser.facePhotoOf) lee "photoUrl", y si
+                //    no la encuentra usa la portada del bloque COMO FOTO DE
+                //    TODAS las vías, sin avisar de nada. `buildBloquesJson` (el
+                //    camino online, que nunca falló) usa "photoUrl" — se copió
+                //    mal al escribir el flusher offline.
+                // 2) "points" es [[x,y],...] (pares sueltos); el backend
+                //    (`node.path("linePath").asText`) espera un STRING JSON de
+                //    objetos {"x":..,"y":..}, no un array crudo — con un array
+                //    devolvía texto sin parsear y la vía se guardaba sin trazo.
+                let puntos = (via["points"] as? [[Double]] ?? []).compactMap { par -> [String: Double]? in
+                    guard par.count == 2 else { return nil }
+                    return ["x": par[0], "y": par[1]]
+                }
+                let linePath = (try? JSONSerialization.data(withJSONObject: puntos))
+                    .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
                 bloques.append([
                     "name": via["name"] as? String ?? "",
                     "grade": via["grade"] as? String ?? NSNull(),
                     "startType": via["startType"] as? String ?? NSNull(),
-                    "linePath": via["points"] as? [[Double]] ?? [],
-                    "facePhoto": fotoDeLaCara ?? NSNull(),
+                    "linePath": linePath,
+                    "photoUrl": fotoDeLaCara ?? NSNull(),
                     "targetLineId": via["targetLineId"] as? String ?? NSNull()
                 ])
             }
