@@ -74,6 +74,36 @@ enum PhotoExifReader {
                           cameraDegrees: rumbo)
     }
 
+    /// Solo la IMAGEN (y el rumbo de la cámara si la foto lo trae), SIN exigir
+    /// que tenga ubicación.
+    ///
+    /// `read` la exige a propósito, porque en "aportar una piedra desde una
+    /// foto" la ubicación ES el dato que se busca. Pero al añadir una foto a
+    /// mano a una piedra que YA has colocado tú en el mapa, la ubicación no
+    /// pinta nada — y exigirla rechazaba fotos perfectamente válidas, como las
+    /// que te pasa otra persona (Rodrigo, build 143: "no se pudo cargar la foto"
+    /// con una foto que le habían enviado).
+    ///
+    /// Si la foto no está en la fototeca (sin identificador o sin permiso), se
+    /// cae a leer los bytes del propio selector: se pierde el rumbo, pero
+    /// funciona — que es lo que importa aquí.
+    static func readImagen(_ result: PHPickerResult) async -> (image: UIImage, cameraDegrees: Float?)? {
+        if let id = result.assetIdentifier, await autorizado(),
+           let asset = PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil).firstObject,
+           let (imagen, rumbo) = await imagenYRumbo(asset) {
+            return (imagen, rumbo)
+        }
+        return await withCheckedContinuation { cont in
+            let provider = result.itemProvider
+            guard provider.canLoadObject(ofClass: UIImage.self) else {
+                cont.resume(returning: nil); return
+            }
+            provider.loadObject(ofClass: UIImage.self) { objeto, _ in
+                cont.resume(returning: (objeto as? UIImage).map { ($0, nil) })
+            }
+        }
+    }
+
     private static func autorizado() async -> Bool {
         let actual = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         if actual == .authorized || actual == .limited { return true }

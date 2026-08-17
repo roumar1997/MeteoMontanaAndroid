@@ -43,7 +43,9 @@ data class FeedPost(
     /** URL firmada de la foto de celebración o null. */
     val photoUrl: String? = null,
     /** Solo NEW_BLOCK: vías de la cara portada (dibujarlas sobre la foto). */
-    val blockLines: List<FeedLine>? = null
+    val blockLines: List<FeedLine>? = null,
+    /** Vías en otras fotos de la piedra, que no caben en este trazo. */
+    val otherFacesLines: Int = 0
 )
 
 /** Vía de la cara portada de un post NEW_BLOCK. */

@@ -54,6 +54,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -176,6 +177,24 @@ internal fun FeedPostCard(
                         else -> blockLines
                     }
                 )
+                // Vías que hay en OTRAS fotos de la piedra. No se pueden dibujar
+                // aquí (su trazo está hecho sobre otra imagen y encima de esta
+                // caería donde no toca), pero sin decirlo la publicación parece
+                // incompleta: "dibujé 8 y salen 3" (Rodrigo, 2026-08-17).
+                if (post.otherFacesLines > 0) {
+                    Text(
+                        text = if (post.otherFacesLines == 1) "+1 VÍA EN OTRA FOTO"
+                               else "+${post.otherFacesLines} VÍAS EN OTRAS FOTOS",
+                        style = EyebrowTextStyle,
+                        color = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
                 // Miniatura de la foto de celebración superpuesta arriba-derecha.
                 if (celebrationUrl != null) {
                     AsyncImage(

@@ -277,7 +277,7 @@ func copyPost(_ p: FeedPost, likedByMe: Bool? = nil, likeCount: Int64? = nil,
         commentCount: commentCount ?? p.commentCount,
         mine: p.mine,
         startType: p.startType, caption: p.caption, photoUrl: p.photoUrl,
-        blockLines: p.blockLines)
+        blockLines: p.blockLines, otherFacesLines: p.otherFacesLines)
 }
 
 // MARK: - Vista principal

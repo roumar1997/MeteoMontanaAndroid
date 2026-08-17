@@ -105,6 +105,22 @@ struct FeedPostCard: View {
                     .buttonStyle(.plain)
                     .padding(8)
                 }
+                // Vías que hay en OTRAS fotos de la piedra. No se pueden dibujar
+                // aquí (su trazo está hecho sobre otra imagen y encima de esta
+                // caería donde no toca), pero sin decirlo la publicación parece
+                // incompleta: "dibujé 8 y salen 3" (Rodrigo, 2026-08-17).
+                if post.otherFacesLines > 0 {
+                    Text(post.otherFacesLines == 1
+                         ? "+1 VÍA EN OTRA FOTO"
+                         : "+\(post.otherFacesLines) VÍAS EN OTRAS FOTOS")
+                        .font(Cumbre.mono(10, .bold)).tracking(0.8)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Color.black.opacity(0.55))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .padding(8)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                }
             }
         } else if let celebration = celebrationUrl {
             Button { showFullPhoto = true } label: {

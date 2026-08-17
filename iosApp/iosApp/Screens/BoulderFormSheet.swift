@@ -302,13 +302,20 @@ struct BoulderFormSheet: View {
                                 return
                             }
                             Task { @MainActor in
-                                guard let donde = await PhotoExifReader.read(result) else {
+                                // readImagen y NO read: aquí la piedra ya está
+                                // colocada en el mapa, así que la foto solo
+                                // aporta la IMAGEN. Exigirle ubicación rechazaba
+                                // fotos válidas —las que te pasa otra persona no
+                                // la llevan— con un "no se pudo cargar la foto"
+                                // que además despistaba (Rodrigo, build 143).
+                                guard let donde = await PhotoExifReader.readImagen(result) else {
                                     sendError = "No se pudo cargar la foto elegida. Inténtalo otra vez."
                                     return
                                 }
                                 faces[idx].photo = donde.image
-                                // La orientación sale de ESTA foto: cada cara
-                                // mira a donde mire su pared.
+                                // La orientación sale de ESTA foto, si la trae:
+                                // cada cara mira a donde mire su pared. Una foto
+                                // sin rumbo simplemente no la sugiere.
                                 if let sugerida = PhotoPlacement.shared.aspectFromCameraDirection(
                                     cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) }) {
                                     if faces[idx].orientation == nil { faces[idx].orientation = sugerida }
