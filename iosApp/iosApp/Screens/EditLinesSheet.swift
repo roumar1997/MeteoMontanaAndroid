@@ -234,7 +234,14 @@ struct EditLinesSheet: View {
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             let idx = faceIdx
-            Task {
+            // @MainActor OBLIGATORIO: facePicked es @State y se pinta con él.
+            // Sin esto se escribía fuera del hilo de la interfaz y SwiftUI no se
+            // enteraba: al añadir una cara NUEVA (sin foto previa en el
+            // servidor) la imagen no aparecía y el botón de dibujar se quedaba
+            // apagado, sin ningún mensaje. Las caras que YA tenían foto
+            // disimulaban el fallo porque se pintan desde su URL remota
+            // (reportado por Rodrigo con la 3ª foto, build 142).
+            Task { @MainActor in
                 // loadTransferable a veces devuelve nil (foto en iCloud aún sin
                 // descargar, fallo transitorio): antes fallaba EN SILENCIO y la
                 // miniatura no aparecía. Ahora avisamos para reintentar.

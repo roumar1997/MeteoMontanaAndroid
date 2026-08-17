@@ -289,7 +289,18 @@ struct BoulderFormSheet: View {
                     Button {
                         let idx = faceIdx
                         presentPhotoPickerResult { result in
-                            guard let result else { return }
+                            guard let result else {
+                                // ANTES: return MUDO. Si el selector no lograba
+                                // abrirse (con varias hojas apiladas se reintenta
+                                // 15 veces y luego se rinde), el usuario se
+                                // quedaba sin foto, sin aviso, y con el botón de
+                                // dibujar apagado sin saber por qué — reportado
+                                // por Rodrigo al añadir la 3ª foto (build 142).
+                                Task { @MainActor in
+                                    sendError = "No se pudo abrir el selector de fotos. Vuelve a intentarlo."
+                                }
+                                return
+                            }
                             Task { @MainActor in
                                 guard let donde = await PhotoExifReader.read(result) else {
                                     sendError = "No se pudo cargar la foto elegida. Inténtalo otra vez."
@@ -417,7 +428,11 @@ struct BoulderFormSheet: View {
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             let idx = faceIdx
-            Task {
+            // @MainActor OBLIGATORIO: `faces` es @State y de él se pinta la
+            // miniatura y depende el botón de dibujar. Sin esto se escribía
+            // fuera del hilo de la interfaz y SwiftUI no se enteraba (mismo
+            // fallo que en EditLinesSheet, build 142).
+            Task { @MainActor in
                 // loadTransferable a veces devuelve nil (foto en iCloud sin bajar
                 // aún): antes fallaba en silencio y la foto no aparecía.
                 if let data = try? await item.loadTransferable(type: Data.self),

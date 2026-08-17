@@ -85,7 +85,8 @@ struct CreateMeetupView: View {
                             }
                             .onChange(of: photoItem) { item in
                                 guard let item else { return }
-                                Task {
+                                // @MainActor: photoImage/uploadingPhoto son @State.
+                                Task { @MainActor in
                                     guard let data = try? await item.loadTransferable(type: Data.self),
                                           let uiImg = UIImage(data: data) else { return }
                                     photoImage = uiImg

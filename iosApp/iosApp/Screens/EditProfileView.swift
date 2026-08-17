@@ -261,7 +261,8 @@ struct EditProfileView: View {
         }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
-            Task {
+            // @MainActor: cropCandidate es @State y abre el recortador.
+            Task { @MainActor in
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let img = UIImage(data: data) {
                     cropCandidate = CropCandidate(image: img)   // → abre el recortador
