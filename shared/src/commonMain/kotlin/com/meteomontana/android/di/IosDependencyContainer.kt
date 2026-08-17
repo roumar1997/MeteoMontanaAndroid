@@ -438,6 +438,15 @@ class IosDependencyContainer(
     suspend fun pendingBoulderContributions(): List<com.meteomontana.android.data.outbox.PendingContributionRow> =
         outboxSync.pendingBoulderContributions()
 
+    /** Edición de una piedra existente guardada sin cobertura (iOS). */
+    @Throws(Exception::class)
+    suspend fun enqueueBlockEditContribution(schoolId: String, payloadJson: String) =
+        outboxSync.enqueueBlockEditContribution(schoolId, payloadJson)
+
+    @Throws(Exception::class)
+    suspend fun pendingBlockEditContributions(): List<com.meteomontana.android.data.outbox.PendingContributionRow> =
+        outboxSync.pendingBlockEditContributions()
+
     @Throws(Exception::class)
     suspend fun deleteOutboxRow(id: Long) = outboxSync.deleteOutboxRow(id)
 

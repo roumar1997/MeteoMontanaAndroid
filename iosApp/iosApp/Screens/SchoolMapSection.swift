@@ -1143,7 +1143,7 @@ struct SchoolMapSection: View {
     /// sectores, y que hiciera zoom al pulsarlo". Antes había que buscarlos a
     /// ojo en el mapa y ampliar a mano.
     private var sectoresList: some View {
-        let sectores = vm.blocks.filter { $0.type.uppercased() == "ZONE" }.sorted { $0.name < $1.name }
+        let sectores = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "ZONE" })
         return Group {
             if !sectores.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -1182,12 +1182,43 @@ struct SchoolMapSection: View {
         }
     }
 
+    /// Ordena parkings/sectores por CERCANÍA a tu ubicación — pero solo si de
+    /// verdad estás en la escuela.
+    ///
+    /// Petición de Rodrigo (2026-08-17). Concilia con la decisión anterior, que
+    /// los ponía alfabéticos a propósito "para que la lista tenga sentido
+    /// también viéndola desde casa": mirándola de lejos, todos los parkings de
+    /// una escuela están prácticamente a la MISMA distancia de ti, así que
+    /// ordenarlos por distancia da un orden caprichoso que cambia con solo
+    /// moverte por casa. Por eso: cerca → por distancia (lo útil en la roca);
+    /// lejos o sin GPS → alfabético (estable y predecible).
+    private func ordenadosPorCercania(_ items: [Block]) -> [Block] {
+        guard let u = userCoord else { return items.sorted { $0.name < $1.name } }
+        let conDistancia = items.map {
+            ($0, Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: $0.lat, lon2: $0.lon))
+        }
+        let estoyEnLaEscuela = conDistancia.contains { $0.1 <= Self.kmParaOrdenarPorCercania }
+        guard estoyEnLaEscuela else { return items.sorted { $0.name < $1.name } }
+        return conDistancia.sorted { $0.1 < $1.1 }.map { $0.0 }
+    }
+
+    /// A partir de aquí se considera que NO estás en la escuela (mismo criterio
+    /// que usa el encuadre inicial del mapa para incluir tu posición).
+    private static let kmParaOrdenarPorCercania: Double = 20
+
     /// Nombre del sector + cuántas piedras tiene (lo que de verdad ayuda a
     /// elegir a cuál ir).
     private func etiquetaSector(_ s: Block) -> String {
         let piedras = vm.blocks.filter { $0.sectorBlockId == s.id }.count
-        let nombre = s.name.isEmpty ? "Sector" : s.name
-        return piedras > 0 ? "\(nombre) · \(piedras)" : nombre
+        var etiqueta = s.name.isEmpty ? "Sector" : s.name
+        if piedras > 0 { etiqueta += " · \(piedras)" }
+        // La distancia se enseña porque ahora la lista se ORDENA por ella:
+        // sin verla, el orden parecería arbitrario.
+        if let u = userCoord {
+            let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: s.lat, lon2: s.lon)
+            etiqueta += km < 1 ? " · \(Int(km * 1000)) m" : String(format: " · %.1f km", km)
+        }
+        return etiqueta
     }
 
     /// Lleva el mapa al sector y DESPLIEGA sus piedras, encuadrándolas para que
@@ -1210,7 +1241,7 @@ struct SchoolMapSection: View {
     }
 
     private var parkingsList: some View {
-        let parkings = vm.blocks.filter { $0.type.uppercased() == "PARKING" }.sorted { $0.name < $1.name }
+        let parkings = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "PARKING" })
         return Group {
             if !parkings.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
