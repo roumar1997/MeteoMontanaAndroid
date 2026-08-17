@@ -167,14 +167,20 @@ internal fun FeedPostCard(
                 }
                 TopoPhotoCanvas(
                     photoUrl = post.photoPath!!,
+                    // Si el backend manda las vías de la cara, se pintan TODAS:
+                    // pasa en piedra nueva y, desde 2026-08-17, también en vía
+                    // nueva — al añadir varias de golpe se publica un solo post
+                    // y antes solo se veía una, con el resto del trabajo oculto.
+                    // En un ASCENSO no las manda: ese post va de UNA vía.
                     lines = when {
+                        blockLines.isNotEmpty() -> blockLines
                         points.isNotEmpty() -> listOf(
                             TopoLine(
                                 name = post.lineName, grade = post.grade,
                                 startType = post.startType, points = points
                             )
                         )
-                        else -> blockLines
+                        else -> emptyList()
                     }
                 )
                 // Vías que hay en OTRAS fotos de la piedra. No se pueden dibujar

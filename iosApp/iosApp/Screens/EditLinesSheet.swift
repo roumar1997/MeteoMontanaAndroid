@@ -295,7 +295,11 @@ struct EditLinesSheet: View {
             // No seguir si una foto cambiada no sube (evita mezclar caras).
             guard let url = try? await StorageUploader.uploadBoulderPhoto(img, schoolId: schoolId, index: i) else {
                 sending = false
-                sendError = "No se pudo subir la foto \(i + 1). Revisa la conexión y reinténtalo."
+                // Ofrecer guardarlo TAMBIÉN aquí. Sin cobertura este es el
+                // primer sitio donde se falla —subir la foto— y hacer `return`
+                // sin más se saltaba el ofrecimiento: el usuario solo veía
+                // "reintentar" y no podía dejarlo guardado (Rodrigo, build 144).
+                ofrecerGuardarOffline = true
                 return
             }
             newFacePhoto[i] = url

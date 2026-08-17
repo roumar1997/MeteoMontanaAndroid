@@ -131,6 +131,19 @@ struct FeedPostCard: View {
     }
 
     private var postLines: [TopoLineVM] {
+        // Si el backend manda las vías de la cara, se pintan TODAS: pasa en
+        // piedra nueva y, desde 2026-08-17, también en vía nueva — al añadir
+        // varias de golpe se publica UN solo post y antes solo se veía una,
+        // con el resto del trabajo oculto. En un ASCENSO no las manda: ese post
+        // va de UNA vía concreta.
+        if let lines = post.blockLines, !lines.isEmpty {
+            return lines.enumerated().compactMap { i, l in
+                let pts = TopoParse.points(l.linePath)
+                guard !pts.isEmpty else { return nil }
+                return TopoLineVM(id: "cara-\(i)", name: l.name, grade: l.grade,
+                                  startType: l.startType, points: pts)
+            }
+        }
         let points = TopoParse.points(post.linePath)
         if !points.isEmpty {
             return [TopoLineVM(id: post.lineId ?? "feed", name: post.lineName,
