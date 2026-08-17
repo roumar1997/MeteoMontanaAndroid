@@ -1208,17 +1208,15 @@ struct SchoolMapSection: View {
 
     /// Nombre del sector + cuántas piedras tiene (lo que de verdad ayuda a
     /// elegir a cuál ir).
+    /// Nombre + cuántas piedras tiene. SIN distancia a propósito: el GPS refresca
+    /// en continuo y el número bailaba sin parar en pantalla, que distrae más de
+    /// lo que ayuda (Rodrigo, 2026-08-17). La cercanía sigue notándose en el
+    /// ORDEN de la fila, que es estable porque unos metros de deriva del GPS no
+    /// cambian qué sector está más cerca.
     private func etiquetaSector(_ s: Block) -> String {
         let piedras = vm.blocks.filter { $0.sectorBlockId == s.id }.count
-        var etiqueta = s.name.isEmpty ? "Sector" : s.name
-        if piedras > 0 { etiqueta += " · \(piedras)" }
-        // La distancia se enseña porque ahora la lista se ORDENA por ella:
-        // sin verla, el orden parecería arbitrario.
-        if let u = userCoord {
-            let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: s.lat, lon2: s.lon)
-            etiqueta += km < 1 ? " · \(Int(km * 1000)) m" : String(format: " · %.1f km", km)
-        }
-        return etiqueta
+        let nombre = s.name.isEmpty ? "Sector" : s.name
+        return piedras > 0 ? "\(nombre) · \(piedras)" : nombre
     }
 
     /// Lleva el mapa al sector y DESPLIEGA sus piedras, encuadrándolas para que
@@ -1228,15 +1226,31 @@ struct SchoolMapSection: View {
         vm.collapsedSectors.remove(s.id)
         var coords = [CLLocationCoordinate2D(latitude: s.lat, longitude: s.lon)]
         coords += piedras.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-        // Con piedras, encuadrarlas TODAS; con una sola (o ninguna), centrar con
-        // zoom cerrado — un encuadre de un punto solo daría un zoom absurdo.
-        if coords.count >= 2 {
-            focusFit = coords
-        } else {
-            focusFit = []
-            focusCoord = coords[0]
-            focusZoom = 16.5
+
+        // SIEMPRE por encuadre, nunca por "centrar": antes, un sector con 0
+        // piedras caía al camino de centrar y allí el zoom es un MÍNIMO
+        // (nuncaAlejar), así que si ya estabas cerca no pasaba NADA visible —
+        // "algunos sectores hacen zoom y otros no", con Zarzalejo delante:
+        // Pradera tiene 9 piedras, Cantera 0 y Mundo al revés 1.
+        //
+        // Se garantiza una caja MÍNIMA alrededor del conjunto para que un sector
+        // con 0 o 1 piedras no produzca un encuadre degenerado (dos puntos casi
+        // pegados dan un zoom absurdo).
+        let lats = coords.map(\.latitude), lons = coords.map(\.longitude)
+        let centroLat = (lats.min()! + lats.max()!) / 2
+        let centroLon = (lons.min()! + lons.max()!) / 2
+        // ~165 m de lado. En longitud se corrige por la latitud, o la caja
+        // saldría más estrecha de lo pedido (aquí, a 40°, un grado de longitud
+        // mide un 77% de uno de latitud).
+        let ladoLat = 0.0015
+        let ladoLon = ladoLat / max(0.2, cos(centroLat * .pi / 180))
+        if (lats.max()! - lats.min()!) < ladoLat || (lons.max()! - lons.min()!) < ladoLon {
+            coords.append(CLLocationCoordinate2D(latitude: centroLat - ladoLat / 2,
+                                                 longitude: centroLon - ladoLon / 2))
+            coords.append(CLLocationCoordinate2D(latitude: centroLat + ladoLat / 2,
+                                                 longitude: centroLon + ladoLon / 2))
         }
+        focusFit = coords
         focusToken += 1
     }
 
@@ -1284,12 +1298,12 @@ struct SchoolMapSection: View {
 
     /// Etiqueta del chip de parking: nombre + distancia si hay ubicación.
     private func chipLabel(_ p: Block) -> String {
-        var label = p.name.isEmpty ? "Parking" : p.name
-        if let u = userCoord {
-            let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: p.lat, lon2: p.lon)
-            label += km < 1 ? " · \(Int(km * 1000)) m" : String(format: " · %.1f km", km)
-        }
-        return label
+        // SIN distancia a propósito (Rodrigo, 2026-08-17): el GPS refresca en
+        // continuo y el número bailaba sin parar, que distrae más de lo que
+        // ayuda. La cercanía se nota en el ORDEN de la fila. La distancia exacta
+        // sigue estando en la mini-ficha al tocar el parking, que es donde se
+        // mira una vez y no cambia delante de tus ojos.
+        p.name.isEmpty ? "Parking" : p.name
     }
 
     private func color(for type: String) -> UIColor {
