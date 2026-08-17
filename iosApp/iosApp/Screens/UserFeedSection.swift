@@ -230,8 +230,11 @@ struct UserFeedSection: View {
                 ForEach(visible, id: \.id) { post in
                     FeedPostCard(
                         post: post,
-                        onOpenSchool: { id, _, lineName, blockId in
-                            navTarget = .school(id, lineName ?? blockId)
+                        onOpenSchool: { id, lineId, lineName, blockId in
+                            // Prioridad: lineId (único) > blockId (único) > lineName
+                            // (busca por texto en toda la escuela — puede chocar con
+                            // otra piedra que tenga una vía con el mismo nombre).
+                            navTarget = .school(id, lineId ?? blockId ?? lineName)
                         },
                         onOpenUser: { navTarget = .user($0) },
                         onToggleLike: { vm.toggleLike(post) },

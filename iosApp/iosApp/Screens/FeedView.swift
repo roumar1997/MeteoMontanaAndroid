@@ -519,9 +519,15 @@ struct FeedView: View {
                         ForEach(visible, id: \.id) { post in
                             FeedPostCard(
                                 post: post,
-                                onOpenSchool: { id, _, lineName, blockId in
-                                    // Post de piedra nueva: sin vía → abre por id de piedra.
-                                    navTarget = .school(id, lineName ?? blockId)
+                                onOpenSchool: { id, lineId, lineName, blockId in
+                                    // Prioridad: lineId (único, sin ambigüedad) >
+                                    // blockId (único) > lineName (busca por texto
+                                    // en TODA la escuela — con nombres autonumerados
+                                    // tipo "4" puede coincidir con la vía de OTRA
+                                    // piedra distinta y abrir la equivocada; pasó de
+                                    // verdad, Rodrigo, 2026-08-18: se descartaba
+                                    // lineId aquí mismo con "_" pese a tenerlo).
+                                    navTarget = .school(id, lineId ?? blockId ?? lineName)
                                 },
                                 onOpenUser: { navTarget = .user($0) },
                                 onToggleLike: { vm.toggleLike(post) },

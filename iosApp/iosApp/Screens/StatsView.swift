@@ -316,7 +316,8 @@ struct StatsView: View {
             ForEach(Array(store.entriesForSchool(school).prefix(30).enumerated()),
                     id: \.offset) { _, e in
                 if let sid = e.schoolId {
-                    NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: e.blockName)) {
+                    // lineId antes que blockName — mismo motivo que en JournalView.
+                    NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: e.lineId ?? e.blockName)) {
                         entryRow(e, navigable: true)
                     }
                     .buttonStyle(.plain)

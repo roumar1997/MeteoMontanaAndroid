@@ -247,7 +247,11 @@ struct JournalRow: View {
             // Si hay escuela, la parte izquierda navega a su detalle y abre la
             // piedra que contiene esta vía (deep-link del diario).
             if let sid = schoolId, !sid.isEmpty {
-                NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: entry.blockName)) { leading }
+                // lineId (único) antes que blockName (texto — puede coincidir con
+                // una vía de OTRA piedra con el mismo nombre autonumerado; mismo
+                // fallo que el del feed, 2026-08-18). null en entradas antiguas o
+                // creadas sin conexión, donde solo hay nombre.
+                NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: entry.lineId ?? entry.blockName)) { leading }
                     .buttonStyle(.plain)
             } else {
                 leading
