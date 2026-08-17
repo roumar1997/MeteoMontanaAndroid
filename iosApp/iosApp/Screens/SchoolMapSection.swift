@@ -75,6 +75,8 @@ struct SchoolMapSection: View {
     @State private var focusCoord: CLLocationCoordinate2D?
     /// Zoom del próximo enfoque (mínimo: nuncaAlejar lo respeta).
     @State private var focusZoom: Double = 15.2
+    /// Margen mínimo del encuadre (grados de lat). Los sectores lo bajan.
+    @State private var focusMargenMinimo: Double = 0.004
     @State private var focusToken = 0
     // Encuadre de bounds (parking + su zona) — tiene prioridad sobre focusCoord.
     @State private var focusFit: [CLLocationCoordinate2D] = []
@@ -271,7 +273,8 @@ struct SchoolMapSection: View {
                         // cerrar cada ficha).
                         nuncaAlejar: true,
                         focusToken: focusToken,
-                        focusFitCoordinates: focusFit
+                        focusFitCoordinates: focusFit,
+                        focusMargenMinimo: focusMargenMinimo
                     )
                     .frame(height: height)
 
@@ -1224,33 +1227,30 @@ struct SchoolMapSection: View {
     private func irAlSector(_ s: Block) {
         let piedras = vm.blocks.filter { $0.sectorBlockId == s.id }
         vm.collapsedSectors.remove(s.id)
-        var coords = [CLLocationCoordinate2D(latitude: s.lat, longitude: s.lon)]
-        coords += piedras.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
 
-        // SIEMPRE por encuadre, nunca por "centrar": antes, un sector con 0
-        // piedras caía al camino de centrar y allí el zoom es un MÍNIMO
-        // (nuncaAlejar), así que si ya estabas cerca no pasaba NADA visible —
-        // "algunos sectores hacen zoom y otros no", con Zarzalejo delante:
-        // Pradera tiene 9 piedras, Cantera 0 y Mundo al revés 1.
+        // Regla (Rodrigo, 2026-08-17): si el sector TIENE piedras, encuadrar
+        // para que se vean todas; si no tiene, centrarse en él y listo.
         //
-        // Se garantiza una caja MÍNIMA alrededor del conjunto para que un sector
-        // con 0 o 1 piedras no produzca un encuadre degenerado (dos puntos casi
-        // pegados dan un zoom absurdo).
-        let lats = coords.map(\.latitude), lons = coords.map(\.longitude)
-        let centroLat = (lats.min()! + lats.max()!) / 2
-        let centroLon = (lons.min()! + lons.max()!) / 2
-        // ~165 m de lado. En longitud se corrige por la latitud, o la caja
-        // saldría más estrecha de lo pedido (aquí, a 40°, un grado de longitud
-        // mide un 77% de uno de latitud).
-        let ladoLat = 0.0015
-        let ladoLon = ladoLat / max(0.2, cos(centroLat * .pi / 180))
-        if (lats.max()! - lats.min()!) < ladoLat || (lons.max()! - lons.min()!) < ladoLon {
-            coords.append(CLLocationCoordinate2D(latitude: centroLat - ladoLat / 2,
-                                                 longitude: centroLon - ladoLon / 2))
-            coords.append(CLLocationCoordinate2D(latitude: centroLat + ladoLat / 2,
-                                                 longitude: centroLon + ladoLon / 2))
+        // Se encuadran SOLO las piedras, sin el marcador del sector: ese
+        // marcador puede estar apartado (al borde del camino, p. ej.) y meterlo
+        // estiraba el encuadre dejando las piedras más pequeñas de lo necesario.
+        //
+        // Y el margen mínimo baja a ~55 m: el de por defecto (~450 m a cada
+        // lado) está pensado para encuadrar escuelas enteras y convertía un
+        // sector de 55 m —lo que miden de verdad los de Zarzalejo— en una caja
+        // de casi 1 km, con lo que el mapa apenas se movía. Esa era la causa de
+        // "los sectores CON piedras no hacen zoom y los que no tienen sí".
+        focusMargenMinimo = 0.0005
+        if piedras.count >= 2 {
+            focusFit = piedras.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+        } else {
+            // 0 piedras → el sector. 1 piedra → esa piedra (encuadrar un solo
+            // punto no define ninguna caja).
+            focusFit = []
+            let destino = piedras.first ?? s
+            focusCoord = CLLocationCoordinate2D(latitude: destino.lat, longitude: destino.lon)
+            focusZoom = 17.0
         }
-        focusFit = coords
         focusToken += 1
     }
 

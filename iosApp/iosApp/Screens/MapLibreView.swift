@@ -158,6 +158,10 @@ struct MapLibreView: UIViewRepresentable {
     /// centrar en focusCoordinate — p. ej. parking + sus sectores/piedras
     /// cercanos ("parking como puerta de entrada a su zona").
     var focusFitCoordinates: [CLLocationCoordinate2D] = []
+    /// Margen mínimo del encuadre, en grados de latitud. El de por defecto
+    /// (~450 m) está pensado para encuadrar ESCUELAS; al ir a un SECTOR, cuyas
+    /// piedras ocupan 30-55 m, ese margen lo dejaba casi sin acercar.
+    var focusMargenMinimo: Double = 0.004
     /// Capa de radar (lluvia AEMET cocinada por el backend): imagen
     /// georreferenciada que se estira entre las esquinas dadas.
     var radarImage: UIImage? = nil
@@ -225,7 +229,8 @@ struct MapLibreView: UIViewRepresentable {
                 }
                 map.setVisibleCoordinateBounds(
                     context.coordinator.inflated(minLat: minLat, maxLat: maxLat,
-                                                 minLon: minLon, maxLon: maxLon),
+                                                 minLon: minLon, maxLon: maxLon,
+                                                 margenMinimo: focusMargenMinimo),
                     edgePadding: UIEdgeInsets(top: 60, left: 50, bottom: 60, right: 50),
                     animated: true)
             } else if let coord = focusCoordinate {
@@ -400,10 +405,23 @@ struct MapLibreView: UIViewRepresentable {
 
         /// Infla unos bounds con margen proporcional y un MÍNIMO absoluto: con
         /// puntos casi coincidentes, fitBounds se iba a zoom extremo.
+        ///
+        /// @param margenMinimo margen mínimo a cada lado, en grados de latitud.
+        ///   Por defecto 0,004° (~450 m), pensado para encuadrar ESCUELAS en el
+        ///   mapa general. Para un SECTOR es enorme: sus piedras ocupan 30-55 m
+        ///   (medido en Zarzalejo), así que ese mínimo convertía una caja de 55 m
+        ///   en casi 1 km y el mapa "no se acercaba" al pulsar el sector
+        ///   (reportado por Rodrigo en el build 142). Los sectores pasan un
+        ///   margen mucho menor.
         func inflated(minLat: Double, maxLat: Double,
-                      minLon: Double, maxLon: Double) -> MLNCoordinateBounds {
-            let latSpan = max((maxLat - minLat) * 0.30, 0.004)
-            let lonSpan = max((maxLon - minLon) * 0.30, 0.005)
+                      minLon: Double, maxLon: Double,
+                      margenMinimo: Double = 0.004) -> MLNCoordinateBounds {
+            // El margen en longitud se corrige por la latitud: a 40°, un grado
+            // de longitud mide un 77% de uno de latitud, y sin corregirlo el
+            // encuadre sale más estrecho de lo pedido.
+            let correccionLon = max(0.2, cos(((minLat + maxLat) / 2) * .pi / 180))
+            let latSpan = max((maxLat - minLat) * 0.30, margenMinimo)
+            let lonSpan = max((maxLon - minLon) * 0.30, margenMinimo / correccionLon)
             return MLNCoordinateBounds(
                 sw: CLLocationCoordinate2D(latitude: minLat - latSpan, longitude: minLon - lonSpan),
                 ne: CLLocationCoordinate2D(latitude: maxLat + latSpan, longitude: maxLon + lonSpan))
