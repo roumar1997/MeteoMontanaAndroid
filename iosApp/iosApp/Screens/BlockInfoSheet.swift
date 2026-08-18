@@ -52,11 +52,19 @@ struct BlockInfoSheet: View {
 
     /// Índice de la cara que contiene la vía del deep-link (para hacer scroll a
     /// ella al abrir). Nil si no hay deep-link o no se encuentra.
+    ///
+    /// Por ID primero, por NOMBRE si no: desde 2026-08-17 el feed manda el id
+    /// de la vía (antes el nombre, que colisionaba entre piedras — "abría la
+    /// piedra equivocada"). Si aquí solo se comparara por nombre, un id como
+    /// "3c2cd1ea-..." nunca haría match con ningún `$0.name` y la ficha se
+    /// quedaba siempre en FOTO 1 sin avisar — el mismo bug, una capa más
+    /// adentro (Rodrigo, build 147: "solo me abre la primera").
     private var scrollFaceIndex: Int? {
         guard let via = highlightVia?.trimmingCharacters(in: .whitespaces), !via.isEmpty else { return nil }
-        return orderedFaces.firstIndex { f in
-            f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(via) == .orderedSame }
-        }
+        return orderedFaces.firstIndex { f in f.lines.contains { $0.id == via } }
+            ?? orderedFaces.firstIndex { f in
+                f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(via) == .orderedSame }
+            }
     }
     @State private var tickedLines: Set<String> = []   // vías marcadas como hechas en esta sesión
     @State private var tickingLine: String?            // vía guardándose ahora
@@ -457,6 +465,9 @@ struct BlockInfoSheet: View {
             // pulsada (sin reordenar las caras → FOTO 1, FOTO 2… en su orden).
             .onAppear {
                 guard let i = scrollFaceIndex, i > 0 else { return }
+                // Sincroniza la pestaña visual con el salto: sin esto, el scroll
+                // llegaba bien pero la pestaña seguía marcando "FOTO 1".
+                caraVisible = i
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                     withAnimation { proxy.scrollTo(anclaDeCara(i), anchor: .top) }
                 }

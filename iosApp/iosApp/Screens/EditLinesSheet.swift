@@ -223,11 +223,15 @@ struct EditLinesSheet: View {
                     }
                 }
                 // Abre la cara que contiene la vía del deep-link, si la hay.
-                if let v = focusVia?.trimmingCharacters(in: .whitespaces), !v.isEmpty,
-                   let hit = faces.firstIndex(where: { f in
-                       f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(v) == .orderedSame }
-                   }) {
-                    selectedFace = hit
+                // Por ID primero, por nombre si no (mismo motivo que
+                // scrollFaceIndex en BlockInfoSheet: focusVia = openVia, que
+                // desde 2026-08-17 puede llegar como id de vía, no nombre).
+                if let v = focusVia?.trimmingCharacters(in: .whitespaces), !v.isEmpty {
+                    let hit = faces.firstIndex(where: { f in f.lines.contains { $0.existingLineId == v } })
+                        ?? faces.firstIndex(where: { f in
+                            f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(v) == .orderedSame }
+                        })
+                    if let hit { selectedFace = hit }
                 }
             }
         }
