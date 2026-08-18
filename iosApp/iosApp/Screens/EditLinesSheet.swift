@@ -227,7 +227,7 @@ struct EditLinesSheet: View {
                 // scrollFaceIndex en BlockInfoSheet: focusVia = openVia, que
                 // desde 2026-08-17 puede llegar como id de vía, no nombre).
                 if let v = focusVia?.trimmingCharacters(in: .whitespaces), !v.isEmpty {
-                    let hit = faces.firstIndex(where: { f in f.lines.contains { $0.existingLineId == v } })
+                    let hit = faces.firstIndex(where: { f in f.lines.contains { $0.id == v } })
                         ?? faces.firstIndex(where: { f in
                             f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(v) == .orderedSame }
                         })
