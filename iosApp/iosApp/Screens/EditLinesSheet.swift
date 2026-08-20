@@ -129,7 +129,11 @@ struct EditLinesSheet: View {
                                     .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
                             }.buttonStyle(.plain)
                             Button { removeFace(faceIdx) } label: {
-                                Text("✕ QUITAR FOTO \(faceIdx + 1)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.bad)
+                                // No es solo la foto: se va la foto Y sus vías. "Quitar
+                                // foto" sonaba a que solo tocaba la imagen (para eso ya
+                                // está "CAMBIAR FOTO DE ESTA CARA" arriba) — Rodrigo,
+                                // 2026-08-20.
+                                Text("✕ ELIMINAR CARA \(faceIdx + 1)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.bad)
                                     .padding(.horizontal, 10).padding(.vertical, 8)
                                     .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
                             }.buttonStyle(.plain)

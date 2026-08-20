@@ -157,12 +157,37 @@ enum TopoShared {
     }
 
     /// IMÁN del editor: espejo exacto de magnetizeStroke de TopoRenderer.kt.
-    /// v2: se compara contra CUALQUIER TRAMO de las otras vías (no solo sus
-    /// vértices — antes era casi imposible acertar con el dedo) y se pega al
-    /// vértice más cercano de ese tramo (compartir sigue siendo EXACTO).
+    /// v3 (2026-08-20, mismo fallo que ya reportó Rodrigo en Android antes de
+    /// que existiera este editor en iOS): v2 siempre se pegaba al VÉRTICE más
+    /// cercano del tramo, aunque quedara lejos — tocar a mitad de una vía larga
+    /// podía mandar el punto a medio muro de distancia. Ahora el vértice solo
+    /// gana si lo tienes CASI debajo (radioVertice, más estrecho que el imán);
+    /// si estás cerca de la vía pero lejos de sus vértices, el trazo cae en la
+    /// PROYECCIÓN — el punto exacto de la vía más cercano a donde tocaste. Se
+    /// pierde el tramo compartido exacto en ese caso, pero la línea cae donde
+    /// el usuario dijo, que es lo que importa.
     static func magnetizeStroke(_ drawn: [CGPoint], others: [[CGPoint]],
                                 threshold: CGFloat = 0.04) -> [CGPoint] {
         guard !drawn.isEmpty, !others.isEmpty else { return drawn }
+        func proyeccion(_ p: CGPoint) -> CGPoint? {
+            var mejor: CGPoint? = nil
+            var mejorD = threshold * threshold
+            for pts in others {
+                guard pts.count > 1 else { continue }
+                for si in 0..<(pts.count - 1) {
+                    let a = pts[si], b = pts[si + 1]
+                    let abx = b.x - a.x, aby = b.y - a.y
+                    let len2 = abx * abx + aby * aby
+                    let t = len2 < 1e-12 ? 0
+                        : max(0, min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2))
+                    let qx = a.x + t * abx, qy = a.y + t * aby
+                    let dx = p.x - qx, dy = p.y - qy
+                    let d = dx * dx + dy * dy
+                    if d < mejorD { mejorD = d; mejor = CGPoint(x: qx, y: qy) }
+                }
+            }
+            return mejor
+        }
         func snap(_ p: CGPoint) -> (li: Int, vi: Int)? {
             var best: (Int, Int)? = nil
             var bestD = threshold * threshold
@@ -191,9 +216,16 @@ enum TopoShared {
             return best
         }
         struct Node { let point: CGPoint; let snapped: (li: Int, vi: Int)? }
+        // Radio para pegarse a un VÉRTICE: más estrecho que el del imán. El
+        // vértice solo gana si lo tienes casi debajo; si no, gana la proyección.
+        let radioVertice = threshold * 0.45
         let nodes = drawn.map { p -> Node in
-            if let s = snap(p) { return Node(point: others[s.li][s.vi], snapped: s) }
-            return Node(point: p, snapped: nil)
+            guard let s = snap(p) else { return Node(point: p, snapped: nil) }
+            let v = others[s.li][s.vi]
+            let dx = p.x - v.x, dy = p.y - v.y
+            let cerca = dx * dx + dy * dy <= radioVertice * radioVertice
+            if cerca { return Node(point: v, snapped: s) }
+            return Node(point: proyeccion(p) ?? p, snapped: nil)
         }
         var out: [CGPoint] = []
         for (i, n) in nodes.enumerated() {

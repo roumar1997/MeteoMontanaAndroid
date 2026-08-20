@@ -377,20 +377,9 @@ struct BoulderFormSheet: View {
                             .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
                     }
 
-                    if let sendError {
-                        Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
-                        // Cola offline: guarda la propuesta (fotos incluidas) y el
-                        // flusher la envía solo al recuperar cobertura.
-                        Button { Task { await saveOffline() } } label: {
-                            Text("GUARDAR Y ENVIAR CON COBERTURA").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                .foregroundStyle(Cumbre.ink)
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
-                            Text(sendError != nil ? "REINTENTAR" : NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
+                            Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
                         .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
@@ -430,6 +419,17 @@ struct BoulderFormSheet: View {
                 Button("CERRAR") { dismiss(); onDone(false) }
             } message: {
                 Text("Se enviará automáticamente en cuanto haya cobertura. No tienes que hacer nada.")
+            }
+            // No se pudo enviar (sin cobertura, lo normal): diálogo emergente en
+            // vez de un texto rojo colado en el formulario, mismo estilo que el
+            // de "¿Guardar también las fotos?" al descargar una escuela. Repetible
+            // — reintentar puede volver a fallar y el diálogo vuelve a salir.
+            .alert("No se pudo enviar",
+                   isPresented: Binding(get: { sendError != nil }, set: { if !$0 { sendError = nil } })) {
+                Button("Guardar y enviar con cobertura") { Task { await saveOffline() } }
+                Button("Reintentar") { Task { await send() } }
+            } message: {
+                Text(sendError ?? "")
             }
         }
         .onChange(of: pickerItem) { _, item in
