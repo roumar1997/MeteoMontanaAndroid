@@ -123,7 +123,7 @@ struct OutlinedCumbreButton: View {
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(tint)
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .overlay(Rectangle().stroke(Cumbre.ink, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.ink, lineWidth: 1))
     }
 }
 

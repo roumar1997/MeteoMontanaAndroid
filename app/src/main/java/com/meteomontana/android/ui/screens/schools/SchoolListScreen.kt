@@ -954,8 +954,8 @@ private fun OutlinedCumbreButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
+            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+            .border(1.dp, MaterialTheme.colorScheme.onBackground, com.meteomontana.android.ui.theme.CumbrePillShape)
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
     ) {
