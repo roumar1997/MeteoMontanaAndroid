@@ -170,7 +170,10 @@ fun MeetupsScreen(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Agrupados en una píldora, como el resto de cabeceras de la app
+            // (CumbrePillGroup) — se quedaron sueltos aquí, era el único sitio
+            // que aún se veía "antiguo" (Rodrigo, con captura, 2026-08-21).
+            com.meteomontana.android.ui.components.CumbrePillGroup {
                 com.meteomontana.android.ui.components.HelpButton(topicKey = "meetups")
                 IconButton(onClick = { viewModel.loadMeetups() }) {
                     Icon(Icons.Outlined.Refresh, contentDescription = "Recargar")

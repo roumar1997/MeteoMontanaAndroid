@@ -272,17 +272,29 @@ struct MeetupsView: View {
                             .font(.headline)
                     }
                     Spacer()
-                    HelpButton(topicKey: "meetups")
-                    Button { Task { await vm.load() } } label: {
-                        Image(systemName: "arrow.clockwise").foregroundColor(Cumbre.ink)
+                    // Agrupados en una píldora, como el resto de cabeceras de
+                    // esta sesión — se quedaron sueltos aquí, era el único
+                    // sitio que aún se veía "antiguo" (Rodrigo, con captura,
+                    // 2026-08-21).
+                    HStack(spacing: 0) {
+                        HelpButton(topicKey: "meetups")
+                        Button { Task { await vm.load() } } label: {
+                            Image(systemName: "arrow.clockwise").foregroundColor(Cumbre.ink)
+                                .frame(width: 34, height: 34)
+                        }
+                        Button { activeSheet = .alert } label: {
+                            Image(systemName: vm.alertEnabled ? "bell.fill" : "bell")
+                                .foregroundColor(vm.alertEnabled ? Cumbre.terra : Cumbre.ink.opacity(0.5))
+                                .frame(width: 34, height: 34)
+                        }
+                        Button { activeSheet = .create } label: {
+                            Image(systemName: "plus").foregroundColor(Cumbre.terra)
+                                .frame(width: 34, height: 34)
+                        }
                     }
-                    Button { activeSheet = .alert } label: {
-                        Image(systemName: vm.alertEnabled ? "bell.fill" : "bell")
-                            .foregroundColor(vm.alertEnabled ? Cumbre.terra : Cumbre.ink.opacity(0.5))
-                    }
-                    Button { activeSheet = .create } label: {
-                        Image(systemName: "plus").foregroundColor(Cumbre.terra)
-                    }
+                    .padding(.horizontal, 2)
+                    .background(Cumbre.paper, in: Capsule())
+                    .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
