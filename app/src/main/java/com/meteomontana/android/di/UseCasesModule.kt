@@ -367,6 +367,10 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase(repo)
 
     @Provides
+    fun provideUpdateJournalStyleUseCase(repo: JournalRepository) =
+        com.meteomontana.android.domain.usecase.journal.UpdateJournalStyleUseCase(repo)
+
+    @Provides
     fun provideGetOrientationUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
         com.meteomontana.android.domain.usecase.community.GetOrientationUseCase(repo)
 

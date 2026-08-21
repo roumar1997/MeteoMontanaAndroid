@@ -125,6 +125,15 @@ final class AccountViewModel: ObservableObject {
         await load()
     }
 
+    /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes. */
+    func changeStyle(_ id: String, _ aVista: Bool, _ alFlash: Bool) async {
+        _ = await reporting("No se pudo cambiar el estilo", {
+            try await AppDependencies.shared.container.updateJournalStyle.invoke(
+                id: id, aVista: aVista, alFlash: alFlash)
+        })
+        await load()
+    }
+
     func deleteBlock(_ id: String) {
         entries.removeAll { $0.id == id }   // optimista
         // Refresca la caché ya sin el bloque → offline no reaparece al reabrir.
@@ -567,9 +576,29 @@ private struct AccountBlocksList: View {
             .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
     }
 
+    // Filtro por ESTILO: "aVista" | "alFlash" | nil (todos). Cliente, como
+    // el de grado — no necesita ruta nueva (Rodrigo, 2026-08-21).
+    @State private var styleFilter: String? = nil
+
+    private func styleFilterChip(_ label: String, active: Bool, onTap: @escaping () -> Void) -> some View {
+        Button(action: onTap) {
+            Text(label).font(Cumbre.mono(11, .bold))
+                .foregroundStyle(active ? .white : Cumbre.ink2)
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(active ? Cumbre.terra : Color.clear,
+                            in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                    .stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
+
     private var visibles: [JournalSession] {
-        guard let g = gradeFilter else { return entries }
-        return entries.filter { gradeOf($0) == g }
+        let byGrade = gradeFilter.map { g in entries.filter { gradeOf($0) == g } } ?? entries
+        switch styleFilter {
+        case "aVista": return byGrade.filter { $0.aVista }
+        case "alFlash": return byGrade.filter { $0.alFlash }
+        default: return byGrade
+        }
     }
 
     var body: some View {
@@ -612,6 +641,19 @@ private struct AccountBlocksList: View {
                                 .padding(.horizontal, 16).padding(.vertical, 6)
                             }
                         }
+                        // Filtro por ESTILO: solo si hay al menos una entrada marcada.
+                        if entries.contains(where: { $0.aVista || $0.alFlash }) {
+                            HStack(spacing: 6) {
+                                styleFilterChip("A VISTA", active: styleFilter == "aVista") {
+                                    styleFilter = styleFilter == "aVista" ? nil : "aVista"
+                                }
+                                styleFilterChip("AL FLASH", active: styleFilter == "alFlash") {
+                                    styleFilter = styleFilter == "alFlash" ? nil : "alFlash"
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16).padding(.bottom, 6)
+                        }
                         // N6: agrupado por MES + fecha editable (aqui es donde
                         // Rodrigo lo buscaba — la celda BLOQUES del perfil).
                         let byMonth = Dictionary(grouping: visibles.sorted { $0.date > $1.date },
@@ -626,6 +668,9 @@ private struct AccountBlocksList: View {
                                 JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id],
                                            onChangeDate: { newDate in
                                                Task { await vm.changeDate(e.id, newDate) }
+                                           },
+                                           onChangeStyle: { aVista, alFlash in
+                                               Task { await vm.changeStyle(e.id, aVista, alFlash) }
                                            }) { vm.deleteBlock(e.id) }
                                 Divider().overlay(Cumbre.rule)
                             }

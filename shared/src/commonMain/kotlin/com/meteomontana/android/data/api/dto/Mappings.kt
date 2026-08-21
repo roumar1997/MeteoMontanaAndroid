@@ -144,7 +144,7 @@ fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, prop
 fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, sectorBlockId, proposedLat, proposedLon, correctionReason, geometry, path, direction)
 
 // Journal
-fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status)
+fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status, aVista, alFlash)
 fun JournalStatsDto.toDomain() = JournalStats(blockCount, boulderCount, routeCount, schoolCount, maxGrade, maxBoulderGrade, maxRouteGrade, bySchool.map { it.toDomain() }, projectCount, projectBoulderCount, projectRouteCount)
 fun SchoolStatsDto.toDomain() = SchoolStats(schoolName, blockCount, maxGrade)
 

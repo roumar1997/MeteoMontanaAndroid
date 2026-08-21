@@ -447,18 +447,20 @@ struct BlockInfoSheet: View {
                 FeedPublishSheet(
                     lineLabel: feedTickLabel(pt.line, index: pt.index),
                     wasProject: pt.wasProject,
-                    onPublish: { always, caption, photo, sessionDate in
+                    onPublish: { always, caption, photo, sessionDate, aVista, alFlash in
                         if always { FeedPublishPrefs.mode = .always }
                         pendingTick = nil
                         Task {
-                            await toggle(pt.line, index: pt.index, sessionDate: sessionDate)
+                            await toggle(pt.line, index: pt.index, sessionDate: sessionDate,
+                                         aVista: aVista, alFlash: alFlash)
                             publishTickToFeed(pt.line, wasProject: pt.wasProject,
                                               caption: caption, photo: photo)
                         }
                     },
-                    onDiaryOnly: { sessionDate in
+                    onDiaryOnly: { sessionDate, aVista, alFlash in
                         pendingTick = nil
-                        Task { await toggle(pt.line, index: pt.index, sessionDate: sessionDate) }
+                        Task { await toggle(pt.line, index: pt.index, sessionDate: sessionDate,
+                                            aVista: aVista, alFlash: alFlash) }
                     })
             }
             // Deep-link del diario: hace scroll a la cara que contiene la vía
@@ -607,7 +609,8 @@ struct BlockInfoSheet: View {
     /// Marca/DESMARCA la vía en tu diario (toggle). Si no estaba hecha la añade
     /// (POST, o cola sin red); si ya estaba, la quita (borra la subida y/o la
     /// pendiente). No se puede añadir dos veces. Espejo del toggle de Android.
-    private func toggle(_ line: BlockLine, index: Int, sessionDate: String? = nil) async {
+    private func toggle(_ line: BlockLine, index: Int, sessionDate: String? = nil,
+                        aVista: Bool = false, alFlash: Bool = false) async {
         tickingLine = line.id
         let container = AppDependencies.shared.container
         let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
@@ -667,7 +670,8 @@ struct BlockInfoSheet: View {
                 notes: nil, date: sessionDate ?? df.string(from: Date()),
                 discipline: block.discipline,   // la vía hereda la modalidad de su piedra
                 lineId: line.id,                // id estable → enganche del diario por muro
-                status: "DONE")
+                status: "DONE",
+                aVista: aVista, alFlash: alFlash)
             let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
             if !ok { try? await container.enqueueJournal(req: req) }   // sin red → cola
         }

@@ -156,14 +156,30 @@ struct SubmitBlockPhotoFlow: View {
     var onDismiss: () -> Void
 
     @State private var aviso: String?
-    @State private var lanzado = false
+    // Sin EXIF (o lejos de cualquier escuela) y SIN escuela fijada: no podemos
+    // adivinar dónde fue, pero el usuario sí lo sabe — que la elija de una
+    // lista en vez de bloquear sin alternativa (Rodrigo, 2026-08-21: caso
+    // real, foto reenviada por WhatsApp — WhatsApp borra el EXIF de TODAS
+    // las fotos que reenvía, así que ni Cumbre ni el propio Android pueden
+    // hacer nada con esa copia).
+    @State private var eligiendoEscuela = false
+    @State private var pendienteImagen: UIImage?
+    @State private var pendienteAspect: String?
+    // Escuela fijada + sin ubicación: colocar en el centro SIN avisar confunde
+    // (Rodrigo, 2026-08-21: "que te diga que puedes ponerlo a mano pero que
+    // esa foto no tiene ubicación"). Se abre la escuela solo tras "ENTENDIDO".
+    @State private var sinUbicacionEnEscuela: School?
+    @State private var sinUbicacionImagen: UIImage?
+    // Elegir origen ANTES de lanzar nada: cámara en el momento o galería
+    // (Rodrigo, 2026-08-21: "que te permita hacerla en ese mismo momento").
+    @State private var eligiendoOrigen = true
 
     var body: some View {
         Color.clear
-            .onAppear {
-                guard !lanzado else { return }
-                lanzado = true
-                presentaSelector()
+            .confirmationDialog("¿Cómo quieres la foto?", isPresented: $eligiendoOrigen) {
+                Button("Hacer foto ahora") { presentaCamara() }
+                Button("Elegir de galería") { presentaSelector() }
+                Button("Cancelar", role: .cancel) { onDismiss() }
             }
             .alert("No se puede ubicar la foto", isPresented: Binding(
                 get: { aviso != nil }, set: { if !$0 { aviso = nil; onDismiss() } })
@@ -172,6 +188,84 @@ struct SubmitBlockPhotoFlow: View {
             } message: {
                 Text(aviso ?? "")
             }
+            .alert("Foto sin ubicación", isPresented: Binding(
+                get: { sinUbicacionEnEscuela != nil }, set: { if !$0 { sinUbicacionEnEscuela = nil } })
+            ) {
+                Button("ENTENDIDO") {
+                    if let fijada = sinUbicacionEnEscuela, let img = sinUbicacionImagen {
+                        PhotoProposalSeedStore.shared.put(.init(
+                            schoolId: fijada.id, image: img,
+                            lat: fijada.lat, lon: fijada.lon, aspect: nil))
+                        onOpenSchool(fijada.id)
+                    }
+                    sinUbicacionEnEscuela = nil
+                }
+            } message: {
+                Text("Esta foto no trae ubicación: coloca tú el punto en el mapa.")
+            }
+            .sheet(isPresented: $eligiendoEscuela, onDismiss: { onDismiss() }) {
+                SchoolPickerForPhoto(
+                    schools: schools,
+                    onPick: { escuela in
+                        eligiendoEscuela = false
+                        guard let img = pendienteImagen else { return }
+                        PhotoProposalSeedStore.shared.put(.init(
+                            schoolId: escuela.id, image: img,
+                            lat: escuela.lat, lon: escuela.lon, aspect: pendienteAspect))
+                        onOpenSchool(escuela.id)
+                    },
+                    onCancel: { eligiendoEscuela = false })
+            }
+    }
+
+    /// Cámara en el momento: la ubicación NO sale del EXIF —una foto recién
+    /// hecha por `UIImagePickerController` no lo trae fiable— sino del GPS
+    /// del móvil AHORA MISMO, que es justo lo que hace falta al fotografiar
+    /// en la roca.
+    private func presentaCamara() {
+        presentSystemCamera(context: "proponer-piedra") { image in
+            let bridge = AppDependencies.shared.locationBridge
+            func continuar(_ loc: UserLocation?) {
+                if let fijada = escuelaFijada {
+                    if loc == nil {
+                        sinUbicacionImagen = image
+                        sinUbicacionEnEscuela = fijada
+                    } else {
+                        PhotoProposalSeedStore.shared.put(.init(
+                            schoolId: fijada.id, image: image,
+                            lat: loc!.lat, lon: loc!.lon, aspect: nil))
+                        onOpenSchool(fijada.id)
+                    }
+                    return
+                }
+                guard let loc else {
+                    pendienteImagen = image
+                    pendienteAspect = nil
+                    eligiendoEscuela = true
+                    return
+                }
+                guard let escuela = PhotoPlacement.shared.nearestSchoolWithin(
+                    lat: loc.lat, lon: loc.lon, schools: schools,
+                    radiusKm: PhotoPlacement.shared.RADIO_ESCUELA_KM) else {
+                    pendienteImagen = image
+                    pendienteAspect = nil
+                    eligiendoEscuela = true
+                    return
+                }
+                PhotoProposalSeedStore.shared.put(.init(
+                    schoolId: escuela.id, image: image,
+                    lat: loc.lat, lon: loc.lon, aspect: nil))
+                onOpenSchool(escuela.id)
+            }
+            if bridge.hasPermission() {
+                bridge.current(callback: continuar)
+            } else {
+                bridge.requestPermission()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    bridge.current(callback: continuar)
+                }
+            }
+        }
     }
 
     private func presentaSelector() {
@@ -179,7 +273,21 @@ struct SubmitBlockPhotoFlow: View {
             guard let result else { onDismiss(); return }
             Task { @MainActor in
                 guard let donde = await PhotoExifReader.read(result) else {
-                    aviso = "Esta foto no guarda dónde se hizo, así que no se puede saber a qué escuela pertenece. Prueba con otra: tiene que ser una foto tomada por ti, con la ubicación activada en la cámara."
+                    // Desde el mapa de una escuela: ya la sabemos, no hace falta
+                    // la ubicación de la foto — se usa el centro de la escuela
+                    // como semilla y el punto se ajusta a mano, como siempre.
+                    if let fijada = escuelaFijada, let img = await PhotoExifReader.readImagen(result) {
+                        sinUbicacionImagen = img.image
+                        sinUbicacionEnEscuela = fijada
+                        return
+                    }
+                    guard let img = await PhotoExifReader.readImagen(result) else {
+                        aviso = "No se pudo leer esta foto. Prueba con otra."
+                        return
+                    }
+                    pendienteImagen = img.image
+                    pendienteAspect = nil
+                    eligiendoEscuela = true
                     return
                 }
                 // Desde el mapa de una escuela: la escuela ya esta decidida.
@@ -210,11 +318,12 @@ struct SubmitBlockPhotoFlow: View {
                 guard let escuela = PhotoPlacement.shared.nearestSchoolWithin(
                     lat: donde.lat, lon: donde.lon, schools: schools,
                     radiusKm: PhotoPlacement.shared.RADIO_ESCUELA_KM) else {
-                    let km = PhotoPlacement.shared.nearestSchoolKm(
-                        lat: donde.lat, lon: donde.lon, schools: schools)?.doubleValue
-                    let lejos = km.map { $0 >= 10 ? "a \(Int($0)) km" : String(format: "a %.1f km", $0) }
-                        ?? "no hay ninguna en el catálogo"
-                    aviso = "La foto se hizo lejos de cualquier escuela del catálogo (\(lejos)). Si la escuela no existe todavía, puedes proponerla desde «Enviar escuela»."
+                    // Trae ubicación pero lejos de cualquier escuela del
+                    // catálogo: mismo salvavidas que sin EXIF, elegirla a mano.
+                    pendienteImagen = donde.image
+                    pendienteAspect = PhotoPlacement.shared.aspectFromCameraDirection(
+                        cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) })
+                    eligiendoEscuela = true
                     return
                 }
                 PhotoProposalSeedStore.shared.put(.init(
@@ -224,6 +333,44 @@ struct SubmitBlockPhotoFlow: View {
                     aspect: PhotoPlacement.shared.aspectFromCameraDirection(
                         cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) })))
                 onOpenSchool(escuela.id)
+            }
+        }
+    }
+}
+
+/// Selector de escuela a mano, cuando la foto no trae ubicación utilizable.
+private struct SchoolPickerForPhoto: View {
+    let schools: [School]
+    let onPick: (School) -> Void
+    let onCancel: () -> Void
+    @State private var query = ""
+
+    private var filtradas: [School] {
+        query.isEmpty ? schools : schools.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Esta foto no trae ubicación (frecuente si llegó por WhatsApp — "
+                     + "borra esos datos al reenviarla). Elige la escuela y coloca "
+                     + "el punto a mano en el mapa.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Cumbre.ink2)
+                    .padding(.horizontal, 16).padding(.top, 8)
+                List(filtradas, id: \.id) { escuela in
+                    Text(escuela.name)
+                        .onTapGesture { onPick(escuela) }
+                }
+                .searchable(text: $query, prompt: "Buscar escuela…")
+                .listStyle(.plain)
+            }
+            .navigationTitle("¿En qué escuela es?")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar", action: onCancel)
+                }
             }
         }
     }

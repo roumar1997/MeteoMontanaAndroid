@@ -315,6 +315,10 @@ fun SchoolMap(
     // la ficha sin arrancar MapLibre. Los taps de marker del mapa llegan por
     // onBlockSelected; el trazado de muro del editor expande el mapa.
     val fichaCtx = LocalContext.current
+    // "Guardar y terminar luego" al editar una piedra (Rodrigo, 2026-08-21).
+    var borradorEncontrado by remember {
+        mutableStateOf<com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.Draft?>(null)
+    }
     val fichaIsAdmin = (viewModel.uiState.collectAsStateWithLifecycle().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
@@ -348,6 +352,9 @@ fun SchoolMap(
                 // NO cerramos la ficha: el editor abre ENCIMA (su scrim tapa la
                 // ficha) → sin parpadeo del mapa entre diálogos.
                 wallEdit.openFor(block)
+                // ¿Había algo a medias de la última vez que se cerró sin enviar?
+                com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.load(fichaCtx, block.id)
+                    ?.let { borradorEncontrado = it }
             }) else null,
             onEditLine = if (block.type == "BLOCK") ({ line ->
                 wallEdit.editingLine = block to line
@@ -428,14 +435,14 @@ fun SchoolMap(
             lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
                 (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
             wasProject = pt.wasProject,
-            onPublish = { always, caption, photoUri, sessionDate ->
+            onPublish = { always, caption, photoUri, sessionDate, aVista, alFlash ->
                 if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
                     fichaCtx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
                 pendingTick = null
                 viewModel.viewModelScope.launch {
                     val r = viewModel.toggleLine(
                         pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true,
-                        sessionDate = sessionDate)
+                        sessionDate = sessionDate, aVista = aVista, alFlash = alFlash)
                     if (r.getOrNull() == true) {
                         viewModel.publishTickToFeed(
                             pt.block, pt.line, pt.wasProject, caption,
@@ -457,11 +464,11 @@ fun SchoolMap(
                     }
                 }
             },
-            onDiaryOnly = { sessionDate ->
+            onDiaryOnly = { sessionDate, aVista, alFlash ->
                 pendingTick = null
                 viewModel.viewModelScope.launch {
                     viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName,
-                        markDone = true, sessionDate = sessionDate)
+                        markDone = true, sessionDate = sessionDate, aVista = aVista, alFlash = alFlash)
                 }
             },
             onDismiss = { pendingTick = null }
@@ -470,6 +477,28 @@ fun SchoolMap(
 
     // Flujo "+ AÑADIR VÍAS" / editar piedra-muro. Se oculta mientras se traza el
     // muro en el mapa (el estado vive en wallEdit, así no se pierde lo editado).
+    // "Guardar y terminar luego" (Rodrigo, 2026-08-21): ya existía al crear una
+    // piedra nueva, faltaba al editar una existente.
+    var preguntandoGuardarEdicion by remember { mutableStateOf(false) }
+    borradorEncontrado?.let { borrador ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { borradorEncontrado = null },
+            title = { Text("Tienes cambios sin enviar") },
+            text = { Text("Dejaste esta piedra a medias de editar. ¿Sigues donde lo dejaste o empiezas de cero?") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    wallEdit.faces = borrador.faces
+                    borradorEncontrado = null
+                }) { Text("CONTINUAR EDITANDO") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, borrador.blockId)
+                    borradorEncontrado = null
+                }) { Text("DESCARTAR") }
+            }
+        )
+    }
     wallEdit.target?.let { block ->
         if (!wallEdit.tracing) {
             AddLinesFlow(
@@ -488,11 +517,41 @@ fun SchoolMap(
                     wallEdit.startTracing()
                     selectedBlock = null  // deja ver el mapa para trazar
                 },
-                onDismiss = { wallEdit.target = null; selectedBlock = null },
+                onDismiss = {
+                    if (com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.tieneContenido(wallEdit.faces)) {
+                        preguntandoGuardarEdicion = true
+                    } else {
+                        wallEdit.target = null; selectedBlock = null
+                    }
+                },
                 onSuccess = {
+                    com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, block.id)
                     wallEdit.target = null
                     selectedBlock = null
                     successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                }
+            )
+        }
+    }
+    if (preguntandoGuardarEdicion) {
+        wallEdit.target?.let { block ->
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { preguntandoGuardarEdicion = false },
+                title = { Text("¿Guardar para terminar luego?") },
+                text = { Text("Se queda guardado en este móvil. No se envía a nadie hasta que lo termines.") },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.save(fichaCtx, block.id, wallEdit.faces)
+                        preguntandoGuardarEdicion = false
+                        wallEdit.target = null; selectedBlock = null
+                    }) { Text("GUARDAR") }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, block.id)
+                        preguntandoGuardarEdicion = false
+                        wallEdit.target = null; selectedBlock = null
+                    }) { Text("DESCARTAR") }
                 }
             )
         }

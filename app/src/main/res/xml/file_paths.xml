@@ -4,4 +4,6 @@
     <cache-path name="share" path="share/" />
     <!-- Fotos de celebración del feed (cámara → TakePicture) -->
     <cache-path name="feed" path="feed/" />
+    <!-- Foto tomada en el momento al proponer una piedra (cámara → TakePicture) -->
+    <cache-path name="propuesta-piedra" path="propuesta-piedra/" />
 </paths>

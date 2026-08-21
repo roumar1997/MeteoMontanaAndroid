@@ -155,7 +155,9 @@ class JournalTickController @Inject constructor(
         markDone: Boolean?,
         doneKeys: Set<String>,
         projectKeys: Set<String>,
-        sessionDate: String? = null
+        sessionDate: String? = null,
+        aVista: Boolean = false,
+        alFlash: Boolean = false
     ): Result<Boolean> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
         // Clave por lineId (aguanta homónimas). La clave por NOMBRE se sigue
@@ -232,7 +234,9 @@ class JournalTickController @Inject constructor(
                 // posición EN VIVO por lineId (aguanta renombres, reordenes y muros).
                 // Va también offline (la cola serializa la request entera).
                 lineId = line.id.takeIf { it.isNotBlank() },
-                status = "DONE"
+                status = "DONE",
+                aVista = aVista,
+                alFlash = alFlash
             )
             val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
             if (sent) {

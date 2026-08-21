@@ -204,6 +204,9 @@ struct JournalRow: View {
     var info: ViaCatalogInfo? = nil
     /// C3: cambiar la fecha de la entrada (nil = no editable, diario ajeno).
     var onChangeDate: ((String) -> Void)? = nil
+    /// Cambiar el estilo (a vista / al flash), independientes entre sí.
+    /// nil = no editable (diario ajeno).
+    var onChangeStyle: ((_ aVista: Bool, _ alFlash: Bool) -> Void)? = nil
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
     var onDelete: (() -> Void)? = nil
     @State private var showDatePicker = false
@@ -230,6 +233,22 @@ struct JournalRow: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                // Estilo de ascensión: solo se ve si hay algo que enseñar (ajeno)
+                // o si es editable (propio, para poder añadirlo después).
+                if entry.aVista || entry.alFlash || onChangeStyle != nil {
+                    HStack(spacing: 4) {
+                        if entry.aVista || onChangeStyle != nil {
+                            styleBadge("A VISTA", active: entry.aVista) {
+                                onChangeStyle?(!entry.aVista, entry.alFlash)
+                            }
+                        }
+                        if entry.alFlash || onChangeStyle != nil {
+                            styleBadge("AL FLASH", active: entry.alFlash) {
+                                onChangeStyle?(entry.aVista, !entry.alFlash)
+                            }
+                        }
+                    }
+                }
                 // Escuela + nº de piedra + sector (resueltos del catálogo en vivo).
                 if !subtitle.isEmpty {
                     Text(subtitle).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
@@ -240,6 +259,22 @@ struct JournalRow: View {
                 }
             }
         }
+    }
+
+    /// Chip pequeño de estilo (A VISTA / AL FLASH) — pulsable si onClick hace
+    /// algo (onChangeStyle != nil), para marcarlo/desmarcarlo sin diálogo.
+    private func styleBadge(_ label: String, active: Bool, onTap: @escaping () -> Void) -> some View {
+        Button(action: onTap) {
+            Text(label).font(Cumbre.mono(9, .bold))
+                .foregroundStyle(active ? .white : Cumbre.ink3)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(active ? Cumbre.terra : Cumbre.paper,
+                            in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                    .stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(onChangeStyle == nil)
     }
 
     var body: some View {

@@ -39,6 +39,11 @@ struct EditLinesSheet: View {
     @State private var showReorder = false
     @State private var showTrace = false
     @State private var tracedPath: [CLLocationCoordinate2D] = []
+    // "Guardar y terminar luego" al EDITAR (ya existía al crear una piedra
+    // nueva) — Rodrigo, 2026-08-21.
+    @State private var preguntandoGuardarEdicion = false
+    @State private var hayBorrador = false
+    @State private var borradorPendiente: EditBlockDraftStore.Draft?
 
     private var faceIdx: Int { min(max(selectedFace, 0), max(0, faceBlocks.count - 1)) }
     private var isWall: Bool { geometry == "LINE" }
@@ -203,7 +208,39 @@ struct EditLinesSheet: View {
             .navigationTitle("Editar vías")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button(NSLocalizedString("common_cancel", comment: "")) { dismiss(); onDone(false) }.foregroundStyle(Cumbre.ink3) } }
+                Button(NSLocalizedString("common_cancel", comment: "")) {
+                    // Fotos nuevas sin enviar → merece la pena preguntar antes
+                    // de tirarlas, igual que al crear una piedra.
+                    if !facePicked.isEmpty { preguntandoGuardarEdicion = true }
+                    else { dismiss(); onDone(false) }
+                }.foregroundStyle(Cumbre.ink3) } }
+            .alert("¿Guardar para terminar luego?", isPresented: $preguntandoGuardarEdicion) {
+                Button("GUARDAR") {
+                    EditBlockDraftStore.save(.init(
+                        blockId: block.id, faceBlocks: faceBlocks, facePicked: facePicked,
+                        savedAt: Date().timeIntervalSince1970))
+                    dismiss(); onDone(false)
+                }
+                Button("DESCARTAR", role: .destructive) {
+                    EditBlockDraftStore.clear(blockId: block.id)
+                    dismiss(); onDone(false)
+                }
+            } message: {
+                Text("Se queda guardado en este móvil. No se envía a nadie hasta que lo termines.")
+            }
+            .alert("Tienes cambios sin enviar", isPresented: $hayBorrador) {
+                Button("CONTINUAR EDITANDO") {
+                    if let d = borradorPendiente {
+                        faceBlocks = d.faceBlocks
+                        for (idx, img) in d.facePicked { facePicked[idx] = img }
+                    }
+                }
+                Button("DESCARTAR", role: .destructive) {
+                    EditBlockDraftStore.clear(blockId: block.id)
+                }
+            } message: {
+                Text("Dejaste esta piedra a medias de editar. ¿Sigues donde lo dejaste o empiezas de cero?")
+            }
         }
         .onAppear {
             guard !loaded else { return }
@@ -239,6 +276,11 @@ struct EditLinesSheet: View {
                         })
                     if let hit { selectedFace = hit }
                 }
+            }
+            // ¿Había algo a medias de la última vez que se cerró sin enviar?
+            if let borrador = EditBlockDraftStore.load(blockId: block.id) {
+                hayBorrador = true
+                borradorPendiente = borrador
             }
         }
         .onChange(of: pickerItem) { _, item in
@@ -346,7 +388,10 @@ struct EditLinesSheet: View {
             direction: direction, orientationsJson: nil)
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
-        if ok { dismiss(); onDone(true) }
+        if ok {
+            EditBlockDraftStore.clear(blockId: block.id)   // enviado: el borrador ya no aplica
+            dismiss(); onDone(true)
+        }
         else {
             // No se pudo enviar: en vez de dejarlo en "reinténtalo" (y que el
             // usuario tenga que repetirlo todo en casa), se ofrece GUARDARLO
@@ -402,6 +447,7 @@ struct EditLinesSheet: View {
               let json = String(data: d, encoding: .utf8) else { return }
         try? await AppDependencies.shared.container
             .enqueueBlockEditContribution(schoolId: schoolId, payloadJson: json)
+        EditBlockDraftStore.clear(blockId: block.id)   // encolado: el borrador ya no aplica
         dismiss(); onDone(false)
     }
 

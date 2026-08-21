@@ -46,8 +46,8 @@ struct PendingFeedTick: Identifiable {
 struct FeedPublishSheet: View {
     let lineLabel: String
     let wasProject: Bool
-    let onPublish: (_ always: Bool, _ caption: String?, _ photo: UIImage?, _ sessionDate: String?) -> Void
-    let onDiaryOnly: (_ sessionDate: String?) -> Void
+    let onPublish: (_ always: Bool, _ caption: String?, _ photo: UIImage?, _ sessionDate: String?, _ aVista: Bool, _ alFlash: Bool) -> Void
+    let onDiaryOnly: (_ sessionDate: String?, _ aVista: Bool, _ alFlash: Bool) -> Void
 
     @State private var always = false
     // Descripción opcional del autor (viaja como "caption", max 500).
@@ -55,6 +55,11 @@ struct FeedPublishSheet: View {
     // C3: CUANDO la encadenaste. nil = hoy (cero friccion). La fecha se guarda
     // en el diario SIEMPRE, publiques o no.
     @State private var sessionDate: String? = nil
+    // Estilo de ascensión: independientes entre sí, se puede marcar 1, el
+    // otro, los dos o ninguno — sin un tercer botón "Ninguno" (Rodrigo,
+    // 2026-08-21).
+    @State private var aVista = false
+    @State private var alFlash = false
     @State private var showDatePicker = false
     @State private var pickedDate = Date()
     // Foto de celebración: hecha en el momento con la cámara del sistema. Se
@@ -121,6 +126,14 @@ struct FeedPublishSheet: View {
                 }
                 .padding(16)
                 .presentationDetents([.medium])
+            }
+
+            // ── Estilo de ascensión: dos chips independientes, sin etiqueta
+            // encima — se pulsan directamente (Rodrigo, 2026-08-21).
+            Spacer().frame(height: 10)
+            HStack(spacing: 8) {
+                dateChip("A vista", selected: aVista) { aVista.toggle() }
+                dateChip("Al flash", selected: alFlash) { alFlash.toggle() }
             }
 
             // Aire tras los chips de fecha: iban pegados al campo (feedback).
@@ -248,7 +261,7 @@ struct FeedPublishSheet: View {
                 let c = caption.trimmingCharacters(in: .whitespacesAndNewlines)
                 let photo = photoStore.image(for: lineLabel)
                 CapturedPhotoStore.forget()   // consumida: no re-adoptar después
-                onPublish(always, c.isEmpty ? nil : c, photo, sessionDate)
+                onPublish(always, c.isEmpty ? nil : c, photo, sessionDate, aVista, alFlash)
             } label: {
                 Text("PUBLICAR EN EL FEED")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
@@ -264,7 +277,7 @@ struct FeedPublishSheet: View {
             // Secundario: solo diario.
             Button {
                 CapturedPhotoStore.forget()
-                onDiaryOnly(sessionDate)
+                onDiaryOnly(sessionDate, aVista, alFlash)
             } label: {
                 Text("SOLO EN MI DIARIO")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
@@ -356,9 +369,9 @@ extension FeedPublishSheet {
             Text(label).font(.system(size: 13, weight: .medium))
                 .foregroundStyle(selected ? .white : Cumbre.ink)
                 .padding(.horizontal, 12).padding(.vertical, 7)
-                .background(RoundedRectangle(cornerRadius: 8)
+                .background(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
                     .fill(selected ? Cumbre.terra : Cumbre.paper))
-                .overlay(RoundedRectangle(cornerRadius: 8)
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
                     .stroke(selected ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
         }
         .buttonStyle(.plain)

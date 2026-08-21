@@ -31,6 +31,12 @@ class UpdateJournalDateUseCase(private val repo: JournalRepository) {
         repo.updateJournalDate(id, date)
 }
 
+class UpdateJournalStyleUseCase(private val repo: JournalRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(id: String, aVista: Boolean, alFlash: Boolean): JournalSession =
+        repo.updateJournalStyle(id, aVista, alFlash)
+}
+
 class CreateJournalEntryUseCase(private val repo: JournalRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(req: CreateJournalRequest): JournalSession =

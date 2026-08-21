@@ -191,14 +191,19 @@ internal data class PendingTick(
 internal fun FeedPublishSheet(
     lineLabel: String,
     wasProject: Boolean,
-    onPublish: (always: Boolean, caption: String?, photoUri: Uri?, sessionDate: String?) -> Unit,
-    onDiaryOnly: (sessionDate: String?) -> Unit,
+    onPublish: (always: Boolean, caption: String?, photoUri: Uri?, sessionDate: String?, aVista: Boolean, alFlash: Boolean) -> Unit,
+    onDiaryOnly: (sessionDate: String?, aVista: Boolean, alFlash: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var always by remember { mutableStateOf(false) }
     // C3: CUANDO la encadenaste. null = hoy (el 90% de los casos, cero friccion).
     // La fecha se guarda en el diario SIEMPRE, publiques o no.
     var sessionDate by remember { mutableStateOf<String?>(null) }
+    // Estilo de ascensión: independientes entre sí, se puede marcar 1, el
+    // otro, los dos o ninguno — sin un tercer botón "Ninguno" (Rodrigo,
+    // 2026-08-21).
+    var aVista by remember { mutableStateOf(false) }
+    var alFlash by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     // Descripción opcional del autor (viaja como "caption", max 500).
     var caption by remember { mutableStateOf("") }
@@ -331,6 +336,14 @@ internal fun FeedPublishSheet(
                 val custom = sessionDate?.takeIf { it != today.minusDays(1).toString() }
                 DateChip(custom?.let { formatShortDate(it) } ?: "Otra fecha…",
                     selected = custom != null) { showDatePicker = true }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // ── Estilo de ascensión: dos chips independientes, sin etiqueta
+            // "Estilo" encima — se pulsan directamente (Rodrigo, 2026-08-21).
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DateChip("A vista", selected = aVista) { aVista = !aVista }
+                DateChip("Al flash", selected = alFlash) { alFlash = !alFlash }
             }
             Spacer(Modifier.height(12.dp))
 
@@ -478,7 +491,7 @@ internal fun FeedPublishSheet(
                 Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
                     .background(Terra)
-                    .clickable { onPublish(always, caption.trim().ifBlank { null }, photoUri, sessionDate) }
+                    .clickable { onPublish(always, caption.trim().ifBlank { null }, photoUri, sessionDate, aVista, alFlash) }
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -493,7 +506,7 @@ internal fun FeedPublishSheet(
             Box(
                 Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
-                    .clickable(onClick = { onDiaryOnly(sessionDate) })
+                    .clickable(onClick = { onDiaryOnly(sessionDate, aVista, alFlash) })
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -513,10 +526,10 @@ internal fun FeedPublishSheet(
 private fun DateChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
             .background(if (selected) Terra else MaterialTheme.colorScheme.surface)
             .border(1.dp, if (selected) Terra else MaterialTheme.colorScheme.outlineVariant,
-                RoundedCornerShape(8.dp))
+                com.meteomontana.android.ui.theme.CumbrePillShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp)
     ) {

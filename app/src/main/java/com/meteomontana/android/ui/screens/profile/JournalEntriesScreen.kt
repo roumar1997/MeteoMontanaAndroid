@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -75,6 +76,7 @@ class JournalEntriesViewModel @Inject constructor(
     private val getUserStats: GetUserStatsUseCase,
     private val deleteJournalEntry: DeleteJournalEntryUseCase,
     private val updateJournalDate: com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase,
+    private val updateJournalStyle: com.meteomontana.android.domain.usecase.journal.UpdateJournalStyleUseCase,
     private val getJournalViaInfo: com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
 ) : ViewModel() {
@@ -186,6 +188,14 @@ class JournalEntriesViewModel @Inject constructor(
         }
     }
 
+    /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes. */
+    fun changeStyle(id: String, aVista: Boolean, alFlash: Boolean) {
+        viewModelScope.launch {
+            runCatching { updateJournalStyle(id, aVista, alFlash) }
+                .onSuccess { load() }
+        }
+    }
+
     fun delete(id: String) {
         if (!isMine) return
         viewModelScope.launch {
@@ -204,6 +214,11 @@ fun JournalEntriesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     // G: filtro por grado activo (null = todos).
     var gradeFilter by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf<String?>(null)
+    }
+    // Filtro por ESTILO: "aVista" | "alFlash" | null (todos). Cliente, como
+    // el de grado — no necesita ruta nueva (Rodrigo, 2026-08-21).
+    var styleFilter by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf<String?>(null)
     }
 
@@ -293,9 +308,33 @@ fun JournalEntriesScreen(
                                 }
                             }
                         }
-                        val visibleEntries = gradeFilter?.let { g ->
+                        // Filtro por ESTILO: solo si hay al menos una entrada marcada
+                        // (si no, no tiene sentido mostrar chips que no filtran nada).
+                        val anyStyled = s.entries.any { it.aVista || it.alFlash }
+                        if (anyStyled) {
+                            item(key = "style-filter") {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                ) {
+                                    StyleBadge("A VISTA", active = styleFilter == "aVista") {
+                                        styleFilter = if (styleFilter == "aVista") null else "aVista"
+                                    }
+                                    StyleBadge("AL FLASH", active = styleFilter == "alFlash") {
+                                        styleFilter = if (styleFilter == "alFlash") null else "alFlash"
+                                    }
+                                }
+                            }
+                        }
+                        val visibleEntries = (gradeFilter?.let { g ->
                             s.entries.filter { it.grade?.trim()?.equals(g, ignoreCase = true) == true }
-                        } ?: s.entries
+                        } ?: s.entries).let { list ->
+                            when (styleFilter) {
+                                "aVista" -> list.filter { it.aVista }
+                                "alFlash" -> list.filter { it.alFlash }
+                                else -> list
+                            }
+                        }
                         // C3: agrupado por MES (cabecera "JULIO 2026 - N"), orden
                         // cronologico descendente por fecha de la sesion.
                         val byMonth = visibleEntries.sortedByDescending { it.date }
@@ -317,6 +356,9 @@ fun JournalEntriesScreen(
                                     onDelete = { viewModel.delete(e.id) },
                                     onChangeDate = if (s.isMine) ({ newDate ->
                                         viewModel.changeDate(e.id, newDate)
+                                    }) else null,
+                                    onChangeStyle = if (s.isMine) ({ aVista, alFlash ->
+                                        viewModel.changeStyle(e.id, aVista, alFlash)
                                     }) else null
                                 )
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -340,7 +382,10 @@ internal fun EntryRow(
     onClick: () -> Unit = {},
     onDelete: () -> Unit,
     /** C3: cambiar la fecha de la entrada (null = no editable, diario ajeno). */
-    onChangeDate: ((String) -> Unit)? = null
+    onChangeDate: ((String) -> Unit)? = null,
+    /** Cambiar el estilo (a vista / al flash), independientes entre sí.
+     *  null = no editable (diario ajeno). */
+    onChangeStyle: ((aVista: Boolean, alFlash: Boolean) -> Unit)? = null
 ) {
     var showDatePicker by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(false)
@@ -388,6 +433,17 @@ internal fun EntryRow(
                             color = if (gs.dark) androidx.compose.ui.graphics.Color.Black
                                     else androidx.compose.ui.graphics.Color.White)
                     }
+                }
+                // Estilo de ascensión: solo se ve si hay algo que enseñar
+                // (ajeno) o si es editable (propio, para poder añadirlo
+                // aunque no se marcara al principio).
+                if (e.aVista || onChangeStyle != null) {
+                    StyleBadge("A VISTA", active = e.aVista,
+                        onClick = onChangeStyle?.let { { it(!e.aVista, e.alFlash) } })
+                }
+                if (e.alFlash || onChangeStyle != null) {
+                    StyleBadge("AL FLASH", active = e.alFlash,
+                        onClick = onChangeStyle?.let { { it(e.aVista, !e.alFlash) } })
                 }
             }
             val deleted = info?.deleted == true
@@ -446,6 +502,28 @@ internal fun EntryRow(
     }
 }
 
+
+/** Chip pequeño de estilo (A VISTA / AL FLASH) — pulsable si onClick != null,
+ *  para poder marcarlo/desmarcarlo sin abrir un diálogo aparte. */
+@Composable
+private fun StyleBadge(label: String, active: Boolean, onClick: (() -> Unit)?) {
+    Box(
+        Modifier
+            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+            .background(if (active) com.meteomontana.android.ui.theme.Terra
+                        else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (active) com.meteomontana.android.ui.theme.Terra
+                          else MaterialTheme.colorScheme.outlineVariant,
+                com.meteomontana.android.ui.theme.CumbrePillShape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 7.dp, vertical = 3.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            color = if (active) androidx.compose.ui.graphics.Color.White
+                    else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
 
 private val MONTH_NAMES = listOf(
     "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",

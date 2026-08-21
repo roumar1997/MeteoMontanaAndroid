@@ -227,6 +227,8 @@ class IosDependencyContainer(
         com.meteomontana.android.domain.usecase.community.VoteGradeUseCase(communityRepository)
     val updateJournalDate =
         com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase(journalRepository)
+    val updateJournalStyle =
+        com.meteomontana.android.domain.usecase.journal.UpdateJournalStyleUseCase(journalRepository)
     val getAdminUsers =
         com.meteomontana.android.domain.usecase.admin.GetAdminUsersUseCase(moderationRepository)
     val getAdminNotes =

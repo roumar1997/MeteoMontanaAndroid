@@ -178,10 +178,12 @@ class SchoolDetailViewModel @Inject constructor(
         schoolName: String,
         sectorName: String?,
         markDone: Boolean? = null,
-        sessionDate: String? = null
+        sessionDate: String? = null,
+        aVista: Boolean = false,
+        alFlash: Boolean = false
     ): Result<Boolean> = journal.toggleLine(
         block, line, index, schoolName, sectorName, markDone,
-        doneViaKeys.value, projectViaKeys.value, sessionDate
+        doneViaKeys.value, projectViaKeys.value, sessionDate, aVista, alFlash
     )
 
     /** Marca/DESMARCA una vía como PROYECTO. Ver [JournalTickController.toggleProject]. */
