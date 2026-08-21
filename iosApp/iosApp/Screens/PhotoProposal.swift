@@ -175,12 +175,45 @@ struct SubmitBlockPhotoFlow: View {
     @State private var eligiendoOrigen = true
 
     var body: some View {
-        Color.clear
-            .confirmationDialog("¿Cómo quieres la foto?", isPresented: $eligiendoOrigen) {
-                Button("Hacer foto ahora") { presentaCamara() }
-                Button("Elegir de galería") { presentaSelector() }
-                Button("Cancelar", role: .cancel) { onDismiss() }
+        ZStack {
+            Cumbre.bg.ignoresSafeArea()
+            // Diálogo propio en vez del confirmationDialog nativo: dentro de
+            // una hoja ya abierta (proponer DESDE una escuela) salía diminuto
+            // — mismo arreglo que en Android, con el mismo tamaño de botón
+            // (Rodrigo, 2026-08-22: "muy pequeño, no se ve casi").
+            if eligiendoOrigen {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("¿Cómo quieres la foto?")
+                        .font(.system(size: 20, weight: .semibold))
+                        .padding(.bottom, 20)
+                    Button { eligiendoOrigen = false; presentaCamara() } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "camera.fill")
+                            Text("HACER FOTO AHORA").font(Cumbre.mono(13, .bold)).tracking(0.6)
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .background(Cumbre.terra, in: Capsule())
+                    }.buttonStyle(.plain)
+                    Spacer().frame(height: 12)
+                    Button { eligiendoOrigen = false; presentaSelector() } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "photo.on.rectangle")
+                            Text("ELEGIR DE GALERÍA").font(Cumbre.mono(13, .bold)).tracking(0.6)
+                        }
+                        .foregroundStyle(Cumbre.ink)
+                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+                    }.buttonStyle(.plain)
+                    Spacer().frame(height: 8)
+                    Button("CANCELAR") { eligiendoOrigen = false; onDismiss() }
+                        .font(Cumbre.mono(12, .bold))
+                        .foregroundStyle(Cumbre.ink3)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .padding(24)
             }
+        }
             .alert("No se puede ubicar la foto", isPresented: Binding(
                 get: { aviso != nil }, set: { if !$0 { aviso = nil; onDismiss() } })
             ) {
@@ -225,6 +258,20 @@ struct SubmitBlockPhotoFlow: View {
     private func presentaCamara() {
         presentSystemCamera(context: "proponer-piedra") { image in
             let bridge = AppDependencies.shared.locationBridge
+            // CON TOPE: sin él, en interiores o con mala señal el delegate de
+            // CLLocationManager podía no llegar nunca y parecía que "no pasa
+            // nada" tras hacer la foto (Rodrigo, 2026-08-22: "ni 8 segundos
+            // hace nada" — porque en iOS este tope NUNCA se llegó a poner,
+            // solo en Android). A los 8 s se sigue sin ubicación.
+            var yaContinuo = false
+            @MainActor func continuarUnaVez(_ loc: UserLocation?) {
+                guard !yaContinuo else { return }
+                yaContinuo = true
+                continuar(loc)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+                continuarUnaVez(nil)
+            }
             @MainActor func continuar(_ loc: UserLocation?) {
                 if let fijada = escuelaFijada {
                     if loc == nil {
@@ -258,11 +305,11 @@ struct SubmitBlockPhotoFlow: View {
                 onOpenSchool(escuela.id)
             }
             if bridge.hasPermission() {
-                bridge.current(callback: { loc in Task { @MainActor in continuar(loc) } })
+                bridge.current(callback: { loc in Task { @MainActor in continuarUnaVez(loc) } })
             } else {
                 bridge.requestPermission()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    bridge.current(callback: { loc in Task { @MainActor in continuar(loc) } })
+                    bridge.current(callback: { loc in Task { @MainActor in continuarUnaVez(loc) } })
                 }
             }
         }
