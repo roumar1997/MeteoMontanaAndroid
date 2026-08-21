@@ -45,6 +45,18 @@ struct EditLinesSheet: View {
     @State private var hayBorrador = false
     @State private var borradorPendiente: EditBlockDraftStore.Draft?
 
+    /// Al editar una piedra ya existente siempre hay al menos una vía con
+    /// nombre/grado (viene del servidor) — no vale mirar solo si hay foto
+    /// nueva, si no cancelar tras editar SOLO el nombre o el grado de una vía
+    /// no ofrecía guardar nada (Rodrigo, 2026-08-22: "no sale nada de
+    /// guardar editando"). Foto nueva O cualquier vía con datos cuenta.
+    private var hayContenidoSinEnviar: Bool {
+        !facePicked.isEmpty || faceBlocks.contains {
+            $0.contains { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty
+                || $0.grade != nil || !$0.line.isEmpty }
+        }
+    }
+
     private var faceIdx: Int { min(max(selectedFace, 0), max(0, faceBlocks.count - 1)) }
     private var isWall: Bool { geometry == "LINE" }
     /// Reordena las caras (foto + sus vías + foto nueva pendiente) en bloque.
@@ -209,11 +221,15 @@ struct EditLinesSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) {
                 Button(NSLocalizedString("common_cancel", comment: "")) {
-                    // Fotos nuevas sin enviar → merece la pena preguntar antes
-                    // de tirarlas, igual que al crear una piedra.
-                    if !facePicked.isEmpty { preguntandoGuardarEdicion = true }
+                    if hayContenidoSinEnviar { preguntandoGuardarEdicion = true }
                     else { dismiss(); onDone(false) }
                 }.foregroundStyle(Cumbre.ink3) } }
+            // Deslizar hacia abajo NO puede tirar el trabajo en silencio: con
+            // algo editado, el gesto se desactiva y hay que usar "Cancelar",
+            // que es quien pregunta. Mismo patrón que BoulderFormSheet
+            // (Rodrigo, 2026-08-22: "si cierro la pestaña bajando... no sale
+            // nada de guardar editando").
+            .interactiveDismissDisabled(hayContenidoSinEnviar)
             .alert("¿Guardar para terminar luego?", isPresented: $preguntandoGuardarEdicion) {
                 Button("GUARDAR") {
                     EditBlockDraftStore.save(.init(

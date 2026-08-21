@@ -2,13 +2,18 @@ package com.meteomontana.android.ui.screens.schools
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -169,16 +174,22 @@ fun SubmitBlockPhotoFlow(
             }
             val fused = com.google.android.gms.location.LocationServices
                 .getFusedLocationProviderClient(context)
-            val donde = runCatching {
-                val ok = androidx.core.content.ContextCompat.checkSelfPermission(
-                    context, android.Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                if (!ok) return@runCatching null
-                @Suppress("MissingPermission")
-                val loc = fused.getCurrentLocation(
-                    com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null
-                ).await()
-                loc?.let { com.meteomontana.android.ui.components.PhotoLocation(it.latitude, it.longitude, null) }
+            // CON TOPE: sin él, en interiores o con mala señal getCurrentLocation
+            // puede tardar mucho más de lo razonable y parece que "no pasa nada"
+            // tras hacer la foto (Rodrigo, 2026-08-22). A los 8 s se sigue sin
+            // ubicación, por el mismo camino que una foto sin EXIF.
+            val donde: com.meteomontana.android.ui.components.PhotoLocation? = runCatching {
+                kotlinx.coroutines.withTimeoutOrNull(8000) {
+                    val ok = androidx.core.content.ContextCompat.checkSelfPermission(
+                        context, android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (!ok) return@withTimeoutOrNull null
+                    @Suppress("MissingPermission")
+                    val loc = fused.getCurrentLocation(
+                        com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY, null
+                    ).await()
+                    loc?.let { com.meteomontana.android.ui.components.PhotoLocation(it.latitude, it.longitude, null) }
+                }
             }.getOrNull()
             pidiendoUbicacionCamara = false
             procesar(uri, donde)
@@ -186,18 +197,53 @@ fun SubmitBlockPhotoFlow(
     }
 
     if (eligiendoOrigen) {
+        // Diálogo propio en vez de dos TextButton chiquitos apretados
+        // (Rodrigo, 2026-08-22: "¿no es muy pequeña?"): dos filas grandes,
+        // con icono, altura mínima cómoda de tocar.
         androidx.compose.ui.window.Dialog(onDismissRequest = { eligiendoOrigen = false; onDismiss() }) {
             Column(
                 modifier = Modifier.fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(Spacing.md)
+                    .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbreStatCardShape)
+                    .padding(Spacing.lg)
             ) {
-                Text("¿Cómo quieres la foto?", style = MaterialTheme.typography.titleMedium)
+                Text("¿Cómo quieres la foto?", style = MaterialTheme.typography.titleLarge)
+                androidx.compose.foundation.layout.Spacer(Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .heightIn(min = 64.dp)
+                        .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .clickable { eligiendoOrigen = false; launchCamera() }
+                        .padding(horizontal = Spacing.lg),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Outlined.PhotoCamera, contentDescription = null,
+                        tint = androidx.compose.ui.graphics.Color.White)
+                    Text("HACER FOTO AHORA", style = MaterialTheme.typography.titleMedium,
+                        color = androidx.compose.ui.graphics.Color.White)
+                }
                 androidx.compose.foundation.layout.Spacer(Modifier.height(12.dp))
-                TextButton(onClick = { eligiendoOrigen = false; launchCamera() },
-                    modifier = Modifier.fillMaxWidth()) { Text("HACER FOTO AHORA") }
-                TextButton(onClick = { eligiendoOrigen = false; elegirFoto() },
-                    modifier = Modifier.fillMaxWidth()) { Text("ELEGIR DE GALERÍA") }
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .heightIn(min = 64.dp)
+                        .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbrePillShape)
+                        .clickable { eligiendoOrigen = false; elegirFoto() }
+                        .padding(horizontal = Spacing.lg),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Outlined.PhotoLibrary, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground)
+                    Text("ELEGIR DE GALERÍA", style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground)
+                }
+                androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
+                TextButton(onClick = { eligiendoOrigen = false; onDismiss() },
+                    modifier = Modifier.fillMaxWidth()) { Text("CANCELAR") }
             }
         }
     }

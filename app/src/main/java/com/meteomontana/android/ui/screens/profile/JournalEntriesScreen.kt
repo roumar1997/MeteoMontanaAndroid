@@ -87,6 +87,13 @@ class JournalEntriesViewModel @Inject constructor(
     private val _state = MutableStateFlow<JournalEntriesUiState>(JournalEntriesUiState.Loading)
     val state: StateFlow<JournalEntriesUiState> = _state.asStateFlow()
 
+    // Mensaje de error del ÚLTIMO cambio de estilo, con el detalle real (código
+    // HTTP incluido) en vez de un aviso genérico — para poder diagnosticar sin
+    // logs si vuelve a fallar (Rodrigo, 2026-08-22).
+    private val _styleError = MutableStateFlow<String?>(null)
+    val styleError: StateFlow<String?> = _styleError.asStateFlow()
+    fun clearStyleError() { _styleError.value = null }
+
     // Filtro compuesto "school:X|sector:Y" (llegando desde JournalSectorsScreen):
     // el título es el nombre del sector, no de la escuela (ya viniste de ahí).
     private val sectorName: String? = filter
@@ -193,6 +200,10 @@ class JournalEntriesViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { updateJournalStyle(id, aVista, alFlash) }
                 .onSuccess { load() }
+                .onFailure { e ->
+                    android.util.Log.e("CumbreEstilo", "PATCH journal/$id/style fallo", e)
+                    _styleError.value = e.toUserMessage()
+                }
         }
     }
 
@@ -212,6 +223,14 @@ fun JournalEntriesScreen(
     viewModel: JournalEntriesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val styleError by viewModel.styleError.collectAsStateWithLifecycle()
+    val estiloCtx = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(styleError) {
+        styleError?.let {
+            android.widget.Toast.makeText(estiloCtx, "No se pudo cambiar el estilo: $it", android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearStyleError()
+        }
+    }
     // G: filtro por grado activo (null = todos).
     var gradeFilter by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf<String?>(null)

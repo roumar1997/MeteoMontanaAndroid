@@ -80,6 +80,14 @@ final class ErrorPresenter: ObservableObject {
             || text.contains("timeout") || text.contains("hostname") {
             return "Sin conexión. Inténtalo de nuevo."
         }
+        // Código HTTP si se puede sacar del texto de la excepción de Ktor
+        // (ClientRequestException/ServerResponseException lo incluyen) — sin
+        // esto, cualquier fallo real caía siempre en el mismo mensaje
+        // genérico y no había forma de diagnosticarlo a distancia
+        // (Rodrigo, 2026-08-22: "no se pudo cambiar estilo", sin más pista).
+        if let match = text.range(of: #"\b[45]\d\d\b"#, options: .regularExpression) {
+            return "\(fallback) (código \(text[match]))"
+        }
         return fallback
     }
 }

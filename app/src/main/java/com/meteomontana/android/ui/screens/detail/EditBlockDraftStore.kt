@@ -128,6 +128,17 @@ internal object EditBlockDraftStore {
         carpeta(context).listFiles()?.forEach { f -> if (f.name.startsWith(prefijo)) f.delete() }
     }
 
-    /** ¿Hay algo local que merezca la pena guardar? Ninguna foto nueva -> no. */
-    fun tieneContenido(faces: List<EditFace>): Boolean = faces.any { it.newPhotoUri != null }
+    /**
+     * ¿Hay algo local que merezca la pena guardar? Al EDITAR una piedra ya
+     * existente siempre hay al menos una vía con nombre/grado (viene del
+     * servidor) — no vale mirar solo si hay foto nueva, si no cancelar tras
+     * editar SOLO el nombre o el grado de una vía no ofrecía guardar nada
+     * (Rodrigo, 2026-08-22: "no sale nada de guardar editando"). Foto nueva
+     * O cualquier vía con datos cuenta como contenido.
+     */
+    fun tieneContenido(faces: List<EditFace>): Boolean = faces.any { face ->
+        face.newPhotoUri != null || face.bloques.any {
+            it.name.isNotBlank() || it.grade != null || it.linePath.isNotEmpty()
+        }
+    }
 }
