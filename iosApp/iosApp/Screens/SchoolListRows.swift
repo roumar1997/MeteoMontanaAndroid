@@ -43,8 +43,9 @@ struct DaySelectorRow: View {
                                     .foregroundStyle(selected ? .white.opacity(0.85) : Cumbre.ink3)
                             }
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .background(selected ? Cumbre.terra : Cumbre.paper)
-                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            .background(selected ? Cumbre.terra : Cumbre.paper,
+                                        in: RoundedRectangle(cornerRadius: Cumbre.statCardRadius))
+                            .overlay(RoundedRectangle(cornerRadius: Cumbre.statCardRadius).stroke(Cumbre.rule, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
                     }

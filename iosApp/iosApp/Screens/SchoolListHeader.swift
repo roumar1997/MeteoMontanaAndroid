@@ -63,12 +63,21 @@ struct TopIconsRow: View {
     var body: some View {
         HStack(spacing: 4) {
             Spacer()
-            HelpButton(topicKey: "schools")
-            iconButton("magnifyingglass") { showSearch = true }
-            chatButton
-            iconButton(theme.iconName) { theme.cycle() }
-            bellButton
-            // El perfil ya no va aquí: tiene su propia pestaña inferior.
+            // Los cinco iconos dentro de una píldora, como en Android
+            // (CumbrePillGroup) — sueltos sobre el fondo ocupaban toda la
+            // cabecera y era lo que hacía que no se pareciera a la de Android
+            // (Rodrigo, 2026-08-21).
+            HStack(spacing: 0) {
+                HelpButton(topicKey: "schools")
+                iconButton("magnifyingglass") { showSearch = true }
+                chatButton
+                iconButton(theme.iconName) { theme.cycle() }
+                bellButton
+                // El perfil ya no va aquí: tiene su propia pestaña inferior.
+            }
+            .padding(.horizontal, 2)
+            .background(Cumbre.paper, in: Capsule())
+            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
         }
         .padding(.horizontal, 4)
         .padding(.top, 4)
@@ -256,8 +265,8 @@ struct SearchField: View {
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
-        .background(Cumbre.paper)
-        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+        .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
         .padding(.horizontal, 16).padding(.vertical, 8)
     }
 }

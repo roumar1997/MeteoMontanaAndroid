@@ -256,7 +256,7 @@ fun SchoolListScreen(
                         keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                             onSearch = { closeKeyboard() }
                         ),
-                        shape = MaterialTheme.shapes.small,
+                        shape = com.meteomontana.android.ui.theme.CumbrePillShape,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor   = MaterialTheme.colorScheme.surface,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface
@@ -599,8 +599,11 @@ private fun DaySelectorRow(
                 val iso = d.dayOfWeek.value
                 val selected = iso in selectedDays
                 Column(
+                    // Radio intermedio, NO píldora: es una celda casi cuadrada
+                    // (día + número apilados), y una píldora completa ahí se ve
+                    // como un óvalo forzado — mismo motivo que las stat cards.
                     modifier = Modifier
-                        .clip(MaterialTheme.shapes.small)
+                        .clip(com.meteomontana.android.ui.theme.CumbreStatCardShape)
                         .background(
                             if (selected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.surface
@@ -609,7 +612,7 @@ private fun DaySelectorRow(
                             1.dp,
                             if (selected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.outline,
-                            MaterialTheme.shapes.small
+                            com.meteomontana.android.ui.theme.CumbreStatCardShape
                         )
                         .clickable { onToggleDay(iso) }
                         .padding(horizontal = Spacing.md, vertical = Spacing.sm),
