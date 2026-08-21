@@ -111,10 +111,10 @@ struct BlockInfoSheet: View {
                 .padding(.horizontal, 12)
                 .frame(height: 36)
                 .background(Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(
                     selected ? Cumbre.terra : Cumbre.rule,
                     lineWidth: selected ? 1.5 : 0.5))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         }
         .buttonStyle(.plain)
     }

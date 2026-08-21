@@ -77,7 +77,7 @@ private fun CeldaMochila(
     onClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(4.dp)
+    val shape = com.meteomontana.android.ui.theme.CumbrePillShape
     Box(
         modifier = modifier
             .heightIn(min = 40.dp)

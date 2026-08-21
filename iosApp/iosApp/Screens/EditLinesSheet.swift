@@ -108,8 +108,10 @@ struct EditLinesSheet: View {
                                     Text("FOTO \(i + 1)").font(Cumbre.mono(11, .bold))
                                         .foregroundStyle(on ? .white : Cumbre.ink2)
                                         .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .background(on ? Cumbre.terra : Color.clear)
-                                        .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                                        .background(on ? Cumbre.terra : Color.clear,
+                                                    in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                                        .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                            .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                                 }.buttonStyle(.plain)
                             }
                             Button {
@@ -117,7 +119,7 @@ struct EditLinesSheet: View {
                             } label: {
                                 Text(NSLocalizedString("propose_add_photo", comment: "")).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                     .padding(.horizontal, 10).padding(.vertical, 6)
-                                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
                             }.buttonStyle(.plain)
                         }
                     }

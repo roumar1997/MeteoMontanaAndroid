@@ -23,6 +23,15 @@ enum Cumbre {
     static let rain    = dyn(0x2563C7, 0x5B8AE0)
     static let wind    = dyn(0x4A7C3F, 0x7D8A6A)
 
+    /// Radio de esquina para CONTROLES interactivos (botones, chips de filtro,
+    /// pestañas tipo mochila) — no para cards ni diálogos, esos se quedan
+    /// rectos a propósito (diferencia a Cumbre de una app iOS genérica).
+    /// Espejo de `CumbrePillShape` en Shape.kt. Decisión de Rodrigo, 2026-08-21.
+    static let pillRadius: CGFloat = 999
+    /// Radio suave para tarjetas de ESTADÍSTICA (casi cuadradas): una píldora
+    /// completa ahí se ve como un óvalo forzado. Espejo de `CumbreStatCardShape`.
+    static let statCardRadius: CGFloat = 14
+
     /// Color que se adapta a claro/oscuro automáticamente.
     static func dyn(_ light: UInt32, _ dark: UInt32) -> Color {
         Color(UIColor { tc in

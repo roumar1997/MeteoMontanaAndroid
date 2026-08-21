@@ -145,9 +145,9 @@ fun SchoolsMapPanel(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
+                .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+                .border(1.dp, MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
                 .clickable(onClick = onToggle)
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,

@@ -717,8 +717,8 @@ private fun StatsRow(
 private fun StatCell(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbreStatCardShape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbreStatCardShape)
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -736,7 +736,7 @@ private fun AddBlockButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .height(48.dp)
-            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

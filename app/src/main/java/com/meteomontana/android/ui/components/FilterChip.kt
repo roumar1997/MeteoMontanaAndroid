@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,11 +14,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.meteomontana.android.ui.theme.CumbrePillShape
 
 /**
- * Chip estilo Cumbre: rectángulo casi cuadrado, hairline 1dp.
+ * Chip estilo Cumbre: píldora redondeada, hairline 1dp.
  * - Selected: fondo terracota + texto blanco (paridad con iOS)
  * - No selected: fondo paper + borde rule
+ *
+ * Radio a píldora desde 2026-08-21 (Rodrigo): los CONTROLES se sienten más
+ * "app nativa" redondeados; el contenido (cards, fichas) se queda recto a
+ * propósito, ver DESIGN.md §1.10.
  */
 @Composable
 fun CumbreChip(
@@ -28,7 +32,7 @@ fun CumbreChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val shape  = RoundedCornerShape(2.dp)
+    val shape  = CumbrePillShape
     val bg     = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
     val fg     = if (selected) Color.White                       else MaterialTheme.colorScheme.onSurface
     val border = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline

@@ -286,9 +286,9 @@ struct MapToggleAndPanel: View {
                 .foregroundStyle(Cumbre.terra)
                 .padding(.horizontal, 14).padding(.vertical, 11)
                 .frame(maxWidth: .infinity)
-                .background(Cumbre.terra.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.terra, lineWidth: 1))
-                .contentShape(Rectangle())
+                .background(Cumbre.terra.opacity(0.08), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.terra, lineWidth: 1))
+                .contentShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 16).padding(.vertical, 4)
@@ -469,8 +469,9 @@ struct FilterChips: View {
             .tracking(0.8)
             .foregroundStyle(active ? .white : Cumbre.ink2)
             .padding(.horizontal, 12).padding(.vertical, 7)
-            .background(active ? Cumbre.terra : Cumbre.paper)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .background(active ? Cumbre.terra : Cumbre.paper,
+                        in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
     }
 }
 

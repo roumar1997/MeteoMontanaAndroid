@@ -407,10 +407,10 @@ struct FeedView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 40)
                     .background(Cumbre.paper)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(
                         vm.tab == .ranking ? Cumbre.terra : Cumbre.rule,
                         lineWidth: vm.tab == .ranking ? 1.5 : 0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
             }
             .buttonStyle(.plain)
         }
@@ -426,10 +426,10 @@ struct FeedView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
                 .background(Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(
                     selected ? Cumbre.terra : Cumbre.rule,
                     lineWidth: selected ? 1.5 : 0.5))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         }
         .buttonStyle(.plain)
     }
@@ -456,10 +456,10 @@ struct FeedView: View {
                 .foregroundStyle(selected ? Cumbre.terra : Cumbre.ink)
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(
                     selected ? Cumbre.terra : Cumbre.rule,
                     lineWidth: selected ? 1.5 : 0.5))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         }
         .buttonStyle(.plain)
     }
