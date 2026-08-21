@@ -318,7 +318,9 @@ struct MeetupsView: View {
 
                 // ── Filters accordion ──
                 VStack(spacing: 0) {
-                    // Toggle bar
+                    // Toggle bar — botón flotante con borde, como el "VER MAPA"
+                    // de Escuelas (antes era una barra pegada al borde con
+                    // divisor, el único sitio que aún se veía distinto).
                     HStack(spacing: 6) {
                         Image(systemName: "line.3.horizontal.decrease")
                             .font(.system(size: 13)).foregroundColor(Cumbre.terra)
@@ -338,9 +340,10 @@ struct MeetupsView: View {
                         Image(systemName: filtersExpanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: 12, weight: .semibold)).foregroundColor(Cumbre.terra)
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 11)
-                    .background(Cumbre.ink.opacity(0.05))
-                    .overlay(Divider(), alignment: .bottom)
+                    .padding(.horizontal, 14).padding(.vertical, 11)
+                    .background(Cumbre.terra.opacity(0.08), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.terra, lineWidth: 1))
+                    .padding(.horizontal, 16).padding(.vertical, 4)
                     .contentShape(Rectangle())
                     .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { filtersExpanded.toggle() } }
 

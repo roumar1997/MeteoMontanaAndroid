@@ -94,12 +94,14 @@ fun MeetupsMapPanel(
     }
 
     Column {
-        // Toggle bar — visible, con chevron
+        // Toggle bar — botón flotante con borde, como el "VER MAPA" de Escuelas.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(width = 1.dp, color = MaterialTheme.colorScheme.outline)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .border(1.dp, MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
                 .clickable(onClick = onToggle)
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,

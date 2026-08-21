@@ -249,11 +249,17 @@ fun MeetupsScreen(
                     }
 
                     item(key = "filter_toggle") {
+                        // Botón flotante con borde, como el "VER MAPA" de Escuelas —
+                        // antes era una barra a todo el ancho pegada al borde, el
+                        // único sitio de la app que aún se veía distinto (Rodrigo,
+                        // 2026-08-21).
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(0.dp))
+                                .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                                .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                                .border(1.dp, MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
                                 .clickable { filtersExpanded = !filtersExpanded }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
@@ -266,9 +272,9 @@ fun MeetupsScreen(
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f))
                             if (activeFilterCount > 0) {
-                                Box(Modifier.clip(RoundedCornerShape(2.dp))
+                                Box(Modifier.clip(com.meteomontana.android.ui.theme.CumbrePillShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                                    .padding(horizontal = 6.dp, vertical = 1.dp)) {
+                                    .padding(horizontal = 7.dp, vertical = 1.dp)) {
                                     Text("$activeFilterCount", style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                                 }

@@ -77,12 +77,13 @@ struct MeetupsMapPanel: View {
                     Image(systemName: show ? "chevron.up" : "chevron.down")
                         .font(.system(size: 11)).foregroundColor(Cumbre.terra)
                 }
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .background(Cumbre.ink.opacity(0.04))
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .background(Cumbre.terra.opacity(0.08), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.terra, lineWidth: 1))
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .overlay(Divider(), alignment: .bottom)
+            .padding(.horizontal, 16).padding(.vertical, 4)
 
             if show {
                 ZStack(alignment: .topTrailing) {

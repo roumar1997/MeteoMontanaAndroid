@@ -208,8 +208,111 @@ struct SchoolDetailView: View {
     @StateObject private var vm = SchoolDetailViewModel()
     @State private var factorsExpanded = false
     @State private var selectedDay: DayForecast?
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        VStack(spacing: 0) {
+            headerRow
+            scrollContent
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationBarHidden(true)
+        .sheet(item: $selectedDay) { d in
+            DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
+        }
+        .task { await vm.load(school: school) }
+        .alert("¿Guardar también las fotos?",
+               isPresented: Binding(get: { vm.ofertaFotos != nil },
+                                    set: { if !$0 { vm.ofertaFotos = nil } })) {
+            Button("Descargar") { Task { await vm.descargarFotosOffline() } }
+            Button("Ahora no", role: .cancel) { vm.ofertaFotos = nil }
+        } message: {
+            if let o = vm.ofertaFotos {
+                Text("La escuela ya está guardada. Bajar sus \(o.urls.count) fotos (\(o.pesoTexto)) "
+                     + "te deja ver los topos en la roca aunque no haya cobertura.\n\n"
+                     + "Si dices que no, tendrás los nombres, los grados y las líneas, "
+                     + "pero no las fotos sobre las que van dibujadas.")
+            }
+        }
+        .overlay {
+            if vm.descargandoFotos {
+                ProgressView("Guardando las fotos…")
+                    .padding(20)
+                    .background(Cumbre.paper)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+            }
+        }
+    }
+
+    /// Cabecera propia (no la barra nativa de iOS): con 5 acciones a la
+    /// derecha, la barra nativa podía comprimir el título hasta hacerlo
+    /// desaparecer del todo en nombres cortos como "Proaza" o "Cabo Negro"
+    /// (Rodrigo, con capturas, 2026-08-21). Android ya resolvía esto con una
+    /// fila propia donde el título se queda con el hueco sobrante
+    /// (`weight(1f)` + ellipsis) — mismo patrón aquí, dos píldoras como en
+    /// el resto de cabeceras de esta sesión.
+    private var headerRow: some View {
+        HStack(spacing: 8) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left").font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Cumbre.ink)
+                    .frame(width: 36, height: 36)
+            }
+            .background(Cumbre.paper, in: Circle())
+            .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+
+            Text(school.name)
+                .font(.system(size: 19, weight: .semibold))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(Cumbre.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 0) {
+                HelpButton(topicKey: "detail")
+                Button {
+                    let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!
+                    let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(school.lat),\(school.lon)")!
+                    UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
+                } label: {
+                    Image(systemName: "arrow.triangle.turn.up.right.diamond").foregroundStyle(Cumbre.ink3)
+                        .frame(width: 34, height: 34)
+                }
+                if let f = vm.forecast {
+                    ShareLink(item: conditionsShareSummary(f)) {
+                        Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink3)
+                            .frame(width: 34, height: 34)
+                    }
+                }
+                Button { vm.toggleFavorite(schoolId: school.id) } label: {
+                    Image(systemName: vm.isFavorite ? "star.fill" : "star")
+                        .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
+                        .frame(width: 34, height: 34)
+                }
+                if vm.savingOffline {
+                    ProgressView().frame(width: 34, height: 34)
+                } else {
+                    Button {
+                        Task {
+                            if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
+                            else { await vm.saveOffline(school: school) }
+                        }
+                    } label: {
+                        Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
+                            .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
+                            .frame(width: 34, height: 34)
+                    }
+                }
+            }
+            .padding(.horizontal, 2)
+            .background(Cumbre.paper, in: Capsule())
+            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+    }
+
+    private var scrollContent: some View {
         ScrollView {
             if vm.loading {
                 ProgressView().padding(.top, 60)
@@ -267,81 +370,6 @@ struct SchoolDetailView: View {
             // Mejores meses del año (stats mensuales del backend, cacheadas).
             if !vm.monthlyScores.isEmpty {
                 MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
-            }
-        }
-        .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(school.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { HelpButton(topicKey: "detail") }
-            // Compartir (icono, mismo estilo que la estrella) — solo si hay
-            // forecast cargado para resumir las condiciones.
-            ToolbarItem(placement: .topBarTrailing) {
-                if let f = vm.forecast {
-                    ShareLink(item: conditionsShareSummary(f)) {
-                        Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink3)
-                    }
-                }
-            }
-            // Cómo llegar (Google Maps, cae a Apple Maps) — ruta directa a la escuela.
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!
-                    let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(school.lat),\(school.lon)")!
-                    UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
-                } label: {
-                    Image(systemName: "arrow.triangle.turn.up.right.diamond").foregroundStyle(Cumbre.ink3)
-                }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { vm.toggleFavorite(schoolId: school.id) } label: {
-                    Image(systemName: vm.isFavorite ? "star.fill" : "star")
-                        .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
-                }
-            }
-            // Guardar para offline (detalle + mapa + piedras + fotos).
-            ToolbarItem(placement: .topBarTrailing) {
-                if vm.savingOffline {
-                    ProgressView()
-                } else {
-                    Button {
-                        Task {
-                            if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
-                            else { await vm.saveOffline(school: school) }
-                        }
-                    } label: {
-                        Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
-                            .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
-                    }
-                }
-            }
-        }
-        .sheet(item: $selectedDay) { d in
-            DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
-        }
-        .task { await vm.load(school: school) }
-        // ¿Bajamos también las fotos? Los datos ya están guardados; esto es solo
-        // por las fotos, que son casi todo el peso y pueden ir por datos.
-        .alert("¿Guardar también las fotos?",
-               isPresented: Binding(get: { vm.ofertaFotos != nil },
-                                    set: { if !$0 { vm.ofertaFotos = nil } })) {
-            Button("Descargar") { Task { await vm.descargarFotosOffline() } }
-            Button("Ahora no", role: .cancel) { vm.ofertaFotos = nil }
-        } message: {
-            if let o = vm.ofertaFotos {
-                Text("La escuela ya está guardada. Bajar sus \(o.urls.count) fotos (\(o.pesoTexto)) "
-                     + "te deja ver los topos en la roca aunque no haya cobertura.\n\n"
-                     + "Si dices que no, tendrás los nombres, los grados y las líneas, "
-                     + "pero no las fotos sobre las que van dibujadas.")
-            }
-        }
-        .overlay {
-            if vm.descargandoFotos {
-                ProgressView("Guardando las fotos…")
-                    .padding(20)
-                    .background(Cumbre.paper)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
             }
         }
     }
