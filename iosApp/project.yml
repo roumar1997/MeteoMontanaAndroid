@@ -92,7 +92,7 @@ targets:
         #   - 2.24.0 se cerró al PUBLICARSE            (2026-08-16) → 2.24.1
         # Es decir: para subir a TestFlight algo posterior a una versión ya
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
-        CFBundleShortVersionString: "2.24.1"
+        CFBundleShortVersionString: "2.24.2"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
         CFBundleVersion: "151"
