@@ -69,7 +69,9 @@ final class JournalViewModel: ObservableObject {
             date: df.string(from: Date()),
             discipline: discipline,   // antes iba nil → todo caía en "Bloques"
             lineId: nil,
-            status: nil
+            status: nil,
+            aVista: false,
+            alFlash: false
         )
         _ = try? await createEntry.invoke(req: req)
         await load()

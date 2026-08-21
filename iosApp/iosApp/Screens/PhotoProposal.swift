@@ -225,7 +225,7 @@ struct SubmitBlockPhotoFlow: View {
     private func presentaCamara() {
         presentSystemCamera(context: "proponer-piedra") { image in
             let bridge = AppDependencies.shared.locationBridge
-            func continuar(_ loc: UserLocation?) {
+            @MainActor func continuar(_ loc: UserLocation?) {
                 if let fijada = escuelaFijada {
                     if loc == nil {
                         sinUbicacionImagen = image
@@ -258,11 +258,11 @@ struct SubmitBlockPhotoFlow: View {
                 onOpenSchool(escuela.id)
             }
             if bridge.hasPermission() {
-                bridge.current(callback: continuar)
+                bridge.current(callback: { loc in Task { @MainActor in continuar(loc) } })
             } else {
                 bridge.requestPermission()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    bridge.current(callback: continuar)
+                    bridge.current(callback: { loc in Task { @MainActor in continuar(loc) } })
                 }
             }
         }

@@ -704,7 +704,8 @@ struct BlockInfoSheet: View {
                 schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
                 blockName: viaName, grade: line.grade,
                 notes: nil, date: df.string(from: Date()),
-                discipline: block.discipline, lineId: line.id, status: "PROJECT")
+                discipline: block.discipline, lineId: line.id, status: "PROJECT",
+                aVista: false, alFlash: false)
             let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
             if !ok { try? await container.enqueueJournal(req: req) }
         }
