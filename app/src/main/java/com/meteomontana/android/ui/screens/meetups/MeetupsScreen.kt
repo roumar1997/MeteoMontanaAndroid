@@ -560,30 +560,22 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
     }
 }
 
+// Envoltorio fino sobre el CumbreChip compartido: antes tenía su propio
+// diseño copiado a mano (Box + border sueltos) y por eso divergió del resto
+// de la app cuando el radio pasó a píldora en 2026-08-21. El envoltorio
+// existe solo para mantener la lambda al final en las 8 llamadas de abajo
+// (CumbreChip tiene `modifier` después de `onClick`, así que no admite
+// lambda-trailing directamente).
+@Composable
+private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    com.meteomontana.android.ui.components.CumbreChip(label = label, selected = selected, onClick = onClick)
+}
+
 @Composable
 private fun FilterGroupLabel(text: String) {
     Text(text, style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
         fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-@Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary
-             else MaterialTheme.colorScheme.surface
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary
-             else MaterialTheme.colorScheme.onSurfaceVariant
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(2.dp))
-            .background(bg)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-    ) {
-        Text(label, style = MaterialTheme.typography.labelSmall.copy(fontFamily = com.meteomontana.android.ui.theme.Mono), color = fg,
-            fontWeight = FontWeight.Bold)
-    }
 }
 
 @Composable

@@ -130,8 +130,8 @@ struct FilterPill: View {
                 .padding(.horizontal, 12).padding(.vertical, 6)
                 .background(selected ? Cumbre.terra : Cumbre.bg)
                 .foregroundColor(selected ? .white : Cumbre.ink.opacity(0.7))
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(selected ? Cumbre.terra : Cumbre.ink.opacity(0.25), lineWidth: 1))
-                .cornerRadius(4)
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(selected ? Cumbre.terra : Cumbre.ink.opacity(0.25), lineWidth: 1))
+                .cornerRadius(Cumbre.pillRadius)
         }
     }
 }
