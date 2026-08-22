@@ -609,7 +609,11 @@ struct SchoolMapSection: View {
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 4)
+        .onChange(of: fullscreenMap) { nuevo in
+            DebugHUD.log("9: fullscreenMap CAMBIÓ a \(nuevo)")
+        }
         .fullScreenCover(isPresented: $fullscreenMap) {
+            let _ = DebugHUD.log("10: contenido del fullScreenCover SE ESTÁ CONSTRUYENDO")
             ZStack(alignment: .bottomTrailing) {
                 Color.black.ignoresSafeArea()
                 mapArea(height: UIScreen.main.bounds.height)
@@ -786,17 +790,26 @@ struct SchoolMapSection: View {
             return
         }
         DebugHUD.log("7c: semilla encontrada, colocando en mapa")
-        fotoSemilla = semilla
-        expanded = true
-        flow.proposeType = "BOULDER"
-        // Se coloca DONDE SE HIZO la foto y solo queda confirmarlo. El mapa se
-        // centra ahí para poder juzgar si el sitio es bueno: el GPS se equivoca
-        // entre 10 y 30 metros y las piedras están a metros.
-        confirmandoFoto = CLLocationCoordinate2D(latitude: semilla.lat,
-                                                 longitude: semilla.lon)
-        // A pantalla completa: la pregunta "¿es el sitio?" solo se puede
-        // responder viendo el mapa con holgura.
-        fullscreenMap = true
+        // withAnimation FORZADO: el HUD probó que estas mismas escrituras a
+        // @State, hechas dentro de una cadena de closures que arranca en el
+        // completion handler de UIKit (dismiss de la cámara), a veces NO
+        // disparaban un repintado -- SwiftUI parecía "no darse cuenta" del
+        // cambio (Rodrigo, 2026-08-22, HUD confirmó "colocando en mapa" pero
+        // la pantalla se quedó igual). withAnimation fuerza una Transaction
+        // real en vez de dejarlo a la transacción ambiente heredada.
+        withAnimation(.default) {
+            fotoSemilla = semilla
+            expanded = true
+            flow.proposeType = "BOULDER"
+            // Se coloca DONDE SE HIZO la foto y solo queda confirmarlo. El mapa
+            // se centra ahí para poder juzgar si el sitio es bueno: el GPS se
+            // equivoca entre 10 y 30 metros y las piedras están a metros.
+            confirmandoFoto = CLLocationCoordinate2D(latitude: semilla.lat,
+                                                     longitude: semilla.lon)
+            // A pantalla completa: la pregunta "¿es el sitio?" solo se puede
+            // responder viendo el mapa con holgura.
+            fullscreenMap = true
+        }
         focusCoord = confirmandoFoto
         // Dos veces a proposito: al pasar a pantalla completa el mapa se RECREA
         // y la primera orden puede perderse con el mapa viejo.
