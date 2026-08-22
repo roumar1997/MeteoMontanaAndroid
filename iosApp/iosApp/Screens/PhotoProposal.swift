@@ -245,15 +245,21 @@ struct SubmitBlockPhotoFlow: View {
             }
             @MainActor func continuar(_ loc: UserLocation?) {
                 if let fijada = escuelaFijada {
-                    if loc == nil {
-                        sinUbicacionImagen = image
-                        sinUbicacionEnEscuela = fijada
-                    } else {
-                        PhotoProposalSeedStore.shared.put(.init(
-                            schoolId: fijada.id, image: image,
-                            lat: loc!.lat, lon: loc!.lon, aspect: nil))
-                        onOpenSchool(fijada.id)
-                    }
+                    // Sin ubicación: NO se escribe en @State para mostrar un
+                    // aviso intermedio. La respuesta del GPS llega DESPUÉS de
+                    // cerrar la cámara (0-8s), y esa escritura tardía se
+                    // perdía en silencio — mismo fallo que ya tuvo la foto de
+                    // celebración en los builds 71/72 (ver comentario en
+                    // CapturedPhotoStore, FeedCelebrationPhoto.swift), aquí
+                    // reproducido con "hago la foto, le doy a usar, no pasa
+                    // nada" (Rodrigo, 2026-08-22). Se sigue directo con el
+                    // centro de la escuela: el siguiente paso YA pide
+                    // confirmar/ajustar el punto en el mapa.
+                    PhotoProposalSeedStore.shared.put(.init(
+                        schoolId: fijada.id, image: image,
+                        lat: loc?.lat ?? fijada.lat, lon: loc?.lon ?? fijada.lon,
+                        aspect: nil))
+                    onOpenSchool(fijada.id)
                     return
                 }
                 guard let loc else {
