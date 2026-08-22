@@ -41,7 +41,17 @@ final class LocationBridge: NSObject, IosLocationBridge, CLLocationManagerDelega
         }
         // Si no, pedimos una nueva (resuelve en el delegate).
         pending = callback
-        manager.requestLocation()
+        // OJO: si el mapa de la escuela ya tiene un stream CONTINUO activo
+        // (startStream, el puntito de "mi ubicación"), NO se debe pedir
+        // requestLocation() a la vez sobre el mismo manager — Apple no
+        // soporta bien mezclar ambos modos y la petición puntual se quedaba
+        // sin resolver NUNCA (foto por cámara "sin ubicación" solo DENTRO de
+        // una escuela, nunca desde Escuelas, donde no hay stream corriendo;
+        // Rodrigo, 2026-08-22). El stream ya en marcha entrega la siguiente
+        // posición por didUpdateLocations, que resuelve `pending` igual.
+        if streamCallback == nil {
+            manager.requestLocation()
+        }
     }
 
     /// La pide la pantalla de Tiempo cuando aún no hay permiso.
