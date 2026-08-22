@@ -451,7 +451,15 @@ struct SchoolMapSection: View {
             consumirSemillaDeFoto()
                             },
                             onDismiss: { eligiendoFoto = false })
-                        .allowsHitTesting(false)
+                        // SIN allowsHitTesting(false): con él, sus propios
+                        // avisos (p. ej. "Foto sin ubicación" tras hacer la
+                        // foto con la cámara) quedaban SIN PODER TOCARSE — la
+                        // vía de galería casi nunca necesita ese aviso (la
+                        // foto ya trae EXIF) así que ahí no se notaba; la de
+                        // cámara SIEMPRE puede necesitarlo (GPS en vivo, hasta
+                        // 8s de espera) y por eso "no hacía nada" justo aquí
+                        // (Rodrigo, 2026-08-22, solo reproducible DESDE
+                        // dentro de una escuela, nunca desde Escuelas).
                     }
                 }
                 .sheet(item: coordItem) { item in
