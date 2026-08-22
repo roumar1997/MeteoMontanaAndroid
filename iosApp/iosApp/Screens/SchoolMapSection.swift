@@ -451,8 +451,18 @@ struct SchoolMapSection: View {
                                 DebugHUD.log("6: onOpenSchool CALLBACK entrando (SchoolMapSection)")
                                 eligiendoFoto = false
                                 borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
-                                consumirSemillaDeFoto()
-                                DebugHUD.log("8: onOpenSchool CALLBACK terminó")
+                                // CAUSA REAL (localizada con el HUD de diagnóstico, Rodrigo
+                                // 2026-08-22): consumirSemillaDeFoto() pone fullscreenMap=true,
+                                // que dispara un NUEVO .fullScreenCover -- pero llamado a los
+                                // pocos ms de que la cámara del sistema termine de cerrarse, iOS
+                                // ignora en silencio la nueva presentación porque la anterior
+                                // aún está en transición. Mismo margen que ya usa
+                                // presentPhotoPickerResult para la galería ("se espera a que la
+                                // animación termine").
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                    consumirSemillaDeFoto()
+                                    DebugHUD.log("8: onOpenSchool CALLBACK terminó (tras espera)")
+                                }
                             },
                             onDismiss: { eligiendoFoto = false })
                         // SIN allowsHitTesting(false): con él, sus propios
