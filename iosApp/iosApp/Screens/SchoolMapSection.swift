@@ -448,9 +448,11 @@ struct SchoolMapSection: View {
                             schools: [school],
                             escuelaFijada: school,
                             onOpenSchool: { _ in
+                                DebugHUD.log("6: onOpenSchool CALLBACK entrando (SchoolMapSection)")
                                 eligiendoFoto = false
                                 borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
-            consumirSemillaDeFoto()
+                                consumirSemillaDeFoto()
+                                DebugHUD.log("8: onOpenSchool CALLBACK terminó")
                             },
                             onDismiss: { eligiendoFoto = false })
                         // SIN allowsHitTesting(false): con él, sus propios
@@ -764,11 +766,16 @@ struct SchoolMapSection: View {
     /// la lista de escuelas) y justo después de elegir la foto dentro de la
     /// propia escuela. Es el mismo trabajo, así que vive en un solo sitio.
     private func consumirSemillaDeFoto() {
+        DebugHUD.log("7: consumirSemillaDeFoto() school.id=\(school.id)")
         // OJO: NO se exige que `fotoSemilla` este vacia. Se exigia, y si quedaba
         // una foto a medias —flujo abandonado sin cerrar el formulario— la
         // SIGUIENTE no entraba y el boton parecia muerto (cazado por Rodrigo).
         // Manda la foto nueva: es lo ultimo que ha pedido el usuario.
-        guard let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) else { return }
+        guard let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) else {
+            DebugHUD.log("7b: NO había semilla para school.id=\(school.id) — ¡AQUÍ SE PARA!")
+            return
+        }
+        DebugHUD.log("7c: semilla encontrada, colocando en mapa")
         fotoSemilla = semilla
         expanded = true
         flow.proposeType = "BOULDER"
