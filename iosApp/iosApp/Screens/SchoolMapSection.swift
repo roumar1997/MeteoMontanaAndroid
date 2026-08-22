@@ -174,7 +174,6 @@ struct SchoolMapSection: View {
         // apuntar a una copia ya descartada de esta vista (ver comentario en
         // PhotoProposalSeedStore, Rodrigo, 2026-08-22).
         .onChange(of: fotoSeedStore.pendingSchoolId) { nuevo in
-            DebugHUD.log("11: pendingSchoolId cambió a \(nuevo ?? "nil") (school.id=\(school.id))")
             guard nuevo == school.id else { return }
             eligiendoFoto = false
             borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
@@ -464,21 +463,13 @@ struct SchoolMapSection: View {
                             schools: [school],
                             escuelaFijada: school,
                             onOpenSchool: { _ in
-                                DebugHUD.log("6: onOpenSchool CALLBACK entrando (SchoolMapSection)")
+                                // El trabajo de verdad lo hace el .onChange(of:
+                                // fotoSeedStore.pendingSchoolId) de arriba: escribir
+                                // aquí el @State directamente desde este closure NO
+                                // llega de forma fiable a la vista viva (ver
+                                // comentario en PhotoProposalSeedStore, Rodrigo,
+                                // 2026-08-22). Solo se cierra el propio flujo.
                                 eligiendoFoto = false
-                                borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
-                                // CAUSA REAL (localizada con el HUD de diagnóstico, Rodrigo
-                                // 2026-08-22): consumirSemillaDeFoto() pone fullscreenMap=true,
-                                // que dispara un NUEVO .fullScreenCover -- pero llamado a los
-                                // pocos ms de que la cámara del sistema termine de cerrarse, iOS
-                                // ignora en silencio la nueva presentación porque la anterior
-                                // aún está en transición. Mismo margen que ya usa
-                                // presentPhotoPickerResult para la galería ("se espera a que la
-                                // animación termine").
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                    consumirSemillaDeFoto()
-                                    DebugHUD.log("8: onOpenSchool CALLBACK terminó (tras espera)")
-                                }
                             },
                             onDismiss: { eligiendoFoto = false })
                         // SIN allowsHitTesting(false): con él, sus propios
@@ -625,11 +616,7 @@ struct SchoolMapSection: View {
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 4)
-        .onChange(of: fullscreenMap) { nuevo in
-            DebugHUD.log("9: fullscreenMap CAMBIÓ a \(nuevo)")
-        }
         .fullScreenCover(isPresented: $fullscreenMap) {
-            let _ = DebugHUD.log("10: contenido del fullScreenCover SE ESTÁ CONSTRUYENDO")
             ZStack(alignment: .bottomTrailing) {
                 Color.black.ignoresSafeArea()
                 mapArea(height: UIScreen.main.bounds.height)
@@ -796,16 +783,11 @@ struct SchoolMapSection: View {
     /// la lista de escuelas) y justo después de elegir la foto dentro de la
     /// propia escuela. Es el mismo trabajo, así que vive en un solo sitio.
     private func consumirSemillaDeFoto() {
-        DebugHUD.log("7: consumirSemillaDeFoto() school.id=\(school.id)")
         // OJO: NO se exige que `fotoSemilla` este vacia. Se exigia, y si quedaba
         // una foto a medias —flujo abandonado sin cerrar el formulario— la
         // SIGUIENTE no entraba y el boton parecia muerto (cazado por Rodrigo).
         // Manda la foto nueva: es lo ultimo que ha pedido el usuario.
-        guard let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) else {
-            DebugHUD.log("7b: NO había semilla para school.id=\(school.id) — ¡AQUÍ SE PARA!")
-            return
-        }
-        DebugHUD.log("7c: semilla encontrada, colocando en mapa")
+        guard let semilla = PhotoProposalSeedStore.shared.take(schoolId: school.id) else { return }
         // withAnimation FORZADO: el HUD probó que estas mismas escrituras a
         // @State, hechas dentro de una cadena de closures que arranca en el
         // completion handler de UIKit (dismiss de la cámara), a veces NO

@@ -251,10 +251,7 @@ struct SubmitBlockPhotoFlow: View {
     /// del móvil AHORA MISMO, que es justo lo que hace falta al fotografiar
     /// en la roca.
     private func presentaCamara() {
-        DebugHUD.clear()
-        DebugHUD.log("0: presentaCamara() llamada")
         presentSystemCamera(context: "proponer-piedra") { image in
-            DebugHUD.log("1: onCapture — foto recibida")
             let bridge = AppDependencies.shared.locationBridge
             // CON TOPE: sin él, en interiores o con mala señal el delegate de
             // CLLocationManager podía no llegar nunca y parecía que "no pasa
@@ -271,7 +268,6 @@ struct SubmitBlockPhotoFlow: View {
                 continuarUnaVez(nil)
             }
             @MainActor func continuar(_ loc: UserLocation?) {
-                DebugHUD.log("3: continuar(loc=\(loc == nil ? "nil" : "OK")) fijada=\(escuelaFijada?.name ?? "nil")")
                 if let fijada = escuelaFijada {
                     // Sin ubicación: NO se escribe en @State para mostrar un
                     // aviso intermedio. La respuesta del GPS llega DESPUÉS de
@@ -287,9 +283,7 @@ struct SubmitBlockPhotoFlow: View {
                         schoolId: fijada.id, image: image,
                         lat: loc?.lat ?? fijada.lat, lon: loc?.lon ?? fijada.lon,
                         aspect: nil, aproximada: loc == nil))
-                    DebugHUD.log("4: seed puesto, llamando onOpenSchool(\(fijada.id))")
                     onOpenSchool(fijada.id)
-                    DebugHUD.log("5: onOpenSchool YA VOLVIÓ")
                     return
                 }
                 guard let loc else {
@@ -311,17 +305,14 @@ struct SubmitBlockPhotoFlow: View {
                     lat: loc.lat, lon: loc.lon, aspect: nil))
                 onOpenSchool(escuela.id)
             }
-            DebugHUD.log("2: hasPermission=\(bridge.hasPermission())")
             if bridge.hasPermission() {
                 bridge.current(callback: { loc in
-                    DebugHUD.log("2b: bridge.current callback loc=\(loc == nil ? "nil" : "OK")")
                     Task { @MainActor in continuarUnaVez(loc) }
                 })
             } else {
                 bridge.requestPermission()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                     bridge.current(callback: { loc in
-                        DebugHUD.log("2b: bridge.current callback (tras permiso) loc=\(loc == nil ? "nil" : "OK")")
                         Task { @MainActor in continuarUnaVez(loc) }
                     })
                 }
