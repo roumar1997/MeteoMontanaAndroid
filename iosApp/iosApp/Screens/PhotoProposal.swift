@@ -29,8 +29,19 @@ struct PhotoWhere {
 ///
 /// Se consume UNA vez: si se quedara puesto, volver a entrar en la escuela
 /// reabriría el flujo de proponer sin que nadie lo haya pedido.
+/// ObservableObject A PROPÓSITO, no una clase suelta: el HUD de diagnóstico
+/// (Rodrigo, 2026-08-22) probó que llamar a onOpenSchool() y mutar el @State
+/// de SchoolMapSection DIRECTAMENTE desde la cadena de closures que arranca
+/// en el completion handler de UIKit (dismiss de la cámara) NO llega a la
+/// pantalla real -- ni siquiera `.onChange` lo detecta -- exactamente el
+/// mismo fallo que ya tuvo la foto de celebración (builds 71/72, ver
+/// CapturedPhotoStore). La solución allí fue la misma: dejar de depender de
+/// una escritura directa de @State y usar un @Published que la vista
+/// suscribe de verdad, para que SWIFTUI decida cuándo y en qué instancia
+/// aplicar el cambio, en vez de confiar en un closure capturado que puede
+/// apuntar a una copia ya descartada de la vista.
 @MainActor
-final class PhotoProposalSeedStore {
+final class PhotoProposalSeedStore: ObservableObject {
     static let shared = PhotoProposalSeedStore()
 
     struct Seed {
@@ -47,16 +58,24 @@ final class PhotoProposalSeedStore {
     }
 
     private var pendiente: Seed?
+    /// Se publica al poner una semilla nueva: la vista de la escuela lo
+    /// observa con @ObservedObject y reacciona con `.onChange`, en vez de
+    /// depender de que el closure que la creó siga apuntando a algo vivo.
+    @Published private(set) var pendingSchoolId: String?
 
-    func put(_ seed: Seed) { pendiente = seed }
+    func put(_ seed: Seed) {
+        pendiente = seed
+        pendingSchoolId = seed.schoolId
+    }
 
     func take(schoolId: String) -> Seed? {
         guard let s = pendiente, s.schoolId == schoolId else { return nil }
         pendiente = nil
+        if pendingSchoolId == schoolId { pendingSchoolId = nil }
         return s
     }
 
-    func clear() { pendiente = nil }
+    func clear() { pendiente = nil; pendingSchoolId = nil }
 }
 
 /// Lee la foto elegida y de dónde es.

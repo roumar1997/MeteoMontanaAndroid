@@ -34,6 +34,9 @@ struct SchoolMapSection: View {
     // mini de un sector/parking pueda ofrecer "SEGUIR" si hay un camino hasta
     // él, no solo la sección de la ficha completa.
     @StateObject private var approachesLoader = ApproachesLoader()
+    /// Observado A PROPÓSITO en vez de recibir la semilla solo por closure:
+    /// ver el comentario en PhotoProposalSeedStore (Rodrigo, 2026-08-22).
+    @ObservedObject private var fotoSeedStore = PhotoProposalSeedStore.shared
     @State private var followingApproach: Approach?
     @State private var didAutoOpen = false
     /// Bandera interna, ya no un boton: el mapa esta siempre visible (ver body).
@@ -161,6 +164,19 @@ struct SchoolMapSection: View {
             // "Enviar piedra": la foto ya dijo qué se propone y dónde se hizo.
             // Se abre el mapa y se espera un toque para el sitio exacto: el GPS
             // se equivoca entre 10 y 30 metros y las piedras están a metros.
+            borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
+            consumirSemillaDeFoto()
+        }
+        // Camino FIABLE para la foto tomada DESDE ESTA MISMA pantalla (a
+        // diferencia del .onAppear de arriba, que solo cubre la entrada
+        // fresca vía navegación): reacciona al @Published de
+        // PhotoProposalSeedStore en vez de a un closure capturado que puede
+        // apuntar a una copia ya descartada de esta vista (ver comentario en
+        // PhotoProposalSeedStore, Rodrigo, 2026-08-22).
+        .onChange(of: fotoSeedStore.pendingSchoolId) { nuevo in
+            DebugHUD.log("11: pendingSchoolId cambió a \(nuevo ?? "nil") (school.id=\(school.id))")
+            guard nuevo == school.id else { return }
+            eligiendoFoto = false
             borradorPiedra = BoulderDraftStore.load(schoolId: school.id)
             consumirSemillaDeFoto()
         }
