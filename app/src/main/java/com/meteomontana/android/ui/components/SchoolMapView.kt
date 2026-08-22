@@ -339,6 +339,21 @@ internal fun SchoolMapView(
     androidx.compose.runtime.LaunchedEffect(mapRef.value) {
         val map = mapRef.value ?: return@LaunchedEffect
         var lastClusterZoom = map.cameraPosition.zoom
+        // Pintado INMEDIATO al quedar el mapa listo: si las piedras/parkings ya
+        // habían llegado del servidor ANTES de que el mapa terminara de
+        // inicializarse, el LaunchedEffect de arriba se encontraba con
+        // mapRef.value=null y se saltaba en silencio — y hasta aquí solo se
+        // repintaba al mover la cámara (zoom/pan), nunca al abrir la escuela.
+        // Reportado por un usuario real en la vc96 (Rodrigo, 2026-08-22:
+        // "al entrar a una escuela no le aparecen las piedras y parkings
+        // directamente").
+        if (visibleState.value.isNotEmpty()) {
+            placer.place(ctx, map, visibleState.value, ghostState.value,
+                userLoc, previewState.value, gradeDimmedBlockIds = gradeDimmedState.value) { tapped ->
+                if (bridge.correctionMode) bridge.handleMarkerTapForCorrection(tapped)
+                else onBlockTap(tapped)
+            }
+        }
         map.addOnCameraIdleListener {
             val zoomChanged = kotlin.math.abs(map.cameraPosition.zoom - lastClusterZoom) > 0.4
             if (zoomChanged || (map.annotations.isEmpty() && visibleState.value.isNotEmpty())) {

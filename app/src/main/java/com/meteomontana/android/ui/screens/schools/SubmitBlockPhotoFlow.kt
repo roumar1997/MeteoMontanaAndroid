@@ -197,55 +197,30 @@ fun SubmitBlockPhotoFlow(
     }
 
     if (eligiendoOrigen) {
-        // Diálogo propio en vez de dos TextButton chiquitos apretados
-        // (Rodrigo, 2026-08-22: "¿no es muy pequeña?"): dos filas grandes,
-        // con icono, altura mínima cómoda de tocar.
-        androidx.compose.ui.window.Dialog(onDismissRequest = { eligiendoOrigen = false; onDismiss() }) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbreStatCardShape)
-                    .padding(Spacing.lg)
-            ) {
-                Text("¿Cómo quieres la foto?", style = MaterialTheme.typography.titleLarge)
-                androidx.compose.foundation.layout.Spacer(Modifier.height(20.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .heightIn(min = 64.dp)
-                        .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .clickable { eligiendoOrigen = false; launchCamera() }
-                        .padding(horizontal = Spacing.lg),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    androidx.compose.material3.Icon(
-                        androidx.compose.material.icons.Icons.Outlined.PhotoCamera, contentDescription = null,
-                        tint = androidx.compose.ui.graphics.Color.White)
-                    Text("HACER FOTO AHORA", style = MaterialTheme.typography.titleMedium,
-                        color = androidx.compose.ui.graphics.Color.White)
+        // AlertDialog NATIVO en vez del propio hecho a mano: el propio no
+        // respondía al toque en algunos móviles (Rodrigo, 2026-08-22: "no
+        // funciona para poder pulsarlo") — el nativo es simple pero SIEMPRE
+        // pulsable, que es lo que de verdad importa.
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { eligiendoOrigen = false; onDismiss() },
+            title = { Text("¿Cómo quieres la foto?") },
+            text = {
+                Column {
+                    androidx.compose.material3.TextButton(
+                        onClick = { eligiendoOrigen = false; launchCamera() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("HACER FOTO AHORA", modifier = Modifier.fillMaxWidth()) }
+                    androidx.compose.material3.TextButton(
+                        onClick = { eligiendoOrigen = false; elegirFoto() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("ELEGIR DE GALERÍA", modifier = Modifier.fillMaxWidth()) }
                 }
-                androidx.compose.foundation.layout.Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .heightIn(min = 64.dp)
-                        .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbrePillShape)
-                        .clickable { eligiendoOrigen = false; elegirFoto() }
-                        .padding(horizontal = Spacing.lg),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    androidx.compose.material3.Icon(
-                        androidx.compose.material.icons.Icons.Outlined.PhotoLibrary, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onBackground)
-                    Text("ELEGIR DE GALERÍA", style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground)
-                }
-                androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
-                TextButton(onClick = { eligiendoOrigen = false; onDismiss() },
-                    modifier = Modifier.fillMaxWidth()) { Text("CANCELAR") }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { eligiendoOrigen = false; onDismiss() }) { Text("CANCELAR") }
             }
-        }
+        )
     }
 
     if (eligiendoEscuela) {

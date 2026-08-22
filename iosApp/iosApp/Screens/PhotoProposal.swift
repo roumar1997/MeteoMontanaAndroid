@@ -175,45 +175,16 @@ struct SubmitBlockPhotoFlow: View {
     @State private var eligiendoOrigen = true
 
     var body: some View {
-        ZStack {
-            Cumbre.bg.ignoresSafeArea()
-            // Diálogo propio en vez del confirmationDialog nativo: dentro de
-            // una hoja ya abierta (proponer DESDE una escuela) salía diminuto
-            // — mismo arreglo que en Android, con el mismo tamaño de botón
-            // (Rodrigo, 2026-08-22: "muy pequeño, no se ve casi").
-            if eligiendoOrigen {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("¿Cómo quieres la foto?")
-                        .font(.system(size: 20, weight: .semibold))
-                        .padding(.bottom, 20)
-                    Button { eligiendoOrigen = false; presentaCamara() } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "camera.fill")
-                            Text("HACER FOTO AHORA").font(Cumbre.mono(13, .bold)).tracking(0.6)
-                        }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 64)
-                        .background(Cumbre.terra, in: Capsule())
-                    }.buttonStyle(.plain)
-                    Spacer().frame(height: 12)
-                    Button { eligiendoOrigen = false; presentaSelector() } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "photo.on.rectangle")
-                            Text("ELEGIR DE GALERÍA").font(Cumbre.mono(13, .bold)).tracking(0.6)
-                        }
-                        .foregroundStyle(Cumbre.ink)
-                        .frame(maxWidth: .infinity, minHeight: 64)
-                        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
-                    }.buttonStyle(.plain)
-                    Spacer().frame(height: 8)
-                    Button("CANCELAR") { eligiendoOrigen = false; onDismiss() }
-                        .font(Cumbre.mono(12, .bold))
-                        .foregroundStyle(Cumbre.ink3)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                .padding(24)
+        Color.clear
+            // confirmationDialog NATIVO en vez del propio hecho a mano: el
+            // propio no respondía al toque (Rodrigo, 2026-08-22: "no funciona
+            // para poder pulsarlo") — el nativo es simple pero SIEMPRE
+            // pulsable, que es lo que de verdad importa.
+            .confirmationDialog("¿Cómo quieres la foto?", isPresented: $eligiendoOrigen) {
+                Button("Hacer foto ahora") { presentaCamara() }
+                Button("Elegir de galería") { presentaSelector() }
+                Button("Cancelar", role: .cancel) { onDismiss() }
             }
-        }
             .alert("No se puede ubicar la foto", isPresented: Binding(
                 get: { aviso != nil }, set: { if !$0 { aviso = nil; onDismiss() } })
             ) {
