@@ -39,6 +39,11 @@ final class PhotoProposalSeedStore {
         let lat: Double
         let lon: Double
         let aspect: String?
+        /// true cuando lat/lon NO viene del GPS/EXIF real, sino del centro de
+        /// la escuela como último recurso (sin señal, sin permiso, sin EXIF).
+        /// El banner de confirmación necesita saberlo para no decir "la foto
+        /// se hizo aquí" sobre un punto que en realidad es solo una suposición.
+        var aproximada: Bool = false
     }
 
     private var pendiente: Seed?
@@ -258,7 +263,7 @@ struct SubmitBlockPhotoFlow: View {
                     PhotoProposalSeedStore.shared.put(.init(
                         schoolId: fijada.id, image: image,
                         lat: loc?.lat ?? fijada.lat, lon: loc?.lon ?? fijada.lon,
-                        aspect: nil))
+                        aspect: nil, aproximada: loc == nil))
                     onOpenSchool(fijada.id)
                     return
                 }

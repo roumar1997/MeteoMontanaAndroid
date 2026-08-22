@@ -283,7 +283,9 @@ struct SchoolMapSection: View {
                         // La foto ya está colocada: aceptar o moverla. El GPS se
                         // equivoca entre 10 y 30 metros y las piedras están a
                         // metros, así que la última palabra es del usuario.
-                        mapBanner("LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
+                        mapBanner(fotoSemilla?.aproximada == true
+                                  ? "NO SE PUDO UBICAR LA FOTO · TOCA DÓNDE ESTÁ LA PIEDRA"
+                                  : "LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
                                   accept: {
                                       confirmandoFoto = nil
                                       flow.boulderCoord = punto
