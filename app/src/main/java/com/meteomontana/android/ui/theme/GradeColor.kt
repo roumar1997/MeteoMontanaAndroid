@@ -26,6 +26,16 @@ data class GradeStyle(val stroke: Color, val dashed: Boolean, val dark: Boolean)
  * negro de ≥8a (#111111) se fundía con #15140F y el blanco de ≤5c+ deslumbraba
  * (Álvaro, 2026-08-24). Aquí se acercan lo justo al centro para que se vean.
  */
+/**
+ * [gradeStyle] con el color ya adaptado al tema. Es lo que debe usar TODO lo
+ * que pinte un grado FUERA de una foto (badges de vía, diario, estadísticas,
+ * fichas). Sobre la foto se sigue usando [gradeStyle] a pelo.
+ */
+@androidx.compose.runtime.Composable
+@androidx.compose.runtime.ReadOnlyComposable
+fun gradeChipStyle(grade: String?): GradeStyle =
+    gradeStyle(grade).copy(stroke = gradeChipColor(grade))
+
 @androidx.compose.runtime.Composable
 @androidx.compose.runtime.ReadOnlyComposable
 fun gradeChipColor(grade: String?): Color {

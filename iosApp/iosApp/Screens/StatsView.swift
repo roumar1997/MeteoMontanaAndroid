@@ -376,7 +376,7 @@ struct StatsView: View {
 
     /// G: color por grado (paleta de topos); los grados blancos → tinta.
     private func gradeAccent(_ grade: String) -> Color {
-        let st = GradeColor.style(grade)
+        let st = GradeColor.chipStyle(grade)
         return st.dark ? Cumbre.ink : st.stroke
     }
 

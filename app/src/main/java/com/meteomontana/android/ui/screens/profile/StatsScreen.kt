@@ -423,7 +423,7 @@ fun StatsScreen(
  *  grados «blancos» (fáciles) no se ven sobre papel → tinta. */
 @Composable
 private fun gradeAccent(grade: String?): Color {
-    val gs = com.meteomontana.android.ui.theme.gradeStyle(grade)
+    val gs = com.meteomontana.android.ui.theme.gradeChipStyle(grade)
     return if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
 }
 

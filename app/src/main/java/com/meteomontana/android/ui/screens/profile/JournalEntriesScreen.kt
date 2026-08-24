@@ -308,7 +308,7 @@ fun JournalEntriesScreen(
                                 ) {
                                     items(grades.size) { gi ->
                                         val g = grades[gi]
-                                        val gs = com.meteomontana.android.ui.theme.gradeStyle(g)
+                                        val gs = com.meteomontana.android.ui.theme.gradeChipStyle(g)
                                         val accent = if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
                                         val active = gradeFilter == g
                                         Box(Modifier
@@ -441,7 +441,7 @@ internal fun EntryRow(
                 // pudo resolver, el guardado al marcar la vía.
                 val eGrade = info?.grade ?: e.grade
                 if (!eGrade.isNullOrBlank()) {
-                    val gs = com.meteomontana.android.ui.theme.gradeStyle(eGrade)
+                    val gs = com.meteomontana.android.ui.theme.gradeChipStyle(eGrade)
                     Box(modifier = Modifier
                         .background(gs.stroke, RoundedCornerShape(3.dp))
                         .padding(horizontal = 7.dp, vertical = 3.dp)

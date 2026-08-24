@@ -81,7 +81,7 @@ struct GradeFilterBar: View {
 
     @ViewBuilder
     private func gradeChip(_ g: String) -> some View {
-        let st = GradeColor.style(g)
+        let st = GradeColor.chipStyle(g)
         let accent = st.dark ? Cumbre.ink : st.stroke
         let active = selectedGrades.contains(g)
         Button {
@@ -112,7 +112,7 @@ struct GradeFilterBar: View {
 
     @ViewBuilder
     private func gradeGroup(grade: String, matches: [GradeMatch]) -> some View {
-        let st = GradeColor.style(grade)
+        let st = GradeColor.chipStyle(grade)
         let accent = st.dark ? Cumbre.ink : st.stroke
         let isOpen = openGroups.contains(grade)
 

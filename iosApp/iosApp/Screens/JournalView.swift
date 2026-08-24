@@ -123,7 +123,7 @@ struct JournalView: View {
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 6) {
                                         ForEach(vm.availableGrades, id: \.self) { g in
-                                            let estilo = GradeColor.style(g)
+                                            let estilo = GradeColor.chipStyle(g)
                                             let color = estilo.dark ? Cumbre.ink : estilo.stroke
                                             let activo = vm.gradeFilter == g
                                             Button {
@@ -229,9 +229,9 @@ struct JournalRow: View {
             if let g = (info?.grade ?? entry.grade), !g.isEmpty {
                 // Texto negro sobre grados claros (≤5c son blancos) para que se lea.
                 Text(g).font(Cumbre.mono(12, .bold))
-                    .foregroundStyle(GradeColor.style(g).dark ? .black : .white)
-                    .frame(width: 44, height: 32).background(GradeColor.color(g))
-                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: GradeColor.style(g).dark ? 1 : 0))
+                    .foregroundStyle(GradeColor.chipStyle(g).dark ? .black : .white)
+                    .frame(width: 44, height: 32).background(GradeColor.chip(g))
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: GradeColor.chipStyle(g).dark ? 1 : 0))
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
@@ -867,7 +867,7 @@ struct JournalBlocksListView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(availableGrades, id: \.self) { g in
-                        let st = GradeColor.style(g)
+                        let st = GradeColor.chipStyle(g)
                         let accent = st.dark ? Cumbre.ink : st.stroke
                         let active = gradeFilter == g
                         Button { gradeFilter = active ? nil : g } label: {

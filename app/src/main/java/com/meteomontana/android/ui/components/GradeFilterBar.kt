@@ -42,6 +42,7 @@ import com.meteomontana.android.ui.theme.Paper
 import com.meteomontana.android.ui.theme.Rule
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.colorForGrade
+import com.meteomontana.android.ui.theme.gradeChipColor
 
 // Filtro LOCAL por grado dentro de una escuela — ver BLOCK_SEARCH_DESIGN.md §7.
 // Espejo de GradeFilterBar.swift (iOS): chips multi-selección con la paleta
@@ -138,7 +139,7 @@ fun GradeFilterBar(
 
 @Composable
 private fun GradeChip(grade: String, active: Boolean, onClick: () -> Unit) {
-    val accent = colorForGrade(grade).let { if (it == Color.White) Ink else it }
+    val accent = gradeChipColor(grade)
     Row(
         Modifier
             .background(if (active) accent else Paper, RoundedCornerShape(2.dp))
@@ -159,7 +160,7 @@ private fun GradeGroup(
     onToggle: () -> Unit,
     onSelectLine: (GradeMatch) -> Unit
 ) {
-    val accent = colorForGrade(grade).let { if (it == Color.White) Ink else it }
+    val accent = gradeChipColor(grade)
     Column {
         Row(
             Modifier

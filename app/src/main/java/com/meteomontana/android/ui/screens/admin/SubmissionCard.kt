@@ -87,6 +87,7 @@ import com.meteomontana.android.ui.theme.Moss
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.colorForGrade
+import com.meteomontana.android.ui.theme.gradeChipStyle
 import com.meteomontana.android.ui.theme.gradeStyle
 import org.json.JSONArray
 import org.maplibre.android.annotations.MarkerOptions
@@ -175,7 +176,7 @@ internal fun BloquesSummary(bloquesJson: String) {
     Spacer(Modifier.height(4.dp))
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         bloques.forEachIndexed { idx, b ->
-            val style = gradeStyle(b.grade)
+            val style = gradeChipStyle(b.grade)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)

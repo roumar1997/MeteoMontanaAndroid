@@ -625,7 +625,7 @@ private struct AccountBlocksList: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 6) {
                                     ForEach(availableGrades, id: \.self) { g in
-                                        let estilo = GradeColor.style(g)
+                                        let estilo = GradeColor.chipStyle(g)
                                         let color = estilo.dark ? Cumbre.ink : estilo.stroke
                                         let activo = gradeFilter == g
                                         Button { gradeFilter = activo ? nil : g } label: {

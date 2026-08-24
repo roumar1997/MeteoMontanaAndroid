@@ -127,9 +127,9 @@ struct EditLinesSheet: View {
             ? "Sin nombre" : via.name
         HStack(spacing: 8) {
             Text("\(wallNumber(idx) ?? idx + 1)").font(Cumbre.mono(11, .bold))
-                .foregroundStyle(GradeColor.style(via.grade).dark ? .black : .white)
+                .foregroundStyle(GradeColor.chipStyle(via.grade).dark ? .black : .white)
                 .frame(width: 22, height: 22)
-                .background(Circle().fill(GradeColor.color(via.grade)))
+                .background(Circle().fill(GradeColor.chip(via.grade)))
             Text(via.grade.map { "\(titulo) · \($0)" } ?? titulo)
                 .font(.system(size: 13)).foregroundStyle(Cumbre.ink)
                 .lineLimit(1)

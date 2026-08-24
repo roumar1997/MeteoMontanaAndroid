@@ -41,6 +41,14 @@ enum GradeColor {
 
     static func color(_ grade: String?) -> Color { style(grade).stroke }
 
+    /// `style(_:)` con el color ya adaptado al tema. Lo que debe usar TODO lo
+    /// que pinte un grado FUERA de una foto (badges de vía, diario, stats,
+    /// filtros). Espejo de `gradeChipStyle` en GradeColor.kt.
+    static func chipStyle(_ grade: String?) -> Style {
+        let s = style(grade)
+        return Style(stroke: chip(grade), dashed: s.dashed, dark: s.dark)
+    }
+
     /// El color del grado ADAPTADO al tema, para pintarlo FUERA de una foto
     /// (chips, badges, listas). Sobre la foto de la roca se usa `color(_:)`
     /// tal cual, que ahí siempre hay contraste.

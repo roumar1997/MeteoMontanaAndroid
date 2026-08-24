@@ -64,6 +64,7 @@ import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.colorForGrade
+import com.meteomontana.android.ui.theme.gradeChipColor
 import com.meteomontana.android.ui.theme.gradeStyle
 import kotlinx.coroutines.launch
 
@@ -209,7 +210,7 @@ internal fun AddLineRow(
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null
 ) {
-    val gradeColor = colorForGrade(bloque.grade)
+    val gradeColor = gradeChipColor(bloque.grade)
 
     Column(
         modifier = Modifier

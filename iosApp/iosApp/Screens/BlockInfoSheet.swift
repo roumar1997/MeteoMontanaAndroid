@@ -242,9 +242,9 @@ struct BlockInfoSheet: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 10) {
                                         Text("\(idx + 1)").font(Cumbre.mono(11, .bold))
-                                            .foregroundStyle(GradeColor.style(l.grade).dark ? .black : .white)
+                                            .foregroundStyle(GradeColor.chipStyle(l.grade).dark ? .black : .white)
                                             .frame(width: 24, height: 24)
-                                            .background(Circle().fill(GradeColor.color(l.grade)))
+                                            .background(Circle().fill(GradeColor.chip(l.grade)))
                                         if let g = l.grade, !g.isEmpty {
                                             // C5: el grado es VOTABLE (chip discontinuo terra).
                                             VotableChip(text: g) {

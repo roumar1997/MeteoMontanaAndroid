@@ -59,6 +59,7 @@ import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import com.meteomontana.android.ui.theme.gradeChipStyle
 import com.meteomontana.android.ui.theme.gradeStyle
 import kotlinx.coroutines.launch
 
@@ -482,7 +483,7 @@ fun BlockDetailDialog(
                         Spacer(Modifier.height(Spacing.xs))
                         face.lines.forEachIndexed { idx, line ->
                             val lineGrade = line.grade
-                            val style = gradeStyle(lineGrade)
+                            val style = gradeChipStyle(lineGrade)
                             // Filtro por grado (BLOCK_SEARCH_DESIGN.md §7): vías fuera de
                             // la selección se atenúan, no se ocultan (contexto de la piedra).
                             val gradeDimmed = gradeMatchingLineIds != null && line.id !in gradeMatchingLineIds
