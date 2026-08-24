@@ -82,7 +82,12 @@ fun ContributionTopoDialog(
     bloques: List<BoulderBloqueForm>,
     onSave: (List<BoulderBloqueForm>) -> Unit,
     onDismiss: () -> Unit,
-    existingLines: List<com.meteomontana.android.ui.components.TopoLine> = emptyList()
+    existingLines: List<com.meteomontana.android.ui.components.TopoLine> = emptyList(),
+    /** Texto del botón de guardar. El admin usa este mismo diálogo para
+     *  "editar y aprobar" y "GUARDAR\nLÍNEAS" no dejaba claro que el toque
+     *  aprueba la propuesta (AdminEditApproveSheet.swift sí dice "APROBAR
+     *  CON MIS CAMBIOS") — Álvaro, 2026-08-24, paridad con iOS. */
+    saveLabel: String = "GUARDAR\nLÍNEAS"
 ) {
     var selectedIdx by remember { mutableStateOf(0) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -570,7 +575,7 @@ fun ContributionTopoDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("GUARDAR\nLÍNEAS", style = EyebrowTextStyle,
+                    Text(saveLabel, style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.background,
                         textAlign = TextAlign.Center)
                 }

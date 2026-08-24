@@ -130,7 +130,7 @@ fun MeetupDetailScreen(
                 IconButton(onClick = {
                     com.meteomontana.android.ui.share.shareMeetup(
                         context, m.name, m.schoolName, m.days, m.discipline,
-                        m.memberCount, m.memberLimit)
+                        m.memberCount, m.memberLimit, state.inviteLink)
                 }) {
                     Icon(Icons.Outlined.Share, stringResource(R.string.common_share), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

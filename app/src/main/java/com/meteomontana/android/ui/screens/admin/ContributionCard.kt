@@ -509,7 +509,12 @@ internal fun ContributionCard(
                         }
                     },
                     onDismiss = { showEditApprove = false },
-                    existingLines = emptyList()
+                    existingLines = emptyList(),
+                    // La última cara APRUEBA la propuesta al guardar (no es un
+                    // simple "guardar líneas") — misma etiqueta que
+                    // AdminEditApproveSheet.swift en iOS.
+                    saveLabel = if (editableFaces.size > 1 && faceIdx < editableFaces.size - 1)
+                        "SIGUIENTE\nCARA" else "APROBAR CON\nMIS CAMBIOS"
                 )
             }
         }

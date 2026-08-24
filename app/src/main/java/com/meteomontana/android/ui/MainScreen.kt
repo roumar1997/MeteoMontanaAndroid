@@ -506,7 +506,9 @@ fun MainScreen(
                                     onDayClick = { schoolId, lat, lon, idx ->
                                         if (schoolId != null) openSheet(Routes.dayDetail(schoolId, idx))
                                         else openSheet(Routes.dayDetailByLocation(lat, lon, idx))
-                                    }
+                                    },
+                                    visible = selectedTab == Tab.Weather.route &&
+                                        !weatherShowsRadar && !sheetVisible
                                 )
                             }
                         }

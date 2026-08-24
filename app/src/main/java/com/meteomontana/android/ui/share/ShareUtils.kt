@@ -13,7 +13,12 @@ fun shareMeetup(
     days: List<String>,
     discipline: String?,
     memberCount: Int,
-    memberLimit: Int?
+    memberLimit: Int?,
+    /** Enlace de invitación (solo si somos miembros): con él quien lo reciba
+     *  puede unirse aunque no haya relación de follows. Faltaba en Android —
+     *  espejo de meetupShareText en MeetupDetailView.swift (Álvaro,
+     *  2026-08-24: paridad con iOS). */
+    inviteLink: String? = null
 ) {
     val daysText = days.joinToString(", ") { formatShareDay(it) }
     val plazas = memberLimit?.let { "$memberCount/$it plazas" } ?: "$memberCount participantes"
@@ -27,9 +32,14 @@ fun shareMeetup(
         append("Quedada: $meetupName\n")
         schoolName?.let { append("Escuela: $it\n") }
         append("$daysText$discText · $plazas\n\n")
-        append("Descarga Cumbre:\n")
-        append("Android: $PLAY_URL\n")
-        append("iOS: $APPSTORE_URL")
+        if (!inviteLink.isNullOrBlank()) {
+            append("👉 Únete desde aquí:\n$inviteLink")
+        } else {
+            append("👉 Búscala en Cumbre (pestaña Quedadas)\n\n")
+            append("Descarga Cumbre:\n")
+            append("Android: $PLAY_URL\n")
+            append("iOS: $APPSTORE_URL")
+        }
     }
     shareText(context, text, "Compartir quedada")
 }

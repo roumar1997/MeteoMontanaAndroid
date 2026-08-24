@@ -19,7 +19,11 @@ import javax.inject.Inject
 
 sealed interface WeatherUiState {
     data object Loading : WeatherUiState
-    data object NeedPermission : WeatherUiState
+    /** Favoritas SIEMPRE presentes, aunque no haya permiso: quien rechazó la
+     *  ubicación puede igualmente ver el tiempo de sus escuelas favoritas
+     *  (espejo de WeatherView.swift, que carga favoritas ANTES del gate).
+     *  Antes Android las escondía del todo sin permiso. */
+    data class NeedPermission(val favorites: List<FavoriteSchool> = emptyList()) : WeatherUiState
     data class Success(
         val forecast: Forecast,
         val favorites: List<FavoriteSchool>,
@@ -48,12 +52,17 @@ class WeatherViewModel @Inject constructor(
     fun tryLoad() {
         _state.value = WeatherUiState.Loading
         viewModelScope.launch {
-            if (!locationProvider.hasPermission()) {
-                _state.value = WeatherUiState.NeedPermission
-                return@launch
-            }
+            // Favoritas y grid se cargan ANTES del gate de permiso: sin ellas,
+            // rechazar la ubicación dejaba sin ver el tiempo de NINGUNA
+            // escuela, ni siquiera las favoritas guardadas (Álvaro,
+            // 2026-08-24: paridad con iOS, que carga favoritas primero).
             favorites = runCatching { getMyFavorites() }.getOrDefault(emptyList())
             grid = runCatching { getFavoritesGrid() }.getOrNull()
+
+            if (!locationProvider.hasPermission()) {
+                _state.value = WeatherUiState.NeedPermission(favorites)
+                return@launch
+            }
 
             val loc = locationProvider.current() ?: return@launch run {
                 _state.value = loadForecastByLatLon(40.4168, -3.7038)

@@ -96,9 +96,15 @@ fun SearchUsersScreen(
         Spacer(Modifier.padding(top = 8.dp))
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-        if (results.isEmpty() && q.isNotBlank()) {
+        if (results.isEmpty()) {
+            // Con menos de 2 letras la pista dice ESO, no "sin resultados" —
+            // que sugiere que ya se buscó. Faltaba en Android (UsersView.swift
+            // sí lo hace) — Álvaro, 2026-08-24, paridad con iOS.
             Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text("Sin resultados", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    if (q.length < 2) "Escribe al menos 2 letras" else "Sin resultados",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
             LazyColumn {
@@ -128,15 +134,21 @@ private fun UserRow(user: PublicProfile, onClick: () -> Unit) {
                 .background(MaterialTheme.colorScheme.surfaceVariant))
         }
         Column(modifier = Modifier.weight(1f)) {
+            // Nombre real primero, @usuario debajo — como UserRow de
+            // UsersView.swift. Antes era al revés (@usuario + bio), y el
+            // nombre real solo salía si no había username (Álvaro,
+            // 2026-08-24, paridad con iOS).
             Text(
-                "@${user.username ?: user.displayName ?: user.uid.take(6)}",
+                user.displayName?.takeIf { it.isNotBlank() }
+                    ?: user.username?.takeIf { it.isNotBlank() }
+                    ?: "Usuario",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            val userBio = user.bio
-            if (!userBio.isNullOrBlank()) {
-                Text(userBio,
-                    style = MaterialTheme.typography.labelMedium,
+            val userName = user.username
+            if (!userName.isNullOrBlank()) {
+                Text("@$userName",
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

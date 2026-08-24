@@ -54,7 +54,12 @@ data class MeetupDetailUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val joining: Boolean = false,
-    val leaving: Boolean = false
+    val leaving: Boolean = false,
+    /** Enlace de invitación (solo miembros): permite unirse sin relación de
+     *  follows. Espejo de MeetupDetailView.swift — Android no lo cargaba y el
+     *  texto de compartir se quedaba en "búscala en Cumbre" (Álvaro,
+     *  2026-08-24: paridad con iOS). */
+    val inviteLink: String? = null
 )
 
 @HiltViewModel
@@ -77,6 +82,7 @@ class MeetupsViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     private val photoUploader: PhotoUploader,
     private val fileReader: com.meteomontana.android.domain.port.FileReader,
+    private val meetupApi: com.meteomontana.android.data.api.KtorMeetupApi,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -139,11 +145,18 @@ class MeetupsViewModel @Inject constructor(
     }
 
     fun loadMeetup(id: String) {
-        _detail.update { it.copy(isLoading = true, error = null) }
+        _detail.update { it.copy(isLoading = true, error = null, inviteLink = null) }
         viewModelScope.launch {
             try {
                 val result = getMeetup.execute(id)
                 _detail.update { it.copy(meetup = result, isLoading = false) }
+                // Enlace de invitación (si somos miembros): para el botón de
+                // compartir. Igual que iOS: se pide aparte y en silencio, no
+                // bloquea la carga de la quedada si falla.
+                if (result?.joined == true) {
+                    val link = runCatching { meetupApi.getInviteLink(id) }.getOrNull()
+                    _detail.update { it.copy(inviteLink = link) }
+                }
             } catch (e: Exception) {
                 _detail.update { it.copy(isLoading = false, error = e.message) }
             }

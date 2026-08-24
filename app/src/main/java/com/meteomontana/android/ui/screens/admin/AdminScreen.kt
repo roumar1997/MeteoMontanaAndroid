@@ -93,10 +93,13 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 
+// Orden como AdminContributionCards.swift: PROPUESTAS · DENUNCIAS ·
+// GESTIONAR · STATS · ACTIVIDAD · PUSH — aquí Denuncias y Gestionar estaban
+// cambiados de sitio (Álvaro, 2026-08-24, paridad con iOS).
 private enum class AdminTab(val label: String) {
     Propuestas("PROPUESTAS"),
-    Gestionar("GESTIONAR"),
     Denuncias("DENUNCIAS"),
+    Gestionar("GESTIONAR"),
     Stats("STATS"),
     Activity("ACTIVIDAD"),
     Push("PUSH")

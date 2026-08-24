@@ -46,6 +46,11 @@ import com.meteomontana.android.R
 @Composable
 fun WeatherScreen(
     onDayClick: (schoolId: String?, lat: Double, lon: Double, dayIndex: Int) -> Unit = { _, _, _, _ -> },
+    // En la pestaña keep-alive: true cuando Tiempo está visible (no tapada por
+    // Radar ni por un sheet). Sin esto, cambiar de pestaña y volver no
+    // recargaba nunca — mismo patrón que ProfileScreen (Álvaro, 2026-08-24:
+    // paridad con iOS, que sí recarga con .task en cada reaparición).
+    visible: Boolean = true,
     viewModel: WeatherViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -59,6 +64,9 @@ fun WeatherScreen(
     LaunchedEffect(anyGranted) {
         if (anyGranted) viewModel.tryLoad()
     }
+    LaunchedEffect(visible) {
+        if (visible) viewModel.tryLoad()
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when (val s = state) {
@@ -68,8 +76,15 @@ fun WeatherScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
-            WeatherUiState.NeedPermission -> {
+            is WeatherUiState.NeedPermission -> {
                 TopBar(title = stringResource(R.string.weather_title), subtitle = "")
+                // Favoritas visibles TAMBIÉN sin permiso: tocar una carga su
+                // tiempo directamente (no depende de la ubicación). Antes
+                // rechazar el permiso escondía las favoritas por completo.
+                if (s.favorites.isNotEmpty()) {
+                    FavoriteChips(s.favorites, null, viewModel::selectFavorite)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                }
                 PermissionPrompt { locationPermission.launchMultiplePermissionRequest() }
             }
             is WeatherUiState.Error -> {
