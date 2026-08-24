@@ -282,8 +282,10 @@ struct BoulderFormSheet: View {
                             Button { showTrace = true } label: {
                                 Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✓ MURO TRAZADO (\(wallPath.count) PUNTOS) · RE-TRAZAR")
                                     .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                    .lineLimit(1).minimumScaleFactor(0.8)
                                     .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                    .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                        .stroke(Cumbre.terra, lineWidth: 1))
                             }.buttonStyle(.plain)
                         }
                         if !sectors.isEmpty {
@@ -407,7 +409,7 @@ struct BoulderFormSheet: View {
                         Text(faces[faceIdx].photo == nil ? "SELECCIONAR FOTO" : "CAMBIAR FOTO")
                             .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
                             .frame(maxWidth: .infinity).padding(.vertical, 10)
-                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
 
@@ -470,8 +472,10 @@ struct BoulderFormSheet: View {
                             .font(Cumbre.mono(12, .bold)).tracking(0.6)
                             .foregroundStyle(hasPhoto ? .white : Cumbre.ink3)
                             .frame(maxWidth: .infinity).padding(.vertical, 12)
-                            .background(hasPhoto ? Cumbre.terra : Color.clear)
-                            .overlay(Rectangle().stroke(hasPhoto ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                            .background(hasPhoto ? Cumbre.terraFill : Color.clear,
+                                        in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                .stroke(hasPhoto ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                     }.buttonStyle(.plain).disabled(!hasPhoto)
                     if !hasPhoto {
                         Text("Añade una foto para poder dibujar las líneas.")
@@ -487,7 +491,8 @@ struct BoulderFormSheet: View {
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
                             Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terraFill)
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
+                        .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
                 .padding(16)

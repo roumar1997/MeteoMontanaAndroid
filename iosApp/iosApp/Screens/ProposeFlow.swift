@@ -20,8 +20,10 @@ struct DisciplineSelector: View {
                     Text(label).font(Cumbre.mono(12, .bold)).tracking(0.6)
                         .foregroundStyle(on ? .white : Cumbre.ink)
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .background(on ? Cumbre.terra : Color.clear)
-                        .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                        .background(on ? Cumbre.terraFill : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                        .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                            .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                 }.buttonStyle(.plain)
             }
         }
