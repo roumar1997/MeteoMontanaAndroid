@@ -487,7 +487,18 @@ fun SchoolMap(
             text = { Text("Dejaste esta piedra a medias de editar. ¿Sigues donde lo dejaste o empiezas de cero?") },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
-                    wallEdit.faces = borrador.faces
+                    // Del borrador se recuperan las VÍAS y las fotos LOCALES,
+                    // pero la foto del servidor se vuelve a tomar de la piedra
+                    // en vivo: la guardada es una URL FIRMADA que caduca (~1h),
+                    // así que al continuar más tarde la foto salía en negro
+                    // (Álvaro, 2026-08-24).
+                    val actuales = wallEdit.target?.let {
+                        com.meteomontana.android.ui.screens.detail.initialEditFaces(it)
+                    }.orEmpty()
+                    wallEdit.faces = borrador.faces.mapIndexed { i, cara ->
+                        cara.copy(existingPhotoPath = actuales.getOrNull(i)?.existingPhotoPath
+                            ?: cara.existingPhotoPath)
+                    }
                     borradorEncontrado = null
                 }) { Text("CONTINUAR EDITANDO") }
             },

@@ -155,7 +155,19 @@ class SchoolDetailLoader @Inject constructor(
                 // blanco) — Álvaro, 2026-08-24.
                 val blocksD = async {
                     val res = retryTwice { getBlocks(schoolId) }
-                    res.getOrElse {
+                    res.onSuccess {
+                        android.util.Log.i("Cumbre", "getBlocks($schoolId) OK: ${it.size} bloques")
+                    }
+                    res.getOrElse { fallo ->
+                        // Se REGISTRA el motivo: al convertir el fallo en lista
+                        // vacía no quedaba ni rastro de por qué una escuela
+                        // salía sin nada, y hubo que diagnosticarlo dos veces a
+                        // ciegas (2026-08-13 y 2026-08-24).
+                        android.util.Log.w(
+                            "Cumbre",
+                            "getBlocks($schoolId) falló tras 3 intentos: " +
+                                "${fallo::class.simpleName}: ${fallo.message}", fallo
+                        )
                         runCatching {
                             savedSchoolRepo.loadOffline(schoolId)?.let { s ->
                                 s.blocks.map { b -> savedSchoolRepo.toBlock(b, s.lines) }

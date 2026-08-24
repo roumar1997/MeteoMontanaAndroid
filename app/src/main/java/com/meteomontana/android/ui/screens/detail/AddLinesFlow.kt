@@ -304,9 +304,10 @@ internal fun AddLinesFlow(
         onDismissRequest = onDismiss,
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(
             skipPartiallyExpanded = true,
+            // Formulario: NO se cierra deslizando (tiraba el trabajo y dejaba
+            // asomar la ficha de debajo). Se sale por Cancelar o por Enviar.
             confirmValueChange = { valor ->
-                valor != androidx.compose.material3.SheetValue.Hidden ||
-                    contenidoScroll.value == 0
+                valor != androidx.compose.material3.SheetValue.Hidden
             }
         ),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -511,38 +512,10 @@ internal fun AddLinesFlow(
                     color = MaterialTheme.colorScheme.error)
             }
 
+            // Cancelar/Enviar viven SOLO en la barra fija de arriba
+            // (SubmitHeader). La copia que había aquí abajo hacía que salieran
+            // los dos (Álvaro, 2026-08-24).
             Spacer(Modifier.height(Spacing.lg))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(CumbrePillShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
-                        .clickable(enabled = !sending, onClick = onDismiss)
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(stringResource(R.string.common_cancel).uppercase(), style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.onSurface)
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1.5f)
-                        .clip(CumbrePillShape)
-                        .background(terraFillColor())
-                        .clickable(enabled = !sending) { enviar() }
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
-                        color = Color.White, strokeWidth = 2.dp)
-                    else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
-                }
-            }
         }   // fin del contenido que scrollea
         }   // fin de la columna con la barra fija
     }

@@ -47,11 +47,20 @@ fun CumbreSheetHeader(
      */
     accion: (@Composable () -> Unit)? = null
 ) {
-    Box(modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
-        CumbrePillGroup(modifier = Modifier.align(Alignment.CenterStart)) {
+    // Row con peso, NO un Box con alineaciones absolutas: así el título ocupa
+    // solo el hueco que queda entre los dos botones y es IMPOSIBLE que se
+    // solapen. Con el Box, un botón ancho ("ENVIAR PROPUESTA") se comía el
+    // título y se leía "Cancelar Editar piedr[ENVIAR PROPUESTA]" (Álvaro,
+    // 2026-08-24).
+    androidx.compose.foundation.layout.Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CumbrePillGroup {
             TextButton(onClick = onClose) {
                 Text(
                     textoSalida,
+                    maxLines = 1,
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.titleMedium
                 )
@@ -62,11 +71,12 @@ fun CumbreSheetHeader(
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.align(Alignment.Center).padding(horizontal = 96.dp)
+            modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
         )
         if (accion != null) {
-            CumbrePillGroup(modifier = Modifier.align(Alignment.CenterEnd)) { accion() }
+            CumbrePillGroup { accion() }
         }
     }
 }

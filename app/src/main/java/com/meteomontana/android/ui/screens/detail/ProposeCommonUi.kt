@@ -131,12 +131,38 @@ internal fun SubmitHeader(
                 if (sending) CircularProgressIndicator(modifier = Modifier.size(16.dp),
                     color = Color.White, strokeWidth = 2.dp)
                 else Text(
-                    if (error != null) "REINTENTAR" else stringResource(R.string.propose_submit),
-                    style = EyebrowTextStyle, color = Color.White
+                    // "ENVIAR" a secas en la cabecera: "ENVIAR PROPUESTA" no
+                    // cabe junto a Cancelar y el título. Igual que en iOS.
+                    if (error != null) "REINTENTAR" else "ENVIAR",
+                    style = EyebrowTextStyle, color = Color.White, maxLines = 1
                 )
             }
         }
     )
+}
+
+/**
+ * Solo el error + "GUARDAR Y ENVIAR CON COBERTURA", para los formularios cuyo
+ * Enviar vive ya en la cabecera. Sin esto, ofrecer la salida offline obligaba a
+ * pintar el footer entero y salían dos botones de enviar.
+ */
+@Composable
+internal fun SubmitFooterOffline(
+    sending: Boolean,
+    error: String,
+    onSaveOffline: () -> Unit
+) {
+    Text(error, style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error)
+    Spacer(Modifier.height(Spacing.xs))
+    Box(modifier = Modifier.fillMaxWidth().clip(CumbrePillShape)
+        .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
+        .clickable(enabled = !sending, onClick = onSaveOffline)
+        .padding(vertical = Spacing.md),
+        contentAlignment = Alignment.Center) {
+        Text("GUARDAR Y ENVIAR CON COBERTURA", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurface)
+    }
 }
 
 // ─── Selectores segmentados ───────────────────────────────────────────────────
@@ -257,12 +283,14 @@ internal fun CumbreDialog(
     val contenidoScroll = rememberScrollState()
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
+        // NO se cierra deslizando. Estos sheets son FORMULARIOS: un gesto hacia
+        // abajo tiraba el trabajo y además dejaba ver la ficha de la piedra por
+        // debajo, como si se hubiera roto algo (Álvaro, 2026-08-24). Se sale por
+        // Cancelar (que pregunta si guardar), por Enviar, o con el botón atrás.
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(
             skipPartiallyExpanded = true,
             confirmValueChange = { valor ->
-                !scrollable ||
-                    valor != androidx.compose.material3.SheetValue.Hidden ||
-                    contenidoScroll.value == 0
+                valor != androidx.compose.material3.SheetValue.Hidden
             }
         ),
         // Transparente para que el fondo lo ponga el acabado de Cumbre: si el

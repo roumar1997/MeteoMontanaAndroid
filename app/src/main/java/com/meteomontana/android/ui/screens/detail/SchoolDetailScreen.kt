@@ -308,11 +308,26 @@ private fun Content(
         //
         // movableContentOf mueve el MISMO contenido de un sitio a otro
         // conservando su identidad y su estado. Es justo para esto.
+        //
+        // OJO con las CAPTURAS: este `remember` no tiene claves a propósito
+        // (recrearlo pierde la identidad del mapa, que es justo lo que
+        // movableContentOf viene a evitar). Por eso el contenido NO puede leer
+        // `blocks` directamente: se quedaría con la lista de la PRIMERA
+        // composición —vacía, porque el servidor tarda ~0,4 s— y el mapa se
+        // pintaba para siempre con un solo marcador, el de la escuela. Al salir
+        // y volver a entrar se recomponía de cero y ya salía bien: ese era
+        // exactamente el síntoma ("entro y no sale nada; salgo, entro y sí").
+        // rememberUpdatedState mantiene la lectura viva sin recrear el bloque.
+        // Cazado con registro el 2026-08-24 (Álvaro): "getBlocks(la-pedriza)
+        // OK: 21 bloques" y el mapa repintando "marcadores=1" sin parar.
+        val blocksState = androidx.compose.runtime.rememberUpdatedState(blocks)
+        val approachesState = androidx.compose.runtime.rememberUpdatedState(approaches)
+        val isAdminState = androidx.compose.runtime.rememberUpdatedState(isAdmin)
         val blocksSection = androidx.compose.runtime.remember { androidx.compose.runtime.movableContentOf {
             Column {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                 BlocksSection(
-                    blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
+                    blocks = blocksState.value, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
                     schoolLat = school.lat, schoolLon = school.lon,
                     schoolName = school.name, schoolStyle = school.style, schoolId = school.id,
                     viewModel = viewModel, onMyProposals = onMyProposals
@@ -321,8 +336,10 @@ private fun Content(
                 // resto de la ficha — misma posición que ApproachesSection.swift
                 // en iOS ("el loader vive en SchoolMapSection").
                 com.meteomontana.android.ui.components.ApproachesSection(
-                    approaches = approaches,
-                    isAdmin = isAdmin,
+                    // Mismo motivo que blocksState: llegan del servidor DESPUÉS
+                    // de la primera composición y el bloque las capturaría.
+                    approaches = approachesState.value,
+                    isAdmin = isAdminState.value,
                     onFollow = { followingApproach = it },
                     onRecord = { recordingApproach = true },
                     onDelete = { a -> approachScope.launch { viewModel.deleteApproach(a.id) } }

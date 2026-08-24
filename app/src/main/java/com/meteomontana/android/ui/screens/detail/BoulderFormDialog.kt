@@ -599,13 +599,15 @@ internal fun BoulderFormDialog(
             color = MaterialTheme.colorScheme.secondary)
         Spacer(Modifier.height(Spacing.md))
 
-        // ── Footer ────────────────────────────────────────────────────────────────
-        SubmitFooter(
-            sending = sending, error = error,
-            onCancel = onCancel,
-            onSubmit = { enviar() },
-            onSaveOffline = onSaveOffline
-        )
+        // Enviar/Cancelar viven SOLO en la cabecera fija (SubmitHeader, arriba).
+        // Aquí abajo había una segunda copia y salían los dos (Álvaro,
+        // 2026-08-24: "sigue saliendo debajo lo de enviar"). Lo único que queda
+        // es la salida offline, que no cabe en la cabecera y solo aparece si el
+        // envío ha fallado.
+        val errorActual = error
+        if (errorActual != null && onSaveOffline != null) {
+            SubmitFooterOffline(sending = sending, error = errorActual, onSaveOffline = onSaveOffline)
+        }
     }
 }
 
