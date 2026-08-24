@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -195,7 +197,99 @@ fun BlockDetailDialog(
                 block.type == "ZONE"    -> Color(0xFF1FA84E) to "ZONA"
                 else                    -> Terra to "PIEDRA"
             }
-            CumbreSheetHeader(titulo = block.name, onClose = onDismiss)
+            // Barra fija: Cerrar · Cómo llegar · Compartir · ⚙ Opciones.
+            // Espejo de la de iOS (Álvaro, 2026-08-24): estaban todas al fondo
+            // de la ficha y había que scrollear hasta abajo para usarlas.
+            val hayOpciones = !isProposal && (
+                (onAddLines != null && block.type == "BLOCK") ||
+                (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) ||
+                onEdit != null || onDelete != null)
+            val puedeCompartir = block.type == "BLOCK" && !isProposal && block.lines.isNotEmpty()
+            CumbreSheetHeader(
+                titulo = block.name,
+                onClose = onDismiss,
+                accion = {
+                    androidx.compose.material3.IconButton(onClick = {
+                        val uri = Uri.parse(
+                            "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}"
+                        )
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+                    }) {
+                        androidx.compose.material3.Icon(
+                            Icons.Outlined.Directions,
+                            contentDescription = stringResource(R.string.common_directions),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (puedeCompartir) {
+                        androidx.compose.material3.IconButton(onClick = {
+                            block.lines.firstOrNull()?.let { first ->
+                                val blockSector = availableSectors
+                                    ?.firstOrNull { z -> z.id == block.sectorBlockId }?.name
+                                shareScope.launch {
+                                    val badge = orientationOf(null)?.consensus
+                                        ?: communityVm.fetchOrientationConsensus(block.id)
+                                    shareVia(shareScope, context, block, first, schoolName,
+                                        tickedLines.toSet(), projectLines.toSet(), blockSector,
+                                        orientationBadge = badge)
+                                }
+                            }
+                        }) {
+                            androidx.compose.material3.Icon(
+                                Icons.Outlined.Share,
+                                contentDescription = stringResource(R.string.common_share),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (hayOpciones) {
+                        Box {
+                            androidx.compose.material3.IconButton(onClick = { optionsOpen = true }) {
+                                androidx.compose.material3.Icon(
+                                    Icons.Outlined.Settings,
+                                    contentDescription = "Opciones",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            androidx.compose.material3.DropdownMenu(
+                                expanded = optionsOpen,
+                                onDismissRequest = { optionsOpen = false }
+                            ) {
+                                if (onAddLines != null && block.type == "BLOCK") {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = {
+                                            Text(if (block.lines.isEmpty()) stringResource(R.string.block_add_routes)
+                                                 else stringResource(R.string.block_edit_routes))
+                                        },
+                                        onClick = { optionsOpen = false; onAddLines() }
+                                    )
+                                }
+                                if (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = {
+                                            Text(if (block.sectorBlockId == null) stringResource(R.string.propose_assign_sector)
+                                                 else stringResource(R.string.propose_change_sector))
+                                        },
+                                        onClick = { optionsOpen = false; showSectorPicker = true }
+                                    )
+                                }
+                                if (onEdit != null) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("EDITAR") },
+                                        onClick = { optionsOpen = false; onEdit() }
+                                    )
+                                }
+                                if (onDelete != null) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("ELIMINAR", color = MaterialTheme.colorScheme.error) },
+                                        onClick = { optionsOpen = false; showDeleteConfirm = true }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            )
 
             // Caras de la piedra, en el MISMO orden en que se pintan abajo. Se
             // calcula aquí (y no dentro del scroll) porque las pestañas de
@@ -588,47 +682,9 @@ fun BlockDetailDialog(
 
             Spacer(Modifier.height(Spacing.md))
 
-            // Botón CÓMO LLEGAR (Google Maps) — disponible para cualquier tipo
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(terraFillColor())
-                    .clickable {
-                        val uri = Uri.parse(
-                            "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}"
-                        )
-                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                    }
-                    .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("→ ${stringResource(R.string.common_directions)}", style = EyebrowTextStyle, color = Color.White)
-            }
-
-            BlockOptionsSection(
-                block = block, isProposal = isProposal,
-                optionsOpen = optionsOpen, onToggleOptions = { optionsOpen = !optionsOpen },
-                onAddLines = onAddLines, availableSectors = availableSectors,
-                onOpenSectorPicker = if (onAssignSector != null) ({ showSectorPicker = true }) else null,
-                onEdit = onEdit,
-                onRequestDelete = if (onDelete != null) ({ showDeleteConfirm = true }) else null,
-                onShareBlock = {
-                    // N10: comparte la piedra entera usando su primera via como ancla
-                    // (la tarjeta ya lista TODAS las vias de la cara).
-                    block.lines.firstOrNull()?.let { first ->
-                        val blockSector = availableSectors
-                            ?.firstOrNull { z -> z.id == block.sectorBlockId }?.name
-                        shareScope.launch {
-                            val badge = orientationOf(null)?.consensus
-                                ?: communityVm.fetchOrientationConsensus(block.id)
-                            shareVia(shareScope, context, block, first, schoolName,
-                                tickedLines.toSet(), projectLines.toSet(), blockSector,
-                                orientationBadge = badge)
-                        }
-                    }
-                },
-            )
+            // Cómo llegar, Compartir y Opciones viven ARRIBA, en la barra fija
+            // junto a Cerrar (ver accionesFicha) — paridad con BlockInfoSheet de
+            // iOS. Antes estaban aquí abajo, al final de una ficha larga.
             }
         }
     }

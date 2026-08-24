@@ -36,6 +36,26 @@ private suspend fun <T> retryOnce(block: suspend () -> T): Result<T> {
 }
 
 /**
+ * Como [retryOnce] pero con un intento más (400 ms y 1200 ms).
+ *
+ * Solo para los BLOQUES. Son el contenido de la pantalla: si fallan, la
+ * escuela sale sin una sola piedra, sin sectores y sin parkings — y encima
+ * sin ningún aviso, porque el fallo se convertía en lista vacía. Álvaro lo
+ * pilló otra vez el 2026-08-24 ("sale Cabo Negro y ni una piedra ni sector");
+ * es preferible tardar 1,6 s más en el caso malo que enseñar una escuela
+ * vacía que parece rota.
+ */
+private suspend fun <T> retryTwice(block: suspend () -> T): Result<T> {
+    val first = runCatching { block() }
+    if (first.isSuccess) return first
+    delay(400)
+    val second = runCatching { block() }
+    if (second.isSuccess) return second
+    delay(1_200)
+    return runCatching { block() }
+}
+
+/**
  * Carga del detalle de escuela: llamadas paralelas al backend + fallback al
  * snapshot offline + caché del forecast. Extraído de SchoolDetailViewModel
  * (SRP): construir el Success/Error es una responsabilidad completa en sí
@@ -128,7 +148,21 @@ class SchoolDetailLoader @Inject constructor(
                 val forecastD = async { runCatching { getForecast(schoolId) } }
                 val notesD = async { runCatching { getNotes(schoolId) }.getOrDefault(emptyList()) }
                 val isFavD = async { runCatching { getMyFavorites().any { it.id == schoolId } }.getOrDefault(false) }
-                val blocksD = async { retryOnce { getBlocks(schoolId) }.getOrDefault(emptyList()) }
+                // Si los bloques FALLAN, no se pasa por "lista vacía" sin más:
+                // eso pinta la escuela como si no tuviera nada. Se reintenta y,
+                // en última instancia, se tira del snapshot guardado en disco
+                // (aunque sea viejo, es infinitamente mejor que una escuela en
+                // blanco) — Álvaro, 2026-08-24.
+                val blocksD = async {
+                    val res = retryTwice { getBlocks(schoolId) }
+                    res.getOrElse {
+                        runCatching {
+                            savedSchoolRepo.loadOffline(schoolId)?.let { s ->
+                                s.blocks.map { b -> savedSchoolRepo.toBlock(b, s.lines) }
+                            }
+                        }.getOrNull().orEmpty()
+                    }
+                }
                 val isAdminD = async { retryOnce { getMyProfile().isAdmin }.getOrDefault(false) }
                 val isSavedD = async { runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false) }
                 // Aproximaciones (parking → sector): lectura, admin-gated en

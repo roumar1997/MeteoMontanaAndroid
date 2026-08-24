@@ -112,43 +112,31 @@ internal fun SubmitHeader(
     onCancel: () -> Unit,
     onSubmit: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        Text(
-            stringResource(R.string.common_cancel),
-            style = EyebrowTextStyle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .clip(CumbrePillShape)
-                .clickable(enabled = !sending, onClick = onCancel)
-                .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
-        )
-        Text(
-            title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            modifier = Modifier.weight(1f)
-        )
-        Box(
-            modifier = Modifier
-                .clip(CumbrePillShape)
-                .background(if (submitEnabled) terraFillColor() else MaterialTheme.colorScheme.outline)
-                .clickable(enabled = !sending && submitEnabled, onClick = onSubmit)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            contentAlignment = Alignment.Center
-        ) {
-            if (sending) CircularProgressIndicator(modifier = Modifier.size(16.dp),
-                color = Color.White, strokeWidth = 2.dp)
-            else Text(
-                if (error != null) "REINTENTAR" else stringResource(R.string.propose_submit),
-                style = EyebrowTextStyle, color = Color.White
-            )
+    // Reutiliza CumbreSheetHeader (el mismo de la ficha de piedra): "Cancelar"
+    // en color primario y tamaño de título, como el de iOS. Con EyebrowTextStyle
+    // en gris apenas se leía (Álvaro, 2026-08-24).
+    com.meteomontana.android.ui.components.CumbreSheetHeader(
+        titulo = title,
+        onClose = onCancel,
+        textoSalida = stringResource(R.string.common_cancel),
+        accion = {
+            Box(
+                modifier = Modifier
+                    .clip(CumbrePillShape)
+                    .background(if (submitEnabled) terraFillColor() else MaterialTheme.colorScheme.outline)
+                    .clickable(enabled = !sending && submitEnabled, onClick = onSubmit)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                contentAlignment = Alignment.Center
+            ) {
+                if (sending) CircularProgressIndicator(modifier = Modifier.size(16.dp),
+                    color = Color.White, strokeWidth = 2.dp)
+                else Text(
+                    if (error != null) "REINTENTAR" else stringResource(R.string.propose_submit),
+                    style = EyebrowTextStyle, color = Color.White
+                )
+            }
         }
-    }
+    )
 }
 
 // ─── Selectores segmentados ───────────────────────────────────────────────────
