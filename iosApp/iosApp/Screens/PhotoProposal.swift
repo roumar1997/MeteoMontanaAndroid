@@ -200,10 +200,17 @@ struct SubmitBlockPhotoFlow: View {
 
     var body: some View {
         Color.clear
+            // Tamaño explícito a pantalla completa: SIN esto, Color.clear no
+            // tiene tamaño propio y, dentro de un .overlay sin alignment, su
+            // ancla acaba en un punto de 0x0 que varía según el layout no
+            // esté aún asentado — el confirmationDialog "saltaba" a sitios
+            // distintos cada vez (Álvaro, 2026-08-23). Con el frame fijo,
+            // el ancla es siempre el contenedor entero → posición estable.
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             // confirmationDialog NATIVO en vez del propio hecho a mano: el
-            // propio no respondía al toque (Rodrigo, 2026-08-22: "no funciona
+            // propio no respondía al toque (2026-08-22: "no funciona
             // para poder pulsarlo") — el nativo es simple pero SIEMPRE
-            // pulsable, que es lo que de verdad importa.
+            // pulsable, que es lo de verdad importa.
             .confirmationDialog("¿Cómo quieres la foto?", isPresented: $eligiendoOrigen) {
                 Button("Hacer foto ahora") { presentaCamara() }
                 Button("Elegir de galería") { presentaSelector() }
