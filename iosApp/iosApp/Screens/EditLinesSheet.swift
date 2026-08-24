@@ -371,18 +371,22 @@ struct EditLinesSheet: View {
                     }.foregroundStyle(Cumbre.ink3)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { Task { await send() } } label: {
-                        if sending {
-                            ProgressView().tint(.white)
-                                .padding(.horizontal, 18).padding(.vertical, 6)
-                                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                        } else {
-                            Text(sendError != nil ? "REINTENTAR" : "ENVIAR")
-                                .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
-                                .padding(.horizontal, 12).padding(.vertical, 6)
-                                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                        }
-                    }.buttonStyle(.plain).disabled(sending)
+                    // .borderedProminent, no un .background a mano: en iOS 26
+                    // (Liquid Glass) el sistema envuelve los botones de la barra
+                    // en su propio cristal aunque uses .buttonStyle(.plain), y la
+                    // píldora manual quedaba más pequeña que esa cápsula — se
+                    // veía como si el naranja no llegara al borde (Álvaro,
+                    // 2026-08-24). Con .borderedProminent el propio sistema
+                    // rellena la forma entera, en cualquier versión de iOS.
+                    Button {
+                        Task { await send() }
+                    } label: {
+                        if sending { ProgressView().tint(.white) }
+                        else { Text(sendError != nil ? "REINTENTAR" : "ENVIAR")
+                            .font(Cumbre.mono(11, .bold)).tracking(0.6) }
+                    }
+                    .buttonStyle(.borderedProminent).tint(Cumbre.terraFill)
+                    .disabled(sending)
                 }
             }
             // Deslizar hacia abajo NO puede tirar el trabajo en silencio: con

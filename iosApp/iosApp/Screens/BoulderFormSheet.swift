@@ -487,29 +487,40 @@ struct BoulderFormSheet: View {
                         Text(String(format: "%.5f, %.5f", coord.latitude, coord.longitude))
                             .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
                     }
-
-                    Button { Task { await send() } } label: {
-                        HStack { if sending { ProgressView().tint(.white) }
-                            Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                        .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                    }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
                 .padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .navigationTitle("Nueva piedra")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button(NSLocalizedString("common_cancel", comment: "")) {
-                    // Una piedra son varios campos, una foto por cara y una
-                    // linea por via: cerrar no puede tirarlo sin preguntar.
-                    if BoulderDraftStore.tieneContenido(borradorActual()) {
-                        preguntandoGuardar = true
-                    } else {
-                        dismiss(); onDone(false)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(NSLocalizedString("common_cancel", comment: "")) {
+                        // Una piedra son varios campos, una foto por cara y una
+                        // linea por via: cerrar no puede tirarlo sin preguntar.
+                        if BoulderDraftStore.tieneContenido(borradorActual()) {
+                            preguntandoGuardar = true
+                        } else {
+                            dismiss(); onDone(false)
+                        }
+                    }.foregroundStyle(Cumbre.ink3)
+                }
+                // ENVIAR arriba, fijo, igual que Editar vías (Álvaro,
+                // 2026-08-24: "fíjate que enviar propuesta está abajo y no
+                // arriba a la derecha como hablamos"). .borderedProminent para
+                // que el relleno ocupe la píldora entera en iOS 26.
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await send() }
+                    } label: {
+                        if sending { ProgressView().tint(.white) }
+                        else { Text(NSLocalizedString("propose_submit", comment: ""))
+                            .font(Cumbre.mono(11, .bold)).tracking(0.6) }
                     }
-                }.foregroundStyle(Cumbre.ink3) } }
+                    .buttonStyle(.borderedProminent).tint(Cumbre.terraFill)
+                    .disabled(sending)
+                }
+            }
             // Deslizar hacia abajo NO puede tirar el trabajo en silencio: con
             // algo escrito, el gesto se desactiva y hay que usar "Cancelar",
             // que es quien pregunta (lo cazo Rodrigo: cancelar preguntaba, el

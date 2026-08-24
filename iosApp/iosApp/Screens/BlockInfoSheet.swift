@@ -11,6 +11,14 @@ import FirebaseAuth
 // diario/ticks/proyectos con claves duales (fix homónimas «La ola») y las
 // colas offline: bloque MUY sensible, movido intacto.
 
+/// Quita un glifo/símbolo suelto al principio de un string (✎, +, ✓…) seguido
+/// de espacio: para strings compartidos con Android que llevan su icono
+/// incrustado como texto, cuando en iOS se pinta CON un icono real aparte.
+func stripLeadingGlyph(_ s: String) -> String {
+    guard let first = s.first, !first.isLetter, !first.isNumber else { return s }
+    return String(s.drop(while: { !$0.isLetter && !$0.isNumber }))
+}
+
 struct OrientationTarget: Identifiable {
     let id = UUID()
     let photoIndex: Int?
@@ -402,7 +410,16 @@ struct BlockInfoSheet: View {
                         Menu {
                             if block.type.uppercased() == "BLOCK", let onEditLines {
                                 Button { dismiss(); onEditLines() } label: {
-                                    Label(block.lines.isEmpty ? NSLocalizedString("block_add_routes", comment: "") : NSLocalizedString("block_edit_routes", comment: ""), systemImage: "pencil")
+                                    // El string trae SU PROPIO glifo (✎/+): en
+                                    // Android es texto plano y ese glifo ES el
+                                    // icono, pero aquí Label ya pone el suyo vía
+                                    // systemImage → salían dos lápices
+                                    // (Álvaro, 2026-08-24). Se quita el prefijo
+                                    // SOLO en este punto de uso.
+                                    Label(stripLeadingGlyph(block.lines.isEmpty
+                                        ? NSLocalizedString("block_add_routes", comment: "")
+                                        : NSLocalizedString("block_edit_routes", comment: "")),
+                                          systemImage: "pencil")
                                 }
                             }
                             if block.type.uppercased() == "BLOCK", let onAssignSector, !sectors.isEmpty {
