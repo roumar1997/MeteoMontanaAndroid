@@ -177,9 +177,22 @@ internal fun AddLinesFlow(
 
     // ModalBottomSheet como el resto de fichas (antes era un Dialog flotante y
     // la parte de abajo quedaba rara, con la pantalla asomando por detrás).
+    //
+    // ARRASTRAR PARA CERRAR, solo desde arriba (mismo arreglo que
+    // BlockDetailDialog.kt, aplicado aquí porque faltaba: el formulario es
+    // largo y el gesto de cierre competía con el scroll — bajar para ver más
+    // campos cerraba la hoja en vez de mover el contenido, reportado por
+    // Álvaro, 2026-08-24).
+    val contenidoScroll = rememberScrollState()
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { valor ->
+                valor != androidx.compose.material3.SheetValue.Hidden ||
+                    contenidoScroll.value == 0
+            }
+        ),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         shape = CumbreSheetShape,
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
@@ -189,7 +202,7 @@ internal fun AddLinesFlow(
                 .fillMaxWidth()
                 .fillMaxHeight(0.94f)
                 .cumbreSheetSurface()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(contenidoScroll)
                 .padding(horizontal = Spacing.md)
                 .padding(bottom = Spacing.md)
         ) {

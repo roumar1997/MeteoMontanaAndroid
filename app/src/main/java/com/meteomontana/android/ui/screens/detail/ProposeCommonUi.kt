@@ -195,9 +195,21 @@ internal fun CumbreDialog(
 ) {
     // Bottom-sheet flotante (sube desde abajo, esquinas superiores redondeadas,
     // scrim) — paridad con los .sheet de iOS, en vez de un diálogo centrado.
+    //
+    // ARRASTRAR PARA CERRAR, solo desde arriba cuando el contenido scrollea
+    // (mismo arreglo que BlockDetailDialog.kt/AddLinesFlow.kt): en formularios
+    // largos el gesto de cierre competía con el scroll.
+    val contenidoScroll = rememberScrollState()
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { valor ->
+                !scrollable ||
+                    valor != androidx.compose.material3.SheetValue.Hidden ||
+                    contenidoScroll.value == 0
+            }
+        ),
         // Transparente para que el fondo lo ponga el acabado de Cumbre: si el
         // sheet pintase el suyo, taparía el borde y el canto de luz.
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -210,7 +222,7 @@ internal fun CumbreDialog(
             .cumbreSheetSurface()
             .padding(horizontal = Spacing.lg)
             .padding(bottom = Spacing.lg)
-            .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+            .then(if (scrollable) Modifier.verticalScroll(contenidoScroll) else Modifier)
         Column(modifier = colMod) { content() }
     }
 }
