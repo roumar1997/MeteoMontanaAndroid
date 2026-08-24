@@ -47,6 +47,14 @@ struct EditLinesSheet: View {
     /// Vía cuya ficha está ABIERTA. Solo una a la vez: el resto se pliegan a
     /// una fila para no tener que scrollear formularios ya rellenados.
     @State private var expandedVia: UUID? = nil
+    // ORIENTACIÓN desde el editor (Álvaro, 2026-08-24: "al editar molaría que
+    // saliera lo de la orientación, poder orientar cada foto"). Se reutiliza la
+    // VOTACIÓN comunitaria que ya existe, no el payload de la propuesta: el
+    // voto entra al momento en vez de esperar a que un admin apruebe, y es
+    // además la única vía que el backend aplica sobre una piedra ya creada
+    // (orientationsJson solo se lee al materializar una piedra NUEVA).
+    @StateObject private var community = CommunityVoteStore()
+    @State private var orientationTarget: OrientationTarget? = nil
 
     /// Al editar una piedra ya existente siempre hay al menos una vía con
     /// nombre/grado (viene del servidor) — no vale mirar solo si hay foto
@@ -232,6 +240,20 @@ struct EditLinesSheet: View {
                                     .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
                                         .stroke(Cumbre.bad, lineWidth: 1))
                             }.buttonStyle(.plain)
+                        }
+                    }
+
+                    // ── Orientación (voto inmediato, no pasa por el admin) ────────
+                    HStack(spacing: 8) {
+                        VotableChip(text: community.summaryFor(nil)?.consensus
+                                    .map { "PIEDRA MIRA AL " + $0 } ?? "ORIENTAR LA PIEDRA") {
+                            orientationTarget = OrientationTarget(photoIndex: nil)
+                        }
+                        if facePhotos.count > 1 {
+                            VotableChip(text: community.summaryFor(faceIdx)?.consensus
+                                        .map { "CARA \(faceIdx + 1): " + $0 } ?? "ORIENTAR ESTA CARA") {
+                                orientationTarget = OrientationTarget(photoIndex: faceIdx)
+                            }
                         }
                     }
 
@@ -444,6 +466,9 @@ struct EditLinesSheet: View {
                     }
                 }
             }
+            // Consenso de orientación actual, para que los chips digan hacia
+            // dónde mira ya la piedra en vez de un genérico "ORIENTAR".
+            Task { await community.loadOrientation(blockId: block.id) }
             // ¿Había algo a medias de la última vez que se cerró sin enviar?
             if let borrador = EditBlockDraftStore.load(blockId: block.id) {
                 hayBorrador = true
@@ -492,6 +517,10 @@ struct EditLinesSheet: View {
                     TopoEditorView(photoUrl: currentPhoto, blocks: $faceBlocks[faceIdx])
                 }
             }
+        }
+        .sheet(item: $orientationTarget) { t in
+            OrientationVoteSheet(store: community, blockId: block.id, photoIndex: t.photoIndex)
+                .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showReorder) {
             ReorderFacesSheet(facePhotos: $facePhotos, faceBlocks: $faceBlocks,

@@ -51,6 +51,8 @@ struct BoulderFormSheet: View {
     @State private var showTrace = false
     /// Cerrar una piedra a medias: preguntar, no tirar el trabajo.
     @State private var preguntandoGuardar = false
+    /// Vía cuya ficha está ABIERTA. Solo una a la vez (ver viaCompacta).
+    @State private var expandedVia: UUID? = nil
 
     private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
 
@@ -140,10 +142,60 @@ struct BoulderFormSheet: View {
 
     private var isWall: Bool { geometry == "LINE" }
 
+    /// Cada cara nace con una vía vacía: si esa es la única, se abre sola — que
+    /// haya que tocar "Sin nombre" para empezar sería un paso de más.
+    private func abrirViaInicialSiProcede() {
+        let vias = faces[faceIdx].blocks
+        if vias.count == 1, let v = vias.first, v.name.isEmpty, v.grade == nil, v.line.isEmpty {
+            expandedVia = v.id
+        }
+    }
+
+    /// Añade una vía vacía a la cara actual y abre SU ficha (las demás se pliegan).
+    private func nuevaVia() {
+        let v = BoulderBlockForm()
+        faces[faceIdx].blocks.append(v)
+        expandedVia = v.id
+    }
+
+    /// Vía plegada: una sola línea con lo justo para reconocerla. Espejo del
+    /// mismo componente de EditLinesSheet.
+    @ViewBuilder private func viaCompacta(idx: Int, via: BoulderBlockForm) -> some View {
+        let titulo = via.name.trimmingCharacters(in: .whitespaces).isEmpty
+            ? "Sin nombre" : via.name
+        HStack(spacing: 8) {
+            Text("\(idx + 1)").font(Cumbre.mono(11, .bold))
+                .foregroundStyle(GradeColor.style(via.grade).dark ? .black : .white)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(GradeColor.chip(via.grade)))
+            Text(via.grade.map { "\(titulo) · \($0)" } ?? titulo)
+                .font(.system(size: 13)).foregroundStyle(Cumbre.ink).lineLimit(1)
+            if !via.line.isEmpty {
+                Image(systemName: "scribble").font(.system(size: 11)).foregroundStyle(Cumbre.ok)
+            }
+            Spacer()
+            Button { expandedVia = via.id } label: {
+                Image(systemName: "pencil").font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                    .frame(width: 32, height: 32)
+            }.buttonStyle(.plain)
+            if faces[faceIdx].blocks.count > 1 {
+                Button { faces[faceIdx].blocks.removeAll { $0.id == via.id } } label: {
+                    Image(systemName: "xmark").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                        .frame(width: 32, height: 32)
+                }.buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 4)
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture { expandedVia = via.id }
+    }
+
     var body: some View {
         contenido
             .onAppear {
                 brujula.start()
+                defer { abrirViaInicialSiProcede() }
                 // Continuar una piedra a medias: manda sobre todo lo demas, es
                 // trabajo que el usuario ya habia hecho.
                 if !semillaPuesta, let b = borrador {
@@ -156,6 +208,11 @@ struct BoulderFormSheet: View {
                 faces = [BoulderFaceForm(photo: foto, orientation: seedAspect)]
                 // Tambien la de la piedra: es la que se ve con una sola foto.
                 if blockOrientation == nil { blockOrientation = seedAspect }
+            }
+            // Al cambiar de cara, abre su vía inicial si esa cara está en blanco.
+            .onChange(of: selectedFace) { _, _ in
+                expandedVia = nil
+                abrirViaInicialSiProcede()
             }
             // El sensor gasta batería: solo mientras el formulario está abierto.
             .onDisappear { brujula.stop() }
@@ -252,20 +309,40 @@ struct BoulderFormSheet: View {
                     Text("FOTOS DE LA PIEDRA").eyebrow()
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
+                            // Pestañas CON MINIATURA, igual que al EDITAR: crear
+                            // una piedra se veía "a la antigua" con solo el
+                            // número (Álvaro, 2026-08-24).
                             ForEach(Array(faces.enumerated()), id: \.element.id) { idx, _ in
                                 let on = idx == faceIdx
                                 Button { selectedFace = idx } label: {
-                                    Text("FOTO \(idx + 1)").font(Cumbre.mono(11, .bold))
-                                        .foregroundStyle(on ? .white : Cumbre.ink2)
-                                        .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .background(on ? Cumbre.terra : Color.clear)
-                                        .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                                    VStack(spacing: 4) {
+                                        Group {
+                                            if let img = faces[idx].photo {
+                                                Image(uiImage: img).resizable().scaledToFill()
+                                            } else {
+                                                Cumbre.paper.overlay(
+                                                    Image(systemName: "photo").font(.system(size: 16))
+                                                        .foregroundStyle(Cumbre.ink3))
+                                            }
+                                        }
+                                        .frame(width: 52, height: 52)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .overlay(RoundedRectangle(cornerRadius: 12)
+                                            .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: on ? 2 : 1))
+                                        Text("FOTO \(idx + 1)").font(Cumbre.mono(10, .bold))
+                                            .foregroundStyle(on ? Cumbre.terra : Cumbre.ink2)
+                                    }
                                 }.buttonStyle(.plain)
                             }
                             Button { faces.append(BoulderFaceForm()); selectedFace = faces.count - 1 } label: {
-                                Text(NSLocalizedString("propose_add_photo", comment: "")).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                                    .padding(.horizontal, 10).padding(.vertical, 6)
-                                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                                VStack(spacing: 4) {
+                                    Image(systemName: "plus").font(.system(size: 18)).foregroundStyle(Cumbre.terra)
+                                        .frame(width: 52, height: 52)
+                                        .overlay(RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Cumbre.rule, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                                    Text(NSLocalizedString("propose_add_photo", comment: ""))
+                                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra).lineLimit(1)
+                                }
                             }.buttonStyle(.plain)
                         }
                     }
@@ -345,16 +422,46 @@ struct BoulderFormSheet: View {
                     }
 
                     // ── Vías de esta foto ──────────────────────────────────────────
-                    Text("VÍAS EN ESTA FOTO").eyebrow().padding(.top, 4)
-                    ForEach(Array(faces[faceIdx].blocks.enumerated()), id: \.element.id) { idx, _ in
-                        BoulderBlockRow(block: $faces[faceIdx].blocks[idx], index: idx,
-                                        onDelete: faces[faceIdx].blocks.count > 1 ? { faces[faceIdx].blocks.remove(at: idx) } : nil)
+                    // Una sola ficha abierta a la vez, igual que al EDITAR: con
+                    // los formularios apilados, meter la quinta vía obligaba a
+                    // scrollear las cuatro anteriores (Álvaro, 2026-08-24).
+                    Text("VÍAS EN ESTA FOTO (\(faces[faceIdx].blocks.count))").eyebrow().padding(.top, 4)
+                    ForEach(Array(faces[faceIdx].blocks.enumerated()), id: \.element.id) { idx, via in
+                        if via.id == expandedVia {
+                            VStack(alignment: .leading, spacing: 8) {
+                                BoulderBlockRow(block: $faces[faceIdx].blocks[idx], index: idx,
+                                                onDelete: faces[faceIdx].blocks.count > 1 ? {
+                                                    faces[faceIdx].blocks.remove(at: idx); expandedVia = nil
+                                                } : nil)
+                                HStack(spacing: 8) {
+                                    Button { expandedVia = nil } label: {
+                                        Text("LISTO").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                            .foregroundStyle(Cumbre.ink2)
+                                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                                .stroke(Cumbre.rule, lineWidth: 1))
+                                    }.buttonStyle(.plain)
+                                    Button { nuevaVia() } label: {
+                                        Text("AÑADIR OTRA +").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                            .foregroundStyle(.white)
+                                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                            .background(Cumbre.terraFill,
+                                                        in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                                    }.buttonStyle(.plain)
+                                }
+                            }
+                        } else {
+                            viaCompacta(idx: idx, via: faces[faceIdx].blocks[idx])
+                        }
                     }
-                    Button { faces[faceIdx].blocks.append(BoulderBlockForm()) } label: {
-                        Text("+ AÑADIR VÍA").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                            .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
-                            .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
-                    }.buttonStyle(.plain)
+                    if expandedVia == nil {
+                        Button { nuevaVia() } label: {
+                            Text("+ AÑADIR VÍA").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
+                                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                    .stroke(Cumbre.terra, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
 
                     // ── Dibujar líneas de esta foto ────────────────────────────────
                     let hasPhoto = faces[faceIdx].photo != nil
