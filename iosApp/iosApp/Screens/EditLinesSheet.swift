@@ -44,6 +44,9 @@ struct EditLinesSheet: View {
     @State private var preguntandoGuardarEdicion = false
     @State private var hayBorrador = false
     @State private var borradorPendiente: EditBlockDraftStore.Draft?
+    /// Vía cuya ficha está ABIERTA. Solo una a la vez: el resto se pliegan a
+    /// una fila para no tener que scrollear formularios ya rellenados.
+    @State private var expandedVia: UUID? = nil
 
     /// Al editar una piedra ya existente siempre hay al menos una vía con
     /// nombre/grado (viene del servidor) — no vale mirar solo si hay foto
@@ -86,6 +89,61 @@ struct EditLinesSheet: View {
     private var currentPhoto: String? { facePhotos.indices.contains(faceIdx) ? facePhotos[faceIdx] : nil }
     private var hasPhoto: Bool { !(currentPhoto ?? "").isEmpty }
 
+    /// Añade una vía vacía a la cara actual y abre SU ficha (las demás se pliegan).
+    private func nuevaVia() {
+        guard faceBlocks.indices.contains(faceIdx) else { return }
+        let v = BoulderBlockForm(facePhoto: currentPhoto)
+        faceBlocks[faceIdx].append(v)
+        expandedVia = v.id
+    }
+
+    /// Miniatura de una cara: la foto nueva sin enviar si la hay, si no la del
+    /// servidor. Sin foto → marcador gris (una cara recién añadida).
+    @ViewBuilder private func faceThumb(_ i: Int) -> some View {
+        if let img = facePicked[i] {
+            Image(uiImage: img).resizable().scaledToFill()
+        } else if let p = facePhotos.indices.contains(i) ? facePhotos[i] : nil,
+                  !p.isEmpty, let u = URL(string: p) {
+            AsyncImage(url: u) { $0.resizable().scaledToFill() } placeholder: {
+                Cumbre.paper.overlay(ProgressView().scaleEffect(0.6))
+            }
+        } else {
+            Cumbre.paper.overlay(
+                Image(systemName: "photo").font(.system(size: 16)).foregroundStyle(Cumbre.ink3))
+        }
+    }
+
+    /// Vía plegada: una sola línea con lo justo para reconocerla.
+    @ViewBuilder private func viaCompacta(idx: Int, via: BoulderBlockForm) -> some View {
+        let titulo = via.name.trimmingCharacters(in: .whitespaces).isEmpty
+            ? "Sin nombre" : via.name
+        HStack(spacing: 8) {
+            Text("\(wallNumber(idx) ?? idx + 1)").font(Cumbre.mono(11, .bold))
+                .foregroundStyle(GradeColor.style(via.grade).dark ? .black : .white)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(GradeColor.color(via.grade)))
+            Text(via.grade.map { "\(titulo) · \($0)" } ?? titulo)
+                .font(.system(size: 13)).foregroundStyle(Cumbre.ink)
+                .lineLimit(1)
+            if !via.line.isEmpty {
+                Image(systemName: "scribble").font(.system(size: 11)).foregroundStyle(Cumbre.ok)
+            }
+            Spacer()
+            Button { expandedVia = via.id } label: {
+                Image(systemName: "pencil").font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                    .frame(width: 32, height: 32)
+            }.buttonStyle(.plain)
+            Button { faceBlocks[faceIdx].removeAll { $0.id == via.id } } label: {
+                Image(systemName: "xmark").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    .frame(width: 32, height: 32)
+            }.buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 4)
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture { expandedVia = via.id }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -108,8 +166,10 @@ struct EditLinesSheet: View {
                                  ? (parseWallPath(block.path).isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✎ RE-TRAZAR EL MURO EN EL MAPA")
                                  : "✓ MURO TRAZADO (\(tracedPath.count) PUNTOS) · RE-TRAZAR")
                                 .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                .lineLimit(1).minimumScaleFactor(0.8)
                                 .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                    .stroke(Cumbre.terra, lineWidth: 1))
                         }.buttonStyle(.plain)
                         Text(tracedPath.isEmpty ? "Se conserva el trazado actual si no lo re-trazas." : "Se enviará el trazado nuevo.")
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
@@ -119,24 +179,36 @@ struct EditLinesSheet: View {
                     Text("FOTOS DE LA PIEDRA").eyebrow()
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
+                            // Pestañas CON MINIATURA: solo "FOTO 1 / FOTO 2" no
+                            // dice cuál es cuál — en Android sí se ve la foto
+                            // (Álvaro, 2026-08-24). Ahora se elige la cara
+                            // mirándola, no adivinando por el número.
                             ForEach(0..<facePhotos.count, id: \.self) { i in
                                 let on = i == faceIdx
                                 Button { selectedFace = i } label: {
-                                    Text("FOTO \(i + 1)").font(Cumbre.mono(11, .bold))
-                                        .foregroundStyle(on ? .white : Cumbre.ink2)
-                                        .padding(.horizontal, 10).padding(.vertical, 6)
-                                        .background(on ? Cumbre.terra : Color.clear,
-                                                    in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                                        .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                                            .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                                    VStack(spacing: 4) {
+                                        faceThumb(i)
+                                            .frame(width: 52, height: 52)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                                .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: on ? 2 : 1))
+                                        Text("FOTO \(i + 1)").font(Cumbre.mono(10, .bold))
+                                            .foregroundStyle(on ? Cumbre.terra : Cumbre.ink2)
+                                    }
                                 }.buttonStyle(.plain)
                             }
                             Button {
                                 facePhotos.append(nil); faceBlocks.append([]); selectedFace = facePhotos.count - 1
                             } label: {
-                                Text(NSLocalizedString("propose_add_photo", comment: "")).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                                    .padding(.horizontal, 10).padding(.vertical, 6)
-                                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
+                                VStack(spacing: 4) {
+                                    Image(systemName: "plus").font(.system(size: 18)).foregroundStyle(Cumbre.terra)
+                                        .frame(width: 52, height: 52)
+                                        .overlay(RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Cumbre.rule, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                                    Text(NSLocalizedString("propose_add_photo", comment: ""))
+                                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                                        .lineLimit(1)
+                                }
                             }.buttonStyle(.plain)
                         }
                     }
@@ -144,8 +216,10 @@ struct EditLinesSheet: View {
                         HStack(spacing: 12) {
                             Button { showReorder = true } label: {
                                 Text("↕ REORDENAR FOTOS").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                    .lineLimit(1).minimumScaleFactor(0.8)
                                     .frame(maxWidth: .infinity).padding(.vertical, 8)
-                                    .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                        .stroke(Cumbre.terra, lineWidth: 1))
                             }.buttonStyle(.plain)
                             Button { removeFace(faceIdx) } label: {
                                 // No es solo la foto: se va la foto Y sus vías. "Quitar
@@ -153,52 +227,102 @@ struct EditLinesSheet: View {
                                 // está "CAMBIAR FOTO DE ESTA CARA" arriba) — Rodrigo,
                                 // 2026-08-20.
                                 Text("✕ ELIMINAR CARA \(faceIdx + 1)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.bad)
+                                    .lineLimit(1).minimumScaleFactor(0.8)
                                     .padding(.horizontal, 10).padding(.vertical, 8)
-                                    .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
+                                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                        .stroke(Cumbre.bad, lineWidth: 1))
                             }.buttonStyle(.plain)
                         }
                     }
 
+                    // VÍAS DE LA CARA: una sola FICHA ABIERTA a la vez. Las ya
+                    // rellenadas se pliegan a una fila de una línea, así que
+                    // añadir la quinta vía no obliga a scrollear los cuatro
+                    // formularios anteriores (Álvaro, 2026-08-24).
                     if faceBlocks.indices.contains(faceIdx) {
-                        ForEach(Array(faceBlocks[faceIdx].enumerated()), id: \.element.id) { idx, _ in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(faceBlocks[faceIdx][idx].existingLineId != nil ? "VÍA EXISTENTE" : "NUEVA")
-                                    .font(Cumbre.mono(9, .bold))
-                                    .foregroundStyle(faceBlocks[faceIdx][idx].existingLineId != nil ? Cumbre.ink3 : Cumbre.terra)
-                                BoulderBlockRow(block: $faceBlocks[faceIdx][idx], index: idx,
-                                                number: wallNumber(idx),
-                                                onDelete: { faceBlocks[faceIdx].remove(at: idx) })
+                        Text("VÍAS EN ESTA FOTO (\(faceBlocks[faceIdx].count))").eyebrow()
+                        ForEach(Array(faceBlocks[faceIdx].enumerated()), id: \.element.id) { idx, via in
+                            if via.id == expandedVia {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(faceBlocks[faceIdx][idx].existingLineId != nil ? "VÍA EXISTENTE" : "NUEVA VÍA")
+                                        .font(Cumbre.mono(9, .bold))
+                                        .foregroundStyle(faceBlocks[faceIdx][idx].existingLineId != nil ? Cumbre.ink3 : Cumbre.terra)
+                                    BoulderBlockRow(block: $faceBlocks[faceIdx][idx], index: idx,
+                                                    number: wallNumber(idx),
+                                                    onDelete: {
+                                                        faceBlocks[faceIdx].remove(at: idx)
+                                                        expandedVia = nil
+                                                    })
+                                    HStack(spacing: 8) {
+                                        Button { expandedVia = nil } label: {
+                                            Text("LISTO").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                                .foregroundStyle(Cumbre.ink2)
+                                                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                                    .stroke(Cumbre.rule, lineWidth: 1))
+                                        }.buttonStyle(.plain)
+                                        Button { nuevaVia() } label: {
+                                            Text("AÑADIR OTRA +").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                                .foregroundStyle(.white)
+                                                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                                .background(Cumbre.terra,
+                                                            in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                                        }.buttonStyle(.plain)
+                                    }
+                                }
+                            } else {
+                                viaCompacta(idx: idx, via: faceBlocks[faceIdx][idx])
                             }
                         }
                     }
 
-                    Button { faceBlocks[faceIdx].append(BoulderBlockForm(facePhoto: currentPhoto)) } label: {
-                        Text("+ NUEVA VÍA EN ESTA FOTO").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                            .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
-                            .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
-                    }.buttonStyle(.plain)
+                    if expandedVia == nil {
+                        Button { nuevaVia() } label: {
+                            Text("+ NUEVA VÍA EN ESTA FOTO").font(Cumbre.mono(12, .bold)).tracking(0.6)
+                                .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
+                                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                    .stroke(Cumbre.terra, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
 
                     // Cambiar la foto de esta cara (mejorarla). Si eliges una nueva,
                     // todas las vías de la cara se moverán a ella y conviene
                     // redibujarlas. Si no eres admin, el admin la revisará.
-                    if let img = facePicked[faceIdx] {
-                        Image(uiImage: img).resizable().scaledToFit()
-                            .frame(maxHeight: 160).clipShape(RoundedRectangle(cornerRadius: 2))
-                        Text("Foto nueva — redibuja las líneas sobre ella.")
-                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    // Va JUNTO a la vista previa de la cara para que se vea qué
+                    // foto se está sustituyendo, en vez de un botón suelto.
+                    HStack(spacing: 10) {
+                        faceThumb(faceIdx)
+                            .frame(width: 44, height: 44)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(facePicked[faceIdx] != nil ? "Foto nueva sin enviar"
+                                 : (hasPhoto ? "Foto actual de la cara \(faceIdx + 1)" : "Esta cara no tiene foto"))
+                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                            if facePicked[faceIdx] != nil {
+                                Text("Redibuja las líneas sobre ella.")
+                                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                            }
+                        }
+                        Spacer()
+                        PhotosPicker(selection: $pickerItem, matching: .images) {
+                            Text(facePicked[faceIdx] == nil ? "CAMBIAR" : "OTRA")
+                                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                    .stroke(Cumbre.terra, lineWidth: 1))
+                        }
                     }
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Text(facePicked[faceIdx] == nil ? "CAMBIAR FOTO DE ESTA CARA" : "ELEGIR OTRA FOTO")
-                            .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
-                            .frame(maxWidth: .infinity).padding(.vertical, 10)
-                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                    }
+                    .padding(10)
+                    .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
 
                     if hasPhoto || facePicked[faceIdx] != nil {
                         Button { showEditor = true } label: {
                             Text("✎ DIBUJAR / EDITAR SOBRE ESTA FOTO")
                                 .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(.white)
-                                .frame(maxWidth: .infinity).padding(.vertical, 12).background(Cumbre.terra)
+                                .lineLimit(1).minimumScaleFactor(0.8)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
                         }.buttonStyle(.plain)
                     } else {
                         Text("Esta cara no tiene foto, no puedes dibujar líneas.")
@@ -208,22 +332,37 @@ struct EditLinesSheet: View {
                     if let sendError {
                         Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
                     }
-                    Button { Task { await send() } } label: {
-                        HStack { if sending { ProgressView().tint(.white) }
-                            Text(sendError != nil ? "REINTENTAR" : "ENVIAR CAMBIOS").font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
-                    }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
                 .padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .navigationTitle("Editar vías")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) {
-                Button(NSLocalizedString("common_cancel", comment: "")) {
-                    if hayContenidoSinEnviar { preguntandoGuardarEdicion = true }
-                    else { dismiss(); onDone(false) }
-                }.foregroundStyle(Cumbre.ink3) } }
+            // Cancelar y Enviar viven ARRIBA y no se mueven con el scroll: el
+            // formulario es largo y buscar el botón de enviar al fondo era un
+            // viaje (Álvaro, 2026-08-24). Mismo patrón que BlockInfoSheet.
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(NSLocalizedString("common_cancel", comment: "")) {
+                        if hayContenidoSinEnviar { preguntandoGuardarEdicion = true }
+                        else { dismiss(); onDone(false) }
+                    }.foregroundStyle(Cumbre.ink3)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { Task { await send() } } label: {
+                        if sending {
+                            ProgressView().tint(.white)
+                                .padding(.horizontal, 18).padding(.vertical, 6)
+                                .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                        } else {
+                            Text(sendError != nil ? "REINTENTAR" : "ENVIAR")
+                                .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
+                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                        }
+                    }.buttonStyle(.plain).disabled(sending)
+                }
+            }
             // Deslizar hacia abajo NO puede tirar el trabajo en silencio: con
             // algo editado, el gesto se desactiva y hay que usar "Cancelar",
             // que es quien pregunta. Mismo patrón que BoulderFormSheet
@@ -290,7 +429,19 @@ struct EditLinesSheet: View {
                         ?? faces.firstIndex(where: { f in
                             f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(v) == .orderedSame }
                         })
-                    if let hit { selectedFace = hit }
+                    if let hit {
+                        selectedFace = hit
+                        // Con las fichas plegadas, el deep-link "corregir esta
+                        // vía" tiene que abrir SU ficha, no dejarlas todas
+                        // cerradas.
+                        if let j = faces[hit].lines.firstIndex(where: {
+                            $0.id == v || $0.name.trimmingCharacters(in: .whitespaces)
+                                .caseInsensitiveCompare(v) == .orderedSame
+                        }), faceBlocks.indices.contains(hit),
+                           faceBlocks[hit].indices.contains(j) {
+                            expandedVia = faceBlocks[hit][j].id
+                        }
+                    }
                 }
             }
             // ¿Había algo a medias de la última vez que se cerró sin enviar?

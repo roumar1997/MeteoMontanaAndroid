@@ -17,7 +17,9 @@ import androidx.compose.ui.graphics.Color
 data class GradeStyle(val stroke: Color, val dashed: Boolean, val dark: Boolean)
 
 fun gradeStyle(grade: String?): GradeStyle {
-    val g = (grade ?: "").trim().uppercase()
+    // Grado DOBLE ("7a/7a+") → colorea como el PRIMERO del rango (GradeRange),
+    // en vez de caer en el rosa de "proyecto" por no encajar en el patrón.
+    val g = com.meteomontana.android.domain.util.GradeRange.base(grade) ?: ""
     if (g.isEmpty() || g == "PROY" || g == "PROYECTO" || g == "?") {
         return GradeStyle(Color(0xFFFF4FA3), dashed = true, dark = false)
     }

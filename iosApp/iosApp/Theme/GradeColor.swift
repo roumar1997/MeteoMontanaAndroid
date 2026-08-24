@@ -8,7 +8,10 @@ enum GradeColor {
     struct Style { let stroke: Color; let dashed: Bool; let dark: Bool }
 
     static func style(_ grade: String?) -> Style {
-        let g = (grade ?? "").trimmingCharacters(in: .whitespaces).uppercased()
+        // Grado DOBLE ("7a/7a+"): colorea como el PRIMERO del rango — espejo de
+        // GradeRange.base() del shared. Sin esto caía en el rosa de "proyecto"
+        // por no encajar en el patrón (Álvaro, 2026-08-24).
+        let g = GradeRangeUI.base(grade) ?? ""
         let project = Style(stroke: Color(hex: 0xFF4FA3), dashed: true, dark: false)
         if g.isEmpty || g == "PROY" || g == "PROYECTO" || g == "?" { return project }
 

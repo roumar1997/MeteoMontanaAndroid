@@ -164,11 +164,19 @@ struct WallSeg: View {
             ForEach(options, id: \.0) { value, label in
                 let on = selected == value
                 Button { selected = value } label: {
+                    // Píldora, no rectángulo: es un CONTROL de selección y el
+                    // sistema Cumbre redondea los controles dejando recto el
+                    // contenido (Álvaro, 2026-08-24: "lo de punto y muro
+                    // hacerlo redondeado"). El minimumScaleFactor evita que
+                    // "IZQ → DER" se corte en pantallas estrechas.
                     Text(label).font(Cumbre.mono(12, .bold)).tracking(0.6)
                         .foregroundStyle(on ? .white : Cumbre.ink)
+                        .lineLimit(1).minimumScaleFactor(0.75)
                         .frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .background(on ? Cumbre.terra : Color.clear)
-                        .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                        .background(on ? Cumbre.terra : Color.clear,
+                                    in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                        .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                            .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                 }.buttonStyle(.plain)
             }
         }

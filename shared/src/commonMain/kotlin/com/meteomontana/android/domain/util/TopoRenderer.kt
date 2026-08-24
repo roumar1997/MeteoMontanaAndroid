@@ -33,7 +33,9 @@ const val MUTED_ALPHA = 0x3Cu
  * Triple: (argb, dashed, dark). dark=true → el color es blanco y el texto debe ser negro.
  */
 fun gradeArgb(grade: String?): Triple<Long, Boolean, Boolean> {
-    val g = (grade ?: "").trim().uppercase()
+    // Grado DOBLE ("7a/7a+") → colorea como el primero del rango (GradeRange),
+    // en vez de caer en el rosa de "proyecto" por no encajar en el regex.
+    val g = GradeRange.base(grade) ?: ""
     if (g.isEmpty() || g == "PROY" || g == "PROYECTO" || g == "?") {
         return Triple(0xFFFF4FA3L, true, false)
     }

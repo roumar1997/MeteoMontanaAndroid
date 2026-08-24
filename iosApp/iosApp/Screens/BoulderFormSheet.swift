@@ -584,12 +584,15 @@ struct BoulderBlockRow: View {
             }
             // Grado: GRID de chips (todos visibles, un toque) — espejo de
             // GradeChipsGrid de Android. Colores por dificultad (GradeColor).
-            Text("Grado").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            HStack(spacing: 4) {
+                Text("Grado").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                Text("· toca 2 para un rango (7a/7a+)").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+            }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 5)], spacing: 5) {
                 ForEach(BOULDER_GRADES, id: \.self) { g in
-                    let on = block.grade == g
+                    let on = GradeRangeUI.contains(block.grade, g)
                     let c = GradeColor.color(g)
-                    Button { block.grade = on ? nil : g } label: {
+                    Button { block.grade = GradeRangeUI.toggle(block.grade, g) } label: {
                         Text(g).font(.system(size: 13, weight: .medium))
                             .foregroundStyle(on ? (GradeColor.style(g).dark ? Color.black : .white) : Cumbre.ink)
                             .frame(maxWidth: .infinity)
@@ -602,14 +605,21 @@ struct BoulderBlockRow: View {
                 }
             }
             // Tipo de inicio con nombre completo (antes: siglas sin explicar).
+            // REJILLA, no HStack: con 5 chips en una fila fija, "Travesía" y
+            // "Sentado" se cortaban en los iPhone estrechos (13/14 mini y
+            // similares) — el ancho disponible no daba y SwiftUI truncaba
+            // (Álvaro, 2026-08-24). Misma rejilla adaptativa que el grado, así
+            // que fluye a 2 o 3 columnas según la pantalla y nunca corta.
             Text("Tipo de inicio").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-            HStack(spacing: 5) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 84), spacing: 5)], spacing: 5) {
                 ForEach(START_TYPE_LABELS, id: \.0) { code, label in
                     let on = block.startType == code
                     Button { block.startType = on ? nil : code } label: {
                         Text(label).font(.system(size: 12, weight: .medium))
+                            .lineLimit(1).minimumScaleFactor(0.8)
                             .foregroundStyle(on ? Cumbre.bg : Cumbre.ink)
-                            .padding(.horizontal, 10).padding(.vertical, 7)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 6).padding(.vertical, 7)
                             .background(on ? Cumbre.ink : Cumbre.paper)
                             .clipShape(RoundedRectangle(cornerRadius: 9))
                             .overlay(RoundedRectangle(cornerRadius: 9).stroke(Cumbre.rule, lineWidth: 1))

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.meteomontana.android.domain.util.GradeRange
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.gradeStyle
 
@@ -42,7 +43,10 @@ fun GradeChipsGrid(
     ) {
         BOULDER_GRADES.forEach { grade ->
             val gs = gradeStyle(grade)
-            val sel = grade == selected
+            // Grado DOBLE: tocando dos grados queda "7a/7a+" (rango, como en las
+            // guías de papel). Las reglas viven en GradeRange, del shared, así
+            // que Android e iOS se comportan igual.
+            val sel = GradeRange.contains(selected, grade)
             val bg = if (sel) gs.stroke else gs.stroke.copy(alpha = 0.16f)
             val fg = when {
                 !sel -> MaterialTheme.colorScheme.onSurface
@@ -57,7 +61,7 @@ fun GradeChipsGrid(
                         if (sel) Modifier.border(2.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(9.dp))
                         else Modifier.border(1.dp, gs.stroke.copy(alpha = 0.55f), RoundedCornerShape(9.dp))
                     )
-                    .clickable { onSelect(if (sel) null else grade) }
+                    .clickable { onSelect(GradeRange.toggle(selected, grade)) }
                     .defaultMinSize(minWidth = 40.dp)
                     .padding(horizontal = Spacing.xs, vertical = 7.dp),
                 contentAlignment = Alignment.Center

@@ -16,7 +16,9 @@ import com.meteomontana.android.domain.model.Block
  * reconocible (p.ej. "PROY", vacío) — esas vías no entran en ningún filtro.
  */
 fun gradeScore(grade: String?): Int? {
-    val g = (grade ?: "").trim().uppercase()
+    // Un grado DOBLE ("7a/7a+") puntúa como el primero del rango: así ordena,
+    // colorea y filtra como el 7a, en vez de caer fuera de todo (GradeRange).
+    val g = GradeRange.base(grade) ?: ""
     val re = Regex("^([3-9])([ABCD])?(\\+)?$")
     val m = re.matchEntire(g) ?: return null
     val num = m.groupValues[1].toInt()
