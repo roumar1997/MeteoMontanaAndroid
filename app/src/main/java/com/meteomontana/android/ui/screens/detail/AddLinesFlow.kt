@@ -178,7 +178,17 @@ internal fun AddLinesFlow(
 
     val photoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri -> if (uri != null) updateFace { it.copy(newPhotoUri = uri) } }
+    ) { uri ->
+        if (uri != null) {
+            // Se copia YA, no al guardar el borrador. El Uri del selector solo
+            // da permiso de lectura mientras vive el proceso: si el móvil mata
+            // la app (MIUI lo hace a menudo), al volver ese Uri ya no se puede
+            // leer y la foto se perdía en silencio (Álvaro, 2026-08-24).
+            // Con la copia propia, la foto sobrevive a cualquier reinicio.
+            val propio = EditBlockDraftStore.copiarFotoLocal(context, uri)
+            updateFace { it.copy(newPhotoUri = propio ?: uri) }
+        }
+    }
 
     // ModalBottomSheet como el resto de fichas (antes era un Dialog flotante y
     // la parte de abajo quedaba rara, con la pantalla asomando por detrás).

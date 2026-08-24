@@ -349,9 +349,11 @@ fun SchoolMap(
             gradeMatchingLineIds = if (selectedGrades.isEmpty()) null else gradeFilter.matchingLineIds,
             onAddLines = if (block.type == "BLOCK") ({
                 // openFor puebla el estado ANTES de abrir (sin frame vacío).
-                // NO cerramos la ficha: el editor abre ENCIMA (su scrim tapa la
-                // ficha) → sin parpadeo del mapa entre diálogos.
+                // Y se CIERRA la ficha de la piedra: dejándola abierta debajo,
+                // al arrastrar el editor asomaba por detrás y parecía roto
+                // (Álvaro, 2026-08-24). En iOS una hoja sustituye a la otra.
                 wallEdit.openFor(block)
+                selectedBlock = null
                 // ¿Había algo a medias de la última vez que se cerró sin enviar?
                 com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.load(fichaCtx, block.id)
                     ?.let { borradorEncontrado = it }

@@ -41,6 +41,21 @@ internal object EditBlockDraftStore {
     private fun fichero(context: Context, blockId: String): File =
         File(carpeta(context), "${seguro(blockId)}.json")
 
+    /**
+     * Copia la foto elegida a la carpeta de la app y devuelve SU uri.
+     *
+     * Se llama al ELEGIRLA, no al guardar: el Uri que da el selector del
+     * sistema solo se puede leer mientras vive el proceso, así que guardarlo
+     * tal cual significa perder la foto en cuanto el móvil mate la app.
+     * null si no se pudo copiar (y entonces se usa el Uri original).
+     */
+    fun copiarFotoLocal(context: Context, uri: Uri): Uri? = runCatching {
+        val destino = File(carpeta(context), "elegida-${System.currentTimeMillis()}.jpg")
+        val entrada = context.contentResolver.openInputStream(uri) ?: return@runCatching null
+        entrada.use { e -> destino.outputStream().use { e.copyTo(it) } }
+        if (destino.length() > 0L) destino.toUri() else null
+    }.getOrNull()
+
     fun save(context: Context, blockId: String, faces: List<EditFace>) {
         val facesJson = JSONArray()
         faces.forEachIndexed { i, face ->
@@ -51,10 +66,16 @@ internal object EditBlockDraftStore {
                 runCatching {
                     val nombre = "${seguro(blockId)}-cara$i.jpg"
                     val destino = File(carpeta(context), nombre)
-                    context.contentResolver.openInputStream(uri)?.use { entrada ->
-                        destino.outputStream().use { entrada.copyTo(it) }
-                    }
-                    nombre
+                    val entrada = context.contentResolver.openInputStream(uri)
+                    // Si el selector ya no da permiso de lectura, openInputStream
+                    // devuelve NULL: antes el `?.` se saltaba la copia y aun así
+                    // se guardaba el nombre, así que el borrador apuntaba a un
+                    // fichero que no existía → al continuar salía "FOTO NUEVA"
+                    // pero sin imagen, y sin poder dibujar (Álvaro, 2026-08-24).
+                    // Ahora solo se apunta la foto si de verdad se copió.
+                    if (entrada == null) return@runCatching null
+                    entrada.use { e -> destino.outputStream().use { e.copyTo(it) } }
+                    if (destino.length() > 0L) nombre else null
                 }.getOrNull()
             }
             obj.put("photoFile", fotoLocal ?: JSONObject.NULL)

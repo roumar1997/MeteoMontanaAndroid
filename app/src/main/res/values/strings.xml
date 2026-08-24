@@ -419,7 +419,7 @@
     <string name="block_delete_confirm">¿Eliminar este bloque? Se borrarán sus vías.</string>
 
     <!-- Add lines flow (edit boulder/wall) -->
-    <string name="add_lines_title">Editar piedra / muro</string>
+    <string name="add_lines_title">Editar piedra</string>
     <string name="add_lines_description">Edita \"%1$s\": corrige o añade vías, añade más fotos, reordena y ajusta el muro. Un admin lo revisará (o se publica directo si eres admin).</string>
     <string name="add_lines_wall_traced">✓ MURO TRAZADO (%1$d PUNTOS) · RE-TRAZAR</string>
     <string name="add_lines_wall_retrace">✎ RE-TRAZAR EL MURO EN EL MAPA</string>
