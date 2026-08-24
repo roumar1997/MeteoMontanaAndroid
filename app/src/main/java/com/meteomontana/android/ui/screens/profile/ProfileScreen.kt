@@ -518,8 +518,35 @@ private fun ProfileSettingsScreen(
             }
 
 
+            // Cierre de la pantalla EXACTAMENTE como iOS (AccountView): botón
+            // "Cerrar sesión" en su recuadro, debajo "Eliminar cuenta" como
+            // texto discreto centrado, y la versión al final del todo. Aquí
+            // estaba en otro orden y "Eliminar cuenta" gritaba en rojo con
+            // papelera, cuando es la acción que MENOS hay que invitar a pulsar.
             HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
-            MenuRow(Icons.AutoMirrored.Outlined.Logout, stringResource(R.string.profile_logout), onSignOut)
+            var showDelete by remember { mutableStateOf(false) }
+            Box(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    .clickable(onClick = onSignOut)
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(R.string.profile_logout),
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+            }
+            Text(
+                stringResource(R.string.profile_delete_account),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+                    .clickable { showDelete = true }
+                    .padding(vertical = 12.dp)
+            )
             // Que version es esta. Sin esto, "no me ha llegado el arreglo" y
             // "no lo has arreglado" son indistinguibles.
             Text(
@@ -532,18 +559,6 @@ private fun ProfileSettingsScreen(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            var showDelete by remember { mutableStateOf(false) }
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable { showDelete = true }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(22.dp))
-                Text(stringResource(R.string.profile_delete_account),
-                    style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
-            }
             if (showDelete) {
                 AlertDialog(
                     onDismissRequest = { showDelete = false },
