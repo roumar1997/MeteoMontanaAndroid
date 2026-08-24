@@ -815,7 +815,24 @@ internal fun SchoolMapView(
         // a ojo en el mapa y ampliar a mano. Al pulsar uno se hace lo MISMO que
         // al tocarlo en el mapa (acercarse y desplegar sus piedras): un solo
         // camino de código, así no divergen.
-        val sectores = remember(blocks) { blocks.filter { it.type == "ZONE" }.sortedBy { it.name } }
+        //
+        // Orden por CERCANÍA real (paridad con iOS, 2026-08-17 — Android se
+        // había quedado en el alfabético de antes, encontrado por Álvaro
+        // 2026-08-24): cerca de la escuela → por distancia (útil en la roca);
+        // lejos o sin GPS → alfabético (estable, no cambia con la deriva del
+        // GPS ni viéndolo desde casa).
+        val sectores = remember(blocks, userLoc) {
+            val zonas = blocks.filter { it.type == "ZONE" }
+            val u = userLoc
+            if (u == null) {
+                zonas.sortedBy { it.name }
+            } else {
+                val conDistancia = zonas.map { it to com.meteomontana.android.domain.util.Geo.haversineKm(u.lat, u.lon, it.lat, it.lon) }
+                val estoyEnLaEscuela = conDistancia.any { it.second <= 20.0 }
+                if (estoyEnLaEscuela) conDistancia.sortedBy { it.second }.map { it.first }
+                else zonas.sortedBy { it.name }
+            }
+        }
         if (sectores.isNotEmpty()) {
             Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
                 Text(
