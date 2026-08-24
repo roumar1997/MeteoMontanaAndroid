@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -66,8 +67,8 @@ internal fun EditWallSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .border(1.dp, Terra, MaterialTheme.shapes.small)
+                .clip(CumbrePillShape)
+                .border(1.dp, Terra, CumbrePillShape)
                 .clickable(onClick = onTraceWall)
                 .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center
@@ -140,8 +141,8 @@ internal fun EditFacesTabs(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, Terra, MaterialTheme.shapes.small)
+                    .clip(CumbrePillShape)
+                    .border(1.dp, Terra, CumbrePillShape)
                     .clickable(onClick = onReorder)
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
@@ -150,8 +151,8 @@ internal fun EditFacesTabs(
             }
             Box(
                 modifier = Modifier
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, MaterialTheme.colorScheme.error, MaterialTheme.shapes.small)
+                    .clip(CumbrePillShape)
+                    .border(1.dp, MaterialTheme.colorScheme.error, CumbrePillShape)
                     .clickable {
                         onFacesChange(faces.toMutableList().also { it.removeAt(faceIdx) })
                         onSelectedFaceChange((faceIdx - 1).coerceAtLeast(0))
@@ -187,8 +188,8 @@ internal fun EditFacePhoto(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                .clip(CumbrePillShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
                 .clickable(onClick = onPickPhoto)
                 .padding(vertical = Spacing.sm),
             contentAlignment = Alignment.Center

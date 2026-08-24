@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import android.net.Uri
@@ -157,6 +158,8 @@ internal fun AddLinesFlow(
 ) {
     var showTopo by remember { mutableStateOf(false) }
     var showReorder by remember { mutableStateOf(false) }
+    /** Vía cuya ficha está ABIERTA (solo una a la vez); el resto se pliegan. */
+    var expandedVia by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -185,6 +188,117 @@ internal fun AddLinesFlow(
     // largo y el gesto de cierre competía con el scroll — bajar para ver más
     // campos cerraba la hoja en vez de mover el contenido, reportado por
     // Álvaro, 2026-08-24).
+    // Envío del formulario. Vive FUERA del pie porque también lo dispara
+    // la barra fija de arriba (paridad con el toolbar de iOS).
+    val submitErrorText = stringResource(R.string.add_lines_submit_error)
+    fun enviar() {
+            sending = true
+            error = null
+            scope.launch {
+                // 0) SIN COBERTURA: se guarda y se envía solo al
+                //    recuperar señal, igual que al proponer una
+                //    piedra nueva. Hasta 2026-08-16 este flujo era
+                //    el ÚNICO sin cola: editabas en la roca, no se
+                //    podía enviar, y tocaba repetirlo en casa.
+                if (!viewModel.isOnline()) {
+                    // OJO: esta pantalla usa el selector del
+                    // sistema DIRECTO, así que newPhotoUri es un
+                    // content:// prestado — no un fichero. Hay
+                    // que copiarlo AHORA a almacenamiento propio:
+                    // ese permiso caduca al cerrar la pantalla y
+                    // la cola se quedaría buscando un fichero que
+                    // no existe, reintentando para siempre.
+                    val copiadas = faces.map { f ->
+                        f.newPhotoUri?.let {
+                            com.meteomontana.android.data.outbox
+                                .copyPhotoToOutbox(context, it)
+                        }
+                    }
+                    if (faces.indices.any { faces[it].newPhotoUri != null && copiadas[it] == null }) {
+                        error = "No se pudo preparar una de las fotos. Vuelve a elegirla."
+                        sending = false
+                        return@launch
+                    }
+                    val caras = faces.mapIndexed { i, f ->
+                        com.meteomontana.android.data.outbox.QueuedEditFace(
+                            localPhotoPath = copiadas[i],
+                            existingPhotoPath = f.existingPhotoPath,
+                            vias = f.bloques.mapNotNull { v ->
+                                if (v.existingLineId != null || v.grade != null ||
+                                    v.name.isNotBlank() || v.linePath.isNotEmpty())
+                                    v.toQueued() else null
+                            }
+                        )
+                    }
+                    viewModel.queueBlockEditOffline(
+                        targetBlockId = block.id,
+                        lat = block.lat, lon = block.lon,
+                        geometry = geometry,
+                        pathJson = if (isWall) {
+                            val tp = tracedPath
+                            if (tp != null && tp.isNotEmpty()) tp.toPathJson() else block.path
+                        } else null,
+                        direction = direction,
+                        faces = caras
+                    )
+                    sending = false
+                    onSuccess()
+                    return@launch
+                }
+                // 1) Sube la foto nueva de las caras que se cambiaron.
+                val urlByFace = HashMap<Int, String>()
+                var uploadFailed = -1
+                faces.forEachIndexed { i, f ->
+                    val uri = f.newPhotoUri
+                    if (uri != null && uploadFailed < 0) {
+                        val url = viewModel.uploadBoulderPhoto(FileRef(uri.toString())).getOrNull()
+                        if (url == null) uploadFailed = i else urlByFace[i] = url
+                    }
+                }
+                // Si una foto no subió NO seguimos: antes esa cara quedaba
+                // sin foto y se colapsaba en la FOTO 1 con las demás.
+                if (uploadFailed >= 0) {
+                    error = "No se pudo subir la foto ${uploadFailed + 1}. Revisa la conexión y reinténtalo (si no, las caras se mezclarían en una sola)."
+                    sending = false
+                    return@launch
+                }
+                // 2) Estado COMPLETO: todas las vías en su orden, cada una
+                //    con la foto de su cara. Se omiten solo las filas NUEVAS
+                //    vacías. Las existentes van siempre (el backend reconcilia
+                //    por lineId y reaplica el orden).
+                val payload = faces.flatMapIndexed { i, f ->
+                    val fp = urlByFace[i] ?: f.existingPhotoPath
+                    f.bloques.mapNotNull { v ->
+                        val stamped = v.copy(facePhoto = fp)
+                        when {
+                            v.existingLineId != null -> stamped
+                            v.grade != null || v.name.isNotBlank() || v.linePath.isNotEmpty() -> stamped
+                            else -> null
+                        }
+                    }
+                }
+                if (payload.isEmpty()) { sending = false; onSuccess(); return@launch }
+                val pathJson = if (isWall) {
+                    val tp = tracedPath
+                    if (tp != null && tp.isNotEmpty()) tp.toPathJson() else block.path
+                } else null
+                val result = viewModel.submitBoulderCorrections(
+                    targetBlockId = block.id,
+                    targetLat = block.lat,
+                    targetLon = block.lon,
+                    bloques = payload,
+                    geometry = geometry,
+                    path = pathJson,
+                    direction = direction
+                )
+                if (result.isSuccess) onSuccess()
+                else {
+                    sending = false
+                    error = submitErrorText
+                }
+            }
+    }
+
     val contenidoScroll = rememberScrollState()
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -199,19 +313,32 @@ internal fun AddLinesFlow(
         shape = CumbreSheetShape,
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
+        // Barra FIJA arriba (fuera del scroll) + contenido que scrollea: el
+        // formulario es largo y buscar ENVIAR al final era un viaje. Espejo del
+        // .toolbar del sheet de iOS (Álvaro, 2026-08-24).
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.94f)
                 .cumbreSheetSurface()
+        ) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier.padding(horizontal = Spacing.md)
+            ) {
+                SubmitHeader(
+                    title = stringResource(R.string.add_lines_title),
+                    sending = sending, error = error,
+                    onCancel = onDismiss, onSubmit = { enviar() }
+                )
+            }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f, fill = false)
                 .verticalScroll(contenidoScroll)
                 .padding(horizontal = Spacing.md)
                 .padding(bottom = Spacing.md)
         ) {
-            Text(stringResource(R.string.add_lines_title),
-                style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
-                color = MaterialTheme.colorScheme.onSurface)
-            Spacer(Modifier.height(Spacing.xs))
             Text(
                 stringResource(R.string.add_lines_description, block.name),
                 style = MaterialTheme.typography.bodyMedium,
@@ -264,43 +391,93 @@ internal fun AddLinesFlow(
                     direction == "LTR" -> globalPos + 1
                     else -> totalVias - globalPos
                 }
-                Text(if (b.existingLineId != null) stringResource(R.string.add_lines_existing_route) else stringResource(R.string.add_lines_new_route),
-                    style = EyebrowTextStyle,
-                    color = if (b.existingLineId != null) MaterialTheme.colorScheme.onSurfaceVariant else Terra)
-                AddLineRow(
-                    displayNumber = number,
-                    bloque = b,
-                    onUpdate = { upd -> updateBloques { it.toMutableList().also { l -> l[idx] = upd } } },
-                    // También las EXISTENTES se pueden borrar: el backend
-                    // reconcilia (las omitidas por el editor se eliminan).
-                    onDelete = {
-                        updateBloques { it.toMutableList().also { l -> l.removeAt(idx) } }
-                    },
-                    onMoveUp = if (idx > 0) ({
-                        updateBloques { it.toMutableList().also {
-                            val t = it[idx - 1]; it[idx - 1] = it[idx]; it[idx] = t
-                        } }
-                    }) else null,
-                    onMoveDown = if (idx < face.bloques.size - 1) ({
-                        updateBloques { it.toMutableList().also {
-                            val t = it[idx + 1]; it[idx + 1] = it[idx]; it[idx] = t
-                        } }
-                    }) else null
-                )
+                // Una sola ficha ABIERTA a la vez: las demás se pliegan a una
+                // fila (ViaCompactaRow). Paridad con EditLinesSheet de iOS.
+                if (b.id == expandedVia) {
+                    Text(if (b.existingLineId != null) stringResource(R.string.add_lines_existing_route) else stringResource(R.string.add_lines_new_route),
+                        style = EyebrowTextStyle,
+                        color = if (b.existingLineId != null) MaterialTheme.colorScheme.onSurfaceVariant else Terra)
+                    AddLineRow(
+                        displayNumber = number,
+                        bloque = b,
+                        onUpdate = { upd -> updateBloques { it.toMutableList().also { l -> l[idx] = upd } } },
+                        // También las EXISTENTES se pueden borrar: el backend
+                        // reconcilia (las omitidas por el editor se eliminan).
+                        onDelete = {
+                            updateBloques { it.toMutableList().also { l -> l.removeAt(idx) } }
+                            expandedVia = null
+                        },
+                        onMoveUp = if (idx > 0) ({
+                            updateBloques { it.toMutableList().also {
+                                val t = it[idx - 1]; it[idx - 1] = it[idx]; it[idx] = t
+                            } }
+                        }) else null,
+                        onMoveDown = if (idx < face.bloques.size - 1) ({
+                            updateBloques { it.toMutableList().also {
+                                val t = it[idx + 1]; it[idx + 1] = it[idx]; it[idx] = t
+                            } }
+                        }) else null
+                    )
+                    Spacer(Modifier.height(Spacing.xs))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        Box(
+                            modifier = Modifier.weight(1f).clip(CumbrePillShape)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
+                                .clickable { expandedVia = null }
+                                .padding(vertical = Spacing.md),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(stringResource(R.string.propose_ready), style = EyebrowTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Box(
+                            modifier = Modifier.weight(1f).clip(CumbrePillShape)
+                                .background(terraFillColor())
+                                .clickable {
+                                    val nueva = BoulderBloqueForm()
+                                    updateBloques { it + nueva }
+                                    expandedVia = nueva.id
+                                }
+                                .padding(vertical = Spacing.md),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(stringResource(R.string.via_anadir_otra), style = EyebrowTextStyle,
+                                color = Color.White)
+                        }
+                    }
+                } else {
+                    ViaCompactaRow(
+                        displayNumber = number,
+                        bloque = b,
+                        onOpen = { expandedVia = b.id },
+                        onDelete = {
+                            updateBloques { it.toMutableList().also { l -> l.removeAt(idx) } }
+                        }
+                    )
+                }
                 Spacer(Modifier.height(Spacing.xs))
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable { updateBloques { it + BoulderBloqueForm() } }
-                    .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.add_lines_add_new_route), style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (expandedVia == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(CumbrePillShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
+                        .clickable {
+                            val nueva = BoulderBloqueForm()
+                            updateBloques { it + nueva }
+                            expandedVia = nueva.id
+                        }
+                        .padding(vertical = Spacing.md),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(stringResource(R.string.add_lines_add_new_route), style = EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
 
             // ── Dibujar líneas ──────────────────────────────────────────────────
@@ -310,7 +487,7 @@ internal fun AddLinesFlow(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
+                        .clip(CumbrePillShape)
                         .background(terraFillColor())
                         .clickable { showTopo = true }
                         .padding(vertical = Spacing.md),
@@ -343,8 +520,8 @@ internal fun AddLinesFlow(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(MaterialTheme.shapes.small)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                        .clip(CumbrePillShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
                         .clickable(enabled = !sending, onClick = onDismiss)
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
@@ -352,119 +529,12 @@ internal fun AddLinesFlow(
                     Text(stringResource(R.string.common_cancel).uppercase(), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
-                val submitErrorText = stringResource(R.string.add_lines_submit_error)
                 Box(
                     modifier = Modifier
                         .weight(1.5f)
-                        .clip(MaterialTheme.shapes.small)
+                        .clip(CumbrePillShape)
                         .background(terraFillColor())
-                        .clickable(enabled = !sending) {
-                            sending = true
-                            error = null
-                            scope.launch {
-                                // 0) SIN COBERTURA: se guarda y se envía solo al
-                                //    recuperar señal, igual que al proponer una
-                                //    piedra nueva. Hasta 2026-08-16 este flujo era
-                                //    el ÚNICO sin cola: editabas en la roca, no se
-                                //    podía enviar, y tocaba repetirlo en casa.
-                                if (!viewModel.isOnline()) {
-                                    // OJO: esta pantalla usa el selector del
-                                    // sistema DIRECTO, así que newPhotoUri es un
-                                    // content:// prestado — no un fichero. Hay
-                                    // que copiarlo AHORA a almacenamiento propio:
-                                    // ese permiso caduca al cerrar la pantalla y
-                                    // la cola se quedaría buscando un fichero que
-                                    // no existe, reintentando para siempre.
-                                    val copiadas = faces.map { f ->
-                                        f.newPhotoUri?.let {
-                                            com.meteomontana.android.data.outbox
-                                                .copyPhotoToOutbox(context, it)
-                                        }
-                                    }
-                                    if (faces.indices.any { faces[it].newPhotoUri != null && copiadas[it] == null }) {
-                                        error = "No se pudo preparar una de las fotos. Vuelve a elegirla."
-                                        sending = false
-                                        return@launch
-                                    }
-                                    val caras = faces.mapIndexed { i, f ->
-                                        com.meteomontana.android.data.outbox.QueuedEditFace(
-                                            localPhotoPath = copiadas[i],
-                                            existingPhotoPath = f.existingPhotoPath,
-                                            vias = f.bloques.mapNotNull { v ->
-                                                if (v.existingLineId != null || v.grade != null ||
-                                                    v.name.isNotBlank() || v.linePath.isNotEmpty())
-                                                    v.toQueued() else null
-                                            }
-                                        )
-                                    }
-                                    viewModel.queueBlockEditOffline(
-                                        targetBlockId = block.id,
-                                        lat = block.lat, lon = block.lon,
-                                        geometry = geometry,
-                                        pathJson = if (isWall) {
-                                            val tp = tracedPath
-                                            if (tp != null && tp.isNotEmpty()) tp.toPathJson() else block.path
-                                        } else null,
-                                        direction = direction,
-                                        faces = caras
-                                    )
-                                    sending = false
-                                    onSuccess()
-                                    return@launch
-                                }
-                                // 1) Sube la foto nueva de las caras que se cambiaron.
-                                val urlByFace = HashMap<Int, String>()
-                                var uploadFailed = -1
-                                faces.forEachIndexed { i, f ->
-                                    val uri = f.newPhotoUri
-                                    if (uri != null && uploadFailed < 0) {
-                                        val url = viewModel.uploadBoulderPhoto(FileRef(uri.toString())).getOrNull()
-                                        if (url == null) uploadFailed = i else urlByFace[i] = url
-                                    }
-                                }
-                                // Si una foto no subió NO seguimos: antes esa cara quedaba
-                                // sin foto y se colapsaba en la FOTO 1 con las demás.
-                                if (uploadFailed >= 0) {
-                                    error = "No se pudo subir la foto ${uploadFailed + 1}. Revisa la conexión y reinténtalo (si no, las caras se mezclarían en una sola)."
-                                    sending = false
-                                    return@launch
-                                }
-                                // 2) Estado COMPLETO: todas las vías en su orden, cada una
-                                //    con la foto de su cara. Se omiten solo las filas NUEVAS
-                                //    vacías. Las existentes van siempre (el backend reconcilia
-                                //    por lineId y reaplica el orden).
-                                val payload = faces.flatMapIndexed { i, f ->
-                                    val fp = urlByFace[i] ?: f.existingPhotoPath
-                                    f.bloques.mapNotNull { v ->
-                                        val stamped = v.copy(facePhoto = fp)
-                                        when {
-                                            v.existingLineId != null -> stamped
-                                            v.grade != null || v.name.isNotBlank() || v.linePath.isNotEmpty() -> stamped
-                                            else -> null
-                                        }
-                                    }
-                                }
-                                if (payload.isEmpty()) { sending = false; onSuccess(); return@launch }
-                                val pathJson = if (isWall) {
-                                    val tp = tracedPath
-                                    if (tp != null && tp.isNotEmpty()) tp.toPathJson() else block.path
-                                } else null
-                                val result = viewModel.submitBoulderCorrections(
-                                    targetBlockId = block.id,
-                                    targetLat = block.lat,
-                                    targetLon = block.lon,
-                                    bloques = payload,
-                                    geometry = geometry,
-                                    path = pathJson,
-                                    direction = direction
-                                )
-                                if (result.isSuccess) onSuccess()
-                                else {
-                                    sending = false
-                                    error = submitErrorText
-                                }
-                            }
-                        }
+                        .clickable(enabled = !sending) { enviar() }
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
@@ -473,7 +543,8 @@ internal fun AddLinesFlow(
                     else Text(stringResource(R.string.propose_submit), style = EyebrowTextStyle, color = Color.White)
                 }
             }
-        }
+        }   // fin del contenido que scrollea
+        }   // fin de la columna con la barra fija
     }
 
     // Editor topo sobre la foto de la cara (la NUEVA si la cambiaste). Las vías

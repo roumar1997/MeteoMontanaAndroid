@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.components.CumbreSheetShape
 import com.meteomontana.android.ui.components.cumbreSheetSurface
+import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
@@ -61,8 +62,8 @@ internal fun SubmitFooter(
             color = MaterialTheme.colorScheme.error)
         if (onSaveOffline != null) {
             Spacer(Modifier.height(Spacing.xs))
-            Box(modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            Box(modifier = Modifier.fillMaxWidth().clip(CumbrePillShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
                 .clickable(enabled = !sending, onClick = onSaveOffline)
                 .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center) {
@@ -74,20 +75,73 @@ internal fun SubmitFooter(
     }
     Row(modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Box(modifier = Modifier.weight(1f).clip(MaterialTheme.shapes.small)
-            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+        Box(modifier = Modifier.weight(1f).clip(CumbrePillShape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
             .clickable(enabled = !sending, onClick = onCancel)
             .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center) {
             Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurface)
         }
-        Box(modifier = Modifier.weight(1.5f).clip(MaterialTheme.shapes.small)
-            .background(if (submitEnabled) Terra else MaterialTheme.colorScheme.outline)
+        Box(modifier = Modifier.weight(1.5f).clip(CumbrePillShape)
+            .background(if (submitEnabled) terraFillColor() else MaterialTheme.colorScheme.outline)
             .clickable(enabled = !sending && submitEnabled, onClick = onSubmit)
             .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center) {
             if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                color = Color.White, strokeWidth = 2.dp)
+            else Text(
+                if (error != null) "REINTENTAR" else stringResource(R.string.propose_submit),
+                style = EyebrowTextStyle, color = Color.White
+            )
+        }
+    }
+}
+
+/**
+ * Barra FIJA de un formulario: título, CANCELAR a la izquierda y ENVIAR a la
+ * derecha. Va en el slot `header` de [CumbreDialog], fuera del scroll — espejo
+ * del `.toolbar` de los sheets de iOS (Álvaro, 2026-08-24).
+ */
+@Composable
+internal fun SubmitHeader(
+    title: String,
+    sending: Boolean,
+    error: String?,
+    submitEnabled: Boolean = true,
+    onCancel: () -> Unit,
+    onSubmit: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Text(
+            stringResource(R.string.common_cancel),
+            style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .clip(CumbrePillShape)
+                .clickable(enabled = !sending, onClick = onCancel)
+                .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
+        )
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            modifier = Modifier.weight(1f)
+        )
+        Box(
+            modifier = Modifier
+                .clip(CumbrePillShape)
+                .background(if (submitEnabled) terraFillColor() else MaterialTheme.colorScheme.outline)
+                .clickable(enabled = !sending && submitEnabled, onClick = onSubmit)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            contentAlignment = Alignment.Center
+        ) {
+            if (sending) CircularProgressIndicator(modifier = Modifier.size(16.dp),
                 color = Color.White, strokeWidth = 2.dp)
             else Text(
                 if (error != null) "REINTENTAR" else stringResource(R.string.propose_submit),
@@ -164,12 +218,16 @@ internal fun SegmentedSelector(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(MaterialTheme.shapes.small)
+                    // Píldora: son CONTROLES de selección (BLOQUE/VÍA,
+                    // PUNTO/MURO, sentido de numeración) y el sistema Cumbre
+                    // redondea los controles. Paridad con WallSeg y
+                    // DisciplineSelector de iOS (Álvaro, 2026-08-24).
+                    .clip(CumbrePillShape)
                     .then(if (sel) Modifier.background(terraFillColor()) else Modifier)
                     .border(
                         1.dp,
                         if (sel) Terra else MaterialTheme.colorScheme.outline,
-                        MaterialTheme.shapes.small
+                        CumbrePillShape
                     )
                     .clickable { onSelect(value) }
                     .padding(vertical = Spacing.md),
@@ -193,6 +251,13 @@ internal fun CumbreDialog(
     scrollable: Boolean = false,
     /** Tarjeta a pantalla (casi) completa (formularios), como el resto de sheets. */
     fullHeight: Boolean = false,
+    /**
+     * Barra FIJA arriba (fuera del scroll): CANCELAR a la izquierda y ENVIAR a
+     * la derecha. En un formulario largo, buscar el botón de enviar al final
+     * era un viaje (Álvaro, 2026-08-24) — paridad con el toolbar de los sheets
+     * de iOS, que no se mueve al scrollear.
+     */
+    header: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     // Bottom-sheet flotante (sube desde abajo, esquinas superiores redondeadas,
@@ -218,14 +283,35 @@ internal fun CumbreDialog(
         shape = CumbreSheetShape,
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
-        val colMod = Modifier
-            .fillMaxWidth()
-            .then(if (fullHeight) Modifier.fillMaxHeight(0.94f) else Modifier)
-            .cumbreSheetSurface()
-            .padding(horizontal = Spacing.lg)
-            .padding(bottom = Spacing.lg)
-            .then(if (scrollable) Modifier.verticalScroll(contenidoScroll) else Modifier)
-        Column(modifier = colMod) { content() }
+        if (header != null) {
+            // El acabado y la altura van FUERA; dentro, la barra fija y luego
+            // el contenido que scrollea. Así el header no se mueve.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (fullHeight) Modifier.fillMaxHeight(0.94f) else Modifier)
+                    .cumbreSheetSurface()
+            ) {
+                Box(modifier = Modifier.padding(horizontal = Spacing.lg)) { header() }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .padding(horizontal = Spacing.lg)
+                        .padding(bottom = Spacing.lg)
+                        .then(if (scrollable) Modifier.verticalScroll(contenidoScroll) else Modifier)
+                ) { content() }
+            }
+        } else {
+            val colMod = Modifier
+                .fillMaxWidth()
+                .then(if (fullHeight) Modifier.fillMaxHeight(0.94f) else Modifier)
+                .cumbreSheetSurface()
+                .padding(horizontal = Spacing.lg)
+                .padding(bottom = Spacing.lg)
+                .then(if (scrollable) Modifier.verticalScroll(contenidoScroll) else Modifier)
+            Column(modifier = colMod) { content() }
+        }
     }
 }
 

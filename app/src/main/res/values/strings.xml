@@ -443,6 +443,11 @@
     <string name="add_lines_existing_route">VÍA EXISTENTE</string>
     <string name="add_lines_new_route">NUEVA</string>
     <string name="add_lines_add_new_route">+ AÑADIR VÍA NUEVA</string>
+    <!-- Fila de vía PLEGADA en los editores (una sola ficha abierta a la vez). -->
+    <string name="via_sin_nombre">Sin nombre</string>
+    <string name="via_editar">Editar esta vía</string>
+    <string name="via_borrar">Borrar esta vía</string>
+    <string name="via_anadir_otra">AÑADIR OTRA +</string>
     <string name="add_lines_edit_lines_on_photo">✎ EDITAR LÍNEAS SOBRE LA FOTO</string>
     <string name="add_lines_draw_lines_on_photo">✎ DIBUJAR LÍNEAS SOBRE LA FOTO</string>
     <string name="add_lines_need_photo_note">Añade una foto a esta cara para poder dibujar las líneas.</string>

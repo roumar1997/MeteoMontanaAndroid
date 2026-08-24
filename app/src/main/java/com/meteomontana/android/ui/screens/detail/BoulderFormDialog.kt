@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -88,6 +89,16 @@ internal fun BoulderFormDialog(
     var selectedFaceIdx by remember { mutableStateOf(0) }
     val faceIdx = selectedFaceIdx.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
     val face = faces.getOrNull(faceIdx) ?: BoulderFaceForm()
+    /** Vía cuya ficha está ABIERTA (solo una a la vez); el resto se pliegan. */
+    var expandedVia by remember { mutableStateOf<String?>(null) }
+    // Cada cara nace con una vía vacía: si esa es la única de la cara, se abre
+    // sola — tener que tocar "Sin nombre" para empezar sería un paso de más.
+    androidx.compose.runtime.LaunchedEffect(faceIdx, face.bloques.size) {
+        val unica = face.bloques.singleOrNull()
+        if (unica != null && unica.name.isBlank() && unica.grade == null && unica.linePath.isEmpty()) {
+            expandedVia = unica.id
+        }
+    }
 
     // Actualiza la cara seleccionada.
     fun updateFace(transform: (BoulderFaceForm) -> BoulderFaceForm) {
@@ -127,11 +138,26 @@ internal fun BoulderFormDialog(
         uri?.let(ponerFoto)   // null = salio del selector sin elegir: no hay nada que hacer
     }
 
-    CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
-        Text("Nueva piedra",
-            style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
-            color = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(Spacing.xs))
+    // El envío se dispara desde la barra FIJA de arriba (y también desde el pie,
+    // por si el usuario ya está al final del formulario).
+    fun enviar() {
+        sending = true; error = null
+        submitScope.launch {
+            val ok = onSubmit()
+            sending = false
+            if (!ok) error = "No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí."
+        }
+    }
+
+    CumbreDialog(
+        onDismiss = onCancel, scrollable = true, fullHeight = true,
+        header = {
+            SubmitHeader(
+                title = "Nueva piedra", sending = sending, error = error,
+                onCancel = onCancel, onSubmit = { enviar() }
+            )
+        }
+    ) {
         Text("Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada vía sobre ellas.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -209,9 +235,9 @@ internal fun BoulderFormDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small)
+                        .clip(CumbrePillShape)
                         .then(
-                            if (traced) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                            if (traced) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
                             else Modifier.background(terraFillColor())
                         )
                         .clickable(onClick = onTraceWall)
@@ -393,8 +419,8 @@ internal fun BoulderFormDialog(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    .clip(CumbrePillShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
                     .clickable { elegirFoto() }
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
@@ -444,40 +470,91 @@ internal fun BoulderFormDialog(
                 direction == "LTR" -> globalPos + 1
                 else -> totalVias - globalPos
             }
-            BloqueRow(
-                index = idx,
-                bloque = bloque,
-                displayNumber = number,
-                onUpdate = { updated ->
-                    updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it[idx] = updated }) }
-                },
-                onDelete = if (face.bloques.size > 1) ({
-                    updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it.removeAt(idx) }) }
-                }) else null,
-                onMoveUp = if (idx > 0) ({
-                    updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also {
-                        val t = it[idx - 1]; it[idx - 1] = it[idx]; it[idx] = t
-                    }) }
-                }) else null,
-                onMoveDown = if (idx < face.bloques.size - 1) ({
-                    updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also {
-                        val t = it[idx + 1]; it[idx + 1] = it[idx]; it[idx] = t
-                    }) }
-                }) else null
-            )
+            // Una sola ficha ABIERTA a la vez, igual que al EDITAR: con los
+            // formularios apilados, meter la quinta vía obligaba a scrollear
+            // las cuatro anteriores. Paridad con BoulderFormSheet de iOS.
+            if (bloque.id == expandedVia) {
+                BloqueRow(
+                    index = idx,
+                    bloque = bloque,
+                    displayNumber = number,
+                    onUpdate = { updated ->
+                        updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it[idx] = updated }) }
+                    },
+                    onDelete = if (face.bloques.size > 1) ({
+                        updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it.removeAt(idx) }) }
+                        expandedVia = null
+                    }) else null,
+                    onMoveUp = if (idx > 0) ({
+                        updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also {
+                            val t = it[idx - 1]; it[idx - 1] = it[idx]; it[idx] = t
+                        }) }
+                    }) else null,
+                    onMoveDown = if (idx < face.bloques.size - 1) ({
+                        updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also {
+                            val t = it[idx + 1]; it[idx + 1] = it[idx]; it[idx] = t
+                        }) }
+                    }) else null
+                )
+                Spacer(Modifier.height(Spacing.xs))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Box(
+                        modifier = Modifier.weight(1f).clip(CumbrePillShape)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
+                            .clickable { expandedVia = null }
+                            .padding(vertical = Spacing.md),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(stringResource(R.string.propose_ready), style = EyebrowTextStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Box(
+                        modifier = Modifier.weight(1f).clip(CumbrePillShape)
+                            .background(terraFillColor())
+                            .clickable {
+                                val nueva = BoulderBloqueForm()
+                                updateFace { f -> f.copy(bloques = f.bloques + nueva) }
+                                expandedVia = nueva.id
+                            }
+                            .padding(vertical = Spacing.md),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(stringResource(R.string.via_anadir_otra), style = EyebrowTextStyle,
+                            color = Color.White)
+                    }
+                }
+            } else {
+                ViaCompactaRow(
+                    displayNumber = number,
+                    bloque = bloque,
+                    onOpen = { expandedVia = bloque.id },
+                    onDelete = if (face.bloques.size > 1) ({
+                        updateFace { f -> f.copy(bloques = f.bloques.toMutableList().also { it.removeAt(idx) }) }
+                    }) else null
+                )
+            }
             Spacer(Modifier.height(Spacing.xs))
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
-                .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                .clickable { updateFace { f -> f.copy(bloques = f.bloques + BoulderBloqueForm()) } }
-                .padding(vertical = Spacing.md),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("+ AÑADIR VÍA", style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (expandedVia == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(CumbrePillShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
+                    .clickable {
+                        val nueva = BoulderBloqueForm()
+                        updateFace { f -> f.copy(bloques = f.bloques + nueva) }
+                        expandedVia = nueva.id
+                    }
+                    .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("+ AÑADIR VÍA", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
 
         // ── Dibujar líneas de esta foto ────────────────────────────────────────────
@@ -486,10 +563,10 @@ internal fun BoulderFormDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
+                .clip(CumbrePillShape)
                 .then(
                     if (photoUri != null) Modifier.background(terraFillColor())
-                    else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
                 )
                 .clickable(enabled = photoUri != null) { if (photoUri != null) onOpenTopo(faceIdx) }
                 .padding(vertical = Spacing.md),
@@ -526,14 +603,7 @@ internal fun BoulderFormDialog(
         SubmitFooter(
             sending = sending, error = error,
             onCancel = onCancel,
-            onSubmit = {
-                sending = true; error = null
-                submitScope.launch {
-                    val ok = onSubmit()
-                    sending = false
-                    if (!ok) error = "No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí."
-                }
-            },
+            onSubmit = { enviar() },
             onSaveOffline = onSaveOffline
         )
     }
