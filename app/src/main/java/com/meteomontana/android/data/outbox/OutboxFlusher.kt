@@ -135,7 +135,8 @@ class OutboxFlusher @Inject constructor(
                                     name = v.name, grade = v.grade, startType = v.startType,
                                     linePath = v.points.map { androidx.compose.ui.geometry.Offset(it[0], it[1]) },
                                     facePhoto = fotoDeLaCara,
-                                    existingLineId = v.targetLineId
+                                    existingLineId = v.targetLineId,
+                                    description = v.description, variant = v.variant
                                 )
                             }
                         }

@@ -20,7 +20,12 @@ data class QueuedVia(
     val startType: String?,
     /** Puntos normalizados de la línea como [x, y] (Offset no es serializable). */
     val points: List<List<Float>>,
-    val targetLineId: String?
+    val targetLineId: String?,
+    // Description/variant faltaban aquí: una vía creada o editada SIN
+    // COBERTURA perdía su beta o su variante en silencio al sincronizar
+    // (Álvaro, 2026-08-24 — encontrado revisando el flujo offline nuevo).
+    val description: String? = null,
+    val variant: String? = null
 )
 
 @Serializable
@@ -100,7 +105,8 @@ suspend fun copyPhotoToOutbox(context: android.content.Context, uri: android.net
 fun BoulderBloqueForm.toQueued() = QueuedVia(
     name = name, grade = grade, startType = startType,
     points = linePath.map { listOf(it.x, it.y) },
-    targetLineId = existingLineId
+    targetLineId = existingLineId,
+    description = description, variant = variant
 )
 
 /** Reconstruye las caras para reutilizar facesToBloquesJson en el flush.
@@ -114,7 +120,8 @@ fun QueuedBoulder.toFaces(): Pair<List<BoulderFaceForm>, Map<String, String?>> {
                 BoulderBloqueForm(
                     name = v.name, grade = v.grade, startType = v.startType,
                     linePath = v.points.map { Offset(it[0], it[1]) },
-                    existingLineId = v.targetLineId
+                    existingLineId = v.targetLineId,
+                    description = v.description, variant = v.variant
                 )
             }.ifEmpty { listOf(BoulderBloqueForm()) }
         )
