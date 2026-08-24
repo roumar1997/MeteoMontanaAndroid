@@ -2,6 +2,8 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -257,7 +259,7 @@ private fun SchoolGroupHeader(name: String, count: Int) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(2.dp))
-                .background(Terra)
+                .background(terraFillColor())
                 .padding(horizontal = Spacing.sm, vertical = 2.dp)
         ) {
             Text("$count", style = EyebrowTextStyle, color = Color.White)

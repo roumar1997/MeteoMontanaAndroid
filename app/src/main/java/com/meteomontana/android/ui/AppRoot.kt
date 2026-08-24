@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
@@ -131,7 +133,7 @@ private fun ForceUpdateScreen(storeUrl: String) {
                 .padding(top = 24.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(2.dp))
-                .background(Terra)
+                .background(terraFillColor())
                 .clickable {
                     runCatching {
                         context.startActivity(

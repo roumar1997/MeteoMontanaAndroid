@@ -217,7 +217,7 @@ struct ChatListView: View {
                     if c.unreadCount > 0 {
                         Text("\(c.unreadCount)").font(Cumbre.mono(10, .bold)).foregroundStyle(.white)
                             .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Cumbre.terra).clipShape(Capsule())
+                            .background(Cumbre.terraFill).clipShape(Capsule())
                     }
                 }
             }

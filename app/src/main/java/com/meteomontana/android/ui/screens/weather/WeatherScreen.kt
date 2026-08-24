@@ -1,4 +1,4 @@
-﻿package com.meteomontana.android.ui.screens.weather
+package com.meteomontana.android.ui.screens.weather
 
 import com.meteomontana.android.ui.theme.inkButtonColor
 
@@ -93,8 +93,8 @@ fun WeatherScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
                 ) {
-                    // ComparaciÃ³n de favoritas arriba (igual que iOS): ves de un
-                    // vistazo el score medio por dÃ­a de tus escuelas favoritas.
+                    // Comparación de favoritas arriba (igual que iOS): ves de un
+                    // vistazo el score medio por día de tus escuelas favoritas.
                     if (s.grid != null && s.grid.rows.isNotEmpty()) {
                         item { FavoritesGridTable(grid = s.grid) }
                         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -155,11 +155,11 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Necesitamos tu ubicaciÃ³n",
+        Text("Necesitamos tu ubicación",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground)
         Spacer(Modifier.height(8.dp))
-        Text("Para mostrarte el tiempo donde estÃ¡s.",
+        Text("Para mostrarte el tiempo donde estás.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))

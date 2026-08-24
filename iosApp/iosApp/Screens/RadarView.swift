@@ -240,7 +240,7 @@ struct RadarView: View {
                         .font(.system(size: 17))
                         .foregroundStyle(.white)
                         .frame(width: 46, height: 46)
-                        .background(Cumbre.terra)
+                        .background(Cumbre.terraFill)
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -471,7 +471,7 @@ struct RadarView: View {
                 Text("VER DETALLE").font(Cumbre.mono(10, .bold)).tracking(1.2)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Cumbre.terra)
+                    .background(Cumbre.terraFill)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
             Button { selectedSchool = nil } label: {

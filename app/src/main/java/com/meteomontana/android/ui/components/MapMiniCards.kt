@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -304,7 +306,7 @@ internal fun MiniBlockCard(
                         .clickable(onClick = onDelete).padding(Spacing.xs))
             }
             Box(
-                modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(Terra)
+                modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(terraFillColor())
                     .clickable {
                         runCatching {
                             ctx.startActivity(android.content.Intent(

@@ -93,7 +93,7 @@ struct MeetupRowView: View {
                     Text(NSLocalizedString("meetups_joined", comment: ""))
                         .font(.system(size: 10, weight: .bold))
                         .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Cumbre.terra)
+                        .background(Cumbre.terraFill)
                         .foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                 } else if meetup.isFull {

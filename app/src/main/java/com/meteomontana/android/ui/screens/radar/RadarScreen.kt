@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.radar
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -428,7 +430,7 @@ fun RadarScreen(
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(
-                    modifier = Modifier.size(46.dp).clip(CircleShape).background(Terra)
+                    modifier = Modifier.size(46.dp).clip(CircleShape).background(terraFillColor())
                         .clickable(enabled = readyFrames.size >= 2) { playing = !playing },
                     contentAlignment = Alignment.Center
                 ) {
@@ -537,7 +539,7 @@ private fun RadarSchoolCard(
             }
         }
         Box(
-            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Terra)
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(terraFillColor())
                 .clickable(onClick = onDetail)
                 .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {

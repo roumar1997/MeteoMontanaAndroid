@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -210,7 +212,7 @@ internal fun BoulderFormDialog(
                         .clip(MaterialTheme.shapes.small)
                         .then(
                             if (traced) Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                            else Modifier.background(Terra)
+                            else Modifier.background(terraFillColor())
                         )
                         .clickable(onClick = onTraceWall)
                         .padding(vertical = Spacing.md),
@@ -302,7 +304,7 @@ internal fun BoulderFormDialog(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(2.dp))
-                        .then(if (sel) Modifier.background(Terra) else Modifier)
+                        .then(if (sel) Modifier.background(terraFillColor()) else Modifier)
                         .border(1.dp, if (sel) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                         .clickable { selectedFaceIdx = idx }
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
@@ -486,7 +488,7 @@ internal fun BoulderFormDialog(
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
                 .then(
-                    if (photoUri != null) Modifier.background(Terra)
+                    if (photoUri != null) Modifier.background(terraFillColor())
                     else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                 )
                 .clickable(enabled = photoUri != null) { if (photoUri != null) onOpenTopo(faceIdx) }

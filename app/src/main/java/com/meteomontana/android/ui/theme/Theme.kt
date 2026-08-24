@@ -31,7 +31,10 @@ private val CumbreLightColors = lightColorScheme(
 )
 
 private val CumbreDarkColors = darkColorScheme(
-    primary            = TerraDark,
+    // TerraFillDark, no TerraDark: `primary` se usa como RELLENO de botones con
+    // texto blanco encima, y el terracota claro de oscuro (#E0612B) daba 3.55:1
+    // con el blanco. Ver TerraFill en Color.kt.
+    primary            = TerraFillDark,
     onPrimary          = androidx.compose.ui.graphics.Color.White,
     primaryContainer   = Paper2Dark,
     onPrimaryContainer = InkDark,

@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -254,7 +256,7 @@ fun EditBlockDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.small)
-                        .background(Terra)
+                        .background(terraFillColor())
                         .clickable { showTopoEditor = true }
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
@@ -282,7 +284,7 @@ fun EditBlockDialog(
                 Box(
                     modifier = Modifier.weight(1.5f)
                         .clip(MaterialTheme.shapes.small)
-                        .background(Terra)
+                        .background(terraFillColor())
                         .clickable(enabled = !saving) {
                             val latD = latText.replace(",", ".").toDoubleOrNull()
                             val lonD = lonText.replace(",", ".").toDoubleOrNull()

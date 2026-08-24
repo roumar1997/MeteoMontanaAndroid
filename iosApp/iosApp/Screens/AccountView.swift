@@ -304,7 +304,7 @@ struct AccountView: View {
             // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
             Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         }.buttonStyle(.plain).padding(.top, 4)
     }
 

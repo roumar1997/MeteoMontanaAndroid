@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -133,7 +135,7 @@ fun EditLineFlow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.small)
-                        .background(Terra)
+                        .background(terraFillColor())
                         .clickable { showTopo = true }
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
@@ -179,7 +181,7 @@ fun EditLineFlow(
                     modifier = Modifier
                         .weight(1.5f)
                         .clip(MaterialTheme.shapes.small)
-                        .background(Terra)
+                        .background(terraFillColor())
                         .clickable(enabled = !sending) {
                             sending = true
                             error = null

@@ -85,7 +85,7 @@ struct OnboardingView: View {
                     .font(Cumbre.mono(13, .bold)).tracking(0.8)
                     .foregroundStyle(.white)
                     .padding(.vertical, 16).frame(maxWidth: .infinity)
-                    .background(Cumbre.terra)
+                    .background(Cumbre.terraFill)
             }
             .buttonStyle(.plain)
         }

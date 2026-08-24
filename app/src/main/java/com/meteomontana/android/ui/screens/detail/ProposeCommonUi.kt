@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -163,7 +165,7 @@ internal fun SegmentedSelector(
                 modifier = Modifier
                     .weight(1f)
                     .clip(MaterialTheme.shapes.small)
-                    .then(if (sel) Modifier.background(Terra) else Modifier)
+                    .then(if (sel) Modifier.background(terraFillColor()) else Modifier)
                     .border(
                         1.dp,
                         if (sel) Terra else MaterialTheme.colorScheme.outline,

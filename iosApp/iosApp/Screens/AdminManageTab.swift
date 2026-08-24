@@ -109,7 +109,7 @@ struct SchoolBlocksManageSheet: View {
             }.buttonStyle(.plain)
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
-        .frame(maxWidth: .infinity).background(Cumbre.terra)
+        .frame(maxWidth: .infinity).background(Cumbre.terraFill)
     }
 
     /// Mueve el bloque a la coord pulsada, preservando type/foto/sector y las VÍAS
@@ -208,7 +208,7 @@ struct BlockManageSheet: View {
                     Button { Task { await save() } } label: {
                         HStack { if busy { ProgressView().tint(.white) }
                             Text("GUARDAR CAMBIOS").font(Cumbre.mono(12, .bold)).tracking(0.8) }
-                        .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 13).background(Cumbre.terra)
+                        .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 13).background(Cumbre.terraFill)
                     }.buttonStyle(.plain).disabled(busy)
                     Button { onMove(block) } label: {
                         Text("📍 MOVER PULSANDO EN EL MAPA").font(Cumbre.mono(12, .bold)).tracking(0.8)

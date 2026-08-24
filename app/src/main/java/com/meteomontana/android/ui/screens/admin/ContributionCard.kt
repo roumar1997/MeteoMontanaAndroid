@@ -2,6 +2,8 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -137,7 +139,7 @@ internal fun ContributionCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Terra)
+                    .background(terraFillColor())
                     .padding(horizontal = Spacing.sm, vertical = 2.dp)
             ) {
                 Text(contributionTypeLabel(c.type), style = EyebrowTextStyle, color = Color.White)

@@ -118,7 +118,7 @@ struct WallTraceSheet: View {
                     Text("✎ TRAZA EL MURO · \(points.count) PUNTOS · TOCA LA BASE DEL MURO")
                         .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(10).background(Cumbre.terra)
+                        .padding(10).background(Cumbre.terraFill)
                     // Toggle satélite / topográfico (antes estaba fijo).
                     HStack(spacing: 8) {
                         ForEach([("satellite", "SATÉLITE"), ("topo", "TOPO")], id: \.0) { value, label in
@@ -139,7 +139,7 @@ struct WallTraceSheet: View {
                         }.buttonStyle(.plain).opacity(points.isEmpty ? 0.4 : 1).disabled(points.isEmpty)
                         Button { onDone(points); dismiss() } label: {
                             Text("✓ LISTO").font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
-                                .frame(maxWidth: .infinity).padding(.vertical, 10).background(Cumbre.terra)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10).background(Cumbre.terraFill)
                         }.buttonStyle(.plain).opacity(points.count < 2 ? 0.4 : 1).disabled(points.count < 2)
                     }
                     .padding(.horizontal, 10)

@@ -210,7 +210,7 @@ struct AdminPushTab: View {
                     HStack { if vm.pushBusy { ProgressView().tint(.white) }
                         Text(targetUid == nil ? "ENVIAR A TODOS LOS USUARIOS" : "ENVIAR PUSH")
                             .font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                    .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                    .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terraFill)
                 }.buttonStyle(.plain)
                 .disabled(vm.pushBusy || title.isEmpty || body_.isEmpty)
                 .alert("¿Enviar a TODOS?", isPresented: $confirmAll) {

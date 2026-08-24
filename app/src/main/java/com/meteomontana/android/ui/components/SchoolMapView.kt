@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import com.meteomontana.android.data.map.MapStyles
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -410,7 +412,7 @@ internal fun SchoolMapView(
                     "✓ POSICIÓN FIJADA PARA \"${bridge.correctionTargetName}\" · PULSA OTRA VEZ PARA RECORREGIR O ACEPTAR"
             }
             Column(
-                modifier = Modifier.fillMaxWidth().background(Terra)
+                modifier = Modifier.fillMaxWidth().background(terraFillColor())
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -439,7 +441,7 @@ internal fun SchoolMapView(
         // (marcador fantasma) y solo falta decir si el sitio vale.
         bridge.photoConfirm?.let { _ ->
             Column(
-                modifier = Modifier.fillMaxWidth().background(Terra)
+                modifier = Modifier.fillMaxWidth().background(terraFillColor())
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Text("ℹ LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
@@ -470,7 +472,7 @@ internal fun SchoolMapView(
             val onDone: () -> Unit = if (wallEdit.tracing) wallEdit::finishTracing else bridge::wallDone
             val onCancel: () -> Unit = if (wallEdit.tracing) wallEdit::cancelTracing else bridge::reset
             Column(
-                modifier = Modifier.fillMaxWidth().background(Terra)
+                modifier = Modifier.fillMaxWidth().background(terraFillColor())
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -602,7 +604,7 @@ internal fun SchoolMapView(
                     .align(Alignment.TopEnd)
                     .padding(Spacing.sm)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Terra)
+                    .background(terraFillColor())
                     .clickable(onClick = { bridge.proposeOpen = true })
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {

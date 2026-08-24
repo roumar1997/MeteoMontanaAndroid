@@ -345,7 +345,7 @@ struct MeetupsView: View {
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 6).padding(.vertical, 1)
-                                .background(Cumbre.terra)
+                                .background(Cumbre.terraFill)
                                 .clipShape(Capsule())
                         }
                         Spacer()

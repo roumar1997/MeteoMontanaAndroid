@@ -114,7 +114,7 @@ struct MeetupsMapPanel: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(width: 34, height: 34)
-                            .background(Cumbre.terra)
+                            .background(Cumbre.terraFill)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(g.schoolName).font(.body).fontWeight(.medium)
@@ -131,7 +131,7 @@ struct MeetupsMapPanel: View {
                             Text("VER").font(Cumbre.mono(10, .bold)).tracking(1.2)
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 10).padding(.vertical, 6)
-                                .background(Cumbre.terra)
+                                .background(Cumbre.terraFill)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                         .buttonStyle(.plain)
@@ -310,7 +310,7 @@ struct MeetupAlertView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Cumbre.terra)
+                    .background(Cumbre.terraFill)
                     .cornerRadius(6)
             }
             .padding(16)

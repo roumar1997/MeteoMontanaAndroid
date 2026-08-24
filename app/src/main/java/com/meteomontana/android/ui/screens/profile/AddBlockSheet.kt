@@ -1,4 +1,4 @@
-﻿package com.meteomontana.android.ui.screens.profile
+package com.meteomontana.android.ui.screens.profile
 
 import com.meteomontana.android.ui.theme.inkButtonColor
 
@@ -64,7 +64,7 @@ private val GRADES = listOf("4", "5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c
     "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a", "9a+")
 
 /**
- * Sugerencias previas extraÃ­das del diario del usuario por escuela.
+ * Sugerencias previas extraídas del diario del usuario por escuela.
  */
 data class SchoolHistory(
     val sectors: List<String>,    // sectores previamente usados en esa escuela
@@ -75,19 +75,19 @@ data class SchoolHistory(
  *  o uno del historial del usuario sin id. */
 data class SectorSuggestion(val name: String, val blockId: String?)
 
-/** VÃ­a concreta sugerida al usuario, con su grado y tipo de inicio si los tiene. */
+/** Vía concreta sugerida al usuario, con su grado y tipo de inicio si los tiene. */
 data class LineSuggestion(
     val blockName: String,
-    val name: String,           // nombre de la vÃ­a (o "L1" si la vÃ­a no tiene nombre)
+    val name: String,           // nombre de la vía (o "L1" si la vía no tiene nombre)
     val grade: String?,
     val startType: String?,
-    val discipline: String = "BOULDER"  // BOULDER (bloque) / ROUTE (vÃ­a) â€” de la piedra
+    val discipline: String = "BOULDER"  // BOULDER (bloque) / ROUTE (vía) — de la piedra
 ) {
     val displayLabel: String get() = buildString {
         append(name)
-        val extras = listOfNotNull(grade, startType).joinToString(" Â· ")
-        if (extras.isNotEmpty()) append(" Â· ").append(extras)
-        append(" â€” ").append(blockName)
+        val extras = listOfNotNull(grade, startType).joinToString(" · ")
+        if (extras.isNotEmpty()) append(" · ").append(extras)
+        append(" — ").append(blockName)
     }
 }
 
@@ -163,8 +163,8 @@ fun AddBlockSheet(
     var schoolQuery by remember { mutableStateOf("") }
     var sector by remember { mutableStateOf("") }
     var blockName by remember { mutableStateOf("") }
-    // Modalidad: BOULDER (bloque) o ROUTE (vÃ­a). Antes se omitÃ­a â†’ toda entrada
-    // manual caÃ­a en "Bloques" y nunca en "VÃ­as" (el diario separa por discipline).
+    // Modalidad: BOULDER (bloque) o ROUTE (vía). Antes se omitía → toda entrada
+    // manual caía en "Bloques" y nunca en "Vías" (el diario separa por discipline).
     var discipline by remember { mutableStateOf("BOULDER") }
     var grade by remember { mutableStateOf<String?>(null) }
     var notes by remember { mutableStateOf("") }
@@ -182,11 +182,11 @@ fun AddBlockSheet(
 
     // Sugerencias de SECTOR: historial del usuario + sectores reales (ZONE)
     // catalogados en la escuela. Cuando el usuario pulsa uno catalogado guardamos
-    // su id para poder filtrar las vÃ­as por sector.
+    // su id para poder filtrar las vías por sector.
     var selectedSectorBlockId by remember { mutableStateOf<String?>(null) }
-    // Se calculan en CADA recomposiciÃ³n (no en un `remember` cacheado) para que,
+    // Se calculan en CADA recomposición (no en un `remember` cacheado) para que,
     // en cuanto lleguen por red los bloques/sectores de la escuela, el recuadro
-    // de sugerencias aparezca solo â€” igual que iOS, que recalcula inline. Con un
+    // de sugerencias aparezca solo — igual que iOS, que recalcula inline. Con un
     // `remember` el recuadro no se refrescaba hasta tocar el campo.
     val sectorSuggestions = run {
         val real = schoolBlocks.filter { it.type == "ZONE" }
@@ -198,8 +198,8 @@ fun AddBlockSheet(
         filtered.take(6)
     }
 
-    // VÃ­as reales (con grado + tipo). Si hay sector seleccionado, filtramos a las
-    // vÃ­as de las piedras de ese sector.
+    // Vías reales (con grado + tipo). Si hay sector seleccionado, filtramos a las
+    // vías de las piedras de ese sector.
     val lineSuggestions = run {
         val blocksScope = schoolBlocks.filter { it.type == "BLOCK" }
             .let { all ->
@@ -224,7 +224,7 @@ fun AddBlockSheet(
                 it.blockName.contains(blockName, ignoreCase = true)
         }.take(6)
     }
-    // Fallback: si la escuela aÃºn no tiene vÃ­as catalogadas, sugerimos bloques.
+    // Fallback: si la escuela aún no tiene vías catalogadas, sugerimos bloques.
     val blockSuggestions = run {
         if (lineSuggestions.isNotEmpty()) emptyList()
         else {
@@ -248,10 +248,10 @@ fun AddBlockSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("AÃ±adir bloque", style = MaterialTheme.typography.headlineMedium,
+            Text("Añadir bloque", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
 
-            // â”€â”€â”€ ESCUELA con autocomplete â”€â”€â”€
+            // ─── ESCUELA con autocomplete ───
             val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             Label("ESCUELA")
             OutlinedTextField(
@@ -265,7 +265,7 @@ fun AddBlockSheet(
                 SuggestionsBox {
                     results.take(5).forEach { sch ->
                         SuggestionRow(
-                            text = "${sch.name}${sch.region?.let { " Â· $it" } ?: ""}",
+                            text = "${sch.name}${sch.region?.let { " · $it" } ?: ""}",
                             onClick = {
                                 closeKeyboard(); selectedSchool = sch; schoolQuery = sch.name
                             }
@@ -278,7 +278,7 @@ fun AddBlockSheet(
             Text(today, style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground)
 
-            // â”€â”€â”€ SECTOR con autocomplete (sectores previos del usuario) â”€â”€â”€
+            // ─── SECTOR con autocomplete (sectores previos del usuario) ───
             Label("SECTOR (opcional)")
             OutlinedTextField(
                 value = sector,
@@ -289,7 +289,7 @@ fun AddBlockSheet(
             if (sectorSuggestions.isNotEmpty()) {
                 SuggestionsBox {
                     sectorSuggestions.forEach { sug ->
-                        val label = if (sug.blockId != null) "${sug.name} Â· catalogado" else sug.name
+                        val label = if (sug.blockId != null) "${sug.name} · catalogado" else sug.name
                         SuggestionRow(
                             text = label,
                             onClick = {
@@ -301,12 +301,12 @@ fun AddBlockSheet(
                 }
             }
 
-            // â”€â”€â”€ MODALIDAD: bloque o vÃ­a (decide en quÃ© lista del diario cae) â”€â”€â”€
+            // ─── MODALIDAD: bloque o vía (decide en qué lista del diario cae) ───
             Label("MODALIDAD")
             ModalityToggle(selected = discipline, onSelect = { discipline = it })
 
-            // â”€â”€â”€ NOMBRE con autocomplete (bloques/vÃ­as previos + de la escuela) â”€â”€â”€
-            Label(if (discipline == "ROUTE") "VÃA" else "BLOQUE")
+            // ─── NOMBRE con autocomplete (bloques/vías previos + de la escuela) ───
+            Label(if (discipline == "ROUTE") "VÍA" else "BLOQUE")
             OutlinedTextField(
                 value = blockName, onValueChange = { blockName = it },
                 placeholder = { Text("ej: El Pollito") },
@@ -320,7 +320,7 @@ fun AddBlockSheet(
                             onClick = {
                                 blockName = l.name
                                 if (!l.grade.isNullOrBlank()) grade = l.grade
-                                // Al elegir una vÃ­a catalogada, hereda su modalidad.
+                                // Al elegir una vía catalogada, hereda su modalidad.
                                 discipline = l.discipline
                             }
                         )
@@ -340,7 +340,7 @@ fun AddBlockSheet(
                 onExpandedChange = { gradeMenuExpanded = !gradeMenuExpanded }
             ) {
                 OutlinedTextField(
-                    value = grade ?: "â€”",
+                    value = grade ?: "—",
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = gradeMenuExpanded) },
@@ -360,7 +360,7 @@ fun AddBlockSheet(
             Label("NOTAS (opcional)")
             OutlinedTextField(
                 value = notes, onValueChange = { notes = it },
-                placeholder = { Text("Â¿QuÃ© tal fue?") },
+                placeholder = { Text("¿Qué tal fue?") },
                 modifier = Modifier.fillMaxWidth().height(80.dp)
             )
 
@@ -401,13 +401,13 @@ private fun Label(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-/** Selector Bloque / VÃ­a. Decide el campo `discipline` de la entrada del diario,
- *  que es lo que separa las listas "Mis bloques" y "Mis vÃ­as" del perfil. */
+/** Selector Bloque / Vía. Decide el campo `discipline` de la entrada del diario,
+ *  que es lo que separa las listas "Mis bloques" y "Mis vías" del perfil. */
 @Composable
 private fun ModalityToggle(selected: String, onSelect: (String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ModalityOption("BLOQUE", selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
-        ModalityOption("VÃA", selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
+        ModalityOption("VÍA", selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
     }
 }
 

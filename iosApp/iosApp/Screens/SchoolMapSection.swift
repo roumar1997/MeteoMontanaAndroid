@@ -334,7 +334,7 @@ struct SchoolMapSection: View {
                                     Text(NSLocalizedString("detail_propose", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.6)
                                         .foregroundStyle(.white)
                                         .padding(.horizontal, 14).padding(.vertical, 9)
-                                        .background(Cumbre.terra)
+                                        .background(Cumbre.terraFill)
                                         .clipShape(RoundedRectangle(cornerRadius: 11))
                                 }
                                 .buttonStyle(.plain)
@@ -847,7 +847,7 @@ struct SchoolMapSection: View {
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
-            .frame(maxWidth: .infinity).background(Cumbre.terra)
+            .frame(maxWidth: .infinity).background(Cumbre.terraFill)
         }
     }
 
@@ -1154,7 +1154,7 @@ struct SchoolMapSection: View {
                 } label: {
                     Text("CÓMO LLEGAR").font(Cumbre.mono(10, .bold)).tracking(0.8)
                         .foregroundStyle(.white).padding(.horizontal, 10).padding(.vertical, 8)
-                        .background(Cumbre.terra).clipShape(RoundedRectangle(cornerRadius: 9))
+                        .background(Cumbre.terraFill).clipShape(RoundedRectangle(cornerRadius: 9))
                 }.buttonStyle(.plain)
                 Button { miniBlock = nil } label: {
                     Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Cumbre.ink3).padding(4)

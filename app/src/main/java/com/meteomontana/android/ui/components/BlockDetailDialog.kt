@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -471,7 +473,7 @@ fun BlockDetailDialog(
                                                 .size(30.dp)
                                                 .clip(CircleShape)
                                                 .then(
-                                                    if (isProject) Modifier.background(Terra, CircleShape)
+                                                    if (isProject) Modifier.background(terraFillColor(), CircleShape)
                                                     else Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), CircleShape)
                                                 )
                                                 .clickable {
@@ -591,7 +593,7 @@ fun BlockDetailDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Terra)
+                    .background(terraFillColor())
                     .clickable {
                         val uri = Uri.parse(
                             "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}"

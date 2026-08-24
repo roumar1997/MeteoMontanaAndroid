@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import com.meteomontana.android.data.local.saveCelebrationToGallery
 
 import androidx.compose.foundation.background
@@ -490,7 +492,7 @@ internal fun FeedPublishSheet(
             Box(
                 Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Terra)
+                    .background(terraFillColor())
                     .clickable { onPublish(always, caption.trim().ifBlank { null }, photoUri, sessionDate, aVista, alFlash) }
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center

@@ -50,7 +50,7 @@ struct DirectionsButton: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(Cumbre.terra)
+            .background(Cumbre.terraFill)
         }
         .buttonStyle(.plain)
     }

@@ -125,7 +125,7 @@ struct AdminReportsTab: View {
                     Text("VER POST ▸").font(Cumbre.mono(11, .bold)).tracking(0.5)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .background(Cumbre.terra)
+                        .background(Cumbre.terraFill)
                 }.buttonStyle(.plain)
             }
             if let author = r.authorUid {
@@ -152,7 +152,7 @@ struct AdminReportsTab: View {
                 Text("VER QUEDADA ▸").font(Cumbre.mono(11, .bold)).tracking(0.5)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity).padding(.vertical, 9)
-                    .background(Cumbre.terra)
+                    .background(Cumbre.terraFill)
             }.buttonStyle(.plain)
             // Acción principal: ELIMINAR la quedada denunciada.
             Button { resolveMeetup(r.id, "delete") } label: {

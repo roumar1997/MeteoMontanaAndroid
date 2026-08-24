@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -107,7 +109,7 @@ internal fun EditFacesTabs(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(2.dp))
-                    .then(if (on) Modifier.background(Terra) else Modifier)
+                    .then(if (on) Modifier.background(terraFillColor()) else Modifier)
                     .border(1.dp, if (on) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                     .clickable { onSelectedFaceChange(i) }
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs)

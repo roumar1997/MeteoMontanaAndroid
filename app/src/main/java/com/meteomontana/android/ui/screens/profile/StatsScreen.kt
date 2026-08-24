@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -334,7 +336,7 @@ fun StatsScreen(
                         p.maxGradePerQuarter.takeLast(6).forEach { (q, g) ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(Modifier.width(10.dp).height(10.dp)
-                                    .background(Terra, CircleShape))
+                                    .background(terraFillColor(), CircleShape))
                                 Text(g, fontFamily = FontFamily.Serif,
                                     fontWeight = FontWeight.Bold, fontSize = 14.sp,
                                     color = gradeAccent(g))

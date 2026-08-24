@@ -1,4 +1,4 @@
-﻿package com.meteomontana.android.ui.screens.detail
+package com.meteomontana.android.ui.screens.detail
 
 import com.meteomontana.android.ui.theme.inkButtonColor
 

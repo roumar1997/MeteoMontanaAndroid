@@ -1,4 +1,4 @@
-﻿package com.meteomontana.android.ui.screens.login
+package com.meteomontana.android.ui.screens.login
 
 import com.meteomontana.android.ui.theme.inkButtonColor
 
@@ -113,7 +113,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 }
             }
 
-            // Bottom: legal â€” los enlaces abren el navegador
+            // Bottom: legal — los enlaces abren el navegador
             val legalContext = androidx.compose.ui.platform.LocalContext.current
             fun openUrl(url: String) {
                 runCatching {
@@ -126,7 +126,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 }
             }
             Text(
-                "Al continuar aceptas los tÃ©rminos y la polÃ­tica de privacidad.",
+                "Al continuar aceptas los términos y la política de privacidad.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

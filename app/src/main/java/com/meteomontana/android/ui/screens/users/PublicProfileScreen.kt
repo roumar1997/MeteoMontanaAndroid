@@ -1,4 +1,4 @@
-﻿package com.meteomontana.android.ui.screens.users
+package com.meteomontana.android.ui.screens.users
 
 import com.meteomontana.android.ui.theme.inkButtonColor
 import com.meteomontana.android.util.toUserMessage
@@ -145,9 +145,9 @@ fun PublicProfileScreen(
     onOpenSchools: (String) -> Unit = {},
     onOpenSchoolEntries: (uid: String, schoolName: String) -> Unit = { _, _ -> },
     onOpenProjects: (String) -> Unit = {},
-    /** G: estadÃ­sticas completas del usuario (privacidad: la impone el backend). */
+    /** G: estadísticas completas del usuario (privacidad: la impone el backend). */
     onOpenStats: (String) -> Unit = {},
-    /** H: sus publicaciones en pantalla propia (como Â«Mis publicacionesÂ»). */
+    /** H: sus publicaciones en pantalla propia (como «Mis publicaciones»). */
     onOpenPosts: (String) -> Unit = {},
     /** Abrir OTRO perfil (autor de un comentario del feed). */
     onOpenUserProfile: (String) -> Unit = {},
@@ -156,7 +156,7 @@ fun PublicProfileScreen(
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    // ModeraciÃ³n: denunciar / bloquear a este usuario (menÃº â‹¯).
+    // Moderación: denunciar / bloquear a este usuario (menú ⋯).
     val moderation: com.meteomontana.android.ui.components.ModerationViewModel =
         hiltViewModel()
     val blocked by moderation.blocked.collectAsStateWithLifecycle()
@@ -179,7 +179,7 @@ fun PublicProfileScreen(
             Text("Perfil", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f))
-            // Compartir perfil (tambiÃ©n el propio): enlace /s/u/ que abre la app.
+            // Compartir perfil (también el propio): enlace /s/u/ que abre la app.
             val profileHandle = (state as? PublicProfileUiState.Success)?.profile
                 ?.let { it.username ?: it.uid }
             if (profileHandle != null) {
@@ -188,7 +188,7 @@ fun PublicProfileScreen(
                 val prof = (state as? PublicProfileUiState.Success)?.profile
                 val profStats = (state as? PublicProfileUiState.Success)?.stats
                 IconButton(onClick = {
-                    // Imagen 1080Ã—1920 (historia) â†’ Instagram Stories, WhatsApp...
+                    // Imagen 1080×1920 (historia) → Instagram Stories, WhatsApp...
                     shareScope.launch {
                         com.meteomontana.android.ui.share.shareProfileAsImage(
                             ctx, profileHandle, profileName,
@@ -205,7 +205,7 @@ fun PublicProfileScreen(
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
             }
-            // â‹¯: denunciar / bloquear (solo perfiles ajenos)
+            // ⋯: denunciar / bloquear (solo perfiles ajenos)
             if (profileUid != null && profileUid != myUid) {
                 androidx.compose.foundation.layout.Box {
                     IconButton(onClick = { menuOpen = true }) {
@@ -221,7 +221,7 @@ fun PublicProfileScreen(
                         val isBlocked = profileUid in blocked
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text(if (isBlocked) "Desbloquear"
-                                          else "Bloquear â€” no verÃ¡s su contenido y no podrÃ¡ escribirte",
+                                          else "Bloquear — no verás su contenido y no podrá escribirte",
                                           color = if (isBlocked) MaterialTheme.colorScheme.onSurface
                                                   else MaterialTheme.colorScheme.error) },
                             onClick = {
@@ -332,8 +332,8 @@ private fun Body(
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }
-            // El grado tope ya NO es manual: se muestra automÃ¡tico desde el
-            // diario en la fila de stats (TOPE BLOQUE / TOPE VÃA mÃ¡s abajo).
+            // El grado tope ya NO es manual: se muestra automático desde el
+            // diario en la fila de stats (TOPE BLOQUE / TOPE VÍA más abajo).
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                 FollowCount(s.status.followers, stringResource(R.string.profile_followers).uppercase(),
@@ -387,7 +387,7 @@ private fun Body(
                 onPostsClick = onOpenPosts
             )
             // H: la lista de ESCUELAS ya no va inline (la celda ESCUELAS de
-            // arriba abre su pantalla) â€” igual que en el perfil propio.
+            // arriba abre su pantalla) — igual que en el perfil propio.
         }
         if (locked) {
             Spacer(Modifier.height(32.dp))
@@ -423,8 +423,8 @@ private fun ActivityStatsRow(
             StatBox(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick)
             StatBox(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick)
         }
-        // Grados tope automÃ¡ticos (del diario). Se oculta el que no tenga datos:
-        // quien solo hace bloque no ve "TOPE VÃA" vacÃ­o (y al revÃ©s).
+        // Grados tope automáticos (del diario). Se oculta el que no tenga datos:
+        // quien solo hace bloque no ve "TOPE VÍA" vacío (y al revés).
         val hasBoulder = !stats.maxBoulderGrade.isNullOrBlank()
         val hasRoute = !stats.maxRouteGrade.isNullOrBlank()
         if (hasBoulder || hasRoute) {
@@ -438,12 +438,12 @@ private fun ActivityStatsRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatBox(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f), onProjectsClick)
         }
-        // H: ESTADÃSTICAS y PUBLICACIONES como CELDAS (igual que el resto del
-        // perfil) â€” antes eran texto rojo con flecha y un feed inline enorme.
+        // H: ESTADÍSTICAS y PUBLICACIONES como CELDAS (igual que el resto del
+        // perfil) — antes eran texto rojo con flecha y un feed inline enorme.
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox("ESTADÃSTICAS", "â–¸", Modifier.weight(1f), onStatsClick)
-            StatBox(stringResource(R.string.feed_posts_section).uppercase(), "â–¸",
+            StatBox("ESTADÍSTICAS", "▸", Modifier.weight(1f), onStatsClick)
+            StatBox(stringResource(R.string.feed_posts_section).uppercase(), "▸",
                 Modifier.weight(1f), onPostsClick)
         }
     }
@@ -495,7 +495,7 @@ private fun SchoolStatRow(school: SchoolStats, onClick: () -> Unit) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text(school.maxGrade ?: "â€”",
+        Text(school.maxGrade ?: "—",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground)
     }

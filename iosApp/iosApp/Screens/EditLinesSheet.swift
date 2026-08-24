@@ -265,7 +265,7 @@ struct EditLinesSheet: View {
                                             Text("AÑADIR OTRA +").font(Cumbre.mono(12, .bold)).tracking(0.6)
                                                 .foregroundStyle(.white)
                                                 .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                                .background(Cumbre.terra,
+                                                .background(Cumbre.terraFill,
                                                             in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
                                         }.buttonStyle(.plain)
                                     }
@@ -322,7 +322,7 @@ struct EditLinesSheet: View {
                                 .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(.white)
                                 .lineLimit(1).minimumScaleFactor(0.8)
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
                         }.buttonStyle(.plain)
                     } else {
                         Text("Esta cara no tiene foto, no puedes dibujar líneas.")
@@ -353,12 +353,12 @@ struct EditLinesSheet: View {
                         if sending {
                             ProgressView().tint(.white)
                                 .padding(.horizontal, 18).padding(.vertical, 6)
-                                .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
                         } else {
                             Text(sendError != nil ? "REINTENTAR" : "ENVIAR")
                                 .font(Cumbre.mono(11, .bold)).tracking(0.6).foregroundStyle(.white)
                                 .padding(.horizontal, 12).padding(.vertical, 6)
-                                .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
                         }
                     }.buttonStyle(.plain).disabled(sending)
                 }

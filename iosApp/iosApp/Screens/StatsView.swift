@@ -142,7 +142,7 @@ struct StatsView: View {
                                     id: \.offset) { _, pair in
                                 Spacer()
                                 VStack(spacing: 2) {
-                                    Circle().fill(Cumbre.terra).frame(width: 10, height: 10)
+                                    Circle().fill(Cumbre.terraFill).frame(width: 10, height: 10)
                                     Text(pair.second! as String).font(Cumbre.serif(14, .bold))
                                         .foregroundStyle(gradeAccent(pair.second! as String))
                                     Text((pair.first! as String).components(separatedBy: "-").last ?? "")

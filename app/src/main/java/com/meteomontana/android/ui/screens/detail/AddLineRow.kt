@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -125,7 +127,7 @@ internal fun ReorderFacesDialog(
                     ) {
                         // Posición
                         Box(
-                            modifier = Modifier.size(28.dp).clip(CircleShape).background(Terra),
+                            modifier = Modifier.size(28.dp).clip(CircleShape).background(terraFillColor()),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("${i + 1}", style = MaterialTheme.typography.labelMedium, color = Color.White)
@@ -186,7 +188,7 @@ internal fun ReorderFacesDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
-                    .background(Terra)
+                    .background(terraFillColor())
                     .clickable(onClick = onDismiss)
                     .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center

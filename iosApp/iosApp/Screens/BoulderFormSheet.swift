@@ -380,7 +380,7 @@ struct BoulderFormSheet: View {
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
                             Text(NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terraFill)
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
                 .padding(16)
@@ -693,7 +693,7 @@ struct ReorderFacesSheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 10) {
                                 Text("\(i + 1)").font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
-                                    .frame(width: 28, height: 28).background(Circle().fill(Cumbre.terra))
+                                    .frame(width: 28, height: 28).background(Circle().fill(Cumbre.terraFill))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("FOTO \(i + 1) · \(faceBlocks[i].count) vías")
                                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink)

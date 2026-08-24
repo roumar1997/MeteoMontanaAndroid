@@ -1,4 +1,4 @@
-﻿package com.meteomontana.android.ui.screens.users
+package com.meteomontana.android.ui.screens.users
 
 import com.meteomontana.android.ui.theme.inkButtonColor
 
@@ -93,7 +93,7 @@ class FollowRequestsViewModel @Inject constructor(
         }
     }
 
-    /** Acepta la solicitud y ademÃ¡s sigue a esa persona de vuelta. */
+    /** Acepta la solicitud y además sigue a esa persona de vuelta. */
     fun acceptAndFollow(uid: String) {
         viewModelScope.launch {
             runCatching { accept.invoke(uid) }
@@ -187,7 +187,7 @@ private fun RequestRow(
                 Text("@${profile.username ?: profile.displayName ?: "usuario"}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground)
-                Text("quiere seguirte Â· toca para ver su perfil",
+                Text("quiere seguirte · toca para ver su perfil",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

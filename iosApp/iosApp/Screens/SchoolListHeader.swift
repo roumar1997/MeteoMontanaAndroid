@@ -27,7 +27,7 @@ struct CompareBar: View {
                     Text("COMPARAR ▸").font(Cumbre.mono(13, .bold)).tracking(0.8)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 18).padding(.vertical, 10)
-                        .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: 6))
+                        .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: 6))
                 }
             } else {
                 Text("Elige otra para comparar")
@@ -233,7 +233,7 @@ struct DonateView: View {
             } label: {
                 Text("☕ INVÍTAME A UN CAFÉ").font(Cumbre.mono(13, .bold)).tracking(0.8)
                     .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                    .background(Cumbre.terra)
+                    .background(Cumbre.terraFill)
             }
             .buttonStyle(.plain).padding(.horizontal, 24).padding(.top, 8)
             Button("Ahora no") { dismiss() }.foregroundStyle(Cumbre.ink3).padding(.top, 4)
@@ -398,7 +398,7 @@ struct SchoolMapPopup: View {
                 Button(action: onDetail) {
                     Text("VER DETALLE ▸").font(Cumbre.mono(12, .bold)).tracking(0.8)
                         .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .background(Cumbre.terra)
+                        .background(Cumbre.terraFill)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }.buttonStyle(.plain)
             }

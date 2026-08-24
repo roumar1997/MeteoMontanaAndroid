@@ -268,7 +268,7 @@ struct FeedPublishSheet: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Cumbre.terra)
+                    .background(Cumbre.terraFill)
                     .clipShape(RoundedRectangle(cornerRadius: 2))
             }
             .buttonStyle(.plain)

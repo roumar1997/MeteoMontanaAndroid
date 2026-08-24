@@ -137,7 +137,7 @@ struct ApproachesSection: View {
                         .font(Cumbre.mono(10, .bold)).tracking(1)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 14).padding(.vertical, 7)
-                        .background(Cumbre.terra)
+                        .background(Cumbre.terraFill)
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                 }
             }

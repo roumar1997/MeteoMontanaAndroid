@@ -261,7 +261,7 @@ struct MeetupDetailView: View {
                                             .foregroundColor(.white)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 8)
-                                            .background(Cumbre.terra)
+                                            .background(Cumbre.terraFill)
                                             .clipShape(RoundedRectangle(cornerRadius: 2))
                                         }
                                     }
@@ -479,7 +479,7 @@ struct MeetupDetailView: View {
                                             .foregroundColor(.white)
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 12)
-                                            .background(Cumbre.terra)
+                                            .background(Cumbre.terraFill)
                                             .clipShape(RoundedRectangle(cornerRadius: 2))
                                         }
                                         .disabled(vm.joining)

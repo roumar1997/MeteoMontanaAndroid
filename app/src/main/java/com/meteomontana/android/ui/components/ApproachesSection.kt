@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -157,7 +159,7 @@ private fun ApproachCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Terra)
+                    .background(terraFillColor())
                     .clickable(onClick = onFollow)
                     .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             ) {

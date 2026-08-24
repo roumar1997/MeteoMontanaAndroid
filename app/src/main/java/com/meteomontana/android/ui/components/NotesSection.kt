@@ -1,4 +1,4 @@
-﻿package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.components
 
 import com.meteomontana.android.ui.theme.inkButtonColor
 
@@ -54,11 +54,11 @@ fun NotesSection(
     onVote: (Note, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    // Nota cuya foto se estÃ¡ viendo a pantalla completa (null = ninguna).
+    // Nota cuya foto se está viendo a pantalla completa (null = ninguna).
     var photoNote by remember { mutableStateOf<Note?>(null) }
-    // Plegada por defecto: con muchas notas la pantalla se hacÃ­a eterna.
+    // Plegada por defecto: con muchas notas la pantalla se hacía eterna.
     var expanded by remember { mutableStateOf(false) }
-    // ModeraciÃ³n: denunciar notas ajenas (bandera) + ocultar al instante.
+    // Moderación: denunciar notas ajenas (bandera) + ocultar al instante.
     val moderation: ModerationViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
     var reportTarget by remember { mutableStateOf<Note?>(null) }
@@ -88,7 +88,7 @@ fun NotesSection(
                 }
             }
             Spacer(Modifier.weight(1f))
-            Text(if (expanded) "â–´" else "â–¾",
+            Text(if (expanded) "▴" else "▾",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -97,13 +97,13 @@ fun NotesSection(
             Spacer(Modifier.height(8.dp))
             if (notes.isEmpty()) {
                 Text(
-                    "Sin notas aÃºn. Â¡SÃ© el primero!",
+                    "Sin notas aún. ¡Sé el primero!",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(12.dp))
             } else {
-                // Llegan del backend ordenadas por utilidad (â–² âˆ’ â–¼). Las
+                // Llegan del backend ordenadas por utilidad (▲ − ▼). Las
                 // denunciadas por ti se ocultan al instante.
                 notes.filter { "NOTE:${it.id}" !in hiddenIds }.forEach { n ->
                     NoteRow(n, onPhotoClick = { photoNote = n }, onVote = { v -> onVote(n, v) },
@@ -145,7 +145,7 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
             Spacer(Modifier.height(6.dp))
             AsyncImage(
                 model = url,
-                contentDescription = "Foto de la nota â€” tocar para ampliar",
+                contentDescription = "Foto de la nota — tocar para ampliar",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
@@ -163,7 +163,7 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text(
-                    n.author ?: "AnÃ³nimo",
+                    n.author ?: "Anónimo",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -182,8 +182,8 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
             }
             // Voto de utilidad: tocar de nuevo tu voto lo retira.
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                VoteChip("â–² ${n.upvotesCount}", active = n.myVote == 1) { onVote(1) }
-                VoteChip("â–¼ ${n.downvotesCount}", active = n.myVote == -1) { onVote(-1) }
+                VoteChip("▲ ${n.upvotesCount}", active = n.myVote == 1) { onVote(1) }
+                VoteChip("▼ ${n.downvotesCount}", active = n.myVote == -1) { onVote(-1) }
             }
         }
     }
@@ -227,11 +227,11 @@ private fun NotePhotoDialog(note: Note, onDismiss: () -> Unit) {
             Column(Modifier.padding(16.dp)) {
                 Text(note.text, style = MaterialTheme.typography.bodyLarge, color = Color.White)
                 Spacer(Modifier.height(8.dp))
-                Text(note.author ?: "AnÃ³nimo",
+                Text(note.author ?: "Anónimo",
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White.copy(alpha = 0.7f))
                 Spacer(Modifier.height(16.dp))
-                Text("âœ• ${stringResource(R.string.common_close).uppercase()}",
+                Text("✕ ${stringResource(R.string.common_close).uppercase()}",
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White,
                     modifier = Modifier.clickable(onClick = onDismiss))
@@ -251,7 +251,7 @@ private fun ComposerRow(onPublish: (String, FileRef?) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = text, onValueChange = { text = it },
-            placeholder = { Text("Comparte algo Ãºtil: orientaciÃ³n, secado, acceso...") },
+            placeholder = { Text("Comparte algo útil: orientación, secado, acceso...") },
             modifier = Modifier.fillMaxWidth().height(80.dp)
         )
         Spacer(Modifier.height(8.dp))
@@ -277,7 +277,7 @@ private fun ComposerRow(onPublish: (String, FileRef?) -> Unit) {
                         .clickable { photoUri = null },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("âœ•", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                    Text("✕", color = Color.White, style = MaterialTheme.typography.labelLarge)
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -294,7 +294,7 @@ private fun ComposerRow(onPublish: (String, FileRef?) -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (photoUri == null) "ðŸ“· FOTO" else "ðŸ“· CAMBIAR",
+                    if (photoUri == null) "📷 FOTO" else "📷 CAMBIAR",
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelLarge
                 )

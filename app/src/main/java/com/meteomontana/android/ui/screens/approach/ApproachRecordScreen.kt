@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.approach
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -164,7 +166,7 @@ fun ApproachRecordScreen(
                         Box(
                             modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(Terra)
+                                .background(terraFillColor())
                                 .clickable { addingPin = true }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                         ) {
@@ -201,7 +203,7 @@ fun ApproachRecordScreen(
                             ) { Text(if (paused) "REANUDAR" else "PAUSAR", style = EyebrowTextStyle) }
                             Box(
                                 modifier = Modifier.weight(1f)
-                                    .background(Terra, RoundedCornerShape(2.dp))
+                                    .background(terraFillColor(), RoundedCornerShape(2.dp))
                                     .clickable {
                                         recording = false
                                         addingPin = false
@@ -249,7 +251,7 @@ fun ApproachRecordScreen(
                     Spacer(Modifier.weight(1f))
                     Box(
                         modifier = Modifier.fillMaxWidth()
-                            .background(Terra, RoundedCornerShape(2.dp))
+                            .background(terraFillColor(), RoundedCornerShape(2.dp))
                             .clickable(enabled = !saving) {
                                 if (points.size < 2) {
                                     errorMsg = "El camino grabado es demasiado corto."

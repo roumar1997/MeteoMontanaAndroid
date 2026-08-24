@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import Shared
 import CoreLocation
 
@@ -6,8 +6,8 @@ import CoreLocation
 // Reparto de AdminView.swift.
 
 enum AdminEditApprove {
-    /// Caras (fotos) editables de la propuesta, en orden de apariciÃ³n.
-    /// VacÃ­a = no editable (sin vÃ­as o sin ninguna foto).
+    /// Caras (fotos) editables de la propuesta, en orden de aparición.
+    /// Vacía = no editable (sin vías o sin ninguna foto).
     static func editableFaces(of c: Contribution) -> [String] {
         guard let json = c.bloquesJson, !json.isEmpty,
               let data = json.data(using: .utf8),
@@ -23,7 +23,7 @@ enum AdminEditApprove {
         return photos
     }
 
-    /// bloquesJson â†’ formularios editables, conservando targetLineId y cara
+    /// bloquesJson → formularios editables, conservando targetLineId y cara
     /// para que el round-trip sea fiel (espejo de parseBloquesForms de Android).
     static func parseForms(_ json: String?) -> [BoulderBlockForm] {
         guard let json, let data = json.data(using: .utf8),
@@ -55,7 +55,7 @@ enum AdminEditApprove {
     }
 }
 
-/// Hoja "EDITAR Y APROBAR": campos editables por vÃ­a + editor de lÃ­neas sobre
+/// Hoja "EDITAR Y APROBAR": campos editables por vía + editor de líneas sobre
 /// la foto de la propuesta. Guardar = aprobar CON los cambios del admin.
 struct AdminEditApproveSheet: View {
     let contribution: Contribution
@@ -67,8 +67,8 @@ struct AdminEditApproveSheet: View {
 
     private var faces: [String] { AdminEditApprove.editableFaces(of: contribution) }
     private var facePhoto: String? { faces.indices.contains(faceIdx) ? faces[faceIdx] : faces.first }
-    /// VÃ­as de la cara seleccionada, como binding que fusiona los cambios de
-    /// vuelta en la lista completa (las demÃ¡s caras no se tocan).
+    /// Vías de la cara seleccionada, como binding que fusiona los cambios de
+    /// vuelta en la lista completa (las demás caras no se tocan).
     private var faceBlocksBinding: Binding<[BoulderBlockForm]> {
         Binding(
             get: { blocks.filter { ($0.facePhoto ?? faces.first) == facePhoto } },
@@ -83,7 +83,7 @@ struct AdminEditApproveSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Retoca lo que haga falta (nombres, grados, variantes, lÃ­neas) y aprueba con tus cambios. El autor sigue siendo quien lo propuso.")
+                    Text("Retoca lo que haga falta (nombres, grados, variantes, líneas) y aprueba con tus cambios. El autor sigue siendo quien lo propuso.")
                         .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
                     ForEach(blocks.indices, id: \.self) { i in
                         BoulderBlockRow(block: $blocks[i], index: i,
@@ -91,7 +91,7 @@ struct AdminEditApproveSheet: View {
                     }
                     if !faces.isEmpty {
                         if faces.count > 1 {
-                            // Varias caras: elegir cuÃ¡l editar (las vÃ­as de cada
+                            // Varias caras: elegir cuál editar (las vías de cada
                             // cara se dibujan sobre SU foto).
                             HStack(spacing: 8) {
                                 ForEach(faces.indices, id: \.self) { i in
@@ -107,11 +107,11 @@ struct AdminEditApproveSheet: View {
                             }
                         }
                         Button { showTopo = true } label: {
-                            Text("âœŽ EDITAR LÃNEAS SOBRE LA FOTO")
+                            Text("✎ EDITAR LÍNEAS SOBRE LA FOTO")
                                 .font(Cumbre.mono(11, .bold)).tracking(0.8)
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .background(Cumbre.terra)
+                                .background(Cumbre.terraFill)
                         }.buttonStyle(.plain)
                     }
                     Button {

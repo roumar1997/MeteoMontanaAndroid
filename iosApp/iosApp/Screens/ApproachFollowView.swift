@@ -205,7 +205,7 @@ private struct ApproachPinDetailSheet: View {
                         .font(Cumbre.mono(10, .bold)).tracking(1)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Cumbre.terra)
+                        .background(Cumbre.terraFill)
                     if !pin.isVerifiedFlag {
                         Text("SIN VERIFICAR")
                             .font(Cumbre.mono(9, .bold)).tracking(1)

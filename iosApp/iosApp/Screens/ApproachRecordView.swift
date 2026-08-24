@@ -174,7 +174,7 @@ struct ApproachRecordView: View {
                             Text("TERMINAR")
                                 .font(Cumbre.mono(11, .bold)).tracking(1)
                                 .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                                .background(Cumbre.terra)
+                                .background(Cumbre.terraFill)
                         }
                     } else {
                         Button {
@@ -257,7 +257,7 @@ struct ApproachRecordView: View {
                         .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
                 }
             }
-            .background(Cumbre.terra)
+            .background(Cumbre.terraFill)
             .disabled(saving)
         }
         .padding(16)

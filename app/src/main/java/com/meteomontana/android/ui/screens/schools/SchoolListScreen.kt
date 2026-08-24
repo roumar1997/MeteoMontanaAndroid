@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -541,7 +543,7 @@ fun SchoolListScreen(
                     Box(
                         modifier = Modifier
                             .clip(MaterialTheme.shapes.small)
-                            .background(Terra)
+                            .background(terraFillColor())
                             .clickable { onCompare(compareSelection.toList()); viewModel.clearCompare() }
                             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                         contentAlignment = Alignment.Center

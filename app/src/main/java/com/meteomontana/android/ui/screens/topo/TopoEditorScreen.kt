@@ -1,4 +1,4 @@
-﻿package com.meteomontana.android.ui.screens.topo
+package com.meteomontana.android.ui.screens.topo
 
 import com.meteomontana.android.ui.theme.inkButtonColor
 
@@ -63,7 +63,7 @@ import androidx.compose.ui.graphics.PathEffect
 
 private val GRADES = listOf("4", "5a", "5b", "5c", "6a", "6a+", "6b", "6b+", "6c", "6c+",
     "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+", "8b", "8b+")
-// Mapeo compartido tipo de inicio â†’ etiqueta (ui/components/StartTypeLabel.kt).
+// Mapeo compartido tipo de inicio → etiqueta (ui/components/StartTypeLabel.kt).
 private val START_TYPE_KEYS = com.meteomontana.android.ui.components.START_TYPE_LABELS
 
 /**
@@ -112,7 +112,7 @@ fun TopoEditorScreen(
             return@Column
         }
 
-        // â”€â”€â”€â”€â”€ Foto + Canvas lÃ­neas â”€â”€â”€â”€â”€
+        // ───── Foto + Canvas líneas ─────
         var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
         Box(modifier = Modifier.fillMaxWidth().background(Color.Black)) {
@@ -120,7 +120,7 @@ fun TopoEditorScreen(
                 AsyncImage(model = block.photoPath, contentDescription = null,
                     modifier = Modifier.fillMaxWidth())
             }
-            // Capa Canvas de lÃ­neas
+            // Capa Canvas de líneas
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,7 +177,7 @@ fun TopoEditorScreen(
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
-        // â”€â”€â”€â”€â”€ Toolbar dibujo â”€â”€â”€â”€â”€
+        // ───── Toolbar dibujo ─────
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -195,7 +195,7 @@ fun TopoEditorScreen(
                 onClick = { showCreateLineDialog = true })
         }
 
-        // â”€â”€â”€â”€â”€ Lista de lÃ­neas â”€â”€â”€â”€â”€
+        // ───── Lista de líneas ─────
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         Text(stringResource(R.string.topo_editor_lines_title),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -260,7 +260,7 @@ private fun LineChip(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(modifier = Modifier.width(12.dp).height(12.dp).clip(CircleShape).background(color))
-        // VÃ­a sin nombre â†’ placeholder para que el chip sea visible y borrable.
+        // Vía sin nombre → placeholder para que el chip sea visible y borrable.
         Text(line.name.ifBlank { "(sin datos)" },
             color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge)
@@ -307,7 +307,7 @@ private fun NewLineDialog(
                 Text(stringResource(R.string.topo_editor_start_label), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 // FlowRow: con 5 tipos (SEMI incluido) una Row fija se desborda
-                // del diÃ¡logo y los chips salÃ­an cortados.
+                // del diálogo y los chips salían cortados.
                 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
                 androidx.compose.foundation.layout.FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -331,7 +331,7 @@ private fun NewLineDialog(
     )
 }
 
-// Helper: captura el tamaÃ±o del Canvas usando onSizeChanged de Compose
+// Helper: captura el tamaño del Canvas usando onSizeChanged de Compose
 private fun Modifier.onGloballyPositionedSize(
     onSize: (IntSize) -> Unit
 ): Modifier = this.onSizeChanged { onSize(it) }

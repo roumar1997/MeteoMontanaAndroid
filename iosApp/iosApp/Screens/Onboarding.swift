@@ -24,7 +24,7 @@ struct EmptyStateView: View {
                     Text(actionLabel).font(Cumbre.mono(13, .bold)).tracking(0.8)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16).padding(.vertical, 10)
-                        .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: 2))
+                        .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: 2))
                 }
             }
         }

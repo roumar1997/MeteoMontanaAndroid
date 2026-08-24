@@ -118,7 +118,7 @@ struct ContributionFormSheet: View {
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
                             Text(sendError != nil ? "REINTENTAR" : NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terraFill)
                     }.buttonStyle(.plain).disabled(sending).padding(.top, 4)
                 }
                 .padding(16)
@@ -208,7 +208,7 @@ struct SchoolNameCorrectionSheet: View {
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
                             Text(sendError != nil ? "REINTENTAR" : NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terraFill)
                     }.buttonStyle(.plain)
                         .disabled(sending || name.trimmingCharacters(in: .whitespaces).isEmpty)
                         .padding(.top, 4)
@@ -303,7 +303,7 @@ struct SchoolStyleCorrectionSheet: View {
                     Button { Task { await send() } } label: {
                         HStack { if sending { ProgressView().tint(.white) }
                             Text(sendError != nil ? "REINTENTAR" : NSLocalizedString("propose_submit", comment: "")).font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terra)
+                        .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terraFill)
                     }.buttonStyle(.plain).disabled(sending || selected.isEmpty).padding(.top, 4)
                 }
                 .padding(16)

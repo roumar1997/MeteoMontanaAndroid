@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -309,7 +311,7 @@ internal fun AddLinesFlow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.small)
-                        .background(Terra)
+                        .background(terraFillColor())
                         .clickable { showTopo = true }
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
@@ -355,7 +357,7 @@ internal fun AddLinesFlow(
                     modifier = Modifier
                         .weight(1.5f)
                         .clip(MaterialTheme.shapes.small)
-                        .background(Terra)
+                        .background(terraFillColor())
                         .clickable(enabled = !sending) {
                             sending = true
                             error = null

@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import com.meteomontana.android.data.map.MapStyles
 
 import android.graphics.Bitmap
@@ -257,7 +259,7 @@ fun FullScreenMapDialog(
                         .align(Alignment.BottomCenter)
                         .padding(Spacing.md)
                         .clip(MaterialTheme.shapes.small)
-                        .background(Terra)
+                        .background(terraFillColor())
                         .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                 ) {
                     Text(
