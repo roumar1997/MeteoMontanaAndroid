@@ -591,7 +591,9 @@ struct BoulderBlockRow: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 44), spacing: 5)], spacing: 5) {
                 ForEach(BOULDER_GRADES, id: \.self) { g in
                     let on = GradeRangeUI.contains(block.grade, g)
-                    let c = GradeColor.color(g)
+                    // chip (no color): fuera de la foto, el negro de ≥8a y el
+                    // blanco de ≤5c+ no se ven en modo oscuro.
+                    let c = GradeColor.chip(g)
                     Button { block.grade = GradeRangeUI.toggle(block.grade, g) } label: {
                         Text(g).font(.system(size: 13, weight: .medium))
                             .foregroundStyle(on ? (GradeColor.style(g).dark ? Color.black : .white) : Cumbre.ink)

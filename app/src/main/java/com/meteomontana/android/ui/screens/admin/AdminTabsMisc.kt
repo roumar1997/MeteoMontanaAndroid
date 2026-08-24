@@ -1,6 +1,8 @@
-@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
+﻿@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
+
+import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -107,7 +109,7 @@ internal fun StatsTab(
     onGoToTab: (String) -> Unit = {}
 ) {
     if (stats == null) return
-    // Qué lista está abierta: "users" / "notes" / null.
+    // QuÃ© lista estÃ¡ abierta: "users" / "notes" / null.
     var openList by remember { mutableStateOf<String?>(null) }
     Column(modifier = Modifier.fillMaxSize().padding(16.dp),
            verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -136,7 +138,7 @@ internal fun StatsTab(
         }
     }
 
-    // Lista en diálogo a pantalla casi completa.
+    // Lista en diÃ¡logo a pantalla casi completa.
     openList?.let { kind ->
         androidx.compose.ui.window.Dialog(
             onDismissRequest = { openList = null },
@@ -155,7 +157,7 @@ internal fun StatsTab(
                         "users" -> "USUARIOS"; "admins" -> "ADMINS"; else -> "NOTAS"
                     }, style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
-                    Text("✕ CERRAR", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    Text("âœ• CERRAR", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.clip(RoundedCornerShape(2.dp))
                             .clickable { openList = null }.padding(4.dp))
@@ -201,9 +203,9 @@ internal fun StatsTab(
                                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             }
                         } else {
-                            // R12: pulsar la nota la ENSEÑA entera (con VER
+                            // R12: pulsar la nota la ENSEÃ‘A entera (con VER
                             // ESCUELA); antes saltaba a la escuela y la nota
-                            // no se veía por ningún lado.
+                            // no se veÃ­a por ningÃºn lado.
                             var noteDetail by remember {
                                 androidx.compose.runtime.mutableStateOf<com.meteomontana.android.domain.model.AdminNoteRow?>(null)
                             }
@@ -215,7 +217,7 @@ internal fun StatsTab(
                                             androidx.compose.material3.TextButton(onClick = {
                                                 noteDetail = null
                                                 nd.schoolId?.let(onOpenSchool)
-                                            }) { Text("VER ESCUELA ▸") }
+                                            }) { Text("VER ESCUELA â–¸") }
                                         }
                                     },
                                     dismissButton = {
@@ -223,13 +225,13 @@ internal fun StatsTab(
                                             Text("CERRAR")
                                         }
                                     },
-                                    title = { Text("Nota de ${nd.author ?: "anónimo"}") },
+                                    title = { Text("Nota de ${nd.author ?: "anÃ³nimo"}") },
                                     text = {
                                         Column {
                                             Text(nd.text, style = MaterialTheme.typography.bodyMedium)
                                             Spacer(Modifier.height(Spacing.sm))
                                             Text(listOfNotNull(nd.schoolId, nd.createdAt?.take(10))
-                                                    .joinToString(" · "),
+                                                    .joinToString(" Â· "),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
@@ -245,7 +247,7 @@ internal fun StatsTab(
                                         Text(n.text, style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurface)
                                         Text(listOfNotNull(n.author, n.schoolId, n.createdAt?.take(10))
-                                                .joinToString(" · "),
+                                                .joinToString(" Â· "),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
@@ -279,7 +281,7 @@ private fun StatCard(label: String, value: Long, modifier: Modifier = Modifier,
     }
 }
 
-// ─────────────────────────── ACTIVITY ────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ ACTIVITY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 internal fun ActivityTab(logs: List<AdminLog>) {
     if (logs.isEmpty()) {
@@ -311,7 +313,7 @@ internal fun ActivityTab(logs: List<AdminLog>) {
     }
 }
 
-// ─────────────────────────── PUSH ────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ PUSH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 internal fun PushTab(
     busy: Boolean,
@@ -339,7 +341,7 @@ internal fun PushTab(
             val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             OutlinedTextField(value = query,
                 onValueChange = { query = it; onSearchUser(it) },
-                placeholder = { Text("Buscar destinatario por @usuario o nombre…") },
+                placeholder = { Text("Buscar destinatario por @usuario o nombreâ€¦") },
                 singleLine = true, modifier = Modifier.fillMaxWidth())
             if (userResults.isNotEmpty() && query.trim().length >= 2) {
                 Column(Modifier.fillMaxWidth()
@@ -361,7 +363,7 @@ internal fun PushTab(
                     }
                 }
             }
-            Text("Sin destinatario elegido → se enviará a TODOS los usuarios.",
+            Text("Sin destinatario elegido â†’ se enviarÃ¡ a TODOS los usuarios.",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
@@ -370,7 +372,7 @@ internal fun PushTab(
                 Text("PARA: " + (targetLabel ?: targetUid),
                     style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                     color = com.meteomontana.android.ui.theme.Terra)
-                Text("✕ QUITAR",
+                Text("âœ• QUITAR",
                     style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.clip(RoundedCornerShape(2.dp))
@@ -379,7 +381,7 @@ internal fun PushTab(
             }
         }
         OutlinedTextField(value = title, onValueChange = { title = it },
-            placeholder = { Text("Título") },
+            placeholder = { Text("TÃ­tulo") },
             singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = body, onValueChange = { body = it },
             placeholder = { Text("Mensaje") },
@@ -393,7 +395,7 @@ internal fun PushTab(
             enabled = !busy && title.isNotBlank() && body.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1C1C1A), contentColor = Color.White
+                containerColor = inkButtonColor(), contentColor = Color.White
             ),
             shape = MaterialTheme.shapes.small
         ) {
@@ -404,13 +406,13 @@ internal fun PushTab(
         if (confirmAll) {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { confirmAll = false },
-                title = { Text("¿Enviar a TODOS?") },
-                text = { Text("El push llegará a todos los usuarios de Cumbre. Esta acción no se puede deshacer.") },
+                title = { Text("Â¿Enviar a TODOS?") },
+                text = { Text("El push llegarÃ¡ a todos los usuarios de Cumbre. Esta acciÃ³n no se puede deshacer.") },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         confirmAll = false
                         onSend(null, title, body)
-                    }) { Text("SÍ, A TODOS", color = MaterialTheme.colorScheme.error) }
+                    }) { Text("SÃ, A TODOS", color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = {
                     androidx.compose.material3.TextButton(onClick = { confirmAll = false }) {
@@ -426,7 +428,7 @@ internal fun PushTab(
     }
 }
 
-// ─────────────────────────── DENUNCIAS ────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ DENUNCIAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 internal fun DenunciasTab(
     reports: List<MeetupReport>,
@@ -542,8 +544,8 @@ private fun ContentReportCard(
             }
         }
         // Denuncias del feed: VER POST abre el FeedPostDetailScreen (para
-        // FEED_COMMENT también abre el post; el snapshot ya enseña el texto
-        // del comentario). Patrón de VER QUEDADA.
+        // FEED_COMMENT tambiÃ©n abre el post; el snapshot ya enseÃ±a el texto
+        // del comentario). PatrÃ³n de VER QUEDADA.
         if (r.targetType == "FEED_POST" || r.targetType == "FEED_COMMENT") {
             Box(Modifier.fillMaxWidth()
                 .clip(RoundedCornerShape(2.dp))
@@ -551,7 +553,7 @@ private fun ContentReportCard(
                 .clickable(onClick = onOpenFeedPost)
                 .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center) {
-                Text("VER POST ▸",
+                Text("VER POST â–¸",
                     style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                     color = Color.White)
             }
@@ -563,7 +565,7 @@ private fun ContentReportCard(
                 .clickable(onClick = onOpenAuthor)
                 .padding(vertical = Spacing.xs),
                 contentAlignment = Alignment.Center) {
-                Text("VER AUTOR ▸",
+                Text("VER AUTOR â–¸",
                     style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                     color = com.meteomontana.android.ui.theme.Terra)
             }
@@ -589,7 +591,7 @@ private fun ReportCard(
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
-        // Razón + estado
+        // RazÃ³n + estado
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -609,14 +611,14 @@ private fun ReportCard(
         }
 
         // IDs
-        Text("Quedada: ${report.meetupId.take(8)}…",
+        Text("Quedada: ${report.meetupId.take(8)}â€¦",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Denunciante: ${report.reporterUid.take(8)}…",
+        Text("Denunciante: ${report.reporterUid.take(8)}â€¦",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         report.reportedUid?.let {
-            Text("Denunciado: ${it.take(8)}…",
+            Text("Denunciado: ${it.take(8)}â€¦",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -629,19 +631,19 @@ private fun ReportCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         // Ver la quedada ENTERA (nombre, escuela, participantes) para juzgar
-        // por qué la denunciaron antes de decidir.
+        // por quÃ© la denunciaron antes de decidir.
         Box(Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(2.dp))
             .background(com.meteomontana.android.ui.theme.Terra)
             .clickable(onClick = onOpenMeetup)
             .padding(vertical = Spacing.sm),
             contentAlignment = Alignment.Center) {
-            Text("VER QUEDADA ▸",
+            Text("VER QUEDADA â–¸",
                 style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                 color = Color.White)
         }
         Spacer(Modifier.height(Spacing.xs))
-        // Acción: ELIMINAR la quedada denunciada (con confirmación).
+        // AcciÃ³n: ELIMINAR la quedada denunciada (con confirmaciÃ³n).
         Box(Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(2.dp))
             .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))
@@ -660,7 +662,7 @@ private fun ReportCard(
                 .clickable(onClick = onOpenAuthor)
                 .padding(vertical = Spacing.xs),
                 contentAlignment = Alignment.Center) {
-                Text("VER AUTOR ▸",
+                Text("VER AUTOR â–¸",
                     style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                     color = com.meteomontana.android.ui.theme.Terra)
             }
@@ -680,8 +682,8 @@ private fun ReportCard(
     if (confirmDelete) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("¿Eliminar la quedada?") },
-            text = { Text("Se borrará para todos los participantes. La denuncia quedará resuelta.") },
+            title = { Text("Â¿Eliminar la quedada?") },
+            text = { Text("Se borrarÃ¡ para todos los participantes. La denuncia quedarÃ¡ resuelta.") },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { confirmDelete = false; onDelete() }) {
                     Text("ELIMINAR", color = MaterialTheme.colorScheme.error)
@@ -702,8 +704,8 @@ private fun reasonLabel(reason: String) = when (reason) {
 }
 
 /**
- * Ficha de moderación de un usuario (se abre con "VER AUTOR"). Muestra su
- * historial de denuncias y deja aplicar consecuencias: aviso, suspensión
+ * Ficha de moderaciÃ³n de un usuario (se abre con "VER AUTOR"). Muestra su
+ * historial de denuncias y deja aplicar consecuencias: aviso, suspensiÃ³n
  * temporal o baneo de login (reversible).
  */
 @Composable
@@ -738,9 +740,9 @@ internal fun UserModerationSheet(
                 color = MaterialTheme.colorScheme.onSurface)
             // Estado + contadores
             Text(buildString {
-                append("${mod.reportCount} denuncia(s) · ${mod.warnings} aviso(s)")
-                if (mod.banned) append(" · BANEADO")
-                mod.suspendedUntil?.let { append(" · suspendido hasta ${it.take(10)}") }
+                append("${mod.reportCount} denuncia(s) Â· ${mod.warnings} aviso(s)")
+                if (mod.banned) append(" Â· BANEADO")
+                mod.suspendedUntil?.let { append(" Â· suspendido hasta ${it.take(10)}") }
             }, style = MaterialTheme.typography.labelMedium,
                 color = if (mod.banned) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -755,7 +757,7 @@ internal fun UserModerationSheet(
             } else {
                 mod.reports.take(8).forEach { rep ->
                     Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                        Text("${rep.type} · ${reasonLabel(rep.reason)}",
+                        Text("${rep.type} Â· ${reasonLabel(rep.reason)}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.error)
                         rep.snapshot?.let {
@@ -766,14 +768,14 @@ internal fun UserModerationSheet(
                 }
             }
 
-            // Historial de acciones ya aplicadas (auditoría con motivo).
+            // Historial de acciones ya aplicadas (auditorÃ­a con motivo).
             if (mod.actions.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 Text("ACCIONES APLICADAS", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 mod.actions.take(8).forEach { act ->
                     Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                        Text("${modActionLabel(act.action)}${act.createdAt?.let { " · ${it.take(10)}" } ?: ""}",
+                        Text("${modActionLabel(act.action)}${act.createdAt?.let { " Â· ${it.take(10)}" } ?: ""}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface)
                         act.reason?.takeIf { it.isNotBlank() }?.let {
@@ -791,7 +793,7 @@ internal fun UserModerationSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Text("CONSECUENCIAS", style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            // Motivo (opcional) — se guarda con la acción para justificar/revocar.
+            // Motivo (opcional) â€” se guarda con la acciÃ³n para justificar/revocar.
             OutlinedTextField(
                 value = reason, onValueChange = { reason = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -801,7 +803,7 @@ internal fun UserModerationSheet(
                 maxLines = 2)
             // Aviso
             ModActionButton("ENVIAR AVISO", MaterialTheme.colorScheme.primary) { onWarn(mod.uid, r()) }
-            // Suspensión temporal
+            // SuspensiÃ³n temporal
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 ModActionButton("SUSPENDER 7 D", MaterialTheme.colorScheme.primary,
                     Modifier.weight(1f)) { onSuspend(mod.uid, 7, r()) }
@@ -826,7 +828,7 @@ internal fun UserModerationSheet(
 }
 
 private fun modActionLabel(a: String) = when (a) {
-    "WARN" -> "Aviso"; "SUSPEND" -> "Suspensión"; "BAN" -> "Baneo"; "UNBAN" -> "Desbaneo"
+    "WARN" -> "Aviso"; "SUSPEND" -> "SuspensiÃ³n"; "BAN" -> "Baneo"; "UNBAN" -> "Desbaneo"
     "DELETE_NOTE" -> "Nota borrada"; "DELETE_COMMENT" -> "Comentario borrado"
     "DELETE_MEETUP" -> "Quedada borrada"; else -> a
 }

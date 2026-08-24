@@ -1,4 +1,6 @@
-package com.meteomontana.android.ui.screens.weather
+﻿package com.meteomontana.android.ui.screens.weather
+
+import com.meteomontana.android.ui.theme.inkButtonColor
 
 import android.Manifest
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -91,8 +93,8 @@ fun WeatherScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
                 ) {
-                    // Comparación de favoritas arriba (igual que iOS): ves de un
-                    // vistazo el score medio por día de tus escuelas favoritas.
+                    // ComparaciÃ³n de favoritas arriba (igual que iOS): ves de un
+                    // vistazo el score medio por dÃ­a de tus escuelas favoritas.
                     if (s.grid != null && s.grid.rows.isNotEmpty()) {
                         item { FavoritesGridTable(grid = s.grid) }
                         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
@@ -153,17 +155,17 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Necesitamos tu ubicación",
+        Text("Necesitamos tu ubicaciÃ³n",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground)
         Spacer(Modifier.height(8.dp))
-        Text("Para mostrarte el tiempo donde estás.",
+        Text("Para mostrarte el tiempo donde estÃ¡s.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = onRequest,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1A), contentColor = Color.White),
+            colors = ButtonDefaults.buttonColors(containerColor = inkButtonColor(), contentColor = Color.White),
             shape = MaterialTheme.shapes.small
         ) { Text("DAR PERMISO") }
     }

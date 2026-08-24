@@ -1,4 +1,6 @@
-package com.meteomontana.android.ui.screens.users
+﻿package com.meteomontana.android.ui.screens.users
+
+import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -91,7 +93,7 @@ class FollowRequestsViewModel @Inject constructor(
         }
     }
 
-    /** Acepta la solicitud y además sigue a esa persona de vuelta. */
+    /** Acepta la solicitud y ademÃ¡s sigue a esa persona de vuelta. */
     fun acceptAndFollow(uid: String) {
         viewModelScope.launch {
             runCatching { accept.invoke(uid) }
@@ -185,7 +187,7 @@ private fun RequestRow(
                 Text("@${profile.username ?: profile.displayName ?: "usuario"}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground)
-                Text("quiere seguirte · toca para ver su perfil",
+                Text("quiere seguirte Â· toca para ver su perfil",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -201,9 +203,9 @@ private fun RequestRow(
 
 @Composable
 private fun SmallButton(text: String, filled: Boolean, onClick: () -> Unit) {
-    val bg = if (filled) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.surface
+    val bg = if (filled) inkButtonColor() else MaterialTheme.colorScheme.surface
     val fg = if (filled) Color.White else MaterialTheme.colorScheme.onBackground
-    val borderColor = if (filled) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.outline
+    val borderColor = if (filled) inkButtonColor() else MaterialTheme.colorScheme.outline
     Box(modifier = Modifier
         .height(36.dp)
         .clip(RoundedCornerShape(2.dp))

@@ -1,4 +1,6 @@
-package com.meteomontana.android.ui.screens.profile
+﻿package com.meteomontana.android.ui.screens.profile
+
+import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -114,7 +116,7 @@ private fun EditForm(
     var isPublic by remember { mutableStateOf(s.profile.isPublic) }
     var gender by remember { mutableStateOf(s.profile.gender ?: "") }
     // Material propio: se autorrellena al unirte a una quedada (sigue siendo
-    // editable ahí para esa quedada concreta). Mismo formato que meetup gear.
+    // editable ahÃ­ para esa quedada concreta). Mismo formato que meetup gear.
     val gearState = remember {
         mutableMapOf<String, Int>().apply {
             val current = com.meteomontana.android.ui.screens.meetups.parseGear(s.profile.gearJson)
@@ -137,7 +139,7 @@ private fun EditForm(
         }
     }
 
-    // Picker normal — al elegir, lanzamos uCrop con la foto seleccionada.
+    // Picker normal â€” al elegir, lanzamos uCrop con la foto seleccionada.
     val picker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -148,17 +150,17 @@ private fun EditForm(
                 .withAspectRatio(1f, 1f)
                 .withMaxResultSize(1024, 1024)
                 .withOptions(UCrop.Options().apply {
-                    setCircleDimmedLayer(true)        // máscara circular
+                    setCircleDimmedLayer(true)        // mÃ¡scara circular
                     setShowCropFrame(false)
                     setShowCropGrid(false)
                     setHideBottomControls(false)
                     setFreeStyleCropEnabled(false)
                     setCompressionQuality(85)
                     setToolbarTitle("Recortar foto")
-                    // Colores Cumbre: barra de papel y el ✓/✕ en tinta encima
-                    // (con los de serie, blancos sobre blanco, el ✓ apenas se
-                    // distinguía). DÓNDE se dibuja la barra lo arregla
-                    // Theme.MeteoMontana.Crop — ver el AndroidManifest.
+                    // Colores Cumbre: barra de papel y el âœ“/âœ• en tinta encima
+                    // (con los de serie, blancos sobre blanco, el âœ“ apenas se
+                    // distinguÃ­a). DÃ“NDE se dibuja la barra lo arregla
+                    // Theme.MeteoMontana.Crop â€” ver el AndroidManifest.
                     setToolbarColor(ContextCompat.getColor(context, R.color.crop_toolbar))
                     setStatusBarColor(ContextCompat.getColor(context, R.color.crop_toolbar))
                     setToolbarWidgetColor(ContextCompat.getColor(context, R.color.crop_ink))
@@ -177,8 +179,8 @@ private fun EditForm(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(80.dp), contentAlignment = Alignment.Center) {
                 if (s.profile.photoUrl != null) {
-                    // key() fuerza re-creación del AsyncImage cuando cambia la URL,
-                    // así Coil no se queda con la imagen vieja en memoria mientras carga la nueva.
+                    // key() fuerza re-creaciÃ³n del AsyncImage cuando cambia la URL,
+                    // asÃ­ Coil no se queda con la imagen vieja en memoria mientras carga la nueva.
                     androidx.compose.runtime.key(s.profile.photoUrl) {
                         AsyncImage(
                             model = coil.request.ImageRequest.Builder(LocalContext.current)
@@ -206,7 +208,7 @@ private fun EditForm(
             }
             Spacer(Modifier.padding(start = 16.dp))
             Text(
-                if (s.uploadingPhoto) "Subiendo foto…" else "Tocar la foto para cambiarla",
+                if (s.uploadingPhoto) "Subiendo fotoâ€¦" else "Tocar la foto para cambiarla",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -216,11 +218,11 @@ private fun EditForm(
         Field("NOMBRE PARA MOSTRAR", displayName, { displayName = it },
             placeholder = "Alvaro Jara")
         Field("BIO (max 150)", bio, { if (it.length <= 150) bio = it },
-            placeholder = "Cuéntate en una línea", height = 80.dp)
-        // GRADO MÁXIMO: automático desde el diario (tope de bloque y de vía por
-        // separado). Ya no es manual → no hay campo, solo el aviso.
+            placeholder = "CuÃ©ntate en una lÃ­nea", height = 80.dp)
+        // GRADO MÃXIMO: automÃ¡tico desde el diario (tope de bloque y de vÃ­a por
+        // separado). Ya no es manual â†’ no hay campo, solo el aviso.
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text("GRADO MÁXIMO",
+            Text("GRADO MÃXIMO",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Se calcula solo desde tu diario",
@@ -234,10 +236,10 @@ private fun EditForm(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Perfil público",
+                Text("Perfil pÃºblico",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground)
-                Text("Otros podrán verte por @username",
+                Text("Otros podrÃ¡n verte por @username",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -264,7 +266,7 @@ private fun EditForm(
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1C1C1A),
+                containerColor = inkButtonColor(),
                 contentColor = Color.White
             ),
             shape = MaterialTheme.shapes.small
@@ -274,14 +276,14 @@ private fun EditForm(
 
 @OptIn(ExperimentalLayoutApi::class)
 /**
- * Material propio del perfil (cuerda/grigri sí-no, cintas/crashpads cantidad).
+ * Material propio del perfil (cuerda/grigri sÃ­-no, cintas/crashpads cantidad).
  * Al unirte a una quedada se usa para autorrellenar tu material (sigue siendo
- * editable ahí, para esa quedada concreta). Reutiliza los helpers de gear de
+ * editable ahÃ­, para esa quedada concreta). Reutiliza los helpers de gear de
  * quedadas para no duplicar el formato/parsing del JSON.
  */
 @Composable
 private fun GearSelector(gearState: MutableMap<String, Int>, version: Int, onChange: () -> Unit) {
-    @Suppress("UNUSED_VARIABLE") val v = version // fuerza recomposición al cambiar
+    @Suppress("UNUSED_VARIABLE") val v = version // fuerza recomposiciÃ³n al cambiar
     Column(modifier = Modifier.fillMaxWidth()) {
         Text("MI MATERIAL",
             style = MaterialTheme.typography.labelMedium,
@@ -316,7 +318,7 @@ private fun GearSelector(gearState: MutableMap<String, Int>, version: Int, onCha
 private fun GenderSelector(selected: String, onSelect: (String) -> Unit) {
     val options = listOf("WOMAN" to "Mujer", "MAN" to "Hombre", "OTHER" to "Otro", "" to "No indicar")
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text("GÉNERO (privado — solo para quedadas no mixtas)",
+        Text("GÃ‰NERO (privado â€” solo para quedadas no mixtas)",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(6.dp))

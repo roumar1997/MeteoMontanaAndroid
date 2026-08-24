@@ -1,14 +1,14 @@
-import SwiftUI
+﻿import SwiftUI
 import AuthenticationServices
 
-/// Pantalla de login — gate obligatorio al arrancar, espejo fiel de
-/// `LoginScreen.kt` de Android: marca arriba (logo + CUMBRE + subtítulos),
-/// botón "Continuar con Google" en el centro, legal abajo. Al iniciar sesión,
-/// el `SessionStore` de la raíz detecta el cambio y muestra `MainTabView`.
+/// Pantalla de login â€” gate obligatorio al arrancar, espejo fiel de
+/// `LoginScreen.kt` de Android: marca arriba (logo + CUMBRE + subtÃ­tulos),
+/// botÃ³n "Continuar con Google" en el centro, legal abajo. Al iniciar sesiÃ³n,
+/// el `SessionStore` de la raÃ­z detecta el cambio y muestra `MainTabView`.
 struct LoginView: View {
-    /// Qué proveedor está autenticando ahora mismo (para mostrar el spinner en su
-    /// propio botón). Antes había un solo `working` que compartían los dos botones,
-    /// así que al pulsar Apple el spinner salía en el botón de Google.
+    /// QuÃ© proveedor estÃ¡ autenticando ahora mismo (para mostrar el spinner en su
+    /// propio botÃ³n). Antes habÃ­a un solo `working` que compartÃ­an los dos botones,
+    /// asÃ­ que al pulsar Apple el spinner salÃ­a en el botÃ³n de Google.
     private enum Loading { case none, google, apple }
     @State private var loading: Loading = .none
     @State private var errorText: String?
@@ -44,7 +44,7 @@ struct LoginView: View {
 
             Spacer()
 
-            // Middle: estado o botón
+            // Middle: estado o botÃ³n
             VStack(spacing: 16) {
                 googleButton
                 appleButton
@@ -61,7 +61,7 @@ struct LoginView: View {
 
             // Bottom: legal
             VStack(spacing: 4) {
-                Text("Al continuar aceptas los términos y la política de privacidad.")
+                Text("Al continuar aceptas los tÃ©rminos y la polÃ­tica de privacidad.")
                     .font(Cumbre.mono(11))
                     .foregroundStyle(Cumbre.ink2)
                     .multilineTextAlignment(.center)
@@ -84,7 +84,7 @@ struct LoginView: View {
         .background(Cumbre.bg.ignoresSafeArea())
     }
 
-    // Botón oscuro con la "G" de Google a color — igual que GoogleSignInButton de Android.
+    // BotÃ³n oscuro con la "G" de Google a color â€” igual que GoogleSignInButton de Android.
     private var googleButton: some View {
         Button {
             Task { await signIn() }
@@ -104,14 +104,14 @@ struct LoginView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(Cumbre.ink)
+            .background(Cumbre.inkButton)
             .clipShape(RoundedRectangle(cornerRadius: 2))
         }
         .buttonStyle(.plain)
         .disabled(working)
     }
 
-    // Botón "Continuar con Apple" (requisito App Store por ofrecer Google).
+    // BotÃ³n "Continuar con Apple" (requisito App Store por ofrecer Google).
     private var appleButton: some View {
         Button {
             Task { await signInApple() }
@@ -145,7 +145,7 @@ struct LoginView: View {
         loading = .apple; errorText = nil
         do { try await authBridge.signInWithApple() }
         catch {
-            // El usuario cancelando (código 1001) no es un error que mostrar.
+            // El usuario cancelando (cÃ³digo 1001) no es un error que mostrar.
             let ns = error as NSError
             if !(ns.domain == ASAuthorizationError.errorDomain && ns.code == ASAuthorizationError.canceled.rawValue) {
                 errorText = error.localizedDescription

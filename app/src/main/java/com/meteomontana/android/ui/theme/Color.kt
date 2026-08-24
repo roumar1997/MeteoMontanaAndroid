@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 // =============================================================================
 // CUMBRE — light mode (papel, tinta, terracota)
@@ -25,6 +26,32 @@ val Bad     = Color(0xFF9A3412)
 
 val Rain    = Color(0xFF2563C7)
 val Wind    = Color(0xFF4A7C3F)
+
+/**
+ * Fondo de los botones "negros de marca" (entrar con Google, guardar, chip
+ * seleccionado…). NO es [Ink]: Ink es color de TEXTO y en oscuro se invierte a
+ * casi blanco. Estos botones tienen que seguir siendo oscuros en los dos temas,
+ * con texto blanco encima.
+ *
+ * Se hardcodeaba `Color(0xFF1C1C1A)` en ~19 sitios; en modo oscuro el fondo de
+ * pantalla es #15140F y el botón desaparecía (Álvaro, 2026-08-24: revisión de
+ * modo oscuro). Usa siempre este par, nunca el literal.
+ */
+val InkButton     = Color(0xFF1C1C1A)
+val InkButtonDark = Color(0xFF2A281F)
+
+/**
+ * El color de fondo correcto para esos botones según el tema ACTIVO.
+ *
+ * Mira la luminancia del esquema en vez de `isSystemInDarkTheme()` a propósito:
+ * el tema lo elige el usuario dentro de la app (MainActivity pasa `isDark`), así
+ * que preguntarle al sistema daría el valor equivocado con el tema forzado.
+ */
+@androidx.compose.runtime.Composable
+@androidx.compose.runtime.ReadOnlyComposable
+fun inkButtonColor(): Color =
+    if (androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() < 0.5f)
+        InkButtonDark else InkButton
 
 // =============================================================================
 // CUMBRE — dark mode

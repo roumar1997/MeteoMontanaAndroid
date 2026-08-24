@@ -1,4 +1,6 @@
-package com.meteomontana.android.ui.screens.detail
+﻿package com.meteomontana.android.ui.screens.detail
+
+import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -118,7 +120,7 @@ fun AddBlockToSchoolSheet(
                 enabled = name.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1C1C1A), contentColor = Color.White
+                    containerColor = inkButtonColor(), contentColor = Color.White
                 ),
                 shape = MaterialTheme.shapes.small
             ) { Text(stringResource(R.string.propose_submit)) }

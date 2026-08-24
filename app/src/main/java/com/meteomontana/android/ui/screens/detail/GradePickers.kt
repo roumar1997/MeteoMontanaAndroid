@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.domain.util.GradeRange
 import com.meteomontana.android.ui.theme.Spacing
+import com.meteomontana.android.ui.theme.gradeChipColor
 import com.meteomontana.android.ui.theme.gradeStyle
 
 /**
@@ -42,7 +43,9 @@ fun GradeChipsGrid(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         BOULDER_GRADES.forEach { grade ->
-            val gs = gradeStyle(grade)
+            // gradeChipColor (no gradeStyle.stroke): fuera de la foto, el negro
+            // de ≥8a y el blanco de ≤5c+ no se ven en modo oscuro.
+            val gs = gradeStyle(grade).copy(stroke = gradeChipColor(grade))
             // Grado DOBLE: tocando dos grados queda "7a/7a+" (rango, como en las
             // guías de papel). Las reglas viven en GradeRange, del shared, así
             // que Android e iOS se comportan igual.

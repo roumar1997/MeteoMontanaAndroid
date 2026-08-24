@@ -1,4 +1,6 @@
-package com.meteomontana.android.ui.screens.submissions
+﻿package com.meteomontana.android.ui.screens.submissions
+
+import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,16 +57,16 @@ fun SubmitSchoolScreen(
     val options by viewModel.options.collectAsStateWithLifecycle()
 
     // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
-    // (MIUI lo hace agresivamente) o a un giro de pantalla — no se pierde lo escrito.
+    // (MIUI lo hace agresivamente) o a un giro de pantalla â€” no se pierde lo escrito.
     var name by rememberSaveable { mutableStateOf("") }
     // Pais primero: de el salen las regiones. Espana por defecto, que es de
     // donde son todas las escuelas de hoy.
     var country by rememberSaveable { mutableStateOf("ES") }
     var region by rememberSaveable { mutableStateOf("") }
-    // Estilo: multi-select (una escuela puede ser Bloque Y Vía, ej. La
-    // Pedriza) — se guarda como texto "Bloque,Vía" para sobrevivir a
+    // Estilo: multi-select (una escuela puede ser Bloque Y VÃ­a, ej. La
+    // Pedriza) â€” se guarda como texto "Bloque,VÃ­a" para sobrevivir a
     // rememberSaveable (no hay Saver de Set<String> a mano) y se deriva el
-    // Set en cada recomposición.
+    // Set en cada recomposiciÃ³n.
     var styleText by rememberSaveable { mutableStateOf("") }
     val selectedStyles = remember(styleText) {
         styleText.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
@@ -101,28 +103,28 @@ fun SubmitSchoolScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Field("NOMBRE", name, { name = it }, placeholder = "ej: La Pedriza")
-            // Desplegables con valores del catálogo (+ "Otro…") para evitar erratas.
-            // PAIS antes que REGION: las regiones dependen del país elegido, y
-            // salen del catálogo del servidor — si se dedujeran de las escuelas
-            // existentes, el primer país abierto tendría el desplegable vacío.
+            // Desplegables con valores del catÃ¡logo (+ "Otroâ€¦") para evitar erratas.
+            // PAIS antes que REGION: las regiones dependen del paÃ­s elegido, y
+            // salen del catÃ¡logo del servidor â€” si se dedujeran de las escuelas
+            // existentes, el primer paÃ­s abierto tendrÃ­a el desplegable vacÃ­o.
             val paises by viewModel.countries.collectAsStateWithLifecycle()
             if (paises.size > 1) {
                 DropdownField(
-                    "PAÍS",
-                    paises.firstOrNull { it.code == country }?.name ?: "España",
+                    "PAÃS",
+                    paises.firstOrNull { it.code == country }?.name ?: "EspaÃ±a",
                     paises.map { it.name },
                     onChange = { elegido ->
                         country = paises.firstOrNull { it.name == elegido }?.code ?: "ES"
-                        region = ""      // cada país tiene sus regiones
+                        region = ""      // cada paÃ­s tiene sus regiones
                         location = ""
                     }
                 )
             }
-            DropdownField("REGIÓN", region,
+            DropdownField("REGIÃ“N", region,
                 viewModel.regionOptions(country).ifEmpty { options.regions },
                 onChange = {
                     region = it
-                    location = "" // resetea la localidad al cambiar de región
+                    location = "" // resetea la localidad al cambiar de regiÃ³n
                 })
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("ESTILO", style = MaterialTheme.typography.labelMedium,
@@ -144,9 +146,9 @@ fun SubmitSchoolScreen(
             }
             DropdownField("TIPO DE ROCA", rockType, options.rockTypes, onChange = { rockType = it })
 
-            // ── Pegar coordenadas de Google Maps (lat, lon) ──────────────────
-            // Acepta "40.4168, -3.7038" o "40.4168,-3.7038" o solo dos números
-            // separados por espacio. Detecta y rellena los dos campos automáticamente.
+            // â”€â”€ Pegar coordenadas de Google Maps (lat, lon) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Acepta "40.4168, -3.7038" o "40.4168,-3.7038" o solo dos nÃºmeros
+            // separados por espacio. Detecta y rellena los dos campos automÃ¡ticamente.
             var pasted by remember { mutableStateOf("") }
             Field(
                 "PEGAR COORDENADAS (GOOGLE MAPS)",
@@ -160,7 +162,7 @@ fun SubmitSchoolScreen(
                         pasted = "" // limpia para uso repetido
                     }
                 },
-                placeholder = "Pega aquí ej: 40.4168, -3.7038"
+                placeholder = "Pega aquÃ­ ej: 40.4168, -3.7038"
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -171,10 +173,10 @@ fun SubmitSchoolScreen(
                     Field("LONGITUD", lon, { lon = it }, placeholder = "-3.70")
                 }
             }
-            // Localidad filtrada por la región elegida (igual que iOS).
-            DropdownField("UBICACIÓN", location, viewModel.locationOptions(region),
+            // Localidad filtrada por la regiÃ³n elegida (igual que iOS).
+            DropdownField("UBICACIÃ“N", location, viewModel.locationOptions(region),
                 onChange = { location = it })
-            Field("NOTAS", notes, { notes = it }, placeholder = "Cualquier info útil", height = 80.dp)
+            Field("NOTAS", notes, { notes = it }, placeholder = "Cualquier info Ãºtil", height = 80.dp)
 
             if (state is SubmitState.Error) {
                 Text((state as SubmitState.Error).message,
@@ -207,7 +209,7 @@ fun SubmitSchoolScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1C1C1A),
+                        containerColor = inkButtonColor(),
                         contentColor = Color.White
                     ),
                     shape = MaterialTheme.shapes.small
@@ -227,19 +229,19 @@ fun SubmitSchoolScreen(
  * Devuelve Pair<lat, lon> o null si no se reconoce.
  */
 private fun parseLatLonPaste(raw: String): Pair<Double, Double>? {
-    // Encuentra todos los números (con signo y decimales) en el texto.
+    // Encuentra todos los nÃºmeros (con signo y decimales) en el texto.
     // Acepta tanto . como , como separador decimal.
     val matches = Regex("-?\\d+[\\.,]?\\d*").findAll(raw).map { it.value }.toList()
     if (matches.size < 2) return null
     val lat = matches[0].replace(",", ".").toDoubleOrNull() ?: return null
     val lon = matches[1].replace(",", ".").toDoubleOrNull() ?: return null
-    // Sanity check: lat ∈ [-90,90], lon ∈ [-180,180]
+    // Sanity check: lat âˆˆ [-90,90], lon âˆˆ [-180,180]
     if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) return null
     return lat to lon
 }
 
 /**
- * Campo desplegable con valores del catálogo + opción "Otro…" que revela un
+ * Campo desplegable con valores del catÃ¡logo + opciÃ³n "Otroâ€¦" que revela un
  * campo de texto para casos no listados. Espejo del pickerField de iOS.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -251,7 +253,7 @@ private fun DropdownField(
     onChange: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    // "Otro" = hay un valor que no está en la lista (lo escribió el usuario).
+    // "Otro" = hay un valor que no estÃ¡ en la lista (lo escribiÃ³ el usuario).
     val isOther = value.isNotBlank() && options.none { it.equals(value, ignoreCase = true) }
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(label, style = MaterialTheme.typography.labelMedium,
@@ -264,7 +266,7 @@ private fun DropdownField(
                 value = if (value.isBlank()) "" else value,
                 onValueChange = {},
                 readOnly = true,
-                placeholder = { Text("Seleccionar…") },
+                placeholder = { Text("Seleccionarâ€¦") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth()
             )
@@ -279,7 +281,7 @@ private fun DropdownField(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Otro…") },
+                    text = { Text("Otroâ€¦") },
                     onClick = { onChange(" "); expanded = false }
                 )
             }

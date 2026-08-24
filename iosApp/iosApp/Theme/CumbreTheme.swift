@@ -23,6 +23,13 @@ enum Cumbre {
     static let rain    = dyn(0x2563C7, 0x5B8AE0)
     static let wind    = dyn(0x4A7C3F, 0x7D8A6A)
 
+    /// Fondo de los botones "negros de marca" (entrar con Google, guardar
+    /// vías, aprobar…). NO uses `ink` para esto: `ink` es color de TEXTO y en
+    /// oscuro se invierte a casi blanco, así que un botón con texto blanco
+    /// encima quedaba ILEGIBLE (Álvaro, 2026-08-24: revisión de modo oscuro).
+    /// Este se queda oscuro en los dos temas. Espejo de `InkButton` en Color.kt.
+    static let inkButton = dyn(0x1C1C1A, 0x2A281F)
+
     /// Radio de esquina para CONTROLES interactivos (botones, chips de filtro,
     /// pestañas tipo mochila) — no para cards ni diálogos, esos se quedan
     /// rectos a propósito (diferencia a Cumbre de una app iOS genérica).

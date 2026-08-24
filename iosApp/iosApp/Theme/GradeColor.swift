@@ -40,4 +40,22 @@ enum GradeColor {
     }
 
     static func color(_ grade: String?) -> Color { style(grade).stroke }
+
+    /// El color del grado ADAPTADO al tema, para pintarlo FUERA de una foto
+    /// (chips, badges, listas). Sobre la foto de la roca se usa `color(_:)`
+    /// tal cual, que ahí siempre hay contraste.
+    ///
+    /// En oscuro los dos extremos se perdían: el negro de ≥8a se fundía con el
+    /// fondo y el blanco de ≤5c+ deslumbraba (Álvaro, 2026-08-24). Espejo de
+    /// `gradeChipColor` en GradeColor.kt.
+    static func chip(_ grade: String?) -> Color {
+        let s = style(grade)
+        if s.dark { return Cumbre.dyn(0xFFFFFF, 0xD8D3C4) }   // ≤5c+: blanco → hueso
+        // ≥8a es casi negro: se detecta por luminancia, no comparando Color
+        // (la igualdad de Color no es de fiar entre construcciones distintas).
+        var w: CGFloat = 1
+        UIColor(s.stroke).getWhite(&w, alpha: nil)
+        if w < 0.12 { return Cumbre.dyn(0x111111, 0x4A4A46) }  // negro → gris piedra
+        return s.stroke
+    }
 }
