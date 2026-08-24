@@ -44,6 +44,7 @@ struct BlockInfoSheet: View {
     /// nil = sin filtro, todas a color pleno.
     var gradeMatchingLineIds: Set<String>? = nil
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
 
     /// Caras de la piedra, SIEMPRE en el orden en que se introdujeron (FOTO 1,
     /// FOTO 2…). El deep-link del diario NO reordena: solo hace scroll a la cara
@@ -76,8 +77,6 @@ struct BlockInfoSheet: View {
     @State private var pendingTick: PendingFeedTick? = nil
     // Comentarios de la piedra/vías (un fetch por piedra; los hilos filtran).
     @StateObject private var commentsStore = LineCommentsStore()
-    // Desplegable OPCIONES: agrupa editar vías / sector / eliminar.
-    @State private var optionsOpen = false
     /// Cara marcada en las pestañas de salto (piedras con varias fotos).
     @State private var caraVisible = 0
 
@@ -98,6 +97,30 @@ struct BlockInfoSheet: View {
     /// la PESTAÑA en vez de a la foto — al pulsar no pasaba nada visible
     /// (reportado por Rodrigo probando el build 139).
     private func anclaDeCara(_ idx: Int) -> String { "cara-\(idx)" }
+
+    /// Misma lógica que DirectionsButton (SchoolDetailHelpers.swift), ahora
+    /// disparada desde el icono de la barra de arriba.
+    private func openDirections() {
+        let g = URL(string: "comgooglemaps://?daddr=\(block.lat),\(block.lon)&directionsmode=driving")!
+        let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(block.lat),\(block.lon)")!
+        openURL(UIApplication.shared.canOpenURL(g) ? g : web)
+    }
+
+    /// N10: COMPARTIR PIEDRA — portada con TODAS sus vías. Antes botón grande
+    /// al final del scroll, ahora icono en la barra de arriba.
+    private func shareBlock() async {
+        guard let firstLine = block.lines.first else { return }
+        var badge = community.summaryFor(nil)?.consensus
+        if badge == nil {
+            badge = (try? await AppDependencies.shared.container
+                .getOrientation.invoke(blockId: block.id))?
+                .first(where: { $0.photoIndex == nil })?.consensus
+        }
+        await ShareLineImage.share(
+            block: block, line: firstLine, schoolName: schoolName,
+            tickedIds: tickedLines, projectIds: projectLines,
+            sectorName: sectorName, orientationBadge: badge)
+    }
 
     /// Pestaña para saltar a una cara — misma celda "mochila" que el Feed:
     /// plana, con borde fino; la activa marca borde y texto en terracota.
@@ -338,86 +361,9 @@ struct BlockInfoSheet: View {
                     Text(String(format: "%.5f, %.5f", block.lat, block.lon))
                         .font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3).padding(.top, 2)
 
-                    DirectionsButton(lat: block.lat, lon: block.lon, label: block.name).padding(.top, 8)
-
-                    // N10: COMPARTIR PIEDRA — portada con TODAS sus vias.
-                    if block.type.uppercased() == "BLOCK", let firstLine = block.lines.first {
-                        Button {
-                            Task {
-                                var badge = community.summaryFor(nil)?.consensus
-                                if badge == nil {
-                                    badge = (try? await AppDependencies.shared.container
-                                        .getOrientation.invoke(blockId: block.id))?
-                                        .first(where: { $0.photoIndex == nil })?.consensus
-                                }
-                                await ShareLineImage.share(
-                                    block: block, line: firstLine, schoolName: schoolName,
-                                    tickedIds: tickedLines, projectIds: projectLines,
-                                    sectorName: sectorName, orientationBadge: badge)
-                            }
-                        } label: {
-                            Text("COMPARTIR PIEDRA").font(Cumbre.mono(11, .bold)).tracking(0.8)
-                                .foregroundStyle(Cumbre.ink)
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    // Desplegable OPCIONES (editar vías / sector / eliminar).
-                    if onEditLines != nil || onAssignSector != nil || onDelete != nil {
-                        Button { withAnimation { optionsOpen.toggle() } } label: {
-                            HStack {
-                                Text("OPCIONES").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                    .foregroundStyle(Cumbre.ink)
-                                Spacer()
-                                Image(systemName: optionsOpen ? "chevron.up" : "chevron.down")
-                                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                            }
-                            .padding(.vertical, 12).padding(.horizontal, 12)
-                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 8)
-                    }
-
-                    // Editor unificado de vías (corregir existentes + añadir nuevas).
-                    if optionsOpen, block.type.uppercased() == "BLOCK", let onEditLines {
-                        Button { dismiss(); onEditLines() } label: {
-                            Text(block.lines.isEmpty ? NSLocalizedString("block_add_routes", comment: "") : NSLocalizedString("block_edit_routes", comment: ""))
-                                .font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
-
-                    // Asignar / cambiar sector (piedra, si la escuela tiene algún
-                    // sector). Si ya tiene sector → "CAMBIAR SECTOR" (el picker
-                    // muestra los demás; si no hay otro, lo avisa).
-                    if optionsOpen, block.type.uppercased() == "BLOCK", let onAssignSector, !sectors.isEmpty {
-                        Button { dismiss(); onAssignSector() } label: {
-                            Text(block.sectorBlockId == nil ? NSLocalizedString("propose_assign_sector", comment: "") : NSLocalizedString("propose_change_sector", comment: ""))
-                                .font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                .foregroundStyle(Cumbre.ink).frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
-
-                    // Admin: eliminar este bloque (piedra/zona/parking).
-                    if optionsOpen, let onDelete {
-                        Button(role: .destructive) { showDeleteConfirm = true } label: {
-                            Text("ELIMINAR").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                .foregroundStyle(Cumbre.bad).frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                        .alert("¿Eliminar \(typeLabel.lowercased())?", isPresented: $showDeleteConfirm) {
-                            Button("Cancelar", role: .cancel) {}
-                            Button("Eliminar", role: .destructive) { dismiss(); onDelete() }
-                        } message: {
-                            Text("Se borrará del mapa para todos. No se puede deshacer.")
-                        }
-                    }
+                    // Cómo llegar, Compartir y Opciones viven ahora en la barra de
+                    // arriba (mismos iconos que ya usa la ficha de escuela) —
+                    // siempre visibles, sin bajar a buscarlos (Álvaro, 2026-08-24).
                 }
                 .padding(16)
             }
@@ -439,6 +385,47 @@ struct BlockInfoSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) }
+                // Cómo llegar / Compartir / Opciones siempre visibles arriba, en
+                // vez de botones grandes al final del scroll (Álvaro, 2026-08-24).
+                // Mismos iconos que ya usa la ficha de escuela (SchoolDetailView):
+                // arrow.triangle.turn.up.right.diamond y square.and.arrow.up.
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { openDirections() } label: {
+                        Image(systemName: "arrow.triangle.turn.up.right.diamond")
+                    }.foregroundStyle(Cumbre.ink3)
+                    if block.type.uppercased() == "BLOCK", block.lines.first != nil {
+                        Button { Task { await shareBlock() } } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }.foregroundStyle(Cumbre.ink3)
+                    }
+                    if onEditLines != nil || onAssignSector != nil || onDelete != nil {
+                        Menu {
+                            if block.type.uppercased() == "BLOCK", let onEditLines {
+                                Button { dismiss(); onEditLines() } label: {
+                                    Label(block.lines.isEmpty ? NSLocalizedString("block_add_routes", comment: "") : NSLocalizedString("block_edit_routes", comment: ""), systemImage: "pencil")
+                                }
+                            }
+                            if block.type.uppercased() == "BLOCK", let onAssignSector, !sectors.isEmpty {
+                                Button { dismiss(); onAssignSector() } label: {
+                                    Label(block.sectorBlockId == nil ? NSLocalizedString("propose_assign_sector", comment: "") : NSLocalizedString("propose_change_sector", comment: ""), systemImage: "square.dashed")
+                                }
+                            }
+                            if onDelete != nil {
+                                Button(role: .destructive) { showDeleteConfirm = true } label: {
+                                    Label("ELIMINAR", systemImage: "trash")
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }.foregroundStyle(Cumbre.ink)
+                    }
+                }
+            }
+            .alert("¿Eliminar \(typeLabel.lowercased())?", isPresented: $showDeleteConfirm) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Eliminar", role: .destructive) { if let onDelete { dismiss(); onDelete() } }
+            } message: {
+                Text("Se borrará del mapa para todos. No se puede deshacer.")
             }
             .task { await loadDone() }
             // Hoja de publicar el tick en el feed Comunidad (estilo Cumbre).
