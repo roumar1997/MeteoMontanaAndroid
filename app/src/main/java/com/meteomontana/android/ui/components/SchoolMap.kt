@@ -108,7 +108,9 @@ fun SchoolMap(
     borrador: com.meteomontana.android.ui.screens.detail.BoulderDraftStore.Draft? = null,
     onGuardarBorrador: ((com.meteomontana.android.ui.screens.detail.BoulderDraftStore.Draft) -> Unit)? = null,
     onBorrarBorrador: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Va justo debajo del mapa, encima de PARKINGS (aproximaciones). */
+    contenidoTrasMapa: @Composable () -> Unit = {}
 ) {
     // ── Ficha de piedra IZADA a este nivel (no dentro del mapa expandido) ──
     // Antes vivía en InnerMap: abrir una piedra por deep-link (feed/diario)
@@ -256,6 +258,7 @@ fun SchoolMap(
                 viewModel     = viewModel,
                 bridge        = bridge,
                 wallEdit      = wallEdit,
+                contenidoTrasMapa = contenidoTrasMapa,
                 // Ficha de piedra izada a ESTE nivel (deep-links sin MapLibre).
                 onBlockSelected = { selectedBlock = it },
                 onDismissBlock = { selectedBlock = null },

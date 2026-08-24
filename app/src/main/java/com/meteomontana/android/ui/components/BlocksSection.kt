@@ -40,7 +40,9 @@ fun BlocksSection(
     schoolStyle: String? = null,
     schoolId: String = "",
     viewModel: SchoolDetailViewModel? = null,
-    onMyProposals: () -> Unit = {}
+    onMyProposals: () -> Unit = {},
+    /** Va justo debajo del mapa, encima de PARKINGS (aproximaciones). */
+    contenidoTrasMapa: @Composable () -> Unit = {}
 ) {
     if (schoolLat == null || schoolLon == null || viewModel == null) return
     // Foto de "Enviar piedra": se lee UNA vez al componer, y el mapa se encarga
@@ -134,7 +136,8 @@ fun BlocksSection(
             borrador = borradorPiedra,
             onGuardarBorrador = { d -> val con = d.copy(schoolId = schoolId); borradores.save(con); borradorPiedra = con },
             onBorrarBorrador = { borradores.clear(schoolId); borradorPiedra = null },
-            onMyProposals = onMyProposals
+            onMyProposals = onMyProposals,
+            contenidoTrasMapa = contenidoTrasMapa
         )
     }
 }

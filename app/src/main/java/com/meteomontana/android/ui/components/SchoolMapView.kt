@@ -175,7 +175,11 @@ internal fun SchoolMapView(
     onDismissBlock: () -> Unit,
     /** Piedras sin ninguna vía en la selección del filtro de grado (ver
      * BLOCK_SEARCH_DESIGN.md §7) — se pintan atenuadas en el mapa. */
-    gradeDimmedBlockIds: Set<String> = emptySet()
+    gradeDimmedBlockIds: Set<String> = emptySet(),
+    /** Lo que va JUSTO debajo del mapa y encima de PARKINGS (aproximaciones).
+     *  Es una ranura porque esos datos viven en la pantalla de detalle, pero su
+     *  sitio en pantalla está aquí dentro — igual que en iOS. */
+    contenidoTrasMapa: @Composable () -> Unit = {}
 ) {
     val ctx = LocalContext.current
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
@@ -746,6 +750,12 @@ internal fun SchoolMapView(
         if (!fullscreenMap) {
             mapBox(Modifier.fillMaxWidth().height(280.dp))
         }
+
+        // APROXIMACIONES van AQUÍ, entre el mapa y los parkings — es donde las
+        // pone iOS (SchoolMapSection.swift: mapArea → ApproachesSection →
+        // parkingsList → sectoresList). En Android caían al final de la ficha,
+        // detrás de sectores (Álvaro, 2026-08-24: igualar Android a iOS).
+        contenidoTrasMapa()
 
         // ── Lista de parkings ────────────────────────────────────────────
         // Lo importante para llegar: desde qué parking se va andando. Orden

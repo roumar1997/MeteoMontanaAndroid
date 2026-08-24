@@ -330,19 +330,22 @@ private fun Content(
                     blocks = blocksState.value, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
                     schoolLat = school.lat, schoolLon = school.lon,
                     schoolName = school.name, schoolStyle = school.style, schoolId = school.id,
-                    viewModel = viewModel, onMyProposals = onMyProposals
-                )
-                // APROXIMACIONES: entre el mapa (dentro de BlocksSection) y el
-                // resto de la ficha — misma posición que ApproachesSection.swift
-                // en iOS ("el loader vive en SchoolMapSection").
-                com.meteomontana.android.ui.components.ApproachesSection(
-                    // Mismo motivo que blocksState: llegan del servidor DESPUÉS
-                    // de la primera composición y el bloque las capturaría.
-                    approaches = approachesState.value,
-                    isAdmin = isAdminState.value,
-                    onFollow = { followingApproach = it },
-                    onRecord = { recordingApproach = true },
-                    onDelete = { a -> approachScope.launch { viewModel.deleteApproach(a.id) } }
+                    viewModel = viewModel, onMyProposals = onMyProposals,
+                    // APROXIMACIONES entre el MAPA y PARKINGS, que es donde las
+                    // pone iOS (SchoolMapSection.swift:126-134). Aquí colgaban
+                    // al final, detrás de sectores. Va por ranura porque el dato
+                    // vive en esta pantalla pero su sitio está dentro del mapa.
+                    contenidoTrasMapa = {
+                        com.meteomontana.android.ui.components.ApproachesSection(
+                            // Mismo motivo que blocksState: llegan del servidor
+                            // DESPUÉS de la primera composición y se capturarían.
+                            approaches = approachesState.value,
+                            isAdmin = isAdminState.value,
+                            onFollow = { followingApproach = it },
+                            onRecord = { recordingApproach = true },
+                            onDelete = { a -> approachScope.launch { viewModel.deleteApproach(a.id) } }
+                        )
+                    }
                 )
             }
         } }
