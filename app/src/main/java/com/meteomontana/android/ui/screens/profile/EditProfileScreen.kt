@@ -167,6 +167,10 @@ private fun EditForm(
                     setActiveControlsWidgetColor(ContextCompat.getColor(context, R.color.crop_terra))
                 })
                 .getIntent(context)
+                // uCrop apunta a SU PROPIA UCropActivity por defecto; se
+                // retarget a CumbreCropActivity (misma librería, con el
+                // fix de insets). Los extras del intent no se tocan.
+                .setClass(context, CumbreCropActivity::class.java)
             cropLauncher.launch(intent)
         }
     }
