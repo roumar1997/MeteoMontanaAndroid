@@ -519,7 +519,15 @@ fun SchoolMap(
             }
         )
     }
-    wallEdit.target?.let { block ->
+    // borradorEncontrado == null es OBLIGATORIO aquí: el editor ahora es un
+    // Dialog propio (pantalla completa, desde el 2026-08-25) y el aviso
+    // "tienes cambios sin enviar" es OTRO AlertDialog independiente — con los
+    // dos montados a la vez, uno tapaba al otro (el editor por encima) y solo
+    // aparecía al cerrar el editor, ya con wallEdit.target a null: "CONTINUAR
+    // EDITANDO" no tenía qué reabrir (Álvaro, 2026-08-25). Ahora son
+    // mutuamente excluyentes: mientras hay un borrador por decidir, el editor
+    // no se monta en absoluto.
+    if (wallEdit.target != null && borradorEncontrado == null) wallEdit.target?.let { block ->
         if (!wallEdit.tracing) {
             AddLinesFlow(
                 block = block,
