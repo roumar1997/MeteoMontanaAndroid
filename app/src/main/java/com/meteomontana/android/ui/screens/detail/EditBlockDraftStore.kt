@@ -123,11 +123,21 @@ internal object EditBlockDraftStore {
         val facesArr = raiz.getJSONArray("faces")
         val faces = (0 until facesArr.length()).map { i ->
             val obj = facesArr.getJSONObject(i)
-            val photoFile = obj.optString("photoFile", "").takeIf { it.isNotBlank() }
-            val newUri: Uri? = photoFile?.let { File(carpeta(context), it).toUri() }
-            android.util.Log.i("CumbreDraft", "load cara$i: photoFile=$photoFile " +
-                "existe=${photoFile?.let { File(carpeta(context), it).exists() }} " +
-                "existingPhotoPath=${obj.optString("existingPhotoPath", null)}")
+            // textoONull y NO optString a secas: con un JSON null, optString
+            // devuelve la CADENA "null" (no vacía), así que el filtro de
+            // isNotBlank la dejaba pasar y se construía la ruta
+            // ".../borradores/null". newPhotoUri quedaba != null → photoModel
+            // NUNCA caía al respaldo de la foto del servidor → la piedra se
+            // abría SIN foto justo al editar solo una vía sin tocar la imagen
+            // (Álvaro, 2026-08-25, cazado con FileNotFoundException en el log).
+            val photoFile = obj.textoONull("photoFile")
+            // Y aunque el nombre sea válido, si el fichero no está (borrado,
+            // copia fallida) NO se inventa un Uri roto: mejor sin foto nueva y
+            // que se vea la del servidor.
+            val newUri: Uri? = photoFile
+                ?.let { File(carpeta(context), it) }
+                ?.takeIf { it.exists() && it.length() > 0L }
+                ?.toUri()
             val bloquesArr = obj.getJSONArray("bloques")
             val bloques = (0 until bloquesArr.length()).map { j ->
                 val bo = bloquesArr.getJSONObject(j)

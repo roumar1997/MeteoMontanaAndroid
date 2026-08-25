@@ -6,6 +6,19 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
+ * Texto de un campo que puede venir como JSON null, o null si no lo hay.
+ *
+ * `optString` de org.json devuelve la CADENA "null" cuando el valor guardado
+ * es `JSONObject.NULL` — no una cadena vacía. Sin comprobar `isNull()` antes,
+ * un grado sin rellenar se recuperaba literalmente como el texto "null", y una
+ * foto ausente como la ruta ".../null" (Álvaro, 2026-08-25: la foto
+ * desaparecía al continuar un borrador). Este helper cierra el agujero en un
+ * solo sitio para todos los campos de los dos borradores.
+ */
+internal fun JSONObject.textoONull(clave: String): String? =
+    if (isNull(clave)) null else optString(clave, "").takeIf { it.isNotBlank() && it != "null" }
+
+/**
  * Piedras a medias: lo que llevabas escrito cuando cerraste el formulario.
  *
  * Proponer una piedra es largo —nombre, modalidad, orientación, una foto por
@@ -121,18 +134,17 @@ class BoulderDraftStore(private val context: Context) {
             (0 until arr.length()).map { i ->
                 val c = arr.getJSONObject(i)
                 BoulderFaceForm(
-                    photoUri = c.optString("photoUri", "").takeIf { it.isNotBlank() }
-                        ?.let { android.net.Uri.parse(it) },
-                    orientation = c.optString("orientation", "").takeIf { it.isNotBlank() },
+                    photoUri = c.textoONull("photoUri")?.let { android.net.Uri.parse(it) },
+                    orientation = c.textoONull("orientation"),
                     bloques = c.optJSONArray("bloques")?.let { bs ->
                         (0 until bs.length()).map { j ->
                             val b = bs.getJSONObject(j)
                             BoulderBloqueForm(
                                 name = b.optString("name", ""),
-                                grade = b.optString("grade", "").takeIf { it.isNotBlank() },
-                                startType = b.optString("startType", "").takeIf { it.isNotBlank() },
-                                description = b.optString("description", "").takeIf { it.isNotBlank() },
-                                variant = b.optString("variant", "").takeIf { it.isNotBlank() },
+                                grade = b.textoONull("grade"),
+                                startType = b.textoONull("startType"),
+                                description = b.textoONull("description"),
+                                variant = b.textoONull("variant"),
                                 linePath = b.optJSONArray("linePath")?.let { ps ->
                                     (0 until ps.length()).map { k ->
                                         val p = ps.getJSONArray(k)
@@ -153,8 +165,8 @@ class BoulderDraftStore(private val context: Context) {
             discipline = o.optString("discipline", "BOULDER"),
             geometry = o.optString("geometry", "POINT"),
             direction = o.optString("direction", "LTR"),
-            sectorBlockId = o.optString("sectorBlockId", "").takeIf { it.isNotBlank() },
-            orientation = o.optString("orientation", "").takeIf { it.isNotBlank() },
+            sectorBlockId = o.textoONull("sectorBlockId"),
+            orientation = o.textoONull("orientation"),
             path = path,
             faces = caras,
             savedAt = o.optLong("savedAt", 0L)
