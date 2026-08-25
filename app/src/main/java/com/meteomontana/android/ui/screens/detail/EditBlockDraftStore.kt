@@ -55,13 +55,11 @@ internal object EditBlockDraftStore {
         entrada.use { e -> destino.outputStream().use { e.copyTo(it) } }
         if (destino.length() > 0L) destino.toUri() else null
     }.getOrNull().also {
-        android.util.Log.i("CumbreDraft", "copiarFotoLocal($uri) -> $it (existe=${it?.path?.let { p -> File(p).exists() }})")
+        if (it == null) android.util.Log.w("Cumbre", "No se pudo copiar la foto elegida: $uri")
     }
 
     fun save(context: Context, blockId: String, faces: List<EditFace>) {
         val facesJson = JSONArray()
-        android.util.Log.i("CumbreDraft", "save($blockId): ${faces.size} caras, " +
-            faces.mapIndexed { i, f -> "cara$i[existing=${f.existingPhotoPath}, nueva=${f.newPhotoUri}]" }.joinToString())
         faces.forEachIndexed { i, face ->
             val obj = JSONObject()
             obj.put("existingPhotoPath", face.existingPhotoPath ?: JSONObject.NULL)
@@ -78,17 +76,17 @@ internal object EditBlockDraftStore {
                     // pero sin imagen, y sin poder dibujar (Álvaro, 2026-08-24).
                     // Ahora solo se apunta la foto si de verdad se copió.
                     if (entrada == null) {
-                        android.util.Log.w("CumbreDraft", "save cara$i: openInputStream($uri) = NULL")
+                        android.util.Log.w("Cumbre",
+                            "Borrador cara $i: sin permiso para leer la foto elegida ($uri)")
                         return@runCatching null
                     }
                     entrada.use { e -> destino.outputStream().use { e.copyTo(it) } }
                     if (destino.length() > 0L) nombre else null
                 }.getOrElse { ex ->
-                    android.util.Log.w("CumbreDraft", "save cara$i: excepción copiando $uri", ex)
+                    android.util.Log.w("Cumbre", "Borrador cara $i: fallo copiando $uri", ex)
                     null
                 }
             }
-            android.util.Log.i("CumbreDraft", "save cara$i: photoFile guardado = $fotoLocal")
             obj.put("photoFile", fotoLocal ?: JSONObject.NULL)
             val bloquesArr = JSONArray()
             face.bloques.forEach { b ->

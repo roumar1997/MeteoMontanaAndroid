@@ -174,8 +174,6 @@ internal fun EditFacePhoto(
     faceIdx: Int,
     onPickPhoto: () -> Unit
 ) {
-    android.util.Log.i("CumbreDraft", "EditFacePhoto cara$faceIdx: hasPhoto=${face.hasPhoto} " +
-        "photoModel=${face.photoModel} existingPhotoPath=${face.existingPhotoPath} newPhotoUri=${face.newPhotoUri}")
     if (face.hasPhoto) {
         AsyncImage(
             model = face.photoModel,
@@ -185,8 +183,15 @@ internal fun EditFacePhoto(
                 .height(180.dp)
                 .clip(RoundedCornerShape(2.dp)),
             contentScale = ContentScale.Crop,
-            onError = { android.util.Log.w("CumbreDraft", "EditFacePhoto cara$faceIdx: ERROR cargando ${face.photoModel}", it.result.throwable) },
-            onSuccess = { android.util.Log.i("CumbreDraft", "EditFacePhoto cara$faceIdx: OK cargada") }
+            // Solo el FALLO se registra: si la foto de una cara no carga, deja
+            // rastro del porqué (así se cazó el bug del borrador con la ruta
+            // ".../null", 2026-08-25). El éxito no interesa: esto se recompone
+            // constantemente y llenaría el registro.
+            onError = {
+                android.util.Log.w("Cumbre",
+                    "Foto de la cara ${faceIdx + 1} no cargó: ${face.photoModel}",
+                    it.result.throwable)
+            }
         )
         Spacer(Modifier.height(Spacing.xs))
         Box(
