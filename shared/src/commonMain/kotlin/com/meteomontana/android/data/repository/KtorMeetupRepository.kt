@@ -142,6 +142,8 @@ class KtorMeetupRepository(
         return dto.toState()
     }
 
+    override suspend fun getInviteLink(id: String): String = api.getInviteLink(id)
+
     private fun MeetupAlertDto.toState() = MeetupAlertState(
         enabled = enabled, daysCsv = daysCsv, schoolId = schoolId, schoolName = schoolName,
         discipline = discipline, privacy = privacy, maxDistanceKm = maxDistanceKm,

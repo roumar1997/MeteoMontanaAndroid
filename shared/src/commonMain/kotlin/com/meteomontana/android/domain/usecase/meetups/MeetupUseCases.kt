@@ -81,6 +81,14 @@ class ReportMeetupUseCase(private val repo: MeetupRepository) {
         repo.reportMeetup(meetupId, reportedUid, reason, context)
 }
 
+/** Enlace de invitación al grupo (solo miembros): para el botón de compartir.
+ *  Espejo Android/iOS — meetupApi.getInviteLink en iOS pasa por el mismo
+ *  puerto hexagonal aquí en vez de inyectar KtorMeetupApi directo en el VM. */
+class GetMeetupInviteLinkUseCase(private val repo: MeetupRepository) {
+    @Throws(Exception::class)
+    suspend fun execute(id: String): String = repo.getInviteLink(id)
+}
+
 class GetMeetupAlertUseCase(private val repo: MeetupRepository) {
     @Throws(Exception::class)
     suspend fun execute(): MeetupAlertState = repo.getMeetupAlert()

@@ -1,4 +1,4 @@
-﻿import java.text.SimpleDateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
@@ -36,7 +36,7 @@ android {
         applicationId = "com.meteomontana.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 103
+        versionCode = 106
         versionName = "2.24.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -45,10 +45,10 @@ android {
     buildTypes {
         debug {
             // STAGING: los builds de desarrollo (debug) hablan con el backend de
-            // staging, NUNCA con producciÃ³n â†’ no afecta a los testers de Play/App Store.
+            // staging, NUNCA con producción → no afecta a los testers de Play/App Store.
             // Para depurar contra el PC local, descomenta una de las dos de abajo:
-            // 10.0.2.2  = emulador Android â†’ localhost del PC
-            // 192.168.0.12 = mÃ³vil fÃ­sico en la misma red que el PC (Ethernet)
+            // 10.0.2.2  = emulador Android → localhost del PC
+            // 192.168.0.12 = móvil físico en la misma red que el PC (Ethernet)
             // buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
             buildConfigField("String", "API_BASE_URL", "\"https://meteomontanaapi-staging.up.railway.app/api/\"")
         }
@@ -58,7 +58,7 @@ android {
             buildConfigField("String", "BUILD_TIME", "\"" + selloDeCompilacion + "\"")
         }
         release {
-            // R8 activado: Compose sin minificar es notablemente mÃ¡s lento (jank).
+            // R8 activado: Compose sin minificar es notablemente más lento (jank).
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -80,10 +80,21 @@ android {
         compose = true
         buildConfig = true   // habilita BuildConfig.API_BASE_URL
     }
+    testOptions {
+        unitTests {
+            // Sin esto, cualquier android.util.Log.* en código bajo test
+            // lanza "Method i in android.util.Log not mocked" — los tests
+            // JVM puros no cargan el framework Android real. Con esto, las
+            // llamadas no mockeadas devuelven su valor por defecto (no-op)
+            // en vez de reventar. Hizo falta al añadir registro permanente
+            // en SchoolDetailLoader (Álvaro, 2026-08-25).
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
-    // MÃ³dulo shared KMP (domain/model, domain/port, domain/util)
+    // Módulo shared KMP (domain/model, domain/port, domain/util)
     implementation(project(":shared"))
 
     // Core Android + Compose
@@ -103,12 +114,12 @@ dependencies {
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended)
 
-    // Haze: difumina el FONDO que pasa por detrÃ¡s de la barra de pestaÃ±as.
-    // El Modifier.blur de Compose no sirve aquÃ­ â€” difumina el propio elemento,
-    // no lo que hay detrÃ¡s, y el efecto cristal es justo lo segundo. Apache 2.0.
-    // VersiÃ³n clavada a la 1.5.4 A PROPÃ“SITO: es la Ãºltima que funciona con la
-    // lÃ­nea 1.7 de Compose. De la 1.6 en adelante exige Compose 1.8+, que es un
-    // salto de dos aÃ±os con toda la app por revisar.
+    // Haze: difumina el FONDO que pasa por detrás de la barra de pestañas.
+    // El Modifier.blur de Compose no sirve aquí — difumina el propio elemento,
+    // no lo que hay detrás, y el efecto cristal es justo lo segundo. Apache 2.0.
+    // Versión clavada a la 1.5.4 A PROPÓSITO: es la última que funciona con la
+    // línea 1.7 de Compose. De la 1.6 en adelante exige Compose 1.8+, que es un
+    // salto de dos años con toda la app por revisar.
     implementation(libs.haze)
 
     // Coroutines
@@ -124,11 +135,11 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    // Network â€” Ktor (HTTP client compartido con shared/commonMain)
+    // Network — Ktor (HTTP client compartido con shared/commonMain)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
 
-    // ImÃ¡genes
+    // Imágenes
     implementation(libs.coil.compose)
     // Leer las coordenadas que la camara guarda dentro de la foto (EXIF).
     implementation(libs.androidx.exifinterface)
@@ -149,20 +160,20 @@ dependencies {
     // Location
     implementation(libs.play.services.location)
 
-    // ActualizaciÃ³n obligatoria DENTRO de la app (Play In-App Updates):
+    // Actualización obligatoria DENTRO de la app (Play In-App Updates):
     // descarga+instala sin ir a la tienda. Solo funciona con instalaciones
-    // de Play; si no estÃ¡ disponible cae al botÃ³n de tienda del gate.
+    // de Play; si no está disponible cae al botón de tienda del gate.
     implementation(libs.play.app.update)
     implementation(libs.accompanist.permissions)
 
     // Maps (MapLibre native)
     implementation(libs.maplibre)
 
-    // Cropper de foto de perfil (zoom + rotaciÃ³n + circular)
+    // Cropper de foto de perfil (zoom + rotación + circular)
     implementation(libs.ucrop)
     implementation(libs.androidx.appcompat)  // requerido por uCrop activity
 
-    // kotlinx-serialization (Json) â€” outbox y deserializaciÃ³n de payloads
+    // kotlinx-serialization (Json) — outbox y deserialización de payloads
     implementation(libs.kotlinx.serialization.json)
 
     // Widget "Favoritas hoy" en la pantalla de inicio

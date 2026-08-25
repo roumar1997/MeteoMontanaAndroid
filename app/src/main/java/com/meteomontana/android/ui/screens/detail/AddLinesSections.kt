@@ -174,6 +174,8 @@ internal fun EditFacePhoto(
     faceIdx: Int,
     onPickPhoto: () -> Unit
 ) {
+    android.util.Log.i("CumbreDraft", "EditFacePhoto cara$faceIdx: hasPhoto=${face.hasPhoto} " +
+        "photoModel=${face.photoModel} existingPhotoPath=${face.existingPhotoPath} newPhotoUri=${face.newPhotoUri}")
     if (face.hasPhoto) {
         AsyncImage(
             model = face.photoModel,
@@ -182,7 +184,9 @@ internal fun EditFacePhoto(
                 .fillMaxWidth()
                 .height(180.dp)
                 .clip(RoundedCornerShape(2.dp)),
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Crop,
+            onError = { android.util.Log.w("CumbreDraft", "EditFacePhoto cara$faceIdx: ERROR cargando ${face.photoModel}", it.result.throwable) },
+            onSuccess = { android.util.Log.i("CumbreDraft", "EditFacePhoto cara$faceIdx: OK cargada") }
         )
         Spacer(Modifier.height(Spacing.xs))
         Box(

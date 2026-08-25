@@ -583,6 +583,11 @@ object UseCasesModule {
     ) = com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase(repo)
 
     @Provides @Singleton
+    fun provideGetMeetupInviteLinkUseCase(
+        repo: com.meteomontana.android.domain.repository.MeetupRepository
+    ) = com.meteomontana.android.domain.usecase.meetups.GetMeetupInviteLinkUseCase(repo)
+
+    @Provides @Singleton
     fun provideUpdateMyGearUseCase(
         repo: com.meteomontana.android.domain.repository.MeetupRepository
     ) = com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase(repo)

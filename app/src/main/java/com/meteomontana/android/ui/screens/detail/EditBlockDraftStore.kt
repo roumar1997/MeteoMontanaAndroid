@@ -54,10 +54,14 @@ internal object EditBlockDraftStore {
         val entrada = context.contentResolver.openInputStream(uri) ?: return@runCatching null
         entrada.use { e -> destino.outputStream().use { e.copyTo(it) } }
         if (destino.length() > 0L) destino.toUri() else null
-    }.getOrNull()
+    }.getOrNull().also {
+        android.util.Log.i("CumbreDraft", "copiarFotoLocal($uri) -> $it (existe=${it?.path?.let { p -> File(p).exists() }})")
+    }
 
     fun save(context: Context, blockId: String, faces: List<EditFace>) {
         val facesJson = JSONArray()
+        android.util.Log.i("CumbreDraft", "save($blockId): ${faces.size} caras, " +
+            faces.mapIndexed { i, f -> "cara$i[existing=${f.existingPhotoPath}, nueva=${f.newPhotoUri}]" }.joinToString())
         faces.forEachIndexed { i, face ->
             val obj = JSONObject()
             obj.put("existingPhotoPath", face.existingPhotoPath ?: JSONObject.NULL)
@@ -73,11 +77,18 @@ internal object EditBlockDraftStore {
                     // fichero que no existía → al continuar salía "FOTO NUEVA"
                     // pero sin imagen, y sin poder dibujar (Álvaro, 2026-08-24).
                     // Ahora solo se apunta la foto si de verdad se copió.
-                    if (entrada == null) return@runCatching null
+                    if (entrada == null) {
+                        android.util.Log.w("CumbreDraft", "save cara$i: openInputStream($uri) = NULL")
+                        return@runCatching null
+                    }
                     entrada.use { e -> destino.outputStream().use { e.copyTo(it) } }
                     if (destino.length() > 0L) nombre else null
-                }.getOrNull()
+                }.getOrElse { ex ->
+                    android.util.Log.w("CumbreDraft", "save cara$i: excepción copiando $uri", ex)
+                    null
+                }
             }
+            android.util.Log.i("CumbreDraft", "save cara$i: photoFile guardado = $fotoLocal")
             obj.put("photoFile", fotoLocal ?: JSONObject.NULL)
             val bloquesArr = JSONArray()
             face.bloques.forEach { b ->
@@ -114,6 +125,9 @@ internal object EditBlockDraftStore {
             val obj = facesArr.getJSONObject(i)
             val photoFile = obj.optString("photoFile", "").takeIf { it.isNotBlank() }
             val newUri: Uri? = photoFile?.let { File(carpeta(context), it).toUri() }
+            android.util.Log.i("CumbreDraft", "load cara$i: photoFile=$photoFile " +
+                "existe=${photoFile?.let { File(carpeta(context), it).exists() }} " +
+                "existingPhotoPath=${obj.optString("existingPhotoPath", null)}")
             val bloquesArr = obj.getJSONArray("bloques")
             val bloques = (0 until bloquesArr.length()).map { j ->
                 val bo = bloquesArr.getJSONObject(j)

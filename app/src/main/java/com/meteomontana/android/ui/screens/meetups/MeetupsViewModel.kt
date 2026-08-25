@@ -82,7 +82,7 @@ class MeetupsViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     private val photoUploader: PhotoUploader,
     private val fileReader: com.meteomontana.android.domain.port.FileReader,
-    private val meetupApi: com.meteomontana.android.data.api.KtorMeetupApi,
+    private val getInviteLink: com.meteomontana.android.domain.usecase.meetups.GetMeetupInviteLinkUseCase,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -154,7 +154,7 @@ class MeetupsViewModel @Inject constructor(
                 // compartir. Igual que iOS: se pide aparte y en silencio, no
                 // bloquea la carga de la quedada si falla.
                 if (result?.joined == true) {
-                    val link = runCatching { meetupApi.getInviteLink(id) }.getOrNull()
+                    val link = runCatching { getInviteLink.execute(id) }.getOrNull()
                     _detail.update { it.copy(inviteLink = link) }
                 }
             } catch (e: Exception) {

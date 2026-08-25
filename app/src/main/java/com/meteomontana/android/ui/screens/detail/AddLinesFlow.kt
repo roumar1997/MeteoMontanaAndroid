@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -310,19 +311,19 @@ internal fun AddLinesFlow(
     }
 
     val contenidoScroll = rememberScrollState()
-    androidx.compose.material3.ModalBottomSheet(
+    // Diálogo a PANTALLA COMPLETA, sin gesto de arrastre — no ModalBottomSheet.
+    // Aunque ya se había desactivado el cierre al arrastrar, el sheet de
+    // Compose SEGUÍA interceptando el gesto vertical para decidir si es un
+    // arrastre suyo antes de cedérselo al scroll, y esa disputa interna es
+    // justo lo que se sentía como "a veces scrollea, a veces intenta cerrar"
+    // (Álvaro, 2026-08-25: "en iOS funciona mucho mejor"). Un Dialog normal no
+    // tiene ese gesto en absoluto: el scroll es SIEMPRE solo scroll.
+    androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
-        sheetState = androidx.compose.material3.rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
-            // Formulario: NO se cierra deslizando (tiraba el trabajo y dejaba
-            // asomar la ficha de debajo). Se sale por Cancelar o por Enviar.
-            confirmValueChange = { valor ->
-                valor != androidx.compose.material3.SheetValue.Hidden
-            }
-        ),
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        shape = CumbreSheetShape,
-        dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         // Barra FIJA arriba (fuera del scroll) + contenido que scrollea: el
         // formulario es largo y buscar ENVIAR al final era un viaje. Espejo del
@@ -330,8 +331,9 @@ internal fun AddLinesFlow(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.94f)
-                .cumbreSheetSurface()
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.background)
+                .systemBarsPadding()
         ) {
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier.padding(horizontal = Spacing.md)

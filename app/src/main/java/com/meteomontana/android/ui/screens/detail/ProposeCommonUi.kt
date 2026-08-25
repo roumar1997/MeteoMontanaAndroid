@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -274,39 +275,32 @@ internal fun CumbreDialog(
     header: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    // Bottom-sheet flotante (sube desde abajo, esquinas superiores redondeadas,
-    // scrim) — paridad con los .sheet de iOS, en vez de un diálogo centrado.
-    //
-    // ARRASTRAR PARA CERRAR, solo desde arriba cuando el contenido scrollea
-    // (mismo arreglo que BlockDetailDialog.kt/AddLinesFlow.kt): en formularios
-    // largos el gesto de cierre competía con el scroll.
-    val contenidoScroll = rememberScrollState()
-    androidx.compose.material3.ModalBottomSheet(
+    // Diálogo a PANTALLA COMPLETA, sin ningún gesto de arrastre — no
+    // ModalBottomSheet. Estos son FORMULARIOS (editar/crear/proponer piedra):
+    // aunque ya se había desactivado el cierre al arrastrar, el sheet de
+    // Compose SIGUE interceptando el gesto vertical para decidir si es un
+    // arrastre suyo antes de cedérselo al scroll del contenido, y esa disputa
+    // interna es justo lo que se sentía como "a veces scrollea, a veces
+    // intenta cerrar" (Álvaro, 2026-08-25: "en iOS funciona mucho mejor").
+    // Un Dialog normal no tiene ese gesto en absoluto: el scroll es SIEMPRE
+    // solo scroll. Se sale por Cancelar/Enviar o el botón atrás del sistema.
+    androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
-        // NO se cierra deslizando. Estos sheets son FORMULARIOS: un gesto hacia
-        // abajo tiraba el trabajo y además dejaba ver la ficha de la piedra por
-        // debajo, como si se hubiera roto algo (Álvaro, 2026-08-24). Se sale por
-        // Cancelar (que pregunta si guardar), por Enviar, o con el botón atrás.
-        sheetState = androidx.compose.material3.rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
-            confirmValueChange = { valor ->
-                valor != androidx.compose.material3.SheetValue.Hidden
-            }
-        ),
-        // Transparente para que el fondo lo ponga el acabado de Cumbre: si el
-        // sheet pintase el suyo, taparía el borde y el canto de luz.
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        shape = CumbreSheetShape,
-        dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
+        val contenidoScroll = rememberScrollState()
         if (header != null) {
             // El acabado y la altura van FUERA; dentro, la barra fija y luego
             // el contenido que scrollea. Así el header no se mueve.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .then(if (fullHeight) Modifier.fillMaxHeight(0.94f) else Modifier)
-                    .cumbreSheetSurface()
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.background)
+                    .systemBarsPadding()
             ) {
                 Box(modifier = Modifier.padding(horizontal = Spacing.lg)) { header() }
                 Column(
@@ -321,8 +315,9 @@ internal fun CumbreDialog(
         } else {
             val colMod = Modifier
                 .fillMaxWidth()
-                .then(if (fullHeight) Modifier.fillMaxHeight(0.94f) else Modifier)
-                .cumbreSheetSurface()
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.background)
+                .systemBarsPadding()
                 .padding(horizontal = Spacing.lg)
                 .padding(bottom = Spacing.lg)
                 .then(if (scrollable) Modifier.verticalScroll(contenidoScroll) else Modifier)

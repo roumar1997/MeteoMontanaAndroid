@@ -35,4 +35,8 @@ interface MeetupRepository {
 
     suspend fun getMeetupAlert(): MeetupAlertState
     suspend fun setMeetupAlert(state: MeetupAlertState): MeetupAlertState
+
+    /** Enlace de invitación al grupo (solo miembros): permite unirse sin
+     *  relación de follows. Para el botón de compartir. */
+    suspend fun getInviteLink(id: String): String
 }

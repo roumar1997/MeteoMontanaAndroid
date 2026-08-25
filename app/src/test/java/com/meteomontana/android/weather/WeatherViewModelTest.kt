@@ -60,7 +60,19 @@ class WeatherViewModelTest {
     @Test fun `sin permiso de ubicacion pide permiso`() = runTest {
         every { location.hasPermission() } returns false
         val vm = vm(); advanceUntilIdle()
-        assertEquals(WeatherUiState.NeedPermission, vm.state.value)
+        assertTrue(vm.state.value is WeatherUiState.NeedPermission)
+    }
+
+    @Test fun `sin permiso de ubicacion las favoritas siguen visibles`() = runTest {
+        // Las favoritas se cargan ANTES del gate de permiso: rechazar la
+        // ubicación no debe esconder las escuelas guardadas (paridad con iOS,
+        // Álvaro 2026-08-24).
+        every { location.hasPermission() } returns false
+        coEvery { getFavorites() } returns listOf(
+            com.meteomontana.android.domain.model.FavoriteSchool("s1", "Escuela 1", null, null, true))
+        val vm = vm(); advanceUntilIdle()
+        val state = vm.state.value as WeatherUiState.NeedPermission
+        assertEquals(1, state.favorites.size)
     }
 
     @Test fun `con permiso pero sin GPS cae a Madrid`() = runTest {

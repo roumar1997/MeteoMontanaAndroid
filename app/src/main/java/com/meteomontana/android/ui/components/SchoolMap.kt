@@ -500,10 +500,14 @@ fun SchoolMap(
                     val actuales = wallEdit.target?.let {
                         com.meteomontana.android.ui.screens.detail.initialEditFaces(it)
                     }.orEmpty()
+                    android.util.Log.i("CumbreDraft", "CONTINUAR: target=${wallEdit.target?.id} " +
+                        "actuales=${actuales.map { it.existingPhotoPath }} " +
+                        "borrador.faces=${borrador.faces.map { it.existingPhotoPath to it.newPhotoUri }}")
                     wallEdit.faces = borrador.faces.mapIndexed { i, cara ->
                         cara.copy(existingPhotoPath = actuales.getOrNull(i)?.existingPhotoPath
                             ?: cara.existingPhotoPath)
                     }
+                    android.util.Log.i("CumbreDraft", "CONTINUAR: resultado=${wallEdit.faces.map { it.existingPhotoPath to it.newPhotoUri }}")
                     borradorEncontrado = null
                 }) { Text("CONTINUAR EDITANDO") }
             },
