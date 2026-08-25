@@ -492,22 +492,22 @@ fun SchoolMap(
             text = { Text("Dejaste esta piedra a medias de editar. ¿Sigues donde lo dejaste o empiezas de cero?") },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
-                    // Del borrador se recuperan las VÍAS y las fotos LOCALES,
-                    // pero la foto del servidor se vuelve a tomar de la piedra
-                    // en vivo: la guardada es una URL FIRMADA que caduca (~1h),
-                    // así que al continuar más tarde la foto salía en negro
-                    // (Álvaro, 2026-08-24).
+                    // Del borrador se recuperan SOLO las VÍAS y las fotos
+                    // LOCALES (igual que iOS: EditLinesSheet.swift nunca
+                    // guarda ni restaura la foto del servidor, solo
+                    // faceBlocks + facePicked). La foto existente SIEMPRE
+                    // sale de la piedra EN VIVO — nunca del borrador: la
+                    // guardada es una URL FIRMADA que caduca (~1h). ANTES
+                    // había un `?: cara.existingPhotoPath` de respaldo que,
+                    // si el índice no coincidía, volvía a colar esa URL
+                    // caducada — la foto se veía negra sin foto para
+                    // sustituirla (Álvaro, 2026-08-25).
                     val actuales = wallEdit.target?.let {
                         com.meteomontana.android.ui.screens.detail.initialEditFaces(it)
                     }.orEmpty()
-                    android.util.Log.i("CumbreDraft", "CONTINUAR: target=${wallEdit.target?.id} " +
-                        "actuales=${actuales.map { it.existingPhotoPath }} " +
-                        "borrador.faces=${borrador.faces.map { it.existingPhotoPath to it.newPhotoUri }}")
                     wallEdit.faces = borrador.faces.mapIndexed { i, cara ->
-                        cara.copy(existingPhotoPath = actuales.getOrNull(i)?.existingPhotoPath
-                            ?: cara.existingPhotoPath)
+                        cara.copy(existingPhotoPath = actuales.getOrNull(i)?.existingPhotoPath)
                     }
-                    android.util.Log.i("CumbreDraft", "CONTINUAR: resultado=${wallEdit.faces.map { it.existingPhotoPath to it.newPhotoUri }}")
                     borradorEncontrado = null
                 }) { Text("CONTINUAR EDITANDO") }
             },
