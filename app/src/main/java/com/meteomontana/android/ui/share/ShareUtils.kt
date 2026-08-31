@@ -13,7 +13,12 @@ fun shareMeetup(
     days: List<String>,
     discipline: String?,
     memberCount: Int,
-    memberLimit: Int?
+    memberLimit: Int?,
+    /** Enlace de invitación (solo si somos miembros): con él quien lo reciba
+     *  puede unirse aunque no haya relación de follows. Faltaba en Android —
+     *  espejo de meetupShareText en MeetupDetailView.swift (Álvaro,
+     *  2026-08-24: paridad con iOS). */
+    inviteLink: String? = null
 ) {
     val daysText = days.joinToString(", ") { formatShareDay(it) }
     val plazas = memberLimit?.let { "$memberCount/$it plazas" } ?: "$memberCount participantes"
@@ -27,9 +32,14 @@ fun shareMeetup(
         append("Quedada: $meetupName\n")
         schoolName?.let { append("Escuela: $it\n") }
         append("$daysText$discText · $plazas\n\n")
-        append("Descarga Cumbre:\n")
-        append("Android: $PLAY_URL\n")
-        append("iOS: $APPSTORE_URL")
+        if (!inviteLink.isNullOrBlank()) {
+            append("👉 Únete desde aquí:\n$inviteLink")
+        } else {
+            append("👉 Búscala en Cumbre (pestaña Quedadas)\n\n")
+            append("Descarga Cumbre:\n")
+            append("Android: $PLAY_URL\n")
+            append("iOS: $APPSTORE_URL")
+        }
     }
     shareText(context, text, "Compartir quedada")
 }
@@ -61,7 +71,7 @@ fun shareSchool(
 fun shareProfile(context: Context, handle: String, displayLabel: String) {
     val text = buildString {
         append("Perfil de $displayLabel en Cumbre:\n")
-        append("https://api.climbingteams.com/s/u/$handle")
+        append((com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/u/$handle")
     }
     shareText(context, text, "Compartir perfil")
 }
@@ -82,3 +92,14 @@ private fun formatShareDay(iso: String): String {
     val d = parts[2].toIntOrNull() ?: return iso
     return "$d ${months.getOrElse(mo - 1) { "?" }}"
 }
+
+/**
+ * P7: base de los enlaces compartidos SEGUN EL BUILD. El debug apunta a
+ * staging (donde viven tus datos de prueba); release sigue en prod. OJO:
+ * abrir la app directa desde el enlace (App Links) solo funciona con el
+ * dominio de prod — en staging se abre la landing web, que es lo esperado.
+ */
+fun shareBaseUrl(): String =
+    if (com.meteomontana.android.BuildConfig.DEBUG)
+        "https://meteomontanaapi-staging.up.railway.app"
+    else "https://api.climbingteams.com"

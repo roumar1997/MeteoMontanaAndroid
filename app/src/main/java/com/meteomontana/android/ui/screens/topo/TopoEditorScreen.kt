@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.topo
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -32,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,7 +74,7 @@ fun TopoEditorScreen(
     onBack: () -> Unit,
     viewModel: TopoEditorViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val block = state.block
 
     var showCreateLineDialog by remember { mutableStateOf(false) }
@@ -95,7 +97,7 @@ fun TopoEditorScreen(
                     onClick = { viewModel.save() },
                     enabled = !state.saving,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1C1C1A), contentColor = Color.White
+                        containerColor = inkButtonColor(), contentColor = Color.White
                     ),
                     shape = MaterialTheme.shapes.small
                 ) { Text(if (state.saving) stringResource(R.string.topo_editor_saving) else stringResource(R.string.common_save)) }
@@ -249,8 +251,8 @@ private fun LineChip(
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(2.dp))
-            .background(if (selected) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.surface)
-            .border(1.dp, if (selected) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.outline,
+            .background(if (selected) inkButtonColor() else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (selected) inkButtonColor() else MaterialTheme.colorScheme.outline,
                     RoundedCornerShape(2.dp))
             .clickable(onClick = onSelect)
             .padding(horizontal = 10.dp, vertical = 6.dp),

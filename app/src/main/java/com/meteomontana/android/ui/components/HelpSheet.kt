@@ -38,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -103,12 +104,29 @@ private fun helpIcon(name: String): ImageVector = when (name) {
 @Composable
 fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
     val topic: HelpTopic = HelpCatalog.byKey(topicKey) ?: return
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    // ARRASTRAR PARA CERRAR, solo desde arriba (mismo arreglo que
+    // BlockDetailDialog.kt/AddLinesFlow.kt): hojas largas competían el gesto
+    // de cierre con el scroll.
+    val contenidoScroll = rememberScrollState()
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { valor ->
+            valor != SheetValue.Hidden || contenidoScroll.value == 0
+        }
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = CumbreSheetShape
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                // El fondo ANTES del scroll: puesto después se desplazaría con
+                // el contenido en vez de quedarse quieto detrás.
+                .cumbreSheetSurface()
+                .verticalScroll(contenidoScroll)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {

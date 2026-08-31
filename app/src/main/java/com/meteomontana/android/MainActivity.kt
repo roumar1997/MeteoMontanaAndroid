@@ -1,6 +1,7 @@
 package com.meteomontana.android
 
 import android.content.Context
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -13,7 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import com.meteomontana.android.ui.AppRoot
@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermissionIfNeeded()
 
         setContent {
-            val mode by themeManager.mode.collectAsState()
+            val mode by themeManager.mode.collectAsStateWithLifecycle()
             val system = isSystemInDarkTheme()
             val isDark = when (mode) {
                 ThemeMode.DARK   -> true
@@ -63,7 +63,23 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.SYSTEM -> system
             }
             MeteoMontanaTheme(darkTheme = isDark) {
-                AppRoot(deepLink = pendingDeepLink.value, onDeepLinkConsumed = { pendingDeepLink.value = null })
+                // El armazón envuelve TODA la app: la barra de pestañas necesita
+                // leer el contenido que tiene detrás, y para eso los dos tienen
+                // que colgar del mismo sitio.
+                //
+                // CRISTAL fijo — elegido por Rodrigo tras comparar los tres
+                // tratamientos en el móvil, sobre la lista de escuelas y sobre
+                // el radar. El selector de Ajustes existía solo para esa
+                // decisión y ya no está: una app no le pregunta a su usuario
+                // cómo quiere que se dibuje.
+                //
+                // En móviles sin desenfoque (Android 11 o anterior) baja a
+                // sólido él solo — ver ChromeTreatment.paraApi.
+                com.meteomontana.android.ui.components.CumbreChromeHost(
+                    deseado = com.meteomontana.android.ui.theme.ChromeTreatment.CRISTAL
+                ) {
+                    AppRoot(deepLink = pendingDeepLink.value, onDeepLinkConsumed = { pendingDeepLink.value = null })
+                }
             }
         }
     }
@@ -76,24 +92,15 @@ class MainActivity : ComponentActivity() {
     private fun consumeIntentExtras(intent: Intent?) {
         // App Link compartido: https://.../s/e/{escuela} o /s/v/{escuela}/{via}.
         intent?.data?.let { uri ->
-            val seg = uri.pathSegments
-            if (seg.firstOrNull() == "s") {
-                when (seg.getOrNull(1)) {
-                    "q" -> seg.getOrNull(2)?.let { meetupId ->
+            // El parseo vive en DeepLinkParser (puro, testeado). Todo /s/... se
+            // consume aquí (data=null) para no re-navegar en recreaciones.
+            if (uri.pathSegments.firstOrNull() == "s") {
+                DeepLinkParser.parse(uri.pathSegments) { uri.getQueryParameter(it) }?.let { parsed ->
+                    parsed.meetupInviteId?.let { id ->
                         com.meteomontana.android.domain.usecase.meetups.PendingMeetupInvite
-                            .set(meetupId, uri.getQueryParameter("i"))
-                        pendingDeepLink.value = DeepLinkTarget("meetup", meetupId)
+                            .set(id, parsed.meetupInviteToken)
                     }
-                    "e" -> seg.getOrNull(2)?.let { pendingDeepLink.value = DeepLinkTarget("school", it) }
-                    "v" -> {
-                        val school = seg.getOrNull(2); val line = seg.getOrNull(3)
-                        if (school != null && line != null)
-                            pendingDeepLink.value = DeepLinkTarget("via", "$school|$line")
-                    }
-                    // Perfil compartido: /s/u/{username o uid}.
-                    "u" -> seg.getOrNull(2)?.let { pendingDeepLink.value = DeepLinkTarget("user", it) }
-                    // Publicación del feed compartida: /s/p/{postId}.
-                    "p" -> seg.getOrNull(2)?.let { pendingDeepLink.value = DeepLinkTarget("feed_post", it) }
+                    pendingDeepLink.value = parsed.target
                 }
                 intent.data = null   // no re-navegar en recreaciones
                 return

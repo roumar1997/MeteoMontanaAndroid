@@ -37,20 +37,107 @@ fun BlocksSection(
     schoolLat: Double? = null,
     schoolLon: Double? = null,
     schoolName: String = "",
+    schoolStyle: String? = null,
     schoolId: String = "",
     viewModel: SchoolDetailViewModel? = null,
-    onMyProposals: () -> Unit = {}
+    onMyProposals: () -> Unit = {},
+    /** Va justo debajo del mapa, encima de PARKINGS (aproximaciones). */
+    contenidoTrasMapa: @Composable () -> Unit = {}
 ) {
     if (schoolLat == null || schoolLon == null || viewModel == null) return
+    // Foto de "Enviar piedra": se lee UNA vez al componer, y el mapa se encarga
+    // de abrir el flujo de proponer con ella.
+    // ESTADO, no valor fijo: ademas de la foto que llega desde la lista de
+    // escuelas, ahora se puede elegir una AQUI mismo (PROPONER -> "piedra desde
+    // una foto"), y el mapa reacciona al cambio para abrir el flujo.
+    // `remember` a secas, NO rememberSaveable: PhotoSeed no es de los tipos que
+    // Compose sabe guardar al rotar, y al intentarlo reventaba justo al cambiar
+    // la pantalla — el mapa dejaba de poder cerrarse (lo cazo Rodrigo).
+    // Si el sistema mata el proceso a mitad se pierde la foto elegida, que es
+    // exactamente lo que pasaba antes: no se empeora nada.
+    var photoSeed by androidx.compose.runtime.remember(schoolId) {
+        androidx.compose.runtime.mutableStateOf(
+            viewModel.takePhotoSeed()?.let {
+                com.meteomontana.android.ui.screens.detail.PhotoSeed(
+                    photoUri = android.net.Uri.parse(it.photoUri),
+                    lat = it.lat, lon = it.lon, aspect = it.aspect)
+            }
+        )
+    }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val borradores = androidx.compose.runtime.remember(ctx) {
+        com.meteomontana.android.ui.screens.detail.BoulderDraftStore(ctx)
+    }
+    var borradorPiedra by androidx.compose.runtime.remember(schoolId) {
+        androidx.compose.runtime.mutableStateOf(borradores.load(schoolId))
+    }
+    // Aqui la escuela YA se conoce: solo hace falta que la foto sepa donde se
+    // hizo. Nada de buscarla por cercania como en la lista de escuelas.
+    // Aviso de foto no valida: DIALOGO, no un mensajito abajo.
+    //
+    // Estaba como Toast y Rodrigo lo dijo comparando con iOS: "sale abajo un
+    // momento y listo". Si el aviso explica por que NO se ha creado nada, tiene
+    // que parar al usuario, no pasar de largo.
+    var avisoFoto by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    avisoFoto?.let { texto ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { avisoFoto = null },
+            title = { androidx.compose.material3.Text("No se puede usar esa foto") },
+            text = { androidx.compose.material3.Text(texto) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { avisoFoto = null }) {
+                    androidx.compose.material3.Text("ENTENDIDO")
+                }
+            }
+        )
+    }
+    // Aqui la escuela YA se conoce: solo hace falta que la foto sepa donde se
+    // hizo. Nada de buscarla por cercania como en la lista de escuelas.
+    val elegirFotoDePiedra = com.meteomontana.android.ui.components.rememberSelectorDeFoto { uri ->
+        if (uri != null) {
+            val donde = com.meteomontana.android.ui.components.readPhotoLocation(ctx, uri)
+            val km = donde?.let {
+                com.meteomontana.android.domain.util.Geo.haversineKm(
+                    it.lat, it.lon, schoolLat, schoolLon)
+            }
+            if (donde == null) {
+                avisoFoto = ctx.getString(com.meteomontana.android.R.string.photo_no_coords)
+            } else if (km != null &&
+                km > com.meteomontana.android.domain.util.PhotoPlacement.RADIO_ESCUELA_KM) {
+                // La piedra se coloca DONDE SE HIZO LA FOTO. Si la foto es de
+                // otro sitio, acabaria en el mapa de esta escuela a kilometros
+                // de ella. Quite este control al entrar desde la escuela
+                // pensando que "ya sabemos cual es" — y Rodrigo colo una foto de
+                // Valsain en Zarzalejo, a 32 km.
+                avisoFoto = "Esa foto se hizo a ${km.toInt()} km de $schoolName. " +
+                    "Elige una foto tomada en esta escuela."
+            } else {
+                photoSeed = com.meteomontana.android.ui.screens.detail.PhotoSeed(
+                    photoUri = uri,
+                    lat = donde.lat, lon = donde.lon,
+                    aspect = donde.cameraDegrees?.let {
+                        com.meteomontana.android.domain.util.PhotoPlacement.aspectFromCameraDirection(it)
+                    })
+            }
+        }
+    }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         SchoolMap(
             centerLat     = schoolLat,
             centerLon     = schoolLon,
             blocks        = blocks,
             schoolName    = schoolName,
+            schoolStyle   = schoolStyle,
             schoolId      = schoolId,
             viewModel     = viewModel,
-            onMyProposals = onMyProposals
+            photoSeed     = photoSeed,
+            onPickBoulderFromPhoto = elegirFotoDePiedra,
+            onPhotoSeedConsumed = { photoSeed = null },
+            borrador = borradorPiedra,
+            onGuardarBorrador = { d -> val con = d.copy(schoolId = schoolId); borradores.save(con); borradorPiedra = con },
+            onBorrarBorrador = { borradores.clear(schoolId); borradorPiedra = null },
+            onMyProposals = onMyProposals,
+            contenidoTrasMapa = contenidoTrasMapa
         )
     }
 }

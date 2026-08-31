@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.community
 
 import androidx.compose.foundation.clickable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -184,9 +184,9 @@ fun UserFeedSection(
     showTitle: Boolean = true,
     viewModel: UserFeedViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val moderation: ModerationViewModel = hiltViewModel()
-    val hiddenIds by moderation.hiddenIds.collectAsState()
+    val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
     var commentsPost by remember { mutableStateOf<FeedPost?>(null) }
     var reportPost by remember { mutableStateOf<FeedPost?>(null) }
     var deleteCandidate by remember { mutableStateOf<FeedPost?>(null) }

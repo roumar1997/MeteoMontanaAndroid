@@ -13,8 +13,12 @@ enum Cumbre {
     static let paper2  = dyn(0xF0EAD8, 0x211F19)
     static let ink     = dyn(0x1C1C1A, 0xECE7D8)
     static let ink2    = dyn(0x5A574F, 0xA8A397)
-    static let ink3    = dyn(0x8A8478, 0x6E6A5F)
-    static let rule    = dyn(0xD6D2C4, 0x2A281F)
+    // ink3 (pistas, captions) subido en los DOS temas: daba 3.35:1 en claro y
+    // 3.42:1 en oscuro, por debajo del mínimo legible de 4.5. Ahora ~5:1.
+    static let ink3    = dyn(0x6F6A5E, 0x8C8778)
+    // rule subido en oscuro (#2A281F daba 1.25:1): Cumbre no usa sombras, la
+    // silueta de cada tarjeta la da este borde de 1pt y se perdía.
+    static let rule    = dyn(0xD6D2C4, 0x3A382E)
     static let terra   = dyn(0xC2410C, 0xE0612B)
     static let terraBg = dyn(0xFDE4D3, 0x2A1A10)
     static let ok      = dyn(0x3F6B4A, 0x7DA068)
@@ -22,6 +26,33 @@ enum Cumbre {
     static let bad     = dyn(0x9A3412, 0xC9543B)
     static let rain    = dyn(0x2563C7, 0x5B8AE0)
     static let wind    = dyn(0x4A7C3F, 0x7D8A6A)
+
+    /// Fondo de los botones "negros de marca" (entrar con Google, guardar
+    /// vías, aprobar…). NO uses `ink` para esto: `ink` es color de TEXTO y en
+    /// oscuro se invierte a casi blanco, así que un botón con texto blanco
+    /// encima quedaba ILEGIBLE (Álvaro, 2026-08-24: revisión de modo oscuro).
+    /// Este se queda oscuro en los dos temas. Espejo de `InkButton` en Color.kt.
+    static let inkButton = dyn(0x1C1C1A, 0x2A281F)
+
+    /// El terracota cuando es RELLENO de un botón/chip con texto blanco encima.
+    ///
+    /// `terra` se aclara en oscuro para que el terracota-como-TEXTO se lea sobre
+    /// el fondo (5.19:1), pero eso deja el blanco encima en 3.55:1, por debajo
+    /// del mínimo legible. El relleno usa un terracota un punto más profundo:
+    /// blanco encima 4.55:1 y sigue destacando sobre el fondo. En claro es
+    /// EXACTAMENTE `terra`. Espejo de `TerraFill` en Color.kt.
+    ///
+    /// Regla: `terra` para texto y bordes, `terraFill` para fondos.
+    static let terraFill = dyn(0xC2410C, 0xC85018)
+
+    /// Radio de esquina para CONTROLES interactivos (botones, chips de filtro,
+    /// pestañas tipo mochila) — no para cards ni diálogos, esos se quedan
+    /// rectos a propósito (diferencia a Cumbre de una app iOS genérica).
+    /// Espejo de `CumbrePillShape` en Shape.kt. Decisión de Rodrigo, 2026-08-21.
+    static let pillRadius: CGFloat = 999
+    /// Radio suave para tarjetas de ESTADÍSTICA (casi cuadradas): una píldora
+    /// completa ahí se ve como un óvalo forzado. Espejo de `CumbreStatCardShape`.
+    static let statCardRadius: CGFloat = 14
 
     /// Color que se adapta a claro/oscuro automáticamente.
     static func dyn(_ light: UInt32, _ dark: UInt32) -> Color {

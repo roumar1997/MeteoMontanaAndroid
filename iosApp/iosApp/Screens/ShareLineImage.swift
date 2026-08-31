@@ -24,8 +24,16 @@ enum ShareLineImage {
     /// Punto de entrada: compone la imagen (o cae a texto) y presenta el share sheet.
     static func share(block: Block, line: BlockLine, schoolName: String?,
                       tickedIds: Set<String> = [], projectIds: Set<String> = [],
-                      sectorName: String? = nil) async {
-        if let image = await renderCard(block: block, line: line, schoolName: schoolName,
+                      sectorName: String? = nil,
+                      orientationBadge: String? = nil,
+                      setterGradeRef: String? = nil) async {
+        // C6: escuela + pared votada + grado del equipador si diverge.
+        let subtitleBits = [schoolName,
+                            orientationBadge.map { "PARED " + $0 },
+                            setterGradeRef.map { "equipador: " + $0 }]
+            .compactMap { $0 }.filter { !$0.isEmpty }
+        let headerSchool = subtitleBits.isEmpty ? schoolName : subtitleBits.joined(separator: "  ·  ")
+        if let image = await renderCard(block: block, line: line, schoolName: headerSchool,
                                         tickedIds: tickedIds, projectIds: projectIds) {
             let text = shareLineText(block: block, line: line, schoolName: schoolName,
                                      sectorName: sectorName, appWording: true)
@@ -65,7 +73,18 @@ enum ShareLineImage {
         let w: CGFloat = 1080, h: CGFloat = 1920, pad: CGFloat = 72
         let availW = w - 2 * pad
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 1   // px reales, no puntos (evita el 2x/3x del dispositivo)
+        // ESCALA 1, y no se sube. `w`×`h` ya son PÍXELES: 1080×1920 es la
+        // resolución nativa del formato historia, así que la escala 2 no daba
+        // nitidez donde se mira — daba 2160×3840, un mapa de bits de ~33 MB.
+        //
+        // Y ese era el fallo: las extensiones de compartir de iOS corren con un
+        // presupuesto de memoria muy justo, y WhatsApp e Instagram se cerraban
+        // sin compartir al recibir la imagen de una vía (el feed, a escala 1 y
+        // ~8 MB, funcionaba con el MISMO código — esa fue la pista). Entró con
+        // el commit de "shares iOS nítidos" (build 105) y se diagnosticó mal
+        // dos veces: ni el fichero PNG ni el UIActivityItemSource tenían nada
+        // que ver, era el tamaño.
+        format.scale = 1
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format)
 
         return renderer.image { rctx in
@@ -188,66 +207,18 @@ enum ShareLineImage {
     /// Dibuja las vías sobre la foto — espejo de `TopoPhotoView.drawSolidLine`,
     /// con grosores/badges escalados al tamaño de la card.
     private static func drawLines(_ cg: CGContext, lines: [TopoLineVM], in rect: CGRect) {
-        let s = rect.width / 360.0   // 360 ≈ ancho del Canvas en la app (puntos)
-        // Tramos compartidos → FRANJAS por vía; badges en abanico si coinciden.
-        let shared = TopoShared.sharedSegmentLines(lines.map { $0.points })
-        let startFan = TopoShared.fanOffsets(lines.map { $0.points.first }, spacing: (12 * 2 + 4) * s)
-        let endFan = TopoShared.fanOffsets(lines.map { $0.points.last }, spacing: (14 * 2 + 4) * s)
-        for (idx, line) in lines.enumerated() where !line.points.isEmpty {
-            let style = GradeColor.style(line.grade)
-            let stroke = UIColor(style.stroke)
-            var pts = line.points.map {
-                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-            }
-            pts[0].x += startFan[idx]
-            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
-            for run in TopoShared.splitRuns(line.points, shared: shared) {
-                let runPts = run.pts.map {
-                    CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-                }
-                guard runPts.count > 1 else { continue }
-                let path = UIBezierPath()
-                path.move(to: runPts[0])
-                for p in runPts.dropFirst() { path.addLine(to: p) }
-                path.lineJoinStyle = .round
-                if let stripe = TopoShared.stripeStyle(run, lineIdx: idx, scale: s) {
-                    path.lineCapStyle = .butt
-                    path.setLineDash(stripe.dash, count: stripe.dash.count, phase: stripe.phase)
-                } else {
-                    path.lineCapStyle = .round
-                    // ESTILO GUÍA: discontinua siempre (no tapa la roca).
-                    path.setLineDash(TopoShared.dash.map { $0 * s }, count: 2, phase: 0)
-                    // Línea blanca: contorno negro para verse sobre cualquier foto.
-                    if style.dark {
-                        path.lineWidth = 9 * s
-                        UIColor.black.withAlphaComponent(0.8).setStroke(); path.stroke()
-                    }
-                }
-                path.lineWidth = 5 * s
-                stroke.setStroke(); path.stroke()
-            }
+        // Pintor único (TopoPainter) sobre el backend CGContext. Trasladamos el
+        // contexto al origen del rect y pasamos rect.size → el pintor mapea desde
+        // (0,0). Estilo .share con base 360 (ancho del Canvas de la app).
+        let vias = lines.enumerated().map { (i, l) in
+            TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points)
         }
-        // 2ª pasada: BADGES encima de TODAS las líneas (si no, la línea de una
-        // vía posterior tapa los badges de las anteriores).
-        for (idx, line) in lines.enumerated() where !line.points.isEmpty {
-            let style = GradeColor.style(line.grade)
-            let stroke = UIColor(style.stroke)
-            var pts = line.points.map {
-                CGPoint(x: rect.minX + $0.x * rect.width, y: rect.minY + $0.y * rect.height)
-            }
-            pts[0].x += startFan[idx]
-            if pts.count > 1 { pts[pts.count - 1].x += endFan[idx] }
-            let textColor: UIColor = style.dark ? .black : .white
-            fillCircle(cg, pts[0], 12 * s, .white)
-            fillCircle(cg, pts[0], 9.5 * s, stroke)
-            drawCentered("\(idx + 1)", at: pts[0], size: 13 * s, color: textColor)
-            if let label = startLabel(line.startType), pts.count > 1 {
-                let last = pts[pts.count - 1]
-                fillCircle(cg, last, 14 * s, style.dark ? .black : .white)
-                fillCircle(cg, last, 11 * s, stroke)
-                drawCentered(label, at: last, size: 9 * s, color: textColor)
-            }
-        }
+        cg.saveGState()
+        cg.translateBy(x: rect.minX, y: rect.minY)
+        TopoPainter.paint(CGContextTarget(cg: cg), vias: vias, size: rect.size,
+                          style: .share(scale: rect.width / 360.0, badgeOuter: 12, badgeInner: 9.5,
+                                        badgeText: 13, startText: 9, fanStart: 12 * 2 + 4, fanEnd: 14 * 2 + 4))
+        cg.restoreGState()
     }
 
     // MARK: - Helpers de dibujo
@@ -278,17 +249,6 @@ enum ShareLineImage {
             r = CGRect(x: rect.minX, y: rect.midY - th / 2, width: rect.width, height: th)
         }
         (text as NSString).draw(in: r, withAttributes: attrs)
-    }
-
-    private static func startLabel(_ t: String?) -> String? {
-        switch t?.uppercased() {
-        case "PIE", "STAND": return "PIE"
-        case "SIT": return "SIT"
-        case "SEMI": return "SEM"
-        case "LANCE", "JUMP": return "LAN"
-        case "TRAV": return "TRV"
-        default: return nil
-        }
     }
 
     private static func mono(_ size: CGFloat, bold: Bool) -> UIFont {
@@ -322,6 +282,25 @@ enum ShareLineImage {
 
     // MARK: - Share sheet
 
+
+    /// Los items van al menú de compartir **tal cual**: la `UIImage` y el texto.
+    ///
+    /// Aquí hubo dos intentos de ser más listos y los dos salieron mal, así que
+    /// queda escrito para no repetirlos:
+    ///
+    ///  1. Volcar la imagen a un PNG temporal y compartir el FICHERO, para que
+    ///     no la recomprimieran a JPEG (salía algo borrosa). Efecto colateral:
+    ///     WhatsApp trata el fichero como documento y **descarta el texto**, con
+    ///     lo que el enlace para abrir la vía en Cumbre no llegaba nunca.
+    ///  2. Un `UIActivityItemSource` que decidía por destino —imagen a
+    ///     mensajería, fichero al resto—. Peor: al elegir WhatsApp o Instagram
+    ///     desde una vía, el menú se cerraba **sin compartir nada** (builds 120
+    ///     y 122). El feed no lo sufría, con el mismo código, y esa asimetría no
+    ///     se llegó a explicar.
+    ///
+    /// Se vuelve a lo que funcionó durante meses. Si algún día molesta la
+    /// nitidez, el camino no es tocar esto a ciegas: hace falta un Mac para
+    /// depurar la extensión de verdad.
     @MainActor
     private static func present(_ items: [Any]) {
         guard let scene = UIApplication.shared.connectedScenes
@@ -337,5 +316,21 @@ enum ShareLineImage {
             pop.permittedArrowDirections = []
         }
         top.present(vc, animated: true)
+    }
+}
+
+
+/// P7: base de los enlaces compartidos SEGUN EL BUILD. Debug -> staging
+/// (donde viven los datos de prueba); release -> prod. Abrir la app directa
+/// (Universal Links) solo funciona con el dominio de prod.
+enum ShareBase {
+    static var url: String {
+        #if DEBUG
+        return "https://meteomontanaapi-staging.up.railway.app"
+        #else
+        return BuildFlags.ciStaging
+            ? "https://meteomontanaapi-staging.up.railway.app"
+            : "https://api.climbingteams.com"
+        #endif
     }
 }

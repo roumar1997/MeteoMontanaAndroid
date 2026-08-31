@@ -27,7 +27,9 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let token = fcmToken else { return }
         Task {
-            try? await AppDependencies.shared.container.updateFcmToken.invoke(req: FcmTokenRequest(token: token))
+            await attempt("updateFcmToken") {
+                try await deps.updateFcmToken.invoke(req: FcmTokenRequest(token: token))
+            }
         }
     }
 
@@ -50,6 +52,8 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
             switch type {
             case "admin_reports":
                 ShareLinkRouter.shared.target = ShareLinkRouter.Target(openAdminReports: true)
+            case "admin_contributions":
+                ShareLinkRouter.shared.target = ShareLinkRouter.Target(openAdminContributions: true)
             case "user":
                 if let id, !id.isEmpty { ShareLinkRouter.shared.target = ShareLinkRouter.Target(userHandle: id) }
             case "meetup":
@@ -75,7 +79,7 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
             case "school", "school_detail":
                 if let id, !id.isEmpty {
                     Task {
-                        if let s = try? await AppDependencies.shared.container.getSchoolById.invoke(id: id) {
+                        if let s = await attempt("getSchoolById(push)", { try await deps.getSchoolById.invoke(id: id) }) {
                             ShareLinkRouter.shared.target = ShareLinkRouter.Target(school: s)
                         }
                     }

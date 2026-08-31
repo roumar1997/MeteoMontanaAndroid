@@ -132,6 +132,17 @@
     <string name="schools_title">Escuelas</string>
     <string name="schools_count">%d escuelas</string>
     <string name="schools_submit">+ Enviar escuela</string>
+    <string name="schools_submit_block">+ Enviar piedra</string>
+    <string name="schools_contribute">+ Aportar</string>
+    <string name="contribute_title">APORTAR AL CATÁLOGO</string>
+    <string name="contribute_block">Una piedra, desde una foto</string>
+    <string name="contribute_block_hint">La foto dice en qué escuela se hizo</string>
+    <string name="contribute_school">Una escuela nueva</string>
+    <string name="contribute_school_hint">Si el sitio no está en el catálogo</string>
+    <string name="photo_no_coords">Esta foto no llega con la ubicación, así que no podemos saber a qué escuela pertenece. Puedes proponer la piedra igualmente: entra en su escuela y usa «+ PROPONER» sobre el mapa.</string>
+    <string name="photo_no_school">La foto se hizo lejos de cualquier escuela del catálogo (%1$s). Si la escuela no existe todavía, puedes proponerla desde «Enviar escuela».</string>
+    <string name="photo_school_found">Esta foto se hizo en %1$s, a %2$s.</string>
+    <string name="photo_place_hint">Pulsa en el mapa donde está la piedra. Se abre centrado donde se hizo la foto; muévelo si no cae exacto.</string>
     <string name="schools_view_map">VER MAPA</string>
     <string name="schools_hide_map">OCULTAR MAPA</string>
     <string name="schools_filter_all">Todas</string>
@@ -230,7 +241,11 @@
     <string name="profile_my_proposals">Mis propuestas</string>
     <string name="profile_my_contributions">Mis contribuciones</string>
     <string name="profile_follow_requests">Solicitudes</string>
-    <string name="profile_add_block">+ AÑADIR BLOQUE</string>
+    <string name="profile_add_block">+ AÑADIR BLOQUE/VÍA</string>
+    <string name="profile_settings">Ajustes</string>
+    <string name="profile_section_account">Cuenta</string>
+    <string name="profile_section_activity">Mi actividad</string>
+    <string name="profile_section_prefs">Preferencias</string>
     <string name="profile_logout">Cerrar sesión</string>
     <string name="profile_delete_account">Eliminar cuenta</string>
     <string name="profile_delete_confirm">¿Seguro que quieres eliminar tu cuenta? Se borrarán todos tus datos. Esta acción no se puede deshacer.</string>
@@ -312,7 +327,7 @@
     <string name="meetup_detail_report_done">Denuncia enviada</string>
 
     <!-- Create meetup -->
-    <string name="create_meetup_title">Crear quedada</string>
+    <string name="create_meetup_title">Nueva quedada</string>
     <string name="create_meetup_name">Nombre de la quedada</string>
     <string name="create_meetup_school">Escuela</string>
     <string name="create_meetup_school_search">Buscar escuela…</string>
@@ -404,7 +419,7 @@
     <string name="block_delete_confirm">¿Eliminar este bloque? Se borrarán sus vías.</string>
 
     <!-- Add lines flow (edit boulder/wall) -->
-    <string name="add_lines_title">Editar piedra / muro</string>
+    <string name="add_lines_title">Editar piedra</string>
     <string name="add_lines_description">Edita \"%1$s\": corrige o añade vías, añade más fotos, reordena y ajusta el muro. Un admin lo revisará (o se publica directo si eres admin).</string>
     <string name="add_lines_wall_traced">✓ MURO TRAZADO (%1$d PUNTOS) · RE-TRAZAR</string>
     <string name="add_lines_wall_retrace">✎ RE-TRAZAR EL MURO EN EL MAPA</string>
@@ -428,6 +443,11 @@
     <string name="add_lines_existing_route">VÍA EXISTENTE</string>
     <string name="add_lines_new_route">NUEVA</string>
     <string name="add_lines_add_new_route">+ AÑADIR VÍA NUEVA</string>
+    <!-- Fila de vía PLEGADA en los editores (una sola ficha abierta a la vez). -->
+    <string name="via_sin_nombre">Sin nombre</string>
+    <string name="via_editar">Editar esta vía</string>
+    <string name="via_borrar">Borrar esta vía</string>
+    <string name="via_anadir_otra">AÑADIR OTRA +</string>
     <string name="add_lines_edit_lines_on_photo">✎ EDITAR LÍNEAS SOBRE LA FOTO</string>
     <string name="add_lines_draw_lines_on_photo">✎ DIBUJAR LÍNEAS SOBRE LA FOTO</string>
     <string name="add_lines_need_photo_note">Añade una foto a esta cara para poder dibujar las líneas.</string>
@@ -514,4 +534,8 @@
     <string name="share_school_prefix">Mira esta escuela de escalada en Cumbre:</string>
     <string name="share_meetup_prefix">¡Quedada para escalar!</string>
     <string name="share_download">Descarga la app:</string>
+    <string name="a11y_toggle_theme">Cambiar entre tema claro y oscuro</string>
+    <string name="a11y_fullscreen_map">Mapa a pantalla completa</string>
+    <string name="a11y_change_photo">Cambiar foto de perfil</string>
+    <string name="a11y_zoom_photo">Ampliar foto de perfil</string>
 </resources>

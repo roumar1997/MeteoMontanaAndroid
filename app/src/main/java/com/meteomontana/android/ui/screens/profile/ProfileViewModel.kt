@@ -141,6 +141,20 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Guarda SOLO el material. Los demas campos van a null y el servidor
+     * conserva los suyos, asi que esta hoja no puede pisar el nombre ni la bio.
+     */
+    fun saveGear(gearJson: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            runCatching {
+                updateMyProfile(com.meteomontana.android.data.api.dto.UpdateProfileRequest(gearJson = gearJson))
+            }
+            load()
+            onDone()
+        }
+    }
+
     /** Devuelve un entero comparable para ordenar grados ("6a"<"6b"<"6c"<"6a+"<"7a"…). */
     private fun gradeRank(g: String?): Int {
         if (g.isNullOrBlank()) return -1

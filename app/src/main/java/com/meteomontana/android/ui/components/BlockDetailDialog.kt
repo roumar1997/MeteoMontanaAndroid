@@ -1,11 +1,14 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +16,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -27,15 +34,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -49,6 +59,7 @@ import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import com.meteomontana.android.ui.theme.gradeChipStyle
 import com.meteomontana.android.ui.theme.gradeStyle
 import kotlinx.coroutines.launch
 
@@ -89,77 +100,288 @@ fun BlockDetailDialog(
     /** Sectores (ZONE) disponibles para "ASIGNAR SECTOR". null = no mostrar el botón. */
     availableSectors: List<Block>? = null,
     onAssignSector: ((sectorBlockId: String) -> Unit)? = null,
+    /** Ids de vías que caen en el filtro de grado (BLOCK_SEARCH_DESIGN.md §7).
+     *  null = sin filtro, nada se atenúa. */
+    gradeMatchingLineIds: Set<String>? = null,
     onDismiss: () -> Unit
 ) {
     var showLinePicker by remember { mutableStateOf(false) }
     val tickedLines = remember { mutableStateListOf<String>().apply { addAll(initiallyTicked) } }   // vías hechas
     val projectLines = remember { mutableStateListOf<String>().apply { addAll(initiallyProjects) } } // vías proyecto
-    // NOTA: NO sincronizamos ✓/P con el diario mientras la ficha está abierta.
-    // Se intentó (LaunchedEffect sobre initiallyTicked) y salió mal: el diario
-    // identifica vías POR NOMBRE → dos vías homónimas ("La ola" x2) se marcaban
-    // a la vez en vivo. El estado visual es del usuario; la carrera de guardado
-    // ya la resuelve el parámetro explícito nowDone de onTickLine.
+    // Si la ficha se abrió ANTES de que cargara el diario (la vista instantánea
+    // la abre muy rápido → salía desmarcada, #14/#15), FUSIONA las marcas que
+    // van llegando. Solo AÑADE por lineId (nunca quita: quitar es acción del
+    // usuario). Es seguro con homónimas porque las claves ya son lineIds, no
+    // nombres — el motivo por el que antes NO se sincronizaba desapareció al
+    // migrar el diario a lineId.
+    androidx.compose.runtime.LaunchedEffect(initiallyTicked) {
+        initiallyTicked.forEach { if (!tickedLines.contains(it)) tickedLines.add(it) }
+    }
+    androidx.compose.runtime.LaunchedEffect(initiallyProjects) {
+        initiallyProjects.forEach { if (!projectLines.contains(it)) projectLines.add(it) }
+    }
     val context = LocalContext.current
     val shareScope = rememberCoroutineScope()
+    // Votacion comunitaria (C2/C5): orientacion + sol/sombra + grado por consenso.
+    // Solo en piedras/sectores reales (no en propuestas pendientes).
+    val communityVm: CommunityVoteViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val orientationSummaries by communityVm.orientation.collectAsStateWithLifecycle()
+    val sunByPhoto by communityVm.sun.collectAsStateWithLifecycle()
+    val gradeSummary by communityVm.grade.collectAsStateWithLifecycle()
+    val communityError by communityVm.error.collectAsStateWithLifecycle()
+    var orientationTarget by remember { mutableStateOf<Int?>(null) }
+    var orientationOpen by remember { mutableStateOf(false) }
+    var gradeVoteLine by remember { mutableStateOf<com.meteomontana.android.domain.model.BlockLine?>(null) }
+    androidx.compose.runtime.LaunchedEffect(block.id, isProposal) {
+        if (!isProposal) {
+            communityVm.clearForBlock()
+            communityVm.loadOrientation(block.id)
+            communityVm.loadSun(block.id, null)
+        }
+    }
+    androidx.compose.runtime.LaunchedEffect(communityError) {
+        communityError?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            communityVm.consumeError()
+        }
+    }
+    fun orientationOf(photoIndex: Int?) =
+        orientationSummaries.firstOrNull { it.photoIndex == photoIndex }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }
     // "OPCIONES" plegado: la ficha ya tiene muchos botones; solo CÓMO LLEGAR
     // queda a la vista y el resto (editar vías, sector, eliminar) va dentro.
     var optionsOpen by remember { mutableStateOf(false) }
 
+    // El scroll del contenido, en una variable: hace falta para decidir cuándo
+    // se puede cerrar la hoja arrastrando (ver confirmValueChange).
+    val contenidoScroll = rememberScrollState()
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
+        // ARRASTRAR PARA CERRAR, solo desde arriba.
+        //
+        // La ficha es larga y su gesto de cierre competía con el scroll: al
+        // deslizar para leer, muchas veces se cerraba la hoja en vez de mover
+        // el contenido (reportado por Rodrigo). Ahora solo se deja cerrar
+        // cuando el contenido ya está arriba del todo — que es exactamente
+        // como se comporta iOS: si estás leyendo por la mitad, el dedo mueve
+        // la ficha, no la cierra. El ✕ y el botón atrás siguen cerrando
+        // siempre, así que no se pierde ninguna salida.
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { valor ->
+                valor != androidx.compose.material3.SheetValue.Hidden ||
+                    contenidoScroll.value == 0
+            }
+        ),
+        // El fondo lo pone cumbreSheetSurface (borde + canto de luz); si lo
+        // pintase el sheet, los taparía.
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = CumbreSheetShape,
         dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() }
     ) {
+        // La cabecera va FUERA del área que scrollea: en iOS el "Cerrar" se
+        // queda fijo arriba por mucho que bajes, para que puedas salir en
+        // cualquier momento. Aquí se iba con el contenido y había que subir
+        // del todo para encontrarlo.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.94f)   // tarjeta a pantalla (casi) completa, como el resto de sheets
+                .cumbreSheetSurface()
                 // Sin esto el teclado tapa el campo/botón de comentar una vía.
                 .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.md)
-                // Holgura abajo para que los últimos botones (p.ej. OPCIONES
-                // desplegado) queden por ENCIMA de la cápsula flotante de
-                // pestañas, que ahora está siempre visible y se dibuja sobre
-                // el contenido.
-                .padding(bottom = 100.dp)
         ) {
-            // Header
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            val (badgeColor, badgeLabel) = when {
+                isProposal              -> Color(0xFFF59E0B) to "PROPUESTA"
+                block.type == "PARKING" -> Color(0xFF1D6DD6) to "PARKING"
+                block.type == "ZONE"    -> Color(0xFF1FA84E) to "ZONA"
+                else                    -> Terra to "PIEDRA"
+            }
+            // Barra fija: Cerrar · Cómo llegar · Compartir · ⚙ Opciones.
+            // Espejo de la de iOS (Álvaro, 2026-08-24): estaban todas al fondo
+            // de la ficha y había que scrollear hasta abajo para usarlas.
+            val hayOpciones = !isProposal && (
+                (onAddLines != null && block.type == "BLOCK") ||
+                (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) ||
+                onEdit != null || onDelete != null)
+            val puedeCompartir = block.type == "BLOCK" && !isProposal && block.lines.isNotEmpty()
+            CumbreSheetHeader(
+                titulo = block.name,
+                onClose = onDismiss,
+                accion = {
+                    androidx.compose.material3.IconButton(onClick = {
+                        val uri = Uri.parse(
+                            "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}"
+                        )
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+                    }) {
+                        androidx.compose.material3.Icon(
+                            Icons.Outlined.Directions,
+                            contentDescription = stringResource(R.string.common_directions),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (puedeCompartir) {
+                        androidx.compose.material3.IconButton(onClick = {
+                            block.lines.firstOrNull()?.let { first ->
+                                val blockSector = availableSectors
+                                    ?.firstOrNull { z -> z.id == block.sectorBlockId }?.name
+                                shareScope.launch {
+                                    val badge = orientationOf(null)?.consensus
+                                        ?: communityVm.fetchOrientationConsensus(block.id)
+                                    shareVia(shareScope, context, block, first, schoolName,
+                                        tickedLines.toSet(), projectLines.toSet(), blockSector,
+                                        orientationBadge = badge)
+                                }
+                            }
+                        }) {
+                            androidx.compose.material3.Icon(
+                                Icons.Outlined.Share,
+                                contentDescription = stringResource(R.string.common_share),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (hayOpciones) {
+                        Box {
+                            androidx.compose.material3.IconButton(onClick = { optionsOpen = true }) {
+                                androidx.compose.material3.Icon(
+                                    Icons.Outlined.Settings,
+                                    contentDescription = "Opciones",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            androidx.compose.material3.DropdownMenu(
+                                expanded = optionsOpen,
+                                onDismissRequest = { optionsOpen = false },
+                                // Con el contenedor por defecto el menú salía
+                                // BLANCO, ajeno al resto de la app (Álvaro,
+                                // 2026-08-24). Papel de Cumbre + borde, como
+                                // cualquier otra superficie.
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                shape = androidx.compose.material3.MaterialTheme.shapes.small,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp, MaterialTheme.colorScheme.outline)
+                            ) {
+                                if (onAddLines != null && block.type == "BLOCK") {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = {
+                                            Text(if (block.lines.isEmpty()) stringResource(R.string.block_add_routes)
+                                                 else stringResource(R.string.block_edit_routes))
+                                        },
+                                        onClick = { optionsOpen = false; onAddLines() }
+                                    )
+                                }
+                                if (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = {
+                                            Text(if (block.sectorBlockId == null) stringResource(R.string.propose_assign_sector)
+                                                 else stringResource(R.string.propose_change_sector))
+                                        },
+                                        onClick = { optionsOpen = false; showSectorPicker = true }
+                                    )
+                                }
+                                if (onEdit != null) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("EDITAR") },
+                                        onClick = { optionsOpen = false; onEdit() }
+                                    )
+                                }
+                                if (onDelete != null) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("ELIMINAR", color = MaterialTheme.colorScheme.error) },
+                                        onClick = { optionsOpen = false; showDeleteConfirm = true }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            )
+
+            // Caras de la piedra, en el MISMO orden en que se pintan abajo. Se
+            // calcula aquí (y no dentro del scroll) porque las pestañas de
+            // salto necesitan conocerlas antes de que se dibuje el contenido.
+            val carasOrdenadas = remember(block, highlightVia) {
+                block.facesOrDerived().let { fs ->
+                    val viaName = highlightVia?.trim()
+                    if (viaName.isNullOrBlank()) fs
+                    else {
+                        val hit = fs.indexOfFirst { f ->
+                            f.lines.any { it.name.trim().equals(viaName, ignoreCase = true) }
+                        }
+                        if (hit > 0) listOf(fs[hit]) + fs.filterIndexed { i, _ -> i != hit } else fs
+                    }
+                }
+            }
+            // Dónde empieza cada cara dentro del scroll, para poder saltar.
+            val posicionDeCara = remember(block) { mutableStateMapOf<Int, Int>() }
+            // Cara visible ahora: la última cuyo inicio ya ha pasado por arriba.
+            val caraActual = posicionDeCara.entries
+                .filter { it.value <= contenidoScroll.value + 1 }
+                .maxByOrNull { it.value }?.key ?: 0
+
+            // Saltar de una cara a otra SIN scrollear. El scroll sigue igual:
+            // esto es un atajo, no un sustituto (petición de Rodrigo,
+            // 2026-08-16). Solo aparece si de verdad hay varias fotos.
+            if (carasOrdenadas.count { !it.photoPath.isNullOrBlank() } > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    carasOrdenadas.forEachIndexed { idx, cara ->
+                        if (!cara.photoPath.isNullOrBlank()) {
+                            MochilaCard(label = "FOTO ${idx + 1}", selected = idx == caraActual) {
+                                posicionDeCara[idx]?.let { y ->
+                                    shareScope.launch { contenidoScroll.animateScrollTo(y) }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .verticalScroll(contenidoScroll)
+                    .padding(horizontal = Spacing.md)
+                    // Holgura abajo para que los últimos botones (p.ej. OPCIONES
+                    // desplegado) queden por ENCIMA de la cápsula flotante de
+                    // pestañas, que ahora está siempre visible y se dibuja sobre
+                    // el contenido.
+                    .padding(bottom = 100.dp)
             ) {
-                val (badgeColor, badgeLabel) = when {
-                    isProposal              -> Color(0xFFF59E0B) to "PROPUESTA"
-                    block.type == "PARKING" -> Color(0xFF1D6DD6) to "PARKING"
-                    block.type == "ZONE"    -> Color(0xFF1FA84E) to "ZONA"
-                    else                    -> Terra to "PIEDRA"
+            Spacer(Modifier.height(Spacing.sm))
+            Text(badgeLabel, style = EyebrowTextStyle, color = badgeColor)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                block.name,
+                style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            // C2: orientacion votable de la piedra/sector entero + tira de sol.
+            if (!isProposal) {
+                Spacer(Modifier.height(Spacing.sm))
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    VotableChip(
+                        text = orientationOf(null)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTACION",
+                    ) { orientationTarget = null; orientationOpen = true }
+                    val votesTotal = orientationOf(null)?.votes?.values?.sum() ?: 0
+                    if (votesTotal > 0) Text(
+                        votesTotal.toString() + " votos",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(badgeColor)
-                        .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                ) {
-                    Text(badgeLabel, style = EyebrowTextStyle, color = Color.White)
-                }
-                Text(
-                    block.name,
-                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .clickable(onClick = onDismiss)
-                        .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                ) {
-                    Text("✕", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurface)
+                sunByPhoto[null]?.takeIf { sh -> sh.hours.isNotEmpty() }?.let { sun ->
+                    Spacer(Modifier.height(Spacing.sm))
+                    SunStrip(sun)
                 }
             }
 
@@ -178,13 +400,15 @@ fun BlockDetailDialog(
                             .background(Color(0xFF1FA84E))
                             .padding(horizontal = Spacing.sm, vertical = 2.dp)
                     ) {
-                        Text("SECTOR", style = EyebrowTextStyle, color = Color.White)
+                        // El sector, TODO dentro de la misma pastilla verde:
+                        // "SECTOR · ALUNECER", como en iOS. Antes la insignia
+                        // llevaba solo la palabra y el nombre iba suelto al
+                        // lado, y se leían como dos cosas distintas.
+                        Text(
+                            "SECTOR · " + (sectorName ?: "SIN NOMBRE").uppercase(),
+                            style = EyebrowTextStyle, color = Color.White
+                        )
                     }
-                    Text(
-                        sectorName ?: "(sector desconocido)",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
                 }
             }
 
@@ -205,31 +429,46 @@ fun BlockDetailDialog(
                         text = "Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
                     )
                 }
-                // Si venimos de pulsar una vía (deep-link del diario), su foto/cara
-                // va primero para "llevar a la foto correspondiente".
-                val orderedFaces = block.facesOrDerived().let { fs ->
-                    val viaName = highlightVia?.trim()
-                    if (viaName.isNullOrBlank()) fs
-                    else {
-                        val hit = fs.indexOfFirst { f ->
-                            f.lines.any { it.name.trim().equals(viaName, ignoreCase = true) }
-                        }
-                        if (hit > 0) listOf(fs[hit]) + fs.filterIndexed { i, _ -> i != hit } else fs
-                    }
-                }
+                // Si venimos de pulsar una vía (deep-link del diario), su cara va
+                // primero. El orden se calculó arriba, junto a las pestañas de
+                // salto, para que las dos cosas usen exactamente el mismo.
+                val orderedFaces = carasOrdenadas
                 orderedFaces.forEachIndexed { faceIdx, face ->
                     val facePhoto = face.photoPath
                     if (!facePhoto.isNullOrBlank()) {
-                        Spacer(Modifier.height(Spacing.sm))
+                        // Se anota dónde empieza esta cara para que su pestaña
+                        // sepa a qué altura saltar.
+                        Spacer(
+                            Modifier
+                                .height(Spacing.sm)
+                                .onGloballyPositioned {
+                                    posicionDeCara[faceIdx] = it.positionInParent().y.toInt()
+                                }
+                        )
                         if (orderedFaces.size > 1) {
-                            Text(
-                                "FOTO ${faceIdx + 1}",
-                                style = EyebrowTextStyle,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            val originalIdx = block.facesOrDerived().indexOf(face).takeIf { i -> i >= 0 } ?: faceIdx
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Text(
+                                    "FOTO ${faceIdx + 1}",
+                                    style = EyebrowTextStyle,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                // C2: cada cara de un muro vota su propia orientacion.
+                                if (!isProposal) VotableChip(
+                                    text = orientationOf(originalIdx)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTAR ESTA CARA",
+                                ) {
+                                    orientationTarget = originalIdx
+                                    orientationOpen = true
+                                    communityVm.loadSun(block.id, originalIdx)
+                                }
+                            }
                             Spacer(Modifier.height(Spacing.xs))
                         }
-                        TopoPhotoCanvas(
+                        // Visor con zoom y foco: en piedras con muchas vias
+                        // (el muro de Teverga tiene 13) es la unica forma de
+                        // distinguirlas a tamano de movil.
+                        TopoPhotoViewer(
                             photoUrl = facePhoto,
                             lines = face.lines.toTopoLines()
                         )
@@ -244,7 +483,13 @@ fun BlockDetailDialog(
                         Spacer(Modifier.height(Spacing.xs))
                         face.lines.forEachIndexed { idx, line ->
                             val lineGrade = line.grade
-                            val style = gradeStyle(lineGrade)
+                            val style = gradeChipStyle(lineGrade)
+                            // Filtro por grado (BLOCK_SEARCH_DESIGN.md §7): vías fuera de
+                            // la selección se atenúan, no se ocultan (contexto de la piedra).
+                            val gradeDimmed = gradeMatchingLineIds != null && line.id !in gradeMatchingLineIds
+                            Column(
+                                Modifier.graphicsLayer(alpha = if (gradeDimmed) 0.35f else 1f)
+                            ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -265,7 +510,13 @@ fun BlockDetailDialog(
                                     )
                                 }
                                 if (lineGrade != null) {
-                                    Text(
+                                    // C5: el grado es VOTABLE (chip discontinuo terra).
+                                    if (!isProposal && line.id.isNotBlank()) {
+                                        VotableChip(text = lineGrade) {
+                                            gradeVoteLine = line
+                                            communityVm.loadGrade(line.id)
+                                        }
+                                    } else Text(
                                         lineGrade,
                                         style = MaterialTheme.typography.labelMedium,
                                         color = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
@@ -278,17 +529,13 @@ fun BlockDetailDialog(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                if (line.name.isNotBlank()) {
-                                    Text(
-                                        line.displayName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
+                                // El NOMBRE ya no vive en esta fila: va debajo, a todo
+                                // ancho (ver más abajo). Aquí solo quedan los chips y las
+                                // acciones, que así nunca se mueven ni se salen.
+                                Spacer(Modifier.weight(1f))
                                 // Compartir esta vía/bloque (WhatsApp etc.): enlace que
                                 // abre la app directamente en esta piedra con la línea.
                                 if (!isProposal) {
-                                    Spacer(Modifier.weight(1f))
                                     androidx.compose.material3.Icon(
                                         Icons.Outlined.Share,
                                         contentDescription = "Compartir",
@@ -298,7 +545,20 @@ fun BlockDetailDialog(
                                             .clickable {
                                                 val sectorName = availableSectors
                                                     ?.firstOrNull { it.id == block.sectorBlockId }?.name
-                                                shareVia(shareScope, context, block, line, schoolName, tickedLines.toSet(), projectLines.toSet(), sectorName)
+                                                shareScope.launch {
+                                                // N10: los datos comunitarios se consultan AL
+                                                // compartir (best-effort, ~100ms) — el preload
+                                                // podia no haber llegado.
+                                                val badge = orientationOf(null)?.consensus
+                                                    ?: communityVm.fetchOrientationConsensus(block.id)
+                                                val setterRef = communityVm.fetchSetterGradeRef(line.id)
+                                                shareVia(
+                                                    shareScope, context, block, line, schoolName,
+                                                    tickedLines.toSet(), projectLines.toSet(), sectorName,
+                                                    orientationBadge = badge,
+                                                    setterGradeRef = setterRef
+                                                )
+                                            }
                                             }
                                             .padding(5.dp)
                                             .size(22.dp)
@@ -316,7 +576,7 @@ fun BlockDetailDialog(
                                                 .size(30.dp)
                                                 .clip(CircleShape)
                                                 .then(
-                                                    if (isProject) Modifier.background(Terra, CircleShape)
+                                                    if (isProject) Modifier.background(terraFillColor(), CircleShape)
                                                     else Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), CircleShape)
                                                 )
                                                 .clickable {
@@ -364,6 +624,18 @@ fun BlockDetailDialog(
                                     )
                                 }
                             }
+                            // NOMBRE (+ variante) a todo ancho, alineado con la
+                            // descripción y los comentarios: se lee entero por largo que
+                            // sea y las acciones de arriba quedan siempre accesibles.
+                            if (line.name.isNotBlank()) {
+                                Text(
+                                    line.displayName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
+                                )
+                            }
                             // Estrellas: valoración media + votar (si está habilitado)
                             if (onRateLine != null && !isProposal && block.type == "BLOCK") {
                                 LineStarsRow(
@@ -389,6 +661,7 @@ fun BlockDetailDialog(
                                     )
                                 }
                             }
+                            }
                         }
                     }
                 }
@@ -407,381 +680,81 @@ fun BlockDetailDialog(
             // Coordenadas
             Spacer(Modifier.height(Spacing.sm))
             Text(
-                "%.6f, %.6f".format(block.lat, block.lon),
+                // Locale.US y 5 decimales, como iOS. Con el idioma del móvil en
+                // español salía "40,538180" con COMA, y unas coordenadas con
+                // coma no se pueden pegar en Google Maps — que es exactamente
+                // para lo que están ahí. Cinco decimales bastan: es ~1 metro.
+                "%.5f, %.5f".format(java.util.Locale.US, block.lat, block.lon),
                 style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(Modifier.height(Spacing.md))
 
-            // Botón CÓMO LLEGAR (Google Maps) — disponible para cualquier tipo
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Terra)
-                    .clickable {
-                        val uri = Uri.parse(
-                            "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}"
-                        )
-                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                    }
-                    .padding(vertical = Spacing.md),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("→ ${stringResource(R.string.common_directions)}", style = EyebrowTextStyle, color = Color.White)
-            }
-
-            // Desplegable "OPCIONES": agrupa editar vías / cambiar sector /
-            // editar (admin) / eliminar para no apilar 4 botones.
-            val hasOptions = !isProposal && (
-                (onAddLines != null && block.type == "BLOCK") ||
-                (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) ||
-                onEdit != null || onDelete != null)
-            if (hasOptions) {
-                Spacer(Modifier.height(Spacing.sm))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .clickable { optionsOpen = !optionsOpen }
-                        .padding(horizontal = Spacing.md, vertical = Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("OPCIONES", style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f))
-                    Text(if (optionsOpen) "▴" else "▾",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelLarge)
-                }
-            }
-
-            // Botón editor por cara (corregir/repintar/añadir + cambiar foto) —
-            // solo para BLOCK y si el caller lo permite.
-            if (optionsOpen && onAddLines != null && block.type == "BLOCK" && !isProposal) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, Terra, RoundedCornerShape(2.dp))
-                        .clickable(onClick = onAddLines)
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(if (block.lines.isEmpty()) stringResource(R.string.block_add_routes) else stringResource(R.string.block_edit_routes),
-                        style = EyebrowTextStyle, color = Terra)
-                }
-            }
-
-            // Botón "+ ASIGNAR / CAMBIAR SECTOR" — BLOCK si la escuela tiene algún
-            // sector. Si ya tiene → "CAMBIAR SECTOR" (el picker muestra los demás;
-            // si no hay otro, lo avisa). El backend sobrescribe el sector al aprobar.
-            if (optionsOpen && onAssignSector != null && block.type == "BLOCK" && !isProposal
-                    && !availableSectors.isNullOrEmpty()) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, Terra, RoundedCornerShape(2.dp))
-                        .clickable { showSectorPicker = true }
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        if (block.sectorBlockId == null) stringResource(R.string.propose_assign_sector) else stringResource(R.string.propose_change_sector),
-                        style = EyebrowTextStyle, color = Terra
-                    )
-                }
-            }
-            // (El antiguo botón "✎ CORREGIR VÍA" por vía se quitó: el editor por
-            // cara de arriba ("EDITAR / CORREGIR VÍAS") ya corrige las existentes.)
-
-            // Botón "EDITAR" — admin: mover posición, renombrar, editar líneas
-            if (optionsOpen && onEdit != null && !isProposal) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(2.dp))
-                        .clickable(onClick = onEdit)
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("✎ EDITAR", style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.onBackground)
-                }
-            }
-
-            // Botón "BORRAR" — solo si el caller lo permite (admins) y no es propuesta
-            if (optionsOpen && onDelete != null && !isProposal) {
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(2.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))
-                        .clickable { showDeleteConfirm = true }
-                        .padding(vertical = Spacing.md),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("🗑 BORRAR", style = EyebrowTextStyle,
-                        color = MaterialTheme.colorScheme.error)
-                }
+            // Cómo llegar, Compartir y Opciones viven ARRIBA, en la barra fija
+            // junto a Cerrar (ver accionesFicha) — paridad con BlockInfoSheet de
+            // iOS. Antes estaban aquí abajo, al final de una ficha larga.
             }
         }
     }
 
-    // Selector de vía a corregir
-    if (showLinePicker && onEditLine != null) {
+    // Selector de via a corregir
+    // ── C2: diálogo de votar orientación ──────────────────────────────────
+    if (orientationOpen) {
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showLinePicker = false },
-            title = { Text("Elige la vía a corregir") },
-            text = {
-                Column {
-                    block.lines.forEachIndexed { idx, line ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable {
-                                    showLinePicker = false
-                                    onEditLine(line)
-                                }
-                                .padding(vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            Text("${idx + 1}.",
-                                style = MaterialTheme.typography.titleMedium)
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(line.displayName,
-                                    style = MaterialTheme.typography.bodyLarge)
-                                Text(
-                                    listOfNotNull(line.grade, line.startType?.toString())
-                                        .joinToString(" · "),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showLinePicker = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        )
-    }
-
-    // Dialog de confirmación de borrado
-    if (showDeleteConfirm && onDelete != null) {
-        val typeLabel = when (block.type) {
-            "PARKING" -> "parking"
-            "ZONE"    -> "sector"
-            else      -> "piedra"
-        }
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("¿Borrar este $typeLabel?") },
-            text = {
-                Text(
-                    if (block.type == "BLOCK")
-                        "Se borrará \"${block.name}\" y todas sus vías. Esta acción no se puede deshacer."
-                    else
-                        "Se borrará \"${block.name}\". Esta acción no se puede deshacer."
-                )
-            },
+            onDismissRequest = { orientationOpen = false },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    showDeleteConfirm = false
-                    onDelete()
-                }) {
-                    Text("SÍ, BORRAR", color = MaterialTheme.colorScheme.error)
+                androidx.compose.material3.TextButton(onClick = { orientationOpen = false }) {
+                    Text("CERRAR", style = EyebrowTextStyle, color = Terra)
                 }
             },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(stringResource(R.string.common_cancel))
+            containerColor = MaterialTheme.colorScheme.surface,
+            text = {
+                OrientationVoteContent(
+                    summary = orientationOf(orientationTarget)
+                ) { aspect ->
+                    communityVm.voteOrientation(block.id, orientationTarget, aspect)
                 }
             }
         )
+    }
+
+    // ── C5: diálogo de votar grado ────────────────────────────────────────
+    gradeVoteLine?.let { gl ->
+        val canVote = tickedLines.contains(gl.id) || projectLines.contains(gl.id)
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { gradeVoteLine = null },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { gradeVoteLine = null }) {
+                    Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            text = {
+                GradeVoteContent(summary = gradeSummary, canVote = canVote) { g ->
+                    communityVm.voteGrade(gl.id, g)
+                }
+            }
+        )
+    }
+
+    if (showLinePicker && onEditLine != null) {
+        BlockLinePickerDialog(block,
+            onPick = { showLinePicker = false; onEditLine(it) },
+            onDismiss = { showLinePicker = false })
+    }
+
+    // Dialog de confirmacion de borrado
+    if (showDeleteConfirm && onDelete != null) {
+        BlockDeleteConfirmDialog(block,
+            onConfirm = { showDeleteConfirm = false; onDelete() },
+            onDismiss = { showDeleteConfirm = false })
     }
 
     // Picker de sector para "ASIGNAR SECTOR"
     if (showSectorPicker && onAssignSector != null && !availableSectors.isNullOrEmpty()) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showSectorPicker = false },
-            title = { Text("Elegir sector") },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "El admin revisará la propuesta. Si se aprueba, esta piedra quedará asignada al sector elegido.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(Spacing.sm))
-                    // Excluye el sector actual: solo tiene sentido cambiar a otro.
-                    val otherSectors = availableSectors.filter { it.id != block.sectorBlockId }
-                    if (otherSectors.isEmpty()) {
-                        Text(
-                            "Esta escuela solo tiene este sector. Crea otro con \"+ PROPONER → SECTOR\" para poder cambiarlo.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    otherSectors.forEach { sect ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable {
-                                    showSectorPicker = false
-                                    onAssignSector(sect.id)
-                                }
-                                .padding(vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(Color(0xFF1FA84E))
-                                    .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                            ) {
-                                Text("ZONA", style = EyebrowTextStyle, color = Color.White)
-                            }
-                            Spacer(Modifier.padding(horizontal = Spacing.xs))
-                            Text(sect.name, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showSectorPicker = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        )
-    }
-}
-
-/**
- * Fila de 5 estrellas tocables para valorar una vía.
- * Muestra la media de votos y permite al usuario dar/cambiar su valoración.
- */
-@Composable
-private fun LineStarsRow(
-    lineId: String,
-    avgStars: Float?,
-    myStars: Int,
-    onRate: (Int) -> Unit
-) {
-    // Estilo Google Play: las estrellas muestran la MEDIA (amarillo), y son
-    // tocables para votar. Tu toque se ve al instante (optimista) y luego el
-    // dato refrescado recalcula la media.
-    var pending by remember(lineId) { mutableStateOf<Int?>(null) }
-    androidx.compose.runtime.LaunchedEffect(avgStars, myStars) { pending = null }
-    val avgRounded = avgStars?.let { Math.round(it) } ?: 0
-    val shown = pending ?: avgRounded
-    val amber = Color(0xFFF59E0B)
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        modifier = Modifier.padding(start = 26.dp, top = 2.dp, bottom = 4.dp)
-    ) {
-        for (i in 1..5) {
-            val filled = i <= shown
-            Text(
-                if (filled) "★" else "☆",
-                style = MaterialTheme.typography.titleLarge,
-                color = if (filled) amber else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable {
-                        val newStars = if (myStars == i) 0 else i   // re-tocar tu voto → quitarlo
-                        pending = newStars.takeIf { it > 0 }
-                        onRate(newStars)
-                    }
-            )
-        }
-        // Media numérica + marca discreta de tu voto.
-        if (avgStars != null && avgStars > 0f) {
-            Text(
-                "%.1f".format(avgStars),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
-        if (myStars > 0) {
-            Text(
-                "· tu voto ${myStars}★",
-                style = MaterialTheme.typography.labelSmall,
-                color = amber,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
-    }
-}
-
-/**
- * Comparte una vía: intenta generar la IMAGEN (foto + líneas dibujadas, formato
- * historia) para que en el menú salga Instagram/WhatsApp con la foto ya adjunta;
- * si la vía no tiene foto o dibujo, cae al compartir de texto de siempre.
- * Descargar la foto es `suspend`, por eso se lanza en una corrutina.
- */
-private fun shareVia(
-    scope: kotlinx.coroutines.CoroutineScope,
-    context: android.content.Context,
-    block: Block,
-    line: com.meteomontana.android.domain.model.BlockLine,
-    schoolName: String,
-    tickedIds: Set<String>,
-    projectIds: Set<String>,
-    sectorName: String?
-) {
-    scope.launch {
-        val shared = runCatching {
-            com.meteomontana.android.ui.share.shareLineAsImage(
-                context, block, line, schoolName, tickedIds, projectIds, sectorName
-            )
-        }.getOrDefault(false)
-        if (!shared) shareLine(context, block, line, schoolName, sectorName)
-    }
-}
-
-/** Comparte una vía/bloque: texto según disciplina + enlace que abre la app. */
-private fun shareLine(
-    context: android.content.Context,
-    block: Block,
-    line: com.meteomontana.android.domain.model.BlockLine,
-    schoolName: String,
-    sectorName: String?
-) {
-    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "vía" else "bloque"
-    val article = if (kind == "vía") "esta" else "este"
-    val grade = line.grade?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
-    val where = buildString {
-        append(block.name)
-        if (schoolName.isNotBlank()) append(" · ").append(schoolName)
-        if (!sectorName.isNullOrBlank()) append(" · ").append(sectorName)
-    }
-    val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
-    val link = "${base}s/v/${block.schoolId}/${line.id}"
-    val text = "🧗 Mira $article $kind: «${line.name}»$grade\n" +
-        "📍 $where\n" +
-        "👉 Míralo en Cumbre (foto con la línea dibujada):\n" +
-        link
-    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(android.content.Intent.EXTRA_TEXT, text)
-    }
-    runCatching {
-        context.startActivity(android.content.Intent.createChooser(intent, "Compartir $kind"))
+        BlockSectorPickerDialog(block, availableSectors,
+            onPick = { showSectorPicker = false; onAssignSector(it) },
+            onDismiss = { showSectorPicker = false })
     }
 }

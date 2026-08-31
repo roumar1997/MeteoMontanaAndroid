@@ -15,7 +15,10 @@ data class JournalSessionDto(
     val createdAt: String,
     val discipline: String = "BOULDER",
     val lineId: String? = null,
-    val status: String = "DONE"      // DONE | PROJECT
+    val status: String = "DONE",     // DONE | PROJECT
+    // Estilo de ascensión, independientes entre sí (Rodrigo, 2026-08-21).
+    val aVista: Boolean = false,
+    val alFlash: Boolean = false
 )
 
 @Serializable
@@ -29,8 +32,16 @@ data class CreateJournalRequest(
     val date: String,
     val discipline: String? = null,  // BOULDER (bloque) / ROUTE (vía)
     val lineId: String? = null,      // id estable de la vía marcada
-    val status: String? = null       // DONE | PROJECT; default DONE si null
+    val status: String? = null,      // DONE | PROJECT; default DONE si null
+    // No-nulos (a diferencia de status/discipline): así el init generado
+    // para Swift no expone KotlinBoolean?, que es incómodo de construir
+    // desde las apps — false es un default seguro (Rodrigo, 2026-08-21).
+    val aVista: Boolean = false,
+    val alFlash: Boolean = false
 )
+
+@Serializable
+data class UpdateJournalStyleRequest(val aVista: Boolean, val alFlash: Boolean)
 
 @Serializable
 data class JournalStatsDto(

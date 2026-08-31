@@ -10,7 +10,7 @@ import com.meteomontana.android.domain.model.Submission
 interface AdminRepository {
     suspend fun getStats(): AdminStats
     suspend fun getPendingSubmissions(): List<Submission>
-    suspend fun getPendingContributions(): List<Contribution>
+    suspend fun getPendingContributions(status: String? = null): List<Contribution>
     suspend fun getLogs(limit: Int = 100): List<AdminLog>
     suspend fun approveSubmission(id: String): Submission
     suspend fun rejectSubmission(id: String, reason: String?): Submission
@@ -19,4 +19,6 @@ interface AdminRepository {
     suspend fun sendPush(targetUid: String?, title: String, body: String): AdminPushResult
     suspend fun getPendingReports(): List<MeetupReport>
     suspend fun resolveReport(id: String, action: String): MeetupReport
+    /** Admin: mueve la escuela a una posición nueva. */
+    suspend fun moveSchool(schoolId: String, lat: Double, lon: Double)
 }

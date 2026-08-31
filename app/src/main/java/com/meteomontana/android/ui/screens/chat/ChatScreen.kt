@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.chat
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,7 +45,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,9 +80,30 @@ fun ChatScreen(
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     var text by remember { mutableStateOf("") }
+
+    // Bajar al mensaje nuevo.
+    //
+    // `reverseLayout` ancla lo más reciente abajo al ABRIR el chat, pero no
+    // mueve nada después: si estabas leyendo hacia arriba y escribías, tu
+    // propio mensaje se quedaba fuera de la vista y había que bajar a mano
+    // para verlo enviado (reportado por Rodrigo). Con la lista invertida, el
+    // índice 0 es el último mensaje.
+    //
+    // Al MÍO se baja siempre —acabas de escribirlo, quieres verlo salir—; al
+    // ajeno, solo si ya estabas abajo: si no, te arrancaría de donde estás
+    // leyendo cada vez que llega algo.
+    val ultimo = state.messages.lastOrNull()
+    androidx.compose.runtime.LaunchedEffect(ultimo?.id) {
+        if (ultimo == null) return@LaunchedEffect
+        val miUid = state.myUid ?: state.myProfile?.uid
+        val esMio = ultimo.fromUid == miUid
+        if (esMio || listState.firstVisibleItemIndex <= 1) {
+            listState.animateScrollToItem(0)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)

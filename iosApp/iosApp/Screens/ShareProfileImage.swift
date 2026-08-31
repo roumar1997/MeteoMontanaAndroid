@@ -29,7 +29,7 @@ enum ShareProfileImage {
                      boulders: boulders, routes: routes, schools: schools)
         }
         let text = "Perfil de \(displayLabel) en Cumbre:\n"
-            + "https://api.climbingteams.com/s/u/\(handle)"
+            + "\(ShareBase.url)/s/u/\(handle)"
         await present([image, text])
     }
 
@@ -184,6 +184,12 @@ enum ShareProfileImage {
     private static func serif(_ size: CGFloat) -> UIFont {
         UIFont(name: "SourceSerif4-Bold", size: size) ?? .systemFont(ofSize: size, weight: .bold)
     }
+
+
+    /// Los items van al menú de compartir **tal cual**: la `UIImage` y el texto.
+    /// Ver la nota larga en `ShareLineImage.present` — hubo dos intentos de
+    /// afinar la entrega (fichero PNG, y un `UIActivityItemSource` por destino)
+    /// y los dos rompieron el compartir. No repetirlos sin un Mac delante.
 
     @MainActor
     private static func present(_ items: [Any]) {

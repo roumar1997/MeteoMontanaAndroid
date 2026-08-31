@@ -91,7 +91,11 @@ final class SchoolListViewModel: ObservableObject {
         }
     }
 
-    var styles: [String] { uniqueValues(schools.map { $0.style }) }
+    // Estilos combinados ("Bloque,Vía") se descomponen en sus valores
+    // individuales — el filtro no debe ofrecer la combinación como su propia
+    // opción, solo Vía / Bloque, cada una recogiendo también las escuelas
+    // mixtas (ver `matchesStyle`).
+    var styles: [String] { uniqueValues(schools.flatMap { ($0.style ?? "").split(separator: ",").map { String($0) } }) }
     // Granito, Caliza y Arenisca primero (las mas buscadas); el resto alfabetico.
     var rocks: [String] {
         let all = uniqueValues(schools.map { $0.rockType })
@@ -108,7 +112,36 @@ final class SchoolListViewModel: ObservableObject {
     }
     func clearCompare() { compareSelection.removeAll() }
 
+    // MEMOIZADO: es propiedad calculada y SwiftUI la evalúa en cada pasada de
+    // layout (prefetch de la lazy list incluido) — cada pasada recorría las
+    // 191 escuelas KOTLIN (puentes ObjC + GC). Con la firma de entradas solo
+    // se recalcula cuando cambia algo de verdad.
+    private var filteredCache: (sig: String, list: [School])? = nil
     var filtered: [School] {
+        // En pasos: 14 elementos en una expresión saturan el type-checker.
+        var parts: [String] = []
+        parts.append(query)
+        parts.append(style ?? "")
+        parts.append(rock ?? "")
+        parts.append(String(maxDistanceKm ?? -1))
+        parts.append(String(describing: showMode))
+        parts.append(String(describing: sortBy))
+        parts.append(String(rangeMode))
+        parts.append(String(schools.count))
+        parts.append(String(scores.count))
+        parts.append(String(rangeScores.count))
+        parts.append(String(favoriteIds.count))
+        parts.append(String(savedSchoolsList.count))
+        parts.append(String(userLat ?? 0))
+        parts.append(String(userLon ?? 0))
+        let sig = parts.joined(separator: "|")
+        if let c = filteredCache, c.sig == sig { return c.list }
+        let list = computeFiltered()
+        filteredCache = (sig, list)
+        return list
+    }
+
+    private func computeFiltered() -> [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
         // catálogo no está en caché (sin red, primera vez), las sintetizamos
@@ -118,7 +151,8 @@ final class SchoolListViewModel: ObservableObject {
             base = savedSchoolsList.map { sv in
                 schools.first { $0.id == sv.id }
                     ?? School(id: sv.id, name: sv.name, location: nil, region: sv.region,
-                              style: nil, rockType: sv.rockType, lat: sv.lat, lon: sv.lon, source: nil)
+                              style: nil, rockType: sv.rockType, lat: sv.lat, lon: sv.lon, source: nil,
+                              country: "ES")
             }
         } else {
             base = schools
@@ -132,7 +166,7 @@ final class SchoolListViewModel: ObservableObject {
             }
         } else {
             list = base.filter { s in
-                (style == nil || s.style?.caseInsensitiveCompare(style!) == .orderedSame)
+                (style == nil || matchesStyle(s.style, style!))
                 && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
             }
             // Distancia (solo si hay ubicación y límite elegido). En modo
@@ -148,22 +182,26 @@ final class SchoolListViewModel: ObservableObject {
             case .saved: break   // `base` ya está restringido a las guardadas
             }
         }
-        // Orden.
+        // Orden DECORATE-SORT: la clave se calcula UNA vez por escuela (cada
+        // acceso a un objeto Kotlin cruza el puente ObjC; hacerlo dentro del
+        // comparador eran ~3.000 cruces por orden).
         switch sortBy {
         case .score:
-            // Modo tramo → ordena por score combinado de los días elegidos.
             if rangeMode {
-                return list.sorted { (rangeScores[$0.id]?.combinedScore ?? -1) > (rangeScores[$1.id]?.combinedScore ?? -1) }
+                let keyed = list.map { ($0, rangeScores[$0.id]?.combinedScore ?? -1) }
+                return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
             }
-            return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+            let keyed = list.map { ($0, scores[$0.id]?.todayScore ?? -1) }
+            return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
         case .distance:
             guard let la = userLat, let lo = userLon else {
-                return list.sorted { (scores[$0.id]?.todayScore ?? -1) > (scores[$1.id]?.todayScore ?? -1) }
+                let keyed = list.map { ($0, scores[$0.id]?.todayScore ?? -1) }
+                return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
             }
-            return list.sorted {
-                Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon)
-                < Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $1.lat, lon2: $1.lon)
+            let keyed = list.map { s -> (School, Double) in
+                (s, Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: s.lat, lon2: s.lon))
             }
+            return keyed.sorted { $0.1 < $1.1 }.map { $0.0 }
         }
     }
 
@@ -320,19 +358,37 @@ final class SchoolListViewModel: ObservableObject {
         for chunk in stride(from: 0, to: ids.count, by: 50) {
             let slice = Array(ids[chunk..<min(chunk + 50, ids.count)])
             guard let batch = try? await getTodayScores.invoke(ids: slice) else { continue }
-            for s in batch { scores[s.id] = s }
+            // UNA publicación por lote (no por escuela): cada escritura de un
+            // @Published reordena y re-difea la lista ENTERA de 191 filas —
+            // ~200 seguidas atascaban el hilo principal >5s → watchdog
+            // 0x8BADF00D (los cierres de jul-2026).
+            var acc = scores
+            for s in batch { acc[s.id] = s }
+            scores = acc
         }
         // Offline (o ids que la red no devolvió): rellenar con el forecast
         // cacheado de cada escuela guardada/visitada, para que la lista pinte el
         // score guardado en vez de "—". El detalle ya lo mostraba (imagen 2).
         let container = AppDependencies.shared.container
-        for id in ids where scores[id] == nil {
-            if let s = try? await container.cachedTodayScore(schoolId: id) { scores[id] = s }
+        var acc = scores
+        for id in ids where acc[id] == nil {
+            if let s = try? await container.cachedTodayScore(schoolId: id) { acc[id] = s }
         }
+        if acc.count != scores.count { scores = acc }
     }
 
     private func uniqueValues(_ raw: [String?]) -> [String] {
         Array(Set(raw.compactMap { $0 }.filter { !$0.isEmpty })).sorted()
+    }
+
+    // Una escuela "Bloque,Vía" tiene que salir al filtrar por Vía Y al
+    // filtrar por Bloque — mismo criterio que `hasStyle` en el backend
+    // (GetSchoolsUseCase.java).
+    private func matchesStyle(_ schoolStyle: String?, _ wanted: String) -> Bool {
+        guard let schoolStyle else { return false }
+        return schoolStyle.split(separator: ",").contains {
+            $0.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(wanted) == .orderedSame
+        }
     }
 }
 
@@ -343,13 +399,20 @@ struct SchoolListView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: 0, pinnedViews: []) {
+                // VStack NO perezoso a propósito: las 6 muertes por watchdog
+                // (jul-2026) ocurrieron DENTRO de la maquinaria de LazyVStack
+                // (prefetch, placement, motionVectors) recolocando estas ~191
+                // filas al reordenar/filtrar. Componerlas todas cuesta ~decenas
+                // de ms en Release y elimina esa maquinaria entera (mismo
+                // movimiento «piedras fluidas» que en Android).
+                VStack(spacing: 0) {
                     TopIconsRow(unreadCount: vm.unreadNotifications,
                                 chatUnread: vm.unreadChats,
                                 onNotificationsClosed: { Task { await vm.refreshUnread() } })
-                    HeaderEscuelas(count: vm.loading ? nil : vm.schools.count)
+                    HeaderEscuelas(count: vm.loading ? nil : vm.schools.count,
+                                   onSubmitBlockPhoto: { eligiendoFoto = true })
                     SearchField(text: $vm.query)
-                    if !viaHits.isEmpty && vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
+                    if vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
                         viaHitsSection
                     }
 
@@ -358,7 +421,7 @@ struct SchoolListView: View {
                         hintKey: "schools_map",
                         text: "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
                     )
-                    MapToggleAndPanel(vm: vm, onOpen: { navSchool = $0 })
+                    MapToggleAndPanel(vm: vm, onOpen: { navTarget = SchoolNavTarget(school: $0, via: nil) })
 
                     // Hint de filtros — justo antes de la barra de filtros
                     FirstTimeHint(
@@ -402,7 +465,7 @@ struct SchoolListView: View {
                                 )
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    if vm.compareSelection.isEmpty { navSchool = school }
+                                    if vm.compareSelection.isEmpty { navTarget = SchoolNavTarget(school: school, via: nil) }
                                     else { vm.toggleCompare(school.id) }
                                 }
                                 .onLongPressGesture(minimumDuration: 0.35) { vm.toggleCompare(school.id) }
@@ -414,18 +477,21 @@ struct SchoolListView: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(item: $navSchool) { SchoolDetailView(school: $0, openVia: navVia) }
-            .onChange(of: vm.query) { _, q in
-                viaSearchTask?.cancel()
-                let trimmed = q.trimmingCharacters(in: .whitespaces)
-                guard trimmed.count >= 2 else { viaHits = []; return }
-                viaSearchTask = Task {
-                    try? await Task.sleep(nanoseconds: 350_000_000)
-                    guard !Task.isCancelled else { return }
-                    let hits = (try? await AppDependencies.shared.container.schoolApi.searchLines(query: trimmed)) ?? []
-                    if !Task.isCancelled { viaHits = hits }
+            .navigationDestination(item: $navTarget) { SchoolDetailView(school: $0.school, openVia: $0.via) }
+            .overlay {
+                if eligiendoFoto {
+                    SubmitBlockPhotoFlow(
+                        schools: vm.schools,
+                        onOpenSchool: { id in
+                            eligiendoFoto = false
+                            if let s = vm.schools.first(where: { $0.id == id }) {
+                                navTarget = SchoolNavTarget(school: s, via: nil)
+                            }
+                        },
+                        onDismiss: { eligiendoFoto = false })
                 }
             }
+            .onChange(of: vm.query) { _, _ in dispatchViaSearch() }
             .overlay(alignment: .bottom) {
                 if vm.compareSelection.count >= 1 {
                     CompareBar(count: vm.compareSelection.count,
@@ -449,23 +515,92 @@ struct SchoolListView: View {
     }
 
     @State private var showCompare = false
-    @State private var navSchool: School?
+    /// Destino de navegación: escuela + vía EN EL MISMO valor. Antes eran dos
+    /// @State sueltos y `navigationDestination(item:)` captura su closure ANTES
+    /// de que el body se reevalúe: el primer toque construía el detalle con la
+    /// vía TODAVÍA nil (abría la escuela a secas) y el segundo funcionaba
+    /// porque navVia conservaba el valor del intento anterior. Con un único
+    /// item la carrera desaparece.
+    /// Hashable A MANO por `id`: navigationDestination(item:) exige Hashable y
+    /// la síntesis automática no es fiable con `School` (clase de Kotlin).
+    struct SchoolNavTarget: Identifiable, Hashable {
+        let school: School
+        let via: String?
+        var id: String { school.id + "|" + (via ?? "") }
+        static func == (a: SchoolNavTarget, b: SchoolNavTarget) -> Bool { a.id == b.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
+    }
+    @State private var navTarget: SchoolNavTarget?
+    /// "Enviar piedra": el selector de fotos está abierto.
+    @State private var eligiendoFoto = false
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
-    @State private var navVia: String?
-    @State private var viaHits: [LineSearchHitDto] = []
+    @State private var viaHits: [LineSearchHit] = []   // modelo de DOMINIO (via use case)
     @State private var viaSearchTask: Task<Void, Never>?
 
-    /// Resultados del buscador global (vías/bloques de TODO el catálogo).
+    /// Relanza la busqueda global (solo en modo vias/bloques), con debounce.
+    private func dispatchViaSearch() {
+        viaSearchTask?.cancel()
+        let trimmed = vm.query.trimmingCharacters(in: .whitespaces)
+        guard trimmed.count >= 2 else { viaHits = []; return }
+        viaSearchTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else { return }
+            // Regla DI: por el use case del container, no la API directa.
+            let hits = (try? await AppDependencies.shared.container.searchLines.invoke(query: trimmed)) ?? []
+            if !Task.isCancelled { viaHits = hits }
+        }
+    }
+
+    /// Resultados del buscador UNICO en DOS secciones (estilo Spotlight):
+    /// ESCUELAS (top 5, acceso directo) y VIAS Y BLOQUES (global + mini-topo).
+    /// Las cabeceras salen SIEMPRE al escribir: se aprende que busca ambas.
     private var viaHitsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("VÍAS Y BLOQUES").font(Cumbre.mono(10, .bold)).tracking(1.2)
-                .foregroundStyle(Cumbre.ink3)
-            VStack(spacing: 0) {
-                ForEach(Array(viaHits.enumerated()), id: \.offset) { _, h in
+            VStack(alignment: .leading, spacing: 0) {
+                Text("ESCUELAS").font(Cumbre.mono(10, .bold)).tracking(1.2)
+                    .foregroundStyle(Cumbre.ink3)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                let schoolMatches = Array(vm.filtered.prefix(5))
+                if schoolMatches.isEmpty {
+                    Text("Sin resultados").font(.system(size: 12))
+                        .foregroundStyle(Cumbre.ink3)
+                        .padding(.horizontal, 12).padding(.bottom, 8)
+                } else {
+                    ForEach(schoolMatches, id: \.id) { school in
+                        Button { navTarget = SchoolNavTarget(school: school, via: nil) } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(school.name).font(.system(size: 14))
+                                        .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    if let r = school.region, !r.isEmpty {
+                                        Text(r).font(.system(size: 12))
+                                            .foregroundStyle(Cumbre.ink3).lineLimit(1)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                Divider().overlay(Cumbre.rule)
+                Text("VÍAS Y BLOQUES").font(Cumbre.mono(10, .bold)).tracking(1.2)
+                    .foregroundStyle(Cumbre.ink3)
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                if viaHits.isEmpty {
+                    Text("Sin resultados").font(.system(size: 12))
+                        .foregroundStyle(Cumbre.ink3)
+                        .padding(.horizontal, 12).padding(.bottom, 8)
+                }
+                ForEach(viaHits, id: \.stableId) { h in
                     Button {
                         if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
-                            navVia = h.lineId ?? h.lineName ?? h.blockName
-                            navSchool = school
+                            navTarget = SchoolNavTarget(
+                                school: school, via: h.lineId ?? h.lineName ?? h.blockName)
                         }
                     } label: {
                         HStack {
@@ -485,6 +620,27 @@ struct SchoolListView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    // Mini-topo: foto de la cara con la linea dibujada (si el
+                    // backend mando foto; las piedras salen sin trazo).
+                    if let photo = h.photoPath, !photo.isEmpty {
+                        // P8: dedup de puntos casi identicos (trazos antiguos
+                        // fusionaban los guiones -> linea continua) y la FOTO
+                        // tambien abre la piedra (paridad Android).
+                        let pts = dedupPoints(TopoParse.points(h.linePath))
+                        Button {
+                            if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
+                                navTarget = SchoolNavTarget(
+                                    school: school, via: h.lineId ?? h.lineName ?? h.blockName)
+                            }
+                        } label: {
+                            TopoPhotoView(photoUrl: photo, lines: pts.count >= 2 ? [
+                                TopoLineVM(id: h.lineId ?? "hit", name: h.lineName,
+                                           grade: h.grade, startType: h.startType, points: pts)
+                            ] : [])
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 12).padding(.bottom, 10)
+                    }
                 }
             }
             .background(Cumbre.paper)
@@ -494,724 +650,23 @@ struct SchoolListView: View {
     }
 }
 
+/// Id estable de un hit del buscador (id: \.offset invalidaba las filas y
+/// sus TopoPhotoView en cada tecla).
+extension LineSearchHit {
+    var stableId: String { (lineId ?? "") + "|" + blockName + "|" + (schoolId ?? "") }
+}
+
 // School (clase Kotlin) Identifiable por su id — para navigationDestination(item:).
 extension School: Identifiable {}
 
-private struct CompareBar: View {
-    let count: Int
-    let canCompare: Bool
-    let onClear: () -> Void
-    let onCompare: () -> Void
-    var body: some View {
-        HStack(spacing: 10) {
-            Button(action: onClear) {
-                Image(systemName: "xmark").font(.system(size: 16)).foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-            }
-            Text("\(count) seleccionada\(count == 1 ? "" : "s")")
-                .font(.system(size: 14)).foregroundStyle(.white)
-            Spacer()
-            if canCompare {
-                Button(action: onCompare) {
-                    Text("COMPARAR ▸").font(Cumbre.mono(13, .bold)).tracking(0.8)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 18).padding(.vertical, 10)
-                        .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: 6))
-                }
-            } else {
-                Text("Elige otra para comparar")
-                    .font(.system(size: 13)).foregroundStyle(.white.opacity(0.7))
-            }
-        }
-        .padding(.horizontal, 10).padding(.vertical, 8)
-        .background(Cumbre.ink)
-        .padding(.horizontal, 12).padding(.bottom, 8)
+
+/// P8: quita puntos consecutivos casi identicos (trazos antiguos fusionaban
+/// los guiones y la linea salia continua en el buscador).
+fileprivate func dedupPoints(_ raw: [CGPoint]) -> [CGPoint] {
+    var pts: [CGPoint] = []
+    for pt in raw {
+        if let last = pts.last, abs(pt.x - last.x) + abs(pt.y - last.y) < 0.004 { continue }
+        pts.append(pt)
     }
+    return pts
 }
-
-// MARK: - Header
-
-private struct TopIconsRow: View {
-    var unreadCount: Int = 0
-    var chatUnread: Int = 0
-    var onNotificationsClosed: () -> Void = {}
-    @State private var showAccount = false
-    @State private var showNotifications = false
-    @State private var showSearch = false
-    @State private var showChats = false
-    @ObservedObject private var theme = ThemeManager.shared
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Spacer()
-            HelpButton(topicKey: "schools")
-            iconButton("magnifyingglass") { showSearch = true }
-            chatButton
-            iconButton(theme.iconName) { theme.cycle() }
-            bellButton
-            // El perfil ya no va aquí: tiene su propia pestaña inferior.
-        }
-        .padding(.horizontal, 4)
-        .padding(.top, 4)
-        .sheet(isPresented: $showAccount) { AccountView() }
-        .sheet(isPresented: $showNotifications, onDismiss: onNotificationsClosed) { NotificationsView() }
-        .sheet(isPresented: $showSearch) { SearchUsersView() }
-        .sheet(isPresented: $showChats) { NavigationStack { ChatListView() } }
-    }
-
-    private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: name)
-                .font(.system(size: 18))
-                .foregroundStyle(Cumbre.ink)
-                .frame(width: 40, height: 40)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    // Icono de mensajes con badge de chats sin leer (número o "9+").
-    private var chatButton: some View {
-        Button { showChats = true } label: {
-            Image(systemName: "bubble.left")
-                .font(.system(size: 18)).foregroundStyle(Cumbre.ink)
-                .frame(width: 40, height: 40).contentShape(Rectangle())
-                .overlay(alignment: .topTrailing) {
-                    if chatUnread > 0 {
-                        Text(chatUnread > 9 ? "9+" : "\(chatUnread)")
-                            .font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(Capsule().fill(Cumbre.bad))
-                            .offset(x: -4, y: 4)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-    }
-
-    // Campana con badge rojo de no leídas (número o "9+").
-    private var bellButton: some View {
-        Button { showNotifications = true } label: {
-            Image(systemName: "bell")
-                .font(.system(size: 18)).foregroundStyle(Cumbre.ink)
-                .frame(width: 40, height: 40).contentShape(Rectangle())
-                .overlay(alignment: .topTrailing) {
-                    if unreadCount > 0 {
-                        Text(unreadCount > 9 ? "9+" : "\(unreadCount)")
-                            .font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(Capsule().fill(Cumbre.bad))
-                            .offset(x: -4, y: 4)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct HeaderEscuelas: View {
-    let count: Int?
-    @State private var showSubmit = false
-    var body: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(NSLocalizedString("schools_title", comment: ""))
-                    .font(Cumbre.serif(34, .bold))
-                    .foregroundStyle(Cumbre.ink)
-                if let count {
-                    Text("\(count) escuelas")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Cumbre.ink3)
-                }
-            }
-            Spacer()
-            Button { showSubmit = true } label: {
-                OutlinedCumbreButton(text: NSLocalizedString("schools_submit", comment: ""), tint: Cumbre.terra)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .sheet(isPresented: $showSubmit) { SubmitSchoolView() }
-    }
-}
-
-private struct CoffeeBanner: View {
-    @State private var showDonate = false
-    var body: some View {
-        HStack(spacing: 8) {
-            Text("☕").font(.system(size: 30))
-            VStack(alignment: .leading, spacing: 1) {
-                Text("¿Te ayuda la app?")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Cumbre.ink)
-                Text("Mantenida con amor por la comunidad escaladora")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Cumbre.ink2.opacity(0.8))
-            }
-            Spacer()
-            Button { showDonate = true } label: { OutlinedCumbreButton(text: "Apóyanos", tint: Cumbre.ink) }
-                .buttonStyle(.plain)
-        }
-        .padding(12)
-        .background(Cumbre.terraBg)
-        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .sheet(isPresented: $showDonate) { DonateView() }
-    }
-}
-
-/// Diálogo "Apóyanos" — espejo del DonateDialog de Android.
-private struct DonateView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("☕").font(.system(size: 56)).padding(.top, 24)
-            Text("¿Te ayuda la app?").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
-            Text("MeteoMontana es gratis y sin anuncios, mantenida por la comunidad escaladora. Si te resulta útil, invítame a un café.")
-                .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
-                .multilineTextAlignment(.center).padding(.horizontal, 24)
-            VStack(alignment: .leading, spacing: 6) {
-                feature("Previsión de escalada por hora")
-                feature("Mapas, bloques y vías de cada escuela")
-                feature("Notas y fotos de la comunidad")
-                feature("Sin anuncios, sin rastreadores")
-            }.padding(.horizontal, 24).padding(.top, 4)
-            Button {
-                openURL(URL(string: "https://ko-fi.com/climbingteams")!)
-            } label: {
-                Text("☕ INVÍTAME A UN CAFÉ").font(Cumbre.mono(13, .bold)).tracking(0.8)
-                    .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                    .background(Cumbre.terra)
-            }
-            .buttonStyle(.plain).padding(.horizontal, 24).padding(.top, 8)
-            Button("Ahora no") { dismiss() }.foregroundStyle(Cumbre.ink3).padding(.top, 4)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Cumbre.bg.ignoresSafeArea())
-    }
-    private func feature(_ t: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(Cumbre.ok).font(.system(size: 14))
-            Text(t).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-        }
-    }
-}
-
-private struct SearchField: View {
-    @Binding var text: String
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink3)
-            TextField("Busca tu escuela o vía/bloque…", text: $text)
-                .foregroundStyle(Cumbre.ink)
-                .autocorrectionDisabled()
-            if !text.isEmpty {
-                Button { text = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(Cumbre.ink3)
-                }
-            }
-        }
-        .padding(.horizontal, 12).padding(.vertical, 10)
-        .background(Cumbre.paper)
-        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-        .padding(.horizontal, 16).padding(.vertical, 8)
-    }
-}
-
-/// Toggle "VER MAPA" + panel con todas las escuelas filtradas como marcadores
-/// coloreados por score (tap → detalle). Espejo de SchoolsMapPanel.kt.
-private struct MapToggleAndPanel: View {
-    @ObservedObject var vm: SchoolListViewModel
-    let onOpen: (School) -> Void
-    @State private var show = false
-    @State private var popup: School?
-    @State private var mapStyle: MapStyleKind = .topo
-    @State private var zoom: Double = 8
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Button { withAnimation { show.toggle() } } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "map").font(.system(size: 13))
-                    Text(show ? NSLocalizedString("schools_hide_map", comment: "") : NSLocalizedString("schools_view_map", comment: "")).font(Cumbre.mono(11, .bold)).tracking(0.8)
-                    Spacer()
-                    Image(systemName: show ? "chevron.up" : "chevron.down").font(.system(size: 11))
-                }
-                .foregroundStyle(Cumbre.ink2)
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if show {
-                ZStack(alignment: .topLeading) {
-                    MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
-                                 markers: markers, style: mapStyle,
-                                 autoFitToMarkers: true,
-                                 refitOnAnyChange: true,
-                                 onZoomChange: { zoom = $0 },
-                                 onTapMarker: { id in
-                                     popup = vm.filtered.first { $0.id == id }
-                                 })
-                    .frame(height: 300)
-                    MapStyleChips(selection: $mapStyle)
-                }
-                Divider().overlay(Cumbre.rule)
-            }
-        }
-        // Popup al tocar un marcador: nombre, score, tags, CÓMO LLEGAR + VER DETALLE
-        // (espejo de SchoolsMapPanel.kt).
-        .sheet(item: $popup) { s in
-            SchoolMapPopup(school: s, score: vm.scores[s.id].map { Int($0.todayScore) }) {
-                popup = nil; onOpen(s)
-            }
-            .presentationDetents([.height(280)])
-        }
-    }
-
-    private var markers: [CumbreMarker] {
-        var ms: [CumbreMarker] = []
-        // Punto azul de mi ubicación (confirma que se cogió la ubicación).
-        if let la = vm.userLat, let lo = vm.userLon {
-            ms.append(CumbreMarker(
-                id: "__USER__",
-                coordinate: CLLocationCoordinate2D(latitude: la, longitude: lo),
-                title: "", kind: .user))
-        }
-        for s in vm.filtered.prefix(200) {
-            let score = vm.scores[s.id].map { Int($0.todayScore) }
-            ms.append(CumbreMarker(
-                id: s.id,
-                coordinate: CLLocationCoordinate2D(latitude: s.lat, longitude: s.lon),
-                title: s.name,
-                subtitle: score.map { "\($0)/100" },
-                kind: .score,
-                color: UIColor(score.map { Cumbre.score($0) } ?? Cumbre.rule),
-                score: score,
-                name: s.name,
-                showName: zoom >= 8.5))
-        }
-        return ms
-    }
-
-    private var center: CLLocationCoordinate2D {
-        if let la = vm.userLat, let lo = vm.userLon {
-            return CLLocationCoordinate2D(latitude: la, longitude: lo)
-        }
-        let pts = vm.filtered
-        if pts.isEmpty { return CLLocationCoordinate2D(latitude: 40.2, longitude: -3.7) }
-        let lat = pts.map { $0.lat }.reduce(0, +) / Double(pts.count)
-        let lon = pts.map { $0.lon }.reduce(0, +) / Double(pts.count)
-        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
-    }
-}
-
-/// Popup de una escuela al tocar su marcador en el panel de mapa de la lista.
-/// Nombre + score + tags + "CÓMO LLEGAR" y "VER DETALLE" (espejo de SchoolsMapPanel).
-private struct SchoolMapPopup: View {
-    let school: School
-    let score: Int?
-    let onDetail: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
-                if let s = score {
-                    // Chip redondeado (estilo mini-ficha, adiós al cuadrado duro).
-                    VStack(spacing: 0) {
-                        Text("\(s)").font(Cumbre.serif(26, .bold)).foregroundStyle(Cumbre.score(s))
-                        Text(Cumbre.scoreLabel(s)).font(.system(size: 8, weight: .bold)).foregroundStyle(Cumbre.score(s))
-                    }
-                    .frame(width: 60, height: 60)
-                    .background(Cumbre.score(s).opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.score(s), lineWidth: 1.5))
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(school.name).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
-                    Text(tags).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                }
-                Spacer()
-            }
-            HStack(spacing: 10) {
-                DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
-                Button(action: onDetail) {
-                    Text("VER DETALLE ▸").font(Cumbre.mono(12, .bold)).tracking(0.8)
-                        .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .background(Cumbre.terra)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }.buttonStyle(.plain)
-            }
-            Spacer()
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Cumbre.bg.ignoresSafeArea())
-    }
-
-    private var tags: String {
-        [school.rockType?.uppercased(), school.region, school.style]
-            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  ·  ")
-    }
-}
-
-/// Barra de filtros — réplica de SchoolFiltersBar.kt: secciones apiladas
-/// (DISTANCIA, ESTILO, TIPO DE ROCA, FAVORITOS, ORDENAR POR), cada una con su
-/// eyebrow y una fila horizontal de chips seleccionables.
-private struct FilterChips: View {
-    @ObservedObject var vm: SchoolListViewModel
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            section("DISTANCIA") {
-                chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
-                        isSel: { $0 == vm.maxDistanceKm },
-                        label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
-            }
-            section("ESTILO") {
-                chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
-                        isSel: { $0 == vm.style },
-                        label: { $0 ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
-            }
-            section("TIPO DE ROCA") {
-                chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
-                        isSel: { $0 == vm.rock },
-                        label: { $0 ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
-            }
-            section("MOSTRAR") {
-                chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
-                        isSel: { $0 == vm.showMode },
-                        label: { $0.rawValue }) { vm.showMode = $0 }
-            }
-            section("ORDENAR POR") {
-                chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },
-                        isSel: { $0 == vm.sortBy },
-                        label: { $0.rawValue }) { vm.sortBy = $0 }
-            }
-        }
-        .padding(.vertical, 8)
-    }
-
-    private func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).eyebrow().padding(.horizontal, 12)
-            content()
-        }
-    }
-
-    private func chipRow<T>(_ items: [T], id: @escaping (T) -> String,
-                            isSel: @escaping (T) -> Bool, label: @escaping (T) -> String,
-                            onPick: @escaping (T) -> Void) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                    Button { onPick(item) } label: { chip(label(item), active: isSel(item)) }
-                        .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 12)
-        }
-    }
-
-    private func chip(_ t: String, active: Bool) -> some View {
-        Text(t)
-            .font(Cumbre.mono(11, .bold))
-            .tracking(0.8)
-            .foregroundStyle(active ? .white : Cumbre.ink2)
-            .padding(.horizontal, 12).padding(.vertical, 7)
-            .background(active ? Cumbre.terra : Cumbre.paper)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-    }
-}
-
-/// Selector de días: próximos 7 días (hoy incluido) como chips "LUN 17". Toca
-/// para elegir hasta 5; con ≥1 elegido la lista pasa a modo tramo. Espejo de
-/// DaySelectorRow de Android.
-private struct DaySelectorRow: View {
-    @ObservedObject var vm: SchoolListViewModel
-
-    private static let isoFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); return f
-    }()
-    private let dayLetters = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"]  // weekday 1=domingo
-
-    private var next7: [Date] {
-        let cal = Calendar(identifier: .gregorian)
-        let today = cal.startOfDay(for: Date())
-        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: today) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(vm.selectedDates.isEmpty ? "DÍAS · elige hasta 5 para comparar el tramo"
-                 : "DÍAS · \(vm.selectedDates.count) elegido\(vm.selectedDates.count > 1 ? "s" : "")")
-                .eyebrow().padding(.horizontal, 12)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(next7, id: \.self) { d in
-                        let iso = Self.isoFmt.string(from: d)
-                        let cal = Calendar(identifier: .gregorian)
-                        let weekday = cal.component(.weekday, from: d)
-                        let dayNum = cal.component(.day, from: d)
-                        let selected = vm.selectedDates.contains(iso)
-                        Button { vm.toggleDate(iso) } label: {
-                            VStack(spacing: 1) {
-                                Text(dayLetters[weekday - 1]).font(Cumbre.mono(11, .bold)).tracking(0.6)
-                                    .foregroundStyle(selected ? .white : Cumbre.ink2)
-                                Text("\(dayNum)").font(.system(size: 10))
-                                    .foregroundStyle(selected ? .white.opacity(0.85) : Cumbre.ink3)
-                            }
-                            .padding(.horizontal, 12).padding(.vertical, 7)
-                            .background(selected ? Cumbre.terra : Cumbre.paper)
-                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 12)
-            }
-        }
-        .padding(.vertical, 8)
-    }
-}
-
-/// Fila por día del tramo: una celda por día con su score (color) y la inicial
-/// del día debajo. Los días con lluvia llevan la inicial y el borde en rojo.
-private struct DayRangeRow: View {
-    let range: RangeScore
-    var body: some View {
-        HStack(spacing: 3) {
-            ForEach(Array(range.days.enumerated()), id: \.offset) { _, d in
-                let score = Int(d.score)
-                VStack(spacing: 2) {
-                    Text("\(score)")
-                        .font(Cumbre.mono(11, .bold))
-                        .foregroundStyle(Cumbre.score(score))
-                        .frame(width: 26, height: 22)
-                        .background(Cumbre.score(score).opacity(0.18))
-                        .overlay(Rectangle().stroke(d.rainy ? Cumbre.bad : Cumbre.score(score), lineWidth: 1))
-                    Text(weekdayLetter(d.date))
-                        .font(.system(size: 9))
-                        .foregroundStyle(d.rainy ? Cumbre.bad : Cumbre.ink3)
-                }
-            }
-        }
-    }
-}
-
-/// Resumen de lluvia del tramo: qué días llueve (iniciales) + máximo de mm.
-private struct RainSummaryTag: View {
-    let range: RangeScore
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            if range.rainDays == 0 {
-                Text("● SIN LLUVIA").font(.system(size: 11, weight: .semibold)).tracking(0.8)
-                    .foregroundStyle(Cumbre.ok)
-            } else {
-                let rainy = range.days.filter { $0.rainy }.map { weekdayLetter($0.date) }.joined(separator: " ")
-                Text("LLUEVE \(rainy)").font(.system(size: 11, weight: .semibold)).tracking(0.8)
-                    .foregroundStyle(Cumbre.bad)
-                if range.maxRainMm > 0 {
-                    Text(String(format: "máx %.1f mm", range.maxRainMm))
-                        .font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
-                }
-            }
-        }
-    }
-}
-
-/// "2026-06-17" → "L"/"M"/"X"/"J"/"V"/"S"/"D".
-private func weekdayLetter(_ iso: String) -> String {
-    let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
-    guard let d = f.date(from: iso) else { return String(iso.suffix(2)) }
-    let weekday = Calendar(identifier: .gregorian).component(.weekday, from: d) // 1=domingo
-    let labels = ["D", "L", "M", "X", "J", "V", "S"]
-    return labels[weekday - 1]
-}
-
-private struct OutlinedCumbreButton: View {
-    let text: String
-    var tint: Color = Cumbre.ink
-    var body: some View {
-        Text(text)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 12).padding(.vertical, 8)
-            .overlay(Rectangle().stroke(Cumbre.ink, lineWidth: 1))
-    }
-}
-
-// MARK: - Fila rica (réplica de SchoolListItem.kt)
-
-private struct SchoolListItemView: View {
-    let rank: Int
-    let school: School
-    let score: SchoolScore?
-    var range: RangeScore? = nil
-    var distanceKm: Int? = nil
-    var isFavorite: Bool = false
-    var isSelected: Bool = false
-    var onToggleFavorite: () -> Void = {}
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            // Modo tramo → el badge muestra el score combinado de los días.
-            ScoreBadge(score: range.map { Int($0.combinedScore) } ?? score.map { Int($0.todayScore) })
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .center, spacing: 0) {
-                    Text(String(format: "%02d", rank))
-                        .font(Cumbre.mono(11, .semibold))
-                        .tracking(1.4)
-                        .foregroundStyle(Cumbre.ink3)
-                        .frame(width: 24, alignment: .leading)
-                    Text(school.name)
-                        .font(Cumbre.serif(19, .bold))
-                        .foregroundStyle(Cumbre.ink)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    // Estrella tocable con update optimista. BorderlessButtonStyle
-                    // para que reciba el tap sin disparar la navegación de la fila.
-                    Button(action: onToggleFavorite) {
-                        Image(systemName: isFavorite ? "star.fill" : "star")
-                            .font(.system(size: 18))
-                            .foregroundStyle(isFavorite ? Cumbre.terra : Cumbre.ink3)
-                            .frame(width: 36, height: 36)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.borderless)
-                }
-                Text(subtitle)
-                    .font(Cumbre.mono(12))
-                    .foregroundStyle(Cumbre.ink3)
-                    .padding(.top, 4)
-                HStack(alignment: .center, spacing: 8) {
-                    if let range {
-                        DayRangeRow(range: range)
-                        Spacer(minLength: 4)
-                        RainSummaryTag(range: range)
-                    } else {
-                        HeatmapBar(scores: score?.hourlyScores.map { $0.intValue })
-                        DryWetTag(dry: score?.dryRock, rainProb: score.map { Int($0.rainProb) }, rainMm: score?.rainMm)
-                    }
-                }
-                .padding(.top, 8)
-            }
-        }
-        .padding(.horizontal, 12).padding(.vertical, 12)
-        .overlay(isSelected ? Rectangle().stroke(Cumbre.terra, lineWidth: 2) : nil)
-        .contentShape(Rectangle())
-    }
-
-    private var subtitle: String {
-        var parts: [String] = []
-        if let r = school.rockType, !r.isEmpty { parts.append(r.uppercased()) }
-        if let reg = school.region, !reg.isEmpty { parts.append(reg) }
-        if let km = distanceKm { parts.append("\(km) KM") }
-        return parts.joined(separator: "  ·  ")
-    }
-}
-
-private struct ScoreBadge: View {
-    let score: Int?
-    var body: some View {
-        let color = score.map { Cumbre.score($0) } ?? Cumbre.rule
-        VStack(spacing: 1) {
-            Text(score.map(String.init) ?? "—")
-                .font(Cumbre.serif(28, .bold))
-                .foregroundStyle(score != nil ? color : Cumbre.ink2)
-            Text(Cumbre.scoreLabel(score))
-                .font(.system(size: 8, weight: .bold))
-                .tracking(0.6)
-                .foregroundStyle(score != nil ? color : Cumbre.ink3)
-        }
-        .frame(width: 64, height: 72)
-        .background((score != nil ? color : Cumbre.paper).opacity(score != nil ? 0.12 : 1))
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(color, lineWidth: 1.5))
-        .clipShape(RoundedRectangle(cornerRadius: 2))
-    }
-}
-
-private struct HeatmapBar: View {
-    let scores: [Int]?
-    var body: some View {
-        let cells: [Int?] = {
-            if let s = scores, !s.isEmpty { return Array(s.prefix(10)).map { Optional($0) } }
-            return Array(repeating: nil, count: 10)
-        }()
-        HStack(spacing: 0) {
-            ForEach(Array(cells.enumerated()), id: \.offset) { _, s in
-                Rectangle().fill(s.map { Cumbre.score($0) } ?? Cumbre.rule.opacity(0.35))
-            }
-        }
-        .frame(height: 16)
-        .frame(maxWidth: .infinity)
-    }
-}
-
-private struct DryWetTag: View {
-    let dry: Bool?
-    let rainProb: Int?
-    let rainMm: Double?
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            if let dry {
-                Text(dry ? "● SECA" : "● MOJADA")
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(0.8)
-                    .foregroundStyle(dry ? Cumbre.ok : Cumbre.bad)
-            }
-            if dry == false, let p = rainProb, p > 0 {
-                Text("\(p)%").font(.system(size: 10)).foregroundStyle(Cumbre.bad)
-            }
-        }
-    }
-}
-
-// MARK: - Estados
-
-private struct SkeletonRow: View {
-    var body: some View {
-        let tone = Cumbre.ink3.opacity(0.12)
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 2).fill(tone).frame(width: 64, height: 72)
-            VStack(alignment: .leading, spacing: 6) {
-                RoundedRectangle(cornerRadius: 2).fill(tone).frame(width: 160, height: 16)
-                RoundedRectangle(cornerRadius: 2).fill(tone).frame(width: 110, height: 12)
-                RoundedRectangle(cornerRadius: 2).fill(tone).frame(height: 14)
-            }
-        }
-        .padding(.horizontal, 12).padding(.vertical, 12)
-    }
-}
-
-private struct EmptyRow: View {
-    let canClear: Bool
-    let onClear: () -> Void
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("No hay escuelas con esos filtros")
-                .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-            if canClear {
-                Button(action: onClear) { OutlinedCumbreButton(text: NSLocalizedString("schools_clear_filters", comment: "")) }
-            }
-        }
-        .frame(maxWidth: .infinity).padding(32)
-    }
-}
-
-private struct ErrorRow: View {
-    let message: String
-    let onRetry: () -> Void
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("Error: \(message)").font(.system(size: 15)).foregroundStyle(Cumbre.bad)
-            Button(action: onRetry) { OutlinedCumbreButton(text: NSLocalizedString("common_retry", comment: "")) }
-        }
-        .frame(maxWidth: .infinity).padding(40)
-    }
-}
-
-#Preview { SchoolListView() }

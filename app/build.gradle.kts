@@ -1,3 +1,7 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,6 +12,10 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
 }
+
+// Sello de compilacion (hora local) que se ensena en Ajustes.
+val selloDeCompilacion: String =
+    SimpleDateFormat("d MMM HH:mm", Locale("es")).format(Date())
 
 android {
     namespace = "com.meteomontana.android"
@@ -28,8 +36,8 @@ android {
         applicationId = "com.meteomontana.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 76
-        versionName = "2.19.0"
+        versionCode = 108
+        versionName = "2.24.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -43,6 +51,11 @@ android {
             // 192.168.0.12 = móvil físico en la misma red que el PC (Ethernet)
             // buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
             buildConfigField("String", "API_BASE_URL", "\"https://meteomontanaapi-staging.up.railway.app/api/\"")
+        }
+        // Sello de compilacion: se ve en Ajustes. Sirve para responder de un
+        // vistazo "que build tengo instalado", que hoy nos costo media manana.
+        applicationVariants.all {
+            buildConfigField("String", "BUILD_TIME", "\"" + selloDeCompilacion + "\"")
         }
         release {
             // R8 activado: Compose sin minificar es notablemente más lento (jank).
@@ -67,6 +80,17 @@ android {
         compose = true
         buildConfig = true   // habilita BuildConfig.API_BASE_URL
     }
+    testOptions {
+        unitTests {
+            // Sin esto, cualquier android.util.Log.* en código bajo test
+            // lanza "Method i in android.util.Log not mocked" — los tests
+            // JVM puros no cargan el framework Android real. Con esto, las
+            // llamadas no mockeadas devuelven su valor por defecto (no-op)
+            // en vez de reventar. Hizo falta al añadir registro permanente
+            // en SchoolDetailLoader (Álvaro, 2026-08-25).
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
@@ -78,6 +102,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -88,7 +113,14 @@ dependencies {
     // de accompanist; se construye a mano con skipHalfExpanded=true en MainScreen).
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.compose.ui.text.google.fonts)
+
+    // Haze: difumina el FONDO que pasa por detrás de la barra de pestañas.
+    // El Modifier.blur de Compose no sirve aquí — difumina el propio elemento,
+    // no lo que hay detrás, y el efecto cristal es justo lo segundo. Apache 2.0.
+    // Versión clavada a la 1.5.4 A PROPÓSITO: es la última que funciona con la
+    // línea 1.7 de Compose. De la 1.6 en adelante exige Compose 1.8+, que es un
+    // salto de dos años con toda la app por revisar.
+    implementation(libs.haze)
 
     // Coroutines
     implementation(libs.coroutines.android)
@@ -109,6 +141,8 @@ dependencies {
 
     // Imágenes
     implementation(libs.coil.compose)
+    // Leer las coordenadas que la camara guarda dentro de la foto (EXIF).
+    implementation(libs.androidx.exifinterface)
 
     // Firebase
     implementation(platform(libs.firebase.bom))
@@ -152,6 +186,8 @@ dependencies {
     testImplementation(libs.mockk)
     // org.json real para tests unitarios (el de Android es stub en src/test/)
     testImplementation("org.json:json:20240303")
+    // Driver JVM de SQLDelight (BD en memoria) para testear el outbox offline.
+    testImplementation("app.cash.sqldelight:sqlite-driver:2.0.2")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

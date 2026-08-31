@@ -1,10 +1,15 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,7 +31,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -75,7 +80,8 @@ data class LineSuggestion(
     val blockName: String,
     val name: String,           // nombre de la vía (o "L1" si la vía no tiene nombre)
     val grade: String?,
-    val startType: String?
+    val startType: String?,
+    val discipline: String = "BOULDER"  // BOULDER (bloque) / ROUTE (vía) — de la piedra
 ) {
     val displayLabel: String get() = buildString {
         append(name)
@@ -157,14 +163,17 @@ fun AddBlockSheet(
     var schoolQuery by remember { mutableStateOf("") }
     var sector by remember { mutableStateOf("") }
     var blockName by remember { mutableStateOf("") }
+    // Modalidad: BOULDER (bloque) o ROUTE (vía). Antes se omitía → toda entrada
+    // manual caía en "Bloques" y nunca en "Vías" (el diario separa por discipline).
+    var discipline by remember { mutableStateOf("BOULDER") }
     var grade by remember { mutableStateOf<String?>(null) }
     var notes by remember { mutableStateOf("") }
     var gradeMenuExpanded by remember { mutableStateOf(false) }
 
     val today = remember { LocalDate.now().toString() }
-    val results by searchVM.results.collectAsState()
-    val history by searchVM.history.collectAsState()
-    val schoolBlocks by searchVM.schoolBlocks.collectAsState()
+    val results by searchVM.results.collectAsStateWithLifecycle()
+    val history by searchVM.history.collectAsStateWithLifecycle()
+    val schoolBlocks by searchVM.schoolBlocks.collectAsStateWithLifecycle()
 
     LaunchedEffect(schoolQuery, selectedSchool) {
         if (selectedSchool == null) searchVM.search(schoolQuery)
@@ -175,7 +184,11 @@ fun AddBlockSheet(
     // catalogados en la escuela. Cuando el usuario pulsa uno catalogado guardamos
     // su id para poder filtrar las vías por sector.
     var selectedSectorBlockId by remember { mutableStateOf<String?>(null) }
-    val sectorSuggestions = remember(sector, history, schoolBlocks, selectedSectorBlockId) {
+    // Se calculan en CADA recomposición (no en un `remember` cacheado) para que,
+    // en cuanto lleguen por red los bloques/sectores de la escuela, el recuadro
+    // de sugerencias aparezca solo — igual que iOS, que recalcula inline. Con un
+    // `remember` el recuadro no se refrescaba hasta tocar el campo.
+    val sectorSuggestions = run {
         val real = schoolBlocks.filter { it.type == "ZONE" }
             .map { SectorSuggestion(it.name, it.id) }
         val historical = history.sectors.map { SectorSuggestion(it, null) }
@@ -187,7 +200,7 @@ fun AddBlockSheet(
 
     // Vías reales (con grado + tipo). Si hay sector seleccionado, filtramos a las
     // vías de las piedras de ese sector.
-    val lineSuggestions = remember(blockName, schoolBlocks, selectedSectorBlockId) {
+    val lineSuggestions = run {
         val blocksScope = schoolBlocks.filter { it.type == "BLOCK" }
             .let { all ->
                 if (selectedSectorBlockId != null)
@@ -200,7 +213,8 @@ fun AddBlockSheet(
                     blockName = b.name,
                     name = l.name.ifBlank { "L${l.sortOrder + 1}" },
                     grade = l.grade,
-                    startType = l.startType
+                    startType = l.startType,
+                    discipline = b.discipline
                 )
             }
         }
@@ -211,7 +225,7 @@ fun AddBlockSheet(
         }.take(6)
     }
     // Fallback: si la escuela aún no tiene vías catalogadas, sugerimos bloques.
-    val blockSuggestions = remember(blockName, history, schoolBlocks, lineSuggestions) {
+    val blockSuggestions = run {
         if (lineSuggestions.isNotEmpty()) emptyList()
         else {
             val previous = history.blocks
@@ -225,16 +239,20 @@ fun AddBlockSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = com.meteomontana.android.ui.components.CumbreSheetShape
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth()
+                .cumbreSheetSurface(MaterialTheme.colorScheme.background)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Añadir bloque", style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
 
             // ─── ESCUELA con autocomplete ───
+            val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             Label("ESCUELA")
             OutlinedTextField(
                 value = selectedSchool?.name ?: schoolQuery,
@@ -248,7 +266,9 @@ fun AddBlockSheet(
                     results.take(5).forEach { sch ->
                         SuggestionRow(
                             text = "${sch.name}${sch.region?.let { " · $it" } ?: ""}",
-                            onClick = { selectedSchool = sch; schoolQuery = sch.name }
+                            onClick = {
+                                closeKeyboard(); selectedSchool = sch; schoolQuery = sch.name
+                            }
                         )
                     }
                 }
@@ -281,8 +301,12 @@ fun AddBlockSheet(
                 }
             }
 
-            // ─── BLOQUE con autocomplete (bloques previos + bloques de la escuela) ───
-            Label("BLOQUE / VÍA")
+            // ─── MODALIDAD: bloque o vía (decide en qué lista del diario cae) ───
+            Label("MODALIDAD")
+            ModalityToggle(selected = discipline, onSelect = { discipline = it })
+
+            // ─── NOMBRE con autocomplete (bloques/vías previos + de la escuela) ───
+            Label(if (discipline == "ROUTE") "VÍA" else "BLOQUE")
             OutlinedTextField(
                 value = blockName, onValueChange = { blockName = it },
                 placeholder = { Text("ej: El Pollito") },
@@ -296,6 +320,8 @@ fun AddBlockSheet(
                             onClick = {
                                 blockName = l.name
                                 if (!l.grade.isNullOrBlank()) grade = l.grade
+                                // Al elegir una vía catalogada, hereda su modalidad.
+                                discipline = l.discipline
                             }
                         )
                     }
@@ -349,13 +375,14 @@ fun AddBlockSheet(
                         blockName = blockName,
                         grade = grade,
                         notes = notes.takeIf { it.isNotBlank() },
-                        date = today
+                        date = today,
+                        discipline = discipline
                     ))
                 },
                 enabled = blockName.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1C1C1A), contentColor = Color.White
+                    containerColor = inkButtonColor(), contentColor = Color.White
                 ),
                 shape = MaterialTheme.shapes.small
             ) { Text("GUARDAR") }
@@ -372,6 +399,32 @@ fun AddBlockSheet(
 private fun Label(text: String) {
     Text(text, style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** Selector Bloque / Vía. Decide el campo `discipline` de la entrada del diario,
+ *  que es lo que separa las listas "Mis bloques" y "Mis vías" del perfil. */
+@Composable
+private fun ModalityToggle(selected: String, onSelect: (String) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ModalityOption("BLOQUE", selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
+        ModalityOption("VÍA", selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
+    }
+}
+
+@Composable
+private fun ModalityOption(text: String, active: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val bg = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+    val fg = if (active) Color.White else MaterialTheme.colorScheme.onSurface
+    Box(
+        modifier = modifier
+            .background(bg, MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Text(text, style = MaterialTheme.typography.labelLarge, color = fg)
+    }
 }
 
 @Composable

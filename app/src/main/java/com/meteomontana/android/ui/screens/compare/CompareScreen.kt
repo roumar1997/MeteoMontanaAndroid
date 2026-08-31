@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.compare
 
 import android.content.Intent
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -139,21 +139,12 @@ fun CompareScreen(
     onSchoolDetail: (String) -> Unit,
     viewModel: CompareViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.onBackground)
-            }
-            Text("Comparar escuelas", style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground)
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        // Encabezado común de hoja — mismo que Proponer, Editar y la ficha de
+        // piedra. Ver CumbreSheetHeader.
+        com.meteomontana.android.ui.components.CumbreSheetHeader("Comparar", onBack)
 
         when (val s = state) {
             CompareUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -237,7 +228,7 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
         // Tabla de métricas, en una tarjeta con borde. Filas en bandas alternas y
         // columnas separadas por divisorias verticales para que se lea bien.
         val rows = listOf(
-            CompareMetric("ROCA", items.map { it.rockType?.uppercase() ?: "—" },
+            CompareMetric("ROCA", items.map { it.rockType?.replaceFirstChar { c -> c.uppercase() } ?: "—" },
                 items.indices.filter { items[it].dryRock }.toSet()),
             CompareMetric("DISTANCIA", items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
                 minIndices(items.map { it.distanceKm })),
@@ -249,7 +240,7 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
             CompareMetric("PROB. LLUVIA", items.map { "${it.rainProb}%" },
                 minIndices(items.map { it.rainProb.toDouble() })),
             CompareMetric("ÓPTIMO", items.map { it.optimal ?: "—" }, emptySet()),
-            CompareMetric("MEJOR DÍA", items.map { it.bestDay?.uppercase() ?: "—" }, emptySet())
+            CompareMetric("MEJOR DÍA", items.map { it.bestDay?.replaceFirstChar { c -> c.uppercase() } ?: "—" }, emptySet())
         )
         Column(
             Modifier.fillMaxWidth()

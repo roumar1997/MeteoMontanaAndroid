@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.submissions
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -30,10 +34,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,17 +53,29 @@ fun SubmitSchoolScreen(
     onBack: () -> Unit,
     viewModel: SubmitSchoolViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    val options by viewModel.options.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val options by viewModel.options.collectAsStateWithLifecycle()
 
-    var name by remember { mutableStateOf("") }
-    var region by remember { mutableStateOf("") }
-    var style by remember { mutableStateOf("") }
-    var rockType by remember { mutableStateOf("") }
-    var lat by remember { mutableStateOf("") }
-    var lon by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
+    // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
+    // (MIUI lo hace agresivamente) o a un giro de pantalla — no se pierde lo escrito.
+    var name by rememberSaveable { mutableStateOf("") }
+    // Pais primero: de el salen las regiones. Espana por defecto, que es de
+    // donde son todas las escuelas de hoy.
+    var country by rememberSaveable { mutableStateOf("ES") }
+    var region by rememberSaveable { mutableStateOf("") }
+    // Estilo: multi-select (una escuela puede ser Bloque Y Vía, ej. La
+    // Pedriza) — se guarda como texto "Bloque,Vía" para sobrevivir a
+    // rememberSaveable (no hay Saver de Set<String> a mano) y se deriva el
+    // Set en cada recomposición.
+    var styleText by rememberSaveable { mutableStateOf("") }
+    val selectedStyles = remember(styleText) {
+        styleText.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+    }
+    var rockType by rememberSaveable { mutableStateOf("") }
+    var lat by rememberSaveable { mutableStateOf("") }
+    var lon by rememberSaveable { mutableStateOf("") }
+    var location by rememberSaveable { mutableStateOf("") }
+    var notes by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(state) {
         if (state is SubmitState.Done) onBack()
@@ -88,11 +104,46 @@ fun SubmitSchoolScreen(
         ) {
             Field("NOMBRE", name, { name = it }, placeholder = "ej: La Pedriza")
             // Desplegables con valores del catálogo (+ "Otro…") para evitar erratas.
-            DropdownField("REGIÓN", region, options.regions, onChange = {
-                region = it
-                location = "" // resetea la localidad al cambiar de región
-            })
-            DropdownField("ESTILO", style, options.styles, onChange = { style = it })
+            // PAIS antes que REGION: las regiones dependen del país elegido, y
+            // salen del catálogo del servidor — si se dedujeran de las escuelas
+            // existentes, el primer país abierto tendría el desplegable vacío.
+            val paises by viewModel.countries.collectAsStateWithLifecycle()
+            if (paises.size > 1) {
+                DropdownField(
+                    "PAÍS",
+                    paises.firstOrNull { it.code == country }?.name ?: "España",
+                    paises.map { it.name },
+                    onChange = { elegido ->
+                        country = paises.firstOrNull { it.name == elegido }?.code ?: "ES"
+                        region = ""      // cada país tiene sus regiones
+                        location = ""
+                    }
+                )
+            }
+            DropdownField("REGIÓN", region,
+                viewModel.regionOptions(country).ifEmpty { options.regions },
+                onChange = {
+                    region = it
+                    location = "" // resetea la localidad al cambiar de región
+                })
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("ESTILO", style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(options.styles) { opt ->
+                        com.meteomontana.android.ui.components.CumbreChip(
+                            label = opt,
+                            selected = opt in selectedStyles,
+                            onClick = {
+                                val updated = if (opt in selectedStyles) selectedStyles - opt else selectedStyles + opt
+                                styleText = updated.sorted().joinToString(",")
+                            }
+                        )
+                    }
+                }
+            }
             DropdownField("TIPO DE ROCA", rockType, options.rockTypes, onChange = { rockType = it })
 
             // ── Pegar coordenadas de Google Maps (lat, lon) ──────────────────
@@ -146,18 +197,19 @@ fun SubmitSchoolScreen(
                             viewModel.submit(SubmitSchoolRequest(
                                 name = name.trim(),
                                 region = region.takeIf { it.isNotBlank() },
-                                style = style.takeIf { it.isNotBlank() },
+                                style = selectedStyles.sorted().joinToString(",").takeIf { it.isNotBlank() },
                                 rockType = rockType.takeIf { it.isNotBlank() },
                                 lat = latD, lon = lonD,
                                 location = location.takeIf { it.isNotBlank() },
                                 source = null,
-                                notes = notes.takeIf { it.isNotBlank() }
+                                notes = notes.takeIf { it.isNotBlank() },
+                                country = country
                             ))
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1C1C1A),
+                        containerColor = inkButtonColor(),
                         contentColor = Color.White
                     ),
                     shape = MaterialTheme.shapes.small

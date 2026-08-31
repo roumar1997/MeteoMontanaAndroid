@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 
 // Tramos COMPARTIDOS entre vías + utilidades del editor — espejo Swift de
 // sharedSegmentLines / magnetizeStroke / simplifyStroke / fanOffsets de
@@ -69,13 +70,124 @@ enum TopoShared {
         return ([stripe * s, stripe * s * (n - 1)], k * stripe * s)
     }
 
+    /// QUITA EL SOBRE-TRAZADO de trazos antiguos (espejo de dropRetrace de
+    /// TopoRenderer.kt): linePath que recorren la misma línea varias veces
+    /// («La ola»: 3 pasadas) rellenan los huecos del guion entre pasadas y la
+    /// línea se ve CONTINUA (y el canvas pinta 3×). Si hay varias pasadas y la
+    /// más larga cubre ≥80% del ancho, nos quedamos solo con esa.
+    static func dropRetrace(_ points: [CGPoint]) -> [CGPoint] {
+        guard points.count >= 8 else { return points }
+        let xs = points.map { $0.x }, ys = points.map { $0.y }
+        let spanX = (xs.max() ?? 0) - (xs.min() ?? 0)
+        let spanY = (ys.max() ?? 0) - (ys.min() ?? 0)
+        let horizontal = spanX >= spanY
+        let span = horizontal ? spanX : spanY
+        guard span > 1e-6 else { return points }
+        func axis(_ p: CGPoint) -> CGFloat { horizontal ? p.x : p.y }
+
+        var travelled: CGFloat = 0
+        for i in 0..<(points.count - 1) { travelled += abs(axis(points[i + 1]) - axis(points[i])) }
+        guard travelled >= span * 1.6 else { return points }
+
+        let tol: CGFloat = 0.01
+        var runs: [(Int, Int)] = []
+        var runStart = 0
+        var dir: CGFloat = 0
+        var reversal: CGFloat = 0
+        var reversalStart = -1
+        for i in 0..<(points.count - 1) {
+            let step = axis(points[i + 1]) - axis(points[i])
+            if dir == 0, abs(step) > 1e-6 {
+                dir = step > 0 ? 1 : -1
+            } else if dir != 0, step * dir < 0 {
+                if reversalStart < 0 { reversalStart = i }
+                reversal += abs(step)
+                if reversal > tol {
+                    runs.append((runStart, reversalStart))
+                    runStart = reversalStart
+                    dir = -dir
+                    reversal = 0; reversalStart = -1
+                }
+            } else {
+                reversal = 0; reversalStart = -1
+            }
+        }
+        runs.append((runStart, points.count - 1))
+        guard runs.count >= 2 else { return points }
+        let best = runs.max { abs(axis(points[$0.1]) - axis(points[$0.0]))
+                            < abs(axis(points[$1.1]) - axis(points[$1.0])) }!
+        let bestSpan = abs(axis(points[best.1]) - axis(points[best.0]))
+        guard bestSpan >= span * 0.8 else { return points }
+        return Array(points[best.0...best.1])
+    }
+
+    /// Aplica el iman SOLO si esta activado -- espejo de TopoMagnet.apply.
+    ///
+    /// El interruptor existe porque el iman acertado no siempre es el deseado:
+    /// dos vias pueden pasar muy cerca al arrancar sin compartir nada y
+    /// juntarse solo a media pared. Quien decide eso es quien mira la roca.
+    static func applyMagnet(_ stroke: [CGPoint], others: [[CGPoint]],
+                            threshold: CGFloat = 0.04, enabled: Bool) -> [CGPoint] {
+        enabled ? magnetizeStroke(stroke, others: others, threshold: threshold) : stroke
+    }
+
+    /// Anade UN punto al final, imantando SOLO ese punto -- espejo de
+    /// TopoMagnet.appendPoint. Lo ya colocado no se toca: encender el iman a
+    /// mitad de una via no debe unir de golpe el arranque que dejaste suelto.
+    static func appendPoint(_ line: [CGPoint], _ point: CGPoint, others: [[CGPoint]],
+                            threshold: CGFloat = 0.04, enabled: Bool) -> [CGPoint] {
+        guard enabled, !others.isEmpty else { return line + [point] }
+        guard let ultimo = line.last else {
+            return magnetizeStroke([point], others: others, threshold: threshold)
+        }
+        // Se imanta el tramo "ultimo punto -> nuevo" y se descarta el primero:
+        // ese ya estaba puesto y no se discute.
+        let cola = magnetizeStroke([ultimo, point], others: others, threshold: threshold)
+        return line + cola.dropFirst()
+    }
+
+    /// Indices de `line` que han quedado UNIDOS: los que caen exactamente sobre
+    /// un vertice de otra via -- espejo de TopoMagnet.joinedIndices. Se marcan
+    /// en el editor para no tener que adivinar si el iman engancho.
+    static func joinedIndices(_ line: [CGPoint], others: [[CGPoint]]) -> Set<Int> {
+        guard !line.isEmpty, !others.isEmpty else { return [] }
+        var vertices = Set<String>()
+        for pts in others { for p in pts { vertices.insert(pointKey(p)) } }
+        return Set(line.indices.filter { vertices.contains(pointKey(line[$0])) })
+    }
+
     /// IMÁN del editor: espejo exacto de magnetizeStroke de TopoRenderer.kt.
-    /// v2: se compara contra CUALQUIER TRAMO de las otras vías (no solo sus
-    /// vértices — antes era casi imposible acertar con el dedo) y se pega al
-    /// vértice más cercano de ese tramo (compartir sigue siendo EXACTO).
+    /// v3 (2026-08-20, mismo fallo que ya reportó Rodrigo en Android antes de
+    /// que existiera este editor en iOS): v2 siempre se pegaba al VÉRTICE más
+    /// cercano del tramo, aunque quedara lejos — tocar a mitad de una vía larga
+    /// podía mandar el punto a medio muro de distancia. Ahora el vértice solo
+    /// gana si lo tienes CASI debajo (radioVertice, más estrecho que el imán);
+    /// si estás cerca de la vía pero lejos de sus vértices, el trazo cae en la
+    /// PROYECCIÓN — el punto exacto de la vía más cercano a donde tocaste. Se
+    /// pierde el tramo compartido exacto en ese caso, pero la línea cae donde
+    /// el usuario dijo, que es lo que importa.
     static func magnetizeStroke(_ drawn: [CGPoint], others: [[CGPoint]],
                                 threshold: CGFloat = 0.04) -> [CGPoint] {
         guard !drawn.isEmpty, !others.isEmpty else { return drawn }
+        func proyeccion(_ p: CGPoint) -> CGPoint? {
+            var mejor: CGPoint? = nil
+            var mejorD = threshold * threshold
+            for pts in others {
+                guard pts.count > 1 else { continue }
+                for si in 0..<(pts.count - 1) {
+                    let a = pts[si], b = pts[si + 1]
+                    let abx = b.x - a.x, aby = b.y - a.y
+                    let len2 = abx * abx + aby * aby
+                    let t = len2 < 1e-12 ? 0
+                        : max(0, min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2))
+                    let qx = a.x + t * abx, qy = a.y + t * aby
+                    let dx = p.x - qx, dy = p.y - qy
+                    let d = dx * dx + dy * dy
+                    if d < mejorD { mejorD = d; mejor = CGPoint(x: qx, y: qy) }
+                }
+            }
+            return mejor
+        }
         func snap(_ p: CGPoint) -> (li: Int, vi: Int)? {
             var best: (Int, Int)? = nil
             var bestD = threshold * threshold
@@ -104,9 +216,16 @@ enum TopoShared {
             return best
         }
         struct Node { let point: CGPoint; let snapped: (li: Int, vi: Int)? }
+        // Radio para pegarse a un VÉRTICE: más estrecho que el del imán. El
+        // vértice solo gana si lo tienes casi debajo; si no, gana la proyección.
+        let radioVertice = threshold * 0.45
         let nodes = drawn.map { p -> Node in
-            if let s = snap(p) { return Node(point: others[s.li][s.vi], snapped: s) }
-            return Node(point: p, snapped: nil)
+            guard let s = snap(p) else { return Node(point: p, snapped: nil) }
+            let v = others[s.li][s.vi]
+            let dx = p.x - v.x, dy = p.y - v.y
+            let cerca = dx * dx + dy * dy <= radioVertice * radioVertice
+            if cerca { return Node(point: v, snapped: s) }
+            return Node(point: proyeccion(p) ?? p, snapped: nil)
         }
         var out: [CGPoint] = []
         for (i, n) in nodes.enumerated() {
@@ -171,5 +290,35 @@ enum TopoShared {
             }
         }
         return out
+    }
+}
+
+// MARK: - Acierto de vía/vértice (puente directo al módulo compartido)
+
+extension TopoShared {
+
+    /// [CGPoint] → la lista de pares que espera el módulo compartido.
+    static func kpoints(_ pts: [CGPoint]) -> [KotlinPair<KotlinFloat, KotlinFloat>] {
+        pts.map { KotlinPair(first: KotlinFloat(float: Float($0.x)),
+                             second: KotlinFloat(float: Float($0.y))) }
+    }
+
+    /// Qué vía has tocado. **No se reimplementa aquí**: se llama al código
+    /// compartido, que es el que tiene los tests. Lo de arriba en este fichero
+    /// son espejos escritos a mano por historia; lo nuevo entra por el puente.
+    static func nearestLineIndex(_ lines: [[CGPoint]], x: CGFloat, y: CGFloat,
+                                 maxDistance: Float = 0.05) -> Int? {
+        TopoHitTestKt.nearestLineIndex(lines: lines.map { kpoints($0) },
+                                       px: Float(x), py: Float(y),
+                                       maxDistance: maxDistance)?.intValue
+    }
+
+    /// Qué vértice has agarrado para corregirlo (radio más estrecho: agarrar
+    /// uno sin querer cambia una vía que dabas por buena).
+    static func nearestVertexIndex(_ points: [CGPoint], x: CGFloat, y: CGFloat,
+                                   maxDistance: Float = 0.03) -> Int? {
+        TopoHitTestKt.nearestVertexIndex(points: kpoints(points),
+                                         px: Float(x), py: Float(y),
+                                         maxDistance: maxDistance)?.intValue
     }
 }

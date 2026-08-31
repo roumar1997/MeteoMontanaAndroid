@@ -44,7 +44,8 @@ class ChatViewModel @Inject constructor(
     private val getPublicProfile: GetPublicProfileUseCase,
     private val getFollowStatus: GetFollowStatusUseCase,
     private val getMyProfile: GetMyProfileUseCase,
-    private val chatPushApi: com.meteomontana.android.data.api.KtorChatPushApi
+    private val startConversation: com.meteomontana.android.domain.usecase.chat.StartConversationUseCase,
+    private val notifyChatMessage: com.meteomontana.android.domain.usecase.chat.NotifyChatMessageUseCase
 ) : ViewModel() {
     private val otherUid: String = checkNotNull(savedStateHandle["uid"])
     private val me: String = authService.currentUid() ?: ""
@@ -169,7 +170,7 @@ class ChatViewModel @Inject constructor(
                     // (las reglas de Firestore no dejan crearla al cliente). Offline esto
                     // falla → quitamos el eco y abortamos (no se puede iniciar una nueva
                     // conversación sin red).
-                    val started = runCatching { chatPushApi.startConversation(otherUid) }.isSuccess
+                    val started = runCatching { startConversation(otherUid) }.isSuccess
                     if (!started) {
                         pending.remove(optimistic)
                         rebuildMessages()
@@ -188,7 +189,7 @@ class ChatViewModel @Inject constructor(
             }.isSuccess
             // Si el mensaje se escribió en Firestore con éxito, pedimos al backend
             // que dispare la push notification al receptor.
-            if (ok) runCatching { chatPushApi.notifyMessage(otherUid, text) }
+            if (ok) runCatching { notifyChatMessage(otherUid, text) }
         }
     }
 }

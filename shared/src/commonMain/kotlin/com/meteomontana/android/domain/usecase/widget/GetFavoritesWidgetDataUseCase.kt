@@ -1,6 +1,6 @@
 package com.meteomontana.android.domain.usecase.widget
 
-import com.meteomontana.android.data.saved.CachedSchoolsRepository
+import com.meteomontana.android.domain.repository.SchoolCatalogCache
 import com.meteomontana.android.domain.model.FavoriteWidgetItem
 import com.meteomontana.android.domain.port.LocationProvider
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
 class GetFavoritesWidgetDataUseCase(
     private val getMyFavorites: GetMyFavoritesUseCase,
     private val getTodayScores: GetTodayScoresUseCase,
-    private val cachedSchools: CachedSchoolsRepository,
+    private val cachedSchools: SchoolCatalogCache,
     private val locationProvider: LocationProvider
 ) {
     companion object {

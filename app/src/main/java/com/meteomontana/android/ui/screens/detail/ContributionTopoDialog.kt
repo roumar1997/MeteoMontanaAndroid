@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,16 +60,43 @@ import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.gradeStyle
 
+/**
+ * Todas las vias con las que el trazo puede compartir tramo: las que ya existen
+ * en la piedra y las demas que se estan dibujando ahora.
+ */
+private fun otrasVias(
+    existingLines: List<com.meteomontana.android.ui.components.TopoLine>,
+    lines: Map<Int, SnapshotStateList<Offset>>,
+    selectedIdx: Int
+): List<List<Pair<Float, Float>>> =
+    (existingLines.map { l -> l.points.map { it.x to it.y } } +
+        lines.filterKeys { it != selectedIdx }.values.map { pts -> pts.map { it.x to it.y } })
+        // Solo vias TRAZADAS. Una via con un unico punto suelto actuaba como
+        // iman y se llevaba el trazo a donde no era: es lo que hacia que unirse
+        // a mitad de otra via acabase pegado a su inicio. iOS ya lo filtraba.
+        .filter { it.size >= 2 }
+
 @Composable
 fun ContributionTopoDialog(
     photoUri: Uri,
     bloques: List<BoulderBloqueForm>,
     onSave: (List<BoulderBloqueForm>) -> Unit,
     onDismiss: () -> Unit,
-    existingLines: List<com.meteomontana.android.ui.components.TopoLine> = emptyList()
+    existingLines: List<com.meteomontana.android.ui.components.TopoLine> = emptyList(),
+    /** Texto del botón de guardar. El admin usa este mismo diálogo para
+     *  "editar y aprobar" y "GUARDAR\nLÍNEAS" no dejaba claro que el toque
+     *  aprueba la propuesta (AdminEditApproveSheet.swift sí dice "APROBAR
+     *  CON MIS CAMBIOS") — Álvaro, 2026-08-24, paridad con iOS. */
+    saveLabel: String = "GUARDAR\nLÍNEAS"
 ) {
     var selectedIdx by remember { mutableStateOf(0) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    // Lo que habia en la via antes de empezar este trazo, para restaurarlo si
+    // el gesto acaba siendo un pellizco.
+    var lineBeforeStroke by remember { mutableStateOf<List<Offset>>(emptyList()) }
+    // Vertice agarrado para corregirlo. Sin esto, arreglar un punto torcido
+    // obliga a volver a trazar la via entera.
+    var draggingVertex by remember { mutableStateOf<Int?>(null) }
 
     // Una lista de puntos por bloque. SnapshotStateList para que el Canvas se redibuje en tiempo real.
     val lines = remember {
@@ -79,6 +107,25 @@ fun ContributionTopoDialog(
                 }
             }
         }
+    }
+
+    // Historial para DESHACER: (indice de via, como estaba). Se apila ANTES de
+    // cada cambio. Sin esto, mover una via sin querer al revisar la propuesta
+    // de otro no tiene vuelta atras.
+    val historial = remember { mutableStateListOf<Pair<Int, List<Offset>>>() }
+    // Factor de la ampliacion actual (1 = foto entera, 0,25 = ampliada x4).
+    // De el salen el radio del iman y el paso minimo del trazo, para que los dos
+    // midan siempre el mismo trozo de PANTALLA.
+    var zoom by remember { mutableStateOf(1f) }
+    // ¿El dedo esta encima trazando? Mientras lo este, los puntos de los
+    // vertices no se pintan: en un arrastre son cientos y tapan la linea.
+    var trazando by remember { mutableStateOf(false) }
+    // Iman: encendido por defecto (el caso normal es querer unir). Se recuerda
+    // mientras el editor este abierto, tambien al cambiar de via.
+    var iman by remember { mutableStateOf(true) }
+    fun apunta() {
+        lines[selectedIdx]?.let { historial.add(selectedIdx to it.toList()) }
+        if (historial.size > 40) historial.removeAt(0)
     }
 
     Dialog(
@@ -153,7 +200,9 @@ fun ContributionTopoDialog(
                                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         ) {
                             Text(
-                                "${b.name.ifBlank { "${idx + 1}" }} ${b.grade ?: ""}".trim(),
+                                com.meteomontana.android.domain.util.TopoChipLabel.of(
+                                    idx, b.name, b.variant, b.grade),
+                                maxLines = 1,
                                 style = EyebrowTextStyle,
                                 color = textColor
                             )
@@ -198,90 +247,142 @@ fun ContributionTopoDialog(
                     }
                 )
 
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        // MODO POR TOQUES: cada toque añade un punto a la línea
-                        // (mucho más preciso que el dedo arrastrando). Convive
-                        // con el trazado a mano: un arrastre REDIBUJA de cero.
-                        .pointerInput(selectedIdx, canvasSize) {
-                            detectTapGestures(onTap = { offset: Offset ->
-                                if (canvasSize.width > 0 && canvasSize.height > 0) {
-                                    val current = lines[selectedIdx] ?: return@detectTapGestures
-                                    current.add(
-                                        Offset(
-                                        offset.x / canvasSize.width,
-                                        offset.y / canvasSize.height
-                                    ))
-                                    // Imán inmediato del punto recién colocado.
-                                    val others =
-                                        existingLines.map { l -> l.points.map { it.x to it.y } } +
-                                            lines.filterKeys { it != selectedIdx }
-                                                .values.map { pts -> pts.map { it.x to it.y } }
-                                    val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
-                                        current.map { it.x to it.y }, others)
-                                    current.clear()
-                                    snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
-                                }
-                            })
+                // -- Gestos y zoom -------------------------------------
+                // Todo el reparto de dedos vive en TopoZoomBox (un dedo dibuja,
+                // dos amplian y mueven, doble toque acerca). Aqui solo queda lo
+                // que SIGNIFICA cada gesto para el editor.
+                com.meteomontana.android.ui.components.TopoZoomBox(
+                    modifier = Modifier.fillMaxSize(),
+                    editable = true,
+                    // La ampliacion llega por AVISO, no escribiendo estado desde
+                    // el cuerpo de la pantalla: eso ultimo deja el refresco en
+                    // un estado indefinido (en iPhone dejo de verse el trazo
+                    // entero mientras dibujabas).
+                    onCameraChange = { zoom = it.strokeFactor() },
+                    onStrokeStart = { px, py ->
+                        val current = lines[selectedIdx]
+                        if (current != null) {
+                            // Copia de seguridad: si entra un segundo dedo a
+                            // mitad del trazo se restaura lo que habia, en vez
+                            // de dejar la via a medio borrar.
+                            lineBeforeStroke = current.toList()
+                            trazando = true
+                            apunta()
+                            // Si el dedo cae encima de un vertice existente, se
+                            // AGARRA ese punto para corregirlo. Solo si la via
+                            // ya esta trazada: con dos puntos aun se esta
+                            // dibujando y agarrar estorbaria.
+                            val v = if (current.size >= 3)
+                                com.meteomontana.android.domain.util.nearestVertexIndex(
+                                    current.map { it.x to it.y }, px, py)
+                            else null
+                            draggingVertex = v
+                            if (v == null) { current.clear(); current.add(Offset(px, py)) }
+                            else current[v] = Offset(px, py)
                         }
-                        .pointerInput(selectedIdx, canvasSize) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    if (canvasSize.width > 0 && canvasSize.height > 0) {
-                                        val norm = Offset(
-                                            offset.x / canvasSize.width,
-                                            offset.y / canvasSize.height
-                                        )
-                                        lines[selectedIdx]?.clear()
-                                        lines[selectedIdx]?.add(norm)
-                                    }
-                                },
-                                onDrag = { change, _ ->
-                                    if (canvasSize.width > 0 && canvasSize.height > 0) {
-                                        val norm = Offset(
-                                            change.position.x / canvasSize.width,
-                                            change.position.y / canvasSize.height
-                                        )
-                                        lines[selectedIdx]?.add(norm)
-                                    }
-                                },
-                                onDragEnd = {
-                                    // Al soltar: 1) SUAVIZADO (quita el temblor
-                                    // del pulso, deja una línea limpia de guía) y
-                                    // 2) IMÁN: los puntos cerca de otra vía se
-                                    // ajustan a SUS vértices exactos → el tramo
-                                    // común se pinta a franjas compartidas.
-                                    val current = lines[selectedIdx]
-                                    if (current != null && current.size >= 2) {
-                                        val smooth = com.meteomontana.android.domain.util.simplifyStroke(
-                                            current.map { it.x to it.y })
-                                        val others =
-                                            existingLines.map { l -> l.points.map { it.x to it.y } } +
-                                                lines.filterKeys { it != selectedIdx }
-                                                    .values.map { pts -> pts.map { it.x to it.y } }
-                                        val snapped = com.meteomontana.android.domain.util.magnetizeStroke(
-                                            smooth, others)
-                                        current.clear()
-                                        snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
-                                    }
-                                }
+                    },
+                    onStrokePoint = { px, py ->
+                        val current = lines[selectedIdx]
+                        val v = draggingVertex
+                        if (current != null) {
+                            if (v != null && v < current.size) current[v] = Offset(px, py)
+                            else {
+                                // Solo si el dedo se ha movido de verdad: con el
+                                // dedo casi quieto llegaban decenas de puntos
+                                // identicos por segundo, y el limpiador de
+                                // pasadas superpuestas los tomaba por un
+                                // retrazado y dejaba la linea SIN PINTAR hasta
+                                // soltar. Era el "no veo lo que dibujo".
+                                val ult = current.lastOrNull()
+                                // El paso minimo tambien se divide por la
+                                // ampliacion: con un valor fijo, ampliado x4 se
+                                // tragaba cuatro veces mas movimiento y el trazo
+                                // salia a trompicones.
+                                val paso = 0.003f * zoom
+                                val lejos = ult == null ||
+                                    kotlin.math.abs(px - ult.x) + kotlin.math.abs(py - ult.y) > paso
+                                if (lejos) current.add(Offset(px, py))
+                            }
+                        }
+                    },
+                    onStrokeCancel = {
+                        val current = lines[selectedIdx]
+                        if (current != null) {
+                            current.clear(); current.addAll(lineBeforeStroke)
+                        }
+                        draggingVertex = null
+                        trazando = false
+                    },
+                    onStrokeEnd = {
+                        val current = lines[selectedIdx]
+                        val corrigiendo = draggingVertex != null
+                        draggingVertex = null
+                        trazando = false
+                        if (current != null && current.size >= 2) {
+                            // Corrigiendo un vertice NO se suaviza: el suavizado
+                            // borra puntos, y el que acabas de colocar a mano es
+                            // justo el que quieres conservar. El iman si se
+                            // aplica, para no romper un tramo compartido.
+                            val base = if (corrigiendo) current.map { it.x to it.y }
+                            else com.meteomontana.android.domain.util.simplifyStroke(
+                                current.map { it.x to it.y })
+                            val snapped = com.meteomontana.android.domain.util.TopoMagnet.apply(
+                                base, otrasVias(existingLines, lines, selectedIdx),
+                                enabled = iman)
+                            current.clear()
+                            snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
+                        }
+                    },
+                    onTap = { px, py ->
+                        trazando = false
+                        // Punto a punto: mas preciso que el dedo a mano, y con
+                        // el zoom se vuelve preciso de verdad.
+                        val current = lines[selectedIdx]
+                        if (current != null) {
+                            // Solo se decide sobre el punto NUEVO: encender el
+                            // iman no debe unir de golpe lo que ya dibujaste
+                            // suelto a proposito.
+                            val snapped = com.meteomontana.android.domain.util.TopoMagnet.appendPoint(
+                                current.map { it.x to it.y }, px to py,
+                                otrasVias(existingLines, lines, selectedIdx), 0.04f * zoom,
+                                enabled = iman)
+                            current.clear()
+                            snapped.forEach { (x, y) -> current.add(Offset(x, y)) }
+                        }
+                    }
+                ) { camera ->
+                    AsyncImage(
+                        model = photoUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onSuccess = { state ->
+                            photoRatio = com.meteomontana.android.ui.components.topoAspectRatio(
+                                state.result.drawable.intrinsicWidth,
+                                state.result.drawable.intrinsicHeight
                             )
                         }
-                ) {
-                    // Líneas existentes: se renderizan con su grado/color/badge/tipo
-                    // para que el usuario vea exactamente dónde están las vías ya
-                    // trazadas y no dibuje encima sin querer.
+                    )
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                    // Al ampliar, todo se dibuja dentro de una capa escalada:
+                    // sin dividir por la escala, al 400% el trazo y los badges
+                    // engordarian hasta tapar la roca que ibas a mirar.
+                    val z = camera.strokeFactor()
+                    // density: el grosor va en PIXELES FISICOS. Sin multiplicar
+                    // por la densidad, los 5 de iOS (que son puntos = dp) aqui
+                    // se quedaban en ~1,8 dp en el Xiaomi: un hilo. Por eso el
+                    // trazo se veia diminuto y dos vias que comparten tramo se
+                    // pisaban en vez de verse a franjas.
+                    val densTrazo = drawContext.density.density
                     val existing = existingLines.map { line ->
                         TopoLineData(
                             name = line.name,
                             grade = line.grade,
                             startType = line.startType,
                             points = line.points.map { it.x to it.y },
-                            strokeWidthPx = 5f
+                            strokeWidthPx = 5f * densTrazo * z
                         )
                     }
-                    // Líneas nuevas (editables) — se numeran a continuación de las existentes.
                     val editorLines = lines.entries.sortedBy { it.key }.map { (idx, points) ->
                         val bloque = bloques.getOrNull(idx)
                         val strokeW = if (idx == selectedIdx) 8f else 5f
@@ -290,28 +391,130 @@ fun ContributionTopoDialog(
                             grade = bloque?.grade,
                             startType = bloque?.startType,
                             points = points.map { it.x to it.y },
-                            strokeWidthPx = strokeW
+                            strokeWidthPx = strokeW * densTrazo * z
                         )
                     }
                     val nc = drawContext.canvas.nativeCanvas
                     // density para que rayitas/franjas midan lo mismo que en la ficha.
-                    val dens = drawContext.density.density
+                    val dens = densTrazo
                     renderTopo(
                         existing + editorLines, size.width, size.height,
-                        badgeR = 16f to 13f,
-                        badgeTextPx = 26f to 9f,
-                        startR = 26f to 22f,
-                        startTextPx = 20f to 7f,
-                        dashPx = 12f * dens to 9f * dens,
-                        stripePx = 22f * dens
+                        badgeR = 16f * z to 13f * z,
+                        badgeTextPx = 26f * z to 9f * z,
+                        startR = 26f * z to 22f * z,
+                        startTextPx = 20f * z to 7f * z,
+                        dashPx = 12f * dens * z to 9f * dens * z,
+                        stripePx = 22f * dens * z,
+                        // Sin escalar, para que los badges no se junten al ampliar.
+                        fanSpacingPx = (16f * 2f + 4f) to (26f * 2f + 4f)
                     ).forEach { op -> drawOp(op, nc) }
+                    // Vertices de la via seleccionada: si no se ven, nadie
+                    // adivina que se pueden arrastrar. Pero NO mientras el dedo
+                    // traza: ahi son cientos y lo unico que se ve es una fila de
+                    // puntitos blancos encima de la linea.
+                    // Puntos UNIDOS a otra via: anillo mas grande. Sin esto,
+                    // saber si el iman habia enganchado obligaba a fijarse en si
+                    // salian las franjas del tramo compartido.
+                    val unidos = if (trazando) emptySet() else
+                        com.meteomontana.android.domain.util.TopoMagnet.joinedIndices(
+                            lines[selectedIdx]?.map { it.x to it.y } ?: emptyList(),
+                            otrasVias(existingLines, lines, selectedIdx))
+                    if (!trazando) lines[selectedIdx]?.forEachIndexed { iPt, pt ->
+                        drawCircle(
+                            androidx.compose.ui.graphics.Color.White,
+                            radius = 5f * z,
+                            center = Offset(pt.x * size.width, pt.y * size.height)
+                        )
+                        drawCircle(
+                            androidx.compose.ui.graphics.Color.Black,
+                            radius = 5f * z,
+                            center = Offset(pt.x * size.width, pt.y * size.height),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * z)
+                        )
+                        if (iPt in unidos) {
+                            // Unido a otra via: anillo blanco alrededor.
+                            drawCircle(
+                                androidx.compose.ui.graphics.Color.White,
+                                radius = 10f * z,
+                                center = Offset(pt.x * size.width, pt.y * size.height),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f * z)
+                            )
+                        }
+                    }
+                    }
                 }
               }
             }
 
             // ── Hint ────────────────────────────────────────────────────────────
+            // Ayuda + controles de vista. La lupa es lo unico que no se puede
+            // juzgar sin el movil en la mano: a unos les salva y a otros les
+            // tapa media foto. Interruptor, y que decida quien dibuja.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                val hayQueDeshacer = historial.isNotEmpty()
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .border(
+                            1.dp,
+                            if (hayQueDeshacer) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.outline,
+                            RoundedCornerShape(2.dp)
+                        )
+                        .clickable(enabled = hayQueDeshacer) {
+                            val (idx, antes) = historial.removeAt(historial.size - 1)
+                            lines[idx]?.let { l -> l.clear(); l.addAll(antes) }
+                            selectedIdx = idx
+                        }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                ) {
+                    Text(
+                        "DESHACER",
+                        style = EyebrowTextStyle,
+                        color = if (hayQueDeshacer) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                // UNIR: se puede apagar y encender EN MITAD del dibujo, que es
+                // lo que permite compartir solo el tramo del medio.
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(if (iman) Terra else Color.Transparent)
+                        .border(
+                            1.dp,
+                            if (iman) Terra else MaterialTheme.colorScheme.onSurface,
+                            RoundedCornerShape(2.dp)
+                        )
+                        .clickable { iman = !iman }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                ) {
+                    Text(
+                        if (iman) "UNIR: SÍ" else "UNIR: NO",
+                        style = EyebrowTextStyle,
+                        color = if (iman) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text(
+                    "Un dedo dibuja · dos amplían y mueven · doble toque acerca",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
             Text(
-                "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido).",
+                if (iman)
+                    "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido)."
+                else
+                    "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra vía.",
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)
@@ -372,7 +575,7 @@ fun ContributionTopoDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("GUARDAR\nLÍNEAS", style = EyebrowTextStyle,
+                    Text(saveLabel, style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.background,
                         textAlign = TextAlign.Center)
                 }

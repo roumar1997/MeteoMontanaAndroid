@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.chat
 
 import androidx.compose.animation.core.Animatable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -48,7 +49,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -282,10 +282,23 @@ fun GroupChatScreen(
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
     viewModel: GroupChatViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     var text by remember { mutableStateOf("") }
     val context = LocalContext.current
+
+    // Mismo comportamiento que el chat 1-a-1: `reverseLayout` ancla lo último
+    // abajo al ABRIR, pero no mueve nada después, así que al escribir tu propio
+    // mensaje se quedaba fuera de la vista. Al mío se baja siempre; al ajeno,
+    // solo si ya estabas abajo — si no, te sacaría de donde estás leyendo cada
+    // vez que alguien del grupo escribe, que en un grupo es constante.
+    val ultimo = state.messages.lastOrNull()
+    LaunchedEffect(ultimo?.id) {
+        if (ultimo == null) return@LaunchedEffect
+        if (ultimo.fromUid == state.myUid || listState.firstVisibleItemIndex <= 1) {
+            listState.animateScrollToItem(0)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)

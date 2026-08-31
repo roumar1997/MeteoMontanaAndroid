@@ -14,6 +14,7 @@ struct CreateMeetupView: View {
     @State private var limitText = ""
     @State private var submitting = false
     @State private var createError: String?
+    @State private var showGenderGate = false   // RC3: diálogo del gate No-Mixto
     @State private var photoItem: PhotosPickerItem? = nil
     @State private var photoImage: UIImage? = nil
     @State private var photoUrl: String? = nil
@@ -84,7 +85,8 @@ struct CreateMeetupView: View {
                             }
                             .onChange(of: photoItem) { item in
                                 guard let item else { return }
-                                Task {
+                                // @MainActor: photoImage/uploadingPhoto son @State.
+                                Task { @MainActor in
                                     guard let data = try? await item.loadTransferable(type: Data.self),
                                           let uiImg = UIImage(data: data) else { return }
                                     photoImage = uiImg
@@ -198,7 +200,7 @@ struct CreateMeetupView: View {
                         } catch {
                             let msg = error.localizedDescription
                             if msg.contains("GENDER_REQUIRED") {
-                                createError = "Solo puedes crear quedadas NO MIXTO si tienes género Mujer en tu perfil."
+                                showGenderGate = true   // RC3: diálogo explicativo
                             } else {
                                 createError = msg
                             }
@@ -219,6 +221,11 @@ struct CreateMeetupView: View {
                 .background(Cumbre.bg)
             }
             .navigationBarHidden(true)
+            .alert("Quedadas «No Mixto»", isPresented: $showGenderGate) {
+                Button("Entendido", role: .cancel) {}
+            } message: {
+                Text("Las quedadas «No Mixto» son solo para perfiles con género Mujer. Si eres mujer y aún no lo has indicado, ponlo en Perfil → Editar perfil y podrás crearlas y unirte.")
+            }
             .sheet(isPresented: $showSchoolPicker) {
                 SchoolPickerSheet(
                     query: $schoolPickerQuery,

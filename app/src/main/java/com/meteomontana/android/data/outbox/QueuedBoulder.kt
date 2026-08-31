@@ -2,9 +2,9 @@ package com.meteomontana.android.data.outbox
 
 import androidx.compose.ui.geometry.Offset
 import com.meteomontana.android.ui.screens.detail.BoulderBloqueForm
+import com.meteomontana.android.data.photos.FotosLocales
 import com.meteomontana.android.ui.screens.detail.BoulderFaceForm
 import kotlinx.serialization.Serializable
-import java.util.UUID
 
 /**
  * Propuesta de PIEDRA guardada sin conexión (OutboxType.CONTRIBUTION_BOULDER).
@@ -20,7 +20,12 @@ data class QueuedVia(
     val startType: String?,
     /** Puntos normalizados de la línea como [x, y] (Offset no es serializable). */
     val points: List<List<Float>>,
-    val targetLineId: String?
+    val targetLineId: String?,
+    // Description/variant faltaban aquí: una vía creada o editada SIN
+    // COBERTURA perdía su beta o su variante en silencio al sincronizar
+    // (Álvaro, 2026-08-24 — encontrado revisando el flujo offline nuevo).
+    val description: String? = null,
+    val variant: String? = null
 )
 
 @Serializable
@@ -44,25 +49,64 @@ data class QueuedBoulder(
 )
 
 /**
- * Copia la foto elegida al almacenamiento privado de la app y devuelve la ruta.
- * Un content:// del picker caduca al cerrar la app; un fichero propio no.
+ * Una cara al EDITAR una piedra existente. A diferencia de la de una piedra
+ * nueva, aquí una cara puede tener ya foto en el servidor y no tocarse:
+ *  - [localPhotoPath] != null → foto NUEVA nuestra, hay que subirla al reconectar.
+ *  - si no, [existingPhotoPath] es la que ya tenía y se manda tal cual.
  */
-suspend fun copyPhotoToOutbox(context: android.content.Context, uri: android.net.Uri): String? =
-    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        runCatching {
-            val dir = java.io.File(context.filesDir, "outbox-photos").apply { mkdirs() }
-            val dest = java.io.File(dir, UUID.randomUUID().toString() + ".jpg")
-            context.contentResolver.openInputStream(uri)!!.use { input ->
-                dest.outputStream().use { input.copyTo(it) }
-            }
-            dest.absolutePath
-        }.getOrNull()
-    }
+@Serializable
+data class QueuedEditFace(
+    val localPhotoPath: String?,
+    val existingPhotoPath: String?,
+    val vias: List<QueuedVia>
+)
+
+/**
+ * EDICIÓN de una piedra existente guardada sin red
+ * (OutboxType.CONTRIBUTION_EDIT_BLOCK): añadir vías, poner o cambiar la foto de
+ * una cara, retrazar un muro.
+ *
+ * Se manda el estado COMPLETO de las vías (las existentes con su
+ * [QueuedVia.targetLineId]), igual que el envío online: el backend reconcilia
+ * por ese id, así que los enganches del diario sobreviven.
+ */
+@Serializable
+data class QueuedBlockEdit(
+    val schoolId: String,
+    val targetBlockId: String,
+    val lat: Double,
+    val lon: Double,
+    val geometry: String,
+    val pathJson: String?,
+    val direction: String,
+    val faces: List<QueuedEditFace>
+)
+
+/**
+ * Ruta de un fichero PROPIO con la foto de esa cara, lista para encolar.
+ *
+ * Desde 2026-08-16 las fotos se copian ya AL ELEGIRLAS (ver
+ * [com.meteomontana.android.data.photos.FotosLocales]), así que lo normal es que
+ * [uri] apunte a una copia nuestra y aquí solo se compruebe. Se sigue pudiendo
+ * copiar por los borradores guardados ANTES de ese cambio, que llevan dentro
+ * direcciones del selector del sistema ya caducadas; en ese caso esto devuelve
+ * null.
+ *
+ * @return la ruta, o null si no se pudo preparar. **Quien llama NO puede
+ *   ignorar el null**: encolar la cara sin su foto pierde el trabajo del
+ *   usuario en silencio, que es justo el bug que se arregló.
+ */
+suspend fun copyPhotoToOutbox(context: android.content.Context, uri: android.net.Uri): String? {
+    // Ya es copia nuestra y sigue ahí → nada que copiar.
+    if (uri.scheme == "file" && FotosLocales.existe(uri)) return uri.path
+    return FotosLocales.copiar(context, uri).getOrNull()?.path
+}
 
 fun BoulderBloqueForm.toQueued() = QueuedVia(
     name = name, grade = grade, startType = startType,
     points = linePath.map { listOf(it.x, it.y) },
-    targetLineId = existingLineId
+    targetLineId = existingLineId,
+    description = description, variant = variant
 )
 
 /** Reconstruye las caras para reutilizar facesToBloquesJson en el flush.
@@ -76,7 +120,8 @@ fun QueuedBoulder.toFaces(): Pair<List<BoulderFaceForm>, Map<String, String?>> {
                 BoulderBloqueForm(
                     name = v.name, grade = v.grade, startType = v.startType,
                     linePath = v.points.map { Offset(it[0], it[1]) },
-                    existingLineId = v.targetLineId
+                    existingLineId = v.targetLineId,
+                    description = v.description, variant = v.variant
                 )
             }.ifEmpty { listOf(BoulderBloqueForm()) }
         )

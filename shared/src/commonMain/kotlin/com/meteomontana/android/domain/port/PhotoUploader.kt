@@ -3,7 +3,7 @@ package com.meteomontana.android.domain.port
 /**
  * Puerto para subir fotos a almacenamiento remoto.
  * La implementación Android usa Firebase Storage. En iOS se podría reusar el mismo SDK.
- * Puro Kotlin — sin imports Android/Firebase. Listo para commonMain en Fase 2.
+ * Puro Kotlin — sin imports Android/Firebase. Vive en commonMain (migración KMP completada).
  */
 interface PhotoUploader {
     /**

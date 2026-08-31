@@ -20,6 +20,7 @@ import io.ktor.http.contentType
 
 class KtorMeetupApi(private val client: HttpClient) {
 
+    @Throws(Exception::class)
     suspend fun getMeetups(schoolId: String? = null, date: String? = null,
                            relation: String? = null): List<MeetupDto> =
         client.get("meetups") {
@@ -28,38 +29,47 @@ class KtorMeetupApi(private val client: HttpClient) {
             relation?.let { parameter("relation", it) }
         }.body()
 
+    @Throws(Exception::class)
     suspend fun getMeetup(id: String): MeetupDto = client.get("meetups/$id").body()
 
+    @Throws(Exception::class)
     suspend fun getMeetupByConversation(conversationId: String): MeetupDto? =
         client.get("meetups/by-conversation/$conversationId").body()
 
+    @Throws(Exception::class)
     suspend fun updateMeetup(id: String, description: String?): MeetupDto =
         client.patch("meetups/$id") {
             contentType(ContentType.Application.Json)
             setBody(UpdateMeetupRequestDto(description))
         }.body()
 
+    @Throws(Exception::class)
     suspend fun createMeetup(req: CreateMeetupRequestDto): MeetupDto =
         client.post("meetups") {
             contentType(ContentType.Application.Json)
             setBody(req)
         }.body()
 
+    @Throws(Exception::class)
     suspend fun joinMeetup(id: String, invite: String? = null): MeetupDto =
         client.post("meetups/$id/join") {
             invite?.let { parameter("invite", it) }
         }.body()
 
     /** Enlace de invitación al grupo (solo miembros). */
+    @Throws(Exception::class)
     suspend fun getInviteLink(id: String): String {
         val resp: Map<String, String> = client.get("meetups/$id/invite").body()
         return resp["link"] ?: ""
     }
 
+    @Throws(Exception::class)
     suspend fun leaveMeetup(id: String) { client.post("meetups/$id/leave") }
 
+    @Throws(Exception::class)
     suspend fun deleteMeetup(id: String) { client.delete("meetups/$id") }
 
+    @Throws(Exception::class)
     suspend fun kickMember(meetupId: String, targetUid: String) {
         client.post("meetups/$meetupId/kick") {
             contentType(ContentType.Application.Json)
@@ -67,6 +77,7 @@ class KtorMeetupApi(private val client: HttpClient) {
         }
     }
 
+    @Throws(Exception::class)
     suspend fun updateMyGear(meetupId: String, gearJson: String): MeetupDto =
         client.put("meetups/$meetupId/my-gear") {
             contentType(ContentType.Application.Json)
@@ -96,6 +107,7 @@ class KtorMeetupApi(private val client: HttpClient) {
         try { client.get("meetups/alerts/me").body() }
         catch (e: Exception) { null }
 
+    @Throws(Exception::class)
     suspend fun setMeetupAlert(req: SetAlertRequestDto): MeetupAlertDto =
         client.put("meetups/alerts/me") {
             contentType(ContentType.Application.Json)

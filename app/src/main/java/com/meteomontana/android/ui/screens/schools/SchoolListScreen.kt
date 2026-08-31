@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -38,7 +41,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,11 +57,21 @@ import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.TerraBg
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.CumbreSheetShape
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import kotlinx.coroutines.flow.first
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun SchoolListScreen(
+    /**
+     * Sube contador cada vez que se pulsa la pestaña ESTANDO ya en ella.
+     *
+     * Es el gesto de siempre en un movil: volver a tocar la pestaña activa
+     * lleva arriba del todo. Con la lista a media altura y 191 escuelas, subir
+     * a mano es un arrastre largo.
+     */
+    volverArribaSignal: Int = 0,
     onSchoolClick: (String) -> Unit,
     onProfileClick: () -> Unit = {},
     onSubmitSchool: () -> Unit = {},
@@ -72,18 +84,30 @@ fun SchoolListScreen(
     onViaHit: (schoolId: String, viaId: String?, viaName: String?) -> Unit = { s, _, _ -> onSchoolClick(s) },
     viewModel: SchoolListViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val filters by viewModel.filters.collectAsState()
-    val unread by viewModel.unreadCount.collectAsState()
-    val scores by viewModel.scores.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
-    val userLocation by viewModel.userLocation.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val compareSelection by viewModel.compareSelection.collectAsState()
-    val selectedDays by viewModel.selectedDays.collectAsState()
-    val rangeScores by viewModel.rangeScores.collectAsState()
-    val chatUnread by viewModel.chatUnread.collectAsState()
-    val viaHits by viewModel.viaHits.collectAsState()
+    // "Enviar piedra": el selector de fotos está abierto.
+    var eligiendoFoto by remember { mutableStateOf(false) }
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    if (eligiendoFoto) {
+        SubmitBlockPhotoFlow(
+            // El catálogo ENTERO, no lo que el filtro deja ver: la escuela de la
+            // foto puede estar fuera del filtro activo.
+            schools = viewModel.catalogoCompleto(),
+            seedStore = viewModel.photoSeed,
+            onOpenSchool = { id -> eligiendoFoto = false; onSchoolClick(id) },
+            onDismiss = { eligiendoFoto = false }
+        )
+    }
+    val filters by viewModel.filters.collectAsStateWithLifecycle()
+    val unread by viewModel.unreadCount.collectAsStateWithLifecycle()
+    val scores by viewModel.scores.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val userLocation by viewModel.userLocation.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val compareSelection by viewModel.compareSelection.collectAsStateWithLifecycle()
+    val selectedDays by viewModel.selectedDays.collectAsStateWithLifecycle()
+    val rangeScores by viewModel.rangeScores.collectAsStateWithLifecycle()
+    val chatUnread by viewModel.chatUnread.collectAsStateWithLifecycle()
+    val viaHits by viewModel.viaHits.collectAsStateWithLifecycle()
     var mapExpanded by remember { mutableStateOf(false) }
 
     // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
@@ -101,6 +125,15 @@ fun SchoolListScreen(
     // recarga ordenado por mejor score + filtra 50 km desde la posición real.
     // En la primera apertura el permiso se pide al FINAL del onboarding,
     // después de explicar para qué sirve.
+    // El detalle se abre como overlay DENTRO de esta misma pantalla, así que
+    // el buscador conserva el foco y el teclado se queda encima de la ficha.
+    // Todo lo que navegue desde aquí lo cierra primero.
+    val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
+    val openSchool: (String) -> Unit = { id -> closeKeyboard(); onSchoolClick(id) }
+    val openVia: (String, String?, String?) -> Unit = { schoolId, viaId, viaName ->
+        closeKeyboard(); onViaHit(schoolId, viaId, viaName)
+    }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     var showOnboarding by remember {
         mutableStateOf(!com.meteomontana.android.ui.onboarding.isOnboardingDone(context))
@@ -142,45 +175,90 @@ fun SchoolListScreen(
     // (solo sale si username == null en el servidor; reinstalar no lo re-muestra).
     com.meteomontana.android.ui.onboarding.UsernameGate()
 
-    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+    // M2: cámara del mapa de escuelas, recordada AQUÍ (fuera del LazyColumn) para
+    // que sobreviva al reciclado del item del mapa al scrollear.
+    // M2/M3: estado del mapa (cámara + ids encuadrados) recordado AQUÍ, fuera del
+    // LazyColumn, para que sobreviva al reciclado del item del mapa al scrollear.
+    val mapState = rememberSchoolsMapState()
+
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Fila de iconos top + header ("Escuelas" · [+ Aportar]) FUERA del
+        // PullToRefreshBox a propósito: dentro del área de arrastre, el gesto
+        // de refrescar competía por el toque con el botón APORTAR y a veces se
+        // quedaba con él (toque "fantasma" — el clic se perdía en silencio,
+        // solo colaba tocando la esquina superior derecha del botón, donde el
+        // arbitraje de gestos de Compose apenas tiene margen para dudar).
+        // Fijos aquí, nunca compiten con el pull-to-refresh de la lista.
+        TopIconsRow(
+            unread = unread,
+            chatUnread = chatUnread,
+            onSearchUsers = onSearchUsers,
+            onChats = onChats,
+            onNotifications = onNotifications,
+            onProfileClick = onProfileClick
+        )
+        HeaderEscuelas(
+            count = (state as? SchoolListUiState.Success)?.schools?.size,
+            onSubmitSchool = onSubmitSchool,
+            onSubmitBlockPhoto = { eligiendoFoto = true }
+        )
+
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+        modifier = Modifier.fillMaxSize()
     ) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        androidx.compose.runtime.LaunchedEffect(volverArribaSignal) {
+            if (volverArribaSignal > 0) listState.animateScrollToItem(0)
+        }
+        LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        // Hueco al final para que la ultima escuela no quede debajo de la capsula.
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
+    ) {
 
-            // Fila de iconos top (no existe en la PWA pero hay que mantener
-            // navegación a chats/notifs/perfil). Discreta para que el header
-            // siguiente sea el foco visual.
-            item {
-                TopIconsRow(
-                    unread = unread,
-                    chatUnread = chatUnread,
-                    onSearchUsers = onSearchUsers,
-                    onChats = onChats,
-                    onNotifications = onNotifications,
-                    onProfileClick = onProfileClick
-                )
-            }
-
-            // Header PWA: "Escuelas" · "193 escuelas" · [+ Enviar escuela]
-            item {
-                HeaderEscuelas(
-                    count = (state as? SchoolListUiState.Success)?.schools?.size,
-                    onSubmitSchool = onSubmitSchool
-                )
-            }
-
-            // Buscador
+            // Buscador ÚNICO estilo Spotlight: escuelas Y vías/bloques a la vez.
+            // El placeholder anuncia que busca ambas cosas, y al escribir salen
+            // las dos secciones (aunque una esté vacía) → se aprende solo.
             item {
                 Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
                     OutlinedTextField(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Busca tu escuela o vía/bloque…") },
+                        placeholder = { Text("Busca escuelas, vías y bloques…") },
+                        // Lupa dentro del campo, como en iOS: sin ella el
+                        // buscador parece una caja de texto cualquiera.
+                        leadingIcon = {
+                            androidx.compose.material3.Icon(
+                                Icons.Outlined.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingIcon = {
+                            // P8: X para limpiar de un toque (paridad iOS).
+                            if (filters.query.isNotEmpty()) {
+                                androidx.compose.material3.Icon(
+                                    Icons.Outlined.Close,
+                                    contentDescription = stringResource(R.string.common_close),
+                                    modifier = Modifier.clickable { viewModel.setQuery("") }
+                                )
+                            }
+                        },
                         singleLine = true,
-                        shape = MaterialTheme.shapes.small,
+                        // La tecla de buscar del propio teclado lo cierra: la
+                        // lista ya filtra al escribir, no hay nada que enviar.
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Search
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onSearch = { closeKeyboard() }
+                        ),
+                        shape = com.meteomontana.android.ui.theme.CumbrePillShape,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor   = MaterialTheme.colorScheme.surface,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface
@@ -189,14 +267,15 @@ fun SchoolListScreen(
                 }
             }
 
-            // Resultados del buscador GLOBAL de vías/bloques (mismo campo).
-            if (filters.query.trim().length >= 2 && viaHits.isNotEmpty()) {
+            // Resultados del buscador ÚNICO en DOS secciones (estilo Spotlight):
+            // ESCUELAS (top 5 del catálogo, acceso directo) y VÍAS Y BLOQUES
+            // (buscador global con mini-topo). Las cabeceras salen SIEMPRE al
+            // escribir — así se aprende que el campo busca ambas cosas.
+            if (filters.query.trim().length >= 2) {
                 item {
+                    val schoolMatches = (state as? SchoolListUiState.Success)
+                        ?.schools.orEmpty().take(5)
                     Column(Modifier.padding(horizontal = Spacing.lg)) {
-                        Text("VÍAS Y BLOQUES",
-                            style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp))
                         Column(
                             Modifier.fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.surface,
@@ -204,30 +283,101 @@ fun SchoolListScreen(
                                 .border(1.dp, MaterialTheme.colorScheme.outline,
                                     MaterialTheme.shapes.small)
                         ) {
-                            viaHits.forEach { h ->
-                                Row(
-                                    Modifier.fillMaxWidth()
-                                        .clickable { onViaHit(h.schoolId, h.lineId, h.lineName ?: h.blockName) }
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(
-                                            (h.lineName ?: h.blockName) +
-                                                (h.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1)
-                                        Text(
-                                            listOf(h.blockName.takeIf { h.lineName != null },
-                                                   h.sectorName, h.schoolName)
-                                                .filterNotNull().filter { it.isNotBlank() }
-                                                .joinToString(" · "),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1)
+                            Text("ESCUELAS",
+                                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            if (schoolMatches.isEmpty()) {
+                                Text("Sin resultados",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                        .padding(bottom = 8.dp))
+                            } else {
+                                schoolMatches.forEach { s ->
+                                    Row(
+                                        Modifier.fillMaxWidth()
+                                            .clickable { openSchool(s.id) }
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(s.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1)
+                                            s.region?.takeIf { it.isNotBlank() }?.let {
+                                                Text(it,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1)
+                                            }
+                                        }
+                                        Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
-                                    Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            Text("VÍAS Y BLOQUES",
+                                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            if (viaHits.isEmpty()) {
+                                Text("Sin resultados",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                        .padding(bottom = 8.dp))
+                            }
+                            viaHits.forEach { h ->
+                                Column(
+                                    Modifier.fillMaxWidth()
+                                        .clickable { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) }
+                                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                (h.lineName ?: h.blockName) +
+                                                    (h.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1)
+                                            Text(
+                                                listOf(h.blockName.takeIf { h.lineName != null },
+                                                       h.sectorName, h.schoolName)
+                                                    .filterNotNull().filter { it.isNotBlank() }
+                                                    .joinToString(" · "),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1)
+                                        }
+                                        Text("▸", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    // Mini-topo: la foto de la cara con la línea dibujada
+                                    // (solo si el backend mandó foto; la piedra sale sin trazo).
+                                    h.photoPath?.takeIf { it.isNotBlank() }?.let { photo ->
+                                        // P8: dedup de puntos consecutivos casi identicos — en
+                                        // trazos a mano antiguos los duplicados fusionaban los
+                                        // guiones y la linea salia CONTINUA solo aqui.
+                                        val rawStroke = com.meteomontana.android.ui.screens.topo
+                                            .parseLineStroke(h.linePath)
+                                        val stroke = rawStroke.copy(points = rawStroke.points
+                                            .filterIndexed { i, pt ->
+                                                i == 0 || kotlin.math.abs(pt.x - rawStroke.points[i - 1].x) +
+                                                    kotlin.math.abs(pt.y - rawStroke.points[i - 1].y) > 0.004f
+                                            })
+                                        val topoLines = if (stroke.points.size >= 2) listOf(
+                                            com.meteomontana.android.ui.components.TopoLine(
+                                                name = h.lineName, grade = h.grade,
+                                                startType = h.startType, points = stroke.points)
+                                        ) else emptyList()
+                                        com.meteomontana.android.ui.components.TopoPhotoCanvas(
+                                            photoUrl = photo,
+                                            lines = topoLines,
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -254,7 +404,8 @@ fun SchoolListScreen(
                     userLon = userLocation?.lon,
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
-                    onSchoolDetail = onSchoolClick
+                    onSchoolDetail = openSchool,
+                    mapState = mapState
                 )
             }
 
@@ -325,7 +476,7 @@ fun SchoolListScreen(
                                 onClick = {
                                     // En modo selección el tap también selecciona.
                                     if (compareSelection.isNotEmpty()) viewModel.toggleCompare(school.id)
-                                    else onSchoolClick(school.id)
+                                    else openSchool(school.id)
                                 },
                                 onLongClick = { viewModel.toggleCompare(school.id) },
                                 onToggleFavorite = { viewModel.toggleFavorite(school.id) }
@@ -359,23 +510,32 @@ fun SchoolListScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    // POR ENCIMA de la cápsula de pestañas. Es una barra
+                    // flotante anclada abajo, así que el contentPadding de la
+                    // lista no la alcanza: se le da su propio hueco o el botón
+                    // COMPARAR queda debajo de las pestañas y no se puede
+                    // pulsar (lo cazó Rodrigo intentando comparar dos escuelas).
+                    .padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
                     .padding(Spacing.md)
                     .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.onBackground)
+                    // Fondo FIJO oscuro: onBackground se invierte en modo
+                    // oscuro y la barra salía blanca y deslumbrante.
+                    .background(androidx.compose.ui.graphics.Color(0xFF17170F))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
                     .padding(start = Spacing.xs, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = viewModel::clearCompare) {
                     Icon(
                         Icons.Outlined.Close,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.background
+                        contentDescription = stringResource(R.string.common_close),
+                        tint = androidx.compose.ui.graphics.Color.White
                     )
                 }
                 Text(
                     "${compareSelection.size} seleccionada${if (compareSelection.size > 1) "s" else ""}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.background,
+                    color = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.weight(1f)
                 )
                 // Botón Comparar grande (a partir de 2). Con 1, pista de qué falta.
@@ -383,7 +543,7 @@ fun SchoolListScreen(
                     Box(
                         modifier = Modifier
                             .clip(MaterialTheme.shapes.small)
-                            .background(Terra)
+                            .background(terraFillColor())
                             .clickable { onCompare(compareSelection.toList()); viewModel.clearCompare() }
                             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
@@ -404,6 +564,7 @@ fun SchoolListScreen(
                 }
             }
         }
+    }
     }
 }
 
@@ -440,8 +601,11 @@ private fun DaySelectorRow(
                 val iso = d.dayOfWeek.value
                 val selected = iso in selectedDays
                 Column(
+                    // Radio intermedio, NO píldora: es una celda casi cuadrada
+                    // (día + número apilados), y una píldora completa ahí se ve
+                    // como un óvalo forzado — mismo motivo que las stat cards.
                     modifier = Modifier
-                        .clip(MaterialTheme.shapes.small)
+                        .clip(com.meteomontana.android.ui.theme.CumbreStatCardShape)
                         .background(
                             if (selected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.surface
@@ -450,7 +614,7 @@ private fun DaySelectorRow(
                             1.dp,
                             if (selected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.outline,
-                            MaterialTheme.shapes.small
+                            com.meteomontana.android.ui.theme.CumbreStatCardShape
                         )
                         .clickable { onToggleDay(iso) }
                         .padding(horizontal = Spacing.md, vertical = Spacing.sm),
@@ -493,6 +657,10 @@ private fun TopIconsRow(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Los cinco iconos dentro de una pastilla, como en iOS. Sueltos sobre
+        // el fondo ocupaban toda la parte de arriba y era lo que hacía que la
+        // cabecera no se pareciera en nada a la del iPhone.
+        com.meteomontana.android.ui.components.CumbrePillGroup {
         com.meteomontana.android.ui.components.HelpButton(topicKey = "schools")
         IconButton(onClick = onSearchUsers) {
             Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_users_title),
@@ -513,6 +681,11 @@ private fun TopIconsRow(
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
+        // Tema ANTES que la campana: es el orden de iOS (?, buscar, chats,
+        // luna, campana). Estaban intercambiados y, al comparar las dos
+        // pantallas, la cabecera era lo primero que delataba que no eran la
+        // misma app.
+        ThemeToggleButton()
         IconButton(onClick = onNotifications) {
             if (unread > 0) {
                 BadgedBox(badge = {
@@ -528,7 +701,7 @@ private fun TopIconsRow(
                     tint = MaterialTheme.colorScheme.onBackground)
             }
         }
-        ThemeToggleButton()
+        }
         // El perfil ya no va aquí: tiene su propia pestaña inferior.
     }
 }
@@ -537,7 +710,7 @@ private fun TopIconsRow(
 @Composable
 private fun ThemeToggleButton() {
     val vm: ThemeToggleViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-    val mode by vm.mode.collectAsState()
+    val mode by vm.mode.collectAsStateWithLifecycle()
     val isDark = when (mode) {
         com.meteomontana.android.ui.theme.ThemeMode.DARK -> true
         com.meteomontana.android.ui.theme.ThemeMode.LIGHT -> false
@@ -546,7 +719,7 @@ private fun ThemeToggleButton() {
     IconButton(onClick = vm::toggle) {
         Icon(
             imageVector = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.a11y_toggle_theme),
             tint = MaterialTheme.colorScheme.onBackground
         )
     }
@@ -564,8 +737,18 @@ class ThemeToggleViewModel @javax.inject.Inject constructor(
 @Composable
 private fun HeaderEscuelas(
     count: Int?,
-    onSubmitSchool: () -> Unit
+    onSubmitSchool: () -> Unit,
+    /** Elegir una foto y proponer la piedra en la escuela donde se hizo. */
+    onSubmitBlockPhoto: () -> Unit
 ) {
+    var aportando by remember { mutableStateOf(false) }
+    if (aportando) {
+        AportarSheet(
+            onDismiss = { aportando = false },
+            onPiedra = { aportando = false; onSubmitBlockPhoto() },
+            onEscuela = { aportando = false; onSubmitSchool() }
+        )
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -586,7 +769,66 @@ private fun HeaderEscuelas(
                 )
             }
         }
-        OutlinedCumbreButton(text = stringResource(R.string.schools_submit), onClick = onSubmitSchool, textColor = Terra)
+        // UN solo boton: corto, entra en cualquier pantalla y con el texto
+        // grande de accesibilidad. Las dos formas de aportar viven en la hoja,
+        // donde cada una cabe con su explicacion.
+        OutlinedCumbreButton(text = stringResource(R.string.schools_contribute),
+            onClick = { aportando = true }, textColor = Terra)
+    }
+}
+
+/** Las dos formas de aportar al catalogo, cada una con su porque. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun AportarSheet(
+    onDismiss: () -> Unit,
+    onPiedra: () -> Unit,
+    onEscuela: () -> Unit
+) {
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = com.meteomontana.android.ui.components.CumbreSheetShape
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()
+            .cumbreSheetSurface()
+            .padding(Spacing.lg)) {
+            Text(
+                stringResource(R.string.contribute_title),
+                style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = Terra
+            )
+            Spacer(Modifier.height(Spacing.md))
+            AportarOpcion(
+                titulo = stringResource(R.string.contribute_block),
+                detalle = stringResource(R.string.contribute_block_hint),
+                onClick = onPiedra
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            AportarOpcion(
+                titulo = stringResource(R.string.contribute_school),
+                detalle = stringResource(R.string.contribute_school_hint),
+                onClick = onEscuela
+            )
+            Spacer(Modifier.height(Spacing.xl))
+        }
+    }
+}
+
+@Composable
+private fun AportarOpcion(titulo: String, detalle: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(Spacing.md)
+    ) {
+        Text(titulo, style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground)
+        Text(detalle, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -708,11 +950,17 @@ private fun DonateDialog(onDismiss: () -> Unit) {
  * padding excesivos, así que lo construimos como Box clickable.
  */
 @Composable
-private fun OutlinedCumbreButton(text: String, onClick: () -> Unit, textColor: Color? = null) {
+private fun OutlinedCumbreButton(
+    text: String,
+    onClick: () -> Unit,
+    textColor: Color? = null,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
-            .clip(MaterialTheme.shapes.small)
-            .border(1.dp, MaterialTheme.colorScheme.onBackground, MaterialTheme.shapes.small)
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+            .border(1.dp, MaterialTheme.colorScheme.onBackground, com.meteomontana.android.ui.theme.CumbrePillShape)
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
     ) {

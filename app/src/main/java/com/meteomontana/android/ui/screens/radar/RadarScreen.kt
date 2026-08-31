@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.radar
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +34,6 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -87,7 +89,7 @@ fun RadarScreen(
     viewModel: RadarViewModel = hiltViewModel()
 ) {
     val ctx = LocalContext.current
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val userLoc = rememberUserLocation()
     val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
@@ -209,9 +211,17 @@ fun RadarScreen(
         ) { tapped -> selectedSchool = tapped }
     }
 
-    val currentLabel = readyFrames.getOrNull(frameIndex)?.timeLabel ?: "--:--"
-    val isNow = state.day == RadarDay.HOY &&
-            readyFrames.isNotEmpty() && frameIndex == readyFrames.size - 1
+    // Mientras descargan los PNGs, el timestamp grande NO debe bailar: el frame
+    // "AHORA" (el último de la lista) tiene su hora desde que llega la lista
+    // (viene del capturedAt, no del PNG). Lo anclamos ahí en vez de seguir a
+    // readyFrames[frameIndex], que salta al llegar cada frame → parpadeo.
+    val currentLabel = if (state.framesLoading)
+        (state.frames.lastOrNull()?.timeLabel ?: "--:--")
+    else
+        (readyFrames.getOrNull(frameIndex)?.timeLabel ?: "--:--")
+    val isNow = state.day == RadarDay.HOY && (
+        if (state.framesLoading) state.frames.isNotEmpty()
+        else readyFrames.isNotEmpty() && frameIndex == readyFrames.size - 1)
 
     // Scrubber estable durante la carga: la lista COMPLETA (state.frames) tiene
     // tamaño fijo desde el primer instante; readyFrames crece mientras entran los
@@ -384,7 +394,15 @@ fun RadarScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .padding(horizontal = Spacing.sm)
-                .padding(bottom = 78.dp, top = Spacing.sm)
+                // El hueco de la cápsula, MEDIDO — no un 78.dp puesto a ojo.
+                // Un número fijo aquí es lo que se descuadra al cambiar de
+                // móvil; el radar es la única pantalla que se dibuja a sangre y
+                // por eso tiene que apartarse ella sola.
+                .padding(
+                    bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current
+                        .coerceAtLeast(78.dp),
+                    top = Spacing.sm
+                )
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f))
@@ -412,7 +430,7 @@ fun RadarScreen(
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(
-                    modifier = Modifier.size(46.dp).clip(CircleShape).background(Terra)
+                    modifier = Modifier.size(46.dp).clip(CircleShape).background(terraFillColor())
                         .clickable(enabled = readyFrames.size >= 2) { playing = !playing },
                     contentAlignment = Alignment.Center
                 ) {
@@ -521,7 +539,7 @@ private fun RadarSchoolCard(
             }
         }
         Box(
-            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Terra)
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(terraFillColor())
                 .clickable(onClick = onDetail)
                 .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {

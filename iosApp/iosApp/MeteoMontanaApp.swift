@@ -21,6 +21,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         FirebaseApp.configure()
+        // Diagnóstico real de cuelgues del hilo principal (MetricKit →
+        // Crashlytics) — caza de los watchdog 0x8BADF00D con stacks de verdad.
+        HangReporter.shared.start()
         return true
     }
 
@@ -78,6 +81,9 @@ struct MeteoMontanaApp: App {
                             } else if t.openAdminReports {
                                 // Push de denuncia → panel de admin en DENUNCIAS.
                                 AdminView(openDenuncias: true)
+                            } else if t.openAdminContributions {
+                                // Push de propuesta nueva → panel de admin en PROPUESTAS.
+                                AdminView(openDenuncias: false)
                             } else if let postId = t.feedPostId {
                                 // Push "feed_post" → detalle del post del feed.
                                 FeedPostDetailView(postIdString: postId)

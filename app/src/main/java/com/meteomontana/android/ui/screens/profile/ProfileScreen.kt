@@ -1,5 +1,9 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.profile
 
+import android.content.Context
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -10,27 +14,31 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.Backpack
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -41,15 +49,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -61,7 +71,6 @@ import coil.compose.AsyncImage
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.JournalStats
 import com.meteomontana.android.domain.model.PrivateProfile
-import com.meteomontana.android.domain.model.SchoolStats
 
 @Composable
 fun ProfileScreen(
@@ -84,13 +93,18 @@ fun ProfileScreen(
     onOpenProjects: () -> Unit = {},
     // Fila "Mis publicaciones" → pantalla dedicada con el feed propio (scope=mine).
     onOpenMyPosts: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
     /** En la pestaña keep-alive: true cuando la pestaña Perfil está visible.
      *  Recarga al hacerse visible (los ON_RESUME no saltan al cambiar de tab). */
     visible: Boolean = true,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var addBlockOpen by remember { mutableStateOf(false) }
+    // Saveable: si navegas a un sub-ajuste y vuelves atrás, la hoja sigue abierta.
+    var settingsOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     androidx.compose.runtime.LaunchedEffect(visible) {
         if (visible) viewModel.load()
@@ -109,40 +123,84 @@ fun ProfileScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Se presenta como bottom-sheet (paridad iOS) → altura acotada para que el
-    // LazyColumn interior tenga restricción vertical (si no, crashea).
-    Column(modifier = Modifier.fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)) {
-        SheetHeader(stringResource(R.string.profile_title), if (showClose) onBack else null)
-        when (val s = state) {
-            ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-            is ProfileUiState.Error -> CenterBox { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
-            is ProfileUiState.Success -> Content(
-                profile = s.profile,
-                stats = s.stats,
-                followers = s.followers,
-                following = s.following,
-                offline = s.offline,
-                pendingReview = s.pendingReview,
-                onAddBlock = { addBlockOpen = true },
-                onEdit = onEdit,
-                onSubmissions = onSubmissions,
-                onAdmin = onAdmin,
-                onSavedSchools = onSavedSchools,
-                onWeekendAlert = onWeekendAlert,
-                onOpenFollowers = onOpenFollowers,
-                onOpenFollowing = onOpenFollowing,
-                onOpenFollowRequests = onOpenFollowRequests,
-                onOpenSchoolEntries = onOpenSchoolEntries,
-                onOpenBoulders = onOpenBoulders,
-                onOpenRoutes = onOpenRoutes,
-                onOpenAllSchools = onOpenAllSchools,
-                onOpenMaxGrade = onOpenMaxGrade,
-                onOpenProjects = onOpenProjects,
-                onOpenMyPosts = onOpenMyPosts,
-                onSignOut = viewModel::signOut,
-                onDeleteAccount = { viewModel.deleteAccount() }
+    val successState = state as? ProfileUiState.Success
+
+    // Ajustes NO es un bottom-sheet (flotaba encima de la navegación: al tocar una
+    // opción, la pantalla nueva cargaba DETRÁS y no se veía). Es una PANTALLA de
+    // verdad dentro del perfil: pantalla completa, y al volver de un sub-ajuste
+    // (que navega encima) `settingsOpen` sigue true (rememberSaveable) → vuelves
+    // a Ajustes, no al perfil. El back del sistema cierra Ajustes.
+    var gearOpen by rememberSaveable { mutableStateOf(false) }
+    BackHandler(enabled = gearOpen) { gearOpen = false }
+    BackHandler(enabled = settingsOpen) { settingsOpen = false }
+
+    if (gearOpen && successState != null) {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { gearOpen = false },
+            // Entera desde el principio: a media altura la cabecera queda fuera
+            // y con ella el boton de guardar (lo cazo Rodrigo en el Xiaomi).
+            sheetState = androidx.compose.material3.rememberModalBottomSheetState(
+                skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.background
+        ) {
+            MyGearSheet(
+                gearJson = successState.profile.gearJson,
+                onClose = { gearOpen = false },
+                onSave = { json -> viewModel.saveGear(json) { gearOpen = false } }
             )
+        }
+    }
+
+    if (settingsOpen && successState != null) {
+        ProfileSettingsScreen(
+            onBack = { settingsOpen = false },
+            isPrivate = !successState.profile.isPublic,
+            onEdit = onEdit,
+            onSavedSchools = onSavedSchools,
+            onWeekendAlert = onWeekendAlert,
+            onSubmissions = onSubmissions,
+            onOpenFollowRequests = onOpenFollowRequests,
+            onSignOut = { settingsOpen = false; viewModel.signOut() },
+            onDeleteAccount = { settingsOpen = false; viewModel.deleteAccount() }
+        )
+    } else {
+        Column(modifier = Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)) {
+            // Cabecera: ayuda (izq) · título · compartir + ajustes (der). Compartir
+            // y ajustes solo cuando el perfil ha cargado (necesitan sus datos).
+            ProfileTopBar(
+                // Sin titulo: debajo ya estan tu foto, tu nombre y tu @usuario.
+                // Poner "Cuenta" encima solo repite donde estas y roba altura.
+                title = "",
+                showClose = showClose,
+                onBack = onBack,
+                onGear = successState?.let { { gearOpen = true } },
+                onShare = successState?.let { s -> { shareProfile(ctx, scope, s.profile, s.stats) } },
+                onSettings = successState?.let { { settingsOpen = true } },
+                onAdmin = successState?.takeIf { it.profile.isAdmin }?.let { { onAdmin() } },
+                pendingReview = successState?.pendingReview ?: 0
+            )
+            when (val s = state) {
+                ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+                is ProfileUiState.Error -> CenterBox { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
+                is ProfileUiState.Success -> Content(
+                    profile = s.profile,
+                    stats = s.stats,
+                    followers = s.followers,
+                    following = s.following,
+                    offline = s.offline,
+                    onAddBlock = { addBlockOpen = true },
+                    onOpenFollowers = onOpenFollowers,
+                    onOpenFollowing = onOpenFollowing,
+                    onOpenBoulders = onOpenBoulders,
+                    onOpenRoutes = onOpenRoutes,
+                    onOpenAllSchools = onOpenAllSchools,
+                    onOpenMaxGrade = onOpenMaxGrade,
+                    onOpenProjects = onOpenProjects,
+                    onOpenMyPosts = onOpenMyPosts,
+                    onOpenStats = onOpenStats
+                )
+            }
         }
     }
 
@@ -154,22 +212,95 @@ fun ProfileScreen(
     }
 }
 
+/** Dispara la imagen 1080×1920 (formato historia) de "compartir perfil". */
+private fun shareProfile(ctx: Context, scope: CoroutineScope, p: PrivateProfile, stats: JournalStats) {
+    val handle = p.username ?: p.uid
+    scope.launch {
+        com.meteomontana.android.ui.share.shareProfileAsImage(
+            ctx, handle,
+            p.username?.let { "@$it" } ?: (p.displayName ?: "mi perfil"),
+            username = p.username, photoUrl = p.photoUrl,
+            topGrade = stats.maxGrade, bio = p.bio,
+            boulders = stats.boulderCount, routes = stats.routeCount, schools = stats.schoolCount
+        )
+    }
+}
+
 @Composable
-private fun SheetHeader(title: String, onClose: (() -> Unit)?) {
-    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
+private fun ProfileTopBar(
+    title: String,
+    showClose: Boolean,
+    onBack: () -> Unit,
+    onGear: (() -> Unit)? = null,
+    onShare: (() -> Unit)?,
+    onSettings: (() -> Unit)?,
+    onAdmin: (() -> Unit)? = null,
+    pendingReview: Int = 0
+) {
+    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center))
-        com.meteomontana.android.ui.components.HelpButton(
-            topicKey = "profile",
+        // Izquierda: ayuda (?) + acceso admin con nº de pendientes (solo admins).
+        // Agrupados en una pastilla, como en iOS — ver CumbrePillGroup.
+        com.meteomontana.android.ui.components.CumbrePillGroup(
             modifier = Modifier.align(Alignment.CenterStart)
-        )
-        if (onClose != null) TextButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterEnd)) {
-            Text(stringResource(R.string.common_close), color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.labelLarge)
+        ) {
+            com.meteomontana.android.ui.components.HelpButton(topicKey = "profile")
+            if (onAdmin != null) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(onClick = onAdmin)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Outlined.AdminPanelSettings, contentDescription = "Panel de admin",
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                    if (pendingReview > 0) {
+                        Box(
+                            Modifier.clip(RoundedCornerShape(20.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(horizontal = 6.dp, vertical = 1.dp)
+                        ) {
+                            Text("$pendingReview", color = Color.White,
+                                style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+        // Derecha: compartir + ajustes, también en pastilla (en iOS son las dos
+        // que van juntas arriba a la derecha).
+        com.meteomontana.android.ui.components.CumbrePillGroup(
+            modifier = Modifier.align(Alignment.CenterEnd)
+        ) {
+            // Mi material: primero de los tres, igual que en iOS.
+            if (onGear != null) IconButton(onClick = onGear) {
+                Icon(
+                    Icons.Outlined.Backpack,
+                    contentDescription = "Mi material",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            if (onShare != null) IconButton(onClick = onShare) {
+                Icon(Icons.Outlined.Share, contentDescription = "Compartir perfil",
+                    tint = MaterialTheme.colorScheme.primary)
+            }
+            if (onSettings != null) IconButton(onClick = onSettings) {
+                Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.profile_settings),
+                    tint = MaterialTheme.colorScheme.onBackground)
+            }
+            if (showClose) TextButton(onClick = onBack) {
+                Text(stringResource(R.string.common_close), color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+    // SIN linea bajo las pastillas: en iOS no hay separador ahi, y con los
+    // botones ya agrupados en su capsula la raya solo parte la pantalla en dos
+    // sin separar nada (lo pidio Rodrigo).
 }
 
 @Composable
@@ -179,27 +310,23 @@ private fun Content(
     followers: Long,
     following: Long,
     offline: Boolean = false,
-    pendingReview: Int = 0,
     onAddBlock: () -> Unit,
-    onEdit: () -> Unit,
-    onSubmissions: () -> Unit,
-    onAdmin: () -> Unit,
-    onSavedSchools: () -> Unit,
-    onWeekendAlert: () -> Unit,
     onOpenFollowers: () -> Unit,
     onOpenFollowing: () -> Unit,
-    onOpenFollowRequests: () -> Unit,
-    onOpenSchoolEntries: (String) -> Unit,
     onOpenBoulders: () -> Unit,
     onOpenRoutes: () -> Unit,
     onOpenAllSchools: () -> Unit,
     onOpenMaxGrade: () -> Unit,
     onOpenProjects: () -> Unit,
     onOpenMyPosts: () -> Unit = {},
-    onSignOut: () -> Unit,
-    onDeleteAccount: () -> Unit = {}
+    onOpenStats: () -> Unit = {}
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        // Sin esto no se llega al boton de anadir bloque/via.
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
+    ) {
         if (offline) {
             item {
                 Text(
@@ -213,120 +340,21 @@ private fun Content(
                 )
             }
         }
-        // Cabecera centrada (avatar grande, nombre, @usuario, email, píldoras
-        // TOPE/ADMIN y seguidores) — paridad con AccountView de iOS.
-        item { Header(profile, topGrade = stats.maxGrade, followers = followers, following = following,
+        // Cabecera centrada (avatar grande, nombre, @usuario, píldoras ADMIN/PREMIUM
+        // y seguidores). El grado máx vive solo en las stats (decisión de Rodrigo).
+        item { Header(profile, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
-        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts) }
+        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
         item { AddBlockButton(onClick = onAddBlock) }
-        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-        // Menú con iconos terracota (filas tipo iOS).
-        item {
-            ProfileMenu(
-                onEdit = onEdit,
-                onSavedSchools = onSavedSchools,
-                onWeekendAlert = onWeekendAlert,
-                onSubmissions = onSubmissions,
-                showRequests = !profile.isPublic,
-                onOpenFollowRequests = onOpenFollowRequests,
-                shareHandle = profile.username ?: profile.uid,
-                shareLabel = profile.username?.let { "@$it" } ?: (profile.displayName ?: "mi perfil"),
-                shareDisplayName = profile.displayName ?: profile.username ?: "Escalador/a",
-                shareUsername = profile.username,
-                sharePhotoUrl = profile.photoUrl,
-                shareTopGrade = stats.maxGrade,   // automático (antes profile.topGrade manual)
-                shareBio = profile.bio,
-                shareStats = stats
-            )
-        }
-        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-        if (stats.bySchool.isNotEmpty()) {
-            items(stats.bySchool) { entry ->
-                SchoolEntryRow(entry, onClick = { onOpenSchoolEntries(entry.schoolName) })
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-            }
-        } else {
-            item {
-                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                    Text("Aún no has añadido bloques",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        if (profile.isAdmin) {
-            item {
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable(onClick = onAdmin)
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
-                    .padding(14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(stringResource(R.string.profile_admin_panel).uppercase(), color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelLarge)
-                        // Aviso: nº de propuestas/contribuciones pendientes de revisar.
-                        if (pendingReview > 0) {
-                            Box(
-                                Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    "$pendingReview PENDIENTE${if (pendingReview == 1) "" else "S"}",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        item {
-            TextButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth().padding(top = 24.dp)) {
-                Text(stringResource(R.string.profile_logout).uppercase(), color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.labelLarge)
-            }
-        }
-        item {
-            var showDelete by remember { mutableStateOf(false) }
-            TextButton(onClick = { showDelete = true },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-                Text(stringResource(R.string.profile_delete_account),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium)
-            }
-            if (showDelete) {
-                AlertDialog(
-                    onDismissRequest = { showDelete = false },
-                    title = { Text("¿Eliminar tu cuenta?") },
-                    text = { Text("Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.") },
-                    confirmButton = {
-                        TextButton(onClick = { showDelete = false; onDeleteAccount() }) {
-                            Text("ELIMINAR", color = MaterialTheme.colorScheme.error)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.common_cancel)) }
-                    }
-                )
-            }
-        }
+        // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
+        // La lista de escuelas tampoco (ya vive en la pestaña Diario).
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
 @Composable
 private fun Header(
     p: PrivateProfile,
-    topGrade: String? = null,
     followers: Long = 0,
     following: Long = 0,
     onClickFollowers: () -> Unit = {},
@@ -381,12 +409,27 @@ private fun Header(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        // Píldoras TOPE / ADMIN.
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            topGrade?.let { ProfilePill("TOPE $it", MaterialTheme.colorScheme.primary) }
-            if (p.isAdmin) ProfilePill("ADMIN", MaterialTheme.colorScheme.onBackground)
-            if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
+        // La bio, colocada como en iOS: DESPUÉS del email y con la tinta
+        // normal, no en gris de dato secundario.
+        //
+        // Es lo que el usuario ha escrito de su puño; el correo es un dato del
+        // sistema. Ponerla antes y en gris —como estaba en el primer intento—
+        // la hacía parecer una línea más de la ficha en vez de su presentación.
+        // Comparado con capturas de las dos apps a la vez.
+        p.bio?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(10.dp))
+            Text(it, style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        }
+
+        // Píldoras ADMIN / PREMIUM (el grado máx ya está en las stats).
+        if (p.isAdmin || p.isPremium) {
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (p.isAdmin) ProfilePill("ADMIN", MaterialTheme.colorScheme.onBackground)
+                if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
+            }
         }
 
         // Seguidores / siguiendo centrados.
@@ -423,67 +466,126 @@ private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
     }
 }
 
-/** Menú de filas con icono terracota + chevron (estilo iOS). */
+/**
+ * Hoja de ajustes (⚙️): agrupa lo que antes ocupaba el perfil — cuenta, mi
+ * actividad, preferencias y sesión. Bottom sheet (paridad iOS).
+ */
 @Composable
-private fun ProfileMenu(
+private fun ProfileSettingsScreen(
+    onBack: () -> Unit,
+    isPrivate: Boolean,
     onEdit: () -> Unit,
     onSavedSchools: () -> Unit,
     onWeekendAlert: () -> Unit,
     onSubmissions: () -> Unit,
-    showRequests: Boolean,
     onOpenFollowRequests: () -> Unit,
-    shareHandle: String? = null,
-    shareLabel: String = "",
-    shareDisplayName: String = "",
-    shareUsername: String? = null,
-    sharePhotoUrl: String? = null,
-    shareTopGrade: String? = null,
-    shareBio: String? = null,
-    shareStats: com.meteomontana.android.domain.model.JournalStats? = null
+    onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit
 ) {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-    Column(Modifier.fillMaxWidth()) {
-        if (shareHandle != null) {
-            MenuRow(Icons.Outlined.Share, "Compartir mi perfil") {
-                // Imagen 1080×1920 (formato historia) → Instagram Stories, WhatsApp...
-                scope.launch {
-                    com.meteomontana.android.ui.share.shareProfileAsImage(
-                        ctx, shareHandle, shareLabel,
-                        username = shareUsername, photoUrl = sharePhotoUrl,
-                        topGrade = shareTopGrade, bio = shareBio,
-                        boulders = shareStats?.boulderCount,
-                        routes = shareStats?.routeCount,
-                        schools = shareStats?.schoolCount
-                    )
-                }
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Cabecera: flecha atrás + "Ajustes".
+        Box(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp)) {
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Atrás",
+                    tint = MaterialTheme.colorScheme.onBackground)
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+            Text(stringResource(R.string.profile_settings),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.align(Alignment.Center))
         }
-        // "Comunidad" se mudó a su propia pestaña (feed social + ranking).
-        MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        // Ajuste "Publicar ascensos en el feed": Preguntar / Siempre / Nunca.
-        FeedPublishSettingRow()
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        // Entrada única "Mis contribuciones" (antes "Mis propuestas"): abre la
-        // pantalla unificada PROPUESTAS ⇄ CONTRIBUCIONES.
-        MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_contributions), onSubmissions)
-        if (showRequests) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-            MenuRow(Icons.Outlined.PersonAdd, stringResource(R.string.profile_follow_requests), onOpenFollowRequests)
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
-            com.meteomontana.android.ui.components.resetAllHints(ctx)
-            android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+        Column(Modifier.fillMaxWidth()
+            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+            .padding(bottom = 24.dp)) {
+            SettingsSectionLabel(stringResource(R.string.profile_section_account))
+            MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
+
+            SettingsSectionLabel(stringResource(R.string.profile_section_activity))
+            MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)
+            MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_contributions), onSubmissions)
+            if (isPrivate) {
+                MenuRow(Icons.Outlined.PersonAdd, stringResource(R.string.profile_follow_requests), onOpenFollowRequests)
+            }
+
+            SettingsSectionLabel(stringResource(R.string.profile_section_prefs))
+            MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
+            FeedPublishSettingRow()
+            val ctx = LocalContext.current
+            MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
+                com.meteomontana.android.ui.components.resetAllHints(ctx)
+                android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
+            }
+
+
+            // Cierre de la pantalla EXACTAMENTE como iOS (AccountView): botón
+            // "Cerrar sesión" en su recuadro, debajo "Eliminar cuenta" como
+            // texto discreto centrado, y la versión al final del todo. Aquí
+            // estaba en otro orden y "Eliminar cuenta" gritaba en rojo con
+            // papelera, cuando es la acción que MENOS hay que invitar a pulsar.
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
+            var showDelete by remember { mutableStateOf(false) }
+            Box(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    .clickable(onClick = onSignOut)
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(stringResource(R.string.profile_logout),
+                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+            }
+            Text(
+                stringResource(R.string.profile_delete_account),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+                    .clickable { showDelete = true }
+                    .padding(vertical = 12.dp)
+            )
+            // Que version es esta. Sin esto, "no me ha llegado el arreglo" y
+            // "no lo has arreglado" son indistinguibles.
+            Text(
+                "Cumbre " + com.meteomontana.android.BuildConfig.VERSION_NAME +
+                    " (vc" + com.meteomontana.android.BuildConfig.VERSION_CODE + ") · " +
+                    com.meteomontana.android.BuildConfig.BUILD_TIME +
+                    if (com.meteomontana.android.BuildConfig.DEBUG) " · staging" else "",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            if (showDelete) {
+                AlertDialog(
+                    onDismissRequest = { showDelete = false },
+                    title = { Text("¿Eliminar tu cuenta?") },
+                    text = { Text("Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.") },
+                    confirmButton = {
+                        TextButton(onClick = { showDelete = false; onDeleteAccount() }) {
+                            Text("ELIMINAR", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.common_cancel)) }
+                    }
+                )
+            }
         }
     }
 }
+
+@Composable
+private fun SettingsSectionLabel(text: String) {
+    Text(text.uppercase(),
+        style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 2.dp))
+}
+
 
 /**
  * Fila de ajuste "Publicar ascensos en el feed": muestra el valor actual y
@@ -522,7 +624,7 @@ private fun FeedPublishSettingRow() {
             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
     }
     if (showDialog) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(R.string.profile_feed_publish)) },
             text = {
@@ -591,7 +693,8 @@ private fun StatsRow(
     onSchools: () -> Unit,
     onMax: () -> Unit,
     onProjects: () -> Unit,
-    onMyPosts: () -> Unit
+    onMyPosts: () -> Unit,
+    onOpenStats: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -611,10 +714,17 @@ private fun StatsRow(
         // Fila 3: PROYECTOS + MIS PUBLICACIONES — mismas celdas pulsables que
         // el resto (decisión de Rodrigo: publicaciones con el estilo de stats,
         // no como fila de menú). Publicaciones no tiene contador barato → "›".
+        //
+        // DOS por fila, no tres: es lo que hace `AccountView.swift` en iOS.
+        // Metidas las tres, "Mis publicaciones" se partía en dos líneas y
+        // ESTADÍSTICAS quedaba diminuta — se vio comparando capturas de las dos
+        // apps a la vez.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f).clickable(onClick = onProjects))
-            StatCell(stringResource(R.string.feed_my_posts_section), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
+            StatCell(stringResource(R.string.feed_my_posts_section).uppercase(), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
         }
+        // Fila 4: ESTADÍSTICAS a todo el ancho, como en iOS.
+        StatCell("ESTADÍSTICAS", "▃▅▇", Modifier.fillMaxWidth().clickable(onClick = onOpenStats))
     }
 }
 
@@ -622,8 +732,8 @@ private fun StatsRow(
 private fun StatCell(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbreStatCardShape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbreStatCardShape)
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -641,36 +751,12 @@ private fun AddBlockButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .height(48.dp)
-            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(stringResource(R.string.profile_add_block), color = Color.White,
             style = MaterialTheme.typography.labelLarge)
-    }
-}
-
-@Composable
-private fun SchoolEntryRow(entry: SchoolStats, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column {
-            Text(entry.schoolName,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground)
-            Text(
-                "${entry.blockCount} ${if (entry.blockCount == 1) "bloque" else "bloques"}" +
-                        (entry.maxGrade?.let { " · máx $it" } ?: ""),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Text("›", style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

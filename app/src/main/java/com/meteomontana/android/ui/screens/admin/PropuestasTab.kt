@@ -2,6 +2,8 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.ui.theme.terraFillColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -94,6 +96,9 @@ import org.maplibre.android.maps.Style
 
 @Composable
 internal fun PropuestasTab(
+    /** P6: estado mostrado (PENDING/APPROVED/REJECTED) + cambio. */
+    contributionsStatus: String = "PENDING",
+    onStatusChange: (String) -> Unit = {},
     submissions: List<Submission>,
     contributions: List<Contribution>,
     schoolBlocks: Map<String, List<com.meteomontana.android.domain.model.Block>>,
@@ -127,6 +132,31 @@ internal fun PropuestasTab(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         // Contador
+        item {
+            // P6: PENDIENTES / APROBADAS / RECHAZADAS (historial navegable).
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                listOf("PENDING" to "PENDIENTES", "APPROVED" to "APROBADAS",
+                    "REJECTED" to "RECHAZADAS").forEach { (value, label) ->
+                    val selected = contributionsStatus == value
+                    Box(Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (selected) com.meteomontana.android.ui.theme.Terra
+                            else MaterialTheme.colorScheme.surface)
+                        .border(1.dp, if (selected) com.meteomontana.android.ui.theme.Terra
+                            else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp))
+                        .clickable { onStatusChange(value) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)) {
+                        Text(label,
+                            style = com.meteomontana.android.ui.theme.EyebrowTextStyle.copy(
+                                fontSize = androidx.compose.ui.unit.TextUnit(10f,
+                                    androidx.compose.ui.unit.TextUnitType.Sp)),
+                            color = if (selected) androidx.compose.ui.graphics.Color.White
+                                else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
         item {
             Text(
                 "$total propuestas pendientes",
@@ -229,7 +259,7 @@ private fun SchoolGroupHeader(name: String, count: Int) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(2.dp))
-                .background(Terra)
+                .background(terraFillColor())
                 .padding(horizontal = Spacing.sm, vertical = 2.dp)
         ) {
             Text("$count", style = EyebrowTextStyle, color = Color.White)

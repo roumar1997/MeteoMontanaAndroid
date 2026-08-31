@@ -10,6 +10,7 @@ import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.notifications.GetMyNotificationsUseCase
 import com.meteomontana.android.domain.model.RangeScore
 import com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase
+import com.meteomontana.android.domain.usecase.schools.SchoolFilterEngine
 import com.meteomontana.android.domain.usecase.schools.GetSchoolCatalogUseCase
 import com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -71,14 +72,16 @@ class SchoolListViewModel @Inject constructor(
     private val chatService: com.meteomontana.android.domain.port.ChatService,
     private val outbox: com.meteomontana.android.data.outbox.OutboxRepository,
     private val getPublicProfile: com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase,
-    private val schoolApi: com.meteomontana.android.data.api.KtorSchoolApi,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
+    private val searchLines: com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
+    /** Foto elegida en "Enviar piedra", a la espera de que se abra su escuela. */
+    val photoSeed: PhotoProposalSeed
 ) : ViewModel() {
 
     // Resultados del buscador GLOBAL de vías/bloques (el mismo campo de texto
     // busca escuelas en local y vías/bloques en el backend).
-    private val _viaHits = MutableStateFlow<List<com.meteomontana.android.data.api.LineSearchHitDto>>(emptyList())
-    val viaHits: StateFlow<List<com.meteomontana.android.data.api.LineSearchHitDto>> = _viaHits.asStateFlow()
+    private val _viaHits = MutableStateFlow<List<com.meteomontana.android.domain.model.LineSearchHit>>(emptyList())
+    val viaHits: StateFlow<List<com.meteomontana.android.domain.model.LineSearchHit>> = _viaHits.asStateFlow()
 
     // Perfiles ya cacheados esta sesión (para no repetir la llamada en cada
     // emisión del observador de conversaciones). Ver warmChatProfiles().
@@ -94,6 +97,16 @@ class SchoolListViewModel @Inject constructor(
     // Los filtros (estilo, roca, distancia, texto) se aplican en local — misma
     // semántica que el backend (equalsIgnoreCase + haversine), pero sin red.
     private var allSchools: List<School> = emptyList()
+
+    /**
+     * Catálogo COMPLETO, sin los filtros de la pantalla.
+     *
+     * Lo usa "Aportar una piedra desde una foto": la escuela donde se hizo la
+     * foto no tiene por qué estar entre las que el filtro deja ver. Con la lista
+     * filtrada, una foto hecha en Valsaín acababa comparándose con Peña Pintada,
+     * a 7 km — que es justo lo que vio Rodrigo.
+     */
+    fun catalogoCompleto(): List<School> = allSchools
 
     // Fallback Madrid si no hay permiso de ubicación; se sobreescribe al cargar.
     private var userLat: Double = 40.4168
@@ -291,7 +304,7 @@ class SchoolListViewModel @Inject constructor(
                             lat = it.lat, lon = it.lon, source = null
                         )
                     }
-                    val visible = filterQuery(list, f.query)
+                    val visible = SchoolFilterEngine.filterByQuery(list, f.query)
                     // Cargar scores (red si hay; si no, del forecast cacheado de
                     // cada guardada) para que la lista NO muestre "—" offline.
                     loadScoresFor(visible.map { it.id }) { applySort(f) }
@@ -313,17 +326,16 @@ class SchoolListViewModel @Inject constructor(
             // (Si escribes "Albarracín" debe salir aunque esté a 50 km y tengas
             // un radio menor; los filtros son para explorar, el texto para ir a lo
             // que sabes que existe.)
-            var list: List<School>
-            if (f.query.isNotBlank()) {
-                list = filterQuery(allSchools, f.query)
-            } else {
-                list = allSchools.asSequence()
-                    .filter { f.style.apiValue == null || f.style.apiValue.equals(it.style, ignoreCase = true) }
-                    .filter { f.rockTypes.isEmpty() || f.rockTypes.any { r -> r.equals(it.rockType, ignoreCase = true) } }
-                    .filter { f.maxDistanceKm == null || Geo.haversineKm(userLat, userLon, it.lat, it.lon) <= f.maxDistanceKm }
-                    .toList()
-                if (f.onlyFavorites) list = list.filter { it.id in _favoriteIds.value }
-            }
+            val list = SchoolFilterEngine.filter(
+                schools = allSchools,
+                query = f.query,
+                styleApiValue = f.style.apiValue,
+                rockTypes = f.rockTypes,
+                maxDistanceKm = f.maxDistanceKm,
+                onlyFavorites = f.onlyFavorites,
+                favoriteIds = _favoriteIds.value,
+                userLat = userLat, userLon = userLon
+            )
 
             // Cargar scores en background para todas las visibles (lotes).
             // Modo tramo (días elegidos) → range-scores; si no, today-scores.
@@ -350,10 +362,11 @@ class SchoolListViewModel @Inject constructor(
         f: SchoolFilters,
         scores: Map<String, com.meteomontana.android.domain.model.SchoolScore>
     ): List<School> = when (f.sortBy) {
-        SortBy.Distance -> list.sortedBy { Geo.haversineKm(userLat, userLon, it.lat, it.lon) }
-        SortBy.Score    ->
-            if (rangeMode) list.sortedByDescending { _rangeScores.value[it.id]?.combinedScore ?: -1 }
-            else list.sortedByDescending { scores[it.id]?.todayScore ?: -1 }
+        SortBy.Distance -> SchoolFilterEngine.sortByDistance(list, userLat, userLon)
+        SortBy.Score -> SchoolFilterEngine.sortByScore(list) { id ->
+            if (rangeMode) _rangeScores.value[id]?.combinedScore ?: -1
+            else scores[id]?.todayScore ?: -1
+        }
     }
 
     /** Carga los scores del tramo por lotes (≤60 ids/call). Van llegando y la
@@ -417,14 +430,8 @@ class SchoolListViewModel @Inject constructor(
     fun distanceTo(schoolLat: Double, schoolLon: Double): Double =
         Geo.haversineKm(userLat, userLon, schoolLat, schoolLon)
 
-    private fun filterQuery(list: List<School>, q: String): List<School> {
-        val needle = q.trim().lowercase()
-        if (needle.isBlank()) return list
-        return list.filter {
-            it.name.lowercase().contains(needle) ||
-                    it.location?.lowercase()?.contains(needle) == true
-        }
-    }
+    // filterQuery / filtro / orden viven ahora en SchoolFilterEngine (shared,
+    // testeado por SchoolFilterEngineTest).
 
     fun setStyle(style: StyleFilter)        { _filters.update { it.copy(style = style) }; load() }
     fun setDistance(km: Double?)            { _filters.update { it.copy(maxDistanceKm = km) }; load() }
@@ -486,15 +493,20 @@ class SchoolListViewModel @Inject constructor(
         // ya no recarga en cada pulsación. Sí actualiza el filtro inmediato para
         // que la TextField siga responsiva.
         _filters.update { it.copy(query = q) }
+        dispatchSearch()
+    }
+
+    private fun dispatchSearch() {
         queryJob?.cancel()
         queryJob = viewModelScope.launch {
             kotlinx.coroutines.delay(200)
             load()
-            // Búsqueda global de vías/bloques (300 ms más de margen: red).
-            val q = q.trim()
+            // Búsqueda global de vías/bloques EN PARALELO a las escuelas (un solo
+            // buscador con dos secciones, estilo Spotlight; 300 ms más: red).
+            val q = _filters.value.query.trim()
             if (q.length >= 2) {
                 kotlinx.coroutines.delay(300)
-                _viaHits.value = runCatching { schoolApi.searchLines(q) }.getOrDefault(emptyList())
+                _viaHits.value = runCatching { searchLines(q) }.getOrDefault(emptyList())
             } else {
                 _viaHits.value = emptyList()
             }

@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,7 +43,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +56,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import androidx.core.content.ContextCompat
 import com.meteomontana.android.R
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 
@@ -62,7 +65,7 @@ fun EditProfileScreen(
     onBack: () -> Unit,
     viewModel: EditProfileViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(state) {
         if (state is EditState.Saved) onBack()
@@ -154,8 +157,20 @@ private fun EditForm(
                     setFreeStyleCropEnabled(false)
                     setCompressionQuality(85)
                     setToolbarTitle("Recortar foto")
+                    // Colores Cumbre: barra de papel y el ✓/✕ en tinta encima
+                    // (con los de serie, blancos sobre blanco, el ✓ apenas se
+                    // distinguía). DÓNDE se dibuja la barra lo arregla
+                    // Theme.MeteoMontana.Crop — ver el AndroidManifest.
+                    setToolbarColor(ContextCompat.getColor(context, R.color.crop_toolbar))
+                    setStatusBarColor(ContextCompat.getColor(context, R.color.crop_toolbar))
+                    setToolbarWidgetColor(ContextCompat.getColor(context, R.color.crop_ink))
+                    setActiveControlsWidgetColor(ContextCompat.getColor(context, R.color.crop_terra))
                 })
                 .getIntent(context)
+                // uCrop apunta a SU PROPIA UCropActivity por defecto; se
+                // retarget a CumbreCropActivity (misma librería, con el
+                // fix de insets). Los extras del intent no se tocan.
+                .setClass(context, CumbreCropActivity::class.java)
             cropLauncher.launch(intent)
         }
     }
@@ -184,7 +199,7 @@ private fun EditForm(
                 } else {
                     Image(
                         painter = painterResource(R.drawable.logo_cumbre),
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.a11y_change_photo),
                         modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
                     )
                 }
@@ -255,7 +270,7 @@ private fun EditForm(
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1C1C1A),
+                containerColor = inkButtonColor(),
                 contentColor = Color.White
             ),
             shape = MaterialTheme.shapes.small

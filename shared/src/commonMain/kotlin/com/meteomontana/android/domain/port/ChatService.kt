@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Puerto de mensajería 1-a-1. Abstrae Firestore del resto de la app.
  * Los modelos de datos son Kotlin puro (sin Firebase, sin java.util.Date).
- * Listo para commonMain en Fase 2.
+ * Vive en commonMain (migración KMP completada).
  */
 interface ChatService {
     data class Conversation(

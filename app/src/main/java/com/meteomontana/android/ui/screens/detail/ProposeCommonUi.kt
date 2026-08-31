@@ -1,0 +1,335 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+package com.meteomontana.android.ui.screens.detail
+
+import com.meteomontana.android.ui.theme.terraFillColor
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.CumbreSheetShape
+import com.meteomontana.android.ui.components.cumbreSheetSurface
+import com.meteomontana.android.ui.theme.CumbrePillShape
+import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.theme.Spacing
+import com.meteomontana.android.ui.theme.Terra
+
+// Primitivas COMPARTIDAS del flujo de proponer (reparto del antiguo
+// ProposeContributionFlow.kt de 1.595 líneas): footer de envío, selectores
+// segmentados y el contenedor de diálogo estilo Cumbre.
+
+// ─── Footer de envío compartido (CANCELAR + ENVIAR con error/reintento) ─────
+//
+// El envío puede fallar (sin cobertura en la escuela = caso habitual): al
+// fallar se resetea el spinner, se muestra el error y el botón vuelve a
+// ENVIAR — los datos del formulario NUNCA se pierden. Si [onSaveOffline] no
+// es null, además se ofrece guardar la propuesta para enviarla al recuperar
+// cobertura (cola offline).
+@Composable
+internal fun SubmitFooter(
+    sending: Boolean,
+    error: String?,
+    submitEnabled: Boolean = true,
+    onCancel: () -> Unit,
+    onSubmit: () -> Unit,
+    onSaveOffline: (() -> Unit)? = null
+) {
+    if (error != null) {
+        Text(error, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error)
+        if (onSaveOffline != null) {
+            Spacer(Modifier.height(Spacing.xs))
+            Box(modifier = Modifier.fillMaxWidth().clip(CumbrePillShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
+                .clickable(enabled = !sending, onClick = onSaveOffline)
+                .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center) {
+                Text("GUARDAR Y ENVIAR CON COBERTURA", style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+        Spacer(Modifier.height(Spacing.sm))
+    }
+    Row(modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Box(modifier = Modifier.weight(1f).clip(CumbrePillShape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
+            .clickable(enabled = !sending, onClick = onCancel)
+            .padding(vertical = Spacing.md),
+            contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.common_cancel), style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurface)
+        }
+        Box(modifier = Modifier.weight(1.5f).clip(CumbrePillShape)
+            .background(if (submitEnabled) terraFillColor() else MaterialTheme.colorScheme.outline)
+            .clickable(enabled = !sending && submitEnabled, onClick = onSubmit)
+            .padding(vertical = Spacing.md),
+            contentAlignment = Alignment.Center) {
+            if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
+                color = Color.White, strokeWidth = 2.dp)
+            else Text(
+                if (error != null) "REINTENTAR" else stringResource(R.string.propose_submit),
+                style = EyebrowTextStyle, color = Color.White
+            )
+        }
+    }
+}
+
+/**
+ * Barra FIJA de un formulario: título, CANCELAR a la izquierda y ENVIAR a la
+ * derecha. Va en el slot `header` de [CumbreDialog], fuera del scroll — espejo
+ * del `.toolbar` de los sheets de iOS (Álvaro, 2026-08-24).
+ */
+@Composable
+internal fun SubmitHeader(
+    title: String,
+    sending: Boolean,
+    error: String?,
+    submitEnabled: Boolean = true,
+    onCancel: () -> Unit,
+    onSubmit: () -> Unit
+) {
+    // Reutiliza CumbreSheetHeader (el mismo de la ficha de piedra): "Cancelar"
+    // en color primario y tamaño de título, como el de iOS. Con EyebrowTextStyle
+    // en gris apenas se leía (Álvaro, 2026-08-24).
+    com.meteomontana.android.ui.components.CumbreSheetHeader(
+        titulo = title,
+        onClose = onCancel,
+        textoSalida = stringResource(R.string.common_cancel),
+        accion = {
+            Box(
+                modifier = Modifier
+                    .clip(CumbrePillShape)
+                    .background(if (submitEnabled) terraFillColor() else MaterialTheme.colorScheme.outline)
+                    .clickable(enabled = !sending && submitEnabled, onClick = onSubmit)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                contentAlignment = Alignment.Center
+            ) {
+                if (sending) CircularProgressIndicator(modifier = Modifier.size(16.dp),
+                    color = Color.White, strokeWidth = 2.dp)
+                else Text(
+                    // "ENVIAR" a secas en la cabecera: "ENVIAR PROPUESTA" no
+                    // cabe junto a Cancelar y el título. Igual que en iOS.
+                    if (error != null) "REINTENTAR" else "ENVIAR",
+                    style = EyebrowTextStyle, color = Color.White, maxLines = 1
+                )
+            }
+        }
+    )
+}
+
+/**
+ * Solo el error + "GUARDAR Y ENVIAR CON COBERTURA", para los formularios cuyo
+ * Enviar vive ya en la cabecera. Sin esto, ofrecer la salida offline obligaba a
+ * pintar el footer entero y salían dos botones de enviar.
+ */
+@Composable
+internal fun SubmitFooterOffline(
+    sending: Boolean,
+    error: String,
+    onSaveOffline: () -> Unit
+) {
+    Text(error, style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error)
+    Spacer(Modifier.height(Spacing.xs))
+    Box(modifier = Modifier.fillMaxWidth().clip(CumbrePillShape)
+        .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
+        .clickable(enabled = !sending, onClick = onSaveOffline)
+        .padding(vertical = Spacing.md),
+        contentAlignment = Alignment.Center) {
+        Text("GUARDAR Y ENVIAR CON COBERTURA", style = EyebrowTextStyle,
+            color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+// ─── Selectores segmentados ───────────────────────────────────────────────────
+
+/** Selector de modalidad de la piedra: BLOQUE (BOULDER) o VÍA (ROUTE).
+ *  Reutilizado al proponer/crear piedra y al editarla (admin). */
+@Composable
+fun DisciplineSelector(
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    SegmentedSelector(
+        options = listOf(
+            "BOULDER" to stringResource(R.string.propose_discipline_boulder),
+            "ROUTE" to stringResource(R.string.propose_discipline_route)
+        ),
+        selected = selected,
+        onSelect = onSelect
+    )
+}
+
+/** Selector de geometría de la piedra: PUNTO (marcador) o MURO (polilínea). */
+@Composable
+fun GeometrySelector(
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    SegmentedSelector(
+        options = listOf(
+            "POINT" to stringResource(R.string.propose_geometry_point),
+            "LINE" to stringResource(R.string.propose_geometry_wall)
+        ),
+        selected = selected,
+        onSelect = onSelect
+    )
+}
+
+/** Sentido de numeración de las vías del muro. */
+@Composable
+fun DirectionSelector(
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    SegmentedSelector(
+        options = listOf(
+            "LTR" to stringResource(R.string.propose_direction_ltr),
+            "RTL" to stringResource(R.string.propose_direction_rtl)
+        ),
+        selected = selected,
+        onSelect = onSelect
+    )
+}
+
+/** Botonera segmentada genérica (mismo estilo en todos los selectores). */
+@Composable
+internal fun SegmentedSelector(
+    options: List<Pair<String, String>>,
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        options.forEach { (value, label) ->
+            val sel = selected == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    // Píldora: son CONTROLES de selección (BLOQUE/VÍA,
+                    // PUNTO/MURO, sentido de numeración) y el sistema Cumbre
+                    // redondea los controles. Paridad con WallSeg y
+                    // DisciplineSelector de iOS (Álvaro, 2026-08-24).
+                    .clip(CumbrePillShape)
+                    .then(if (sel) Modifier.background(terraFillColor()) else Modifier)
+                    .border(
+                        1.dp,
+                        if (sel) Terra else MaterialTheme.colorScheme.outline,
+                        CumbrePillShape
+                    )
+                    .clickable { onSelect(value) }
+                    .padding(vertical = Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    label,
+                    style = EyebrowTextStyle,
+                    color = if (sel) Color.White else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+// ─── Contenedor de diálogo estilo Cumbre ─────────────────────────────────────
+
+@Composable
+internal fun CumbreDialog(
+    onDismiss: () -> Unit,
+    scrollable: Boolean = false,
+    /** Tarjeta a pantalla (casi) completa (formularios), como el resto de sheets. */
+    fullHeight: Boolean = false,
+    /**
+     * Barra FIJA arriba (fuera del scroll): CANCELAR a la izquierda y ENVIAR a
+     * la derecha. En un formulario largo, buscar el botón de enviar al final
+     * era un viaje (Álvaro, 2026-08-24) — paridad con el toolbar de los sheets
+     * de iOS, que no se mueve al scrollear.
+     */
+    header: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    // Diálogo a PANTALLA COMPLETA, sin ningún gesto de arrastre — no
+    // ModalBottomSheet. Estos son FORMULARIOS (editar/crear/proponer piedra):
+    // aunque ya se había desactivado el cierre al arrastrar, el sheet de
+    // Compose SIGUE interceptando el gesto vertical para decidir si es un
+    // arrastre suyo antes de cedérselo al scroll del contenido, y esa disputa
+    // interna es justo lo que se sentía como "a veces scrollea, a veces
+    // intenta cerrar" (Álvaro, 2026-08-25: "en iOS funciona mucho mejor").
+    // Un Dialog normal no tiene ese gesto en absoluto: el scroll es SIEMPRE
+    // solo scroll. Se sale por Cancelar/Enviar o el botón atrás del sistema.
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        val contenidoScroll = rememberScrollState()
+        if (header != null) {
+            // El acabado y la altura van FUERA; dentro, la barra fija y luego
+            // el contenido que scrollea. Así el header no se mueve.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.background)
+                    .systemBarsPadding()
+            ) {
+                Box(modifier = Modifier.padding(horizontal = Spacing.lg)) { header() }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .padding(horizontal = Spacing.lg)
+                        .padding(bottom = Spacing.lg)
+                        .then(if (scrollable) Modifier.verticalScroll(contenidoScroll) else Modifier)
+                ) { content() }
+            }
+        } else {
+            val colMod = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.background)
+                .systemBarsPadding()
+                .padding(horizontal = Spacing.lg)
+                .padding(bottom = Spacing.lg)
+                .then(if (scrollable) Modifier.verticalScroll(contenidoScroll) else Modifier)
+            Column(modifier = colMod) { content() }
+        }
+    }
+}
+
+@Composable
+internal fun fieldColors() = TextFieldDefaults.colors(
+    focusedContainerColor   = MaterialTheme.colorScheme.surface,
+    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+    focusedIndicatorColor   = Terra,
+    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
+)

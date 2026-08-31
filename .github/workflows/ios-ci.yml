@@ -15,7 +15,7 @@ name: iOS CI
 # se mantiene para lanzarlo a mano si hace falta.
 on:
   push:
-    branches: ["main", "claude/**"]
+    branches: ["main", "develop", "claude/**"]
   workflow_dispatch: {}
 
 # Un push nuevo cancela el build anterior de la misma rama (no apila builds
@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Selecciona el Xcode más nuevo instalado en el runner (lee formato 77).
       - name: Seleccionar Xcode más reciente
@@ -42,18 +42,18 @@ jobs:
       # con gradlew, que necesita un JDK. `xcodebuild` limpia el entorno, así que
       # el script cae en `/usr/libexec/java_home -v 21` → este JDK.
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle (con caché de dependencias)
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # El compilador de Kotlin/Native y SKIE descargan toolchain a ~/.konan.
       # Cachearlo evita ~10 min de descargas en cada run.
       - name: Cache Kotlin/Native (~/.konan)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'shared/build.gradle.kts') }}
@@ -64,7 +64,7 @@ jobs:
       # grafo de paquetes SPM entre builds — "PIFLoader GUID already registered").
       # Solo cacheamos las descargas de SPM (fuentes/binarios de los paquetes).
       - name: Cache SPM downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/Library/Caches/org.swift.swiftpm
           key: spm-${{ runner.os }}-${{ hashFiles('iosApp/project.yml') }}
@@ -123,10 +123,20 @@ jobs:
       - name: Build (iphoneos, sin firma)
         run: |
           chmod +x gradlew
+          # Release para velocidad real de SwiftUI, pero apuntando a STAGING:
+          # se activa el flag en codigo (el override de compilation conditions
+          # por linea de comandos rompia los paquetes SPM de Firebase).
+          sed -i '' 's/static let ciStaging = false/static let ciStaging = true/' iosApp/iosApp/DI/AppDependencies.swift
+          # Sello de compilacion visible en Ajustes: responde de un vistazo
+          # "que build tengo instalado", que nos costo media maniana.
+          SELLO=$(TZ=Europe/Madrid date '+%-d %b %H:%M')
+          sed -i '' "s/static let buildStamp = \"local\"/static let buildStamp = \"$SELLO\"/" iosApp/iosApp/DI/AppDependencies.swift
+          grep -q "buildStamp = \"$SELLO\"" iosApp/iosApp/DI/AppDependencies.swift
+          grep -q "ciStaging = true" iosApp/iosApp/DI/AppDependencies.swift
           xcodebuild \
             -project iosApp/MeteoMontana.xcodeproj \
             -scheme MeteoMontana \
-            -configuration Debug \
+            -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
@@ -138,7 +148,7 @@ jobs:
       # Sideloadly lo firma con tu Apple ID al instalar.
       - name: Empaquetar .ipa sin firmar
         run: |
-          APP=$(find build/Build/Products/Debug-iphoneos -maxdepth 1 -name "*.app" | head -1)
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
           echo "App: $APP"
           mkdir -p Payload
           cp -R "$APP" Payload/
@@ -147,7 +157,7 @@ jobs:
 
       # Descárgalo en: Actions → run → Artifacts → ios-app-unsigned-ipa.
       - name: Upload .ipa
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-app-unsigned-ipa
           path: MeteoMontana-unsigned.ipa

@@ -3,6 +3,7 @@
 package com.meteomontana.android.ui.screens.admin
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,10 +93,13 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 
+// Orden como AdminContributionCards.swift: PROPUESTAS · DENUNCIAS ·
+// GESTIONAR · STATS · ACTIVIDAD · PUSH — aquí Denuncias y Gestionar estaban
+// cambiados de sitio (Álvaro, 2026-08-24, paridad con iOS).
 private enum class AdminTab(val label: String) {
     Propuestas("PROPUESTAS"),
-    Gestionar("GESTIONAR"),
     Denuncias("DENUNCIAS"),
+    Gestionar("GESTIONAR"),
     Stats("STATS"),
     Activity("ACTIVIDAD"),
     Push("PUSH")
@@ -115,7 +118,7 @@ fun AdminScreen(
     onOpenFeedPost: (String) -> Unit = {},
     viewModel: AdminViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(AdminTab.Propuestas) }
 
     // Refresca CADA vez que el panel vuelve a primer plano (el VM sobrevive a la
@@ -170,6 +173,8 @@ fun AdminScreen(
             AdminTab.Propuestas -> PropuestasTab(
                 submissions = state.pending,
                 contributions = state.contributions,
+                contributionsStatus = state.contributionsStatus,
+                onStatusChange = viewModel::setContributionsStatus,
                 schoolBlocks = state.schoolBlocks,
                 onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
                 onDeleteBlock = viewModel::deleteBlock,
@@ -204,14 +209,18 @@ fun AdminScreen(
             )
             AdminTab.Stats -> StatsTab(
                 stats = state.stats,
-                users = viewModel.adminUsers.collectAsState().value,
-                notes = viewModel.adminNotes.collectAsState().value,
+                users = viewModel.adminUsers.collectAsStateWithLifecycle().value,
+                notes = viewModel.adminNotes.collectAsStateWithLifecycle().value,
                 onLoadUsers = viewModel::loadAdminUsers,
                 onLoadNotes = viewModel::loadAdminNotes,
                 onOpenUserProfile = onOpenUser,
                 onOpenSchool = onOpenSchool,
                 onGoToTab = { name ->
-                    tab = when (name) {
+                    // P6: "propuestas:APPROVED" preselecciona el estado.
+                    if (name.startsWith("propuestas:")) {
+                        viewModel.setContributionsStatus(name.substringAfter(':'))
+                    }
+                    tab = when (name.substringBefore(':')) {
                         "gestionar" -> AdminTab.Gestionar
                         "propuestas" -> AdminTab.Propuestas
                         else -> AdminTab.Activity
@@ -221,7 +230,7 @@ fun AdminScreen(
             AdminTab.Activity -> ActivityTab(state.logs)
             AdminTab.Push -> PushTab(
                 busy = state.pushBusy,
-                userResults = viewModel.userResults.collectAsState().value,
+                userResults = viewModel.userResults.collectAsStateWithLifecycle().value,
                 onSearchUser = viewModel::searchPushTarget,
                 onClearSearch = viewModel::clearPushTargets,
                 result = state.pushResult,
@@ -232,7 +241,7 @@ fun AdminScreen(
 
     // Aviso (Toast) tras una acción de moderación.
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val modMsg by viewModel.modMsg.collectAsState()
+    val modMsg by viewModel.modMsg.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(modMsg) {
         modMsg?.let {
             android.widget.Toast.makeText(ctx, it, android.widget.Toast.LENGTH_SHORT).show()
@@ -241,8 +250,8 @@ fun AdminScreen(
     }
 
     // Ficha de moderación de usuario (VER AUTOR) — sobre cualquier pestaña.
-    val userMod by viewModel.userMod.collectAsState()
-    val userModLoading by viewModel.userModLoading.collectAsState()
+    val userMod by viewModel.userMod.collectAsStateWithLifecycle()
+    val userModLoading by viewModel.userModLoading.collectAsStateWithLifecycle()
     if (userMod != null || userModLoading) {
         UserModerationSheet(
             mod = userMod,

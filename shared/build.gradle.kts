@@ -48,6 +48,18 @@ kotlin {
             implementation(libs.sqldelight.coroutines)
             implementation(libs.sqldelight.primitive.adapters)
         }
+        // Tests del cerebro compartido (TopoRenderer, LinePath…): viven AQUÍ y
+        // no en app/ para que corran en TODOS los targets del módulo, no solo
+        // en el JVM de Android (hallazgo de la auditoría 2026-07-19).
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            // runTest + tiempo virtual: deja probar esperas (p.ej. el límite de
+            // paciencia con el token de Firebase) sin que el test tarde de verdad.
+            implementation(libs.kotlinx.coroutines.test)
+            // Motor HTTP falso: permite probar el comportamiento del cliente
+            // (espera del token, reintento ante 401) sin tocar la red.
+            implementation(libs.ktor.client.mock)
+        }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.coroutines.play.services)

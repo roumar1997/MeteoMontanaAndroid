@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.login
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import androidx.compose.foundation.Image
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +23,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,7 +43,7 @@ import androidx.compose.ui.res.stringResource
 @Composable
 fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
     val activityContext = LocalContext.current
-    val state by viewModel.authState.collectAsState()
+    val state by viewModel.authState.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -164,8 +166,8 @@ private fun GoogleSignInButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .height(52.dp)
             .clip(shape)
-            .background(Color(0xFF1C1C1A), shape)
-            .border(1.dp, Color(0xFF1C1C1A), shape)
+            .background(inkButtonColor(), shape)
+            .border(1.dp, inkButtonColor(), shape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

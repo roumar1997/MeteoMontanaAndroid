@@ -20,10 +20,15 @@ class KtorSocialApi(private val client: HttpClient) {
 
     suspend fun getUserProfile(uid: String): PublicProfileDto = client.get("users/$uid").body()
 
-    /** Ranking de mayores contribuidores (aprobadas). Endpoint público. */
-    suspend fun getTopContributors(limit: Int = 20): List<TopContributorDto> =
+    /** Ranking de mayores contribuidores (aprobadas). Endpoint público.
+     *  Con [year]+[month]: ranking de ESE mes en vez del total histórico. */
+    suspend fun getTopContributors(
+        limit: Int = 20, year: Int? = null, month: Int? = null
+    ): List<TopContributorDto> =
         client.get("community/top-contributors") {
             parameter("limit", limit)
+            year?.let { parameter("year", it) }
+            month?.let { parameter("month", it) }
         }.body()
 
     suspend fun follow(uid: String) { client.post("users/$uid/follow") }

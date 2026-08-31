@@ -30,7 +30,12 @@ class FirebaseChatService(
             .whereArrayContains("participants", me)
             .orderBy("lastAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snap, err ->
-                if (err != null) { close(err); return@addSnapshotListener }
+                // NO propagar el error: cerrar el Flow limpio. Un PERMISSION_DENIED
+                // es ESPERADO al salir de un grupo o al hacer logout (dejas de tener
+                // acceso a esa colección) — propagarlo con close(err) crasheaba la app
+                // (excepción sin capturar en el colector). Cerrar sin error solo detiene
+                // las actualizaciones de ese listener.
+                if (err != null) { close(); return@addSnapshotListener }
                 val list = snap?.documents?.mapNotNull { doc ->
                     val participants = (doc.get("participants") as? List<*>)
                         ?.filterIsInstance<String>() ?: emptyList()
@@ -57,7 +62,12 @@ class FirebaseChatService(
             .orderBy("createdAt", Query.Direction.ASCENDING)
             .limitToLast(limit.toLong())
             .addSnapshotListener { snap, err ->
-                if (err != null) { close(err); return@addSnapshotListener }
+                // NO propagar el error: cerrar el Flow limpio. Un PERMISSION_DENIED
+                // es ESPERADO al salir de un grupo o al hacer logout (dejas de tener
+                // acceso a esa colección) — propagarlo con close(err) crasheaba la app
+                // (excepción sin capturar en el colector). Cerrar sin error solo detiene
+                // las actualizaciones de ese listener.
+                if (err != null) { close(); return@addSnapshotListener }
                 val msgs = snap?.documents?.map { d ->
                     ChatService.ChatMessage(
                         id = d.id,

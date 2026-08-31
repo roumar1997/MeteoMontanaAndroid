@@ -7,7 +7,7 @@ actual class DatabaseFactory {
     actual fun create(): MeteoMontanaDb {
         val driver = NativeSqliteDriver(
             schema = MeteoMontanaDb.Schema,
-            name = "meteomontana_sql_v7.db"   // v7: CachedMeetup (quedadas offline)
+            name = "meteomontana_sql_v8.db"   // v8: CachedFeedPage (feed offline)
         )
         return MeteoMontanaDb(driver)
     }

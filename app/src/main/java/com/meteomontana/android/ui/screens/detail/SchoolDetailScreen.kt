@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -28,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,6 +50,7 @@ import com.meteomontana.android.ui.components.NotesSection
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.Spacing
+import kotlinx.coroutines.launch
 
 @Composable
 fun SchoolDetailScreen(
@@ -58,12 +60,21 @@ fun SchoolDetailScreen(
     onDayClick: (Int) -> Unit = {},
     viewModel: SchoolDetailViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val success = state as? SchoolDetailUiState.Success
     var addBlockOpen by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = Modifier.fillMaxSize()
+        .pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                    android.util.Log.i("CUMBRE-MAPA", "PANTALLA recibe " + e.type + " en " + e.changes.firstOrNull()?.position)
+                }
+            }
+        }
+        .background(MaterialTheme.colorScheme.background)) {
         TopBar(
             title = success?.school?.name ?: "",
             isFavorite = success?.isFavorite ?: false,
@@ -116,6 +127,18 @@ fun SchoolDetailScreen(
                 }
             }
             is SchoolDetailUiState.Success -> {
+                // Guardar offline: los datos se guardan sin preguntar (pesan
+                // poco), pero las FOTOS se consultan — son casi todo el peso y
+                // puede estar gastando datos. Sin ellas el topo no sirve en la
+                // roca, así que se dice qué se gana y cuánto cuesta.
+                FotosOfflineDialogs(
+                    oferta = s.ofertaFotosOffline,
+                    progreso = s.descargaFotos,
+                    fallidas = s.fotosOfflineFallidas,
+                    onDescargar = viewModel::descargarFotosOffline,
+                    onRechazar = viewModel::rechazarFotosOffline,
+                    onCerrarAviso = viewModel::limpiarAvisoFotos
+                )
                 if (s.offlineSnapshotAt != null) {
                     OfflineBanner(timestamp = s.offlineSnapshotAt)
                 }
@@ -134,7 +157,9 @@ fun SchoolDetailScreen(
                     viewModel = viewModel,
                     onMyProposals = onMyProposals,
                     onDayClick = onDayClick,
-                    mountainBulletin = s.mountainBulletin
+                    mountainBulletin = s.mountainBulletin,
+                    approaches = s.approaches,
+                    isAdmin = s.isCurrentUserAdmin
                 )
             }
         }
@@ -170,45 +195,54 @@ private fun TopBar(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
-                tint = MaterialTheme.colorScheme.onBackground)
+        // DOS PASTILLAS, como en iOS: el "atrás" en la suya y las acciones
+        // agrupadas en otra. Sueltos sobre el fondo, como estaban, era una de
+        // las cosas que más delataban que no eran la misma app.
+        com.meteomontana.android.ui.components.CumbrePillGroup {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
+                    tint = MaterialTheme.colorScheme.onBackground)
+            }
         }
+        // El nombre se queda con el hueco sobrante y se recorta si no cabe: en
+        // una pantalla estrecha manda la pastilla de acciones, no el título.
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = Spacing.xs).weight(1f))
-        com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
-        if (onDirections != null) {
-            IconButton(onClick = onDirections, modifier = Modifier.size(38.dp)) {
-                Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions),
-                    tint = MaterialTheme.colorScheme.onBackground)
+            modifier = Modifier.padding(horizontal = Spacing.xs).weight(1f))
+        com.meteomontana.android.ui.components.CumbrePillGroup {
+            com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
+            if (onDirections != null) {
+                IconButton(onClick = onDirections, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions),
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
             }
-        }
-        if (onShare != null) {
-            IconButton(onClick = onShare, modifier = Modifier.size(38.dp)) {
-                Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share),
-                    tint = MaterialTheme.colorScheme.onBackground)
+            if (onShare != null) {
+                IconButton(onClick = onShare, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share),
+                        tint = MaterialTheme.colorScheme.onBackground)
+                }
             }
-        }
-        if (showSaveOffline) {
-            IconButton(onClick = onToggleSaveOffline, modifier = Modifier.size(38.dp)) {
-                Icon(
-                    imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
-                    contentDescription = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
-                    tint = if (isSavedOffline) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onBackground
-                )
+            if (showSaveOffline) {
+                IconButton(onClick = onToggleSaveOffline, modifier = Modifier.size(38.dp)) {
+                    Icon(
+                        imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
+                        contentDescription = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
+                        tint = if (isSavedOffline) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
-        }
-        if (showFavorite) {
-            IconButton(onClick = onToggleFavorite, modifier = Modifier.size(38.dp)) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
-                    tint = if (isFavorite) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onBackground
-                )
+            if (showFavorite) {
+                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(38.dp)) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
         }
     }
@@ -228,8 +262,14 @@ private fun Content(
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit,
     onDayClick: (Int) -> Unit = {},
-    mountainBulletin: com.meteomontana.android.data.api.MountainBulletinDto? = null
+    mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null,
+    approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList(),
+    isAdmin: Boolean = false
 ) {
+    // Aproximaciones (parking → sector) — APPROACH_DESIGN.md, admin-gated.
+    var followingApproach by remember { mutableStateOf<com.meteomontana.android.domain.model.Approach?>(null) }
+    var recordingApproach by remember { mutableStateOf(false) }
+    val approachScope = androidx.compose.runtime.rememberCoroutineScope()
     // Columna NO perezosa (paridad con el ScrollView de iOS): toda la pantalla
     // se compone al entrar → los deep-links a piedras/vías (feed, diario,
     // buscador, enlaces) abren la ficha en cuanto cargan los bloques, sin
@@ -257,24 +297,70 @@ private fun Content(
         // su sitio de siempre cuando hay forecast, y SIN esperar al forecast
         // mientras carga o si falla (antes las piedras no existían hasta que
         // el tiempo llegaba → los deep-links a piedras esperaban de más).
-        val blocksSection: @Composable () -> Unit = {
+        // movableContentOf, NO una lambda a secas.
+        //
+        // Esta seccion se pinta en DOS sitios: uno mientras carga el tiempo y
+        // otro dentro del bloque del tiempo cuando llega. Con una lambda normal,
+        // al llegar el tiempo se creaba una SEGUNDA instancia sin morir la
+        // primera —comprobado por registro: "MAPA CREADO #1" y "#2" seguidos—,
+        // y quedaban dos mapas vivos: veias uno y tocabas el otro. De ahi que
+        // "OCULTAR MAPA" no hiciera nada (Rodrigo, 2026-08-11).
+        //
+        // movableContentOf mueve el MISMO contenido de un sitio a otro
+        // conservando su identidad y su estado. Es justo para esto.
+        //
+        // OJO con las CAPTURAS: este `remember` no tiene claves a propósito
+        // (recrearlo pierde la identidad del mapa, que es justo lo que
+        // movableContentOf viene a evitar). Por eso el contenido NO puede leer
+        // `blocks` directamente: se quedaría con la lista de la PRIMERA
+        // composición —vacía, porque el servidor tarda ~0,4 s— y el mapa se
+        // pintaba para siempre con un solo marcador, el de la escuela. Al salir
+        // y volver a entrar se recomponía de cero y ya salía bien: ese era
+        // exactamente el síntoma ("entro y no sale nada; salgo, entro y sí").
+        // rememberUpdatedState mantiene la lectura viva sin recrear el bloque.
+        // Cazado con registro el 2026-08-24 (Álvaro): "getBlocks(la-pedriza)
+        // OK: 21 bloques" y el mapa repintando "marcadores=1" sin parar.
+        val blocksState = androidx.compose.runtime.rememberUpdatedState(blocks)
+        val approachesState = androidx.compose.runtime.rememberUpdatedState(approaches)
+        val isAdminState = androidx.compose.runtime.rememberUpdatedState(isAdmin)
+        val blocksSection = androidx.compose.runtime.remember { androidx.compose.runtime.movableContentOf {
             Column {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                 BlocksSection(
-                    blocks = blocks, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
+                    blocks = blocksState.value, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
                     schoolLat = school.lat, schoolLon = school.lon,
-                    schoolName = school.name, schoolId = school.id,
-                    viewModel = viewModel, onMyProposals = onMyProposals
+                    schoolName = school.name, schoolStyle = school.style, schoolId = school.id,
+                    viewModel = viewModel, onMyProposals = onMyProposals,
+                    // APROXIMACIONES entre el MAPA y PARKINGS, que es donde las
+                    // pone iOS (SchoolMapSection.swift:126-134). Aquí colgaban
+                    // al final, detrás de sectores. Va por ranura porque el dato
+                    // vive en esta pantalla pero su sitio está dentro del mapa.
+                    contenidoTrasMapa = {
+                        com.meteomontana.android.ui.components.ApproachesSection(
+                            // Mismo motivo que blocksState: llegan del servidor
+                            // DESPUÉS de la primera composición y se capturarían.
+                            approaches = approachesState.value,
+                            isAdmin = isAdminState.value,
+                            onFollow = { followingApproach = it },
+                            onRecord = { recordingApproach = true },
+                            onDelete = { a -> approachScope.launch { viewModel.deleteApproach(a.id) } }
+                        )
+                    }
                 )
             }
-        }
+        } }
         if (forecast != null) {
             com.meteomontana.android.ui.components.ForecastBodyColumn(
                 forecast = forecast,
                 afterCurrentWeather = {
                     Column {
-                        // Boletín de montaña AEMET (solo escuelas en un macizo).
-                        mountainBulletin?.let { b ->
+                        // Boletín de montaña AEMET: solo escuelas de un macizo
+                        // ESPAÑOL. Fuera de España no existe boletín, y enseñar
+                        // un hueco vacío es peor que no ofrecer la función.
+                        mountainBulletin?.takeIf {
+                            com.meteomontana.android.domain.util.SpainOnlyFeatures
+                                .showsMountainBulletin(school?.country)
+                        }?.let { b ->
                             com.meteomontana.android.ui.components.MountainBulletinSection(b)
                         }
                         blocksSection()
@@ -325,9 +411,38 @@ private fun Content(
             onVote = { n, v -> viewModel.voteNote(n, v) })
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         // (Guardar offline movido al toolbar superior, como en iOS.)
-        val s = viewModel.uiState.collectAsState().value as? SchoolDetailUiState.Success
+        val s = viewModel.uiState.collectAsStateWithLifecycle().value as? SchoolDetailUiState.Success
         MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
         Spacer(Modifier.height(40.dp))
+    }
+
+    // Aproximaciones: pantallas completas (Dialog), fuera del scroll de arriba.
+    followingApproach?.let { a ->
+        com.meteomontana.android.ui.screens.approach.ApproachFollowScreen(
+            approach = a,
+            schoolName = school.name,
+            isAdmin = isAdmin,
+            onDismiss = { followingApproach = null },
+            onDeleteApproach = { toDelete ->
+                approachScope.launch { viewModel.deleteApproach(toDelete.id) }
+            },
+            onAddPin = { approachId, req ->
+                approachScope.launch {
+                    viewModel.addApproachPin(approachId, req)
+                    // Refresca la aproximación abierta con la chincheta nueva.
+                    followingApproach = (viewModel.uiState.value as? SchoolDetailUiState.Success)
+                        ?.approaches?.firstOrNull { it.id == approachId }
+                }
+            }
+        )
+    }
+    if (recordingApproach) {
+        com.meteomontana.android.ui.screens.approach.ApproachRecordScreen(
+            school = school,
+            blocks = blocks,
+            onDismiss = { recordingApproach = false },
+            onSave = { req, pins -> viewModel.createApproach(req, pins) }
+        )
     }
 }
 
@@ -420,3 +535,5 @@ private fun shareSchool(
     }
     context.startActivity(android.content.Intent.createChooser(intent, "Compartir escuela"))
 }
+
+private val CONTADOR_DETALLES = java.util.concurrent.atomic.AtomicInteger(0)

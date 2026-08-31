@@ -71,6 +71,24 @@ object NetworkModule {
     fun provideKtorAppVersionApi(client: HttpClient) =
         com.meteomontana.android.data.api.KtorAppVersionApi(client)
 
+    @Provides
+    @Singleton
+    fun provideKtorGeoApi(client: HttpClient) =
+        com.meteomontana.android.data.api.KtorGeoApi(client)
+
+    @Provides
+    @Singleton
+    fun provideCountryRepository(
+        api: com.meteomontana.android.data.api.KtorGeoApi
+    ): com.meteomontana.android.domain.repository.CountryRepository =
+        com.meteomontana.android.data.repository.KtorCountryRepository(api)
+
+    @Provides
+    @Singleton
+    fun provideGetCountries(
+        repo: com.meteomontana.android.domain.repository.CountryRepository
+    ) = com.meteomontana.android.domain.usecase.geo.GetCountriesUseCase(repo)
+
     @Provides @Singleton
     fun provideKtorBlockApi(client: HttpClient) = KtorBlockApi(client)
 
@@ -112,6 +130,11 @@ object NetworkModule {
     @Provides @Singleton
     fun provideKtorJournalApi(client: HttpClient) = KtorJournalApi(client)
 
+    @Provides
+    @Singleton
+    fun provideKtorCommunityApi(client: HttpClient) =
+        com.meteomontana.android.data.api.KtorCommunityApi(client)
+
     @Provides @Singleton
     fun provideKtorChatPushApi(client: HttpClient) =
         com.meteomontana.android.data.api.KtorChatPushApi(client)
@@ -119,4 +142,8 @@ object NetworkModule {
     @Provides @Singleton
     fun provideKtorMeetupApi(client: HttpClient) =
         com.meteomontana.android.data.api.KtorMeetupApi(client)
+
+    @Provides @Singleton
+    fun provideKtorApproachApi(client: HttpClient) =
+        com.meteomontana.android.data.api.KtorApproachApi(client)
 }

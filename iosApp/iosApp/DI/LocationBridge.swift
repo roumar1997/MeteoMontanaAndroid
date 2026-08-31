@@ -41,7 +41,17 @@ final class LocationBridge: NSObject, IosLocationBridge, CLLocationManagerDelega
         }
         // Si no, pedimos una nueva (resuelve en el delegate).
         pending = callback
-        manager.requestLocation()
+        // OJO: si el mapa de la escuela ya tiene un stream CONTINUO activo
+        // (startStream, el puntito de "mi ubicación"), NO se debe pedir
+        // requestLocation() a la vez sobre el mismo manager — Apple no
+        // soporta bien mezclar ambos modos y la petición puntual se quedaba
+        // sin resolver NUNCA (foto por cámara "sin ubicación" solo DENTRO de
+        // una escuela, nunca desde Escuelas, donde no hay stream corriendo;
+        // Rodrigo, 2026-08-22). El stream ya en marcha entrega la siguiente
+        // posición por didUpdateLocations, que resuelve `pending` igual.
+        if streamCallback == nil {
+            manager.requestLocation()
+        }
     }
 
     /// La pide la pantalla de Tiempo cuando aún no hay permiso.
@@ -85,13 +95,19 @@ final class LocationBridge: NSObject, IosLocationBridge, CLLocationManagerDelega
     }
 }
 
-/// Rumbo del móvil (brújula) para el cono de dirección del punto azul.
-/// Cuantizado a 15º para no re-pintar el marcador a 50 Hz.
+/// Rumbo del móvil (brújula), para el cono de dirección del punto azul y para
+/// la brújula de elegir la orientación de una pared.
+///
+/// Cuantizado a `stepDegrees` para no re-pintar a 50 Hz: 15º basta para el cono,
+/// pero la brújula de la orientación pide un paso fino (2º) porque ahí se lee el
+/// número de grados. Espejo de `rememberDeviceHeading` en Android.
 final class HeadingProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var heading: Int? = nil
     private let manager = CLLocationManager()
+    private let stepDegrees: Double
 
-    override init() {
+    init(stepDegrees: Double = 15) {
+        self.stepDegrees = stepDegrees
         super.init()
         manager.delegate = self
     }
@@ -102,7 +118,7 @@ final class HeadingProvider: NSObject, ObservableObject, CLLocationManagerDelega
     func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
         let deg = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
         guard deg >= 0 else { return }
-        let q = Int((deg / 15).rounded()) * 15 % 360
+        let q = Int((deg / stepDegrees).rounded() * stepDegrees) % 360
         if q != heading { DispatchQueue.main.async { self.heading = q } }
     }
 }

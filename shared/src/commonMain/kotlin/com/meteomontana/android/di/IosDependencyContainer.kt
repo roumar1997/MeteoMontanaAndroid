@@ -154,6 +154,10 @@ class IosDependencyContainer(
     val radarApi = KtorRadarApi(httpClient)
     val mountainApi = KtorMountainApi(httpClient)
     val appVersionApi = com.meteomontana.android.data.api.KtorAppVersionApi(httpClient)
+    /** Catalogo de paises y regiones para el desplegable de proponer escuela. */
+    val geoApi = com.meteomontana.android.data.api.KtorGeoApi(httpClient)
+    val getCountries = com.meteomontana.android.domain.usecase.geo.GetCountriesUseCase(
+        com.meteomontana.android.data.repository.KtorCountryRepository(geoApi))
     private val favoritesApi = KtorFavoritesApi(httpClient)
     val noteApi = KtorNoteApi(httpClient)
     private val profileApi = KtorProfileApi(httpClient)
@@ -176,7 +180,7 @@ class IosDependencyContainer(
     private val profileRepository = KtorProfileRepository(profileApi)
     private val notificationsRepository = KtorNotificationsRepository(notificationApi)
     private val socialRepository = KtorSocialRepository(socialApi)
-    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi)
+    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi, database)
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
@@ -184,7 +188,17 @@ class IosDependencyContainer(
     val blockApi = KtorBlockApi(httpClient)
     // Moderación UGC (denunciar/bloquear) — requisito App Store.
     val moderationApi = com.meteomontana.android.data.api.KtorModerationApi(httpClient)
-    private val blockRepository = KtorBlockRepository(blockApi)
+    private val moderationRepository =
+        com.meteomontana.android.data.repository.KtorModerationRepository(moderationApi)
+    private val blockRepository = KtorBlockRepository(blockApi, database)
+    // Aproximaciones (caminos). Lectura pública; alta SOLO ADMIN por ahora
+    // (ver APPROACH_DESIGN.md §2.6/§10) — iOS llama a approachApi directo
+    // para el alta, sin repositorio intermedio (patrón admin simple).
+    val approachApi = com.meteomontana.android.data.api.KtorApproachApi(httpClient)
+    private val approachRepository = com.meteomontana.android.data.repository
+        .KtorApproachRepository(approachApi)
+    private val communityRepository = com.meteomontana.android.data.repository
+        .KtorCommunityRepository(com.meteomontana.android.data.api.KtorCommunityApi(httpClient))
     private val adminRepository = KtorAdminRepository(KtorAdminApi(httpClient))
     val meetupApi = KtorMeetupApi(httpClient)
     private val meetupCache: MeetupCacheRepository? = database?.let { MeetupCacheRepository(it) }
@@ -194,9 +208,31 @@ class IosDependencyContainer(
     val getSchools = GetSchoolsUseCase(schoolRepository)
     val getSchoolById = GetSchoolByIdUseCase(schoolRepository)
     val searchSchools = SearchSchoolsUseCase(schoolRepository)
+    val searchLines = com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase(schoolRepository)
     val getForecast = GetForecastUseCase(forecastRepository)
     val getForecastByLocation = GetForecastByLocationUseCase(forecastRepository)
     val getTodayScores = GetTodayScoresUseCase(forecastRepository)
+    // Votación comunitaria (C2/C5) + fecha del diario (C3).
+    val getOrientation =
+        com.meteomontana.android.domain.usecase.community.GetOrientationUseCase(communityRepository)
+    val voteOrientation =
+        com.meteomontana.android.domain.usecase.community.VoteOrientationUseCase(communityRepository)
+    val getSchoolOrientations =
+        com.meteomontana.android.domain.usecase.community.GetSchoolOrientationsUseCase(communityRepository)
+    val getSunHours =
+        com.meteomontana.android.domain.usecase.community.GetSunHoursUseCase(communityRepository)
+    val getGradeVotes =
+        com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase(communityRepository)
+    val voteGrade =
+        com.meteomontana.android.domain.usecase.community.VoteGradeUseCase(communityRepository)
+    val updateJournalDate =
+        com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase(journalRepository)
+    val updateJournalStyle =
+        com.meteomontana.android.domain.usecase.journal.UpdateJournalStyleUseCase(journalRepository)
+    val getAdminUsers =
+        com.meteomontana.android.domain.usecase.admin.GetAdminUsersUseCase(moderationRepository)
+    val getAdminNotes =
+        com.meteomontana.android.domain.usecase.admin.GetAdminNotesUseCase(moderationRepository)
     val getRangeScores = GetRangeScoresUseCase(forecastRepository)
 
     // Favoritas (requieren sesión; el token lo aporta el authService del
@@ -218,8 +254,8 @@ class IosDependencyContainer(
     val updateFcmToken = com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase(profileRepository)
 
     // Alerta de tiempo (preferencias en /api/me/weekend-alert).
-    val getWeekendAlert = GetWeekendAlertUseCase(profileApi)
-    val updateWeekendAlert = UpdateWeekendAlertUseCase(profileApi)
+    val getWeekendAlert = GetWeekendAlertUseCase(profileRepository)
+    val updateWeekendAlert = UpdateWeekendAlertUseCase(profileRepository)
 
     // Notificaciones / inbox.
     val getMyNotifications = GetMyNotificationsUseCase(notificationsRepository)
@@ -277,6 +313,8 @@ class IosDependencyContainer(
     // Diario de escalada: entradas, stats (bloques/escuelas/grado máximo), crear/borrar.
     // Bloques de una escuela (para autocompletar el diario con vías/sectores reales).
     val getBlocks = GetBlocksUseCase(blockRepository)
+    val getApproaches = com.meteomontana.android.domain.usecase.approach
+        .GetApproachesUseCase(approachRepository)
 
     // Admin: cola de propuestas/contribuciones pendientes + aprobar/rechazar.
     val getPendingSubmissions = GetPendingSubmissionsUseCase(adminRepository)
@@ -294,7 +332,12 @@ class IosDependencyContainer(
     val resolveReport = ResolveReportUseCase(adminRepository)
     val updateBlock = UpdateBlockUseCase(blockRepository)
     val deleteBlock = DeleteBlockUseCase(blockRepository)
-    val rateLine = com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(blockApi)
+    val rateLine = com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(blockRepository)
+    // Comentarios de piedras/vías por use case (regla DI: nada de blockApi directo).
+    val getLineComments = com.meteomontana.android.domain.usecase.blocks.GetLineCommentsUseCase(blockRepository)
+    val addLineComment = com.meteomontana.android.domain.usecase.blocks.AddLineCommentUseCase(blockRepository)
+    val voteLineComment = com.meteomontana.android.domain.usecase.blocks.VoteLineCommentUseCase(blockRepository)
+    val deleteLineComment = com.meteomontana.android.domain.usecase.blocks.DeleteLineCommentUseCase(blockRepository)
 
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)
@@ -325,201 +368,99 @@ class IosDependencyContainer(
         database?.let { com.meteomontana.android.data.local.LocalCacheCleaner(it) }
 
     // Quedadas (meetups): lista, detalle, crear, unirse, salir, expulsar.
-    // La caché local (SQLDelight) permite ver la lista offline.
-    val getMeetups: GetMeetupsUseCase? = meetupCache?.let { GetMeetupsUseCase(meetupApi, it) }
-    val getMeetup: GetMeetupUseCase? = meetupCache?.let { GetMeetupUseCase(meetupApi, it) }
-    val createMeetup: CreateMeetupUseCase? = meetupCache?.let { CreateMeetupUseCase(meetupApi, it) }
-    val joinMeetup: JoinMeetupUseCase? = meetupCache?.let { JoinMeetupUseCase(meetupApi, it) }
-    val leaveMeetup: LeaveMeetupUseCase? = meetupCache?.let { LeaveMeetupUseCase(meetupApi, it) }
-    val updateMeetup: UpdateMeetupUseCase? = meetupCache?.let { UpdateMeetupUseCase(meetupApi, it) }
-    val getMeetupByConversation = GetMeetupByConversationUseCase(meetupApi)
-    val kickMeetupMember  = KickMeetupMemberUseCase(meetupApi)
-    val reportMeetup      = ReportMeetupUseCase(meetupApi)
-    val updateMyGear      = UpdateMyGearUseCase(meetupApi)
-    val getMeetupAlert    = GetMeetupAlertUseCase(meetupApi)
-    val setMeetupAlert    = SetMeetupAlertUseCase(meetupApi)
+    // Puerto MeetupRepository (orquesta red + caché SQLDelight para offline);
+    // los use cases dependen de él, no del KtorMeetupApi concreto. Se conservan
+    // las puertas `meetupCache?.let` para no cambiar la nulabilidad que Swift ya
+    // consume (los que necesitan caché siguen siendo opcionales).
+    private val meetupRepo: com.meteomontana.android.domain.repository.MeetupRepository =
+        com.meteomontana.android.data.repository.KtorMeetupRepository(meetupApi, meetupCache)
+    val getMeetups: GetMeetupsUseCase? = meetupCache?.let { GetMeetupsUseCase(meetupRepo) }
+    val getMeetup: GetMeetupUseCase? = meetupCache?.let { GetMeetupUseCase(meetupRepo) }
+    val createMeetup: CreateMeetupUseCase? = meetupCache?.let { CreateMeetupUseCase(meetupRepo) }
+    val joinMeetup: JoinMeetupUseCase? = meetupCache?.let { JoinMeetupUseCase(meetupRepo) }
+    val leaveMeetup: LeaveMeetupUseCase? = meetupCache?.let { LeaveMeetupUseCase(meetupRepo) }
+    val updateMeetup: UpdateMeetupUseCase? = meetupCache?.let { UpdateMeetupUseCase(meetupRepo) }
+    val getMeetupByConversation = GetMeetupByConversationUseCase(meetupRepo)
+    val kickMeetupMember  = KickMeetupMemberUseCase(meetupRepo)
+    val reportMeetup      = ReportMeetupUseCase(meetupRepo)
+    val updateMyGear      = UpdateMyGearUseCase(meetupRepo)
+    val getMeetupAlert    = GetMeetupAlertUseCase(meetupRepo)
+    val setMeetupAlert    = SetMeetupAlertUseCase(meetupRepo)
 
-    // ─── Cola offline (outbox) — vías marcadas como hechas sin conexión ──────
-    // Comparte la tabla Outbox de SQLDelight. Permite marcar una vía sin red:
-    // se encola y se sube al volver internet (igual filosofía que Android).
+    // ─── Cola offline (outbox) ───────────────────────────────────────────────
+    // La lógica vive en OutboxSyncService (SRP); aquí solo se instancia y se
+    // exponen delegadores con la MISMA firma que Swift ya llama con `try?`.
     private val outbox: com.meteomontana.android.data.outbox.OutboxRepository? =
         database?.let { com.meteomontana.android.data.outbox.OutboxRepository(it) }
-    private val outboxJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
+    private val outboxSync = com.meteomontana.android.data.outbox.OutboxSyncService(
+        outbox = outbox,
+        submitContribution = { schoolId, req -> submitContribution.invoke(schoolId, req) },
+        getMyJournal = { getMyJournal() },
+        createJournalEntry = { createJournalEntry(it) },
+        deleteJournalEntry = { deleteJournalEntry(it) },
+        addFavorite = { addFavorite(it) },
+        removeFavorite = { removeFavorite(it) },
+    )
 
-    /** Encola una vía marcada como hecha (sin red) para subirla más tarde. */
     @Throws(Exception::class)
-    suspend fun enqueueJournal(req: com.meteomontana.android.data.api.dto.CreateJournalRequest) {
-        outbox?.enqueue(
-            com.meteomontana.android.data.outbox.OutboxType.JOURNAL,
-            req.schoolId ?: "",
-            outboxJson.encodeToString(
-                com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), req)
-        )
-    }
+    suspend fun enqueueJournal(req: com.meteomontana.android.data.api.dto.CreateJournalRequest) =
+        outboxSync.enqueueJournal(req)
 
-    /** Quita de la cola la CREACIÓN pendiente con esa clave "escuela|vía"
-     *  (al desmarcar). Devuelve true si había una (marcada offline, sin subir). */
     @Throws(Exception::class)
-    suspend fun dequeueJournal(key: String): Boolean {
-        val repo = outbox ?: return false
-        var removed = false
-        repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
-            .forEach { row ->
-                val match = runCatching {
-                    outboxJson.decodeFromString(
-                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                }.getOrNull()?.let { req ->
-                    // Mismo formato id-aware que pendingJournalKeysByStatus.
-                    val lid = req.lineId
-                    val rowKey = if (!lid.isNullOrBlank()) "${req.schoolId ?: ""}|#$lid"
-                    else "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
-                    rowKey == key
-                } ?: false
-                if (match) { repo.delete(row.id); removed = true }
-            }
-        return removed
-    }
+    suspend fun dequeueJournal(key: String): Boolean = outboxSync.dequeueJournal(key)
 
-    /** Encola un BORRADO de vía (desmarcada sin red); se aplica al volver online. */
     @Throws(Exception::class)
-    suspend fun enqueueJournalDelete(key: String) {
-        outbox?.enqueue(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE, "", key)
-    }
+    suspend fun enqueueJournalDelete(key: String) = outboxSync.enqueueJournalDelete(key)
 
-    /** Cancela un borrado pendiente de esa vía (al re-marcarla). */
     @Throws(Exception::class)
-    suspend fun dequeueJournalDelete(key: String) {
-        val repo = outbox ?: return
-        repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
-            .forEach { row -> if (row.payloadJson == key) repo.delete(row.id) }
-    }
+    suspend fun dequeueJournalDelete(key: String) = outboxSync.dequeueJournalDelete(key)
 
-    /** Claves "escuela|vía" de las vías encoladas para CREAR (✓ sin red aún). */
     @Throws(Exception::class)
-    suspend fun pendingJournalKeys(): Set<String> {
-        val pend = outbox?.all() ?: return emptySet()
-        return pend.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
-            .mapNotNull { row ->
-                runCatching {
-                    outboxJson.decodeFromString(
-                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                }.getOrNull()
-            }
-            .map { "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}" }
-            .toSet()
-    }
+    suspend fun pendingJournalKeys(): Set<String> = outboxSync.pendingJournalKeys()
 
-    /** Como [pendingJournalKeys], pero solo las de estado [status] (DONE|PROJECT).
-     *  Necesario porque la cola JOURNAL guarda tanto "hechas" como "proyecto"
-     *  bajo el mismo tipo — sin filtrar por status no se pueden distinguir. */
     @Throws(Exception::class)
-    suspend fun pendingJournalKeysByStatus(status: String): Set<String> {
-        val pend = outbox?.all() ?: return emptySet()
-        return pend.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL }
-            .mapNotNull { row ->
-                runCatching {
-                    outboxJson.decodeFromString(
-                        com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                }.getOrNull()
-            }
-            .filter { (it.status ?: "DONE") == status }
-            // Clave por lineId si lo tiene (aguanta vías homónimas — fix "La
-            // ola"); por nombre solo como legado. Mismo formato que Android
-            // (journalViaKey) y que las claves que computa SchoolDetailView.
-            .map { req ->
-                val lid = req.lineId
-                if (!lid.isNullOrBlank()) "${req.schoolId ?: ""}|#$lid"
-                else "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
-            }
-            .toSet()
-    }
+    suspend fun pendingJournalKeysByStatus(status: String): Set<String> =
+        outboxSync.pendingJournalKeysByStatus(status)
 
-    /** Claves "escuela|vía" con BORRADO pendiente (desmarcadas sin red). */
     @Throws(Exception::class)
-    suspend fun pendingJournalDeleteKeys(): Set<String> {
-        val pend = outbox?.all() ?: return emptySet()
-        return pend.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
-            .map { it.payloadJson }.toSet()
-    }
+    suspend fun pendingJournalDeleteKeys(): Set<String> = outboxSync.pendingJournalDeleteKeys()
 
-    // ── Cola offline de contribuciones (parking/sector/piedra) ──────────────
-    // Espejo del OutboxFlusher de Android: las simples (sin fotos) se envían
-    // desde aquí (Kotlin); las de PIEDRA llevan fotos locales y las drena un
-    // flusher Swift (necesita StorageUploader nativo).
-
-    /** Encola una contribución simple (parking/sector). [requestJson] = el
-     *  ContributionRequest serializado (mismas claves que el DTO). */
     @Throws(Exception::class)
-    suspend fun enqueueContribution(schoolId: String, requestJson: String) {
-        outbox?.enqueue(com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION, schoolId, requestJson)
-    }
+    suspend fun enqueueContribution(schoolId: String, requestJson: String) =
+        outboxSync.enqueueContribution(schoolId, requestJson)
 
-    /** Encola una propuesta de PIEDRA guardada sin red (payload con rutas
-     *  locales de fotos; lo drena ContributionOutboxFlusher.swift). */
     @Throws(Exception::class)
-    suspend fun enqueueBoulderContribution(schoolId: String, payloadJson: String) {
-        outbox?.enqueue(com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION_BOULDER, schoolId, payloadJson)
-    }
+    suspend fun enqueueBoulderContribution(schoolId: String, payloadJson: String) =
+        outboxSync.enqueueBoulderContribution(schoolId, payloadJson)
 
-    /** Envía las contribuciones SIMPLES pendientes. Devuelve cuántas subió. */
     @Throws(Exception::class)
-    suspend fun flushSimpleContributions(): Int {
-        val repo = outbox ?: return 0
-        var sent = 0
-        repo.all().filter { it.type == com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION }
-            .forEach { row ->
-                val ok = runCatching {
-                    val req = outboxJson.decodeFromString(
-                        com.meteomontana.android.data.api.dto.ContributionRequest.serializer(), row.payloadJson)
-                    submitContribution.invoke(row.schoolId, req)
-                }.isSuccess
-                if (ok) { repo.delete(row.id); sent++ }
-                else repo.markRetry(row.id, null)
-            }
-        return sent
-    }
+    suspend fun flushSimpleContributions(): Int = outboxSync.flushSimpleContributions()
 
-    /** Filas de PIEDRA pendientes, para el flusher Swift. */
     @Throws(Exception::class)
-    suspend fun pendingBoulderContributions(): List<PendingContributionRow> {
-        val repo = outbox ?: return emptyList()
-        return repo.all()
-            .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.CONTRIBUTION_BOULDER }
-            .map { PendingContributionRow(it.id, it.schoolId, it.payloadJson) }
-    }
+    suspend fun pendingBoulderContributions(): List<com.meteomontana.android.data.outbox.PendingContributionRow> =
+        outboxSync.pendingBoulderContributions()
 
-    /** Borra una fila del outbox (el flusher Swift la llama tras subir). */
+    /** Edición de una piedra existente guardada sin cobertura (iOS). */
     @Throws(Exception::class)
-    suspend fun deleteOutboxRow(id: Long) { outbox?.delete(id) }
+    suspend fun enqueueBlockEditContribution(schoolId: String, payloadJson: String) =
+        outboxSync.enqueueBlockEditContribution(schoolId, payloadJson)
 
-    /** Encola un BORRADO de entrada de diario por su uid (borrada sin red desde el
-     *  perfil). Se aplica al volver la conexión. Borra por id → no puede tocar otra. */
     @Throws(Exception::class)
-    suspend fun enqueueJournalDeleteById(id: String) {
-        outbox?.enqueue(com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE_ID, "", id)
-    }
+    suspend fun pendingBlockEditContributions(): List<com.meteomontana.android.data.outbox.PendingContributionRow> =
+        outboxSync.pendingBlockEditContributions()
 
-    /** uids de entradas de diario con BORRADO pendiente (borradas sin red). */
     @Throws(Exception::class)
-    suspend fun pendingJournalDeleteIds(): Set<String> {
-        val pend = outbox?.all() ?: return emptySet()
-        return pend.filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE_ID }
-            .map { it.payloadJson }.toSet()
-    }
+    suspend fun deleteOutboxRow(id: Long) = outboxSync.deleteOutboxRow(id)
 
-    /**
-     * Sube las vías encoladas (las que se marcaron sin red). Llamar al abrir o
-     * activar la app. Borra cada entrada al subirla con éxito; las que fallen se
-     * quedan en la cola para el próximo intento.
-     */
-    /**
-     * Encola marcar/desmarcar una favorita sin red (anula la opuesta pendiente).
-     * Lo llama la app iOS cuando la llamada de red de favoritas falla.
-     */
     @Throws(Exception::class)
-    suspend fun enqueueFavorite(schoolId: String, favorite: Boolean) {
-        outbox?.enqueueFavorite(schoolId, favorite)
-    }
+    suspend fun enqueueJournalDeleteById(id: String) = outboxSync.enqueueJournalDeleteById(id)
+
+    @Throws(Exception::class)
+    suspend fun pendingJournalDeleteIds(): Set<String> = outboxSync.pendingJournalDeleteIds()
+
+    @Throws(Exception::class)
+    suspend fun enqueueFavorite(schoolId: String, favorite: Boolean) =
+        outboxSync.enqueueFavorite(schoolId, favorite)
 
     /**
      * SchoolScore derivado del forecast cacheado de una escuela (offline), o null.
@@ -539,67 +480,14 @@ class IosDependencyContainer(
         )
     }
 
-    /** ids con FAVORITE pendiente (reflejar la estrella offline). */
     @Throws(Exception::class)
-    suspend fun pendingFavoriteIds(): Set<String> =
-        outbox?.pendingFavoriteIds() ?: emptySet()
-
-    /** ids con FAVORITE_DELETE pendiente (quitar la estrella offline). */
-    @Throws(Exception::class)
-    suspend fun pendingFavoriteDeleteIds(): Set<String> =
-        outbox?.pendingFavoriteDeleteIds() ?: emptySet()
+    suspend fun pendingFavoriteIds(): Set<String> = outboxSync.pendingFavoriteIds()
 
     @Throws(Exception::class)
-    suspend fun flushJournalOutbox() {
-        val repo = outbox ?: return
-        repo.all().forEach { row ->
-            when (row.type) {
-                com.meteomontana.android.data.outbox.OutboxType.JOURNAL -> {
-                    val ok = runCatching {
-                        val req = outboxJson.decodeFromString(
-                            com.meteomontana.android.data.api.dto.CreateJournalRequest.serializer(), row.payloadJson)
-                        // Idempotente: no crear si esa vía ya está en el diario.
-                        val key = "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
-                        val exists = getMyJournal().any { e ->
-                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
-                        }
-                        if (!exists) createJournalEntry(req)
-                        true
-                    }.isSuccess
-                    if (ok) repo.delete(row.id)
-                }
-                com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE -> {
-                    // payload = clave "escuela|vía"; resolvemos el id real y borramos.
-                    val ok = runCatching {
-                        val entry = getMyJournal().firstOrNull { e ->
-                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == row.payloadJson
-                        }
-                        if (entry != null) deleteJournalEntry(entry.id)
-                        true   // si no existe ya, también se considera hecho
-                    }.isSuccess
-                    if (ok) repo.delete(row.id)
-                }
-                com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE_ID -> {
-                    // payload = uid exacto de la entrada; solo borra esa.
-                    val ok = runCatching {
-                        val exists = getMyJournal().any { it.id == row.payloadJson }
-                        if (exists) deleteJournalEntry(row.payloadJson)
-                        true   // si ya no está, también hecho
-                    }.isSuccess
-                    if (ok) repo.delete(row.id)
-                }
-                com.meteomontana.android.data.outbox.OutboxType.FAVORITE -> {
-                    val ok = runCatching { addFavorite(row.schoolId); true }.isSuccess
-                    if (ok) repo.delete(row.id)
-                }
-                com.meteomontana.android.data.outbox.OutboxType.FAVORITE_DELETE -> {
-                    val ok = runCatching { removeFavorite(row.schoolId); true }.isSuccess
-                    if (ok) repo.delete(row.id)
-                }
-                else -> {}
-            }
-        }
-    }
+    suspend fun pendingFavoriteDeleteIds(): Set<String> = outboxSync.pendingFavoriteDeleteIds()
+
+    @Throws(Exception::class)
+    suspend fun flushJournalOutbox() = outboxSync.flushJournalOutbox()
 
     /**
      * Refresca TODAS las escuelas guardadas offline (re-descarga bloques +
@@ -617,11 +505,3 @@ class IosDependencyContainer(
         }
     }
 }
-
-/** Fila del outbox pendiente de subir — expuesta a Swift para el flusher de
- *  piedras (SKIE no expone bien el tipo generado por SQLDelight). */
-class PendingContributionRow(
-    val id: Long,
-    val schoolId: String,
-    val payloadJson: String
-)

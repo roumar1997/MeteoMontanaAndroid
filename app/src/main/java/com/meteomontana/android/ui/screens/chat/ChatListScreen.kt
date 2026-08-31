@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.chat
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +36,6 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,8 +57,8 @@ fun ChatListScreen(
     onNewGroup: () -> Unit = {},
     viewModel: ChatListViewModel = hiltViewModel()
 ) {
-    val items by viewModel.items.collectAsState()
-    val contacts by viewModel.contacts.collectAsState()
+    val items by viewModel.items.collectAsStateWithLifecycle()
+    val contacts by viewModel.contacts.collectAsStateWithLifecycle()
     var showPicker by remember { mutableStateOf(false) }
     val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
@@ -160,6 +160,7 @@ private fun NewChatDialog(
             Text("Nuevo mensaje", style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.size(8.dp))
+            val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -176,7 +177,7 @@ private fun NewChatDialog(
                 LazyColumn(Modifier.heightIn(max = 360.dp)) {
                     items(filtered, key = { it.uid }) { p ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { onPick(p.uid) }
+                            Modifier.fillMaxWidth().clickable { closeKeyboard(); onPick(p.uid) }
                                 .padding(vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)

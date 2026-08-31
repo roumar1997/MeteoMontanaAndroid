@@ -23,6 +23,7 @@ class KtorSchoolApi(private val client: HttpClient) {
      * previo. expectSuccess se desactiva en esta request porque el 304 es un
      * status 3xx y el cliente lo trataría como error de redirección.
      */
+    @Throws(Exception::class)
     suspend fun getSchoolsCatalog(etag: String?): SchoolsCatalogResponse {
         val resp = client.get("schools") {
             expectSuccess = false
@@ -37,6 +38,7 @@ class KtorSchoolApi(private val client: HttpClient) {
         }
     }
 
+    @Throws(Exception::class)
     suspend fun getSchools(
         region: String? = null,
         style: String? = null,
@@ -53,6 +55,7 @@ class KtorSchoolApi(private val client: HttpClient) {
         radioKm?.let { parameter("radioKm", it) }
     }.body()
 
+    @Throws(Exception::class)
     suspend fun searchSchools(query: String, limit: Int = 10): List<SchoolDto> =
         client.get("schools/search") {
             parameter("q", query)
@@ -60,11 +63,14 @@ class KtorSchoolApi(private val client: HttpClient) {
         }.body()
 
     /** Búsqueda GLOBAL de vías/bloques por nombre en todo el catálogo. */
+    @Throws(Exception::class)
     suspend fun searchLines(query: String): List<LineSearchHitDto> =
         client.get("search/lines") { parameter("q", query) }.body()
 
+    @Throws(Exception::class)
     suspend fun getSchoolById(id: String): SchoolDto = client.get("schools/$id").body()
 
+    @Throws(Exception::class)
     suspend fun getMonthlyStats(id: String): MonthlyStatsDto =
         client.get("schools/$id/monthly-stats").body()
 }
@@ -85,5 +91,10 @@ data class LineSearchHitDto(
     val lineId: String? = null,
     val lineName: String? = null,
     val grade: String? = null,
-    val sectorName: String? = null
+    val sectorName: String? = null,
+    // Mini-topo del resultado (aditivos; null con backends viejos): foto de la
+    // cara de la vía (o portada de la piedra), trazo normalizado y tipo de inicio.
+    val photoPath: String? = null,
+    val linePath: String? = null,
+    val startType: String? = null
 )

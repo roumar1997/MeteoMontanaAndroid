@@ -7,13 +7,16 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -77,10 +80,17 @@ import com.meteomontana.android.ui.screens.meetups.MeetupAlertScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupDetailScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupsScreen
 import com.meteomontana.android.ui.screens.weather.WeatherScreen
+import com.meteomontana.android.ui.components.CumbreCapsuleShape
+import com.meteomontana.android.ui.components.LocalChromeTreatment
+import com.meteomontana.android.ui.components.cumbreBackdrop
+import com.meteomontana.android.ui.components.cumbreChromeSurface
+import com.meteomontana.android.ui.theme.ChromeTreatment
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 
 /** Ruta raíz (vacía) del NavHost interno del sheet: el sheet se abre vacío y se
  *  navega al destino real; al volver a ella se cierra la tarjeta. */
-private const val SHEET_ROOT = "sheet_root"
+internal const val SHEET_ROOT = "sheet_root"
 
 /**
  * Conmutador TIEMPO ⇄ RADAR de la primera pestaña (segmented estilo Cumbre:
@@ -186,6 +196,11 @@ fun MainScreen(
     // Oculta el overlay y limpia el backstack del sheetNav. Ya no hay
     // ModalBottomSheet: basta con bajar la bandera (AnimatedVisibility hace la
     // animación de salida) y resetear el NavHost interno a su raíz.
+    // Un contador por pestaña: sube al volver a tocar la que ya esta activa, y
+    // la pantalla correspondiente lo escucha para subir arriba del todo.
+    val volverArriba = androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateMapOf<String, Int>()
+    }
     val dismissSheet: () -> Unit = {
         sheetVisible = false
         sheetNav.popBackStack(SHEET_ROOT, inclusive = false)
@@ -229,6 +244,8 @@ fun MainScreen(
                 "meetup" -> deepLink.targetId?.let { openSheet(Routes.meetupDetail(it)) }
                 // Push de denuncia nueva → abre el panel de admin.
                 "admin_reports" -> openFullScreen(Routes.ADMIN)
+                // Push de propuesta nueva (a admins) → panel de admin (abre en PROPUESTAS).
+                "admin_contributions" -> openFullScreen(Routes.ADMIN)
                 "submission", "contribution" -> openSheet(Routes.MY_SUBMISSIONS)
                 // Push de actividad del feed Comunidad → detalle del post.
                 "feed_post" -> deepLink.targetId?.let { openSheet(Routes.feedPost(it)) }
@@ -242,7 +259,16 @@ fun MainScreen(
         }
     }
 
-    val showBottomBar = currentRoute == TABS_HOST
+    // La cápsula de tabs se dibuja en el slot bottomBar, SIEMPRE encima del
+    // overlay (perfil, chats, detalle…). En los chats hay un campo de texto
+    // abajo y la cápsula lo tapaba (bug solo Android; en iOS el chat va en
+    // .sheet y cubre la barra). Ocultamos la cápsula cuando el overlay muestra
+    // un chat 1-a-1 o de grupo → el Scaffold deja de reservar su espacio y el
+    // bottomInset del chat pasa a ~0 (campo pegado abajo, sobre el teclado).
+    val sheetEntry by sheetNav.currentBackStackEntryAsState()
+    val sheetShowsChat = sheetVisible &&
+        sheetEntry?.destination?.route in setOf(Routes.CHAT, Routes.GROUP_CHAT)
+    val showBottomBar = currentRoute == TABS_HOST && !sheetShowsChat
 
     Scaffold(
         bottomBar = {
@@ -251,23 +277,43 @@ fun MainScreen(
                 Box(
                     modifier = Modifier.fillMaxWidth()
                         .navigationBarsPadding()
+                        // Márgenes laterales: la cápsula ocupa el ancho MENOS
+                        // esto, igual que en iOS. Antes se encogía a lo que
+                        // ocupaban los iconos.
+                        .padding(horizontal = 12.dp)
                         .padding(bottom = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(30.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(30.dp))
+                            // A todo el ancho disponible: es lo que permite
+                            // repartir las cinco pestañas por igual con weight,
+                            // sea cual sea el móvil.
+                            .fillMaxWidth()
+                            // Fondo + borde del armazón en UNA sola llamada: según
+                            // el tratamiento activo será color liso, esmerilado o
+                            // esmerilado con canto de luz. La barra no sabe cuál.
+                            .cumbreChromeSurface(CumbreCapsuleShape)
                             .padding(horizontal = 6.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         mainTabs.forEach { tab ->
                             val selected = selectedTab == tab.route
                             val tint = if (selected) MaterialTheme.colorScheme.primary
                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                            Row(
+                            // LOS CINCO RÓTULOS SIEMPRE, como en iOS: icono arriba
+                            // y nombre debajo. Antes solo se etiquetaba el activo
+                            // porque en horizontal no caben cinco nombres; en
+                            // vertical sí, y así sabes a dónde vas antes de pulsar.
+                            //
+                            // ADAPTABLE: `weight(1f)` reparte el ancho a partes
+                            // iguales sea cual sea la pantalla, y el rótulo se
+                            // recorta con puntos suspensivos si el móvil es muy
+                            // estrecho. Ni un ancho fijo, que es lo que descuadra
+                            // al cambiar de dispositivo.
+                            Column(
                                 modifier = Modifier
+                                    .weight(1f)
                                     .clip(RoundedCornerShape(24.dp))
                                     .background(
                                         if (selected) MaterialTheme.colorScheme.primaryContainer
@@ -277,22 +323,29 @@ fun MainScreen(
                                         // Con el overlay abierto, pulsar una
                                         // pestaña lo cierra y cambia de tab.
                                         if (sheetVisible) dismissSheet()
-                                        if (!selected) selectedTab = tab.route
+                                        if (!selected) {
+                                            selectedTab = tab.route
+                                        } else {
+                                            // Ya estabas en esta pestaña: el
+                                            // segundo toque lleva arriba, como
+                                            // en cualquier app de movil.
+                                            volverArriba[tab.route] =
+                                                (volverArriba[tab.route] ?: 0) + 1
+                                        }
                                     }
-                                    // Con 4 tabs no caben los 4 rótulos: solo el
-                                    // seleccionado enseña su nombre (estilo iOS).
-                                    .padding(
-                                        horizontal = if (selected) 16.dp else 13.dp,
-                                        vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    .padding(horizontal = 2.dp, vertical = 7.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Icon(tab.icon, contentDescription = tab.label,
                                     tint = tint, modifier = Modifier.size(20.dp))
-                                if (selected) {
-                                    Text(tab.label, style = MaterialTheme.typography.labelMedium,
-                                        color = tint, maxLines = 1)
-                                }
+                                Text(
+                                    tab.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = tint,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -302,11 +355,45 @@ fun MainScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         // En Radar el mapa ocupa TODA la pantalla y la cápsula de tabs flota
-        // encima (el player del radar ya deja hueco). En el resto, padding normal.
-        val effectivePadding = if (currentRoute == TABS_HOST &&
-            selectedTab == Tab.Weather.route && weatherShowsRadar)
-            androidx.compose.foundation.layout.PaddingValues(0.dp) else padding
-        androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize().padding(effectivePadding)) {
+        // encima (el player del radar ya deja hueco).
+        //
+        // Y con la cápsula de cristal, IGUAL en todas partes: si el contenido se
+        // parase justo encima de la barra, por detrás no habría nada que
+        // difuminar y el efecto no se vería. El precio es que la última fila de
+        // una lista queda debajo de la cápsula — por eso el modo SÓLIDO
+        // conserva el reparto de siempre y sirve de referencia para comparar.
+        // Cuánto reservó el Scaffold abajo: la cápsula de pestañas MÁS la barra
+        // de navegación del móvil. Las dos cosas van juntas en el mismo número,
+        // y ahí estuvo el lío del 2026-08-10: al quitarlo para que el contenido
+        // pasara por detrás de la cápsula, se quitaba también el suelo de la
+        // barra del sistema, y el campo de escribir de comentar/chats se metía
+        // debajo de los botones del móvil.
+        //
+        // La regla ahora: se libera SOLO para el contenido de las pestañas —lo
+        // único que tiene que correr por detrás de la cápsula para que haya algo
+        // que difuminar— y se le DEVUELVE explícitamente a lo que se abre encima
+        // (ver `reservaAbajo` más abajo, donde se envuelve el overlay).
+        val reservaAbajo = padding.calculateBottomPadding()
+        val armazonConMaterial = LocalChromeTreatment.current != ChromeTreatment.SOLIDO
+        val layoutDir = androidx.compose.ui.platform.LocalLayoutDirection.current
+        val effectivePadding = when {
+            currentRoute == TABS_HOST && selectedTab == Tab.Weather.route && weatherShowsRadar ->
+                androidx.compose.foundation.layout.PaddingValues(0.dp)
+            armazonConMaterial -> androidx.compose.foundation.layout.PaddingValues(
+                start = padding.calculateStartPadding(layoutDir),
+                top = padding.calculateTopPadding(),
+                end = padding.calculateEndPadding(layoutDir),
+                bottom = 0.dp
+            )
+            else -> padding
+        }
+        androidx.compose.foundation.layout.Column(
+            modifier = Modifier.fillMaxSize()
+                .padding(effectivePadding)
+                // Esto es lo que la barra lee para difuminarlo. Sin material, no
+                // hace nada ni cuesta nada.
+                .cumbreBackdrop()
+        ) {
             com.meteomontana.android.ui.components.NetworkBanner()
             NavHost(
                 navController = navController,
@@ -329,6 +416,31 @@ fun MainScreen(
                         androidx.compose.runtime.mutableStateMapOf<String, Boolean>()
                     }
                     visited[selectedTab] = true
+
+                    // Publica el hueco que las listas de las pestañas tienen que
+                    // dejar al final para que su última fila no quede debajo de
+                    // la cápsula. Ver LocalTabBarInset.
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        com.meteomontana.android.ui.components.LocalTabBarInset provides
+                            (if (armazonConMaterial) reservaAbajo else 0.dp)
+                    ) {
+
+                    // La pantalla de debajo retrocede mientras hay algo abierto
+                    // encima. Con el MISMO muelle que el resto del movimiento
+                    // (CumbreMotion): si esto fuese con otra curva, se vería que
+                    // van por su cuenta. 0.92 es suficiente para leer la
+                    // profundidad sin que parezca que la pantalla se cae.
+                    val escalaFondo by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = if (sheetVisible) 0.92f else 1f,
+                        animationSpec = com.meteomontana.android.ui.theme.CumbreMotion.opacidad,
+                        label = "escalaFondo"
+                    )
+                    val radioFondo by androidx.compose.animation.core.animateDpAsState(
+                        targetValue = if (sheetVisible) 18.dp else 0.dp,
+                        // Duracion fija: un muelle sin tope no termina nunca (ver CumbreMotion).
+                        animationSpec = androidx.compose.animation.core.tween(280),
+                        label = "radioFondo"
+                    )
                     Box(Modifier.fillMaxSize()) {
                         @androidx.compose.runtime.Composable
                         fun tabContainer(route: String, content: @androidx.compose.runtime.Composable () -> Unit) {
@@ -337,7 +449,33 @@ fun MainScreen(
                                 Box(
                                     Modifier.fillMaxSize()
                                         .zIndex(if (sel) 1f else 0f)
-                                        .graphicsLayer { alpha = if (sel) 1f else 0f }
+                                        .graphicsLayer {
+                                            alpha = if (sel) 1f else 0f
+                                            // Al abrir algo encima, esta pantalla
+                                            // se va al fondo: se encoge y se
+                                            // redondea. Es LO que hace que en un
+                                            // iPhone se sienta que hay capas y no
+                                            // pantallas sueltas apiladas.
+                                            // SIN escalar. Encogia la pantalla
+                                            // al 92% para dar profundidad, pero
+                                            // Compose NO mueve las zonas de
+                                            // toque con la escala: se DIBUJA
+                                            // encogido y se TOCA donde estaba.
+                                            // Cuanto mas abajo el boton, mas se
+                                            // separaba lo que ves de donde hay
+                                            // que pulsar — la barra "OCULTAR
+                                            // MAPA" quedaba a mas de 100 px del
+                                            // dedo y no habia forma de cerrar
+                                            // el mapa (Rodrigo, 2026-08-11;
+                                            // medido: la barra decia estar en
+                                            // x=45, que es justo el margen que
+                                            // deja el 92%).
+                                            //
+                                            // El redondeo si se queda: no toca
+                                            // la geometria.
+                                            shape = RoundedCornerShape(radioFondo)
+                                            clip = radioFondo > 0.dp
+                                        }
                                 ) { content() }
                             }
                         }
@@ -368,7 +506,9 @@ fun MainScreen(
                                     onDayClick = { schoolId, lat, lon, idx ->
                                         if (schoolId != null) openSheet(Routes.dayDetail(schoolId, idx))
                                         else openSheet(Routes.dayDetailByLocation(lat, lon, idx))
-                                    }
+                                    },
+                                    visible = selectedTab == Tab.Weather.route &&
+                                        !weatherShowsRadar && !sheetVisible
                                 )
                             }
                         }
@@ -397,6 +537,7 @@ fun MainScreen(
                 }
                         tabContainer(Tab.Schools.route) {
                     SchoolListScreen(
+                        volverArribaSignal = volverArriba[Tab.Schools.route] ?: 0,
                         onSchoolClick = { id -> openSheet(Routes.schoolDetail(id)) },
                         onViaHit = { schoolId, viaId, viaName ->
                             openSheet(Routes.schoolDetail(schoolId, via = viaName, viaId = viaId))
@@ -442,7 +583,8 @@ fun MainScreen(
                         onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
                         onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
                         onOpenProjects = { openSheet(Routes.projects(null)) },
-                        onOpenMyPosts = { openSheet(Routes.MY_POSTS) }
+                        onOpenMyPosts = { openSheet(Routes.myPosts()) },
+                        onOpenStats = { openSheet(Routes.journalStats()) }
                     )
                 }
                         tabContainer(Tab.Community.route) {
@@ -453,7 +595,9 @@ fun MainScreen(
                         },
                         onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
                         onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
-                        onOpenPost = { postId -> openSheet(Routes.feedPost(postId)) }
+                        onOpenPost = { postId -> openSheet(Routes.feedPost(postId)) },
+                        visible = selectedTab == Tab.Community.route && !sheetVisible,
+                        volverArribaSignal = volverArriba[Tab.Community.route] ?: 0
                     )
                 }
                         tabContainer(Tab.Meetups.route) {
@@ -461,7 +605,10 @@ fun MainScreen(
                         onMeetupClick = { id -> openSheet(Routes.meetupDetail(id)) },
                         onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
                         onCreateMeetup = { openSheet(Routes.CREATE_MEETUP) },
-                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) }
+                        onOpenAlert = { openSheet(Routes.MEETUP_ALERT) },
+                        // Recarga el estado de la alerta al reaparecer la pestaña sin
+                        // overlay (al cerrar la hoja de alerta) → icono siempre real.
+                        visible = selectedTab == Tab.Meetups.route && !sheetVisible
                     )
                 }
                         // ── Overlay estilo Apple, DENTRO del contenido ──
@@ -470,6 +617,47 @@ fun MainScreen(
                         // encima del contenido) → la barra queda visible y pulsable.
                         // En función aparte para evitar la ambigüedad de overload de
                         // AnimatedVisibility con el ColumnScope que lo envuelve.
+                        // EL SUELO DEL OVERLAY, devuelto a mano.
+                        //
+                        // El contenido de las pestañas corre por detrás de la
+                        // cápsula a propósito (para que haya algo que
+                        // difuminar), pero lo que se abre ENCIMA no: sus
+                        // pantallas llevan campos de texto pegados abajo
+                        // —comentar, chats, editar perfil— y sin esta reserva
+                        // acaban debajo de los botones del sistema. Es
+                        // exactamente el fallo que cazó Rodrigo comentando en
+                        // el feed.
+                        // La franja donde flota la cápsula, tapada mientras hay
+                        // algo abierto encima.
+                        //
+                        // El contenido de las pestañas corre por detrás de la
+                        // cápsula (es lo que le da algo que difuminar), pero con
+                        // una publicación abierta esa franja enseñaba el mapa
+                        // del feed asomando bajo el campo de comentar. Va por
+                        // debajo del overlay (1.5) y por encima de las pestañas
+                        // (1); no se dibuja cuando no hay nada abierto, así que
+                        // el cristal se ve entero en el uso normal.
+                        if (sheetVisible && reservaAbajo > 0.dp) {
+                            Box(
+                                Modifier.align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .height(reservaAbajo)
+                                    .zIndex(1.5f)
+                                    .background(MaterialTheme.colorScheme.background)
+                            )
+                        }
+                        //
+                        // El zIndex NO es decorativo: el overlay se dibujaba en
+                        // el nivel 2 y las pestañas en el 1. Al meterlo dentro
+                        // de esta caja, el orden pasa a decidirlo la CAJA, y sin
+                        // esto se quedaba en el nivel 0 → la pestaña se pintaba
+                        // encima y se veía el feed y el radar a través de la
+                        // publicación.
+                        Box(
+                            Modifier.fillMaxSize()
+                                .zIndex(2f)
+                                .padding(bottom = reservaAbajo)
+                        ) {
                         SheetOverlay(
                             sheetVisible = sheetVisible,
                             onHide = { sheetVisible = false },
@@ -480,11 +668,13 @@ fun MainScreen(
                             openSheet = openSheet,
                             openFullScreen = openFullScreen,
                             popSheetOrDismiss = popSheetOrDismiss,
-                            // Lo que el Scaffold ya reservó abajo (cápsula de tabs +
-                            // navbar): las pantallas del overlay con teclado se lo
-                            // descuentan al imePadding para pegarse al teclado.
-                            bottomInset = effectivePadding.calculateBottomPadding()
+                            // Lo que el Box de arriba ya le reservó: las pantallas
+                            // con teclado se lo descuentan al imePadding para
+                            // pegarse al teclado sin dejar un hueco muerto.
+                            bottomInset = reservaAbajo
                         )
+                        }
+                    }
                     }
                 }
                 composable(Routes.ADMIN) {
@@ -508,398 +698,4 @@ fun MainScreen(
 
     // El overlay daba el "atrás" via ModalBottomSheet; ahora se maneja a mano.
     BackHandler(enabled = sheetVisible) { popSheetOrDismiss() }
-}
-
-/**
- * Overlay del host de pestañas: se anima de entrada/salida (slide + fade) y aloja
- * el NavHost interno. En función propia para que AnimatedVisibility resuelva al
- * overload sin receptor (no al de ColumnScope del contenedor que lo envuelve).
- */
-@Composable
-private fun SheetOverlay(
-    sheetVisible: Boolean,
-    onHide: () -> Unit,
-    pendingSheetRoute: String?,
-    onPendingConsumed: () -> Unit,
-    sheetNav: androidx.navigation.NavHostController,
-    navController: androidx.navigation.NavHostController,
-    openSheet: (String) -> Unit,
-    openFullScreen: (String) -> Unit,
-    popSheetOrDismiss: () -> Unit,
-    bottomInset: androidx.compose.ui.unit.Dp = 0.dp
-) {
-    AnimatedVisibility(
-        visible = sheetVisible,
-        enter = slideInHorizontally(tween(280)) { it } + fadeIn(tween(280)),
-        exit = slideOutHorizontally(tween(280)) { it } + fadeOut(tween(280)),
-        modifier = Modifier.fillMaxSize().zIndex(2f)
-    ) {
-        Box(
-            Modifier.fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            // Navega al destino pendiente una vez el NavHost interno está
-            // compuesto (grafo registrado).
-            androidx.compose.runtime.LaunchedEffect(pendingSheetRoute) {
-                val r = pendingSheetRoute
-                if (r != null) {
-                    sheetNav.navigate(r) {
-                        popUpTo(SHEET_ROOT) { inclusive = false }
-                        launchSingleTop = true
-                    }
-                    onPendingConsumed()
-                }
-            }
-            // Auto-cierre: si el NavHost interno vuelve a SHEET_ROOT (back del
-            // sistema u otro pop) y NO hay ruta pendiente, ocultamos el overlay.
-            val sheetEntry by sheetNav.currentBackStackEntryAsState()
-            androidx.compose.runtime.LaunchedEffect(sheetEntry) {
-                if (sheetEntry?.destination?.route == SHEET_ROOT && pendingSheetRoute == null) {
-                    onHide()
-                }
-            }
-            SheetNavHost(
-                sheetNav = sheetNav,
-                navController = navController,
-                openSheet = openSheet,
-                openFullScreen = openFullScreen,
-                popSheetOrDismiss = popSheetOrDismiss,
-                bottomInset = bottomInset
-            )
-        }
-    }
-}
-
-/**
- * NavHost interno del overlay (antes vivía dentro del ModalBottomSheet). Desliza
- * lateralmente entre pantallas (Perfil, Chats, detalle de escuela, etc.) como iOS.
- * Se extrae a una función aparte para no anidar en exceso dentro de MainScreen.
- */
-@Composable
-private fun SheetNavHost(
-    sheetNav: androidx.navigation.NavHostController,
-    navController: androidx.navigation.NavHostController,
-    openSheet: (String) -> Unit,
-    openFullScreen: (String) -> Unit,
-    popSheetOrDismiss: () -> Unit,
-    bottomInset: androidx.compose.ui.unit.Dp = 0.dp
-) {
-                NavHost(
-                    navController = sheetNav,
-                    startDestination = SHEET_ROOT,
-                    modifier = Modifier.fillMaxSize(),
-                    // Deslizado lateral (push) entre pantallas del sheet, como iOS.
-                    enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(280)) },
-                    exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(280)) },
-                    popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) },
-                    popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) }
-                ) {
-                    // Detalle de escuela: ahora vive en el overlay (con la barra
-                    // de pestañas visible), no como pantalla completa aparte.
-                    composable(
-                        route = Routes.SCHOOL_DETAIL,
-                        arguments = listOf(
-                            navArgument("schoolId") { type = NavType.StringType },
-                            navArgument("via") { type = NavType.StringType; nullable = true; defaultValue = null },
-                            navArgument("viaId") { type = NavType.StringType; nullable = true; defaultValue = null },
-                            navArgument("blockId") { type = NavType.StringType; nullable = true; defaultValue = null }
-                        )
-                    ) { entry ->
-                        val schoolId = entry.arguments?.getString("schoolId") ?: ""
-                        SchoolDetailScreen(
-                            onBack = popSheetOrDismiss,
-                            // El editor de topos SÍ es pantalla completa (sin barra):
-                            // navegamos en el navController principal sin cerrar el
-                            // overlay, para volver al detalle al terminar.
-                            onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) },
-                            onMyProposals = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
-                            onDayClick = { idx -> sheetNav.navigate(Routes.dayDetail(schoolId, idx)) }
-                        )
-                    }
-                    composable(
-                        SHEET_ROOT,
-                        enterTransition = { EnterTransition.None },
-                        exitTransition = { ExitTransition.None },
-                        popEnterTransition = { EnterTransition.None },
-                        popExitTransition = { ExitTransition.None }
-                    ) { Box(Modifier.fillMaxSize()) }
-
-                    composable(Routes.PROFILE) {
-                        ProfileScreen(
-                            onBack = popSheetOrDismiss,
-                            onEdit = { sheetNav.navigate(Routes.EDIT_PROFILE) },
-                            onSubmissions = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
-                            onAdmin = { openFullScreen(Routes.ADMIN) },
-                            onSavedSchools = { sheetNav.navigate(Routes.SAVED_SCHOOLS) },
-                            onWeekendAlert = { sheetNav.navigate(Routes.WEEKEND_ALERT) },
-                            onOpenFollowers = {
-                                com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-                                    sheetNav.navigate(Routes.followList(uid, "followers"))
-                                }
-                            },
-                            onOpenFollowing = {
-                                com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-                                    sheetNav.navigate(Routes.followList(uid, "following"))
-                                }
-                            },
-                            onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
-                            onOpenSchoolEntries = { schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName)) },
-                            onOpenBoulders = { sheetNav.navigate(Routes.journalEntries("discipline:BOULDER")) },
-                            onOpenRoutes = { sheetNav.navigate(Routes.journalEntries("discipline:ROUTE")) },
-                            onOpenAllSchools = { sheetNav.navigate(Routes.journalSchools(null)) },
-                            onOpenMaxGrade = { sheetNav.navigate(Routes.journalEntries("grade-max")) },
-                            onOpenProjects = { sheetNav.navigate(Routes.projects(null)) },
-                            onOpenMyPosts = { sheetNav.navigate(Routes.MY_POSTS) }
-                        )
-                    }
-                    // "Mis publicaciones": feed propio en pantalla dedicada.
-                    composable(Routes.MY_POSTS) {
-                        com.meteomontana.android.ui.screens.community.MyPostsScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            onOpenSchool = { schoolId, lineId, lineName, blockId ->
-                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId, blockId = blockId))
-                            }
-                        )
-                    }
-                    composable(Routes.EDIT_PROFILE) {
-                        EditProfileScreen(onBack = popSheetOrDismiss)
-                    }
-                    composable(Routes.MY_SUBMISSIONS) {
-                        MySubmissionsScreen(onBack = popSheetOrDismiss)
-                    }
-                    composable(Routes.SUBMIT_SCHOOL) {
-                        SubmitSchoolScreen(onBack = popSheetOrDismiss)
-                    }
-                    composable(Routes.SAVED_SCHOOLS) {
-                        SavedSchoolsScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpen = { id -> sheetNav.navigate(Routes.schoolDetail(id)) }
-                        )
-                    }
-                    composable(Routes.WEEKEND_ALERT) {
-                        com.meteomontana.android.ui.screens.profile.WeekendAlertScreen(onBack = popSheetOrDismiss)
-                    }
-                    composable(Routes.COMPARE) {
-                        com.meteomontana.android.ui.screens.compare.CompareScreen(
-                            onBack = popSheetOrDismiss,
-                            onSchoolDetail = { id -> sheetNav.navigate(Routes.schoolDetail(id)) }
-                        )
-                    }
-
-                    composable(
-                        route = Routes.DAY_DETAIL,
-                        arguments = listOf(
-                            navArgument("schoolId") { type = NavType.StringType },
-                            navArgument("dayIndex") { type = NavType.StringType }
-                        )
-                    ) { DayDetailScreen(onBack = popSheetOrDismiss) }
-                    composable(
-                        route = Routes.DAY_DETAIL_BY_LOCATION,
-                        arguments = listOf(
-                            navArgument("lat") { type = NavType.StringType },
-                            navArgument("lon") { type = NavType.StringType },
-                            navArgument("dayIndex") { type = NavType.StringType }
-                        )
-                    ) { DayDetailScreen(onBack = popSheetOrDismiss) }
-
-                    composable(
-                        route = Routes.JOURNAL_ENTRIES,
-                        arguments = listOf(
-                            navArgument("filter") { type = NavType.StringType; nullable = true; defaultValue = null },
-                            navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null }
-                        )
-                    ) {
-                        JournalEntriesScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpenSchool = { id, via, viaId -> sheetNav.navigate(Routes.schoolDetail(id, via, viaId)) }
-                        )
-                    }
-                    composable(
-                        route = Routes.JOURNAL_SCHOOLS,
-                        arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
-                    ) { entry ->
-                        val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
-                        JournalSchoolsScreen(
-                            onBack = popSheetOrDismiss,
-                            // Antes iba directo al listado plano; ahora pasa por
-                            // "sectores" (JOURNAL_SECTORS) para no mezclar todos los
-                            // bloques/vías de la escuela de golpe.
-                            onSchoolClick = { schoolName ->
-                                sheetNav.navigate(Routes.journalSectors(schoolName, uid))
-                            }
-                        )
-                    }
-
-                    composable(
-                        route = Routes.JOURNAL_SECTORS,
-                        arguments = listOf(
-                            navArgument("school") { type = NavType.StringType; defaultValue = "" },
-                            navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null }
-                        )
-                    ) { entry ->
-                        val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
-                        JournalSectorsScreen(
-                            onBack = popSheetOrDismiss,
-                            onSectorClick = { schoolName, sectorName ->
-                                sheetNav.navigate(
-                                    Routes.journalEntries(
-                                        filter = "school:$schoolName|sector:$sectorName",
-                                        uid = uid
-                                    )
-                                )
-                            },
-                            onOpenSchool = { id, via, viaId -> sheetNav.navigate(Routes.schoolDetail(id, via, viaId)) }
-                        )
-                    }
-
-                    composable(
-                        route = Routes.PROJECTS,
-                        arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
-                    ) { entry ->
-                        val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
-                        ProjectsScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpenBoulders = { sheetNav.navigate(Routes.journalEntries(filter = "project:BOULDER", uid = uid)) },
-                            onOpenRoutes = { sheetNav.navigate(Routes.journalEntries(filter = "project:ROUTE", uid = uid)) }
-                        )
-                    }
-
-                    composable(
-                        route = Routes.PUBLIC_PROFILE,
-                        arguments = listOf(navArgument("uid") { type = NavType.StringType })
-                    ) {
-                        PublicProfileScreen(
-                            onBack = popSheetOrDismiss,
-                            onFollowersClick = { uid -> sheetNav.navigate(Routes.followList(uid, "followers")) },
-                            onFollowingClick = { uid -> sheetNav.navigate(Routes.followList(uid, "following")) },
-                            onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
-                            onOpenBoulders = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "discipline:BOULDER", uid = uid)) },
-                            onOpenRoutes = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "discipline:ROUTE", uid = uid)) },
-                            onOpenMaxGrade = { uid -> sheetNav.navigate(Routes.journalEntries(filter = "grade-max", uid = uid)) },
-                            onOpenSchools = { uid -> sheetNav.navigate(Routes.journalSchools(uid)) },
-                            onOpenSchoolEntries = { uid, schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName, uid)) },
-                            onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) },
-                            // Sección Publicaciones (feed) del perfil:
-                            onOpenUserProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            onOpenFeedSchool = { schoolId, lineId, lineName, blockId ->
-                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId, blockId = blockId))
-                            }
-                        )
-                    }
-                    composable(
-                        route = Routes.FOLLOW_LIST,
-                        arguments = listOf(
-                            navArgument("uid") { type = NavType.StringType },
-                            navArgument("mode") { type = NavType.StringType }
-                        )
-                    ) {
-                        FollowListScreen(
-                            onBack = popSheetOrDismiss,
-                            onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
-                        )
-                    }
-                    composable(Routes.FOLLOW_REQUESTS) {
-                        FollowRequestsScreen(
-                            onBack = popSheetOrDismiss,
-                            onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
-                        )
-                    }
-
-                    composable(Routes.CHAT_LIST) {
-                        ChatListScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
-                            onOpenGroup = { convId -> sheetNav.navigate(Routes.groupChat(convId)) },
-                            onNewGroup = { sheetNav.navigate(Routes.NEW_GROUP) }
-                        )
-                    }
-                    composable(
-                        route = Routes.CHAT,
-                        arguments = listOf(navArgument("uid") { type = NavType.StringType })
-                    ) {
-                        ChatScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            bottomInset = bottomInset
-                        )
-                    }
-                    composable(Routes.NEW_GROUP) {
-                        NewGroupScreen(
-                            onBack = popSheetOrDismiss,
-                            onCreated = { convId ->
-                                sheetNav.popBackStack()
-                                sheetNav.navigate(Routes.groupChat(convId))
-                            }
-                        )
-                    }
-                    composable(
-                        route = Routes.GROUP_CHAT,
-                        arguments = listOf(navArgument("convId") { type = NavType.StringType })
-                    ) {
-                        GroupChatScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpenMeetup = { meetupId -> sheetNav.navigate(Routes.meetupDetail(meetupId)) },
-                            bottomInset = bottomInset
-                        )
-                    }
-
-                    composable(Routes.NOTIFICATIONS) {
-                        NotificationsScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            onOpenSchool = { id -> sheetNav.navigate(Routes.schoolDetail(id)) },
-                            onOpenSubmissions = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
-                            onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
-                            onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
-                            onOpenFeedPost = { postId -> sheetNav.navigate(Routes.feedPost(postId)) }
-                        )
-                    }
-                    // Detalle de un post del feed Comunidad (push/campanita).
-                    composable(
-                        route = Routes.FEED_POST,
-                        arguments = listOf(navArgument("postId") { type = NavType.StringType })
-                    ) {
-                        com.meteomontana.android.ui.screens.community.FeedPostDetailScreen(
-                            onBack = popSheetOrDismiss,
-                            onOpenUser = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
-                            onOpenSchool = { schoolId, lineId, lineName, blockId ->
-                                sheetNav.navigate(Routes.schoolDetail(schoolId, via = lineName, viaId = lineId, blockId = blockId))
-                            },
-                            bottomInset = bottomInset
-                        )
-                    }
-                    composable(Routes.SEARCH_USERS) {
-                        SearchUsersScreen(
-                            onBack = popSheetOrDismiss,
-                            onUserClick = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
-                        )
-                    }
-                    // ── Quedadas (sheets) ──
-                    composable(
-                        route = Routes.MEETUP_DETAIL,
-                        arguments = listOf(navArgument("meetupId") { type = NavType.StringType })
-                    ) { entry ->
-                        val meetupId = entry.arguments?.getString("meetupId") ?: ""
-                        MeetupDetailScreen(
-                            meetupId = meetupId,
-                            onBack = popSheetOrDismiss,
-                            onOpenChat = { convId -> sheetNav.navigate(Routes.groupChat(convId)) },
-                            onOpenSchool = { id -> sheetNav.navigate(Routes.schoolDetail(id)) },
-                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) }
-                        )
-                    }
-                    composable(Routes.CREATE_MEETUP) {
-                        CreateMeetupScreen(
-                            onBack = popSheetOrDismiss,
-                            onCreated = { id ->
-                                sheetNav.popBackStack()
-                                sheetNav.navigate(Routes.meetupDetail(id))
-                            }
-                        )
-                    }
-                    composable(Routes.MEETUP_ALERT) {
-                        MeetupAlertScreen(onBack = popSheetOrDismiss)
-                    }
-                }
 }

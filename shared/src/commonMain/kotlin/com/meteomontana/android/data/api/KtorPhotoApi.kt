@@ -23,6 +23,7 @@ class KtorPhotoApi(private val client: HttpClient) {
      * @param category "boulder" | "note" | "meetup" | "profile".
      * @param bytes JPEG ya comprimido por la plataforma.
      */
+    @Throws(Exception::class)
     suspend fun upload(
         category: String,
         bytes: ByteArray,

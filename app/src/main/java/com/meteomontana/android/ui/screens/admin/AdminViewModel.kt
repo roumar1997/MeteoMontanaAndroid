@@ -42,6 +42,8 @@ data class AdminUiState(
     val stats: AdminStats? = null,
     val pending: List<Submission> = emptyList(),
     val contributions: List<Contribution> = emptyList(),
+    /** P6: estado mostrado en PROPUESTAS (PENDING/APPROVED/REJECTED). */
+    val contributionsStatus: String = "PENDING",
     val logs: List<AdminLog> = emptyList(),
     val pushBusy: Boolean = false,
     val pushResult: String? = null,
@@ -50,7 +52,7 @@ data class AdminUiState(
     val schoolsLoading: Boolean = false,
     val reports: List<MeetupReport> = emptyList(),
     /** Denuncias de contenido (comentarios/notas/usuarios). */
-    val contentReports: List<com.meteomontana.android.data.api.ContentReportDto> = emptyList()
+    val contentReports: List<com.meteomontana.android.domain.model.ContentReport> = emptyList()
 )
 
 @HiltViewModel
@@ -66,7 +68,15 @@ class AdminViewModel @Inject constructor(
     private val sendPushUseCase: SendPushUseCase,
     private val getPendingReportsUseCase: GetPendingReportsUseCase,
     private val resolveReportUseCase: ResolveReportUseCase,
-    private val moderationApi: com.meteomontana.android.data.api.KtorModerationApi,
+    private val getContentReports: com.meteomontana.android.domain.usecase.admin.GetContentReportsUseCase,
+    private val resolveContentReportUseCase: com.meteomontana.android.domain.usecase.admin.ResolveContentReportUseCase,
+    private val getAdminUsersUseCase: com.meteomontana.android.domain.usecase.admin.GetAdminUsersUseCase,
+    private val getAdminNotesUseCase: com.meteomontana.android.domain.usecase.admin.GetAdminNotesUseCase,
+    private val getUserModerationUseCase: com.meteomontana.android.domain.usecase.admin.GetUserModerationUseCase,
+    private val warnUserUseCase: com.meteomontana.android.domain.usecase.admin.WarnUserUseCase,
+    private val suspendUserUseCase: com.meteomontana.android.domain.usecase.admin.SuspendUserUseCase,
+    private val banUserUseCase: com.meteomontana.android.domain.usecase.admin.BanUserUseCase,
+    private val unbanUserUseCase: com.meteomontana.android.domain.usecase.admin.UnbanUserUseCase,
     private val searchUsers: com.meteomontana.android.domain.usecase.social.SearchUsersUseCase,
     private val getBlocks: GetBlocksUseCase,
     private val updateBlockUseCase: UpdateBlockUseCase,
@@ -78,6 +88,12 @@ class AdminViewModel @Inject constructor(
 
     init { load() }
 
+    /** P6: cambia el estado de PROPUESTAS y recarga. */
+    fun setContributionsStatus(status: String) {
+        _state.value = _state.value.copy(contributionsStatus = status)
+        load()
+    }
+
     fun load() {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
@@ -86,10 +102,13 @@ class AdminViewModel @Inject constructor(
                 coroutineScope {
                     val statsD = async { getStats() }
                     val pendingD = async { runCatching { getPendingSubmissions() }.getOrDefault(emptyList()) }
-                    val contributionsD = async { runCatching { getPendingContributions() }.getOrDefault(emptyList()) }
+                    val contributionsD = async { runCatching {
+                        getPendingContributions(_state.value.contributionsStatus
+                            .takeIf { st -> st != "PENDING" })
+                    }.getOrDefault(emptyList()) }
                     val logsD = async { runCatching { getLogs() }.getOrDefault(emptyList()) }
                     val reportsD = async { runCatching { getPendingReportsUseCase() }.getOrDefault(emptyList()) }
-                    val contentReportsD = async { runCatching { moderationApi.getContentReports() }.getOrDefault(emptyList()) }
+                    val contentReportsD = async { runCatching { getContentReports() }.getOrDefault(emptyList()) }
                     _state.update { it.copy(loading = false, stats = statsD.await(), pending = pendingD.await(),
                         contributions = contributionsD.await(), logs = logsD.await(),
                         reports = reportsD.await(),
@@ -200,32 +219,32 @@ class AdminViewModel @Inject constructor(
     fun clearPushTargets() { _userResults.value = emptyList() }
 
     /** Listas de STATS (usuarios / notas), bajo demanda. */
-    private val _adminUsers = kotlinx.coroutines.flow.MutableStateFlow<List<com.meteomontana.android.data.api.AdminUserRowDto>?>(null)
-    val adminUsers: kotlinx.coroutines.flow.StateFlow<List<com.meteomontana.android.data.api.AdminUserRowDto>?> = _adminUsers
-    private val _adminNotes = kotlinx.coroutines.flow.MutableStateFlow<List<com.meteomontana.android.data.api.AdminNoteRowDto>?>(null)
-    val adminNotes: kotlinx.coroutines.flow.StateFlow<List<com.meteomontana.android.data.api.AdminNoteRowDto>?> = _adminNotes
+    private val _adminUsers = kotlinx.coroutines.flow.MutableStateFlow<List<com.meteomontana.android.domain.model.AdminUserRow>?>(null)
+    val adminUsers: kotlinx.coroutines.flow.StateFlow<List<com.meteomontana.android.domain.model.AdminUserRow>?> = _adminUsers
+    private val _adminNotes = kotlinx.coroutines.flow.MutableStateFlow<List<com.meteomontana.android.domain.model.AdminNoteRow>?>(null)
+    val adminNotes: kotlinx.coroutines.flow.StateFlow<List<com.meteomontana.android.domain.model.AdminNoteRow>?> = _adminNotes
     fun loadAdminUsers() {
         viewModelScope.launch {
-            _adminUsers.value = runCatching { moderationApi.getAdminUsers() }.getOrDefault(emptyList())
+            _adminUsers.value = runCatching { getAdminUsersUseCase() }.getOrDefault(emptyList())
         }
     }
     fun loadAdminNotes() {
         viewModelScope.launch {
-            _adminNotes.value = runCatching { moderationApi.getAdminNotes() }.getOrDefault(emptyList())
+            _adminNotes.value = runCatching { getAdminNotesUseCase() }.getOrDefault(emptyList())
         }
     }
 
     /** Denuncia de CONTENIDO: REMOVE (borra el contenido) / IGNORE. */
     fun resolveContentReport(id: String, action: String) {
         viewModelScope.launch {
-            runCatching { moderationApi.resolveContentReport(id, action) }
+            runCatching { resolveContentReportUseCase(id, action) }
             load()
         }
     }
 
     // ── Consola de moderación de un usuario (VER AUTOR) ────────────────────
-    private val _userMod = kotlinx.coroutines.flow.MutableStateFlow<com.meteomontana.android.data.api.UserModerationDto?>(null)
-    val userMod: kotlinx.coroutines.flow.StateFlow<com.meteomontana.android.data.api.UserModerationDto?> = _userMod
+    private val _userMod = kotlinx.coroutines.flow.MutableStateFlow<com.meteomontana.android.domain.model.UserModeration?>(null)
+    val userMod: kotlinx.coroutines.flow.StateFlow<com.meteomontana.android.domain.model.UserModeration?> = _userMod
     private val _userModLoading = kotlinx.coroutines.flow.MutableStateFlow(false)
     val userModLoading: kotlinx.coroutines.flow.StateFlow<Boolean> = _userModLoading
 
@@ -233,7 +252,7 @@ class AdminViewModel @Inject constructor(
         _userMod.value = null
         _userModLoading.value = true
         viewModelScope.launch {
-            _userMod.value = moderationApi.getUserModeration(uid)
+            _userMod.value = getUserModerationUseCase(uid)
             _userModLoading.value = false
         }
     }
@@ -244,22 +263,22 @@ class AdminViewModel @Inject constructor(
     val modMsg: kotlinx.coroutines.flow.StateFlow<String?> = _modMsg
     fun clearModMsg() { _modMsg.value = null }
 
-    private fun applyModResult(res: com.meteomontana.android.data.api.UserModerationDto?, okMsg: String) {
+    private fun applyModResult(res: com.meteomontana.android.domain.model.UserModeration?, okMsg: String) {
         if (res != null) { _userMod.value = res; _modMsg.value = okMsg }
         else _modMsg.value = "No se pudo (revisa conexión o permisos)"
     }
 
     fun warnUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(moderationApi.warnUser(uid, reason), "Aviso enviado") }
+        viewModelScope.launch { applyModResult(warnUserUseCase(uid, reason), "Aviso enviado") }
     }
     fun suspendUser(uid: String, days: Int, reason: String?) {
-        viewModelScope.launch { applyModResult(moderationApi.suspendUser(uid, days, reason), "Suspendido $days día(s)") }
+        viewModelScope.launch { applyModResult(suspendUserUseCase(uid, days, reason), "Suspendido $days día(s)") }
     }
     fun banUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(moderationApi.banUser2(uid, reason), "Cuenta baneada") }
+        viewModelScope.launch { applyModResult(banUserUseCase(uid, reason), "Cuenta baneada") }
     }
     fun unbanUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(moderationApi.unbanUser2(uid, reason), "Baneo retirado") }
+        viewModelScope.launch { applyModResult(unbanUserUseCase(uid, reason), "Baneo retirado") }
     }
 
     /** Denuncia de QUEDADA: eliminar la quedada denunciada (además de resolver). */

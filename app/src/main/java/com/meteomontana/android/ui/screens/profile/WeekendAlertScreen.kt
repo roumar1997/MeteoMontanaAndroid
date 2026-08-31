@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +29,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,8 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorProfileApi
-import com.meteomontana.android.data.api.dto.WeekendAlertDto
+import com.meteomontana.android.domain.usecase.profile.GetWeekendAlertUseCase
+import com.meteomontana.android.domain.usecase.profile.UpdateWeekendAlertUseCase
+import com.meteomontana.android.domain.model.WeekendAlert
 import com.meteomontana.android.data.saved.CachedSchoolsRepository
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
@@ -76,7 +77,8 @@ data class WeekendAlertUiState(
 
 @HiltViewModel
 class WeekendAlertViewModel @Inject constructor(
-    private val profileApi: KtorProfileApi,
+    private val getWeekendAlert: GetWeekendAlertUseCase,
+    private val updateWeekendAlert: UpdateWeekendAlertUseCase,
     private val cachedSchools: CachedSchoolsRepository,
     private val locationProvider: com.meteomontana.android.domain.port.LocationProvider
 ) : ViewModel() {
@@ -89,7 +91,7 @@ class WeekendAlertViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             catalog = runCatching { cachedSchools.load() }.getOrDefault(emptyList())
-            val dto = runCatching { profileApi.getWeekendAlert() }.getOrNull()
+            val dto = runCatching { getWeekendAlert() }.getOrNull()
             val byId = catalog.associateBy { it.id }
             _state.update {
                 it.copy(
@@ -165,8 +167,8 @@ class WeekendAlertViewModel @Inject constructor(
                 return@launch
             }
             runCatching {
-                profileApi.updateWeekendAlert(
-                    WeekendAlertDto(
+                updateWeekendAlert(
+                    WeekendAlert(
                         enabled = s.enabled, notifyDay = s.notifyDay, notifyHour = s.notifyHour,
                         schoolIds = if (s.nearbyMode) emptyList() else s.selected.map { it.id },
                         mode = if (s.nearbyMode) "NEARBY" else "SCHOOLS",
@@ -195,7 +197,7 @@ fun WeekendAlertScreen(
     onBack: () -> Unit,
     viewModel: WeekendAlertViewModel = hiltViewModel()
 ) {
-    val s by viewModel.state.collectAsState()
+    val s by viewModel.state.collectAsStateWithLifecycle()
 
     // Al guardar con éxito, volvemos atrás (breve pausa para que se vea el ✓).
     androidx.compose.runtime.LaunchedEffect(s.savedOk) {
@@ -385,6 +387,7 @@ fun WeekendAlertScreen(
 
             if (s.selected.size < 3) {
                 Spacer(Modifier.height(Spacing.sm))
+                val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
                 OutlinedTextField(
                     value = s.query,
                     onValueChange = viewModel::setQuery,
@@ -401,7 +404,7 @@ fun WeekendAlertScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.addSchool(sugg) }
+                            .clickable { closeKeyboard(); viewModel.addSchool(sugg) }
                             .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

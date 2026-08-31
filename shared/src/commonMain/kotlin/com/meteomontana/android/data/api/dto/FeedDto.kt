@@ -46,7 +46,9 @@ data class FeedPostDto(
     /** URL firmada de la foto de celebración o null (campo nuevo, retrocompatible). */
     val photoUrl: String? = null,
     /** Solo NEW_BLOCK: vías de la cara portada para dibujarlas sobre la foto. */
-    val blockLines: List<FeedLineDto>? = null
+    val blockLines: List<FeedLineDto>? = null,
+    /** Vías dibujadas en OTRAS caras: no se pueden pintar sobre la portada. */
+    val otherFacesLines: Int = 0
 )
 
 /** Vía de la cara portada de un post NEW_BLOCK (espejo de FeedLineView del back). */
@@ -123,7 +125,8 @@ fun FeedPostDto.toDomain() = FeedPost(
     startType = startType, caption = caption, photoUrl = photoUrl,
     blockLines = blockLines?.map {
         FeedLine(name = it.name, grade = it.grade, startType = it.startType, linePath = it.linePath)
-    }
+    },
+    otherFacesLines = otherFacesLines
 )
 
 fun FeedCommentDto.toDomain() = FeedComment(

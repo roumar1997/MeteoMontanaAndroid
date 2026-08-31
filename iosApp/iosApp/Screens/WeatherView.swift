@@ -164,7 +164,7 @@ struct WeatherView: View {
                 Text(NSLocalizedString("weather_enable_location", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
                     .foregroundStyle(.white)
                     .padding(.vertical, 12).padding(.horizontal, 20)
-                    .background(Cumbre.terra)
+                    .background(Cumbre.terraFill)
             }
             .buttonStyle(.plain)
             .padding(.top, 8)

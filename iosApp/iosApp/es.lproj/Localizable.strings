@@ -121,7 +121,11 @@
 "profile_weather_alert" = "Alerta de tiempo";
 "profile_my_proposals" = "Mis propuestas";
 "profile_follow_requests" = "Solicitudes";
-"profile_add_block" = "+ AÑADIR BLOQUE";
+"profile_add_block" = "+ AÑADIR BLOQUE/VÍA";
+"profile_settings" = "Ajustes";
+"profile_section_account" = "Cuenta";
+"profile_section_activity" = "Mi actividad";
+"profile_section_prefs" = "Preferencias";
 "profile_logout" = "Cerrar sesión";
 "profile_delete_account" = "Eliminar cuenta";
 "profile_delete_confirm" = "¿Seguro que quieres eliminar tu cuenta? Se borrarán todos tus datos. Esta acción no se puede deshacer.";

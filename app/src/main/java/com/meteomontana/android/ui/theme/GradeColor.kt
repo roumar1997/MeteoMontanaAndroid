@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 /**
  * Color por grado de escalada (sistema francés).
@@ -16,8 +17,42 @@ import androidx.compose.ui.graphics.Color
  */
 data class GradeStyle(val stroke: Color, val dashed: Boolean, val dark: Boolean)
 
+/**
+ * El color de un grado ADAPTADO al tema, para pintarlo FUERA de una foto
+ * (chips del selector, badges del diario, listas). Sobre la foto de la roca se
+ * usa `gradeStyle().stroke` tal cual, que ahí siempre hay contraste.
+ *
+ * En modo oscuro los dos extremos de la escala se perdían contra el fondo: el
+ * negro de ≥8a (#111111) se fundía con #15140F y el blanco de ≤5c+ deslumbraba
+ * (Álvaro, 2026-08-24). Aquí se acercan lo justo al centro para que se vean.
+ */
+/**
+ * [gradeStyle] con el color ya adaptado al tema. Es lo que debe usar TODO lo
+ * que pinte un grado FUERA de una foto (badges de vía, diario, estadísticas,
+ * fichas). Sobre la foto se sigue usando [gradeStyle] a pelo.
+ */
+@androidx.compose.runtime.Composable
+@androidx.compose.runtime.ReadOnlyComposable
+fun gradeChipStyle(grade: String?): GradeStyle =
+    gradeStyle(grade).copy(stroke = gradeChipColor(grade))
+
+@androidx.compose.runtime.Composable
+@androidx.compose.runtime.ReadOnlyComposable
+fun gradeChipColor(grade: String?): Color {
+    val c = gradeStyle(grade).stroke
+    val dark = androidx.compose.material3.MaterialTheme.colorScheme.background.luminance() < 0.5f
+    if (!dark) return c
+    return when {
+        c.luminance() < 0.06f -> Color(0xFF4A4A46)   // ≥8a: negro → gris piedra
+        c.luminance() > 0.90f -> Color(0xFFD8D3C4)   // ≤5c+: blanco → hueso
+        else -> c
+    }
+}
+
 fun gradeStyle(grade: String?): GradeStyle {
-    val g = (grade ?: "").trim().uppercase()
+    // Grado DOBLE ("7a/7a+") → colorea como el PRIMERO del rango (GradeRange),
+    // en vez de caer en el rosa de "proyecto" por no encajar en el patrón.
+    val g = com.meteomontana.android.domain.util.GradeRange.base(grade) ?: ""
     if (g.isEmpty() || g == "PROY" || g == "PROYECTO" || g == "?") {
         return GradeStyle(Color(0xFFFF4FA3), dashed = true, dark = false)
     }

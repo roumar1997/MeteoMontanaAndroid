@@ -70,6 +70,6 @@ class OfflineTileManager(private val context: Context) {
     }
 
     companion object {
-        private const val TOPO_STYLE_JSON = """{"version":8,"sources":{"topo":{"type":"raster","tiles":["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],"tileSize":256,"attribution":"© OpenTopoMap (CC-BY-SA)"}},"layers":[{"id":"topo","type":"raster","source":"topo"}]}"""
+        private val TOPO_STYLE_JSON get() = MapStyles.topo
     }
 }

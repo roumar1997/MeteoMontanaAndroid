@@ -36,7 +36,9 @@ import com.meteomontana.android.domain.model.TopContributor
 // School
 fun SchoolDto.toDomain() = School(
     id = id, name = name, location = location, region = region,
-    style = style, rockType = rockType, lat = lat, lon = lon, source = source
+    style = style, rockType = rockType, lat = lat, lon = lon, source = source,
+    // Un servidor antiguo no manda pais: lo que existia era espanol.
+    country = country?.uppercase()?.takeIf { it.isNotBlank() } ?: "ES"
 )
 
 // Forecast
@@ -105,7 +107,8 @@ fun BlockDto.toDomain() = Block(
     sectorBlockId = sectorBlockId,
     discipline = discipline,
     geometry = geometry, path = path, direction = direction,
-    faces = faces.map { it.toDomain(photoPath) }
+    faces = faces.map { it.toDomain(photoPath) },
+    sectorDisciplines = sectorDisciplines
 )
 
 fun BlockLineDto.toDomain(coverPhoto: String? = null) =
@@ -141,7 +144,7 @@ fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, prop
 fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, sectorBlockId, proposedLat, proposedLon, correctionReason, geometry, path, direction)
 
 // Journal
-fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status)
+fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status, aVista, alFlash)
 fun JournalStatsDto.toDomain() = JournalStats(blockCount, boulderCount, routeCount, schoolCount, maxGrade, maxBoulderGrade, maxRouteGrade, bySchool.map { it.toDomain() }, projectCount, projectBoulderCount, projectRouteCount)
 fun SchoolStatsDto.toDomain() = SchoolStats(schoolName, blockCount, maxGrade)
 

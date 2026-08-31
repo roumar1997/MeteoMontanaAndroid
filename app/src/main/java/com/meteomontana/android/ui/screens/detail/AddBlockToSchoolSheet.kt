@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.components.cumbreSheetSurface
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.ui.components.CumbreChip
 
@@ -55,9 +58,12 @@ fun AddBlockToSchoolSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheet,
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        shape = com.meteomontana.android.ui.components.CumbreSheetShape
     ) {
-        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f).padding(16.dp),
+        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.94f)
+                   .cumbreSheetSurface(MaterialTheme.colorScheme.background)
+                   .padding(16.dp),
                verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.add_block_sheet_title),
                 style = MaterialTheme.typography.headlineMedium,
@@ -114,7 +120,7 @@ fun AddBlockToSchoolSheet(
                 enabled = name.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1C1C1A), contentColor = Color.White
+                    containerColor = inkButtonColor(), contentColor = Color.White
                 ),
                 shape = MaterialTheme.shapes.small
             ) { Text(stringResource(R.string.propose_submit)) }

@@ -2,6 +2,7 @@
 package com.meteomontana.android.ui.screens.community
 
 import android.widget.Toast
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +31,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -193,11 +193,11 @@ fun FeedPostDetailScreen(
     bottomInset: Dp = 0.dp,
     viewModel: FeedPostDetailViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val ctx = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val moderation: ModerationViewModel = hiltViewModel()
-    val hiddenIds by moderation.hiddenIds.collectAsState()
+    val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
     var reportPost by remember { mutableStateOf(false) }
     var reportComment by remember { mutableStateOf<FeedComment?>(null) }
     var text by remember { mutableStateOf("") }
@@ -221,7 +221,7 @@ fun FeedPostDetailScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground
                 )
             }

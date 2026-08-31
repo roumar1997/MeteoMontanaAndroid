@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.data.map.MapStyles
+
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
@@ -92,12 +94,14 @@ fun MeetupsMapPanel(
     }
 
     Column {
-        // Toggle bar — visible, con chevron
+        // Toggle bar — botón flotante con borde, como el "VER MAPA" de Escuelas.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(width = 1.dp, color = MaterialTheme.colorScheme.outline)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .border(1.dp, MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
                 .clickable(onClick = onToggle)
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
@@ -185,8 +189,7 @@ private fun MeetupsMapView(
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                 android.content.res.Configuration.UI_MODE_NIGHT_YES
         val url = tileUrl(satellite, dark)
-        val json = """{"version":8,"sources":{"osm":{"type":"raster","tiles":["$url"],"tileSize":256}},"layers":[{"id":"osm","type":"raster","source":"osm"}]}"""
-        map.setStyle(Style.Builder().fromJson(json))
+        map.setStyle(Style.Builder().fromJson(MapStyles.raster("osm", listOf(url))))
     }
 
     val mapView = remember {
@@ -411,7 +414,8 @@ private fun zoomForKm(km: Double): Double = when {
 }
 
 private fun createSchoolBadge(name: String, count: Int): Bitmap {
-    val density = 2f
+    // 3f (antes 2f) → badge ~50% más grande y legible, a la par que iOS (M3b).
+    val density = 3f
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = AndroidColor.WHITE
         textSize = 11f * density

@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.weather
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import android.Manifest
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,9 +46,14 @@ import com.meteomontana.android.R
 @Composable
 fun WeatherScreen(
     onDayClick: (schoolId: String?, lat: Double, lon: Double, dayIndex: Int) -> Unit = { _, _, _, _ -> },
+    // En la pestaña keep-alive: true cuando Tiempo está visible (no tapada por
+    // Radar ni por un sheet). Sin esto, cambiar de pestaña y volver no
+    // recargaba nunca — mismo patrón que ProfileScreen (Álvaro, 2026-08-24:
+    // paridad con iOS, que sí recarga con .task en cada reaparición).
+    visible: Boolean = true,
     viewModel: WeatherViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     // FINE + COARSE (selector precisa/aproximada de Android 12+).
     val locationPermission = com.google.accompanist.permissions.rememberMultiplePermissionsState(
         listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -57,6 +64,9 @@ fun WeatherScreen(
     LaunchedEffect(anyGranted) {
         if (anyGranted) viewModel.tryLoad()
     }
+    LaunchedEffect(visible) {
+        if (visible) viewModel.tryLoad()
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when (val s = state) {
@@ -66,8 +76,15 @@ fun WeatherScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
-            WeatherUiState.NeedPermission -> {
+            is WeatherUiState.NeedPermission -> {
                 TopBar(title = stringResource(R.string.weather_title), subtitle = "")
+                // Favoritas visibles TAMBIÉN sin permiso: tocar una carga su
+                // tiempo directamente (no depende de la ubicación). Antes
+                // rechazar el permiso escondía las favoritas por completo.
+                if (s.favorites.isNotEmpty()) {
+                    FavoriteChips(s.favorites, null, viewModel::selectFavorite)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                }
                 PermissionPrompt { locationPermission.launchMultiplePermissionRequest() }
             }
             is WeatherUiState.Error -> {
@@ -86,7 +103,11 @@ fun WeatherScreen(
                     FavoriteChips(s.favorites, s.selectedFavoriteId, viewModel::selectFavorite)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
+                ) {
                     // Comparación de favoritas arriba (igual que iOS): ves de un
                     // vistazo el score medio por día de tus escuelas favoritas.
                     if (s.grid != null && s.grid.rows.isNotEmpty()) {
@@ -159,7 +180,7 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         Button(
             onClick = onRequest,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1C1A), contentColor = Color.White),
+            colors = ButtonDefaults.buttonColors(containerColor = inkButtonColor(), contentColor = Color.White),
             shape = MaterialTheme.shapes.small
         ) { Text("DAR PERMISO") }
     }

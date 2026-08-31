@@ -95,7 +95,7 @@ private fun plainText(post: FeedPost): String {
     ).joinToString(" · ")
     // Deep link al post: si el receptor tiene Cumbre se abre el detalle
     // (landing /s/p con Open Graph si no la tiene).
-    val link = "https://api.climbingteams.com/s/p/${post.id}"
+    val link = (com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/p/${post.id}"
     return listOf("🧗 $title", place, "Míralo en Cumbre: $link")
         .filter { it.isNotBlank() }.joinToString("\n")
 }

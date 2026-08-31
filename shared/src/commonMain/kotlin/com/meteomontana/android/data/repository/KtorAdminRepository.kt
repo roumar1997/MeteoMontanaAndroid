@@ -20,8 +20,7 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
     override suspend fun getPendingSubmissions(): List<Submission> =
         api.pendingSubmissions().map { it.toDomain() }
 
-    override suspend fun getPendingContributions(): List<Contribution> =
-        api.pendingContributions().map { it.toDomain() }
+    override suspend fun getPendingContributions(status: String?): List<Contribution> = api.pendingContributions(status).map { it.toDomain() }
 
     override suspend fun getLogs(limit: Int): List<AdminLog> =
         api.logs(limit).map { it.toDomain() }
@@ -46,6 +45,9 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
 
     override suspend fun resolveReport(id: String, action: String): MeetupReport =
         api.resolveReport(id, action).toDomain()
+
+    override suspend fun moveSchool(schoolId: String, lat: Double, lon: Double) =
+        api.moveSchool(schoolId, lat, lon)
 }
 
 private fun MeetupReportDto.toDomain() = MeetupReport(

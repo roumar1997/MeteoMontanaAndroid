@@ -120,6 +120,49 @@ Cumbre usa **hairlines**, no sombras blob. Equivalente Material:
 
 Si Material3 mete elevación, ponerla a `0.dp` y compensar con borde.
 
+### 1.9 · CONTENIDO PLANO, ARMAZÓN CON MATERIAL (desde 2026-08-10)
+
+La regla de arriba —sin sombras, sin blur, radios de 0 a 4dp— **sigue en pie
+para el CONTENIDO**: tarjetas de escuela, topos, listas, grados, formularios.
+Ahí no se toca nada.
+
+Lo que cambia es el **armazón**: la barra de pestañas y las hojas. Esas sí
+llevan material.
+
+**Por qué.** Rodrigo veía la app de Android "plana y antigua" comparada con la
+de iOS, aun estando ambas bien dibujadas. La causa no era el contenido —en iOS
+también es plano— sino que **allí el armazón lo pinta Apple**: la tab bar y las
+hojas llegan con su translucidez y su profundidad de fábrica. En Android lo
+dibujamos nosotros, así que salía exactamente lo que pedíamos: liso. Cumbre no
+se vuelve brillante; se le pone alrededor el traje que iOS regala.
+
+**Cómo se aplica.** Nunca a mano: `CumbreChrome.kt` es el único sitio.
+- `Modifier.cumbreChromeSurface(shape)` — la cápsula de pestañas.
+- `Modifier.cumbreSheetSurface(color)` — las hojas. El color es parámetro
+  porque no todas comparten fondo (`surface` las de formulario, `background`
+  las de contenido); fijar uno cambiaría la paleta de media app de rebote.
+- `Modifier.cumbreBackdrop()` — marca el contenido que se difumina detrás.
+- Los valores (radio de desenfoque, opacidad del tinte, brillo del canto) son
+  tokens privados de ese fichero. Si el efecto queda fuerte o flojo, se tocan
+  ahí y en ningún otro lado.
+
+**Tres tratamientos**, en `ChromeTreatment`: `SOLIDO`, `ESMERILADO`, `CRISTAL`
+(esmerilado + canto de luz). `paraApi()` degrada solo en móviles sin desenfoque
+—Android 11 o anterior, donde la API no existe— y tiene tests.
+
+**Dos límites que NO son fallos y conviene no volver a investigar:**
+- Las **hojas no pueden llevar desenfoque**. Compose las dibuja en otra ventana
+  y desde ahí no se alcanzan los píxeles de detrás. Heredan borde, forma y
+  canto, que es lo que se ve.
+- Las **superficies de mapa** son el caso frágil: MapLibre corre en
+  `textureMode(true)`, lo que da opciones, pero difuminar encima está
+  documentado como problemático.
+
+**Y el movimiento va con la misma lógica**: `CumbreMotion` en vez de duraciones
+fijas. El `tween` de velocidad constante era lo que hacía que la app "se
+sintiera antigua" aunque cada pantalla estuviese bien. Muelle firme y **sin
+rebote**: esto es una guía de escalada, no un juguete.
+
 ---
 
 ## 2 · Componentes (anatomía espejo)

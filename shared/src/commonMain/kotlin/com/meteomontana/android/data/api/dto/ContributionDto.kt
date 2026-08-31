@@ -22,7 +22,10 @@ data class ContributionRequest(
     val discipline: String? = null,  // BOULDER (bloque) / ROUTE (vía) al proponer piedra
     val geometry: String? = null,    // POINT / LINE (muro)
     val path: String? = null,        // polilínea JSON si LINE
-    val direction: String? = null    // "LTR"/"RTL"
+    val direction: String? = null,   // "LTR"/"RTL"
+    /** F: orientación del AUTOR al crear la piedra (opcional):
+     *  {"block":"NE","faces":{"0":"N"}} → su primer voto al aprobarse. */
+    val orientationsJson: String? = null
 )
 
 @Serializable

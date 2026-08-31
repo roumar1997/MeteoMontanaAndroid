@@ -92,6 +92,7 @@ struct LoginView: View {
             HStack(spacing: 10) {
                 if loading == .google {
                     ProgressView().tint(.white)
+                        .frame(maxWidth: .infinity, minHeight: 320)
                 } else {
                     Text("G")
                         .font(.system(size: 18, weight: .bold))
@@ -103,7 +104,7 @@ struct LoginView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(Cumbre.ink)
+            .background(Cumbre.inkButton)
             .clipShape(RoundedRectangle(cornerRadius: 2))
         }
         .buttonStyle(.plain)
@@ -118,6 +119,7 @@ struct LoginView: View {
             HStack(spacing: 10) {
                 if loading == .apple {
                     ProgressView().tint(.white)
+                        .frame(maxWidth: .infinity, minHeight: 320)
                 } else {
                     Image(systemName: "applelogo").font(.system(size: 17, weight: .medium))
                 }

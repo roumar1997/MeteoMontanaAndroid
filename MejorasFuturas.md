@@ -16,6 +16,102 @@
 
 ---
 
+## ✅ ESTADO 2026-07-20 (fase "dejar perfecta" ejecutada — leer antes que el resto)
+
+Gran parte de este plan YA ESTÁ HECHO (todo en la rama develop, CI verde,
+re-auditoría: UI Android 7.5 · iOS 7.5 · shared 7 · backend 7 · ingeniería 8):
+
+- **Bloque 1**: 1.1 ✅ (GlobalExceptionHandler) · 1.2 ✅ (@Valid con tests) ·
+  1.3 ✅ (dominio sin Spring) · 1.4 ✅ (caps gearJson/bloquesJson/coords) ·
+  1.6 ✅ EL GORDO (N+1 de ratings: 2 queries/vía → 2/escuela). 1.5 pendiente.
+- **Bloque 2**: 2.1 ✅ (shared/src/commonTest existe y el CI lo corre) ·
+  2.3 ✅ ampliado (contratos del feed + autorización: admin/baneo/foto ajena) ·
+  2.4 ✅ parcial (CI vigila develop, Dependabot en ambos repos; análisis
+  estático/ArchUnit pendiente). 2.2 pendiente.
+- **Bloque 3**: 3.3 ✅ (ReviewContributionUseCase→orquestador + 4 piezas, con
+  fix real de @Transactional). 3.1/3.2/3.4/3.5/3.6 = BOY-SCOUT (al tocar cada
+  clase; decisión de auditoría: en big-bang mete más riesgo del que quita).
+- **Bloque 4 y god-files**: TODOS los ficheros >900 líneas de ambas apps
+  repartidos (14 en total: SchoolMap, SchoolDetailView/VM, FeedService,
+  Propose*, FeedScreen/View, AdminView, ContributionCard, MainScreen,
+  SchoolListView, MeetupsView, AddLinesFlow, BlockDetailDialog) +
+  SchoolMapViewModel extraído en iOS. Reglas en ARCHITECTURE.md (normativo).
+- **Extra no previsto**: caché de disco del FEED y de BLOQUES en la capa
+  compartida (offline en ambas apps) + detalle de escuela INSTANTÁNEO en
+  Android (preview stale-while-revalidate) + workflow de release AAB
+  (faltan los secrets de firma, los crea Rodrigo).
+
+Lo que QUEDA de este plan: 1.5 (EAGER doble en MeetupJpaEntity), 2.2
+(dispatchers inyectados), el boy-scout del Bloque 3, ArchUnit/detekt (2.4),
+y los bloques 5-6 (producto/monetización). Nada de ello es urgente.
+
+---
+
+## 📌 PENDIENTE SUELTO — privacidad de iOS (para la próxima release)
+
+Detectado el 2026-08-09 y **aplazado a conciencia**: el build 119 ya estaba en
+TestFlight y Rodrigo prefirió no rehacerlo.
+
+`iosApp/iosApp/PrivacyInfo.xcprivacy` declara la ubicación como
+**`NSPrivacyCollectedDataTypeCoarseLocation`**, pero la app envía al backend
+**coordenadas precisas**: las de la piedra que se propone (desde siempre, con
+solo tocar el mapa) y, desde 2.22.0, las que se leen del EXIF de la foto. La
+declaración no describe lo que la app hace de verdad.
+
+**Arreglo:** cambiar esa entrada a `...PreciseLocation` (o añadirla junto a la
+aproximada) y marcar la casilla equivalente en **App Store Connect →
+Privacidad de la app**. El manifiesto viaja DENTRO del binario, así que exige
+build nuevo → hacerlo aprovechando el siguiente que toque subir, no uno
+dedicado.
+
+**Riesgo si se deja:** bajo (Apple rara vez audita ese fichero), pero es el tipo
+de inexactitud que se paga cara al monetizar, cuando la ficha se mira con lupa
+(ver §6.4).
+
+Android NO tiene equivalente: su capítulo de permisos de fotos se cerró en la
+vc92 quitando `READ_MEDIA_IMAGES`/`READ_EXTERNAL_STORAGE`/`ACCESS_MEDIA_LOCATION`
+y pasando al selector de DOCUMENTOS del sistema (el de FOTOS borra el EXIF; el
+de documentos no). Detalle en el comentario de `AndroidManifest.xml` y en
+`PhotoPicker.kt`.
+
+---
+
+## 📌 PENDIENTE SUELTO — salidos de la sesión de fotos del 2026-08-15/16
+
+**1) Guardar offline NO descarga las fotos (el más importante para el uso real).**
+`SavedSchoolRepository.saveOffline` guarda escuela, bloques, vías, trazados y
+forecast, pero de la foto **solo el `photoPath`** (la URL en texto, no los
+bytes). Resultado: en la roca sin cobertura tienes nombres, grados y líneas
+dibujadas, **pero no la foto sobre la que van dibujadas** — justo lo que hace
+falta. Las imágenes solo están si Coil las cacheó al mostrarlas antes.
+*Ahora es viable*: desde que se reducen a ~350 KB, bajar una escuela de 20
+piedras son ~7 MB, no 30. Hacerlo al guardar, con aviso de progreso.
+
+**2) El bucket de R2 quedó público ENTERO.** Al conectar el Custom Domain,
+`photos.climbingteams.com` sirve el bucket completo y se salta la lista de
+prefijos de `PhotoController` (`ALLOWED_PREFIXES`), que era quien decidía qué
+se podía servir. Afecta a `feed-photos/`, `piedra-photos/` y a las copias
+`originals/` que crea `PhotoShrinkService`. Riesgo bajo (claves UUID y
+Cloudflare no permite listar), pero se abrió sin querer.
+*Arreglo simple*: mover `originals/` a un bucket aparte **sin** dominio
+público — son copias de seguridad, nadie necesita servirlas por web.
+
+**3) `StartTypeConstraintTest` falla en `main`.** Comprobado que ya fallaba
+antes de esa sesión (se verificó con `git stash`): espera que
+`chk_start_type` permita `SIT/SEMI/STAND/JUMP/TRAV` pero está leyendo los
+valores de `chk_contribution_type`. Parece que el test coge la restricción
+equivocada desde que se amplió esa otra. Es un test roto, no una BD rota —
+pero mientras siga así **enmascara regresiones reales** de los tipos de inicio.
+
+**4) Opcional, sin ejecutar: `PHOTO_DIRECT_URLS=run`.** Reescribiría las URLs
+ya guardadas para que apunten directas al CDN y quitar el salto por el backend
+(~40% menos de tiempo, medido). El código está desplegado y las fotos nuevas ya
+nacen directas; solo faltan las antiguas. No se ejecutó porque con el
+redimensionado y la purga de caché ya iba bien. Al hacerlo, las apps
+re-descargarán cada foto una vez (cambia la URL) — eso es esperado.
+
+---
+
 ## BLOQUE 1 — Backend: lo barato que arregla mucho (1-2 sesiones)
 
 ### 1.1 Manejador global de errores (`@RestControllerAdvice`)

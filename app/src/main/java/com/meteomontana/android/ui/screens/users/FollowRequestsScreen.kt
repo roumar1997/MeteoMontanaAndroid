@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,7 +114,7 @@ fun FollowRequestsScreen(
     onUserClick: (String) -> Unit = {},
     viewModel: FollowRequestsViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -201,9 +203,9 @@ private fun RequestRow(
 
 @Composable
 private fun SmallButton(text: String, filled: Boolean, onClick: () -> Unit) {
-    val bg = if (filled) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.surface
+    val bg = if (filled) inkButtonColor() else MaterialTheme.colorScheme.surface
     val fg = if (filled) Color.White else MaterialTheme.colorScheme.onBackground
-    val borderColor = if (filled) Color(0xFF1C1C1A) else MaterialTheme.colorScheme.outline
+    val borderColor = if (filled) inkButtonColor() else MaterialTheme.colorScheme.outline
     Box(modifier = Modifier
         .height(36.dp)
         .clip(RoundedCornerShape(2.dp))

@@ -4,7 +4,7 @@ import com.meteomontana.android.domain.model.DrawOp
 
 /**
  * Datos de una línea/vía del topo. Puro Kotlin, sin tipos Compose ni Android.
- * Listo para mover a commonMain en Fase 2.
+ * Vive en commonMain (migración KMP completada).
  *
  * @param points Coordenadas normalizadas (0..1) como (x, y)
  * @param strokeWidthPx Grosor de línea en px. Viewer usa 5f; editor usa 8f (seleccionada) / 5f.
@@ -14,8 +14,18 @@ data class TopoLineData(
     val grade: String?,
     val startType: String?,
     val points: List<Pair<Float, Float>>,
-    val strokeWidthPx: Float = 5f
+    val strokeWidthPx: Float = 5f,
+    /**
+     * Vía "apagada": se pinta translúcida y sin badge. Es el modo FOCO — al
+     * tocar una vía en una piedra con muchas, las demás bajan a un susurro
+     * en vez de desaparecer, para no perder de vista dónde está respecto a
+     * sus vecinas. Un muro de 13 vías es ilegible sin esto.
+     */
+    val muted: Boolean = false
 )
+
+/** Opacidad de una vía apagada (canal alfa sobre su color de grado). */
+const val MUTED_ALPHA = 0x3Cu
 
 /**
  * Calcula el color ARGB32 (como Long) para un grado de escalada.
@@ -23,7 +33,9 @@ data class TopoLineData(
  * Triple: (argb, dashed, dark). dark=true → el color es blanco y el texto debe ser negro.
  */
 fun gradeArgb(grade: String?): Triple<Long, Boolean, Boolean> {
-    val g = (grade ?: "").trim().uppercase()
+    // Grado DOBLE ("7a/7a+") → colorea como el primero del rango (GradeRange),
+    // en vez de caer en el rosa de "proyecto" por no encajar en el regex.
+    val g = GradeRange.base(grade) ?: ""
     if (g.isEmpty() || g == "PROY" || g == "PROYECTO" || g == "?") {
         return Triple(0xFFFF4FA3L, true, false)
     }
@@ -121,6 +133,67 @@ fun simplifyStroke(
 }
 
 /**
+ * QUITA EL SOBRE-TRAZADO de trazos antiguos: algunos linePath del editor viejo
+ * recorren la MISMA línea varias veces (ida, vuelta entera, ida — «La ola»:
+ * 263 puntos, 3 pasadas). Varias pasadas discontinuas superpuestas con fases
+ * distintas se tapan los huecos unas a otras → la línea SE VE continua (y el
+ * canvas pinta 3× de más). Detección: se parte el trazo en tramos monótonos
+ * sobre el eje dominante; si hay varias pasadas (recorrido ≥1.6× el ancho
+ * real) y la más larga cubre ≥80% del ancho, nos quedamos SOLO con esa pasada
+ * (la limpia). Trazos normales (una pasada, zigzags reales) salen intactos.
+ */
+fun dropRetrace(points: List<Pair<Float, Float>>): List<Pair<Float, Float>> {
+    if (points.size < 8) return points
+    val xs = points.map { it.first }
+    val ys = points.map { it.second }
+    val spanX = (xs.max() - xs.min())
+    val spanY = (ys.max() - ys.min())
+    val horizontal = spanX >= spanY
+    val span = if (horizontal) spanX else spanY
+    if (span < 1e-6f) return points
+    fun axis(p: Pair<Float, Float>) = if (horizontal) p.first else p.second
+
+    // Recorrido total sobre el eje dominante: si ~= span, no hay sobre-trazado.
+    var travelled = 0f
+    for (i in 0 until points.size - 1) {
+        travelled += kotlin.math.abs(axis(points[i + 1]) - axis(points[i]))
+    }
+    if (travelled < span * 1.6f) return points
+
+    // Tramos monótonos con tolerancia al temblor (reversa < 1% no corta).
+    val tol = 0.01f
+    val runs = mutableListOf<Pair<Int, Int>>()   // [desde, hasta] inclusive
+    var runStart = 0
+    var dir = 0                                   // +1/-1; 0 = aún sin decidir
+    var reversal = 0f
+    var reversalStart = -1
+    for (i in 0 until points.size - 1) {
+        val step = axis(points[i + 1]) - axis(points[i])
+        if (dir == 0 && kotlin.math.abs(step) > 1e-6f) {
+            dir = if (step > 0) 1 else -1
+        } else if (dir != 0 && step * dir < 0) {
+            if (reversalStart < 0) reversalStart = i
+            reversal += kotlin.math.abs(step)
+            if (reversal > tol) {                 // reversa real: cerrar tramo
+                runs.add(runStart to reversalStart)
+                runStart = reversalStart
+                dir = -dir
+                reversal = 0f; reversalStart = -1
+            }
+        } else {
+            reversal = 0f; reversalStart = -1
+        }
+    }
+    runs.add(runStart to points.size - 1)
+    if (runs.size < 2) return points
+
+    val best = runs.maxBy { (a, b) -> kotlin.math.abs(axis(points[b]) - axis(points[a])) }
+    val bestSpan = kotlin.math.abs(axis(points[best.second]) - axis(points[best.first]))
+    if (bestSpan < span * 0.8f) return points     // ninguna pasada domina: no tocar
+    return points.subList(best.first, best.second + 1).toList()
+}
+
+/**
  * ABANICO de badges: cuando varias vías empiezan/acaban en el MISMO punto,
  * sus badges se despliegan lado a lado en vez de apilarse. Devuelve, para
  * cada vía, el desplazamiento X en px de su badge (0 si no hay coincidencia).
@@ -161,6 +234,32 @@ fun magnetizeStroke(
     // TRAMO de las otras vías (no solo sus vértices — antes era casi imposible
     // acertar con el dedo) y, si cae bajo el umbral, se pega al vértice más
     // cercano de ese tramo. Así el tramo común sigue siendo EXACTO.
+    // Punto exacto al que pegarse cuando el vertice queda lejos: la proyeccion
+    // sobre el tramo. Sin esto, tocar a mitad de una via larga te llevaba a su
+    // vertice mas cercano, que puede estar a medio muro de distancia (feedback
+    // de Rodrigo con capturas: apuntaba al medio y acababa en la union de
+    // abajo). Ahi se pierde el tramo compartido exacto, pero la linea cae donde
+    // el usuario dijo, que es lo que importa.
+    fun proyeccion(p: Pair<Float, Float>): Pair<Float, Float>? {
+        var mejor: Pair<Float, Float>? = null
+        var mejorD = threshold * threshold
+        others.forEach { pts ->
+            for (si in 0 until pts.size - 1) {
+                val a = pts[si]; val b = pts[si + 1]
+                val abx = b.first - a.first; val aby = b.second - a.second
+                val len2 = abx * abx + aby * aby
+                val t = if (len2 < 1e-12f) 0f else
+                    (((p.first - a.first) * abx + (p.second - a.second) * aby) / len2)
+                        .coerceIn(0f, 1f)
+                val qx = a.first + t * abx; val qy = a.second + t * aby
+                val dx = p.first - qx; val dy = p.second - qy
+                val d = dx * dx + dy * dy
+                if (d < mejorD) { mejorD = d; mejor = qx to qy }
+            }
+        }
+        return mejor
+    }
+
     fun snap(p: Pair<Float, Float>): Pair<Int, Int>? {
         var best: Pair<Int, Int>? = null
         var bestD = threshold * threshold
@@ -193,9 +292,19 @@ fun magnetizeStroke(
     }
 
     data class Node(val point: Pair<Float, Float>, val snapped: Pair<Int, Int>?)
+    // Radio para pegarse a un VERTICE. Es mas estrecho que el del iman: el
+    // vertice solo gana si lo tienes casi debajo. Si estas cerca de la via pero
+    // lejos de sus vertices, el trazo cae en la PROYECCION, o sea donde
+    // apuntaste. Antes siempre ganaba el vertice y te llevaba a otro sitio.
+    val radioVertice = threshold * 0.45f
     val nodes = drawn.map { p ->
         val s = snap(p)
-        Node(if (s != null) others[s.first][s.second] else p, s)
+        if (s != null) {
+            val v = others[s.first][s.second]
+            val dx = p.first - v.first; val dy = p.second - v.second
+            val cerca = dx * dx + dy * dy <= radioVertice * radioVertice
+            if (cerca) Node(v, s) else Node(proyeccion(p) ?: p, null)
+        } else Node(p, null)
     }
 
     val out = mutableListOf<Pair<Float, Float>>()
@@ -221,7 +330,7 @@ fun magnetizeStroke(
 /**
  * Convierte una lista de líneas topo en instrucciones de dibujo independientes de plataforma.
  *
- * Puro Kotlin — sin imports de Android ni Compose. Listo para commonMain en Fase 2.
+ * Puro Kotlin — sin imports de Android ni Compose. Vive en commonMain (migración KMP completada).
  *
  * @param lines  Líneas a dibujar (coords normalizadas 0..1)
  * @param w      Ancho del canvas en píxeles
@@ -243,25 +352,44 @@ fun renderTopo(
      *  para no tapar la roca. El caller lo escala (density / canvas 1080). */
     dashPx: Pair<Float, Float> = 12f to 9f,
     /** Largo de cada franja de tramo compartido, en px (escalar como dashPx). */
-    stripePx: Float = SHARED_STRIPE_PX
+    stripePx: Float = SHARED_STRIPE_PX,
+    /**
+     * Separacion del abanico de badges (inicio, fin) en px. Por defecto se
+     * deduce del tamano del badge, que es lo razonable sin zoom.
+     *
+     * Con la foto ampliada hay que pasarla SIN escalar: los tamanos encogen
+     * para que el trazo no engorde, pero si el abanico encoge con ellos los
+     * numeros se van juntando y parece que la linea se desliza sobre la roca.
+     */
+    fanSpacingPx: Pair<Float, Float>? = null
 ): List<DrawOp> {
     val ops = mutableListOf<DrawOp>()
     // Los BADGES se acumulan aparte y se emiten al FINAL: si no, la línea de
     // una vía posterior tapa los badges de las anteriores (feedback Rodrigo:
     // el "PIE" verde quedaba debajo de la travesía morada).
     val badgeOps = mutableListOf<DrawOp>()
+    // Trazos antiguos con varias pasadas superpuestas → solo la pasada limpia
+    // (si no, los guiones se rellenan entre pasadas y la línea sale continua).
+    @Suppress("NAME_SHADOWING")
+    val lines = lines.map { it.copy(points = dropRetrace(it.points)) }
     // Tramos compartidos: segmento → vías que lo comparten (franjas alternas).
     val shared = sharedSegmentLines(lines)
     // Abanico de badges: cuando varios inicios/finales coinciden en el mismo
     // punto, cada badge se desplaza en X para no taparse.
     val startFan = fanOffsets(
-        lines.map { it.points.firstOrNull() }, badgeR.first * 2f + 4f)
+        lines.map { it.points.firstOrNull() },
+        fanSpacingPx?.first ?: (badgeR.first * 2f + 4f))
     val endFan = fanOffsets(
-        lines.map { it.points.lastOrNull() }, startR.first * 2f + 4f)
+        lines.map { it.points.lastOrNull() },
+        fanSpacingPx?.second ?: (startR.first * 2f + 4f))
 
     lines.forEachIndexed { idx, line ->
         if (line.points.isEmpty()) return@forEachIndexed
-        val (strokeArgb, dashed, dark) = gradeArgb(line.grade)
+        val (rawArgb, dashed, dark) = gradeArgb(line.grade)
+        // Apagada: mismo color, alfa bajo. Se conserva el color de grado a
+        // propósito (gris plano haría perder la referencia de dificultad).
+        val strokeArgb = if (line.muted)
+            (rawArgb and 0x00FFFFFFL) or (MUTED_ALPHA.toLong() shl 24) else rawArgb
         val pts = line.points.map { (nx, ny) -> nx * w to ny * h }
         val textArgb = if (dark) 0xFF000000L else 0xFFFFFFFFL
 
@@ -318,6 +446,7 @@ fun renderTopo(
         // Badge numérico en el punto de inicio (desplazado si hay abanico)
         val (fx0, fy) = pts.first()
         val fx = fx0 + startFan[idx]
+        if (line.muted) return@forEachIndexed   // apagada: sin número ni etiqueta
         badgeOps += DrawOp.FilledCircle(fx, fy, badgeR.first, 0xFFFFFFFFL)
         badgeOps += DrawOp.FilledCircle(fx, fy, badgeR.second, strokeArgb)
         badgeOps += DrawOp.TextLabel(fx, fy, "${idx + 1}", textArgb, badgeTextPx.first, bold = true, badgeTextPx.second)

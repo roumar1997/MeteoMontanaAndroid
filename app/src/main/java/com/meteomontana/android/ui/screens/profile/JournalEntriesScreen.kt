@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.runtime.setValue
+import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import androidx.compose.foundation.background
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.ArrowBack
@@ -27,7 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +75,8 @@ class JournalEntriesViewModel @Inject constructor(
     private val getUserJournal: GetUserJournalUseCase,
     private val getUserStats: GetUserStatsUseCase,
     private val deleteJournalEntry: DeleteJournalEntryUseCase,
+    private val updateJournalDate: com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase,
+    private val updateJournalStyle: com.meteomontana.android.domain.usecase.journal.UpdateJournalStyleUseCase,
     private val getJournalViaInfo: com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
 ) : ViewModel() {
@@ -81,6 +86,13 @@ class JournalEntriesViewModel @Inject constructor(
 
     private val _state = MutableStateFlow<JournalEntriesUiState>(JournalEntriesUiState.Loading)
     val state: StateFlow<JournalEntriesUiState> = _state.asStateFlow()
+
+    // Mensaje de error del ÚLTIMO cambio de estilo, con el detalle real (código
+    // HTTP incluido) en vez de un aviso genérico — para poder diagnosticar sin
+    // logs si vuelve a fallar (Rodrigo, 2026-08-22).
+    private val _styleError = MutableStateFlow<String?>(null)
+    val styleError: StateFlow<String?> = _styleError.asStateFlow()
+    fun clearStyleError() { _styleError.value = null }
 
     // Filtro compuesto "school:X|sector:Y" (llegando desde JournalSectorsScreen):
     // el título es el nombre del sector, no de la escuela (ya viniste de ahí).
@@ -175,6 +187,26 @@ class JournalEntriesViewModel @Inject constructor(
         }
     }
 
+    /** C3: cambiar la fecha de una entrada y recargar. */
+    fun changeDate(id: String, newDate: String) {
+        viewModelScope.launch {
+            runCatching { updateJournalDate(id, newDate) }
+                .onSuccess { load() }
+        }
+    }
+
+    /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes. */
+    fun changeStyle(id: String, aVista: Boolean, alFlash: Boolean) {
+        viewModelScope.launch {
+            runCatching { updateJournalStyle(id, aVista, alFlash) }
+                .onSuccess { load() }
+                .onFailure { e ->
+                    android.util.Log.e("CumbreEstilo", "PATCH journal/$id/style fallo", e)
+                    _styleError.value = e.toUserMessage()
+                }
+        }
+    }
+
     fun delete(id: String) {
         if (!isMine) return
         viewModelScope.launch {
@@ -190,7 +222,24 @@ fun JournalEntriesScreen(
     onOpenSchool: (schoolId: String, via: String?, viaId: String?) -> Unit = { _, _, _ -> },
     viewModel: JournalEntriesViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val styleError by viewModel.styleError.collectAsStateWithLifecycle()
+    val estiloCtx = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(styleError) {
+        styleError?.let {
+            android.widget.Toast.makeText(estiloCtx, "No se pudo cambiar el estilo: $it", android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearStyleError()
+        }
+    }
+    // G: filtro por grado activo (null = todos).
+    var gradeFilter by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf<String?>(null)
+    }
+    // Filtro por ESTILO: "aVista" | "alFlash" | null (todos). Cliente, como
+    // el de grado — no necesita ruta nueva (Rodrigo, 2026-08-21).
+    var styleFilter by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf<String?>(null)
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -244,14 +293,95 @@ fun JournalEntriesScreen(
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                             }
                         }
-                        items(s.entries, key = { it.id }) { e ->
-                            EntryRow(
-                                e, canDelete = s.isMine,
-                                info = s.viaInfo[e.id],
-                                onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName, e.lineId) } },
-                                onDelete = { viewModel.delete(e.id) }
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        // G: filtro por GRADO (chips con la paleta de topos).
+                        val grades = s.entries
+                            .mapNotNull { it.grade?.trim()?.lowercase()?.takeIf(String::isNotEmpty) }
+                            .distinct()
+                            .sortedByDescending {
+                                com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator.gradeRank(it)
+                            }
+                        if (grades.size > 1) {
+                            item(key = "grade-filter") {
+                                androidx.compose.foundation.lazy.LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                ) {
+                                    items(grades.size) { gi ->
+                                        val g = grades[gi]
+                                        val gs = com.meteomontana.android.ui.theme.gradeChipStyle(g)
+                                        val accent = if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
+                                        val active = gradeFilter == g
+                                        Box(Modifier
+                                            .background(
+                                                if (active) accent else MaterialTheme.colorScheme.surface,
+                                                RoundedCornerShape(6.dp))
+                                            .border(1.dp, accent, RoundedCornerShape(6.dp))
+                                            .clickable { gradeFilter = if (active) null else g }
+                                            .padding(horizontal = 10.dp, vertical = 5.dp)) {
+                                            Text(g, style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                color = if (active) androidx.compose.ui.graphics.Color.White
+                                                        else accent)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Filtro por ESTILO: solo si hay al menos una entrada marcada
+                        // (si no, no tiene sentido mostrar chips que no filtran nada).
+                        val anyStyled = s.entries.any { it.aVista || it.alFlash }
+                        if (anyStyled) {
+                            item(key = "style-filter") {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                ) {
+                                    StyleBadge("A VISTA", active = styleFilter == "aVista") {
+                                        styleFilter = if (styleFilter == "aVista") null else "aVista"
+                                    }
+                                    StyleBadge("AL FLASH", active = styleFilter == "alFlash") {
+                                        styleFilter = if (styleFilter == "alFlash") null else "alFlash"
+                                    }
+                                }
+                            }
+                        }
+                        val visibleEntries = (gradeFilter?.let { g ->
+                            s.entries.filter { it.grade?.trim()?.equals(g, ignoreCase = true) == true }
+                        } ?: s.entries).let { list ->
+                            when (styleFilter) {
+                                "aVista" -> list.filter { it.aVista }
+                                "alFlash" -> list.filter { it.alFlash }
+                                else -> list
+                            }
+                        }
+                        // C3: agrupado por MES (cabecera "JULIO 2026 - N"), orden
+                        // cronologico descendente por fecha de la sesion.
+                        val byMonth = visibleEntries.sortedByDescending { it.date }
+                            .groupBy { it.date.take(7) }
+                        byMonth.forEach { (month, monthEntries) ->
+                            item(key = "month-" + month) {
+                                Text(
+                                    formatMonthHeader(month) + " \u00b7 " + monthEntries.size,
+                                    style = EyebrowTextStyle,
+                                    color = com.meteomontana.android.ui.theme.Terra,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                            items(monthEntries, key = { it.id }) { e ->
+                                EntryRow(
+                                    e, canDelete = s.isMine,
+                                    info = s.viaInfo[e.id],
+                                    onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName, e.lineId) } },
+                                    onDelete = { viewModel.delete(e.id) },
+                                    onChangeDate = if (s.isMine) ({ newDate ->
+                                        viewModel.changeDate(e.id, newDate)
+                                    }) else null,
+                                    onChangeStyle = if (s.isMine) ({ aVista, alFlash ->
+                                        viewModel.changeStyle(e.id, aVista, alFlash)
+                                    }) else null
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            }
                         }
                     }
                 }
@@ -262,14 +392,42 @@ fun JournalEntriesScreen(
 
 // internal (no private): reutilizado por JournalSectorsScreen.kt (mismo paquete)
 // para las entradas sin sector, que se muestran directamente sin subcarpeta.
-@Composable
+@androidx.compose.runtime.Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 internal fun EntryRow(
     e: JournalSession,
     canDelete: Boolean = true,
     info: com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo? = null,
     onClick: () -> Unit = {},
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    /** C3: cambiar la fecha de la entrada (null = no editable, diario ajeno). */
+    onChangeDate: ((String) -> Unit)? = null,
+    /** Cambiar el estilo (a vista / al flash), independientes entre sí.
+     *  null = no editable (diario ajeno). */
+    onChangeStyle: ((aVista: Boolean, alFlash: Boolean) -> Unit)? = null
 ) {
+    var showDatePicker by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
+    if (showDatePicker && onChangeDate != null) {
+        val pickerState = androidx.compose.material3.rememberDatePickerState(
+            selectableDates = object : androidx.compose.material3.SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) =
+                    utcTimeMillis <= System.currentTimeMillis()
+            })
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { ms ->
+                        onChangeDate(java.time.Instant.ofEpochMilli(ms)
+                            .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString())
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            }
+        ) { androidx.compose.material3.DatePicker(state = pickerState) }
+    }
     Row(
         modifier = Modifier.fillMaxWidth()
             .then(if (e.schoolId != null) Modifier.clickable(onClick = onClick) else Modifier)
@@ -279,14 +437,11 @@ internal fun EntryRow(
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(e.date,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 // Grado ACTUAL del catálogo (refleja correcciones) o, si no se
                 // pudo resolver, el guardado al marcar la vía.
                 val eGrade = info?.grade ?: e.grade
                 if (!eGrade.isNullOrBlank()) {
-                    val gs = com.meteomontana.android.ui.theme.gradeStyle(eGrade)
+                    val gs = com.meteomontana.android.ui.theme.gradeChipStyle(eGrade)
                     Box(modifier = Modifier
                         .background(gs.stroke, RoundedCornerShape(3.dp))
                         .padding(horizontal = 7.dp, vertical = 3.dp)
@@ -297,6 +452,17 @@ internal fun EntryRow(
                             color = if (gs.dark) androidx.compose.ui.graphics.Color.Black
                                     else androidx.compose.ui.graphics.Color.White)
                     }
+                }
+                // Estilo de ascensión: solo se ve si hay algo que enseñar
+                // (ajeno) o si es editable (propio, para poder añadirlo
+                // aunque no se marcara al principio).
+                if (e.aVista || onChangeStyle != null) {
+                    StyleBadge("A VISTA", active = e.aVista,
+                        onClick = onChangeStyle?.let { { it(!e.aVista, e.alFlash) } })
+                }
+                if (e.alFlash || onChangeStyle != null) {
+                    StyleBadge("AL FLASH", active = e.alFlash,
+                        onClick = onChangeStyle?.let { { it(e.aVista, !e.alFlash) } })
                 }
             }
             val deleted = info?.deleted == true
@@ -329,6 +495,14 @@ internal fun EntryRow(
                     color = MaterialTheme.colorScheme.onSurface)
             }
         }
+        // Fecha a la DERECHA (como iOS — feedback R2), pulsable si es editable.
+        Text(e.date,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (onChangeDate != null) com.meteomontana.android.ui.theme.Terra
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = (if (onChangeDate != null)
+                Modifier.clickable { showDatePicker = true } else Modifier)
+                .padding(horizontal = 4.dp))
         // Flecha que indica que la fila es pulsable → abre la piedra
         if (e.schoolId != null) {
             Icon(
@@ -346,3 +520,34 @@ internal fun EntryRow(
         }
     }
 }
+
+
+/** Chip pequeño de estilo (A VISTA / AL FLASH) — pulsable si onClick != null,
+ *  para poder marcarlo/desmarcarlo sin abrir un diálogo aparte. */
+@Composable
+private fun StyleBadge(label: String, active: Boolean, onClick: (() -> Unit)?) {
+    Box(
+        Modifier
+            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+            .background(if (active) com.meteomontana.android.ui.theme.Terra
+                        else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (active) com.meteomontana.android.ui.theme.Terra
+                          else MaterialTheme.colorScheme.outlineVariant,
+                com.meteomontana.android.ui.theme.CumbrePillShape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 7.dp, vertical = 3.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            color = if (active) androidx.compose.ui.graphics.Color.White
+                    else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private val MONTH_NAMES = listOf(
+    "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+    "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE")
+
+internal fun formatMonthHeader(yyyyMm: String): String = runCatching {
+    MONTH_NAMES[yyyyMm.substringAfter('-').toInt() - 1] + " " + yyyyMm.take(4)
+}.getOrDefault(yyyyMm)

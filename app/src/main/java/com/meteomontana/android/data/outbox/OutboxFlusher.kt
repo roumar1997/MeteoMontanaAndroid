@@ -10,6 +10,8 @@ import com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.DeleteJournalEntryUseCase
 import com.meteomontana.android.domain.usecase.journal.GetMyJournalUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
+import com.meteomontana.android.domain.journal.journalViaKey
+import com.meteomontana.android.ui.screens.detail.toBloquesJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -74,8 +76,19 @@ class OutboxFlusher @Inject constructor(
                         faces.forEach { f ->
                             val path = localByFace[f.id]
                             urlByFace[f.id] = path?.let {
-                                val bytes = java.io.File(it).readBytes()
-                                photoUploader.uploadBoulderPhoto(bytes, "image/jpeg", q.schoolId)
+                                val fichero = java.io.File(it)
+                                // Encolada CON foto pero el fichero ya no está:
+                                // lanzar deja la fila en la cola para reintentar.
+                                // Antes se subía la piedra SIN esa foto y se
+                                // borraba la fila — el usuario perdía el trabajo
+                                // sin enterarse ("subo 3 fotos y sube 1",
+                                // reportado 2026-08-15).
+                                if (!fichero.exists()) {
+                                    error("Falta la foto encolada de una cara: $it")
+                                }
+                                photoUploader.uploadBoulderPhoto(
+                                    fichero.readBytes(), "image/jpeg", q.schoolId
+                                )
                             }
                         }
                         val req = ContributionRequest(
@@ -100,6 +113,48 @@ class OutboxFlusher @Inject constructor(
                         localByFace.values.filterNotNull()
                             .forEach { runCatching { java.io.File(it).delete() } }
                     }
+                    OutboxType.CONTRIBUTION_EDIT_BLOCK -> {
+                        // Edición de una piedra existente guardada sin red: se
+                        // suben las fotos nuevas y se manda el estado completo,
+                        // igual que el envío online.
+                        val q = json.decodeFromString<QueuedBlockEdit>(row.payloadJson)
+                        val bloques = q.faces.flatMap { cara ->
+                            val fotoDeLaCara = cara.localPhotoPath?.let { ruta ->
+                                val fichero = java.io.File(ruta)
+                                // Igual que en la piedra nueva: si la foto
+                                // encolada ya no está, fallar y conservar la
+                                // fila. Mandar la cara sin foto colapsaría sus
+                                // vías en la portada, mezclándolas con otras.
+                                if (!fichero.exists()) error("Falta la foto encolada de una cara: $ruta")
+                                photoUploader.uploadBoulderPhoto(
+                                    fichero.readBytes(), "image/jpeg", q.schoolId
+                                )
+                            } ?: cara.existingPhotoPath
+                            cara.vias.map { v ->
+                                com.meteomontana.android.ui.screens.detail.BoulderBloqueForm(
+                                    name = v.name, grade = v.grade, startType = v.startType,
+                                    linePath = v.points.map { androidx.compose.ui.geometry.Offset(it[0], it[1]) },
+                                    facePhoto = fotoDeLaCara,
+                                    existingLineId = v.targetLineId,
+                                    description = v.description, variant = v.variant
+                                )
+                            }
+                        }
+                        submitContribution(q.schoolId, ContributionRequest(
+                            type = "BOULDER", name = null, lat = q.lat, lon = q.lon,
+                            notes = null, description = null,
+                            proposedLat = null, proposedLon = null,
+                            correctionReason = null,
+                            targetBlockId = q.targetBlockId, targetLineId = null,
+                            photoUrl = null,
+                            bloquesJson = bloques.toBloquesJson(),
+                            topoLinesJson = null,
+                            geometry = q.geometry, path = q.pathJson, direction = q.direction
+                        ))
+                        // Las fotos ya viven en Storage.
+                        q.faces.mapNotNull { it.localPhotoPath }
+                            .forEach { runCatching { java.io.File(it).delete() } }
+                    }
                     OutboxType.NOTE -> {
                         val req = json.decodeFromString<CreateNoteRequest>(row.payloadJson)
                         createNote(row.schoolId, req.text, req.photoUrl)
@@ -108,18 +163,23 @@ class OutboxFlusher @Inject constructor(
                         val req = json.decodeFromString<CreateJournalRequest>(row.payloadJson)
                         // Idempotente: si esa vía ya está en el diario (p.ej. se
                         // marcó también en otro sitio), NO la creamos otra vez.
-                        val key = "${req.schoolId ?: ""}|${req.blockName.trim().lowercase()}"
+                        // Clave POR lineId (journalViaKey) para no confundir homónimas.
+                        val key = journalViaKey(req.schoolId, req.lineId, req.blockName)
                         val exists = getMyJournal().any { e ->
-                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
+                            journalViaKey(e.schoolId, e.lineId, e.blockName) == key
                         }
                         if (!exists) createJournalEntry(req)
                     }
                     OutboxType.JOURNAL_DELETE -> {
-                        // payload = clave "escuelaId|nombreVía". Resolvemos el id real
-                        // contra el diario actual y borramos esa entrada.
+                        // payload = clave journalViaKey ("escuela|#lineId", o por
+                        // nombre en entradas antiguas sin lineId). Resolvemos la
+                        // entrada real con la MISMA función de clave y la borramos.
+                        // ANTES se comparaba solo por nombre → nunca casaba con las
+                        // claves por id → el borrado offline se perdía al reconectar
+                        // (el ✓ reaparecía). Ahora casa por id y por nombre-legado.
                         val key = row.payloadJson
                         val entry = getMyJournal().firstOrNull { e ->
-                            "${e.schoolId ?: ""}|${e.blockName.trim().lowercase()}" == key
+                            journalViaKey(e.schoolId, e.lineId, e.blockName) == key
                         }
                         if (entry != null) deleteJournalEntry(entry.id)
                         // Si no existe, ya estaba borrada → se considera hecho.

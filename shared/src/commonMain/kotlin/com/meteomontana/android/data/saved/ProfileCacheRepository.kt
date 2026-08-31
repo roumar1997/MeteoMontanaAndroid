@@ -2,6 +2,7 @@ package com.meteomontana.android.data.saved
 
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.db.MeteoMontanaDb
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -15,13 +16,17 @@ import kotlinx.datetime.Clock
  * Solo se cachea lo que online SÍ se pudo ver: un privado que no te deja ver el
  * perfil tampoco se ve offline (no hay nada que guardar).
  */
-class ProfileCacheRepository(private val db: MeteoMontanaDb) {
+class ProfileCacheRepository(
+    private val db: MeteoMontanaDb,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
+) :
+    com.meteomontana.android.domain.repository.ProfileCache {
 
     private val q get() = db.schemaQueries
 
     /** Guarda/actualiza el perfil. No guarda perfiles "bloqueados" (sin datos). */
     @Throws(Exception::class)
-    suspend fun save(profile: PublicProfile) = withContext(Dispatchers.Default) {
+    override suspend fun save(profile: PublicProfile) = withContext(dispatcher) {
         if (profile.locked) return@withContext
         q.upsertProfile(
             uid = profile.uid,
@@ -37,7 +42,7 @@ class ProfileCacheRepository(private val db: MeteoMontanaDb) {
 
     /** Último perfil conocido de [uid], o null si nunca cargó online. */
     @Throws(Exception::class)
-    suspend fun load(uid: String): PublicProfile? = withContext(Dispatchers.Default) {
+    override suspend fun load(uid: String): PublicProfile? = withContext(dispatcher) {
         q.findProfile(uid).executeAsOneOrNull()?.let {
             PublicProfile(
                 uid = it.uid,

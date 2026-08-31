@@ -13,7 +13,11 @@ data class JournalSession(
     val discipline: String = "BOULDER",  // BOULDER (bloque) / ROUTE (vía)
     val lineId: String? = null,          // id estable de la vía (null = antiguo/offline → match por nombre)
     // DONE (hecho) | PROJECT (proyecto: lo estás probando, aún no te ha salido).
-    val status: String = "DONE"
+    val status: String = "DONE",
+    // Estilo de ascensión, independientes entre sí: se puede marcar a vista,
+    // al flash, las dos o ninguna (Rodrigo, 2026-08-21).
+    val aVista: Boolean = false,
+    val alFlash: Boolean = false
 )
 
 data class JournalStats(

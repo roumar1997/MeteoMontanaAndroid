@@ -46,16 +46,26 @@ struct PendingFeedTick: Identifiable {
 struct FeedPublishSheet: View {
     let lineLabel: String
     let wasProject: Bool
-    let onPublish: (_ always: Bool, _ caption: String?, _ photo: UIImage?) -> Void
-    let onDiaryOnly: () -> Void
+    let onPublish: (_ always: Bool, _ caption: String?, _ photo: UIImage?, _ sessionDate: String?, _ aVista: Bool, _ alFlash: Bool) -> Void
+    let onDiaryOnly: (_ sessionDate: String?, _ aVista: Bool, _ alFlash: Bool) -> Void
 
     @State private var always = false
     // Descripción opcional del autor (viaja como "caption", max 500).
     @State private var caption = ""
+    // C3: CUANDO la encadenaste. nil = hoy (cero friccion). La fecha se guarda
+    // en el diario SIEMPRE, publiques o no.
+    @State private var sessionDate: String? = nil
+    // Estilo de ascensión: independientes entre sí, se puede marcar 1, el
+    // otro, los dos o ninguno — sin un tercer botón "Ninguno" (Rodrigo,
+    // 2026-08-21).
+    @State private var aVista = false
+    @State private var alFlash = false
+    @State private var showDatePicker = false
+    @State private var pickedDate = Date()
     // Foto de celebración: hecha en el momento con la cámara del sistema. Se
     // guarda en un ObservableObject (no @State) porque la cámara se presenta
     // por UIKit y un @State captado en el callback no refrescaba la hoja.
-    @StateObject private var photoStore = CapturedPhotoStore()
+    @ObservedObject private var photoStore = CapturedPhotoStore.shared
     @State private var showCameraDenied = false
 
     private func requestCamera() {
@@ -65,13 +75,13 @@ struct FeedPublishSheet: View {
             // de la hoja). La foto capturada va al ObservableObject, que sí
             // refresca la miniatura. El lineLabel es la clave del búfer de
             // rescate (si la hoja se recrea, la recuperada es de ESTA vía).
-            presentSystemCamera(context: lineLabel) { img in photoStore.image = img }
+            presentSystemCamera(context: lineLabel) { _ in }   // el store compartido ya la recibe
         }
     }
 
     /// Elegir de la galería (PHPicker: sin permiso, mismo patrón UIKit).
     private func requestGallery() {
-        presentSystemPhotoPicker(context: lineLabel) { img in photoStore.image = img }
+        presentSystemPhotoPicker(context: lineLabel) { _ in }  // idem
     }
 
     var body: some View {
@@ -88,6 +98,46 @@ struct FeedPublishSheet: View {
 
             // Descripción opcional del post (paridad con FeedPublishSheet de
             // SchoolMap.kt: placeholder + límite 500).
+            // ── C3: ¿CUANDO LA ENCADENASTE? ──────────────────────────────
+            Text("CUANDO LA ENCADENASTE").font(Cumbre.mono(10, .bold)).tracking(1)
+                .foregroundStyle(Cumbre.ink3)
+            HStack(spacing: 8) {
+                dateChip("Hoy", selected: sessionDate == nil) { sessionDate = nil }
+                dateChip("Ayer", selected: sessionDate == FeedPublishSheet.iso(daysAgo: 1)) {
+                    sessionDate = FeedPublishSheet.iso(daysAgo: 1)
+                }
+                let custom = sessionDate.flatMap { d in
+                    d == FeedPublishSheet.iso(daysAgo: 1) ? nil : d
+                }
+                dateChip(custom.map { FeedPublishSheet.shortDate($0) } ?? "Otra fecha…",
+                         selected: custom != nil) { showDatePicker = true }
+            }
+            .sheet(isPresented: $showDatePicker) {
+                VStack(spacing: 12) {
+                    DatePicker("", selection: $pickedDate, in: ...Date(),
+                               displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                    Button("OK") {
+                        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+                        sessionDate = df.string(from: pickedDate)
+                        showDatePicker = false
+                    }
+                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                }
+                .padding(16)
+                .presentationDetents([.medium])
+            }
+
+            // ── Estilo de ascensión: dos chips independientes, sin etiqueta
+            // encima — se pulsan directamente (Rodrigo, 2026-08-21).
+            Spacer().frame(height: 10)
+            HStack(spacing: 8) {
+                dateChip("A vista", selected: aVista) { aVista.toggle() }
+                dateChip("Al flash", selected: alFlash) { alFlash.toggle() }
+            }
+
+            // Aire tras los chips de fecha: iban pegados al campo (feedback).
+            Spacer().frame(height: 6)
             TextField("Añade una descripción (opcional)", text: $caption, axis: .vertical)
                 .lineLimit(2...4)
                 .font(.system(size: 14))
@@ -104,7 +154,7 @@ struct FeedPublishSheet: View {
 
             // Foto de celebración (opcional): fila para abrir la cámara o
             // miniatura 88×110 con ✕ para quitarla + "REPETIR FOTO".
-            if let photo = photoStore.image {
+            if let photo = photoStore.image(for: lineLabel) {
                 HStack(spacing: 12) {
                     ZStack(alignment: .topTrailing) {
                         Image(uiImage: photo)
@@ -117,7 +167,6 @@ struct FeedPublishSheet: View {
                         // ✕ quita la foto (y olvida el búfer: quitarla es
                         // deliberado, que no reaparezca si la hoja se recrea).
                         Button {
-                            photoStore.image = nil
                             CapturedPhotoStore.forget()
                         } label: {
                             Text("✕")
@@ -210,16 +259,16 @@ struct FeedPublishSheet: View {
             // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
             Button {
                 let c = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-                let photo = photoStore.image
+                let photo = photoStore.image(for: lineLabel)
                 CapturedPhotoStore.forget()   // consumida: no re-adoptar después
-                onPublish(always, c.isEmpty ? nil : c, photo)
+                onPublish(always, c.isEmpty ? nil : c, photo, sessionDate, aVista, alFlash)
             } label: {
                 Text("PUBLICAR EN EL FEED")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Cumbre.terra)
+                    .background(Cumbre.terraFill)
                     .clipShape(RoundedRectangle(cornerRadius: 2))
             }
             .buttonStyle(.plain)
@@ -228,7 +277,7 @@ struct FeedPublishSheet: View {
             // Secundario: solo diario.
             Button {
                 CapturedPhotoStore.forget()
-                onDiaryOnly()
+                onDiaryOnly(sessionDate, aVista, alFlash)
             } label: {
                 Text("SOLO EN MI DIARIO")
                     .font(Cumbre.mono(11, .bold)).tracking(1.4)
@@ -246,14 +295,8 @@ struct FeedPublishSheet: View {
         // RESCATE: si esta hoja es una RECREACIÓN (SwiftUI la reconstruyó
         // mientras la cámara estaba abierta), su store nace vacío pero la foto
         // vive en el búfer global → adoptarla si es de ESTA misma vía.
-        .onAppear {
-            if photoStore.image == nil,
-               let orphan = CapturedPhotoStore.recentOrphan(for: lineLabel) {
-                photoStore.image = orphan
-            }
-        }
         // Más alta que antes: descripción + fila/miniatura de foto.
-        .presentationDetents([.height(photoStore.image == nil ? 480 : 560)])
+        .presentationDetents([.height(photoStore.image(for: lineLabel) == nil ? 480 : 560)])
         // Permiso denegado: llevar a Ajustes (iOS no re-pregunta).
         .alert("Cumbre necesita acceso a la cámara", isPresented: $showCameraDenied) {
             Button("Cancelar", role: .cancel) {}
@@ -301,6 +344,35 @@ struct FeedPublishSettingRow: View {
             }
             .padding(.vertical, 12)
             .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+
+extension FeedPublishSheet {
+    static func iso(daysAgo: Int) -> String {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        return df.string(from: Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!)
+    }
+
+    static func shortDate(_ iso: String) -> String {
+        let parts = iso.split(separator: "-")
+        guard parts.count == 3, let m = Int(parts[1]), let d = Int(parts[2]) else { return iso }
+        let months = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"]
+        return "\(d) \(months[m - 1])"
+    }
+
+    @ViewBuilder
+    func dateChip(_ label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label).font(.system(size: 13, weight: .medium))
+                .foregroundStyle(selected ? .white : Cumbre.ink)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                    .fill(selected ? Cumbre.terra : Cumbre.paper))
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                    .stroke(selected ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

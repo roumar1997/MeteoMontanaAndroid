@@ -5,11 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.data.api.KtorForecastApi
-import com.meteomontana.android.data.api.KtorRadarApi
-import com.meteomontana.android.data.api.KtorSchoolApi
-import com.meteomontana.android.data.api.dto.RadarBoundsDto
-import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.School
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,6 +28,17 @@ import javax.inject.Inject
 enum class RadarDay { HOY, AYER }
 
 /**
+ * ¿Se conserva el frame [i] de una película de [size] frames? Un día son hasta
+ * 144 ciclos: para no fundir la memoria con bitmaps, la película usa pasos de
+ * ~30 min (1 de cada 3) SALVO la última hora ([keepLast] frames), que va
+ * completa (es lo que más importa). Función pura → testable sin Bitmap/red.
+ */
+internal fun radarKeepsFrame(i: Int, size: Int, keepLast: Int = 7): Boolean {
+    val cut = (size - keepLast).coerceAtLeast(0)
+    return i >= cut || i % 3 == 0
+}
+
+/**
  * Estado de la pestaña Radar: compuesto España del backend (PNG Cumbre),
  * timeline por día y escuelas para los pines.
  */
@@ -44,7 +50,7 @@ data class RadarUiState(
     val framesLoading: Boolean = false,
     val error: String? = null,
     val radar: String = "",
-    val bounds: RadarBoundsDto? = null,
+    val bounds: com.meteomontana.android.domain.model.RadarBounds? = null,
     val day: RadarDay = RadarDay.HOY,
     /** Frames en orden cronológico; el bitmap llega en cuanto se descarga. */
     val frames: List<RadarFrameUi> = emptyList(),
@@ -63,9 +69,10 @@ data class RadarFrameUi(
 
 @HiltViewModel
 class RadarViewModel @Inject constructor(
-    private val radarApi: KtorRadarApi,
-    private val schoolApi: KtorSchoolApi,
-    private val forecastApi: KtorForecastApi,
+    private val getRadarFrames: com.meteomontana.android.domain.usecase.radar.GetRadarFramesUseCase,
+    private val getRadarFramePng: com.meteomontana.android.domain.usecase.radar.GetRadarFramePngUseCase,
+    private val getSchools: com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase,
+    private val getTodayScores: com.meteomontana.android.domain.usecase.schools.GetTodayScoresUseCase,
     @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
@@ -82,12 +89,10 @@ class RadarViewModel @Inject constructor(
         _state.value = _state.value.copy(loading = true, error = null, day = day)
         viewModelScope.launch {
             try {
-                val dto = radarApi.getFrames(date = dateStr)
-                // Un día entero son hasta 144 ciclos: para no fundir la memoria
-                // con bitmaps, la película usa pasos de ~30 min salvo la última
-                // hora, que va completa (es lo que más importa).
-                val cut = (dto.frames.size - 7).coerceAtLeast(0)
-                val thinned = dto.frames.filterIndexed { i, _ -> i >= cut || i % 3 == 0 }
+                val dto = getRadarFrames(date = dateStr)
+                // Adelgaza la película (ver radarKeepsFrame): pasos de ~30 min
+                // salvo la última hora completa.
+                val thinned = dto.frames.filterIndexed { i, _ -> radarKeepsFrame(i, dto.frames.size) }
                 _state.value = _state.value.copy(
                     loading = false,
                     framesLoading = true,
@@ -149,7 +154,7 @@ class RadarViewModel @Inject constructor(
             val dir = File(appContext.cacheDir, "radar").apply { mkdirs() }
             val f = File(dir, "${radar}_${ts.replace(Regex("[^A-Za-z0-9-]"), "_")}.png")
             if (f.exists() && f.length() > 0) return@withContext f.readBytes()
-            val png = radarApi.getFramePng(radar, ts)
+            val png = getRadarFramePng(radar, ts)
             runCatching { f.writeBytes(png) }
             png
         }
@@ -167,10 +172,10 @@ class RadarViewModel @Inject constructor(
     private fun loadSchools() {
         viewModelScope.launch {
             try {
-                val schools = schoolApi.getSchools().map { it.toDomain() }
+                val schools = getSchools()
                 _state.value = _state.value.copy(schools = schools)
                 // Scores del día para colorear los pines (cacheado en el back).
-                val scores = forecastApi.getTodayScores(schools.map { it.id })
+                val scores = getTodayScores(schools.map { it.id })
                     .associate { it.id to it.todayScore }
                 _state.value = _state.value.copy(scoresById = scores)
             } catch (_: Exception) { /* sin pines; el radar sigue funcionando */ }

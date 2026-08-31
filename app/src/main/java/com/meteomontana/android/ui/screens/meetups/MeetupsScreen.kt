@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -48,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,21 +77,26 @@ fun MeetupsScreen(
     onOpenChat: (String) -> Unit = {},
     onCreateMeetup: () -> Unit = {},
     onOpenAlert: () -> Unit = {},
+    visible: Boolean = true,
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
-    val state by viewModel.listState.collectAsState()
-    val alertState by viewModel.alertState.collectAsState()
-    val schoolResults by viewModel.schoolResults.collectAsState()
-    val myGender by viewModel.myGender.collectAsState()
-    val dayScores by viewModel.dayScores.collectAsState()
-    val uLat by viewModel.userLat.collectAsState()
-    val uLon by viewModel.userLon.collectAsState()
+    val state by viewModel.listState.collectAsStateWithLifecycle()
+    val alertState by viewModel.alertState.collectAsStateWithLifecycle()
+    val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
+    val myGender by viewModel.myGender.collectAsStateWithLifecycle()
+    val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
+    val uLat by viewModel.userLat.collectAsStateWithLifecycle()
+    val uLon by viewModel.userLon.collectAsStateWithLifecycle()
     var showSchoolFilter by remember { mutableStateOf(false) }
     var showWomenGateDialog by remember { mutableStateOf(false) }
     var mapExpanded by remember { mutableStateOf(false) }
     var filtersExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { viewModel.loadAlertState() }
+    // Recarga el estado de la alerta cada vez que la pestaña se hace VISIBLE sin
+    // overlay encima (p.ej. al CERRAR la hoja de configurar alerta, que usa otro
+    // VM instance) → el icono refleja siempre el estado real (activa/desactivada).
+    // Antes se quedaba con el de la primera carga (gris activa / activa desactivada).
+    LaunchedEffect(visible) { if (visible) viewModel.loadAlertState() }
 
     // Filtros aplicados localmente (recomputa cuando llega la ubicación)
     val displayedMeetups = remember(state.meetups, state.filterPrivacy, state.maxDistanceKm, state.filterDays, state.filterDiscipline, uLat, uLon) {
@@ -155,14 +160,20 @@ fun MeetupsScreen(
             Column {
                 Text(stringResource(R.string.meetups_title).uppercase(), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // SIEMPRE "Quedar a escalar", como en iOS. Antes, en cuanto
+                // había alguna quedada, el título pasaba a ser "1 activas" — un
+                // contador donde el iPhone tiene el nombre de la pantalla. El
+                // número ya se ve en la lista, no hace falta de titular.
                 Text(
-                    text = if (displayedMeetups.isEmpty()) "Quedar a escalar"
-                           else "${displayedMeetups.size} activas",
+                    text = "Quedar a escalar",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Agrupados en una píldora, como el resto de cabeceras de la app
+            // (CumbrePillGroup) — se quedaron sueltos aquí, era el único sitio
+            // que aún se veía "antiguo" (Rodrigo, con captura, 2026-08-21).
+            com.meteomontana.android.ui.components.CumbrePillGroup {
                 com.meteomontana.android.ui.components.HelpButton(topicKey = "meetups")
                 IconButton(onClick = { viewModel.loadMeetups() }) {
                     Icon(Icons.Outlined.Refresh, contentDescription = "Recargar")
@@ -204,7 +215,8 @@ fun MeetupsScreen(
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = Spacing.xxl)
+                    contentPadding = PaddingValues(bottom = Spacing.xxl +
+                        com.meteomontana.android.ui.components.LocalTabBarInset.current)
                 ) {
                     // Toggle filtros
                     // Coach marks
@@ -240,11 +252,17 @@ fun MeetupsScreen(
                     }
 
                     item(key = "filter_toggle") {
+                        // Botón flotante con borde, como el "VER MAPA" de Escuelas —
+                        // antes era una barra a todo el ancho pegada al borde, el
+                        // único sitio de la app que aún se veía distinto (Rodrigo,
+                        // 2026-08-21).
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(0.dp))
+                                .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                                .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                                .border(1.dp, MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
                                 .clickable { filtersExpanded = !filtersExpanded }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
@@ -257,9 +275,9 @@ fun MeetupsScreen(
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f))
                             if (activeFilterCount > 0) {
-                                Box(Modifier.clip(RoundedCornerShape(2.dp))
+                                Box(Modifier.clip(com.meteomontana.android.ui.theme.CumbrePillShape)
                                     .background(MaterialTheme.colorScheme.primary)
-                                    .padding(horizontal = 6.dp, vertical = 1.dp)) {
+                                    .padding(horizontal = 7.dp, vertical = 1.dp)) {
                                     Text("$activeFilterCount", style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                                 }
@@ -551,30 +569,22 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
     }
 }
 
+// Envoltorio fino sobre el CumbreChip compartido: antes tenía su propio
+// diseño copiado a mano (Box + border sueltos) y por eso divergió del resto
+// de la app cuando el radio pasó a píldora en 2026-08-21. El envoltorio
+// existe solo para mantener la lambda al final en las 8 llamadas de abajo
+// (CumbreChip tiene `modifier` después de `onClick`, así que no admite
+// lambda-trailing directamente).
 @Composable
-private fun FilterGroupLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    com.meteomontana.android.ui.components.CumbreChip(label = label, selected = selected, onClick = onClick)
 }
 
 @Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MaterialTheme.colorScheme.primary
-             else MaterialTheme.colorScheme.surface
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary
-             else MaterialTheme.colorScheme.onSurfaceVariant
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(2.dp))
-            .background(bg)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-    ) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = fg,
-            fontWeight = FontWeight.Bold)
-    }
+private fun FilterGroupLabel(text: String) {
+    Text(text, style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+        fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -666,7 +676,7 @@ private fun scoreColor(score: Int): Color = when {
 }
 
 internal fun privacyLabel(privacy: String) = when (privacy) {
-    "FOLLOWERS" -> "Seguidos"
+    "FOLLOWERS" -> "Siguiendo"
     "WOMEN"     -> "No mixto"
     else        -> "Abierta"
 }

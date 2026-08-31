@@ -4,6 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.meteomontana.db.MeteoMontanaDb
 import com.meteomontana.db.Outbox
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Clock
@@ -15,6 +16,12 @@ object OutboxType {
     // y rutas LOCALES de las fotos (copiadas al almacenamiento de la app); el
     // flusher de cada plataforma sube las fotos y monta el request al reconectar.
     const val CONTRIBUTION_BOULDER = "CONTRIBUTION_BOULDER"
+    // EDICIÓN de una piedra que YA existe (añadir vías, poner o cambiar la foto
+    // de una cara, retrazar un muro) guardada sin red. Igual que la anterior,
+    // pero con targetBlockId: el backend reconcilia por lineId en vez de crear
+    // una piedra nueva. Hasta 2026-08-16 este flujo NO tenía cola — sin
+    // cobertura solo decía "no se pudo enviar" y había que repetirlo con red.
+    const val CONTRIBUTION_EDIT_BLOCK = "CONTRIBUTION_EDIT_BLOCK"
     const val NOTE         = "NOTE"
     const val SUBMISSION   = "SUBMISSION"
     const val JOURNAL        = "JOURNAL"        // vía marcada como hecha (POST /api/journal)
@@ -24,12 +31,15 @@ object OutboxType {
     const val FAVORITE_DELETE = "FAVORITE_DELETE" // escuela desmarcada favorita sin red (schoolId = id)
 }
 
-class OutboxRepository(private val db: MeteoMontanaDb) {
+class OutboxRepository(
+    private val db: MeteoMontanaDb,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
+) {
 
     private val q get() = db.schemaQueries
 
     fun observePending(): Flow<List<Outbox>> =
-        q.outboxAllFlow().asFlow().mapToList(Dispatchers.Default)
+        q.outboxAllFlow().asFlow().mapToList(dispatcher)
 
     suspend fun all(): List<Outbox> = q.outboxAll().executeAsList()
 

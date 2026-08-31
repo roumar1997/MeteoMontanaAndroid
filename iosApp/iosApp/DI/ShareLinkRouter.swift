@@ -16,6 +16,7 @@ final class ShareLinkRouter: ObservableObject {
         var meetupId: String? = nil
         var userHandle: String? = nil
         var openAdminReports: Bool = false   // push de denuncia → panel DENUNCIAS
+        var openAdminContributions: Bool = false // push de propuesta → panel PROPUESTAS
         var feedPostId: String? = nil        // push "feed_post" → detalle del post
         var chatPeerUid: String? = nil       // push "chat"/"message" → conversación 1-a-1
         var chatPeerName: String? = nil      // nombre del remitente (title del push)
@@ -28,6 +29,7 @@ final class ShareLinkRouter: ObservableObject {
             parts.append(meetupId ?? "")
             parts.append(userHandle ?? "")
             parts.append(openAdminReports ? "admin" : "")
+            parts.append(openAdminContributions ? "adminc" : "")
             parts.append(feedPostId ?? "")
             parts.append(chatPeerUid ?? "")
             parts.append(groupChatId ?? "")

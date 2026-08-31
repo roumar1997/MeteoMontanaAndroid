@@ -26,14 +26,38 @@ final class JournalViewModel: ObservableObject {
         self.deleteEntry = deleteEntry
     }
 
+    /** C3: agrupacion por mes PRECOMPUTADA (el body solo la lee). */
+    @Published var entriesByMonth: [String: [JournalSession]] = [:]
+    @Published var monthKeys: [String] = []
+    /// G: filtro por grado activo (nil = todos) + grados presentes ordenados.
+    @Published var gradeFilter: String? = nil
+    @Published var availableGrades: [String] = []
+
     func load() async {
         loading = true
         entries = (try? await getMyJournal.invoke()) ?? []
         stats = try? await getMyStats.invoke()
+        let calc = JournalStatsCalculator.shared
+        availableGrades = Set(entries.compactMap {
+            $0.grade?.trimmingCharacters(in: .whitespaces).lowercased()
+        }.filter { !$0.isEmpty })
+            .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
+        regroup()
         loading = false
     }
 
-    func add(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String) async {
+    /// Reagrupa por mes aplicando el filtro de grado (PRECOMPUTADO: nada de
+    /// agrupar en el body — lección del watchdog).
+    func regroup() {
+        let visible = gradeFilter.map { g in
+            entries.filter { $0.grade?.lowercased() == g }
+        } ?? entries
+        entriesByMonth = Dictionary(grouping: visible.sorted { $0.date > $1.date },
+                                    by: { String($0.date.prefix(7)) })
+        monthKeys = entriesByMonth.keys.sorted(by: >)
+    }
+
+    func add(blockName: String, grade: String, schoolId: String?, schoolName: String, sector: String, notes: String, discipline: String) async {
         let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
         let req = CreateJournalRequest(
             schoolId: schoolId,
@@ -43,12 +67,23 @@ final class JournalViewModel: ObservableObject {
             grade: grade.nilIfBlank,
             notes: notes.nilIfBlank,
             date: df.string(from: Date()),
-            discipline: nil,
+            discipline: discipline,   // antes iba nil → todo caía en "Bloques"
             lineId: nil,
-            status: nil
+            status: nil,
+            aVista: false,
+            alFlash: false
         )
         _ = try? await createEntry.invoke(req: req)
         await load()
+    }
+
+    /** C3: cambiar la fecha de una entrada y recargar. */
+    func changeDate(_ id: String, _ newDate: String) async {
+        if await reporting("No se pudo cambiar la fecha", {
+            try await AppDependencies.shared.container.updateJournalDate.invoke(id: id, date: newDate)
+        }) != nil {
+            await load()
+        }
     }
 
     func delete(_ id: String) {
@@ -72,7 +107,7 @@ struct JournalView: View {
                         Button { showAdd = true } label: {
                             Text("+ AÑADIR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8)
                                 .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                                .background(Cumbre.terra)
+                                .background(Cumbre.terraFill)
                         }
                         .buttonStyle(.plain).padding(16)
                         Divider().overlay(Cumbre.rule)
@@ -80,9 +115,51 @@ struct JournalView: View {
                             Text("Aún no has registrado bloques.")
                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(32)
                         } else {
-                            ForEach(vm.entries, id: \.id) { e in
-                                JournalRow(entry: e, schoolId: e.schoolId) { vm.delete(e.id) }
-                                Divider().overlay(Cumbre.rule)
+                            // Filtro por GRADO, con la paleta de los topos. El VM
+                            // ya lo calculaba y lo aplicaba, pero los chips no se
+                            // pintaban: la función estaba, sin manera de usarla
+                            // (Android sí los tenía).
+                            if vm.availableGrades.count > 1 {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        ForEach(vm.availableGrades, id: \.self) { g in
+                                            let estilo = GradeColor.chipStyle(g)
+                                            let color = estilo.dark ? Cumbre.ink : estilo.stroke
+                                            let activo = vm.gradeFilter == g
+                                            Button {
+                                                vm.gradeFilter = activo ? nil : g
+                                                vm.regroup()
+                                            } label: {
+                                                Text(g)
+                                                    .font(Cumbre.mono(11, .bold))
+                                                    .foregroundStyle(activo ? .white : color)
+                                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                                    .background(activo ? color : Color.clear)
+                                                    .overlay(RoundedRectangle(cornerRadius: 6)
+                                                        .stroke(color, lineWidth: 1))
+                                            }.buttonStyle(.plain)
+                                        }
+                                    }
+                                    .padding(.horizontal, 16).padding(.vertical, 6)
+                                }
+                            }
+                            // C3: agrupado por MES. PRECOMPUTADO en el VM — hacerlo
+                            // en el body relanzaba el calculo en cada frame (watchdog
+                            // 0x8BADF00D del 29-jul).
+                            let byMonth = vm.entriesByMonth
+                            ForEach(vm.monthKeys, id: \.self) { month in
+                                Text(JournalView.monthHeader(month) + " · \(byMonth[month]!.count)")
+                                    .font(Cumbre.mono(10, .bold)).tracking(1)
+                                    .foregroundStyle(Cumbre.terra)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 16).padding(.vertical, 8)
+                                ForEach(byMonth[month]!, id: \.id) { e in
+                                    JournalRow(entry: e, schoolId: e.schoolId,
+                                               onChangeDate: { newDate in
+                                                   Task { await vm.changeDate(e.id, newDate) }
+                                               }) { vm.delete(e.id) }
+                                    Divider().overlay(Cumbre.rule)
+                                }
                             }
                         }
                     }
@@ -93,8 +170,8 @@ struct JournalView: View {
         .navigationTitle("Mi diario")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAdd) {
-            AddBlockSheet { block, grade, schoolId, school, sector, notes in
-                Task { await vm.add(blockName: block, grade: grade, schoolId: schoolId, schoolName: school, sector: sector, notes: notes) }
+            AddBlockSheet { block, grade, schoolId, school, sector, notes, discipline in
+                Task { await vm.add(blockName: block, grade: grade, schoolId: schoolId, schoolName: school, sector: sector, notes: notes, discipline: discipline) }
             }
         }
         .task { await vm.load() }
@@ -127,8 +204,15 @@ struct JournalRow: View {
     var schoolId: String? = nil
     /// nº de piedra + sector resueltos en vivo del catálogo (no se guardan).
     var info: ViaCatalogInfo? = nil
+    /// C3: cambiar la fecha de la entrada (nil = no editable, diario ajeno).
+    var onChangeDate: ((String) -> Void)? = nil
+    /// Cambiar el estilo (a vista / al flash), independientes entre sí.
+    /// nil = no editable (diario ajeno).
+    var onChangeStyle: ((_ aVista: Bool, _ alFlash: Bool) -> Void)? = nil
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
     var onDelete: (() -> Void)? = nil
+    @State private var showDatePicker = false
+    @State private var pickedDate = Date()
 
     /// "Escuela · Piedra N · Sector" — lo que se pueda resolver del catálogo.
     private var subtitle: String {
@@ -145,12 +229,28 @@ struct JournalRow: View {
             if let g = (info?.grade ?? entry.grade), !g.isEmpty {
                 // Texto negro sobre grados claros (≤5c son blancos) para que se lea.
                 Text(g).font(Cumbre.mono(12, .bold))
-                    .foregroundStyle(GradeColor.style(g).dark ? .black : .white)
-                    .frame(width: 44, height: 32).background(GradeColor.color(g))
-                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: GradeColor.style(g).dark ? 1 : 0))
+                    .foregroundStyle(GradeColor.chipStyle(g).dark ? .black : .white)
+                    .frame(width: 44, height: 32).background(GradeColor.chip(g))
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: GradeColor.chipStyle(g).dark ? 1 : 0))
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                // Estilo de ascensión: solo se ve si hay algo que enseñar (ajeno)
+                // o si es editable (propio, para poder añadirlo después).
+                if entry.aVista || entry.alFlash || onChangeStyle != nil {
+                    HStack(spacing: 4) {
+                        if entry.aVista || onChangeStyle != nil {
+                            styleBadge("A VISTA", active: entry.aVista) {
+                                onChangeStyle?(!entry.aVista, entry.alFlash)
+                            }
+                        }
+                        if entry.alFlash || onChangeStyle != nil {
+                            styleBadge("AL FLASH", active: entry.alFlash) {
+                                onChangeStyle?(entry.aVista, !entry.alFlash)
+                            }
+                        }
+                    }
+                }
                 // Escuela + nº de piedra + sector (resueltos del catálogo en vivo).
                 if !subtitle.isEmpty {
                     Text(subtitle).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
@@ -163,19 +263,64 @@ struct JournalRow: View {
         }
     }
 
+    /// Chip pequeño de estilo (A VISTA / AL FLASH) — pulsable si onClick hace
+    /// algo (onChangeStyle != nil), para marcarlo/desmarcarlo sin diálogo.
+    private func styleBadge(_ label: String, active: Bool, onTap: @escaping () -> Void) -> some View {
+        Button(action: onTap) {
+            Text(label).font(Cumbre.mono(9, .bold))
+                .foregroundStyle(active ? .white : Cumbre.ink3)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(active ? Cumbre.terra : Cumbre.paper,
+                            in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                    .stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(onChangeStyle == nil)
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             // Si hay escuela, la parte izquierda navega a su detalle y abre la
             // piedra que contiene esta vía (deep-link del diario).
             if let sid = schoolId, !sid.isEmpty {
-                NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: entry.blockName)) { leading }
+                // lineId (único) antes que blockName (texto — puede coincidir con
+                // una vía de OTRA piedra con el mismo nombre autonumerado; mismo
+                // fallo que el del feed, 2026-08-18). null en entradas antiguas o
+                // creadas sin conexión, donde solo hay nombre.
+                NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: entry.lineId ?? entry.blockName)) { leading }
                     .buttonStyle(.plain)
             } else {
                 leading
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
-                Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                if onChangeDate != nil {
+                    Button { showDatePicker = true } label: {
+                        Text(String(entry.date.prefix(10))).font(Cumbre.mono(10, .bold))
+                            .foregroundStyle(Cumbre.terra)
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showDatePicker) {
+                        VStack(spacing: 12) {
+                            Text("CAMBIAR FECHA").font(Cumbre.mono(11, .bold)).tracking(1)
+                                .foregroundStyle(Cumbre.terra)
+                            DatePicker("", selection: $pickedDate, in: ...Date(),
+                                       displayedComponents: .date)
+                                .datePickerStyle(.graphical)
+                            Button("GUARDAR") {
+                                let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+                                onChangeDate?(df.string(from: pickedDate))
+                                showDatePicker = false
+                            }
+                            .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                        .padding(16)
+                        .presentationDetents([.medium])
+                    }
+                } else {
+                    Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                }
                 if let onDelete {
                     Button(action: onDelete) {
                         Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad)
@@ -227,6 +372,7 @@ struct LineSuggestion: Identifiable {
     let name: String
     let grade: String?
     let startType: String?
+    var discipline: String = "BOULDER"   // BOULDER (bloque) / ROUTE (vía) — de la piedra
     var label: String {
         let extras = [grade, startType].compactMap { $0 }.joined(separator: " · ")
         return (extras.isEmpty ? name : "\(name) · \(extras)") + " — \(blockName)"
@@ -306,7 +452,8 @@ final class AddBlockViewModel: ObservableObject {
             b.lines.map { l in
                 LineSuggestion(blockName: b.name,
                                name: l.name.isEmpty ? "L\(l.sortOrder + 1)" : l.name,
-                               grade: l.grade, startType: l.startType)
+                               grade: l.grade, startType: l.startType,
+                               discipline: b.discipline)
             }
         }
         let f = filter.trimmingCharacters(in: .whitespaces)
@@ -330,7 +477,8 @@ final class AddBlockViewModel: ObservableObject {
 /// Formulario para registrar un bloque escalado, con autocompletado de escuela,
 /// sector y vías reales — espejo de AddBlockSheet.kt de Android.
 struct AddBlockSheet: View {
-    let onSave: (String, String, String?, String, String, String) -> Void
+    // (block, grade, schoolId, school, sector, notes, discipline)
+    let onSave: (String, String, String?, String, String, String, String) -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = AddBlockViewModel()
     // Los sheets no heredan el modo claro/oscuro forzado por el tema → forzarlo
@@ -338,6 +486,9 @@ struct AddBlockSheet: View {
     @ObservedObject private var theme = ThemeManager.shared
 
     @State private var block = ""
+    // Modalidad: BOULDER (bloque) / ROUTE (vía). Antes se mandaba nil → la entrada
+    // caía siempre en "Bloques" y nunca en "Vías" (el diario separa por discipline).
+    @State private var discipline = "BOULDER"
     @State private var grade = ""
     @State private var schoolQuery = ""
     @State private var selectedSchool: School?
@@ -352,6 +503,7 @@ struct AddBlockSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     schoolField
                     sectorField
+                    modalityField
                     blockField
                     gradeField
                     field("NOTAS", $notes, "Comentarios")
@@ -365,7 +517,7 @@ struct AddBlockSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Guardar") {
                         let schoolName = selectedSchool?.name ?? schoolQuery
-                        onSave(block, grade, selectedSchool?.id, schoolName, sector, notes); dismiss()
+                        onSave(block, grade, selectedSchool?.id, schoolName, sector, notes, discipline); dismiss()
                     }.foregroundStyle(Cumbre.terra)
                         .disabled(block.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
@@ -422,10 +574,32 @@ struct AddBlockSheet: View {
         }
     }
 
+    // ─── MODALIDAD: bloque o vía (decide en qué lista del diario cae) ───
+    private var modalityField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("MODALIDAD").eyebrow()
+            HStack(spacing: 8) {
+                modalityOption("BLOQUE", active: discipline == "BOULDER") { discipline = "BOULDER" }
+                modalityOption("VÍA", active: discipline == "ROUTE") { discipline = "ROUTE" }
+            }
+        }
+    }
+
+    private func modalityOption(_ text: String, active: Bool, _ tap: @escaping () -> Void) -> some View {
+        Text(text)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(active ? Color.white : Cumbre.ink)
+            .frame(maxWidth: .infinity).padding(.vertical, 12)
+            .background(active ? Cumbre.terra : Cumbre.paper)
+            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .contentShape(Rectangle())
+            .onTapGesture(perform: tap)
+    }
+
     // ─── BLOQUE / VÍA con autocomplete ───
     private var blockField: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("BLOQUE / VÍA").eyebrow()
+            Text(discipline == "ROUTE" ? "VÍA" : "BLOQUE").eyebrow()
             TextField("ej: El Pollito", text: $block)
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .padding(10).background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
@@ -436,6 +610,7 @@ struct AddBlockSheet: View {
                         suggestionRow(l.label) {
                             block = l.name
                             if let g = l.grade, !g.isEmpty { grade = g }
+                            discipline = l.discipline   // hereda la modalidad de la vía catalogada
                         }
                     }
                 }
@@ -669,11 +844,48 @@ struct JournalBlocksListView: View {
     var viaInfo: [String: ViaCatalogInfo] = [:]
     /// nil = todos · false = solo bloques (BOULDER) · true = solo vías (ROUTE).
     var routeOnly: Bool? = nil
-    private var shown: [JournalSession] {
+    /// G: filtro por grado (chips con la paleta de topos).
+    @State private var gradeFilter: String? = nil
+    private var byDiscipline: [JournalSession] {
         guard let r = routeOnly else { return entries }
         return entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
     }
+    private var shown: [JournalSession] {
+        guard let g = gradeFilter else { return byDiscipline }
+        return byDiscipline.filter { $0.grade?.lowercased() == g }
+    }
+    private var availableGrades: [String] {
+        let calc = JournalStatsCalculator.shared
+        return Set(byDiscipline.compactMap {
+            $0.grade?.trimmingCharacters(in: .whitespaces).lowercased()
+        }.filter { !$0.isEmpty })
+            .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
+    }
     var body: some View {
+        VStack(spacing: 0) {
+        if availableGrades.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(availableGrades, id: \.self) { g in
+                        let st = GradeColor.chipStyle(g)
+                        let accent = st.dark ? Cumbre.ink : st.stroke
+                        let active = gradeFilter == g
+                        Button { gradeFilter = active ? nil : g } label: {
+                            Text(g).font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(active ? .white : accent)
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(RoundedRectangle(cornerRadius: 6)
+                                    .fill(active ? accent : Cumbre.paper))
+                                .overlay(RoundedRectangle(cornerRadius: 6)
+                                    .stroke(accent, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .padding(.vertical, 8)
+        }
         Group {
             if shown.isEmpty {
                 Text(routeOnly == true ? "Sin vías registradas." : "Sin bloques registrados.")
@@ -690,6 +902,7 @@ struct JournalBlocksListView: View {
                 }
             }
         }
+        }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -705,6 +918,9 @@ struct JournalStatsNav: View {
     /// Si se indica, "PROYECTOS" navega a los proyectos de ESE usuario (perfil
     /// público); si es nil, a los proyectos propios.
     var projectsUid: String? = nil
+    /// H: en el perfil AJENO se añaden las celdas ESTADÍSTICAS y
+    /// PUBLICACIONES (en el propio ya viven en su pantalla de cuenta).
+    var showStatsAndPosts: Bool = false
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
@@ -727,6 +943,16 @@ struct JournalStatsNav: View {
             NavigationLink(destination: ProjectsView(uid: projectsUid)) {
                 cell("\(stats.projectCount)", "PROYECTOS")
             }.buttonStyle(.plain)
+            if showStatsAndPosts {
+                HStack(spacing: 8) {
+                    NavigationLink(destination: StatsView(uid: projectsUid)) {
+                        cell("▸", "ESTADÍSTICAS")
+                    }.buttonStyle(.plain)
+                    NavigationLink(destination: MyPostsView(uid: projectsUid)) {
+                        cell("▸", "PUBLICACIONES")
+                    }.buttonStyle(.plain)
+                }
+            }
         }
     }
     private func cell(_ v: String, _ l: String) -> some View {
@@ -742,3 +968,14 @@ struct JournalStatsNav: View {
 }
 
 private extension String { var nilIfBlank: String? { trimmingCharacters(in: .whitespaces).isEmpty ? nil : self } }
+
+
+extension JournalView {
+    static func monthHeader(_ yyyyMm: String) -> String {
+        let names = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
+                     "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]
+        let parts = yyyyMm.split(separator: "-")
+        guard parts.count == 2, let m = Int(parts[1]), m >= 1, m <= 12 else { return yyyyMm }
+        return names[m - 1] + " " + parts[0]
+    }
+}

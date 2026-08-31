@@ -36,7 +36,7 @@ enum MapStyleKind: String, CaseIterable {
             json = """
             { "version": 8, "sources": { "sat": { "type": "raster",
               "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-              "tileSize": 256, "attribution": "Tiles © Esri" } },
+              "tileSize": 256, "maxzoom": 19, "attribution": "Tiles © Esri" } },
               "layers": [{ "id": "bg", "type": "background", "paint": { "background-color": "#F4F1E9" } }, { "id": "sat", "type": "raster", "source": "sat" }] }
             """
         }
@@ -149,11 +149,19 @@ struct MapLibreView: UIViewRepresentable {
     /// el re-centrado aunque la coordenada sea la misma que la última vez.
     var focusCoordinate: CLLocationCoordinate2D? = nil
     var focusZoom: Double = 15.2
+    /// Si true, `focusZoom` es un MÍNIMO: nunca aleja al usuario de donde ya
+    /// estaba. Lo usa el mapa de escuela; el radar no, porque allí enfocar
+    /// significa precisamente alejarse.
+    var nuncaAlejar: Bool = false
     var focusToken: Int = 0
     /// Si tiene ≥2 coordenadas, el foco ENCUADRA todas (bounds) en vez de
     /// centrar en focusCoordinate — p. ej. parking + sus sectores/piedras
     /// cercanos ("parking como puerta de entrada a su zona").
     var focusFitCoordinates: [CLLocationCoordinate2D] = []
+    /// Margen mínimo del encuadre, en grados de latitud. El de por defecto
+    /// (~450 m) está pensado para encuadrar ESCUELAS; al ir a un SECTOR, cuyas
+    /// piedras ocupan 30-55 m, ese margen lo dejaba casi sin acercar.
+    var focusMargenMinimo: Double = 0.004
     /// Capa de radar (lluvia AEMET cocinada por el backend): imagen
     /// georreferenciada que se estira entre las esquinas dadas.
     var radarImage: UIImage? = nil
@@ -164,6 +172,14 @@ struct MapLibreView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> MLNMapView {
         let map = MLNMapView(frame: .zero)
+        // La brujula del propio mapa: gira sola y al tocarla vuelve al norte.
+        // Se deja SIEMPRE visible; antes se desvanecia mirando al norte, y por
+        // eso llegamos a dibujar otra al lado.
+        map.compassView.compassVisibility = .visible
+        // A la IZQUIERDA y bajo el boton de ampliar, igual que en Android.
+        // Arriba a la derecha chocaba con el boton de PROPONER.
+        map.compassViewPosition = .topLeft
+        map.compassViewMargins = CGPoint(x: 12, y: 56)
         map.styleURL = style.styleURL()
         map.setCenter(center, zoomLevel: zoom, animated: false)
         map.delegate = context.coordinator
@@ -213,11 +229,18 @@ struct MapLibreView: UIViewRepresentable {
                 }
                 map.setVisibleCoordinateBounds(
                     context.coordinator.inflated(minLat: minLat, maxLat: maxLat,
-                                                 minLon: minLon, maxLon: maxLon),
+                                                 minLon: minLon, maxLon: maxLon,
+                                                 margenMinimo: focusMargenMinimo),
                     edgePadding: UIEdgeInsets(top: 60, left: 50, bottom: 60, right: 50),
                     animated: true)
             } else if let coord = focusCoordinate {
-                map.setCenter(coord, zoomLevel: focusZoom, animated: true)
+                // Con nuncaAlejar, focusZoom es un MÍNIMO y no un valor exacto:
+                // si el usuario ya se había acercado con los dedos, tocar una
+                // piedra no debe devolverle atrás (al cerrar su ficha tocaba
+                // rehacer el zoom cada vez — Rodrigo, 2026-08-16). El radar NO
+                // lo usa: allí enfocar sí significa alejarse a ver toda España.
+                let zoom = nuncaAlejar ? max(map.zoomLevel, focusZoom) : focusZoom
+                map.setCenter(coord, zoomLevel: zoom, animated: true)
             }
         }
 
@@ -230,6 +253,7 @@ struct MapLibreView: UIViewRepresentable {
         var currentStyle: MapStyleKind = .topo
         var tapRecognizer: UITapGestureRecognizer?
         private var lastSignature: String = ""
+        var lastUserSignature = ""
         private var lastFittedIds: Set<String> = []
         private var didLoadFit = false
         // autoFitToMarkers: el fit inicial se hace en mapViewDidFinishLoadingMap
@@ -283,10 +307,35 @@ struct MapLibreView: UIViewRepresentable {
         }
 
         func applyMarkersIfChanged(to map: MLNMapView, markers: [CumbreMarker], force: Bool) {
-            let sig = markers.map { $0.drawSignature }.joined(separator: ";")
+            // Firma en DOS niveles: el marcador de usuario (brújula/GPS) cambia
+            // varias veces por segundo — si SOLO cambió él, se reemplaza esa
+            // anotación y punto. Antes se recreaban TODAS (~100) por cada giro
+            // de 15° → trabajo pesado sostenido en el hilo principal (watchdog).
+            let others = markers.filter { $0.id != "__USER__" }
+            let userMarker = markers.first { $0.id == "__USER__" }
+            let baseSig = others.map { $0.drawSignature }.joined(separator: ";")
                 + "||" + parent.polylines.map { $0.signature }.joined(separator: ";")
-            if !force && sig == lastSignature { return }
+            if !force && baseSig == lastSignature {
+                if let u = userMarker, u.drawSignature != lastUserSignature {
+                    lastUserSignature = u.drawSignature
+                    if let old = byAnnotation.first(where: { $0.value.id == "__USER__" }) {
+                        if let ann = map.annotations?.first(where: { ObjectIdentifier($0) == old.key }) {
+                            map.removeAnnotation(ann)
+                        }
+                        byAnnotation.removeValue(forKey: old.key)
+                    }
+                    let a = CumbreAnnotation()
+                    a.coordinate = u.coordinate
+                    a.title = u.title
+                    a.marker = u
+                    byAnnotation[ObjectIdentifier(a)] = u
+                    map.addAnnotation(a)
+                }
+                return
+            }
+            let sig = baseSig
             lastSignature = sig
+            lastUserSignature = userMarker?.drawSignature ?? ""
             if let existing = map.annotations, !existing.isEmpty { map.removeAnnotations(existing) }
             byAnnotation.removeAll()
             polylineStyle.removeAll()
@@ -356,10 +405,23 @@ struct MapLibreView: UIViewRepresentable {
 
         /// Infla unos bounds con margen proporcional y un MÍNIMO absoluto: con
         /// puntos casi coincidentes, fitBounds se iba a zoom extremo.
+        ///
+        /// @param margenMinimo margen mínimo a cada lado, en grados de latitud.
+        ///   Por defecto 0,004° (~450 m), pensado para encuadrar ESCUELAS en el
+        ///   mapa general. Para un SECTOR es enorme: sus piedras ocupan 30-55 m
+        ///   (medido en Zarzalejo), así que ese mínimo convertía una caja de 55 m
+        ///   en casi 1 km y el mapa "no se acercaba" al pulsar el sector
+        ///   (reportado por Rodrigo en el build 142). Los sectores pasan un
+        ///   margen mucho menor.
         func inflated(minLat: Double, maxLat: Double,
-                      minLon: Double, maxLon: Double) -> MLNCoordinateBounds {
-            let latSpan = max((maxLat - minLat) * 0.30, 0.004)
-            let lonSpan = max((maxLon - minLon) * 0.30, 0.005)
+                      minLon: Double, maxLon: Double,
+                      margenMinimo: Double = 0.004) -> MLNCoordinateBounds {
+            // El margen en longitud se corrige por la latitud: a 40°, un grado
+            // de longitud mide un 77% de uno de latitud, y sin corregirlo el
+            // encuadre sale más estrecho de lo pedido.
+            let correccionLon = max(0.2, cos(((minLat + maxLat) / 2) * .pi / 180))
+            let latSpan = max((maxLat - minLat) * 0.30, margenMinimo)
+            let lonSpan = max((maxLon - minLon) * 0.30, margenMinimo / correccionLon)
             return MLNCoordinateBounds(
                 sw: CLLocationCoordinate2D(latitude: minLat - latSpan, longitude: minLon - lonSpan),
                 ne: CLLocationCoordinate2D(latitude: maxLat + latSpan, longitude: maxLon + lonSpan))
@@ -375,12 +437,14 @@ struct MapLibreView: UIViewRepresentable {
             // favoritas): fitBounds podría disparar un zoom inestable y "pillar" el
             // mapa. En ese caso centramos con un zoom fijo cómodo.
             if markers.count == 1 {
-                map.setCenter(markers[0].coordinate, zoomLevel: 14, animated: true)
+                map.setCenter(markers[0].coordinate, zoomLevel: 13, animated: true)  // M1: menos cerca
                 return
             }
+            // M1: más padding (48→90) → el mapa de escuela abre más ABIERTO (se ven
+            // sectores/piedras y contexto), a la par que Android, en vez de tan pegado.
             map.setVisibleCoordinateBounds(
                 inflated(minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon),
-                edgePadding: UIEdgeInsets(top: 48, left: 48, bottom: 48, right: 48),
+                edgePadding: UIEdgeInsets(top: 90, left: 90, bottom: 90, right: 90),
                 animated: true)
         }
 
@@ -432,8 +496,11 @@ struct MapLibreView: UIViewRepresentable {
                     ne: CLLocationCoordinate2D(latitude: lats.max()!, longitude: lons.max()!))
                 mapView.setVisibleCoordinateBounds(bounds,
                     edgePadding: UIEdgeInsets(top: 90, left: 60, bottom: 90, right: 60), animated: false)
-                if mapView.zoomLevel > 16.5 {
-                    mapView.setCenter(mapView.centerCoordinate, zoomLevel: 16.5, animated: false)
+                // Tope de zoom inicial 15 (antes 16.5): el mapa de escuela abría
+                // demasiado cerca cuando los elementos estaban juntos; con 15 se ve
+                // más contexto, a la par que Android (M1).
+                if mapView.zoomLevel > 15.0 {
+                    mapView.setCenter(mapView.centerCoordinate, zoomLevel: 15.0, animated: false)
                 }
             }
             // autoFitToMarkers: makeUIView llama con force=true que salta el fit
@@ -481,10 +548,13 @@ struct MapStyleChips: View {
 }
 
 extension UIColor {
-    /// Clave estable por color.
+    /// Clave estable por color. INCLUYE el alfa: el filtro de grado atenúa los
+    /// pines fuera de rango (mismo RGB, distinto alfa) — sin el alfa aquí, la
+    /// caché de iconos daba la misma clave y el pin no se repintaba al filtrar.
     var hexKey: String {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         getRed(&r, green: &g, blue: &b, alpha: &a)
-        return String(format: "%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+        return String(format: "%02X%02X%02X%02X",
+                      Int(r * 255), Int(g * 255), Int(b * 255), Int(a * 255))
     }
 }

@@ -2,6 +2,8 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.ui.theme.inkButtonColor
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -98,8 +100,8 @@ import org.maplibre.android.maps.Style
 @Composable
 internal fun StatsTab(
     stats: AdminStats?,
-    users: List<com.meteomontana.android.data.api.AdminUserRowDto>? = null,
-    notes: List<com.meteomontana.android.data.api.AdminNoteRowDto>? = null,
+    users: List<com.meteomontana.android.domain.model.AdminUserRow>? = null,
+    notes: List<com.meteomontana.android.domain.model.AdminNoteRow>? = null,
     onLoadUsers: () -> Unit = {},
     onLoadNotes: () -> Unit = {},
     onOpenUserProfile: (String) -> Unit = {},
@@ -130,8 +132,9 @@ internal fun StatsTab(
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard("PENDING", stats.submissionsPending, Modifier.weight(1f)) { onGoToTab("propuestas") }
-            StatCard("APROBADAS", stats.submissionsApproved, Modifier.weight(1f)) { onGoToTab("actividad") }
-            StatCard("RECHAZADAS", stats.submissionsRejected, Modifier.weight(1f)) { onGoToTab("actividad") }
+            // P6: cada cifra abre PROPUESTAS ya filtrada por su estado.
+            StatCard("APROBADAS", stats.submissionsApproved, Modifier.weight(1f)) { onGoToTab("propuestas:APPROVED") }
+            StatCard("RECHAZADAS", stats.submissionsRejected, Modifier.weight(1f)) { onGoToTab("propuestas:REJECTED") }
         }
     }
 
@@ -200,11 +203,46 @@ internal fun StatsTab(
                                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             }
                         } else {
+                            // R12: pulsar la nota la ENSEÑA entera (con VER
+                            // ESCUELA); antes saltaba a la escuela y la nota
+                            // no se veía por ningún lado.
+                            var noteDetail by remember {
+                                androidx.compose.runtime.mutableStateOf<com.meteomontana.android.domain.model.AdminNoteRow?>(null)
+                            }
+                            noteDetail?.let { nd ->
+                                androidx.compose.material3.AlertDialog(
+                                    onDismissRequest = { noteDetail = null },
+                                    confirmButton = {
+                                        if (nd.schoolId != null) {
+                                            androidx.compose.material3.TextButton(onClick = {
+                                                noteDetail = null
+                                                nd.schoolId?.let(onOpenSchool)
+                                            }) { Text("VER ESCUELA ▸") }
+                                        }
+                                    },
+                                    dismissButton = {
+                                        androidx.compose.material3.TextButton(onClick = { noteDetail = null }) {
+                                            Text("CERRAR")
+                                        }
+                                    },
+                                    title = { Text("Nota de ${nd.author ?: "anónimo"}") },
+                                    text = {
+                                        Column {
+                                            Text(nd.text, style = MaterialTheme.typography.bodyMedium)
+                                            Spacer(Modifier.height(Spacing.sm))
+                                            Text(listOfNotNull(nd.schoolId, nd.createdAt?.take(10))
+                                                    .joinToString(" · "),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                )
+                            }
                             LazyColumn {
                                 items(list.size) { i ->
                                     val n = list[i]
                                     Column(Modifier.fillMaxWidth()
-                                        .clickable { n.schoolId?.let(onOpenSchool) }
+                                        .clickable { noteDetail = n }
                                         .padding(vertical = 8.dp)) {
                                         Text(n.text, style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurface)
@@ -300,6 +338,7 @@ internal fun PushTab(
 
         // Destinatario: buscador de usuarios o TODOS.
         if (targetUid == null) {
+            val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             OutlinedTextField(value = query,
                 onValueChange = { query = it; onSearchUser(it) },
                 placeholder = { Text("Buscar destinatario por @usuario o nombre…") },
@@ -311,6 +350,7 @@ internal fun PushTab(
                     userResults.take(6).forEach { u ->
                         Row(Modifier.fillMaxWidth()
                             .clickable {
+                                closeKeyboard()
                                 targetUid = u.uid
                                 targetLabel = u.username?.let { "@" + it } ?: u.displayName
                                 query = ""; onClearSearch()
@@ -355,7 +395,7 @@ internal fun PushTab(
             enabled = !busy && title.isNotBlank() && body.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1C1C1A), contentColor = Color.White
+                containerColor = inkButtonColor(), contentColor = Color.White
             ),
             shape = MaterialTheme.shapes.small
         ) {
@@ -392,7 +432,7 @@ internal fun PushTab(
 @Composable
 internal fun DenunciasTab(
     reports: List<MeetupReport>,
-    contentReports: List<com.meteomontana.android.data.api.ContentReportDto> = emptyList(),
+    contentReports: List<com.meteomontana.android.domain.model.ContentReport> = emptyList(),
     onResolve: (String) -> Unit,
     onDismiss: (String) -> Unit,
     onRemoveContent: (String) -> Unit = {},
@@ -449,7 +489,7 @@ internal fun DenunciasTab(
 /** Card de denuncia de CONTENIDO: snapshot + motivo + RETIRAR / IGNORAR. */
 @Composable
 private fun ContentReportCard(
-    r: com.meteomontana.android.data.api.ContentReportDto,
+    r: com.meteomontana.android.domain.model.ContentReport,
     onRemove: () -> Unit,
     onIgnore: () -> Unit,
     onOpenAuthor: () -> Unit = {},
@@ -670,7 +710,7 @@ private fun reasonLabel(reason: String) = when (reason) {
  */
 @Composable
 internal fun UserModerationSheet(
-    mod: com.meteomontana.android.data.api.UserModerationDto?,
+    mod: com.meteomontana.android.domain.model.UserModeration?,
     loading: Boolean,
     onWarn: (String, String?) -> Unit,
     onSuspend: (String, Int, String?) -> Unit,

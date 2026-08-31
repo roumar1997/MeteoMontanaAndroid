@@ -59,9 +59,10 @@ final class FeedPostDetailViewModel: ObservableObject {
 
     func addComment(_ text: String, _ parentId: String?) async -> Bool {
         guard let p = post else { return false }
-        guard let created = try? await container.addFeedComment.invoke(
+        guard let created = await reporting("No se pudo enviar el comentario", {
+            try await container.addFeedComment.invoke(
             postId: p.id, text: text, parentId: parentId)
-        else { return false }
+        }) else { return false }
         comments.append(created)
         if let cur = post { post = copyPost(cur, commentCount: cur.commentCount + 1) }
         return true
@@ -170,8 +171,11 @@ struct FeedPostDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     FeedPostCard(
                         post: post,
-                        onOpenSchool: { id, _, lineName, blockId in
-                            navTarget = .school(id, lineName ?? blockId)
+                        onOpenSchool: { id, lineId, lineName, blockId in
+                            // Prioridad: lineId (único) > blockId (único) > lineName
+                            // (busca por texto en toda la escuela — puede chocar con
+                            // otra piedra que tenga una vía con el mismo nombre).
+                            navTarget = .school(id, lineId ?? blockId ?? lineName)
                         },
                         onOpenUser: { navTarget = .user($0) },
                         onToggleLike: { vm.toggleLike() },

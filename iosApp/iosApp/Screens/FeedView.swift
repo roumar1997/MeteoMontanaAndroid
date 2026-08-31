@@ -49,12 +49,17 @@ func feedKindLabel(_ kind: String, _ discipline: String?) -> String {
 }
 
 /// "hace 2 h" a partir de un createdAt "yyyy-MM-ddTHH:mm:ss" (hora del servidor).
-func feedRelativeTime(_ createdAt: String) -> String {
+private let feedTimeFormatter: DateFormatter = {
     let df = DateFormatter()
     df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
     df.locale = Locale(identifier: "en_US_POSIX")
     // La hora del servidor es UTC (interpretarla como local sumaba 2h en España).
     df.timeZone = TimeZone(identifier: "UTC")
+    return df
+}()
+
+func feedRelativeTime(_ createdAt: String) -> String {
+    let df = feedTimeFormatter
     guard let date = df.date(from: String(createdAt.prefix(19))) else { return "" }
     let minutes = max(Int(Date().timeIntervalSince(date) / 60), 0)
     if minutes < 1 { return "ahora" }
@@ -197,10 +202,12 @@ final class FeedViewModel: ObservableObject {
                     : try await container.unlikeFeedPost.invoke(postId: post.id)
                 updatePost(post.id) { copyPost($0, likedByMe: liked, likeCount: count.int64Value) }
             } catch {
-                // Revertir el optimismo si falló.
+                // Revertir el optimismo si falló + avisar (antes fallaba en silencio).
                 updatePost(post.id) {
                     copyPost($0, likedByMe: post.likedByMe, likeCount: post.likeCount)
                 }
+                ErrorPresenter.shared.show(
+                    ErrorPresenter.friendly(error, fallback: "No se pudo registrar el me gusta"))
             }
         }
     }
@@ -210,7 +217,10 @@ final class FeedViewModel: ObservableObject {
             do {
                 try await container.deleteFeedPost.invoke(postId: post.id)
                 posts.removeAll { $0.id == post.id }
-            } catch {}
+            } catch {
+                ErrorPresenter.shared.show(
+                    ErrorPresenter.friendly(error, fallback: "No se pudo borrar la publicación"))
+            }
         }
     }
 
@@ -225,9 +235,9 @@ final class FeedViewModel: ObservableObject {
     }
 
     func addComment(_ postId: Int64, _ text: String, _ parentId: String?) async -> FeedComment? {
-        guard let created = try? await container.addFeedComment.invoke(
-            postId: postId, text: text, parentId: parentId)
-        else { return nil }
+        guard let created = await reporting("No se pudo enviar el comentario", {
+            try await container.addFeedComment.invoke(postId: postId, text: text, parentId: parentId)
+        }) else { return nil }
         updatePost(postId) { copyPost($0, commentCount: $0.commentCount + 1) }
         return created
     }
@@ -267,7 +277,7 @@ func copyPost(_ p: FeedPost, likedByMe: Bool? = nil, likeCount: Int64? = nil,
         commentCount: commentCount ?? p.commentCount,
         mine: p.mine,
         startType: p.startType, caption: p.caption, photoUrl: p.photoUrl,
-        blockLines: p.blockLines)
+        blockLines: p.blockLines, otherFacesLines: p.otherFacesLines)
 }
 
 // MARK: - Vista principal
@@ -288,6 +298,9 @@ struct FeedView: View {
     @StateObject private var vm = FeedViewModel()
     @ObservedObject private var moderation = ModerationStore.shared
     @Environment(\.scenePhase) private var scenePhase
+    /// Vuelve a subir la lista arriba del todo — sube cada vez que se pulsa
+    /// la pestaña "Feed" estando YA en Feed (MainTabView lo incrementa).
+    var scrollToTopSignal: Int = 0
 
     @State private var commentsPost: FeedPost? = nil
     @State private var deleteCandidate: FeedPost? = nil
@@ -379,43 +392,50 @@ struct FeedView: View {
         .padding(.horizontal, 16).padding(.vertical, 10)
     }
 
-    /// Pestañas de texto subrayadas (tipo Instagram) + trofeo RANKING a la
-    /// derecha. Con el ranking activo, ninguna pestaña lleva subrayado.
+    /// Pestañas como celdas planas — mismo estilo "mochila" de las celdas de
+    /// estadísticas del perfil (bloque con borde fino, radio 8, activa con
+    /// borde interior terra), en vez del subrayado de antes.
     private var tabsRow: some View {
-        HStack(spacing: 20) {
-            feedTextTab("Explorar", selected: vm.tab == .all) { vm.selectTab(.all) }
-            feedTextTab("Siguiendo", selected: vm.tab == .following) { vm.selectTab(.following) }
-            feedTextTab("Mías", selected: vm.tab == .mine) { vm.selectTab(.mine) }
-            Spacer()
+        HStack(spacing: 8) {
+            feedCardTab("Explorar", selected: vm.tab == .all) { vm.selectTab(.all) }
+            feedCardTab("Siguiendo", selected: vm.tab == .following) { vm.selectTab(.following) }
+            feedCardTab("Mías", selected: vm.tab == .mine) { vm.selectTab(.mine) }
             Button { vm.selectTab(.ranking) } label: {
                 Image(systemName: "trophy")
-                    .font(.system(size: 17))
-                    .foregroundStyle(vm.tab == .ranking ? Cumbre.terra : Cumbre.ink3)
-                    .frame(width: 40, height: 40)
+                    .font(.system(size: 16))
+                    .foregroundStyle(vm.tab == .ranking ? Cumbre.terra : Cumbre.ink)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
+                    .background(Cumbre.paper)
+                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(
+                        vm.tab == .ranking ? Cumbre.terra : Cumbre.rule,
+                        lineWidth: vm.tab == .ranking ? 1.5 : 0.5))
+                    .clipShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
             }
             .buttonStyle(.plain)
         }
-        .padding(.leading, 16).padding(.trailing, 4)
+        .padding(.horizontal, 16).padding(.vertical, 10)
     }
 
-    private func feedTextTab(_ label: String, selected: Bool,
+    private func feedCardTab(_ label: String, selected: Bool,
                              action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 0) {
-                Text(label)
-                    .font(.system(size: 14, weight: selected ? .bold : .regular))
-                    .foregroundStyle(selected ? Cumbre.ink : Cumbre.ink3)
-                    .padding(.top, 10).padding(.bottom, 6)
-                Rectangle()
-                    .fill(selected ? Cumbre.terra : Color.clear)
-                    .frame(height: 2)
-            }
-            .fixedSize()
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(selected ? Cumbre.terra : Cumbre.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+                .background(Cumbre.paper)
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(
+                    selected ? Cumbre.terra : Cumbre.rule,
+                    lineWidth: selected ? 1.5 : 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         }
         .buttonStyle(.plain)
     }
 
-    /// Fila "Mostrar:" con píldoras Todo / Ascensos / Piedras nuevas.
+    /// Fila "Mostrar:" — mismo estilo "mochila" que las pestañas de arriba
+    /// (celda plana, borde fino, activa con borde interior terra).
     private var filterRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
@@ -433,11 +453,13 @@ struct FeedView: View {
         Button(action: action) {
             Text(label)
                 .font(Cumbre.mono(11, .bold)).tracking(0.4)
-                .foregroundStyle(selected ? .white : Cumbre.ink3)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(selected ? Cumbre.terra : Cumbre.paper)
-                .clipShape(RoundedRectangle(cornerRadius: 2))
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                .foregroundStyle(selected ? Cumbre.terra : Cumbre.ink)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Cumbre.paper)
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(
+                    selected ? Cumbre.terra : Cumbre.rule,
+                    lineWidth: selected ? 1.5 : 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         }
         .buttonStyle(.plain)
     }
@@ -484,38 +506,50 @@ struct FeedView: View {
             }
             .refreshable { await vm.refreshSilent() }
         } else {
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    if visible.isEmpty {
-                        Text("No hay publicaciones con este filtro.")
-                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 40)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        Color.clear.frame(height: 0).id("feedTop")
+                        if visible.isEmpty {
+                            Text("No hay publicaciones con este filtro.")
+                                .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                        }
+                        ForEach(visible, id: \.id) { post in
+                            FeedPostCard(
+                                post: post,
+                                onOpenSchool: { id, lineId, lineName, blockId in
+                                    // Prioridad: lineId (único, sin ambigüedad) >
+                                    // blockId (único) > lineName (busca por texto
+                                    // en TODA la escuela — con nombres autonumerados
+                                    // tipo "4" puede coincidir con la vía de OTRA
+                                    // piedra distinta y abrir la equivocada; pasó de
+                                    // verdad, Rodrigo, 2026-08-18: se descartaba
+                                    // lineId aquí mismo con "_" pese a tenerlo).
+                                    navTarget = .school(id, lineId ?? blockId ?? lineName)
+                                },
+                                onOpenUser: { navTarget = .user($0) },
+                                onToggleLike: { vm.toggleLike(post) },
+                                onOpenComments: { commentsPost = post },
+                                onDelete: { deleteCandidate = post },
+                                onReport: post.mine ? nil : { reportPost = post })
+                        }
+                        if !vm.endReached {
+                            // Sentinel: al aparecer (final de la lista) pide otra página.
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(16)
+                                .onAppear { Task { await vm.loadMore() } }
+                        }
                     }
-                    ForEach(visible, id: \.id) { post in
-                        FeedPostCard(
-                            post: post,
-                            onOpenSchool: { id, _, lineName, blockId in
-                                // Post de piedra nueva: sin vía → abre por id de piedra.
-                                navTarget = .school(id, lineName ?? blockId)
-                            },
-                            onOpenUser: { navTarget = .user($0) },
-                            onToggleLike: { vm.toggleLike(post) },
-                            onOpenComments: { commentsPost = post },
-                            onDelete: { deleteCandidate = post },
-                            onReport: post.mine ? nil : { reportPost = post })
-                    }
-                    if !vm.endReached {
-                        // Sentinel: al aparecer (final de la lista) pide otra página.
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(16)
-                            .onAppear { Task { await vm.loadMore() } }
-                    }
+                    .padding(.horizontal, 12).padding(.vertical, 12)
                 }
-                .padding(.horizontal, 12).padding(.vertical, 12)
+                .refreshable { await vm.refreshSilent() }
+                .onChange(of: scrollToTopSignal) { _, _ in
+                    withAnimation { proxy.scrollTo("feedTop", anchor: .top) }
+                }
             }
-            .refreshable { await vm.refreshSilent() }
         }
     }
 
@@ -528,535 +562,5 @@ struct FeedView: View {
         default:
             return "Todavía no hay actividad.\nMarca una vía como hecha y estrena el feed."
         }
-    }
-}
-
-/// Nombre visible del autor ("@usuario" si no hay displayName).
-func feedAuthorLabel(_ author: FeedAuthor?) -> String? {
-    guard let author else { return nil }
-    if let d = author.displayName, !d.isEmpty { return d }
-    if let u = author.username, !u.isEmpty { return "@" + u }
-    return nil
-}
-
-// MARK: - Tarjeta de post (reutilizada por feed, detalle y perfil público)
-
-struct FeedPostCard: View {
-    let post: FeedPost
-    // (schoolId, lineId, lineName, blockId) — blockId abre la piedra en los
-    // posts "piedra nueva" (sin vía).
-    let onOpenSchool: (String, String?, String?, String?) -> Void
-    let onOpenUser: (String) -> Void
-    let onToggleLike: () -> Void
-    let onOpenComments: () -> Void
-    let onDelete: () -> Void
-    /// Denunciar el post (solo posts ajenos); nil = sin bandera.
-    var onReport: (() -> Void)? = nil
-    /// Líneas máximas de la caption (nil en el detalle = entera).
-    var captionMaxLines: Int? = 3
-
-    /// Foto de celebración ampliada a pantalla completa (tap en la miniatura).
-    @State private var showFullPhoto = false
-
-    private var celebrationUrl: String? {
-        guard let u = post.photoUrl, !u.isEmpty else { return nil }
-        return u
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            headerRow
-            topoImage
-            textBlock
-            Divider().overlay(Cumbre.rule)
-            actionsRow
-        }
-        .background(Cumbre.paper)
-        .clipShape(RoundedRectangle(cornerRadius: 2))
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
-        .fullScreenCover(isPresented: $showFullPhoto) {
-            if let url = celebrationUrl {
-                FullScreenPhotoView(photoUrl: url) { showFullPhoto = false }
-            }
-        }
-    }
-
-    // ── Cabecera: avatar + nombre + eyebrow del tipo + tiempo relativo ──
-    private var headerRow: some View {
-        Button { onOpenUser(post.author.uid) } label: {
-            HStack(spacing: 10) {
-                AvatarCircle(url: post.author.photoUrl, size: 36)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(authorName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Cumbre.ink)
-                        .lineLimit(1)
-                    Text(feedKindLabel(post.kind, post.discipline))
-                        .font(Cumbre.mono(10, .bold)).tracking(1.2)
-                        .foregroundStyle(Cumbre.terra)
-                }
-                Spacer()
-                Text(feedRelativeTime(post.createdAt))
-                    .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-            }
-            .padding(.horizontal, 12).padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var authorName: String {
-        if let d = post.author.displayName, !d.isEmpty { return d }
-        if let u = post.author.username, !u.isEmpty { return "@" + u }
-        return String(post.author.uid.prefix(6))
-    }
-
-    // ── Imagen: foto de la cara con SOLO la línea de esta vía. La foto de
-    // celebración (si la hay) va como miniatura superpuesta arriba-derecha;
-    // sin topo, la celebración ES la imagen principal ──
-    @ViewBuilder private var topoImage: some View {
-        if let photo = post.photoPath, !photo.isEmpty {
-            ZStack(alignment: .topTrailing) {
-                Button {
-                    if let sid = post.schoolId { onOpenSchool(sid, post.lineId, post.lineName, post.blockId) }
-                } label: {
-                    TopoPhotoView(photoUrl: photo, lines: postLines)
-                }
-                .buttonStyle(.plain)
-                if let celebration = celebrationUrl {
-                    Button { showFullPhoto = true } label: {
-                        FeedCelebrationThumb(photoUrl: celebration)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(8)
-                }
-            }
-        } else if let celebration = celebrationUrl {
-            Button { showFullPhoto = true } label: {
-                FeedMainCelebrationImage(photoUrl: celebration)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private var postLines: [TopoLineVM] {
-        let points = TopoParse.points(post.linePath)
-        if !points.isEmpty {
-            return [TopoLineVM(id: post.lineId ?? "feed", name: post.lineName,
-                               grade: post.grade, startType: post.startType, points: points)]
-        }
-        // Piedra nueva (NEW_BLOCK, sin lineId): todas las vías de la cara
-        // portada (blockLines del backend — antes la foto salía sin líneas).
-        guard let lines = post.blockLines else { return [] }
-        return lines.enumerated().compactMap { idx, l in
-            let pts = TopoParse.points(l.linePath)
-            guard !pts.isEmpty else { return nil }
-            return TopoLineVM(id: "feed-\(idx)", name: l.name,
-                              grade: l.grade, startType: l.startType, points: pts)
-        }
-    }
-
-    // ── Texto: «vía · grado — piedra · escuela · roca» ──
-    @ViewBuilder private var textBlock: some View {
-        let title = feedPostTitle(post)
-        let place = feedPostPlace(post)
-        Button {
-            if let sid = post.schoolId { onOpenSchool(sid, post.lineId, post.lineName, post.blockId) }
-        } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                if !title.isEmpty {
-                    Text(title)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Cumbre.ink)
-                }
-                if !place.isEmpty {
-                    Text(place)
-                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                }
-                // Descripción del autor (caption): recortada en la tarjeta,
-                // entera en el detalle (captionMaxLines = nil).
-                if let caption = post.caption, !caption.isEmpty {
-                    MentionText(text: caption, onOpenUser: onOpenUser)
-                        .lineLimit(captionMaxLines)
-                        .padding(.top, 4)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12).padding(.vertical, 8)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    // ── Acciones: like + comentarios + compartir + borrar/denunciar ──
-    private var actionsRow: some View {
-        HStack(spacing: 2) {
-            Button(action: onToggleLike) {
-                Image(systemName: post.likedByMe ? "heart.fill" : "heart")
-                    .font(.system(size: 17))
-                    .foregroundStyle(post.likedByMe ? Cumbre.terra : Cumbre.ink3)
-                    .frame(width: 40, height: 40)
-            }
-            .buttonStyle(.plain)
-            if post.likeCount > 0 {
-                Text("\(post.likeCount)")
-                    .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-            }
-            Button(action: onOpenComments) {
-                Image(systemName: "bubble.right")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Cumbre.ink3)
-                    .frame(width: 40, height: 40)
-            }
-            .buttonStyle(.plain)
-            if post.commentCount > 0 {
-                Text("\(post.commentCount)")
-                    .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-            }
-            // Compartir como IMAGEN 1080×1920 (sin enlace).
-            Button {
-                Task { await ShareFeedPostImage.share(post: post) }
-            } label: {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Cumbre.ink3)
-                    .frame(width: 40, height: 40)
-            }
-            .buttonStyle(.plain)
-            // Directo a Instagram Stories — SOLO si hay Facebook App ID.
-            if ShareFeedPostImage.canShareToStories {
-                Button {
-                    Task { await ShareFeedPostImage.shareToStories(post: post) }
-                } label: {
-                    Text("HISTORIAS")
-                        .font(Cumbre.mono(10, .bold)).tracking(1.2)
-                        .foregroundStyle(Cumbre.terra)
-                        .padding(.horizontal, 8).padding(.vertical, 12)
-                }
-                .buttonStyle(.plain)
-            }
-            Spacer()
-            if post.mine {
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Cumbre.ink3)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-            } else if let onReport {
-                // Bandera de denuncia (posts ajenos), zona táctil ≥40pt.
-                Button(action: onReport) {
-                    Image(systemName: "flag")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Cumbre.ink3)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 4)
-    }
-}
-
-// MARK: - Hoja de comentarios (patrón de los comentarios de vías)
-
-/// Mención a insertar al responder: "@username " o, si el autor no tiene
-/// username, su nombre visible — así RESPONDER siempre cambia algo visible.
-func feedReplyMention(_ c: FeedComment) -> String {
-    if let u = c.author?.username { return "@" + u + " " }
-    if let n = c.author?.displayName { return n + " " }
-    return ""
-}
-
-/// Copia de un FeedComment con el estado de like cambiado (los data class de
-/// Kotlin llegan a Swift sin copy con defaults).
-func copyCommentLike(_ c: FeedComment, liked: Bool, count: Int64) -> FeedComment {
-    FeedComment(
-        id: c.id, postId: c.postId, uid: c.uid, author: c.author,
-        text: c.text, createdAt: c.createdAt, mine: c.mine,
-        likeCount: count, likedByMe: liked, parentId: c.parentId)
-}
-
-/// Ordena los comentarios en hilos: cada raíz seguido de TODAS sus respuestas
-/// (también las de respuestas, aplanadas bajo el mismo raíz, estilo Instagram)
-/// en orden cronológico. Respuestas sin raíz visible van al final.
-func feedThreadOrder(_ list: [FeedComment]) -> [FeedComment] {
-    let byId = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
-    func rootId(_ c: FeedComment) -> String {
-        var cur = c
-        var guardCount = 0
-        while let p = cur.parentId, guardCount < 50 {
-            guard let parent = byId[p] else { return p }
-            cur = parent
-            guardCount += 1
-        }
-        return cur.id
-    }
-    let roots = list.filter { $0.parentId == nil }
-    let replies = Dictionary(grouping: list.filter { $0.parentId != nil }, by: rootId)
-    let rootIds = Set(roots.map { $0.id })
-    var out: [FeedComment] = []
-    for r in roots {
-        out.append(r)
-        out.append(contentsOf: replies[r.id] ?? [])
-    }
-    for (rid, group) in replies where !rootIds.contains(rid) {
-        out.append(contentsOf: group)
-    }
-    return out
-}
-
-struct FeedCommentsSheet: View {
-    let post: FeedPost
-    let loadComments: (Int64) async -> [FeedComment]?
-    let addComment: (Int64, String, String?) async -> FeedComment?
-    let deleteComment: (Int64, String) async -> Bool
-    /// (commentId, like) → likeCount actualizado, nil si falló.
-    let toggleCommentLike: (String, Bool) async -> Int64?
-    let onOpenUser: (String) -> Void
-
-    @ObservedObject private var moderation = ModerationStore.shared
-    @Environment(\.dismiss) private var dismiss
-    @State private var comments: [FeedComment]? = nil
-    @State private var text = ""
-    @State private var sending = false
-    @State private var reportComment: FeedComment? = nil
-    /// Comentario al que se está respondiendo (banner sobre el campo).
-    @State private var replyTo: FeedComment? = nil
-    @FocusState private var commentFocused: Bool
-
-    private func patchComment(_ id: String, _ transform: (FeedComment) -> FeedComment) {
-        comments = comments?.map { $0.id == id ? transform($0) : $0 }
-    }
-
-    private func toggleLike(_ comment: FeedComment) {
-        let liked = !comment.likedByMe
-        // Optimista (como el like del post); si el server falla, se revierte.
-        patchComment(comment.id) {
-            copyCommentLike($0, liked: liked, count: max($0.likeCount + (liked ? 1 : -1), 0))
-        }
-        Task {
-            if let count = await toggleCommentLike(comment.id, liked) {
-                patchComment(comment.id) { copyCommentLike($0, liked: liked, count: count) }
-            } else {
-                patchComment(comment.id) { _ in comment }
-            }
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Text("COMENTARIOS")
-                .font(Cumbre.mono(10, .bold)).tracking(1.8)
-                .foregroundStyle(Cumbre.terra)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16).padding(.vertical, 10)
-            Divider().overlay(Cumbre.rule)
-            commentsList
-            replyBanner
-            MentionSuggestionsView(text: $text)
-            inputRow
-        }
-        .background(Cumbre.bg.ignoresSafeArea())
-        .presentationDetents([.medium, .large])
-        .task {
-            comments = await loadComments(post.id) ?? []
-        }
-        .sheet(item: $reportComment) { c in
-            ReportSheet(
-                title: "DENUNCIAR COMENTARIO",
-                authorLabel: feedAuthorLabel(c.author)
-            ) { reason, alsoBlock in
-                let blockUid = c.author?.uid ?? c.uid
-                moderation.report(
-                    targetType: "FEED_COMMENT", targetId: c.id, reason: reason,
-                    alsoBlockUid: alsoBlock ? blockUid : nil)
-                reportComment = nil
-            }
-        }
-    }
-
-    @ViewBuilder private var commentsList: some View {
-        if let list = comments {
-            let visible = list.filter { !moderation.hiddenIds.contains("FEED_COMMENT:\($0.id)") }
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    if visible.isEmpty {
-                        Text("Sé el primero en comentar.")
-                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(16)
-                    }
-                    ForEach(feedThreadOrder(visible), id: \.id) { comment in
-                        FeedCommentRow(
-                            comment: comment,
-                            onOpenUser: onOpenUser,
-                            onDelete: comment.mine ? {
-                                Task {
-                                    if await deleteComment(post.id, comment.id) {
-                                        comments = comments?.filter { $0.id != comment.id }
-                                    }
-                                }
-                            } : nil,
-                            onReport: comment.mine ? nil : { reportComment = comment },
-                            isReply: comment.parentId != nil,
-                            onToggleLike: { toggleLike(comment) },
-                            onReply: {
-                                replyTo = comment
-                                // Mención automática (estilo Instagram).
-                                let mention = feedReplyMention(comment)
-                                if !mention.isEmpty, !text.hasPrefix(mention) {
-                                    text = mention + text
-                                }
-                            })
-                        Divider().overlay(Cumbre.rule)
-                    }
-                }
-            }
-        } else {
-            ProgressView().frame(maxWidth: .infinity).padding(32)
-            Spacer()
-        }
-    }
-
-    @ViewBuilder private var replyBanner: some View {
-        if let target = replyTo {
-            HStack {
-                Text("Respondiendo a " + (feedAuthorLabel(target.author) ?? ""))
-                    .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-                Spacer()
-                Button { replyTo = nil } label: {
-                    Text("✕").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                        .frame(width: 32, height: 32)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 16)
-        }
-    }
-
-    private var inputRow: some View {
-        HStack(spacing: 8) {
-            TextField("Escribe un comentario…", text: $text, axis: .vertical)
-                .lineLimit(1...3)
-                .font(.system(size: 14))
-                .foregroundStyle(Cumbre.ink)
-                .focused($commentFocused)
-                .padding(.horizontal, 10).padding(.vertical, 9)
-                .background(Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
-            Button {
-                let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !t.isEmpty, !sending else { return }
-                sending = true
-                // Resignar el foco antes de vaciar (ver nota en FeedPostDetailView):
-                // con axis:.vertical un `text = ""` con el campo enfocado no limpia
-                // lo visible → el mensaje se quedaba y se podía reenviar.
-                commentFocused = false
-                Task {
-                    if let created = await addComment(post.id, t, replyTo?.id) {
-                        comments = (comments ?? []) + [created]
-                        text = ""
-                        replyTo = nil
-                    }
-                    sending = false
-                }
-            } label: {
-                Image(systemName: "paperplane")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Cumbre.terra)
-                    .frame(width: 40, height: 40)
-            }
-            .buttonStyle(.plain)
-            .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty || sending)
-        }
-        .padding(.horizontal, 12).padding(.vertical, 10)
-    }
-}
-
-struct FeedCommentRow: View {
-    let comment: FeedComment
-    let onOpenUser: (String) -> Void
-    var onDelete: (() -> Void)? = nil
-    /// Denunciar comentario ajeno; nil = sin bandera.
-    var onReport: (() -> Void)? = nil
-    /// true = respuesta (se indenta bajo su comentario raíz).
-    var isReply: Bool = false
-    var onToggleLike: (() -> Void)? = nil
-    var onReply: (() -> Void)? = nil
-
-    private var authorUid: String? { comment.author?.uid ?? comment.uid }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Button { if let u = authorUid { onOpenUser(u) } } label: {
-                AvatarCircle(url: comment.author?.photoUrl, size: 28)
-            }
-            .buttonStyle(.plain)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 8) {
-                    Button { if let u = authorUid { onOpenUser(u) } } label: {
-                        Text(feedAuthorLabel(comment.author) ?? "")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Cumbre.ink)
-                    }
-                    .buttonStyle(.plain)
-                    Text(feedRelativeTime(comment.createdAt))
-                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-                }
-                MentionText(text: comment.text, onOpenUser: onOpenUser)
-                // Acciones: like (corazón + contador) y responder.
-                HStack(spacing: 4) {
-                    // Zona táctil ≥40pt (padding generoso), como las banderas.
-                    if let onToggleLike {
-                        Button(action: onToggleLike) {
-                            HStack(spacing: 4) {
-                                Image(systemName: comment.likedByMe ? "heart.fill" : "heart")
-                                    .font(.system(size: 12))
-                                if comment.likeCount > 0 {
-                                    Text("\(comment.likeCount)").font(Cumbre.mono(10))
-                                }
-                            }
-                            .foregroundStyle(comment.likedByMe ? Cumbre.terra : Cumbre.ink3)
-                            .padding(.horizontal, 10).padding(.vertical, 12)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    if let onReply {
-                        Button(action: onReply) {
-                            Text("RESPONDER")
-                                .font(Cumbre.mono(10, .bold)).tracking(1.2)
-                                .foregroundStyle(Cumbre.ink3)
-                                .padding(.horizontal, 10).padding(.vertical, 12)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            Spacer()
-            if let onDelete {
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                        .frame(width: 40, height: 40)
-                }
-                .buttonStyle(.plain)
-            }
-            if let onReport {
-                // Zona táctil ≥40pt, como las banderas existentes.
-                Button(action: onReport) {
-                    Image(systemName: "flag")
-                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                        .frame(width: 40, height: 40)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.leading, isReply ? 44 : 16)
-        .padding(.trailing, 16)
-        .padding(.vertical, 10)
     }
 }

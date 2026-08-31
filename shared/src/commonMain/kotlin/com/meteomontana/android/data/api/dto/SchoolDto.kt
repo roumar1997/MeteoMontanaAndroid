@@ -13,5 +13,6 @@ data class SchoolDto(
     @SerialName("rockType") val rockType: String? = null,
     @SerialName("lat")      val lat: Double,
     @SerialName("lon")      val lon: Double,
-    @SerialName("source")   val source: String? = null
+    @SerialName("source")   val source: String? = null,
+    @SerialName("country")  val country: String? = null
 )

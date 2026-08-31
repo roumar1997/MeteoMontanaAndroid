@@ -7,12 +7,30 @@ import Shared
 /// TestFlight interno) hablan con el backend de **staging**; los builds
 /// **Release** (App Store) con **producción**. Así desarrollar nunca afecta a
 /// los usuarios reales.
+/// El .ipa de DESARROLLO se compila en RELEASE (la velocidad real de SwiftUI:
+/// los cierres 0x8BADF00D eran el runtime Debug sin optimizar) pero debe seguir
+/// apuntando a staging. ios-ci.yml cambia este flag a true con sed ANTES de
+/// compilar; el workflow de prod no lo toca (queda false → producción).
+enum BuildFlags {
+    static let ciStaging = false
+
+    /// Sello de compilación, que se ve en Ajustes. El CI lo sustituye por la
+    /// fecha real al construir el `.ipa`; en local queda "local".
+    ///
+    /// Existe porque hoy nos ha costado media mañana distinguir "no te ha
+    /// llegado el arreglo" de "no lo has arreglado": con la fecha a la vista, la
+    /// pregunta se responde en dos segundos.
+    static let buildStamp = "local"
+}
+
 enum AppConfig {
     static let apiBaseUrl: String = {
         #if DEBUG
         return "https://meteomontanaapi-staging.up.railway.app/api/"
         #else
-        return "https://api.climbingteams.com/api/"
+        return BuildFlags.ciStaging
+            ? "https://meteomontanaapi-staging.up.railway.app/api/"
+            : "https://api.climbingteams.com/api/"
         #endif
     }()
 }

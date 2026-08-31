@@ -13,7 +13,7 @@ import com.meteomontana.android.domain.usecase.meetups.JoinMeetupUseCase
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.KickMeetupMemberUseCase
-import com.meteomontana.android.domain.usecase.meetups.MeetupAlertState
+import com.meteomontana.android.domain.model.MeetupAlertState
 import com.meteomontana.android.domain.usecase.meetups.ReportMeetupUseCase
 import com.meteomontana.android.domain.usecase.meetups.SetMeetupAlertUseCase
 import com.meteomontana.android.domain.usecase.meetups.LeaveMeetupUseCase
@@ -54,7 +54,12 @@ data class MeetupDetailUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val joining: Boolean = false,
-    val leaving: Boolean = false
+    val leaving: Boolean = false,
+    /** Enlace de invitación (solo miembros): permite unirse sin relación de
+     *  follows. Espejo de MeetupDetailView.swift — Android no lo cargaba y el
+     *  texto de compartir se quedaba en "búscala en Cumbre" (Álvaro,
+     *  2026-08-24: paridad con iOS). */
+    val inviteLink: String? = null
 )
 
 @HiltViewModel
@@ -76,6 +81,8 @@ class MeetupsViewModel @Inject constructor(
     private val getMyProfile: GetMyProfileUseCase,
     private val locationProvider: LocationProvider,
     private val photoUploader: PhotoUploader,
+    private val fileReader: com.meteomontana.android.domain.port.FileReader,
+    private val getInviteLink: com.meteomontana.android.domain.usecase.meetups.GetMeetupInviteLinkUseCase,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -94,6 +101,13 @@ class MeetupsViewModel @Inject constructor(
 
     private val _createError = MutableStateFlow<String?>(null)
     val createError = _createError.asStateFlow()
+
+    // RC3: gate de género (No Mixto exige perfil Mujer). En vez de un texto de
+    // error críptico, las pantallas muestran un DIÁLOGO explicativo con botón a
+    // Editar perfil. Se activa al crear/unirse y lo consume la UI.
+    private val _genderGate = MutableStateFlow(false)
+    val genderGate = _genderGate.asStateFlow()
+    fun clearGenderGate() { _genderGate.value = false }
 
     private val _myGender = MutableStateFlow<String?>(null)
     val myGender = _myGender.asStateFlow()
@@ -131,11 +145,18 @@ class MeetupsViewModel @Inject constructor(
     }
 
     fun loadMeetup(id: String) {
-        _detail.update { it.copy(isLoading = true, error = null) }
+        _detail.update { it.copy(isLoading = true, error = null, inviteLink = null) }
         viewModelScope.launch {
             try {
                 val result = getMeetup.execute(id)
                 _detail.update { it.copy(meetup = result, isLoading = false) }
+                // Enlace de invitación (si somos miembros): para el botón de
+                // compartir. Igual que iOS: se pide aparte y en silencio, no
+                // bloquea la carga de la quedada si falla.
+                if (result?.joined == true) {
+                    val link = runCatching { getInviteLink.execute(id) }.getOrNull()
+                    _detail.update { it.copy(inviteLink = link) }
+                }
             } catch (e: Exception) {
                 _detail.update { it.copy(isLoading = false, error = e.message) }
             }
@@ -164,16 +185,19 @@ class MeetupsViewModel @Inject constructor(
                     s.copy(meetups = s.meetups.map { m -> if (m.id == id) updated else m })
                 }
             } catch (e: Exception) {
-                val msg = when {
-                    e.message?.contains("GENDER_REQUIRED") == true ->
-                        "Para unirte a quedadas No Mixto necesitas indicar tu género como Mujer. Ve a Perfil → Editar perfil → Género."
-                    e.message?.contains("FOLLOW_REQUIRED") == true ->
-                        "Solo puedes unirte si sigues al organizador o te sigue."
-                    e.message?.contains("MEETUP_FULL") == true ->
-                        "La quedada está completa."
-                    else -> e.message
+                if (e.message?.contains("GENDER_REQUIRED") == true) {
+                    _genderGate.value = true   // RC3: diálogo con CTA a Editar perfil
+                    _detail.update { it.copy(joining = false) }
+                } else {
+                    val msg = when {
+                        e.message?.contains("FOLLOW_REQUIRED") == true ->
+                            "Solo puedes unirte si sigues al organizador o te sigue."
+                        e.message?.contains("MEETUP_FULL") == true ->
+                            "La quedada está completa."
+                        else -> e.message
+                    }
+                    _detail.update { it.copy(joining = false, error = msg) }
                 }
-                _detail.update { it.copy(joining = false, error = msg) }
             }
         }
     }
@@ -251,11 +275,10 @@ class MeetupsViewModel @Inject constructor(
                 loadMeetups()
                 onSuccess(meetup)
             } catch (e: Exception) {
-                _createError.value = when {
-                    e.message?.contains("GENDER_REQUIRED") == true ->
-                        "Para crear o unirte a quedadas No Mixto necesitas indicar tu género " +
-                        "como Mujer en tu perfil. Ve a Perfil → Editar perfil → Género."
-                    else -> e.message ?: "Error al crear la quedada"
+                if (e.message?.contains("GENDER_REQUIRED") == true) {
+                    _genderGate.value = true   // RC3: diálogo con CTA a Editar perfil
+                } else {
+                    _createError.value = e.message ?: "Error al crear la quedada"
                 }
                 onError()
             }
@@ -339,11 +362,15 @@ class MeetupsViewModel @Inject constructor(
     val uploadingPhoto = _uploadingPhoto.asStateFlow()
 
     /** Sube una foto para la quedada (temporal: usa "new" como ID; el backend usará la URL tal cual). */
-    fun uploadMeetupPhoto(bytes: ByteArray, mimeType: String, onResult: (String?) -> Unit) {
+    fun uploadMeetupPhoto(uri: String, onResult: (String?) -> Unit) {
         _uploadingPhoto.value = true
         viewModelScope.launch {
             try {
-                val url = photoUploader.uploadMeetupPhoto(bytes, mimeType, "new_${System.currentTimeMillis()}")
+                // readImageCompressed HORNEA la rotación EXIF en los píxeles; antes
+                // se subían los bytes crudos y las fotos verticales salían de lado.
+                val bytes = fileReader.readImageCompressed(
+                    com.meteomontana.android.domain.model.FileRef(uri))
+                val url = photoUploader.uploadMeetupPhoto(bytes, "image/jpeg", "new_${System.currentTimeMillis()}")
                 onResult(url)
             } catch (_: Exception) {
                 onResult(null)

@@ -82,11 +82,20 @@ targets:
         # Push con la app cerrada (FCM data messages).
         UIBackgroundModes:
           - remote-notification
-        # Versión espejo de Android (versionName 2.4 / versionCode 18).
-        CFBundleShortVersionString: "2.19.0"
+        # Versión espejo de Android.
+        # REGLA (van ya DOS veces): Apple CIERRA el "train" de una versión en
+        # cuanto entra en revisión o se publica, y rechaza cualquier build nuevo
+        # con ese mismo CFBundleShortVersionString — por muy alto que sea el
+        # CFBundleVersion. El error es
+        # "Invalid Pre-Release Train. The train version 'X' is closed".
+        #   - 2.23.0 se cerró al enviarla a revisión (2026-08-11) → 2.24.0
+        #   - 2.24.0 se cerró al PUBLICARSE            (2026-08-16) → 2.24.1
+        # Es decir: para subir a TestFlight algo posterior a una versión ya
+        # publicada, hay que subir la VERSIÓN, no basta con el número de build.
+        CFBundleShortVersionString: "2.24.2"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
-        # ÚNICO y mayor que el anterior. 12-25 ya subidos → 26.
-        CFBundleVersion: "101"
+        # ÚNICO y mayor que el anterior.
+        CFBundleVersion: "176"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
@@ -117,8 +126,13 @@ targets:
         # cadenas iOS lanza una excepción al pedir acceso a cámara/galería.
         NSCameraUsageDescription: >-
           Para hacer fotos de las vías, escuelas o tu perfil.
+        # Menciona la UBICACIÓN a propósito: desde 2.22.0 la app lee dónde se
+        # hizo la foto para saber en qué escuela estabas. El usuario (y el
+        # revisor de Apple) tienen que poder entender para qué se pide.
         NSPhotoLibraryUsageDescription: >-
-          Para elegir fotos de las vías, escuelas o tu perfil.
+          Para elegir fotos de las vías, escuelas o tu perfil. Si eliges una
+          foto para aportar una piedra, leemos dónde se hizo para saber a qué
+          escuela pertenece; esa foto no sale de tu móvil hasta que la envías.
         # La foto de celebración hecha desde la app se guarda también en el
         # carrete (red de seguridad: aunque algo falle, la foto no se pierde).
         NSPhotoLibraryAddUsageDescription: >-
@@ -150,6 +164,8 @@ targets:
           CODE_SIGN_IDENTITY: "-"
           CODE_SIGN_STYLE: Manual
           CODE_SIGNING_REQUIRED: "NO"
+          # Necesario para @testable import MeteoMontana desde el target de tests.
+          ENABLE_TESTABILITY: "YES"
         # Release: firma MANUAL para App Store (ios-prod-ipa.yml).
         # ¿Por qué manual y no automática? La firma automática + -allowProvisioning
         # Updates crea un certificado "Apple Development" NUEVO en cada build (el
@@ -173,6 +189,11 @@ targets:
       # antes de publicar (necesita APNs key + capability, ver PushManager.swift).
       - package: Firebase
         product: FirebaseMessaging
+      # Crashlytics: reporte de cierres en producción (Firebase Console →
+      # Crashlytics). Sin esto la app iOS llevaba meses pública SIN visibilidad
+      # de crashes. Los dSYM: el .ipa de App Store los sube el workflow de prod.
+      - package: Firebase
+        product: FirebaseCrashlytics
       - package: GoogleSignIn
         product: GoogleSignIn
       - package: MapLibre
@@ -192,3 +213,33 @@ targets:
           fi
           cd "$SRCROOT/.."
           ./gradlew :shared:embedAndSignAppleFrameworkForXcode
+
+  # Target de tests unitarios (espejos algorítmicos Kotlin↔Swift: GradeColor,
+  # TopoShared…). Hospedado por la app. Corre en simulador desde ios-tests.yml.
+  MeteoMontanaTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: MeteoMontanaTests
+    dependencies:
+      - target: MeteoMontana
+    settings:
+      base:
+        # El bundle de tests también enlaza el framework KMP (la app lo usa).
+        FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS: $(inherited) -framework Shared -lsqlite3
+        GENERATE_INFOPLIST_FILE: "YES"
+        PRODUCT_BUNDLE_IDENTIFIER: com.meteomontana.ios.tests
+
+schemes:
+  MeteoMontana:
+    build:
+      targets:
+        MeteoMontana: all
+        MeteoMontanaTests: [test]
+    test:
+      targets:
+        - MeteoMontanaTests
+      gatherCoverageData: false
+    run:
+      config: Debug
