@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -117,6 +118,19 @@ class KtorModerationApi(private val client: HttpClient) {
     suspend fun getAdminNotes(): List<AdminNoteRowDto> =
         try { client.get("admin/notes").body() } catch (_: Throwable) { emptyList() }
 
+    /** Sugerencias/fallos mandados desde el botón "?" de ayuda. */
+    suspend fun getAdminSuggestions(): List<AdminSuggestionRowDto> =
+        try { client.get("admin/suggestions").body() } catch (_: Throwable) { emptyList() }
+
+    /** Marcar atendida y/o responder (push al autor si `reply` trae texto). */
+    suspend fun respondToSuggestion(id: String, resolved: Boolean?, reply: String?): AdminSuggestionRowDto? =
+        try {
+            client.patch("admin/suggestions/$id") {
+                contentType(ContentType.Application.Json)
+                setBody(RespondSuggestionRequest(resolved, reply))
+            }.body()
+        } catch (_: Throwable) { null }
+
     // ── Consola de moderación de usuarios (admin) ──────────────────────────
     // Todas tragan la excepción (idempotentes, sin crash en iOS) y devuelven el
     // resumen actualizado (o null si falla) para refrescar la ficha.
@@ -179,4 +193,23 @@ data class AdminNoteRowDto(
     val uid: String = "",
     val text: String = "",
     val createdAt: String? = null
+)
+
+@Serializable
+private data class RespondSuggestionRequest(val resolved: Boolean?, val reply: String?)
+
+/** Fila de sugerencia/fallo para el panel de admin. */
+@Serializable
+data class AdminSuggestionRowDto(
+    val id: String,
+    val uid: String = "",
+    val email: String? = null,
+    val displayName: String? = null,
+    val message: String = "",
+    val platform: String = "",
+    val appVersion: String? = null,
+    val createdAt: String? = null,
+    val resolved: Boolean = false,
+    val adminReply: String? = null,
+    val repliedAt: String? = null
 )

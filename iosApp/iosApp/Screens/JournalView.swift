@@ -962,8 +962,8 @@ struct JournalStatsNav: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(Cumbre.paper)
-        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Cumbre.rule, lineWidth: 1))
     }
 }
 

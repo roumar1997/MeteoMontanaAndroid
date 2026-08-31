@@ -123,6 +123,12 @@ object UseCasesModule {
     fun provideGetAdminNotesUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
         com.meteomontana.android.domain.usecase.admin.GetAdminNotesUseCase(r)
     @Provides @Singleton
+    fun provideGetAdminSuggestionsUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.GetAdminSuggestionsUseCase(r)
+    @Provides @Singleton
+    fun provideRespondToSuggestionUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
+        com.meteomontana.android.domain.usecase.admin.RespondToSuggestionUseCase(r)
+    @Provides @Singleton
     fun provideGetUserModerationUseCase(r: com.meteomontana.android.domain.repository.ModerationRepository) =
         com.meteomontana.android.domain.usecase.admin.GetUserModerationUseCase(r)
     @Provides @Singleton
@@ -268,6 +274,11 @@ object UseCasesModule {
 
     @Provides @Singleton
     fun provideCreateNoteUseCase(repo: NoteRepository) = CreateNoteUseCase(repo)
+
+    @Provides @Singleton
+    fun provideSubmitSuggestionUseCase(
+        repo: com.meteomontana.android.domain.repository.SuggestionRepository
+    ) = com.meteomontana.android.domain.usecase.suggestion.SubmitSuggestionUseCase(repo)
 
     // Favorites
     @Provides @Singleton

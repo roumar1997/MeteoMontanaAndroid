@@ -1,6 +1,7 @@
 package com.meteomontana.android.domain.usecase.admin
 
 import com.meteomontana.android.domain.model.AdminNoteRow
+import com.meteomontana.android.domain.model.AdminSuggestionRow
 import com.meteomontana.android.domain.model.AdminUserRow
 import com.meteomontana.android.domain.model.ContentReport
 import com.meteomontana.android.domain.model.UserModeration
@@ -25,6 +26,17 @@ class GetAdminUsersUseCase(private val repo: ModerationRepository) {
 class GetAdminNotesUseCase(private val repo: ModerationRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(): List<AdminNoteRow> = repo.getAdminNotes()
+}
+
+class GetAdminSuggestionsUseCase(private val repo: ModerationRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(): List<AdminSuggestionRow> = repo.getAdminSuggestions()
+}
+
+class RespondToSuggestionUseCase(private val repo: ModerationRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(id: String, resolved: Boolean?, reply: String?): AdminSuggestionRow? =
+        repo.respondToSuggestion(id, resolved, reply)
 }
 
 class GetUserModerationUseCase(private val repo: ModerationRepository) {

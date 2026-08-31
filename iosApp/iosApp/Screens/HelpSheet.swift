@@ -66,6 +66,22 @@ struct HelpSheet: View {
                             .padding(12)
                             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
                         }
+                        // Botón "Sugerir algo / reportar un fallo" — paridad
+                        // Android (Álvaro, 2026-08-31: "quiero un botón para
+                        // añadir fallos o mejoras que se le ocurran a la
+                        // gente").
+                        Button {
+                            mostrandoSugerencia = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.bubble").font(.system(size: 16))
+                                Text("Sugerir algo / reportar un fallo").font(.system(size: 15))
+                            }
+                            .foregroundStyle(Cumbre.terra)
+                            .frame(maxWidth: .infinity)
+                            .padding(12)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
+                        }
                     }
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -78,8 +94,11 @@ struct HelpSheet: View {
                     Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
                 }
             }
+            .sheet(isPresented: $mostrandoSugerencia) { SuggestionSheet() }
         }
     }
+
+    @State private var mostrandoSugerencia = false
 
     /// Mapea el nombre semántico del catálogo a un SF Symbol.
     static func icon(_ name: String) -> String {

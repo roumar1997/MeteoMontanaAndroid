@@ -33,6 +33,21 @@ data class AdminNoteRow(
     val createdAt: String?
 )
 
+/** Sugerencia/fallo mandado desde el botón "?" de ayuda (panel admin). */
+data class AdminSuggestionRow(
+    val id: String,
+    val uid: String,
+    val email: String?,
+    val displayName: String?,
+    val message: String,
+    val platform: String,
+    val appVersion: String?,
+    val createdAt: String?,
+    val resolved: Boolean,
+    val adminReply: String?,
+    val repliedAt: String?
+)
+
 /** Resumen de moderación de un usuario (consola de admin). */
 data class UserModeration(
     val uid: String,

@@ -33,6 +33,9 @@ struct EditLinesSheet: View {
     // las vías de esa cara se mueven a la foto nueva y se redibujan sobre ella.
     @State private var facePicked: [Int: UIImage] = [:]
     @State private var pickerItem: PhotosPickerItem?
+    // Elegir cámara o galería al cambiar la foto de una cara (paridad Android
+    // AddLinesFlow.kt) — antes solo se podía elegir de galería.
+    @State private var eligiendoOrigenFoto = false
     // Geometría/sentido del muro (editables). El bloque ya creado los trae.
     @State private var geometry = "POINT"
     @State private var direction = "LTR"
@@ -327,13 +330,13 @@ struct EditLinesSheet: View {
                             }
                         }
                         Spacer()
-                        PhotosPicker(selection: $pickerItem, matching: .images) {
+                        Button { eligiendoOrigenFoto = true } label: {
                             Text(facePicked[faceIdx] == nil ? "CAMBIAR" : "OTRA")
                                 .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                 .padding(.horizontal, 12).padding(.vertical, 8)
                                 .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
                                     .stroke(Cumbre.terra, lineWidth: 1))
-                        }
+                        }.buttonStyle(.plain)
                     }
                     .padding(10)
                     .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
@@ -478,6 +481,26 @@ struct EditLinesSheet: View {
                 hayBorrador = true
                 borradorPendiente = borrador
             }
+        }
+        .confirmationDialog("¿Cómo quieres la foto?", isPresented: $eligiendoOrigenFoto, titleVisibility: .visible) {
+            Button("HACER FOTO AHORA") {
+                let idx = faceIdx
+                CameraAccess.request { granted in
+                    guard granted else { return }
+                    presentSystemCamera(context: "edit-\(block.id)-\(idx)") { img in
+                        facePicked[idx] = img
+                        sendError = nil
+                    }
+                }
+            }
+            Button("ELEGIR DE GALERÍA") {
+                let idx = faceIdx
+                presentSystemPhotoPicker(context: "edit-\(block.id)-\(idx)") { img in
+                    facePicked[idx] = img
+                    sendError = nil
+                }
+            }
+            Button("CANCELAR", role: .cancel) {}
         }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }

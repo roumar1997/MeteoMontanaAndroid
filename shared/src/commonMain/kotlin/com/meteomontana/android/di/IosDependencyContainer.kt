@@ -168,6 +168,8 @@ class IosDependencyContainer(
     val photoApi = com.meteomontana.android.data.api.KtorPhotoApi(httpClient)
     private val submissionApi = KtorSubmissionApi(httpClient)
     private val contributionApi = KtorContributionApi(httpClient)
+    // Botón "?" de ayuda → "Sugerir algo / reportar un fallo".
+    private val suggestionApi = com.meteomontana.android.data.api.KtorSuggestionApi(httpClient)
 
     /** Chat: iniciar conversación (autorización + creación del doc en el backend)
      *  y disparar la push del receptor. Expuesto a Swift para el chat iOS. */
@@ -183,6 +185,8 @@ class IosDependencyContainer(
     private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi, database)
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
+    private val suggestionRepository =
+        com.meteomontana.android.data.repository.KtorSuggestionRepository(suggestionApi)
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
     // Público: iOS lo usa directo para los comentarios de piedras/vías.
     val blockApi = KtorBlockApi(httpClient)
@@ -233,6 +237,10 @@ class IosDependencyContainer(
         com.meteomontana.android.domain.usecase.admin.GetAdminUsersUseCase(moderationRepository)
     val getAdminNotes =
         com.meteomontana.android.domain.usecase.admin.GetAdminNotesUseCase(moderationRepository)
+    val getAdminSuggestions =
+        com.meteomontana.android.domain.usecase.admin.GetAdminSuggestionsUseCase(moderationRepository)
+    val respondToSuggestion =
+        com.meteomontana.android.domain.usecase.admin.RespondToSuggestionUseCase(moderationRepository)
     val getRangeScores = GetRangeScoresUseCase(forecastRepository)
 
     // Favoritas (requieren sesión; el token lo aporta el authService del
@@ -246,6 +254,10 @@ class IosDependencyContainer(
     // sesión). Foto adjunta pendiente del bridge de Firebase Storage.
     val getNotes = GetNotesUseCase(noteRepository)
     val createNote = CreateNoteUseCase(noteRepository)
+
+    // Botón "?" de ayuda → "Sugerir algo / reportar un fallo".
+    val submitSuggestion =
+        com.meteomontana.android.domain.usecase.suggestion.SubmitSuggestionUseCase(suggestionRepository)
 
     // Perfil privado (JIT provisioning en el primer getMyProfile).
     val getMyProfile = GetMyProfileUseCase(profileRepository)

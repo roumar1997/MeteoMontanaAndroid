@@ -97,6 +97,8 @@ class AdminViewModelTest {
         mockk(relaxed = true),  // resolveContentReportUseCase
         mockk(relaxed = true),  // getAdminUsersUseCase
         mockk(relaxed = true),  // getAdminNotesUseCase
+        mockk(relaxed = true),  // getAdminSuggestionsUseCase
+        mockk(relaxed = true),  // respondToSuggestionUseCase
         mockk(relaxed = true),  // getUserModerationUseCase
         mockk(relaxed = true),  // warnUserUseCase
         mockk(relaxed = true),  // suspendUserUseCase

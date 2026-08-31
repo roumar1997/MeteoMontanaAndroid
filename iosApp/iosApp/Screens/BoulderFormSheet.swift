@@ -34,6 +34,9 @@ struct BoulderFormSheet: View {
     @StateObject private var brujula = HeadingProvider(stepDegrees: 2)
     @State private var selectedFace = 0
     @State private var pickerItem: PhotosPickerItem?
+    // Elegir cámara o galería para la foto de una cara (paridad Android
+    // BoulderFormDialog.kt) — antes solo se podía elegir de galería.
+    @State private var eligiendoOrigenFotoCara = false
     @State private var showEditor = false
     @State private var sending = false
     // Error de envío: al fallar NO se cierra el sheet — se muestra el error y
@@ -141,6 +144,49 @@ struct BoulderFormSheet: View {
     }
 
     private var isWall: Bool { geometry == "LINE" }
+
+    /// Elegir de galería (mismo selector que "aportar desde una foto": lee
+    /// EXIF para sugerir orientación por la dirección de la cámara). Extraído
+    /// para poder ofrecerlo junto a "hacer foto ahora" en un confirmationDialog.
+    private func elegirFotoDeGaleria() {
+        let idx = faceIdx
+        presentPhotoPickerResult { result in
+            guard let result else {
+                // ANTES: return MUDO. Si el selector no lograba abrirse (con
+                // varias hojas apiladas se reintenta 15 veces y luego se
+                // rinde), el usuario se quedaba sin foto, sin aviso, y con el
+                // botón de dibujar apagado sin saber por qué — reportado por
+                // Rodrigo al añadir la 3ª foto (build 142).
+                Task { @MainActor in
+                    sendError = "No se pudo abrir el selector de fotos. Vuelve a intentarlo."
+                }
+                return
+            }
+            Task { @MainActor in
+                // readImagen y NO read: aquí la piedra ya está colocada en el
+                // mapa, así que la foto solo aporta la IMAGEN. Exigirle
+                // ubicación rechazaba fotos válidas —las que te pasa otra
+                // persona no la llevan— con un "no se pudo cargar la foto"
+                // que además despistaba (Rodrigo, build 143).
+                guard let donde = await PhotoExifReader.readImagen(result) else {
+                    sendError = "No se pudo cargar la foto elegida. Inténtalo otra vez."
+                    return
+                }
+                faces[idx].photo = donde.image
+                // La orientación sale de ESTA foto, si la trae: cada cara
+                // mira a donde mire su pared. Una foto sin rumbo simplemente
+                // no la sugiere.
+                if let sugerida = PhotoPlacement.shared.aspectFromCameraDirection(
+                    cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) }) {
+                    if faces[idx].orientation == nil { faces[idx].orientation = sugerida }
+                    // Y la de la PIEDRA, que es el chip que se ve con una
+                    // sola foto.
+                    if blockOrientation == nil { blockOrientation = sugerida }
+                }
+                sendError = nil
+            }
+        }
+    }
 
     /// Cada cara nace con una vía vacía: si esa es la única, se abre sola — que
     /// haya que tocar "Sin nombre" para empezar sería un paso de más.
@@ -366,45 +412,7 @@ struct BoulderFormSheet: View {
                     // SwiftUI entrega una copia SIN ubicación, y entonces la
                     // orientación no se podría sugerir nunca.
                     Button {
-                        let idx = faceIdx
-                        presentPhotoPickerResult { result in
-                            guard let result else {
-                                // ANTES: return MUDO. Si el selector no lograba
-                                // abrirse (con varias hojas apiladas se reintenta
-                                // 15 veces y luego se rinde), el usuario se
-                                // quedaba sin foto, sin aviso, y con el botón de
-                                // dibujar apagado sin saber por qué — reportado
-                                // por Rodrigo al añadir la 3ª foto (build 142).
-                                Task { @MainActor in
-                                    sendError = "No se pudo abrir el selector de fotos. Vuelve a intentarlo."
-                                }
-                                return
-                            }
-                            Task { @MainActor in
-                                // readImagen y NO read: aquí la piedra ya está
-                                // colocada en el mapa, así que la foto solo
-                                // aporta la IMAGEN. Exigirle ubicación rechazaba
-                                // fotos válidas —las que te pasa otra persona no
-                                // la llevan— con un "no se pudo cargar la foto"
-                                // que además despistaba (Rodrigo, build 143).
-                                guard let donde = await PhotoExifReader.readImagen(result) else {
-                                    sendError = "No se pudo cargar la foto elegida. Inténtalo otra vez."
-                                    return
-                                }
-                                faces[idx].photo = donde.image
-                                // La orientación sale de ESTA foto, si la trae:
-                                // cada cara mira a donde mire su pared. Una foto
-                                // sin rumbo simplemente no la sugiere.
-                                if let sugerida = PhotoPlacement.shared.aspectFromCameraDirection(
-                                    cameraDegrees: donde.cameraDegrees.map { KotlinFloat(float: $0) }) {
-                                    if faces[idx].orientation == nil { faces[idx].orientation = sugerida }
-                                    // Y la de la PIEDRA, que es el chip que se
-                                    // ve con una sola foto.
-                                    if blockOrientation == nil { blockOrientation = sugerida }
-                                }
-                                sendError = nil
-                            }
-                        }
+                        eligiendoOrigenFotoCara = true
                     } label: {
                         Text(faces[faceIdx].photo == nil ? "SELECCIONAR FOTO" : "CAMBIAR FOTO")
                             .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
@@ -412,7 +420,20 @@ struct BoulderFormSheet: View {
                             .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
-
+                    .confirmationDialog("¿Cómo quieres la foto?", isPresented: $eligiendoOrigenFotoCara) {
+                        Button("HACER FOTO AHORA") {
+                            let idx = faceIdx
+                            CameraAccess.request { granted in
+                                guard granted else { return }
+                                presentSystemCamera(context: "piedra-nueva-\(idx)") { image in
+                                    faces[idx].photo = image
+                                    sendError = nil
+                                }
+                            }
+                        }
+                        Button("ELEGIR DE GALERÍA") { elegirFotoDeGaleria() }
+                        Button("CANCELAR", role: .cancel) {}
+                    }
                     // F: orientación de ESTA cara (opcional). Solo tiene
                     // sentido con varias fotos; con una sola vale la general.
                     if faces.count > 1 {

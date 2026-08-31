@@ -102,6 +102,7 @@ private enum class AdminTab(val label: String) {
     Gestionar("GESTIONAR"),
     Stats("STATS"),
     Activity("ACTIVIDAD"),
+    Sugerencias("SUGERENCIAS"),
     Push("PUSH")
 }
 
@@ -135,6 +136,7 @@ fun AdminScreen(
     // Y al entrar en la pestaña DENUNCIAS, recarga por si acabas de denunciar.
     androidx.compose.runtime.LaunchedEffect(tab) {
         if (tab == AdminTab.Denuncias) viewModel.load()
+        if (tab == AdminTab.Sugerencias) viewModel.loadAdminSuggestions()
     }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -228,6 +230,10 @@ fun AdminScreen(
                 }
             )
             AdminTab.Activity -> ActivityTab(state.logs)
+            AdminTab.Sugerencias -> SugerenciasTab(
+                rows = viewModel.adminSuggestions.collectAsStateWithLifecycle().value,
+                onRespond = viewModel::respondToSuggestion
+            )
             AdminTab.Push -> PushTab(
                 busy = state.pushBusy,
                 userResults = viewModel.userResults.collectAsStateWithLifecycle().value,

@@ -72,6 +72,8 @@ class AdminViewModel @Inject constructor(
     private val resolveContentReportUseCase: com.meteomontana.android.domain.usecase.admin.ResolveContentReportUseCase,
     private val getAdminUsersUseCase: com.meteomontana.android.domain.usecase.admin.GetAdminUsersUseCase,
     private val getAdminNotesUseCase: com.meteomontana.android.domain.usecase.admin.GetAdminNotesUseCase,
+    private val getAdminSuggestionsUseCase: com.meteomontana.android.domain.usecase.admin.GetAdminSuggestionsUseCase,
+    private val respondToSuggestionUseCase: com.meteomontana.android.domain.usecase.admin.RespondToSuggestionUseCase,
     private val getUserModerationUseCase: com.meteomontana.android.domain.usecase.admin.GetUserModerationUseCase,
     private val warnUserUseCase: com.meteomontana.android.domain.usecase.admin.WarnUserUseCase,
     private val suspendUserUseCase: com.meteomontana.android.domain.usecase.admin.SuspendUserUseCase,
@@ -231,6 +233,25 @@ class AdminViewModel @Inject constructor(
     fun loadAdminNotes() {
         viewModelScope.launch {
             _adminNotes.value = runCatching { getAdminNotesUseCase() }.getOrDefault(emptyList())
+        }
+    }
+
+    /** Pestaña SUGERENCIAS: buzón del botón "?" de ayuda, con respuesta/atendida. */
+    private val _adminSuggestions =
+        kotlinx.coroutines.flow.MutableStateFlow<List<com.meteomontana.android.domain.model.AdminSuggestionRow>?>(null)
+    val adminSuggestions:
+        kotlinx.coroutines.flow.StateFlow<List<com.meteomontana.android.domain.model.AdminSuggestionRow>?> = _adminSuggestions
+    fun loadAdminSuggestions() {
+        viewModelScope.launch {
+            _adminSuggestions.value = runCatching { getAdminSuggestionsUseCase() }.getOrDefault(emptyList())
+        }
+    }
+    fun respondToSuggestion(id: String, resolved: Boolean?, reply: String?) {
+        viewModelScope.launch {
+            val actualizada = runCatching { respondToSuggestionUseCase(id, resolved, reply) }.getOrNull()
+            if (actualizada != null) {
+                _adminSuggestions.update { list -> list?.map { if (it.id == id) actualizada else it } }
+            }
         }
     }
 

@@ -33,19 +33,28 @@ import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.ViewColumn
+import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -225,7 +234,104 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
                     )
                 }
             }
+            // Botón "Sugerir algo / reportar un fallo" — buzón directo al
+            // admin (Álvaro, 2026-08-31: "quiero un botón para añadir fallos
+            // o mejoras que se le ocurran a la gente").
+            var mostrandoSugerencia by remember { mutableStateOf(false) }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    .clickable { mostrandoSugerencia = true }
+                    .padding(Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Icon(
+                        Icons.Outlined.Feedback,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        "Sugerir algo / reportar un fallo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            if (mostrandoSugerencia) {
+                SuggestionDialog(onDismiss = { mostrandoSugerencia = false })
+            }
             Spacer(Modifier.padding(bottom = Spacing.lg))
         }
     }
+}
+
+/** Diálogo simple de texto libre → POST /api/suggestions (sin cola de revisión). */
+@Composable
+private fun SuggestionDialog(onDismiss: () -> Unit) {
+    val vm: SuggestionViewModel = hiltViewModel()
+    val state by vm.state.collectAsState()
+    var texto by remember { mutableStateOf("") }
+
+    LaunchedEffect(state) {
+        if (state == SuggestionSendState.SENT) {
+            kotlinx.coroutines.delay(1200)
+            onDismiss()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (state != SuggestionSendState.SENDING) onDismiss() },
+        title = { Text("Sugerir algo o reportar un fallo") },
+        text = {
+            when (state) {
+                SuggestionSendState.SENT -> Text("¡Gracias! Lo hemos recibido.")
+                else -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(
+                        "Cuéntanos qué te gustaría que hiciera la app o qué no funciona bien.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = texto,
+                        onValueChange = { texto = it },
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        placeholder = { Text("Escribe aquí…") },
+                        enabled = state != SuggestionSendState.SENDING
+                    )
+                    if (state == SuggestionSendState.ERROR) {
+                        Text(
+                            "No se pudo enviar. Inténtalo otra vez.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (state != SuggestionSendState.SENT) {
+                TextButton(
+                    onClick = { vm.send(texto) },
+                    enabled = texto.isNotBlank() && state != SuggestionSendState.SENDING
+                ) {
+                    if (state == SuggestionSendState.SENDING) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    } else {
+                        Text("ENVIAR")
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            if (state != SuggestionSendState.SENDING && state != SuggestionSendState.SENT) {
+                TextButton(onClick = onDismiss) { Text("CANCELAR") }
+            }
+        }
+    )
 }

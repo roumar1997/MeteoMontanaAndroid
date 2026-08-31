@@ -13,6 +13,7 @@ import com.meteomontana.android.util.toUserMessage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -110,10 +111,24 @@ class SchoolDetailLoader @Inject constructor(
     data class LoadResult(val state: SchoolDetailUiState, val fromNetwork: Boolean)
 
     suspend fun load(schoolId: String): LoadResult {
-        // Si el backend falla pero la escuela está guardada offline → modo offline.
-        val schoolFromNet = runCatching { getSchoolById(schoolId) }
+        // Si hay copia offline, no tiene sentido esperar el timeout COMPLETO de
+        // red (hasta 30s, ver ApiHttpClient) antes de enseñarla: con cobertura
+        // mala-pero-no-nula (3G débil, por ejemplo) eso deja el spinner fijo en
+        // pantalla el tiempo suficiente para parecer colgado. Con copia guardada,
+        // 8s de margen es de sobra para una red que sí responde; sin copia no hay
+        // a qué volver, así que ahí se deja el timeout normal — Álvaro, 2026-08-29
+        // ("se queda cargando" con la escuela ya descargada y 3G débil).
+        val cachedSnapshot = runCatching { savedSchoolRepo.loadOffline(schoolId) }.getOrNull()
+        val schoolFromNet = runCatching {
+            if (cachedSnapshot != null) {
+                withTimeoutOrNull(8_000) { getSchoolById(schoolId) }
+                    ?: error("Sin respuesta del servidor a tiempo")
+            } else {
+                getSchoolById(schoolId)
+            }
+        }
         if (schoolFromNet.isFailure) {
-            val snapshot = runCatching { savedSchoolRepo.loadOffline(schoolId) }.getOrNull()
+            val snapshot = cachedSnapshot ?: runCatching { savedSchoolRepo.loadOffline(schoolId) }.getOrNull()
             if (snapshot != null) {
                 return LoadResult(
                     SchoolDetailUiState.Success(

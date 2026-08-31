@@ -17,6 +17,7 @@ final class AdminViewModel: ObservableObject {
     @Published var logs: [AdminLog] = []
     @Published var pushResult: String?
     @Published var pushBusy = false
+    @Published var suggestions: [AdminSuggestionRow]?
 
     private let c = AppDependencies.shared.container
     private let getSubs = AppDependencies.shared.container.getPendingSubmissions
@@ -40,6 +41,19 @@ final class AdminViewModel: ObservableObject {
     func loadSchools() async {
         allSchools = (try? await c.getSchools.invoke(region: nil, style: nil, rockType: nil,
                                                       lat: nil, lon: nil, radioKm: nil)) ?? []
+    }
+
+    func loadSuggestions() async {
+        suggestions = (try? await c.getAdminSuggestions.invoke()) ?? []
+    }
+
+    func respondToSuggestion(_ id: String, resolved: Bool?, reply: String?) {
+        let resolvedK = resolved.map { KotlinBoolean(bool: $0) }
+        Task {
+            if let updated = try? await c.respondToSuggestion.invoke(id: id, resolved: resolvedK, reply: reply) {
+                suggestions = suggestions?.map { $0.id == id ? updated : $0 }
+            }
+        }
     }
 
     func sendPush(targetUid: String?, title: String, body: String) {
@@ -141,6 +155,9 @@ struct AdminView: View {
             case .gestionar: GestionarTab(vm: vm)
             case .stats: AdminStatsTab(stats: vm.stats, onGoToTab: { tab = $0 })
             case .actividad: AdminLogsTab(logs: vm.logs)
+            case .sugerencias: AdminSuggestionsTab(
+                rows: vm.suggestions,
+                onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) })
             case .push: AdminPushTab(vm: vm)
             }
         }
@@ -153,6 +170,7 @@ struct AdminView: View {
             if tab == .stats, vm.stats == nil { await vm.loadStats() }
             if tab == .actividad, vm.logs.isEmpty { await vm.loadLogs() }
             if tab == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
+            if tab == .sugerencias { await vm.loadSuggestions() }
         }
         .sheet(item: $rejecting) { target in
             RejectReasonSheet { reason in

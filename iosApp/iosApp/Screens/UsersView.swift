@@ -239,7 +239,7 @@ struct PublicProfileView: View {
                             otherName: vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")) {
                             Text(NSLocalizedString("chat_message", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
+                                .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
                         }.buttonStyle(.plain)
                     }
                     // Diario del usuario: BLOQUES / ESCUELAS / MÁXIMO navegables
@@ -335,8 +335,8 @@ struct PublicProfileView: View {
                 .font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(following || pending ? Cumbre.ink : .white)
                 .padding(.vertical, 12).padding(.horizontal, 28)
-                .background(following || pending ? Color.clear : Cumbre.terra)
-                .overlay(Rectangle().stroke(following || pending ? Cumbre.rule : Cumbre.terra, lineWidth: 1))
+                .background(following || pending ? Color.clear : Cumbre.terra, in: Capsule())
+                .overlay(Capsule().stroke(following || pending ? Cumbre.rule : Cumbre.terra, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .disabled(pending)

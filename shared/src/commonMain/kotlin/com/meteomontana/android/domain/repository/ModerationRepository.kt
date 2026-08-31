@@ -1,6 +1,7 @@
 package com.meteomontana.android.domain.repository
 
 import com.meteomontana.android.domain.model.AdminNoteRow
+import com.meteomontana.android.domain.model.AdminSuggestionRow
 import com.meteomontana.android.domain.model.AdminUserRow
 import com.meteomontana.android.domain.model.ContentReport
 import com.meteomontana.android.domain.model.UserModeration
@@ -11,6 +12,8 @@ interface ModerationRepository {
     suspend fun resolveContentReport(id: String, action: String): ContentReport?
     suspend fun getAdminUsers(): List<AdminUserRow>
     suspend fun getAdminNotes(): List<AdminNoteRow>
+    suspend fun getAdminSuggestions(): List<AdminSuggestionRow>
+    suspend fun respondToSuggestion(id: String, resolved: Boolean?, reply: String?): AdminSuggestionRow?
     suspend fun getUserModeration(uid: String): UserModeration?
     suspend fun warnUser(uid: String, reason: String?): UserModeration?
     suspend fun suspendUser(uid: String, days: Int, reason: String?): UserModeration?

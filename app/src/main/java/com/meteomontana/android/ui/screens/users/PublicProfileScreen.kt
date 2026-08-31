@@ -355,9 +355,9 @@ private fun Body(
                 Box(modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.surface, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                    .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+                    .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbrePillShape)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbrePillShape)
                     .clickable(onClick = onMessage),
                     contentAlignment = Alignment.Center
                 ) {
@@ -454,8 +454,9 @@ private fun StatBox(label: String, value: String, modifier: Modifier = Modifier,
     // Mismo estilo que el StatCell del perfil propio (fondo surface + borde + serif).
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -523,9 +524,9 @@ private fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: () 
     val fg = if (filled) Color.White else MaterialTheme.colorScheme.onBackground
     val borderColor = if (filled) inkButtonColor() else MaterialTheme.colorScheme.outline
     Box(modifier = Modifier.fillMaxWidth().height(48.dp)
-        .clip(RoundedCornerShape(2.dp))
-        .background(bg, RoundedCornerShape(2.dp))
-        .border(1.dp, borderColor, RoundedCornerShape(2.dp))
+        .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+        .background(bg, com.meteomontana.android.ui.theme.CumbrePillShape)
+        .border(1.dp, borderColor, com.meteomontana.android.ui.theme.CumbrePillShape)
         .clickable(enabled = !requestPending, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

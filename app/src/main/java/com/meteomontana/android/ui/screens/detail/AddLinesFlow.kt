@@ -39,6 +39,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -177,18 +178,37 @@ internal fun AddLinesFlow(
         updateFace { it.copy(bloques = transform(it.bloques)) }
     }
 
+    fun fotoElegida(uri: Uri) {
+        // Se copia YA, no al guardar el borrador. El Uri del selector solo
+        // da permiso de lectura mientras vive el proceso: si el móvil mata
+        // la app (MIUI lo hace a menudo), al volver ese Uri ya no se puede
+        // leer y la foto se perdía en silencio (Álvaro, 2026-08-24).
+        // Con la copia propia, la foto sobrevive a cualquier reinicio.
+        val propio = EditBlockDraftStore.copiarFotoLocal(context, uri)
+        updateFace { it.copy(newPhotoUri = propio ?: uri) }
+    }
+
     val photoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) {
-            // Se copia YA, no al guardar el borrador. El Uri del selector solo
-            // da permiso de lectura mientras vive el proceso: si el móvil mata
-            // la app (MIUI lo hace a menudo), al volver ese Uri ya no se puede
-            // leer y la foto se perdía en silencio (Álvaro, 2026-08-24).
-            // Con la copia propia, la foto sobrevive a cualquier reinicio.
-            val propio = EditBlockDraftStore.copiarFotoLocal(context, uri)
-            updateFace { it.copy(newPhotoUri = propio ?: uri) }
-        }
+    ) { uri -> if (uri != null) fotoElegida(uri) }
+
+    // Elegir origen (cámara o galería) al cambiar la foto de una cara —
+    // paridad con el flujo de proponer piedra: antes aquí solo se podía
+    // elegir de galería, sin opción de hacer la foto en el momento
+    // (Álvaro, 2026-08-29).
+    var eligiendoOrigenFoto by remember { mutableStateOf(false) }
+    var cameraUriPendiente by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { ok -> if (ok) cameraUriPendiente?.let { fotoElegida(it) } }
+    fun launchCamera() {
+        val dir = java.io.File(context.cacheDir, "editar-piedra").apply { mkdirs() }
+        val file = java.io.File(dir, "foto-${System.currentTimeMillis()}.jpg")
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context, "${context.packageName}.fileprovider", file
+        )
+        cameraUriPendiente = uri
+        runCatching { cameraLauncher.launch(uri) }
     }
 
     // ModalBottomSheet como el resto de fichas (antes era un Dialog flotante y
@@ -373,13 +393,7 @@ internal fun AddLinesFlow(
             Spacer(Modifier.height(Spacing.md))
 
             // ── Foto de la cara seleccionada ────────────────────────────────────
-            EditFacePhoto(face, faceIdx, onPickPhoto = {
-                photoLauncher.launch(
-                    androidx.activity.result.PickVisualMediaRequest(
-                        ActivityResultContracts.PickVisualMedia.ImageOnly
-                    )
-                )
-            })
+            EditFacePhoto(face, faceIdx, onPickPhoto = { eligiendoOrigenFoto = true })
             Spacer(Modifier.height(Spacing.md))
 
             // ── Vías de esta cara ───────────────────────────────────────────────
@@ -546,6 +560,38 @@ internal fun AddLinesFlow(
             },
             onDismiss = { showTopo = false },
             existingLines = emptyList()
+        )
+    }
+
+    if (eligiendoOrigenFoto) {
+        // AlertDialog NATIVO (mismo patrón que proponer piedra): siempre
+        // pulsable en cualquier móvil.
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { eligiendoOrigenFoto = false },
+            title = { Text("¿Cómo quieres la foto?") },
+            text = {
+                Column {
+                    androidx.compose.material3.TextButton(
+                        onClick = { eligiendoOrigenFoto = false; launchCamera() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("HACER FOTO AHORA", modifier = Modifier.fillMaxWidth()) }
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            eligiendoOrigenFoto = false
+                            photoLauncher.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("ELEGIR DE GALERÍA", modifier = Modifier.fillMaxWidth()) }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { eligiendoOrigenFoto = false }) { Text("CANCELAR") }
+            }
         )
     }
 

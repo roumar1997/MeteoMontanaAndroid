@@ -139,6 +139,26 @@ internal fun BoulderFormDialog(
         uri?.let(ponerFoto)   // null = salio del selector sin elegir: no hay nada que hacer
     }
 
+    // Cámara además de galería, para CUALQUIER cara (1ª o siguientes) — antes
+    // solo se podía elegir de galería aquí. La cámara no necesita el permiso
+    // amplio de fotos que Play rechazó (esa política era solo sobre la
+    // galería propia); usar TakePicture() + FileProvider no la toca
+    // (Álvaro, 2026-08-29).
+    var eligiendoOrigenFoto by remember { mutableStateOf(false) }
+    var cameraUriPendiente by remember { mutableStateOf<android.net.Uri?>(null) }
+    val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.TakePicture()
+    ) { ok -> if (ok) cameraUriPendiente?.let(ponerFoto) }
+    fun launchCamera() {
+        val dir = java.io.File(ctxFoto.cacheDir, "nueva-piedra").apply { mkdirs() }
+        val file = java.io.File(dir, "foto-${System.currentTimeMillis()}.jpg")
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            ctxFoto, "${ctxFoto.packageName}.fileprovider", file
+        )
+        cameraUriPendiente = uri
+        runCatching { cameraLauncher.launch(uri) }
+    }
+
     // El envío se dispara desde la barra FIJA de arriba (y también desde el pie,
     // por si el usuario ya está al final del formulario).
     fun enviar() {
@@ -422,7 +442,7 @@ internal fun BoulderFormDialog(
                     .fillMaxWidth()
                     .clip(CumbrePillShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CumbrePillShape)
-                    .clickable { elegirFoto() }
+                    .clickable { eligiendoOrigenFoto = true }
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
@@ -436,7 +456,7 @@ internal fun BoulderFormDialog(
                     .height(100.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { elegirFoto() },
+                    .clickable { eligiendoOrigenFoto = true },
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -447,6 +467,31 @@ internal fun BoulderFormDialog(
                     Text("SELECCIONAR FOTO", style = EyebrowTextStyle, color = Terra)
                 }
             }
+        }
+
+        if (eligiendoOrigenFoto) {
+            // AlertDialog NATIVO (mismo patrón que el resto de la app): siempre
+            // pulsable en cualquier móvil.
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { eligiendoOrigenFoto = false },
+                title = { Text("¿Cómo quieres la foto?") },
+                text = {
+                    Column {
+                        androidx.compose.material3.TextButton(
+                            onClick = { eligiendoOrigenFoto = false; launchCamera() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("HACER FOTO AHORA", modifier = Modifier.fillMaxWidth()) }
+                        androidx.compose.material3.TextButton(
+                            onClick = { eligiendoOrigenFoto = false; elegirFoto() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("ELEGIR DE GALERÍA", modifier = Modifier.fillMaxWidth()) }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { eligiendoOrigenFoto = false }) { Text("CANCELAR") }
+                }
+            )
         }
 
         Spacer(Modifier.height(Spacing.md))

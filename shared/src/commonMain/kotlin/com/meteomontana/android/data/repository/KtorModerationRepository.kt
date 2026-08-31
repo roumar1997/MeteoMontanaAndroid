@@ -1,6 +1,7 @@
 package com.meteomontana.android.data.repository
 
 import com.meteomontana.android.data.api.AdminNoteRowDto
+import com.meteomontana.android.data.api.AdminSuggestionRowDto
 import com.meteomontana.android.data.api.AdminUserRowDto
 import com.meteomontana.android.data.api.ContentReportDto
 import com.meteomontana.android.data.api.KtorModerationApi
@@ -8,6 +9,7 @@ import com.meteomontana.android.data.api.ModActionRowDto
 import com.meteomontana.android.data.api.ModReportRowDto
 import com.meteomontana.android.data.api.UserModerationDto
 import com.meteomontana.android.domain.model.AdminNoteRow
+import com.meteomontana.android.domain.model.AdminSuggestionRow
 import com.meteomontana.android.domain.model.AdminUserRow
 import com.meteomontana.android.domain.model.ContentReport
 import com.meteomontana.android.domain.model.ModActionRow
@@ -25,6 +27,12 @@ class KtorModerationRepository(private val api: KtorModerationApi) : ModerationR
     override suspend fun getAdminUsers(): List<AdminUserRow> = api.getAdminUsers().map { it.toDomain() }
 
     override suspend fun getAdminNotes(): List<AdminNoteRow> = api.getAdminNotes().map { it.toDomain() }
+
+    override suspend fun getAdminSuggestions(): List<AdminSuggestionRow> =
+        api.getAdminSuggestions().map { it.toDomain() }
+
+    override suspend fun respondToSuggestion(id: String, resolved: Boolean?, reply: String?): AdminSuggestionRow? =
+        api.respondToSuggestion(id, resolved, reply)?.toDomain()
 
     override suspend fun getUserModeration(uid: String): UserModeration? =
         api.getUserModeration(uid)?.toDomain()
@@ -54,6 +62,12 @@ private fun AdminUserRowDto.toDomain() = AdminUserRow(
 
 private fun AdminNoteRowDto.toDomain() = AdminNoteRow(
     id = id, schoolId = schoolId, author = author, uid = uid, text = text, createdAt = createdAt
+)
+
+private fun AdminSuggestionRowDto.toDomain() = AdminSuggestionRow(
+    id = id, uid = uid, email = email, displayName = displayName, message = message,
+    platform = platform, appVersion = appVersion, createdAt = createdAt,
+    resolved = resolved, adminReply = adminReply, repliedAt = repliedAt
 )
 
 private fun UserModerationDto.toDomain() = UserModeration(

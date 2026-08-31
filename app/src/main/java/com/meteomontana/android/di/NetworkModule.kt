@@ -103,6 +103,10 @@ object NetworkModule {
     fun provideKtorNoteApi(client: HttpClient) = KtorNoteApi(client)
 
     @Provides @Singleton
+    fun provideKtorSuggestionApi(client: HttpClient) =
+        com.meteomontana.android.data.api.KtorSuggestionApi(client)
+
+    @Provides @Singleton
     fun provideKtorContributionApi(client: HttpClient) = KtorContributionApi(client)
 
     @Provides @Singleton
