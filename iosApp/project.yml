@@ -90,12 +90,15 @@ targets:
         # "Invalid Pre-Release Train. The train version 'X' is closed".
         #   - 2.23.0 se cerró al enviarla a revisión (2026-08-11) → 2.24.0
         #   - 2.24.0 se cerró al PUBLICARSE            (2026-08-16) → 2.24.1
+        #   - 2.24.2 se cerró (build 176 ya publicada) → 2.24.3 (2026-08-31,
+        #     TestFlight de los 4 fixes + botón de sugerencias; Android sigue
+        #     en 2.24.2/vc108, no hace falta re-publicar Android para esto)
         # Es decir: para subir a TestFlight algo posterior a una versión ya
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
-        CFBundleShortVersionString: "2.24.2"
+        CFBundleShortVersionString: "2.24.3"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
-        CFBundleVersion: "176"
+        CFBundleVersion: "177"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
