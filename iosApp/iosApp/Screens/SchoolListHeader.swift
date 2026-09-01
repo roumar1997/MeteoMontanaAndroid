@@ -294,7 +294,7 @@ struct MapToggleAndPanel: View {
                          onTapMarker: { id in
                              popup = vm.filtered.first { $0.id == id }
                          })
-            .frame(height: height)
+            .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : height)
             // Ampliar / salir de pantalla completa — arriba a la izquierda,
             // misma posición y forma que en el detalle de escuela. En
             // pantalla completa se baja bajo la isla/notch (antes quedaba
@@ -332,16 +332,22 @@ struct MapToggleAndPanel: View {
                 Spacer()
             }
             .padding(10)
-            .frame(height: height)
-
+            .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : height)
+            .allowsHitTesting(true)
         }
+        // Altura fija SOLO para la tarjeta inline (300pt); a pantalla
+        // completa se deja que el ZStack tome el espacio que le proponga el
+        // fullScreenCover (ya es toda la pantalla) — forzarla ANTES con
+        // UIScreen.main.bounds.height y añadir DESPUÉS la barra de abajo con
+        // safeAreaInset sumaba las dos alturas y desbordaba la pantalla: la
+        // fila ESTILO quedaba cortada y los botones de arriba se dejaban de
+        // poder pulsar bien (Álvaro, 2026-09-01: "ahora va mucho peor").
+        .frame(height: isFullscreen ? nil : height)
         // A pantalla completa, hay demasiadas escuelas para verlas bien sin
         // filtrar — DISTANCIA y ESTILO en una barra fija ABAJO (no un panel
-        // lateral que tapaba el mapa). safeAreaInset (no un Spacer dentro de
-        // un frame a la altura física de la pantalla) para que quede POR
-        // ENCIMA del indicador de inicio, no debajo ni pegada a él — ahí
-        // costaba pulsarla (Álvaro, 2026-09-01: "abajo me gusta más" / "no
-        // se puede pulsar bien").
+        // lateral que tapaba el mapa). safeAreaInset coloca la barra POR
+        // ENCIMA del indicador de inicio y RESERVA su alto (el mapa no
+        // desborda la pantalla).
         .safeAreaInset(edge: .bottom) {
             if isFullscreen { fullscreenFilters }
         }
