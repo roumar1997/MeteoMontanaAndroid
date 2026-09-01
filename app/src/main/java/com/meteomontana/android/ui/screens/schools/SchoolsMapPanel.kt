@@ -408,7 +408,7 @@ private fun MapBody(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.94f))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))
                     .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {

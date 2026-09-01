@@ -370,7 +370,7 @@ struct MapToggleAndPanel: View {
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity)
-        .background(Cumbre.bg.opacity(0.94))
+        .background(Cumbre.bg.opacity(0.85))
     }
 
     private func filterPill(label: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
