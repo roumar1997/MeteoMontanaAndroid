@@ -18,11 +18,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.CloseFullscreen
+import androidx.compose.material.icons.outlined.OpenInFull
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -216,7 +220,10 @@ private fun MapBody(
     // (M2/M3: `lastFittedIds` llega como parámetro persistido por el padre.)
     // Etiquetas de nombre solo con zoom cercano (si no, se solapan).
     val labelsVisible = remember { mutableStateOf(false) }
-    var isSatellite by remember { mutableStateOf(false) }
+    // Satélite por defecto al abrir, paridad con el mapa de detalle de
+    // escuela (Álvaro, 2026-09-01: "que se abra en satélite por defecto").
+    var isSatellite by remember { mutableStateOf(true) }
+    var fullscreenMap by remember { mutableStateOf(false) }
 
     com.meteomontana.android.ui.components.MapViewLifecycleEffect(mapViewRef) { mapRef.value = null }
 
@@ -249,14 +256,10 @@ private fun MapBody(
         ) { tappedSchool -> selectedSchool = tappedSchool }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(320.dp)
-            .padding(top = Spacing.xs)
-    ) {
+    val mapBox: @Composable (Modifier) -> Unit = { boxModifier ->
+    Box(modifier = boxModifier) {
         AndroidView(
-            modifier = Modifier.fillMaxWidth().height(320.dp),
+            modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
                     onCreate(null)
@@ -277,7 +280,11 @@ private fun MapBody(
                         // que el LaunchedEffect no crea que "cambió la lista" y re-encuadre
                         // pisando la cámara restaurada (carrera del reciclado del LazyColumn).
                         lastFittedIds.value = schools.map { it.id }.toSet()
-                        val styleJson = if (isDarkTheme) DARK_RASTER_STYLE else OSM_RASTER_STYLE
+                        val styleJson = when {
+                            isSatellite -> SATELLITE_RASTER_STYLE
+                            isDarkTheme -> DARK_RASTER_STYLE
+                            else -> OSM_RASTER_STYLE
+                        }
                         map.setStyle(Style.Builder().fromJson(styleJson)) {
                             // Si al abrir el mapa la lista ya viene filtrada a UNA
                             // escuela (buscador), centramos en ELLA (como iOS). Si no,
@@ -329,17 +336,39 @@ private fun MapBody(
             }
         )
 
-        // Toggle topo/satélite
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        // Ampliar / salir de pantalla completa — arriba a la izquierda, misma
+        // posición y forma que en el detalle de escuela.
+        Box(
+            modifier = Modifier.align(Alignment.TopStart)
+                .padding(Spacing.sm)
+                .size(40.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(MaterialTheme.colorScheme.background)
+                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.CircleShape)
+                .clickable { fullscreenMap = !fullscreenMap },
+            contentAlignment = Alignment.Center
         ) {
-            MapStyleChip(label = stringResource(R.string.map_topo).uppercase(), selected = !isSatellite,
-                onClick = { isSatellite = false })
-            MapStyleChip(label = stringResource(R.string.map_satellite).uppercase(), selected = isSatellite,
-                onClick = { isSatellite = true })
+            Icon(
+                if (fullscreenMap) Icons.Outlined.CloseFullscreen else Icons.Outlined.OpenInFull,
+                contentDescription = stringResource(R.string.a11y_fullscreen_map),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        // Topo/satélite de un toque — mismo botón que el detalle de escuela.
+        Box(modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm)) {
+            com.meteomontana.android.ui.components.SideMapButton(
+                active = true,
+                onClick = { isSatellite = !isSatellite }
+            ) {
+                Icon(
+                    Icons.Outlined.Layers,
+                    contentDescription = stringResource(R.string.map_topo) + "/" + stringResource(R.string.map_satellite),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
 
         // Tarjeta inferior con el detalle del marker seleccionado.
@@ -357,6 +386,23 @@ private fun MapBody(
                     .padding(Spacing.md)
             )
         }
+    }
+    }
+
+    if (fullscreenMap) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { fullscreenMap = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            mapBox(Modifier.fillMaxSize())
+        }
+    } else {
+        mapBox(
+            Modifier
+                .fillMaxWidth()
+                .height(320.dp)
+                .padding(top = Spacing.xs)
+        )
     }
 }
 

@@ -278,8 +278,60 @@ struct MapToggleAndPanel: View {
     let onOpen: (School) -> Void
     @State private var show = false
     @State private var popup: School?
-    @State private var mapStyle: MapStyleKind = .topo
+    // Satélite por defecto, paridad con el mapa de detalle de escuela
+    // (Álvaro, 2026-09-01: "que se abra en satélite por defecto").
+    @State private var mapStyle: MapStyleKind = .satellite
     @State private var zoom: Double = 8
+    @State private var fullscreenMap = false
+
+    private func mapBox(height: CGFloat) -> some View {
+        ZStack(alignment: .topLeading) {
+            MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
+                         markers: markers, style: mapStyle,
+                         autoFitToMarkers: true,
+                         refitOnAnyChange: true,
+                         onZoomChange: { zoom = $0 },
+                         onTapMarker: { id in
+                             popup = vm.filtered.first { $0.id == id }
+                         })
+            .frame(height: height)
+            // Ampliar / salir de pantalla completa — arriba a la izquierda,
+            // misma posición y forma que en el detalle de escuela.
+            VStack {
+                HStack {
+                    Button { fullscreenMap.toggle() } label: {
+                        Image(systemName: fullscreenMap
+                              ? "arrow.down.right.and.arrow.up.left"
+                              : "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Cumbre.ink)
+                            .frame(width: 34, height: 34)
+                            .background(Cumbre.bg)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                    // Topo/satélite de un toque — mismo botón que el detalle
+                    // de escuela.
+                    Button {
+                        mapStyle = (mapStyle == .satellite) ? .topo : .satellite
+                    } label: {
+                        Image(systemName: "square.3.layers.3d")
+                            .font(.system(size: 16)).foregroundStyle(Cumbre.ink)
+                            .frame(width: 34, height: 34)
+                            .background(Cumbre.bg)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
+            }
+            .padding(10)
+            .frame(height: height)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -303,19 +355,14 @@ struct MapToggleAndPanel: View {
             .padding(.horizontal, 16).padding(.vertical, 4)
 
             if show {
-                ZStack(alignment: .topLeading) {
-                    MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
-                                 markers: markers, style: mapStyle,
-                                 autoFitToMarkers: true,
-                                 refitOnAnyChange: true,
-                                 onZoomChange: { zoom = $0 },
-                                 onTapMarker: { id in
-                                     popup = vm.filtered.first { $0.id == id }
-                                 })
-                    .frame(height: 300)
-                    MapStyleChips(selection: $mapStyle)
-                }
+                mapBox(height: 300)
                 Divider().overlay(Cumbre.rule)
+            }
+        }
+        .fullScreenCover(isPresented: $fullscreenMap) {
+            ZStack {
+                Cumbre.bg.ignoresSafeArea()
+                mapBox(height: UIScreen.main.bounds.height)
             }
         }
         // Popup al tocar un marcador: nombre, score, tags, CÓMO LLEGAR + VER DETALLE
