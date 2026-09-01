@@ -341,6 +341,27 @@ struct RadarView: View {
             // inmutables → reabrir el radar solo baja los nuevos y el play
             // está listo en 1-2 segundos (igual que Android).
             let radar = dto.radar
+            // Los bitmaps se acumulan aquí y el estado se aplica AGRUPADO cada
+            // ~120 ms (antes se actualizaba @State en CADA frame → con los
+            // frames cacheados llegando casi a la vez eran ~40 redibujados de
+            // golpe = petardeo al abrir, paridad con Android/RadarViewModel.kt).
+            var pendingUpdates: [String: UIImage] = [:]
+            func flushPending() {
+                guard !pendingUpdates.isEmpty else { return }
+                for (ts, img) in pendingUpdates {
+                    if let idx = frames.firstIndex(where: { $0.ts == ts }) {
+                        frames[idx].image = img
+                    }
+                }
+                pendingUpdates.removeAll()
+                // Mientras cargan (descarga del más reciente al más antiguo,
+                // desordenada), fijar la vista en el más reciente ("ahora") en
+                // vez de la posición 0, que iba saltando/retrocediendo según
+                // llegaban los frames. El play arranca ordenado al terminar
+                // (startAnim resetea a 0).
+                frameIndex = max(readyFrames.count - 1, 0)
+            }
+            var lastFlush = Date()
             await withTaskGroup(of: (String, UIImage?).self) { group in
                 var pending = Array(thinned.reversed())
                 var running = 0
@@ -354,18 +375,18 @@ struct RadarView: View {
                 }
                 while running < 4 && !pending.isEmpty { addNext(&group); running += 1 }
                 for await (ts, img) in group {
-                    if let img, let idx = frames.firstIndex(where: { $0.ts == ts }) {
-                        frames[idx].image = img
-                        // Mientras cargan (descarga del más reciente al más
-                        // antiguo, desordenada), fijar la vista en el más reciente
-                        // ("ahora") en vez de la posición 0, que iba saltando/
-                        // retrocediendo según llegaban los frames. El play arranca
-                        // ordenado al terminar (startAnim resetea a 0).
-                        frameIndex = max(readyFrames.count - 1, 0)
+                    if let img { pendingUpdates[ts] = img }
+                    // Se comprueba en cada llegada (no un timer aparte, para no
+                    // tocar `frames`/`pendingUpdates` desde dos sitios a la vez):
+                    // si ya pasaron ~120 ms desde el último aplicado, se aplica.
+                    if Date().timeIntervalSince(lastFlush) >= 0.12 {
+                        flushPending()
+                        lastFlush = Date()
                     }
                     addNext(&group)
                 }
             }
+            flushPending()   // emisión final con todos los frames
             RadarFrameCache.prune()
             if playing { startAnim() } else { frameIndex = max(readyFrames.count - 1, 0) }
         } catch {
