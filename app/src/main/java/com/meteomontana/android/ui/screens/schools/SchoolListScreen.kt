@@ -405,7 +405,11 @@ fun SchoolListScreen(
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
                     onSchoolDetail = openSchool,
-                    mapState = mapState
+                    mapState = mapState,
+                    distanceKm = filters.maxDistanceKm,
+                    onDistanceChange = viewModel::setDistance,
+                    style = filters.style,
+                    onStyleChange = viewModel::setStyle
                 )
             }
 

@@ -284,7 +284,7 @@ struct MapToggleAndPanel: View {
     @State private var zoom: Double = 8
     @State private var fullscreenMap = false
 
-    private func mapBox(height: CGFloat) -> some View {
+    private func mapBox(height: CGFloat, isFullscreen: Bool = false) -> some View {
         ZStack(alignment: .topLeading) {
             MapLibreView(center: center, zoom: vm.userLat != nil ? 8 : 6,
                          markers: markers, style: mapStyle,
@@ -296,7 +296,9 @@ struct MapToggleAndPanel: View {
                          })
             .frame(height: height)
             // Ampliar / salir de pantalla completa — arriba a la izquierda,
-            // misma posición y forma que en el detalle de escuela.
+            // misma posición y forma que en el detalle de escuela. En
+            // pantalla completa se baja bajo la isla/notch (antes quedaba
+            // debajo del reloj y no se podía pulsar — Álvaro, 2026-09-01).
             VStack {
                 HStack {
                     Button { fullscreenMap.toggle() } label: {
@@ -326,11 +328,65 @@ struct MapToggleAndPanel: View {
                     }
                     .buttonStyle(.plain)
                 }
+                .padding(.top, isFullscreen ? 50 : 0)
                 Spacer()
             }
             .padding(10)
             .frame(height: height)
+
+            // A pantalla completa, hay demasiadas escuelas para verlas bien
+            // sin filtrar — DISTANCIA y ESTILO a la derecha, igual que en la
+            // lista, para no tener que salir del mapa (Álvaro, 2026-09-01).
+            if isFullscreen {
+                VStack {
+                    HStack {
+                        Spacer()
+                        fullscreenFilters
+                    }
+                    .padding(.top, 104)
+                    .padding(.trailing, 10)
+                    Spacer()
+                }
+                .frame(height: height)
+            }
         }
+    }
+
+    private var fullscreenFilters: some View {
+        VStack(alignment: .trailing, spacing: 10) {
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("DISTANCIA").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                ForEach(SchoolListViewModel.distanceOptions, id: \.self) { d in
+                    filterPill(
+                        label: d == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int(d!)) km",
+                        selected: d == vm.maxDistanceKm) { vm.maxDistanceKm = d }
+                }
+            }
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("ESTILO").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                ForEach([String?.none] + vm.styles.map { Optional($0) }, id: \.self) { s in
+                    filterPill(
+                        label: s ?? NSLocalizedString("schools_filter_all", comment: ""),
+                        selected: s == vm.style) { vm.style = s }
+                }
+            }
+        }
+        .padding(10)
+        .background(Cumbre.bg.opacity(0.92), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func filterPill(label: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
+        Button(action: onTap) {
+            Text(label).font(Cumbre.mono(11, .bold))
+                .foregroundStyle(selected ? .white : Cumbre.ink2)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(selected ? Cumbre.terraFill : Color.clear,
+                            in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                    .stroke(selected ? Color.clear : Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     var body: some View {
@@ -362,7 +418,7 @@ struct MapToggleAndPanel: View {
         .fullScreenCover(isPresented: $fullscreenMap) {
             ZStack {
                 Cumbre.bg.ignoresSafeArea()
-                mapBox(height: UIScreen.main.bounds.height)
+                mapBox(height: UIScreen.main.bounds.height, isFullscreen: true)
             }
         }
         // Popup al tocar un marcador: nombre, score, tags, CÓMO LLEGAR + VER DETALLE

@@ -14,6 +14,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -42,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -138,7 +141,14 @@ fun SchoolsMapPanel(
     // se DESTRUYE y recrea, y volvía a la cámara inicial. Con el estado en el llamante
     // (SchoolListScreen, que NO se recicla), el mapa reaparece donde lo dejaste y no
     // re-encuadra salvo cambio de filtro. Ver [SchoolsMapState].
-    mapState: SchoolsMapState
+    mapState: SchoolsMapState,
+    // Filtros DISTANCIA/ESTILO: a pantalla completa hay demasiadas escuelas
+    // para verlas bien sin filtrar, así que se ofrecen ahí también (Álvaro,
+    // 2026-09-01) — mismo estado que la barra de filtros de la lista.
+    distanceKm: Double?,
+    onDistanceChange: (Double?) -> Unit,
+    style: StyleFilter,
+    onStyleChange: (StyleFilter) -> Unit
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -187,7 +197,11 @@ fun SchoolsMapPanel(
                 userLat = userLat,
                 userLon = userLon,
                 onSchoolDetail = onSchoolDetail,
-                mapState = mapState
+                mapState = mapState,
+                distanceKm = distanceKm,
+                onDistanceChange = onDistanceChange,
+                style = style,
+                onStyleChange = onStyleChange
             )
         }
     }
@@ -202,7 +216,11 @@ private fun MapBody(
     userLat: Double?,
     userLon: Double?,
     onSchoolDetail: (String) -> Unit,
-    mapState: SchoolsMapState
+    mapState: SchoolsMapState,
+    distanceKm: Double?,
+    onDistanceChange: (Double?) -> Unit,
+    style: StyleFilter,
+    onStyleChange: (StyleFilter) -> Unit
 ) {
     val savedCamera = mapState.savedCamera
     val lastFittedIds = mapState.fittedIds
@@ -337,9 +355,12 @@ private fun MapBody(
         )
 
         // Ampliar / salir de pantalla completa — arriba a la izquierda, misma
-        // posición y forma que en el detalle de escuela.
+        // posición y forma que en el detalle de escuela. A pantalla completa
+        // se respeta la barra de estado (antes quedaba debajo del reloj y no
+        // se podía pulsar — Álvaro, 2026-09-01).
         Box(
             modifier = Modifier.align(Alignment.TopStart)
+                .let { if (fullscreenMap) it.statusBarsPadding() else it }
                 .padding(Spacing.sm)
                 .size(40.dp)
                 .clip(androidx.compose.foundation.shape.CircleShape)
@@ -357,7 +378,11 @@ private fun MapBody(
         }
 
         // Topo/satélite de un toque — mismo botón que el detalle de escuela.
-        Box(modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm)) {
+        Box(
+            modifier = Modifier.align(Alignment.TopEnd)
+                .let { if (fullscreenMap) it.statusBarsPadding() else it }
+                .padding(Spacing.sm)
+        ) {
             com.meteomontana.android.ui.components.SideMapButton(
                 active = true,
                 onClick = { isSatellite = !isSatellite }
@@ -368,6 +393,45 @@ private fun MapBody(
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(20.dp)
                 )
+            }
+        }
+
+        // A pantalla completa hay demasiadas escuelas para verlas bien sin
+        // filtrar — DISTANCIA y ESTILO aquí también, para no tener que salir
+        // del mapa (Álvaro, 2026-09-01).
+        if (fullscreenMap) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(top = 56.dp, end = Spacing.sm)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                    .padding(Spacing.sm),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("DISTANCIA", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    DISTANCE_OPTIONS.forEach { km ->
+                        MapFilterPill(
+                            label = km?.let { "${it.toInt()} km" } ?: stringResource(R.string.schools_filter_all),
+                            selected = km == distanceKm,
+                            onClick = { onDistanceChange(km) }
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("ESTILO", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    StyleFilter.entries.forEach { s ->
+                        MapFilterPill(
+                            label = s.label,
+                            selected = s == style,
+                            onClick = { onStyleChange(s) }
+                        )
+                    }
+                }
             }
         }
 
@@ -402,6 +466,27 @@ private fun MapBody(
                 .fillMaxWidth()
                 .height(320.dp)
                 .padding(top = Spacing.xs)
+        )
+    }
+}
+
+@Composable
+private fun MapFilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+            .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .border(
+                1.dp,
+                if (selected) Color.Transparent else MaterialTheme.colorScheme.outline,
+                com.meteomontana.android.ui.theme.CumbrePillShape
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.sm, vertical = 4.dp)
+    ) {
+        Text(
+            label, style = EyebrowTextStyle,
+            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
