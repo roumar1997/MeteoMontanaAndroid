@@ -490,7 +490,7 @@ private fun MapFilterPill(label: String, selected: Boolean, onClick: () -> Unit)
                 com.meteomontana.android.ui.theme.CumbrePillShape
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.sm, vertical = 4.dp)
+            .padding(horizontal = Spacing.sm, vertical = 8.dp)
     ) {
         Text(
             label, style = EyebrowTextStyle,

@@ -334,17 +334,16 @@ struct MapToggleAndPanel: View {
             .padding(10)
             .frame(height: height)
 
-            // A pantalla completa, hay demasiadas escuelas para verlas bien
-            // sin filtrar — DISTANCIA y ESTILO en una barra fija ABAJO (no un
-            // panel lateral que tapaba el mapa), para no tener que salir del
-            // mapa. Álvaro, 2026-09-01: "abajo me gusta más".
-            if isFullscreen {
-                VStack {
-                    Spacer()
-                    fullscreenFilters
-                }
-                .frame(height: height)
-            }
+        }
+        // A pantalla completa, hay demasiadas escuelas para verlas bien sin
+        // filtrar — DISTANCIA y ESTILO en una barra fija ABAJO (no un panel
+        // lateral que tapaba el mapa). safeAreaInset (no un Spacer dentro de
+        // un frame a la altura física de la pantalla) para que quede POR
+        // ENCIMA del indicador de inicio, no debajo ni pegada a él — ahí
+        // costaba pulsarla (Álvaro, 2026-09-01: "abajo me gusta más" / "no
+        // se puede pulsar bien").
+        .safeAreaInset(edge: .bottom) {
+            if isFullscreen { fullscreenFilters }
         }
     }
 
@@ -378,7 +377,7 @@ struct MapToggleAndPanel: View {
         Button(action: onTap) {
             Text(label).font(Cumbre.mono(11, .bold))
                 .foregroundStyle(selected ? .white : Cumbre.ink2)
-                .padding(.horizontal, 10).padding(.vertical, 6)
+                .padding(.horizontal, 10).padding(.vertical, 8)
                 .background(selected ? Cumbre.terraFill : Color.clear,
                             in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
                 .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
