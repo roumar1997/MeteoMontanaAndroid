@@ -6,4 +6,10 @@
     <cache-path name="feed" path="feed/" />
     <!-- Foto tomada en el momento al proponer una piedra (cámara → TakePicture) -->
     <cache-path name="propuesta-piedra" path="propuesta-piedra/" />
+    <!-- Foto tomada en el momento al EDITAR la foto de una cara ya existente
+         (AddLinesFlow.kt, cámara → TakePicture) -->
+    <cache-path name="editar-piedra" path="editar-piedra/" />
+    <!-- Foto tomada en el momento al CREAR una piedra nueva, cualquiera de
+         sus caras (BoulderFormDialog.kt, cámara → TakePicture) -->
+    <cache-path name="nueva-piedra" path="nueva-piedra/" />
 </paths>
