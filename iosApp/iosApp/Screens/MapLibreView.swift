@@ -167,6 +167,11 @@ struct MapLibreView: UIViewRepresentable {
     var radarImage: UIImage? = nil
     var radarBounds: RadarOverlayBounds? = nil
     var radarOpacity: Double = 1.0
+    /// Margen vertical de la brújula nativa (top-left), por debajo de los
+    /// botones flotantes propios que dibujamos encima del mapa. A pantalla
+    /// completa esos botones bajan más (bajo la isla/notch) y si la brújula
+    /// se queda en su margen normal, ambos se solapan (Álvaro, 2026-09-01).
+    var compassTopMargin: CGFloat = 56
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -179,7 +184,7 @@ struct MapLibreView: UIViewRepresentable {
         // A la IZQUIERDA y bajo el boton de ampliar, igual que en Android.
         // Arriba a la derecha chocaba con el boton de PROPONER.
         map.compassViewPosition = .topLeft
-        map.compassViewMargins = CGPoint(x: 12, y: 56)
+        map.compassViewMargins = CGPoint(x: 12, y: compassTopMargin)
         map.styleURL = style.styleURL()
         map.setCenter(center, zoomLevel: zoom, animated: false)
         map.delegate = context.coordinator

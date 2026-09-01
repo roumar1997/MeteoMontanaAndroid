@@ -293,7 +293,11 @@ struct MapToggleAndPanel: View {
                          onZoomChange: { zoom = $0 },
                          onTapMarker: { id in
                              popup = vm.filtered.first { $0.id == id }
-                         })
+                         },
+                         // A pantalla completa los botones de arriba bajan más
+                         // (bajo la isla/notch) — la brújula tiene que bajar con
+                         // ellos o se solapan (Álvaro, 2026-09-01).
+                         compassTopMargin: isFullscreen ? 106 : 56)
             .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : height)
             // Ampliar / salir de pantalla completa — arriba a la izquierda,
             // misma posición y forma que en el detalle de escuela. En
@@ -376,7 +380,9 @@ struct MapToggleAndPanel: View {
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity)
-        .background(Cumbre.bg.opacity(0.85))
+        // Material de cristal nativo (blur real), no un color plano con
+        // opacidad — Álvaro, 2026-09-01: "no está en liquid glass".
+        .background(.ultraThinMaterial)
     }
 
     private func filterPill(label: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
