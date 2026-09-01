@@ -340,6 +340,19 @@ private fun MapBody(
                         map.uiSettings.apply {
                             isRotateGesturesEnabled = true
                             isTiltGesturesEnabled   = false
+                            // Brújula debajo del botón de ampliar (izquierda),
+                            // no en su posición por defecto (arriba derecha,
+                            // donde ahora está el botón de capas) — mismo
+                            // tratamiento que el mapa de detalle de escuela
+                            // (SchoolMapView.kt). A pantalla completa el botón
+                            // baja más para esquivar la barra de estado, así
+                            // que la brújula baja con él (Álvaro, 2026-09-01).
+                            isCompassEnabled = true
+                            setCompassFadeFacingNorth(false)
+                            setCompassGravity(android.view.Gravity.TOP or android.view.Gravity.START)
+                            val d = context.resources.displayMetrics.density
+                            val topMarginDp = if (fullscreenMap) 100 else 56
+                            setCompassMargins((12 * d).toInt(), (topMarginDp * d).toInt(), 0, 0)
                         }
                         // Etiquetas de nombre solo a partir de zoom 8.5 — más
                         // lejos se solaparían unas con otras.
