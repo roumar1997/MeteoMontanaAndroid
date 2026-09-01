@@ -15,6 +15,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Map
@@ -398,22 +400,24 @@ private fun MapBody(
 
         // A pantalla completa hay demasiadas escuelas para verlas bien sin
         // filtrar — DISTANCIA y ESTILO aquí también, para no tener que salir
-        // del mapa (Álvaro, 2026-09-01).
+        // del mapa. Barra fija ABAJO (no un panel lateral que tapaba el mapa)
+        // — Álvaro, 2026-09-01: "abajo me gusta más".
         if (fullscreenMap) {
             Column(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(top = 56.dp, end = Spacing.sm)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                    .padding(Spacing.sm),
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.94f))
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("DISTANCIA", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())
+                ) {
+                    Text("DIST.", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     DISTANCE_OPTIONS.forEach { km ->
                         MapFilterPill(
                             label = km?.let { "${it.toInt()} km" } ?: stringResource(R.string.schools_filter_all),
@@ -422,7 +426,10 @@ private fun MapBody(
                         )
                     }
                 }
-                Column(horizontalAlignment = Alignment.End) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text("ESTILO", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     StyleFilter.entries.forEach { s ->
                         MapFilterPill(
@@ -447,7 +454,8 @@ private fun MapBody(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(Spacing.md)
+                    .padding(horizontal = Spacing.md)
+                    .padding(bottom = if (fullscreenMap) 92.dp else Spacing.md)
             )
         }
     }

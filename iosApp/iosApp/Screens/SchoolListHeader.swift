@@ -335,17 +335,13 @@ struct MapToggleAndPanel: View {
             .frame(height: height)
 
             // A pantalla completa, hay demasiadas escuelas para verlas bien
-            // sin filtrar — DISTANCIA y ESTILO a la derecha, igual que en la
-            // lista, para no tener que salir del mapa (Álvaro, 2026-09-01).
+            // sin filtrar — DISTANCIA y ESTILO en una barra fija ABAJO (no un
+            // panel lateral que tapaba el mapa), para no tener que salir del
+            // mapa. Álvaro, 2026-09-01: "abajo me gusta más".
             if isFullscreen {
                 VStack {
-                    HStack {
-                        Spacer()
-                        fullscreenFilters
-                    }
-                    .padding(.top, 104)
-                    .padding(.trailing, 10)
                     Spacer()
+                    fullscreenFilters
                 }
                 .frame(height: height)
             }
@@ -353,16 +349,18 @@ struct MapToggleAndPanel: View {
     }
 
     private var fullscreenFilters: some View {
-        VStack(alignment: .trailing, spacing: 10) {
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("DISTANCIA").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-                ForEach(SchoolListViewModel.distanceOptions, id: \.self) { d in
-                    filterPill(
-                        label: d == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int(d!)) km",
-                        selected: d == vm.maxDistanceKm) { vm.maxDistanceKm = d }
+        VStack(alignment: .leading, spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    Text("DIST.").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                    ForEach(SchoolListViewModel.distanceOptions, id: \.self) { d in
+                        filterPill(
+                            label: d == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int(d!)) km",
+                            selected: d == vm.maxDistanceKm) { vm.maxDistanceKm = d }
+                    }
                 }
             }
-            VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 6) {
                 Text("ESTILO").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
                 ForEach([String?.none] + vm.styles.map { Optional($0) }, id: \.self) { s in
                     filterPill(
@@ -371,9 +369,9 @@ struct MapToggleAndPanel: View {
                 }
             }
         }
-        .padding(10)
-        .background(Cumbre.bg.opacity(0.92), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .background(Cumbre.bg.opacity(0.94))
     }
 
     private func filterPill(label: String, selected: Bool, onTap: @escaping () -> Void) -> some View {
