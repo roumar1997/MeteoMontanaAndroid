@@ -163,6 +163,39 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
+            // Botón "Sugerir algo / reportar un fallo" — buzón directo al
+            // admin (Álvaro, 2026-08-31: "quiero un botón para añadir fallos
+            // o mejoras que se le ocurran a la gente"). Arriba del todo:
+            // Álvaro pidió que no quedara perdido al final de la hoja.
+            var mostrandoSugerencia by remember { mutableStateOf(false) }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    .clickable { mostrandoSugerencia = true }
+                    .padding(Spacing.md),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    Icon(
+                        Icons.Outlined.Feedback,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        "Sugerir algo / reportar un fallo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            if (mostrandoSugerencia) {
+                SuggestionDialog(onDismiss = { mostrandoSugerencia = false })
+            }
             // Filas: icono en círculo + título + descripción.
             topic.items.forEach { item ->
                 Row(
@@ -233,38 +266,6 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-            }
-            // Botón "Sugerir algo / reportar un fallo" — buzón directo al
-            // admin (Álvaro, 2026-08-31: "quiero un botón para añadir fallos
-            // o mejoras que se le ocurran a la gente").
-            var mostrandoSugerencia by remember { mutableStateOf(false) }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                    .clickable { mostrandoSugerencia = true }
-                    .padding(Spacing.md),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    Icon(
-                        Icons.Outlined.Feedback,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        "Sugerir algo / reportar un fallo",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            if (mostrandoSugerencia) {
-                SuggestionDialog(onDismiss = { mostrandoSugerencia = false })
             }
             Spacer(Modifier.padding(bottom = Spacing.lg))
         }

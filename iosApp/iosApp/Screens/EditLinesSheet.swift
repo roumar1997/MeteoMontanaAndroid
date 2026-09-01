@@ -260,6 +260,51 @@ struct EditLinesSheet: View {
                         }
                     }
 
+                    // Cambiar la foto de esta cara (mejorarla). Si eliges una nueva,
+                    // todas las vías de la cara se moverán a ella y conviene
+                    // redibujarlas. Si no eres admin, el admin la revisará.
+                    // Va JUNTO a la vista previa de la cara para que se vea qué
+                    // foto se está sustituyendo, en vez de un botón suelto.
+                    // Arriba del todo, antes de las vías (Álvaro, 2026-09-01).
+                    HStack(spacing: 10) {
+                        faceThumb(faceIdx)
+                            .frame(width: 44, height: 44)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(facePicked[faceIdx] != nil ? "Foto nueva sin enviar"
+                                 : (hasPhoto ? "Foto actual de la cara \(faceIdx + 1)" : "Esta cara no tiene foto"))
+                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                            if facePicked[faceIdx] != nil {
+                                Text("Redibuja las líneas sobre ella.")
+                                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                            }
+                        }
+                        Spacer()
+                        Button { eligiendoOrigenFoto = true } label: {
+                            Text(facePicked[faceIdx] == nil ? "CAMBIAR" : "OTRA")
+                                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
+                                    .stroke(Cumbre.terra, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
+                    .padding(10)
+                    .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+
+                    if hasPhoto || facePicked[faceIdx] != nil {
+                        Button { showEditor = true } label: {
+                            Text("✎ DIBUJAR / EDITAR SOBRE ESTA FOTO")
+                                .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(.white)
+                                .lineLimit(1).minimumScaleFactor(0.8)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+                        }.buttonStyle(.plain)
+                    } else {
+                        Text("Esta cara no tiene foto, no puedes dibujar líneas.")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+
                     // VÍAS DE LA CARA: una sola FICHA ABIERTA a la vez. Las ya
                     // rellenadas se pliegan a una fila de una línea, así que
                     // añadir la quinta vía no obliga a scrollear los cuatro
@@ -308,50 +353,6 @@ struct EditLinesSheet: View {
                                 .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
                                     .stroke(Cumbre.terra, lineWidth: 1))
                         }.buttonStyle(.plain)
-                    }
-
-                    // Cambiar la foto de esta cara (mejorarla). Si eliges una nueva,
-                    // todas las vías de la cara se moverán a ella y conviene
-                    // redibujarlas. Si no eres admin, el admin la revisará.
-                    // Va JUNTO a la vista previa de la cara para que se vea qué
-                    // foto se está sustituyendo, en vez de un botón suelto.
-                    HStack(spacing: 10) {
-                        faceThumb(faceIdx)
-                            .frame(width: 44, height: 44)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(facePicked[faceIdx] != nil ? "Foto nueva sin enviar"
-                                 : (hasPhoto ? "Foto actual de la cara \(faceIdx + 1)" : "Esta cara no tiene foto"))
-                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
-                            if facePicked[faceIdx] != nil {
-                                Text("Redibuja las líneas sobre ella.")
-                                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
-                            }
-                        }
-                        Spacer()
-                        Button { eligiendoOrigenFoto = true } label: {
-                            Text(facePicked[faceIdx] == nil ? "CAMBIAR" : "OTRA")
-                                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                                .padding(.horizontal, 12).padding(.vertical, 8)
-                                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                                    .stroke(Cumbre.terra, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
-                    .padding(10)
-                    .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
-
-                    if hasPhoto || facePicked[faceIdx] != nil {
-                        Button { showEditor = true } label: {
-                            Text("✎ DIBUJAR / EDITAR SOBRE ESTA FOTO")
-                                .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(.white)
-                                .lineLimit(1).minimumScaleFactor(0.8)
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                        }.buttonStyle(.plain)
-                    } else {
-                        Text("Esta cara no tiene foto, no puedes dibujar líneas.")
-                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     }
 
                     if let sendError {

@@ -37,6 +37,21 @@ struct HelpSheet: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(12)
                             .background(Cumbre.terra.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                        // Botón "Sugerir algo / reportar un fallo" — paridad
+                        // Android. Arriba del todo: Álvaro pidió que no quedara
+                        // perdido al final de la hoja (2026-09-01).
+                        Button {
+                            mostrandoSugerencia = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.bubble").font(.system(size: 16))
+                                Text("Sugerir algo / reportar un fallo").font(.system(size: 15))
+                            }
+                            .foregroundStyle(Cumbre.terra)
+                            .frame(maxWidth: .infinity)
+                            .padding(12)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
+                        }
                         // Filas: icono en círculo + título + descripción.
                         ForEach(Array(t.items.enumerated()), id: \.offset) { _, item in
                             HStack(alignment: .top, spacing: 12) {
@@ -60,22 +75,6 @@ struct HelpSheet: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "info.circle").font(.system(size: 16))
                                 Text(NSLocalizedString("profile_show_hints", comment: "")).font(.system(size: 15))
-                            }
-                            .foregroundStyle(Cumbre.terra)
-                            .frame(maxWidth: .infinity)
-                            .padding(12)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
-                        }
-                        // Botón "Sugerir algo / reportar un fallo" — paridad
-                        // Android (Álvaro, 2026-08-31: "quiero un botón para
-                        // añadir fallos o mejoras que se le ocurran a la
-                        // gente").
-                        Button {
-                            mostrandoSugerencia = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "exclamationmark.bubble").font(.system(size: 16))
-                                Text("Sugerir algo / reportar un fallo").font(.system(size: 15))
                             }
                             .foregroundStyle(Cumbre.terra)
                             .frame(maxWidth: .infinity)
