@@ -352,12 +352,14 @@ struct SchoolDetailView: View {
                     // Boletín de montaña ENCIMA del mapa (paridad con Android).
                     mapSlot: AnyView(VStack(spacing: 0) {
                         MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
+                        SchoolPresenceRow(schoolId: school.id, myUid: AppDependencies.shared.authBridge.currentUid())
                         SchoolMapSection(school: school, openVia: openVia)
                     })
                 )
             } else {
                 // Sin previsión: el mapa (y el boletín) van igualmente.
                 MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
+                SchoolPresenceRow(schoolId: school.id, myUid: AppDependencies.shared.authBridge.currentUid())
                 SchoolMapSection(school: school, openVia: openVia)
             }
             // Notas comunitarias — ahora ENCIMA de "mejores meses".

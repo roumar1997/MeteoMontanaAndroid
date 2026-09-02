@@ -602,4 +602,26 @@ object UseCasesModule {
     fun provideUpdateMyGearUseCase(
         repo: com.meteomontana.android.domain.repository.MeetupRepository
     ) = com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase(repo)
+
+    // "Estoy aquí" — presencia en una escuela. Puerto SchoolPresenceRepository.
+    @Provides @Singleton
+    fun provideSchoolPresenceRepository(
+        api: com.meteomontana.android.data.api.KtorSchoolPresenceApi
+    ): com.meteomontana.android.domain.repository.SchoolPresenceRepository =
+        com.meteomontana.android.data.repository.KtorSchoolPresenceRepository(api)
+
+    @Provides @Singleton
+    fun provideGetSchoolPresenceUseCase(
+        repo: com.meteomontana.android.domain.repository.SchoolPresenceRepository
+    ) = com.meteomontana.android.domain.usecase.presence.GetSchoolPresenceUseCase(repo)
+
+    @Provides @Singleton
+    fun provideMarkSchoolPresenceUseCase(
+        repo: com.meteomontana.android.domain.repository.SchoolPresenceRepository
+    ) = com.meteomontana.android.domain.usecase.presence.MarkSchoolPresenceUseCase(repo)
+
+    @Provides @Singleton
+    fun provideClearSchoolPresenceUseCase(
+        repo: com.meteomontana.android.domain.repository.SchoolPresenceRepository
+    ) = com.meteomontana.android.domain.usecase.presence.ClearSchoolPresenceUseCase(repo)
 }

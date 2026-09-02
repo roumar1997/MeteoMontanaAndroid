@@ -93,12 +93,14 @@ targets:
         #   - 2.24.2 se cerró (build 176 ya publicada) → 2.24.3 (2026-08-31,
         #     TestFlight de los 4 fixes + botón de sugerencias; Android sigue
         #     en 2.24.2/vc108, no hace falta re-publicar Android para esto)
+        #   - 2.24.3/186 se cerró al PUBLICARSE como parte de la 6.0 (2026-09-01)
+        #     → 2.24.4 (2026-09-02, TestFlight de "Estoy aquí" / presencia)
         # Es decir: para subir a TestFlight algo posterior a una versión ya
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
-        CFBundleShortVersionString: "2.24.3"
+        CFBundleShortVersionString: "2.24.4"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
-        CFBundleVersion: "186"
+        CFBundleVersion: "187"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).

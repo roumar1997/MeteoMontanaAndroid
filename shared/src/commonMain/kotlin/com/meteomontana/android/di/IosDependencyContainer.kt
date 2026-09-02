@@ -399,6 +399,15 @@ class IosDependencyContainer(
     val getMeetupAlert    = GetMeetupAlertUseCase(meetupRepo)
     val setMeetupAlert    = SetMeetupAlertUseCase(meetupRepo)
 
+    // "Estoy aquí" (presencia en una escuela). Sin caché: es información en
+    // vivo, no tiene sentido offline como el resto de quedadas.
+    private val presenceApi = com.meteomontana.android.data.api.KtorSchoolPresenceApi(httpClient)
+    private val presenceRepo: com.meteomontana.android.domain.repository.SchoolPresenceRepository =
+        com.meteomontana.android.data.repository.KtorSchoolPresenceRepository(presenceApi)
+    val getSchoolPresence   = com.meteomontana.android.domain.usecase.presence.GetSchoolPresenceUseCase(presenceRepo)
+    val markSchoolPresence  = com.meteomontana.android.domain.usecase.presence.MarkSchoolPresenceUseCase(presenceRepo)
+    val clearSchoolPresence = com.meteomontana.android.domain.usecase.presence.ClearSchoolPresenceUseCase(presenceRepo)
+
     // ─── Cola offline (outbox) ───────────────────────────────────────────────
     // La lógica vive en OutboxSyncService (SRP); aquí solo se instancia y se
     // exponen delegadores con la MISMA firma que Swift ya llama con `try?`.
