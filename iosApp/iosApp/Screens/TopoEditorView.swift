@@ -37,6 +37,11 @@ struct TopoEditorView: View {
     /// apagar y volver a encender EN MITAD del dibujo, que es lo que permite
     /// compartir solo el tramo del medio. Se recuerda entre vías.
     @State private var iman = true
+    /// Solo la vía seleccionada: apagado por defecto. Con muchas vías en la
+    /// misma cara, verlas todas a la vez tapa la que estás dibujando (Álvaro,
+    /// 2026-09-03). NO afecta al imán: `otherLines()` sigue viendo todas las
+    /// vías para pegarse a ellas aunque no se PINTEN.
+    @State private var soloEsta = false
 
     /// Devuelve la vía a como estaba antes del último cambio.
     private func deshacer() {
@@ -200,6 +205,16 @@ struct TopoEditorView: View {
                             .background(iman ? Cumbre.terra : Color.clear)
                             .overlay(Rectangle().stroke(iman ? Cumbre.terra : Cumbre.ink, lineWidth: 1))
                     }.buttonStyle(.plain)
+                    // SOLO ESTA: oculta el resto de vías mientras dibujas, sin
+                    // apagar el imán (sigue pegándose a ellas aunque no se vean).
+                    Button { soloEsta.toggle() } label: {
+                        Text(soloEsta ? "SOLO ESTA" : "VER TODAS")
+                            .font(Cumbre.mono(11, .bold))
+                            .foregroundStyle(soloEsta ? .white : Cumbre.ink)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(soloEsta ? Cumbre.terra : Color.clear)
+                            .overlay(Rectangle().stroke(soloEsta ? Cumbre.terra : Cumbre.ink, lineWidth: 1))
+                    }.buttonStyle(.plain)
                     Text("Un dedo dibuja · pellizca para ampliar")
                         .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                 }
@@ -241,22 +256,25 @@ struct TopoEditorView: View {
     /// Lo que hay que pintar. El lienzo no sabe nada de vías ni de grados:
     /// recibe datos ya masticados.
     private var escena: TopoScene {
-        var vias = normalLines.enumerated().map { (i, l) in
+        // "Solo esta" oculta el resto del PINTADO — otherLines() (el imán)
+        // sigue viendo todas las vías igual, para no perder el tramo
+        // compartido solo por no dibujarlas.
+        var vias = soloEsta ? [] : normalLines.enumerated().map { (i, l) in
             TopoVia(number: i + 1, grade: l.grade, startType: l.startType, points: l.points)
         }
         // Índice de vía GLOBAL (normales primero, luego editables) para que las
         // franjas del tramo compartido y el abanico de badges casen.
-        for (idx, b) in blocks.enumerated() {
+        for (idx, b) in blocks.enumerated() where !soloEsta || idx == selected {
             vias.append(TopoVia(number: idx + 1, grade: b.grade, startType: b.startType,
                                 points: b.line, lineWidth: (idx == selected ? 8 : 5)))
         }
         let seleccionada = blocks.indices.contains(selected) ? blocks[selected].line : []
         return TopoScene(
-            faded: fadedLines.map { ($0.points, $0.grade) },
+            faded: soloEsta ? [] : fadedLines.map { ($0.points, $0.grade) },
             vias: vias,
             dots: seleccionada,
             joined: TopoShared.joinedIndices(seleccionada, others: otherLines()),
-            liveIndex: normalLines.count + selected,
+            liveIndex: soloEsta ? 0 : normalLines.count + selected,
             style: { z in TopoStyle.editor(lineWidth: 5 * z) },
             fadedAlpha: 0.4)
     }

@@ -123,6 +123,12 @@ fun ContributionTopoDialog(
     // Iman: encendido por defecto (el caso normal es querer unir). Se recuerda
     // mientras el editor este abierto, tambien al cambiar de via.
     var iman by remember { mutableStateOf(true) }
+    // Solo la via seleccionada: apagado por defecto (el caso normal es ver
+    // todas para saber donde compartir tramo). Con muchas vias en la misma
+    // piedra, verlas todas a la vez tapa la que estas dibujando (Álvaro,
+    // 2026-09-03). NO afecta al iman: sigue viendo las demas vias para
+    // pegarse a ellas aunque no se PINTEN.
+    var soloEsta by remember { mutableStateOf(false) }
     fun apunta() {
         lines[selectedIdx]?.let { historial.add(selectedIdx to it.toList()) }
         if (historial.size > 40) historial.removeAt(0)
@@ -374,7 +380,10 @@ fun ContributionTopoDialog(
                     // trazo se veia diminuto y dos vias que comparten tramo se
                     // pisaban en vez de verse a franjas.
                     val densTrazo = drawContext.density.density
-                    val existing = existingLines.map { line ->
+                    // "Solo esta" oculta el resto del PINTADO — el iman (otrasVias)
+                    // sigue viendo todas las vias igual, para no perder el
+                    // tramo compartido solo por no dibujarlas.
+                    val existing = if (soloEsta) emptyList() else existingLines.map { line ->
                         TopoLineData(
                             name = line.name,
                             grade = line.grade,
@@ -383,7 +392,9 @@ fun ContributionTopoDialog(
                             strokeWidthPx = 5f * densTrazo * z
                         )
                     }
-                    val editorLines = lines.entries.sortedBy { it.key }.map { (idx, points) ->
+                    val editorLines = lines.entries.sortedBy { it.key }
+                        .filter { (idx, _) -> !soloEsta || idx == selectedIdx }
+                        .map { (idx, points) ->
                         val bloque = bloques.getOrNull(idx)
                         val strokeW = if (idx == selectedIdx) 8f else 5f
                         TopoLineData(
@@ -500,6 +511,26 @@ fun ContributionTopoDialog(
                         if (iman) "UNIR: SÍ" else "UNIR: NO",
                         style = EyebrowTextStyle,
                         color = if (iman) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                // SOLO ESTA: oculta el resto de vías mientras dibujas, sin
+                // apagar el imán (sigue pegándose a ellas aunque no se vean).
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(if (soloEsta) Terra else Color.Transparent)
+                        .border(
+                            1.dp,
+                            if (soloEsta) Terra else MaterialTheme.colorScheme.onSurface,
+                            RoundedCornerShape(2.dp)
+                        )
+                        .clickable { soloEsta = !soloEsta }
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                ) {
+                    Text(
+                        if (soloEsta) "SOLO ESTA" else "VER TODAS",
+                        style = EyebrowTextStyle,
+                        color = if (soloEsta) Color.White else MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Text(
