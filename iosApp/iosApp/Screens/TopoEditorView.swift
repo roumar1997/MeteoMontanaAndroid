@@ -74,23 +74,48 @@ struct TopoEditorView: View {
                     HStack(spacing: 8) {
                         ForEach(Array(blocks.enumerated()), id: \.element.id) { idx, b in
                             let on = idx == selected
-                            Button { selected = idx } label: {
-                                // Etiqueta compartida: numero (el que se pinta en
-                                // la roca) + nombre + variante + grado.
-                                Text(TopoChipLabel.shared.of(index: Int32(idx), name: b.name,
-                                                             variant: b.variant, grade: b.grade))
-                                    .lineLimit(1)
-                                    .font(Cumbre.mono(11, .bold))
-                                    // Los grados bajos son casi blancos: texto
-                                    // negro encima o el nombre desaparece al
-                                    // seleccionar el chip. Espejo de Android.
-                                    .foregroundStyle(on
-                                        ? (GradeColor.style(b.grade).dark ? Color.black : .white)
-                                        : Cumbre.ink2)
-                                    .padding(.horizontal, 10).padding(.vertical, 6)
-                                    .background(on ? GradeColor.color(b.grade) : Color.clear)
-                                    .overlay(Rectangle().stroke(GradeColor.color(b.grade), lineWidth: 1))
-                            }.buttonStyle(.plain)
+                            HStack(spacing: 0) {
+                                Button { selected = idx } label: {
+                                    // Etiqueta compartida: numero (el que se pinta en
+                                    // la roca) + nombre + variante + grado.
+                                    Text(TopoChipLabel.shared.of(index: Int32(idx), name: b.name,
+                                                                 variant: b.variant, grade: b.grade))
+                                        .lineLimit(1)
+                                        .font(Cumbre.mono(11, .bold))
+                                        // Los grados bajos son casi blancos: texto
+                                        // negro encima o el nombre desaparece al
+                                        // seleccionar el chip. Espejo de Android.
+                                        .foregroundStyle(on
+                                            ? (GradeColor.style(b.grade).dark ? Color.black : .white)
+                                            : Cumbre.ink2)
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .background(on ? GradeColor.color(b.grade) : Color.clear)
+                                        .overlay(Rectangle().stroke(GradeColor.color(b.grade), lineWidth: 1))
+                                }.buttonStyle(.plain)
+                                // "Crear variante": solo sobre una vía que YA existe
+                                // (una recién dibujada aún no tiene id al que
+                                // apuntar). Copia el trazado actual como punto de
+                                // partida — espejo de Android.
+                                if let origId = b.existingLineId {
+                                    Button {
+                                        var nuevo = BoulderBlockForm()
+                                        nuevo.name = b.name
+                                        nuevo.grade = b.grade
+                                        nuevo.startType = b.startType
+                                        nuevo.line = b.line
+                                        nuevo.facePhoto = b.facePhoto
+                                        nuevo.variantOfLineId = origId
+                                        blocks.append(nuevo)
+                                        selected = blocks.count - 1
+                                    } label: {
+                                        Text("+VARIANTE")
+                                            .font(Cumbre.mono(10, .bold))
+                                            .foregroundStyle(Cumbre.ink2)
+                                            .padding(.horizontal, 6).padding(.vertical, 6)
+                                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                                    }.buttonStyle(.plain)
+                                }
+                            }
                         }
                     }.padding(.horizontal, 12)
                 }

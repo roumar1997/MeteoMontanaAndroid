@@ -331,6 +331,15 @@ struct BlockInfoSheet: View {
                                         .buttonStyle(.plain)
                                         .disabled(tickingLine != nil || togglingProject != nil)
                                     }
+                                    // Enlace visual a la vía original (V71): la variante
+                                    // sigue siendo una fila normal, pulsable e independiente
+                                    // para el diario — esto es solo un rótulo, no anidamiento.
+                                    if let origId = l.variantOfLineId,
+                                       let origName = block.lines.first(where: { $0.id == origId })?.name,
+                                       !origName.isEmpty {
+                                        Text("variante de \(origName)")
+                                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                    }
                                     // Estrellas de valoración
                                     if onRateLine != nil {
                                         LineStarsRow(

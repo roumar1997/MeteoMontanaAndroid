@@ -636,6 +636,20 @@ fun BlockDetailDialog(
                                     modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
                                 )
                             }
+                            // Enlace visual a la vía original (V71): la variante sigue
+                            // siendo una fila normal, pulsable e independiente para el
+                            // diario — esto es solo un rótulo, no anidamiento.
+                            line.variantOfLineId?.let { origId ->
+                                val origName = block.lines.firstOrNull { it.id == origId }?.name
+                                if (origName != null) {
+                                    Text(
+                                        "variante de $origName",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
+                                    )
+                                }
+                            }
                             // Estrellas: valoración media + votar (si está habilitado)
                             if (onRateLine != null && !isProposal && block.type == "BLOCK") {
                                 LineStarsRow(
