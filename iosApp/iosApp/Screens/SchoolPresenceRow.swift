@@ -50,7 +50,7 @@ final class SchoolPresenceViewModel: ObservableObject {
 /// compartir zona de gesto con el resto de la fila (Álvaro, 2026-09-03:
 /// el botón no respondía en TestFlight). `navigationDestination(item:)` no
 /// necesita una vista fantasma en el árbol, así que no interfiere.
-private struct ChatTarget: Identifiable {
+private struct ChatTarget: Identifiable, Hashable {
     let uid: String
     let name: String
     var id: String { uid }
