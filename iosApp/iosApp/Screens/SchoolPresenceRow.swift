@@ -74,10 +74,16 @@ struct SchoolPresenceRow: View {
             if !vm.people.isEmpty || vm.iAmHere {
                 content
             } else {
-                // Nadie presente: solo el botón, sin fila vacía que ensucie la pantalla.
-                markButton
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                // Nadie presente: la misma barra fina, solo con el botón a la derecha.
+                HStack {
+                    Spacer()
+                    markButton
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 5)
+                .frame(height: 34)
+                .background(Cumbre.paper2)
+                .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
             }
         }
         .task { await vm.load() }
@@ -90,26 +96,27 @@ struct SchoolPresenceRow: View {
     }
 
     private var content: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: -7) {
+        HStack(spacing: 6) {
+            HStack(spacing: -6) {
                 ForEach(vm.people.prefix(4), id: \.uid) { person in
                     Button {
                         guard person.uid != myUid else { return }
                         openChatFor = ChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? "Usuario")
                     } label: {
-                        AvatarCircle(url: person.photoUrl, size: 22)
-                            .overlay(Circle().stroke(Cumbre.paper, lineWidth: 2))
+                        AvatarCircle(url: person.photoUrl, size: 18)
+                            .overlay(Circle().stroke(Cumbre.paper2, lineWidth: 1.5))
                     }
                 }
             }
             Text(peopleLabel)
-                .font(.system(size: 12.5, weight: .semibold, design: .serif))
+                .font(.system(size: 11.5, weight: .semibold, design: .serif))
                 .foregroundStyle(Cumbre.ink)
             Spacer()
             markButton
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.vertical, 5)
+        .frame(height: 34)
         .background(Cumbre.paper2)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
     }
@@ -126,15 +133,15 @@ struct SchoolPresenceRow: View {
                 showPrivacyNote = true
             }
         } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "mappin.circle.fill").font(.system(size: 13))
+            HStack(spacing: 4) {
+                Image(systemName: "mappin.circle.fill").font(.system(size: 11))
                 Text(vm.iAmHere ? "Ya no estoy" : "Estoy aquí")
-                    .font(.system(size: 12, weight: .bold, design: .serif))
+                    .font(.system(size: 11, weight: .bold, design: .serif))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 12).padding(.vertical, 7)
+            .padding(.horizontal, 10).padding(.vertical, 5)
             .background(vm.iAmHere ? Cumbre.ink3 : Cumbre.terraFill)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: 7))
         }
         .disabled(vm.loading)
     }
