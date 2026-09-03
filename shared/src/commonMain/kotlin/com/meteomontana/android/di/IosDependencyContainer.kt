@@ -142,7 +142,14 @@ class IosDependencyContainer(
      * Chat 1-a-1 (Firestore). En iOS se pasa un [com.meteomontana.android.data.chat.IosChatService]
      * (envoltorio del bridge Swift con FirebaseFirestore). Null → sin chat.
      */
-    val chatService: ChatService? = null
+    val chatService: ChatService? = null,
+    /**
+     * Chat ABIERTO de una escuela ("Estoy aquí"). En iOS se pasa un
+     * [com.meteomontana.android.data.chat.IosSchoolChatService] (envoltorio
+     * del bridge Swift con FirebaseFirestore, colección `school_chats`).
+     * Null → sin chat de escuela.
+     */
+    val schoolChatService: com.meteomontana.android.domain.port.SchoolChatService? = null
 ) {
     private val httpClient = buildApiHttpClient(baseUrl) {
         authService?.currentIdToken(false)

@@ -58,6 +58,10 @@ final class AppDependencies {
     /// Bridge de chat (FirebaseFirestore). El `ChatService` del contenedor lo
     /// envuelve en Flow/suspend para las pantallas de chat.
     let chatBridge = ChatBridge()
+    /// Bridge del chat ABIERTO de escuela ("Estoy aquí"). Se envuelve igual
+    /// que `chatBridge` pero con su propio servicio Kotlin (no comparten
+    /// puerto: uno exige participantes, el otro no).
+    let schoolChatBridge = SchoolChatBridge()
 
     private init() {
         // locationProvider: bridge iOS → tab Tiempo en tu ubicación real.
@@ -66,6 +70,7 @@ final class AppDependencies {
         let auth = IosAuthService(bridge: authBridge)
         authService = auth
         let chat = IosChatService(bridge: chatBridge)
+        let schoolChat = IosSchoolChatService(bridge: schoolChatBridge)
         // BD SQLDelight local (driver nativo) para el caché del catálogo.
         let db = DatabaseFactory().create()
         container = IosDependencyContainer(
@@ -73,7 +78,8 @@ final class AppDependencies {
             authService: auth,
             locationProvider: location,
             database: db,
-            chatService: chat
+            chatService: chat,
+            schoolChatService: schoolChat
         )
     }
 }

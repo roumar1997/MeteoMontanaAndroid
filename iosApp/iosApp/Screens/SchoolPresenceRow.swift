@@ -58,13 +58,16 @@ private struct ChatTarget: Identifiable, Hashable {
 
 struct SchoolPresenceRow: View {
     let schoolId: String
+    let schoolName: String
     let myUid: String?
     @StateObject private var vm: SchoolPresenceViewModel
     @State private var showPrivacyNote = false
     @State private var openChatFor: ChatTarget?
+    @State private var showSchoolChat = false
 
-    init(schoolId: String, myUid: String?) {
+    init(schoolId: String, schoolName: String, myUid: String?) {
         self.schoolId = schoolId
+        self.schoolName = schoolName
         self.myUid = myUid
         _vm = StateObject(wrappedValue: SchoolPresenceViewModel(schoolId: schoolId, myUid: myUid))
     }
@@ -74,9 +77,10 @@ struct SchoolPresenceRow: View {
             if !vm.people.isEmpty || vm.iAmHere {
                 content
             } else {
-                // Nadie presente: la misma barra fina, solo con el botón a la derecha.
+                // Nadie presente: la misma barra fina, con chat + botón a la derecha.
                 HStack {
                     Spacer()
+                    chatButton
                     markButton
                 }
                 .padding(.horizontal, 16)
@@ -92,6 +96,9 @@ struct SchoolPresenceRow: View {
         }
         .navigationDestination(item: $openChatFor) { target in
             ChatView(otherUid: target.uid, otherName: target.name)
+        }
+        .navigationDestination(isPresented: $showSchoolChat) {
+            SchoolChatView(schoolId: schoolId, schoolName: schoolName)
         }
     }
 
@@ -112,6 +119,7 @@ struct SchoolPresenceRow: View {
                 .font(.system(size: 11.5, weight: .semibold, design: .serif))
                 .foregroundStyle(Cumbre.ink)
             Spacer()
+            chatButton
             markButton
         }
         .padding(.horizontal, 16)
@@ -119,6 +127,17 @@ struct SchoolPresenceRow: View {
         .frame(height: 34)
         .background(Cumbre.paper2)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
+    }
+
+    private var chatButton: some View {
+        Button { showSchoolChat = true } label: {
+            Image(systemName: "bubble.left.and.bubble.right")
+                .font(.system(size: 13))
+                .foregroundStyle(Cumbre.ink2)
+                .frame(width: 26, height: 26)
+                .background(Cumbre.paper, in: Circle())
+                .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+        }
     }
 
     private var peopleLabel: String {

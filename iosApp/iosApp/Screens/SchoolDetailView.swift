@@ -216,7 +216,7 @@ struct SchoolDetailView: View {
             // Fijo, fuera del scroll: si no se ve nada más que el título hasta
             // que bajas, nadie sabe que hay alguien ahí (Álvaro, 2026-09-03,
             // tras verlo enterrado bajo el pronóstico en la primera prueba).
-            SchoolPresenceRow(schoolId: school.id, myUid: AppDependencies.shared.authBridge.currentUid())
+            SchoolPresenceRow(schoolId: school.id, schoolName: school.name, myUid: AppDependencies.shared.authBridge.currentUid())
             scrollContent
         }
         .background(Cumbre.bg.ignoresSafeArea())
