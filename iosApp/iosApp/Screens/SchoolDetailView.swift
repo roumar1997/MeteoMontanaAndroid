@@ -213,6 +213,10 @@ struct SchoolDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             headerRow
+            // Fijo, fuera del scroll: si no se ve nada más que el título hasta
+            // que bajas, nadie sabe que hay alguien ahí (Álvaro, 2026-09-03,
+            // tras verlo enterrado bajo el pronóstico en la primera prueba).
+            SchoolPresenceRow(schoolId: school.id, myUid: AppDependencies.shared.authBridge.currentUid())
             scrollContent
         }
         .background(Cumbre.bg.ignoresSafeArea())
@@ -352,14 +356,12 @@ struct SchoolDetailView: View {
                     // Boletín de montaña ENCIMA del mapa (paridad con Android).
                     mapSlot: AnyView(VStack(spacing: 0) {
                         MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                        SchoolPresenceRow(schoolId: school.id, myUid: AppDependencies.shared.authBridge.currentUid())
                         SchoolMapSection(school: school, openVia: openVia)
                     })
                 )
             } else {
                 // Sin previsión: el mapa (y el boletín) van igualmente.
                 MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                SchoolPresenceRow(schoolId: school.id, myUid: AppDependencies.shared.authBridge.currentUid())
                 SchoolMapSection(school: school, openVia: openVia)
             }
             // Notas comunitarias — ahora ENCIMA de "mejores meses".

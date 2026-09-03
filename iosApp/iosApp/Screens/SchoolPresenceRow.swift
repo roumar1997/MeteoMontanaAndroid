@@ -44,12 +44,24 @@ final class SchoolPresenceViewModel: ObservableObject {
     }
 }
 
+/// Identifica con quién abrir el chat 1-a-1. `Identifiable` para poder usar
+/// `navigationDestination(item:)` — el `NavigationLink(isActive:)` de antes
+/// (en `.background()`) se comía el toque del botón "Ya no estoy" al
+/// compartir zona de gesto con el resto de la fila (Álvaro, 2026-09-03:
+/// el botón no respondía en TestFlight). `navigationDestination(item:)` no
+/// necesita una vista fantasma en el árbol, así que no interfiere.
+private struct ChatTarget: Identifiable {
+    let uid: String
+    let name: String
+    var id: String { uid }
+}
+
 struct SchoolPresenceRow: View {
     let schoolId: String
     let myUid: String?
     @StateObject private var vm: SchoolPresenceViewModel
     @State private var showPrivacyNote = false
-    @State private var openChatFor: (uid: String, name: String)?
+    @State private var openChatFor: ChatTarget?
 
     init(schoolId: String, myUid: String?) {
         self.schoolId = schoolId
@@ -65,24 +77,16 @@ struct SchoolPresenceRow: View {
                 // Nadie presente: solo el botón, sin fila vacía que ensucie la pantalla.
                 markButton
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
+                    .padding(.vertical, 8)
             }
         }
         .task { await vm.load() }
         .sheet(isPresented: $showPrivacyNote) {
             privacySheet
         }
-        .background(
-            NavigationLink(
-                isActive: Binding(get: { openChatFor != nil }, set: { if !$0 { openChatFor = nil } }),
-                destination: {
-                    if let target = openChatFor {
-                        ChatView(otherUid: target.uid, otherName: target.name)
-                    } else { EmptyView() }
-                },
-                label: { EmptyView() }
-            )
-        )
+        .navigationDestination(item: $openChatFor) { target in
+            ChatView(otherUid: target.uid, otherName: target.name)
+        }
     }
 
     private var content: some View {
@@ -91,7 +95,7 @@ struct SchoolPresenceRow: View {
                 ForEach(vm.people.prefix(4), id: \.uid) { person in
                     Button {
                         guard person.uid != myUid else { return }
-                        openChatFor = (person.uid, person.displayName ?? person.username ?? "Usuario")
+                        openChatFor = ChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? "Usuario")
                     } label: {
                         AvatarCircle(url: person.photoUrl, size: 22)
                             .overlay(Circle().stroke(Cumbre.paper, lineWidth: 2))
@@ -104,13 +108,10 @@ struct SchoolPresenceRow: View {
             Spacer()
             markButton
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Cumbre.paper2)
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
         .padding(.horizontal, 16)
-        .padding(.bottom, 12)
+        .padding(.vertical, 8)
+        .background(Cumbre.paper2)
+        .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
     }
 
     private var peopleLabel: String {
