@@ -102,7 +102,7 @@ struct SchoolPresenceRow: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 5)
                     .frame(height: 34)
-                    .background(Cumbre.paper2)
+                    .background(Cumbre.bg)
                     .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
                 }
             }
@@ -140,7 +140,7 @@ struct SchoolPresenceRow: View {
                 HStack(spacing: -6) {
                     ForEach(vm.people.prefix(4), id: \.uid) { person in
                         AvatarCircle(url: person.photoUrl, size: 18)
-                            .overlay(Circle().stroke(Cumbre.paper2, lineWidth: 1.5))
+                            .overlay(Circle().stroke(Cumbre.bg, lineWidth: 1.5))
                     }
                 }
             }
@@ -156,7 +156,7 @@ struct SchoolPresenceRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 5)
         .frame(height: 34)
-        .background(Cumbre.paper2)
+        .background(Cumbre.bg)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
     }
 

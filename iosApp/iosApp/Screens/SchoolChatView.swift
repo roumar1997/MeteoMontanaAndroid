@@ -151,7 +151,7 @@ struct SchoolChatView: View {
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(Cumbre.paper2)
+        .background(Cumbre.bg)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
     }
 
@@ -208,9 +208,9 @@ struct SchoolChatView: View {
             }
             Text(m.text)
                 .font(.system(size: 13.5))
-                .foregroundStyle(Cumbre.ink)
+                .foregroundStyle(mine ? .white : Cumbre.ink)
                 .padding(.horizontal, 10).padding(.vertical, 8)
-                .background(mine ? Cumbre.paper2 : Cumbre.paper)
+                .background(mine ? Cumbre.terra : Cumbre.paper)
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(mine ? Color.clear : Cumbre.rule, lineWidth: 1))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
@@ -246,7 +246,7 @@ struct SchoolChatView: View {
             .disabled(vm.text.trimmingCharacters(in: .whitespaces).isEmpty || vm.sending)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Cumbre.paper2)
+        .background(Cumbre.bg)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
     }
 }
