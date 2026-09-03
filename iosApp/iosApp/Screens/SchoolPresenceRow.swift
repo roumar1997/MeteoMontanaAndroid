@@ -2,9 +2,10 @@ import SwiftUI
 import Shared
 
 /// "Estoy aquí": quién está presente en esta escuela ahora mismo, con un
-/// botón para marcarte tú también. Reutiliza `ChatView` (chat 1-a-1 ya
-/// existente) al tocar un avatar — no hay chat de grupo abierto todavía,
-/// eso queda para una siguiente iteración (ver plan de "Estoy aquí" con Álvaro).
+/// botón para marcarte tú también. Tocar el grupo de avatares/contador abre
+/// la lista completa (hoja); desde ahí, tocar a alguien abre `ChatView`
+/// (chat 1-a-1 ya existente). El icono de chat abre `SchoolChatView`, el
+/// tablón abierto del sitio.
 @MainActor
 final class SchoolPresenceViewModel: ObservableObject {
     @Published var people: [SchoolPresence] = []
@@ -77,6 +78,7 @@ struct SchoolPresenceRow: View {
     @State private var showPrivacyNote = false
     @State private var openChatFor: ChatTarget?
     @State private var showSchoolChat = false
+    @State private var showAllPresent = false
 
     init(schoolId: String, schoolName: String, myUid: String?) {
         self.schoolId = schoolId
@@ -123,24 +125,30 @@ struct SchoolPresenceRow: View {
         .navigationDestination(isPresented: $showSchoolChat) {
             SchoolChatView(schoolId: schoolId, schoolName: schoolName)
         }
+        .sheet(isPresented: $showAllPresent) {
+            allPresentSheet
+        }
     }
 
     private var content: some View {
         HStack(spacing: 6) {
-            HStack(spacing: -6) {
-                ForEach(vm.people.prefix(4), id: \.uid) { person in
-                    Button {
-                        guard person.uid != myUid else { return }
-                        openChatFor = ChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? "Usuario")
-                    } label: {
+            // Un toque en cualquier parte del grupo de avatares abre la lista
+            // completa — con más de 4 presentes, tocar un avatar concreto en
+            // la pila superpuesta es ambiguo (¿cuál de los que se tapan he
+            // tocado?); la lista deja elegir con nombre y sin dudas.
+            Button { showAllPresent = true } label: {
+                HStack(spacing: -6) {
+                    ForEach(vm.people.prefix(4), id: \.uid) { person in
                         AvatarCircle(url: person.photoUrl, size: 18)
                             .overlay(Circle().stroke(Cumbre.paper2, lineWidth: 1.5))
                     }
                 }
             }
-            Text(peopleLabel)
-                .font(.system(size: 11.5, weight: .semibold, design: .serif))
-                .foregroundStyle(Cumbre.ink)
+            Button { showAllPresent = true } label: {
+                Text(peopleLabel)
+                    .font(.system(size: 11.5, weight: .semibold, design: .serif))
+                    .foregroundStyle(Cumbre.ink)
+            }
             Spacer()
             chatButton
             markButton
@@ -150,6 +158,38 @@ struct SchoolPresenceRow: View {
         .frame(height: 34)
         .background(Cumbre.paper2)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
+    }
+
+    private var allPresentSheet: some View {
+        NavigationStack {
+            List(vm.people, id: \.uid) { person in
+                Button {
+                    guard person.uid != myUid else { return }
+                    showAllPresent = false
+                    openChatFor = ChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? "Usuario")
+                } label: {
+                    HStack(spacing: 12) {
+                        AvatarCircle(url: person.photoUrl, size: 36)
+                        Text(person.uid == myUid ? "Tú" : (person.displayName ?? person.username ?? "Usuario"))
+                            .font(.system(size: 15, design: .serif))
+                            .foregroundStyle(Cumbre.ink)
+                        Spacer()
+                        if person.uid != myUid {
+                            Image(systemName: "bubble.left").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                        }
+                    }
+                }
+                .disabled(person.uid == myUid)
+            }
+            .navigationTitle("\(vm.people.count) aquí ahora")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cerrar") { showAllPresent = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 
     private var chatButton: some View {
