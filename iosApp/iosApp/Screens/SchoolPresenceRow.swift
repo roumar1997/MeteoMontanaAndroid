@@ -10,6 +10,10 @@ final class SchoolPresenceViewModel: ObservableObject {
     @Published var people: [SchoolPresence] = []
     @Published var iAmHere = false
     @Published var loading = false
+    // Antes se tragaba cualquier fallo con `try?` sin decir nada — "Ya no
+    // estoy" parecía no hacer nada y no había forma de saber por qué
+    // (Álvaro, 2026-09-03). Ahora, si algo falla de verdad, se ve en pantalla.
+    @Published var errorText: String?
 
     private let schoolId: String
     private let myUid: String?
@@ -24,20 +28,29 @@ final class SchoolPresenceViewModel: ObservableObject {
 
     func load() async {
         // Público: sin sesión también se ve quién hay, igual que el resto de la ficha.
-        guard let list = try? await getPresence.execute(schoolId: schoolId) else { return }
-        people = list
-        iAmHere = myUid.map { uid in list.contains { $0.uid == uid } } ?? false
+        do {
+            let list = try await getPresence.execute(schoolId: schoolId)
+            people = list
+            iAmHere = myUid.map { uid in list.contains { $0.uid == uid } } ?? false
+        } catch {
+            errorText = "No se pudo cargar quién hay aquí: \(error.localizedDescription)"
+        }
     }
 
     func toggle() {
         guard !loading else { return }
         loading = true
+        errorText = nil
         Task {
             defer { loading = false }
-            if iAmHere {
-                try? await clearPresence.execute(schoolId: schoolId)
-            } else {
-                _ = try? await markPresence.execute(schoolId: schoolId)
+            do {
+                if iAmHere {
+                    try await clearPresence.execute(schoolId: schoolId)
+                } else {
+                    _ = try await markPresence.execute(schoolId: schoolId)
+                }
+            } catch {
+                errorText = "\(iAmHere ? "No se pudo quitar" : "No se pudo marcar") la presencia: \(error.localizedDescription)"
             }
             await load()
         }
@@ -73,21 +86,31 @@ struct SchoolPresenceRow: View {
     }
 
     var body: some View {
-        Group {
-            if !vm.people.isEmpty || vm.iAmHere {
-                content
-            } else {
-                // Nadie presente: la misma barra fina, con chat + botón a la derecha.
-                HStack {
-                    Spacer()
-                    chatButton
-                    markButton
+        VStack(spacing: 0) {
+            Group {
+                if !vm.people.isEmpty || vm.iAmHere {
+                    content
+                } else {
+                    // Nadie presente: la misma barra fina, con chat + botón a la derecha.
+                    HStack {
+                        Spacer()
+                        chatButton
+                        markButton
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
+                    .frame(height: 34)
+                    .background(Cumbre.paper2)
+                    .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 5)
-                .frame(height: 34)
-                .background(Cumbre.paper2)
-                .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
+            }
+            if let err = vm.errorText {
+                Text(err)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(Cumbre.bad)
+                    .padding(.horizontal, 16).padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Cumbre.bad.opacity(0.1))
             }
         }
         .task { await vm.load() }
