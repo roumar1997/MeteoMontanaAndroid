@@ -25,10 +25,18 @@ struct MeetupsMapPanel: View {
     // criterio que el mapa de Escuelas, cuyos filtros de pantalla completa
     // tampoco afectan a nada fuera del propio mapa salvo el estilo compartido.
     @State private var disciplineFilter: String?
+    @State private var mapDistanceKm: Double?
 
     private var filteredMeetups: [Meetup] {
-        guard let d = disciplineFilter else { return meetups }
-        return meetups.filter { $0.discipline == d }
+        var list = meetups
+        if let d = disciplineFilter { list = list.filter { $0.discipline == d } }
+        if let maxKm = mapDistanceKm, let uLat = userLat, let uLon = userLon {
+            list = list.filter { m in
+                guard let lat = m.schoolLat?.doubleValue, let lon = m.schoolLon?.doubleValue else { return false }
+                return Geo.shared.haversineKm(lat1: uLat, lon1: uLon, lat2: lat, lon2: lon) <= maxKm
+            }
+        }
+        return list
     }
 
     private var groups: [SchoolMeetupGroup] {
@@ -131,9 +139,7 @@ struct MeetupsMapPanel: View {
                 compassTopMargin: isFullscreen ? 106 : 56
             )
             .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : height)
-            .id("\(maxDistanceKm ?? -1)|\(disciplineFilter ?? "-")|\(groups.map { $0.schoolId }.sorted().joined())")
-            MapStyleChips(selection: $mapStyle)
-                .padding(.top, isFullscreen ? 50 : 0)
+            .id("\(mapDistanceKm ?? -1)|\(disciplineFilter ?? "-")|\(groups.map { $0.schoolId }.sorted().joined())")
             VStack {
                 HStack {
                     Button { fullscreenMap.toggle() } label: {
@@ -149,6 +155,20 @@ struct MeetupsMapPanel: View {
                     }
                     .buttonStyle(.plain)
                     Spacer()
+                    // Topo/satélite de un toque — mismo icono que el mapa de Escuelas
+                    // (antes era un segmentado con texto, "Álvaro, 2026-09-03: falta
+                    // el símbolo igual que el otro").
+                    Button {
+                        mapStyle = (mapStyle == .satellite) ? .topo : .satellite
+                    } label: {
+                        Image(systemName: "square.3.layers.3d")
+                            .font(.system(size: 16)).foregroundStyle(Cumbre.ink)
+                            .frame(width: 34, height: 34)
+                            .background(Cumbre.bg)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.top, isFullscreen ? 50 : 0)
                 Spacer()
@@ -164,11 +184,24 @@ struct MeetupsMapPanel: View {
     }
 
     private var fullscreenFilters: some View {
-        HStack(spacing: 6) {
-            Text("MODALIDAD").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-            filterPill(label: "Ambas", selected: disciplineFilter == nil) { disciplineFilter = nil }
-            filterPill(label: "Bloque", selected: disciplineFilter == "BOULDER") { disciplineFilter = "BOULDER" }
-            filterPill(label: "Via", selected: disciplineFilter == "ROUTE") { disciplineFilter = "ROUTE" }
+        VStack(alignment: .leading, spacing: 8) {
+            if userLat != nil {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        Text("DIST.").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                        filterPill(label: "Todas", selected: mapDistanceKm == nil) { mapDistanceKm = nil }
+                        filterPill(label: "50 km", selected: mapDistanceKm == 50) { mapDistanceKm = 50 }
+                        filterPill(label: "100 km", selected: mapDistanceKm == 100) { mapDistanceKm = 100 }
+                        filterPill(label: "200 km", selected: mapDistanceKm == 200) { mapDistanceKm = 200 }
+                    }
+                }
+            }
+            HStack(spacing: 6) {
+                Text("MODALIDAD").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                filterPill(label: "Ambas", selected: disciplineFilter == nil) { disciplineFilter = nil }
+                filterPill(label: "Bloque", selected: disciplineFilter == "BOULDER") { disciplineFilter = "BOULDER" }
+                filterPill(label: "Via", selected: disciplineFilter == "ROUTE") { disciplineFilter = "ROUTE" }
+            }
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity)

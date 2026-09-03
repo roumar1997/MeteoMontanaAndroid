@@ -9,9 +9,13 @@ import Shared
 final class SchoolChatViewModel: ObservableObject {
     @Published var messages: [SchoolChatServiceMessage] = []
     @Published var memberNames: [String: String] = [:]
-    @Published var presentNow: Set<String> = []
+    // Lista completa (para "ver todos") — presentNow deriva los uids de aquí,
+    // así no se piden los mismos datos dos veces.
+    @Published var presentList: [SchoolPresence] = []
     @Published var text = ""
     @Published var sending = false
+
+    var presentNow: Set<String> { Set(presentList.map { $0.uid }) }
 
     let schoolId: String
     let me: String
@@ -38,7 +42,7 @@ final class SchoolChatViewModel: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
             if let active = try? await getPresence.execute(schoolId: schoolId) {
-                presentNow = Set(active.map { $0.uid })
+                presentList = active
             }
         }
     }
@@ -68,11 +72,19 @@ final class SchoolChatViewModel: ObservableObject {
     }
 }
 
+private struct SchoolChatTarget: Identifiable, Hashable {
+    let uid: String
+    let name: String
+    var id: String { uid }
+}
+
 struct SchoolChatView: View {
     let schoolId: String
     let schoolName: String
     @StateObject private var vm: SchoolChatViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showAllPresent = false
+    @State private var openChatFor: SchoolChatTarget?
 
     init(schoolId: String, schoolName: String) {
         self.schoolId = schoolId
@@ -103,6 +115,10 @@ struct SchoolChatView: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationBarHidden(true)
         .task { vm.start() }
+        .sheet(isPresented: $showAllPresent) { allPresentSheet }
+        .navigationDestination(item: $openChatFor) { target in
+            ChatView(otherUid: target.uid, otherName: target.name)
+        }
     }
 
     private var header: some View {
@@ -120,12 +136,17 @@ struct SchoolChatView: View {
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(Cumbre.ink3)
             }
-            if !vm.presentNow.isEmpty {
-                HStack(spacing: 6) {
-                    Circle().fill(Cumbre.ok).frame(width: 6, height: 6)
-                    Text("\(vm.presentNow.count) aquí ahora · toca un mensaje suyo para hablar en privado")
-                        .font(.system(size: 10.5, design: .monospaced))
-                        .foregroundStyle(Cumbre.ink2)
+            if !vm.presentList.isEmpty {
+                Button { showAllPresent = true } label: {
+                    HStack(spacing: 6) {
+                        Circle().fill(Cumbre.terraFill).frame(width: 7, height: 7)
+                        Text("\(vm.presentList.count) aquí ahora")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Cumbre.terra)
+                        Text("· ver todos")
+                            .font(.system(size: 10.5, design: .monospaced))
+                            .foregroundStyle(Cumbre.ink2)
+                    }
                 }
             }
         }
@@ -134,9 +155,41 @@ struct SchoolChatView: View {
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
     }
 
+    private var allPresentSheet: some View {
+        NavigationStack {
+            List(vm.presentList, id: \.uid) { person in
+                Button {
+                    guard person.uid != vm.me else { return }
+                    showAllPresent = false
+                    openChatFor = SchoolChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? "Usuario")
+                } label: {
+                    HStack(spacing: 12) {
+                        AvatarCircle(url: person.photoUrl, size: 36)
+                        Text(person.uid == vm.me ? "Tú" : (person.displayName ?? person.username ?? "Usuario"))
+                            .font(.system(size: 15, design: .serif))
+                            .foregroundStyle(Cumbre.ink)
+                        Spacer()
+                        if person.uid != vm.me {
+                            Image(systemName: "bubble.left").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                        }
+                    }
+                }
+                .disabled(person.uid == vm.me)
+            }
+            .navigationTitle("\(vm.presentList.count) aquí ahora")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cerrar") { showAllPresent = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
     private func bubble(_ m: SchoolChatServiceMessage) -> some View {
         let mine = m.fromUid == vm.me
-        return VStack(alignment: mine ? .trailing : .leading, spacing: 3) {
+        let content = VStack(alignment: mine ? .trailing : .leading, spacing: 3) {
             if !mine {
                 HStack(spacing: 6) {
                     Text(vm.nameFor(m.fromUid))
@@ -145,9 +198,9 @@ struct SchoolChatView: View {
                     if vm.presentNow.contains(m.fromUid) {
                         Text("AQUÍ AHORA")
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Cumbre.ok)
-                            .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Cumbre.ok.opacity(0.15))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Cumbre.terraFill)
                             .clipShape(Capsule())
                     }
                 }
@@ -164,6 +217,15 @@ struct SchoolChatView: View {
         .frame(maxWidth: 260, alignment: mine ? .trailing : .leading)
         .frame(maxWidth: .infinity, alignment: mine ? .trailing : .leading)
         .id(m.id)
+
+        // Mensaje de alguien que sigue presente: tocarlo abre chat 1-a-1
+        // (la cabecera lo anuncia). El resto de mensajes no son pulsables.
+        if !mine && vm.presentNow.contains(m.fromUid) {
+            return AnyView(Button {
+                openChatFor = SchoolChatTarget(uid: m.fromUid, name: vm.nameFor(m.fromUid))
+            } label: { content }.buttonStyle(.plain))
+        }
+        return AnyView(content)
     }
 
     private var inputBar: some View {
