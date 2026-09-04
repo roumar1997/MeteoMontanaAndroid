@@ -75,8 +75,15 @@ final class SchoolDetailViewModel: ObservableObject {
             forecast = f
             // Cachea para verlo offline más tarde (stale-while-revalidate, como Android).
             try? await savedSchools?.cacheForecast(schoolId: schoolId, forecast: f)
+        } catch is CancellationError {
+            // El propio `.refreshable` cancela esta tarea si el gesto de
+            // deslizar termina antes de que acabe la petición — no es un
+            // fallo de red real, así que no se toca nada (Álvaro, 2026-09-04:
+            // "por qué al recargar pone sin conexión" con WiFi funcionando).
+            loading = false
+            return
         } catch {
-            // Sin red: tira de la última previsión guardada/cacheada de esta escuela.
+            // Sin red de verdad: tira de la última previsión guardada/cacheada.
             if let cached = try? await savedSchools?.cachedForecast(schoolId: schoolId) {
                 forecast = cached.forecast
                 offlineSince = cached.fetchedAtMillis

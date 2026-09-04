@@ -33,6 +33,9 @@ final class SchoolPresenceViewModel: ObservableObject {
             let list = try await getPresence.execute(schoolId: schoolId)
             people = list
             iAmHere = myUid.map { uid in list.contains { $0.uid == uid } } ?? false
+        } catch is CancellationError {
+            // Cancelada (p.ej. al salir de la pantalla a mitad) — no es un
+            // fallo real, no hay nada que avisar.
         } catch {
             errorText = "No se pudo cargar quién hay aquí: \(error.localizedDescription)"
         }
