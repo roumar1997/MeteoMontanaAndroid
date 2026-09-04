@@ -39,11 +39,15 @@ final class SchoolChatViewModel: ObservableObject {
                 self.messages = msgs
             }
         }
-        Task { [weak self] in
-            guard let self else { return }
-            if let active = try? await getPresence.execute(schoolId: schoolId) {
-                presentList = active
-            }
+        Task { [weak self] in await self?.refreshPresence() }
+    }
+
+    // Deslizar hacia abajo pide otra vez quién hay — los mensajes ya llegan
+    // en vivo por el listener de arriba, pero la presencia no tiene uno
+    // propio (Álvaro, 2026-09-04: mejor a demanda que sondear sola).
+    func refreshPresence() async {
+        if let active = try? await getPresence.execute(schoolId: schoolId) {
+            presentList = active
         }
     }
 
@@ -109,6 +113,7 @@ struct SchoolChatView: View {
                         withAnimation { proxy.scrollTo(last, anchor: .bottom) }
                     }
                 }
+                .refreshable { await vm.refreshPresence() }
             }
             inputBar
         }

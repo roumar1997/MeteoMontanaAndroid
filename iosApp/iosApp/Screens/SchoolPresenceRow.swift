@@ -38,6 +38,7 @@ final class SchoolPresenceViewModel: ObservableObject {
         }
     }
 
+
     func toggle() {
         guard !loading else { return }
         loading = true
@@ -74,16 +75,21 @@ struct SchoolPresenceRow: View {
     let schoolId: String
     let schoolName: String
     let myUid: String?
+    /// Sube al deslizar hacia abajo en la ficha (pull-to-refresh) para pedir
+    /// otra vez quién hay — sin caché, es información en vivo (Álvaro,
+    /// 2026-09-04: mejor a demanda que sondear sola cada X segundos).
+    var refreshTrigger: Int = 0
     @StateObject private var vm: SchoolPresenceViewModel
     @State private var showPrivacyNote = false
     @State private var openChatFor: ChatTarget?
     @State private var showSchoolChat = false
     @State private var showAllPresent = false
 
-    init(schoolId: String, schoolName: String, myUid: String?) {
+    init(schoolId: String, schoolName: String, myUid: String?, refreshTrigger: Int = 0) {
         self.schoolId = schoolId
         self.schoolName = schoolName
         self.myUid = myUid
+        self.refreshTrigger = refreshTrigger
         _vm = StateObject(wrappedValue: SchoolPresenceViewModel(schoolId: schoolId, myUid: myUid))
     }
 
@@ -116,6 +122,7 @@ struct SchoolPresenceRow: View {
             }
         }
         .task { await vm.load() }
+        .task(id: refreshTrigger) { if refreshTrigger > 0 { await vm.load() } }
         .sheet(isPresented: $showPrivacyNote) {
             privacySheet
         }

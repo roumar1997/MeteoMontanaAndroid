@@ -18,6 +18,7 @@ import com.meteomontana.android.data.api.KtorSocialApi
 import com.meteomontana.android.data.api.KtorSubmissionApi
 import com.meteomontana.android.data.auth.FirebaseAuthService
 import com.meteomontana.android.data.chat.FirebaseChatService
+import com.meteomontana.android.data.chat.FirebaseSchoolChatService
 import com.meteomontana.android.data.repository.KtorAdminRepository
 import com.meteomontana.android.data.repository.KtorBlockRepository
 import com.meteomontana.android.data.repository.KtorContributionRepository
@@ -34,6 +35,7 @@ import com.meteomontana.android.data.storage.AndroidFileReader
 import com.meteomontana.android.data.storage.FirebaseStoragePhotoUploader
 import com.meteomontana.android.domain.port.AuthService
 import com.meteomontana.android.domain.port.ChatService
+import com.meteomontana.android.domain.port.SchoolChatService
 import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.port.PhotoUploader
 import com.meteomontana.android.domain.repository.AdminRepository
@@ -67,6 +69,10 @@ object RepositoryModule {
     @Provides @Singleton
     fun provideChatService(firestore: FirebaseFirestore, auth: FirebaseAuth): ChatService =
         FirebaseChatService(firestore, auth)
+
+    @Provides @Singleton
+    fun provideSchoolChatService(firestore: FirebaseFirestore, auth: FirebaseAuth): SchoolChatService =
+        FirebaseSchoolChatService(firestore, auth)
 
     @Provides @Singleton
     fun providePhotoUploader(

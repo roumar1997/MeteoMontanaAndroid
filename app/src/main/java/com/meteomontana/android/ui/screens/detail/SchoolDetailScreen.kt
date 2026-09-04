@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
 import androidx.compose.foundation.background
@@ -58,12 +59,19 @@ fun SchoolDetailScreen(
     onOpenBlock: (String) -> Unit = {},
     onMyProposals: () -> Unit = {},
     onDayClick: (Int) -> Unit = {},
+    onOpenChat: (uid: String, name: String) -> Unit = { _, _ -> },
+    onOpenSchoolChat: (schoolName: String) -> Unit = {},
     viewModel: SchoolDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val success = state as? SchoolDetailUiState.Success
     var addBlockOpen by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
+    // Deslizar hacia abajo para pedir otra vez quién hay en "Estoy aquí" —
+    // mejor a demanda que sondear sola cada X segundos (Álvaro, 2026-09-04).
+    var isRefreshing by remember { mutableStateOf(false) }
+    var presenceRefreshKey by remember { mutableStateOf(0) }
+    val refreshScope = androidx.compose.runtime.rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize()
         .pointerInput(Unit) {
@@ -115,52 +123,81 @@ fun SchoolDetailScreen(
                 }
             } else null
         )
-        when (val s = state) {
-            is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-            is SchoolDetailUiState.Error -> Center {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(Spacing.md))
-                    androidx.compose.material3.OutlinedButton(onClick = viewModel::load) {
-                        Text(stringResource(R.string.common_retry))
+        // Fijo, fuera del scroll: si no se ve nada más que el título hasta que
+        // bajas, nadie sabe que hay alguien ahí (Álvaro, 2026-09-03, paridad
+        // con SchoolPresenceRow.swift).
+        success?.let { s ->
+            com.meteomontana.android.ui.components.SchoolPresenceRow(
+                schoolId = s.school.id,
+                schoolName = s.school.name,
+                myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid,
+                onOpenChat = onOpenChat,
+                onOpenSchoolChat = { onOpenSchoolChat(s.school.name) },
+                refreshKey = presenceRefreshKey
+            )
+        }
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                viewModel.load()
+                presenceRefreshKey++
+                refreshScope.launch {
+                    kotlinx.coroutines.delay(800)
+                    isRefreshing = false
+                }
+            },
+            modifier = Modifier.weight(1f)
+        ) {
+            when (val s = state) {
+                is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+                is SchoolDetailUiState.Error -> Center {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                        Spacer(Modifier.height(Spacing.md))
+                        androidx.compose.material3.OutlinedButton(onClick = viewModel::load) {
+                            Text(stringResource(R.string.common_retry))
+                        }
                     }
                 }
-            }
-            is SchoolDetailUiState.Success -> {
-                // Guardar offline: los datos se guardan sin preguntar (pesan
-                // poco), pero las FOTOS se consultan — son casi todo el peso y
-                // puede estar gastando datos. Sin ellas el topo no sirve en la
-                // roca, así que se dice qué se gana y cuánto cuesta.
-                FotosOfflineDialogs(
-                    oferta = s.ofertaFotosOffline,
-                    progreso = s.descargaFotos,
-                    fallidas = s.fotosOfflineFallidas,
-                    onDescargar = viewModel::descargarFotosOffline,
-                    onRechazar = viewModel::rechazarFotosOffline,
-                    onCerrarAviso = viewModel::limpiarAvisoFotos
-                )
-                if (s.offlineSnapshotAt != null) {
-                    OfflineBanner(timestamp = s.offlineSnapshotAt)
+                is SchoolDetailUiState.Success -> {
+                    // Guardar offline: los datos se guardan sin preguntar (pesan
+                    // poco), pero las FOTOS se consultan — son casi todo el peso y
+                    // puede estar gastando datos. Sin ellas el topo no sirve en la
+                    // roca, así que se dice qué se gana y cuánto cuesta.
+                    Column {
+                        FotosOfflineDialogs(
+                            oferta = s.ofertaFotosOffline,
+                            progreso = s.descargaFotos,
+                            fallidas = s.fotosOfflineFallidas,
+                            onDescargar = viewModel::descargarFotosOffline,
+                            onRechazar = viewModel::rechazarFotosOffline,
+                            onCerrarAviso = viewModel::limpiarAvisoFotos
+                        )
+                        if (s.offlineSnapshotAt != null) {
+                            OfflineBanner(timestamp = s.offlineSnapshotAt)
+                        }
+                        if (s.forecastCachedAt != null) {
+                            StaleForecastBanner(timestamp = s.forecastCachedAt, onRetry = viewModel::load)
+                        }
+                        Content(
+                            school = s.school,
+                            forecast = s.forecast,
+                            forecastError = s.forecastError,
+                            notes = s.notes,
+                            blocks = s.blocks,
+                            onPublishNote = viewModel::publishNote,
+                            onAddBlock = { addBlockOpen = true },
+                            onBlockClick = onOpenBlock,
+                            viewModel = viewModel,
+                            onMyProposals = onMyProposals,
+                            onDayClick = onDayClick,
+                            mountainBulletin = s.mountainBulletin,
+                            approaches = s.approaches,
+                            isAdmin = s.isCurrentUserAdmin
+                        )
+                    }
                 }
-                if (s.forecastCachedAt != null) {
-                    StaleForecastBanner(timestamp = s.forecastCachedAt, onRetry = viewModel::load)
-                }
-                Content(
-                    school = s.school,
-                    forecast = s.forecast,
-                    forecastError = s.forecastError,
-                    notes = s.notes,
-                    blocks = s.blocks,
-                    onPublishNote = viewModel::publishNote,
-                    onAddBlock = { addBlockOpen = true },
-                    onBlockClick = onOpenBlock,
-                    viewModel = viewModel,
-                    onMyProposals = onMyProposals,
-                    onDayClick = onDayClick,
-                    mountainBulletin = s.mountainBulletin,
-                    approaches = s.approaches,
-                    isAdmin = s.isCurrentUserAdmin
-                )
             }
         }
     }

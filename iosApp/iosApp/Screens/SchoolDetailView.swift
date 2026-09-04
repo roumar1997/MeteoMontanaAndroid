@@ -209,6 +209,9 @@ struct SchoolDetailView: View {
     @State private var factorsExpanded = false
     @State private var selectedDay: DayForecast?
     @Environment(\.dismiss) private var dismiss
+    // Deslizar hacia abajo pide otra vez quién hay en "Estoy aquí" — mejor a
+    // demanda que sondear sola cada X segundos (Álvaro, 2026-09-04).
+    @State private var presenceRefreshTrigger = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -216,7 +219,9 @@ struct SchoolDetailView: View {
             // Fijo, fuera del scroll: si no se ve nada más que el título hasta
             // que bajas, nadie sabe que hay alguien ahí (Álvaro, 2026-09-03,
             // tras verlo enterrado bajo el pronóstico en la primera prueba).
-            SchoolPresenceRow(schoolId: school.id, schoolName: school.name, myUid: AppDependencies.shared.authBridge.currentUid())
+            SchoolPresenceRow(schoolId: school.id, schoolName: school.name,
+                              myUid: AppDependencies.shared.authBridge.currentUid(),
+                              refreshTrigger: presenceRefreshTrigger)
             scrollContent
         }
         .background(Cumbre.bg.ignoresSafeArea())
@@ -375,6 +380,12 @@ struct SchoolDetailView: View {
             if !vm.monthlyScores.isEmpty {
                 MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
             }
+        }
+        // Deslizar hacia abajo recarga el tiempo Y pide otra vez quién hay en
+        // "Estoy aquí" (Álvaro, 2026-09-04: mejor a demanda que sondear sola).
+        .refreshable {
+            await vm.load(school: school)
+            presenceRefreshTrigger += 1
         }
     }
 }

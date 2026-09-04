@@ -185,7 +185,9 @@ private fun SheetNavHost(
                             // overlay, para volver al detalle al terminar.
                             onOpenBlock = { blockId -> navController.navigate(Routes.topoEditor(blockId)) },
                             onMyProposals = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
-                            onDayClick = { idx -> sheetNav.navigate(Routes.dayDetail(schoolId, idx)) }
+                            onDayClick = { idx -> sheetNav.navigate(Routes.dayDetail(schoolId, idx)) },
+                            onOpenChat = { uid, _ -> sheetNav.navigate(Routes.chat(uid)) },
+                            onOpenSchoolChat = { name -> sheetNav.navigate(Routes.schoolChat(schoolId, name)) }
                         )
                     }
                     composable(
@@ -440,6 +442,25 @@ private fun SheetNavHost(
                         GroupChatScreen(
                             onBack = popSheetOrDismiss,
                             onOpenMeetup = { meetupId -> sheetNav.navigate(Routes.meetupDetail(meetupId)) },
+                            bottomInset = bottomInset
+                        )
+                    }
+
+                    composable(
+                        route = Routes.SCHOOL_CHAT,
+                        arguments = listOf(
+                            navArgument("schoolId") { type = NavType.StringType },
+                            navArgument("name") { type = NavType.StringType; defaultValue = "" }
+                        )
+                    ) { entry ->
+                        val schoolId = entry.arguments?.getString("schoolId") ?: ""
+                        val schoolName = entry.arguments?.getString("name") ?: ""
+                        com.meteomontana.android.ui.screens.detail.SchoolChatScreen(
+                            schoolId = schoolId,
+                            schoolName = schoolName,
+                            myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                            onBack = popSheetOrDismiss,
+                            onOpenChat = { uid, _ -> sheetNav.navigate(Routes.chat(uid)) },
                             bottomInset = bottomInset
                         )
                     }

@@ -56,6 +56,9 @@ object Routes {
     const val CHAT = "chats/{uid}"
     fun chat(uid: String) = "chats/$uid"
     const val NEW_GROUP = "chats/new-group"
+    const val SCHOOL_CHAT = "school-chat/{schoolId}?name={name}"
+    fun schoolChat(schoolId: String, schoolName: String) =
+        "school-chat/$schoolId?name=" + android.net.Uri.encode(schoolName)
     const val GROUP_CHAT = "group-chats/{convId}"
     fun groupChat(convId: String) = "group-chats/$convId"
     const val TOPO_EDITOR = "topo/{blockId}"
