@@ -112,7 +112,7 @@ fun BlockDto.toDomain() = Block(
 )
 
 fun BlockLineDto.toDomain(coverPhoto: String? = null) =
-    BlockLine(id, name, grade, startType, linePath, sortOrder, photoPath ?: coverPhoto, faceOrder, avgStars, myStars, description, variant, variantOfLineId)
+    BlockLine(id, name, grade, startType, linePath, sortOrder, photoPath ?: coverPhoto, faceOrder, avgStars, myStars, description, variant)
 
 fun BlockFaceDto.toDomain(coverPhoto: String? = null): BlockFace {
     val facePhoto = photoPath ?: coverPhoto

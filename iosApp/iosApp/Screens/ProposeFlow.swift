@@ -55,9 +55,6 @@ struct BoulderBlockForm: Identifiable {
     var descriptionText: String = ""
     /// Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
     var variant: String = ""
-    /// Id de la vía ORIGINAL de la que esta es variante (V71). Solo tiene sentido
-    /// si la original YA existe (existingLineId != nil) — espejo de Android.
-    var variantOfLineId: String? = nil
 }
 
 /// Serializa los bloques al formato que espera el backend (espejo de
@@ -78,8 +75,7 @@ func buildBloquesJson(_ blocks: [BoulderBlockForm]) -> String {
                 // Cara (foto) a la que pertenece → el backend la mantiene en su cara.
                 "photoUrl": b.facePhoto as Any? ?? NSNull(),
                 "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText,
-                "variant": b.variant.isEmpty ? NSNull() : b.variant,
-                "variantOfLineId": b.variantOfLineId as Any? ?? NSNull()]
+                "variant": b.variant.isEmpty ? NSNull() : b.variant]
     }
     return (try? JSONSerialization.data(withJSONObject: arr))
         .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
@@ -114,8 +110,7 @@ func buildFacesBloquesJson(_ faces: [BoulderFaceForm], photoByFace: [UUID: Strin
                         "targetLineId": b.existingLineId as Any? ?? NSNull(),
                         "photoUrl": facePhoto as Any? ?? NSNull(),
                         "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText,
-                        "variant": b.variant.isEmpty ? NSNull() : b.variant,
-                        "variantOfLineId": b.variantOfLineId as Any? ?? NSNull()])
+                        "variant": b.variant.isEmpty ? NSNull() : b.variant])
             idx += 1
         }
     }

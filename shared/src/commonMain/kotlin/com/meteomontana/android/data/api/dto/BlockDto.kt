@@ -42,9 +42,7 @@ data class BlockLineDto(
     val myStars: Int? = null,
     val description: String? = null,
     // Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
-    val variant: String? = null,
-    // Id de la vía ORIGINAL de la que esta es variante (V71); null si no aplica.
-    val variantOfLineId: String? = null
+    val variant: String? = null
 )
 
 @Serializable
@@ -76,8 +74,7 @@ data class CreateBlockLineRequest(
     val photoPath: String? = null,
     val faceOrder: Int = 0,
     val description: String? = null,
-    val variant: String? = null,
-    val variantOfLineId: String? = null
+    val variant: String? = null
 )
 
 /** Comentario de la comunidad en una piedra (lineId=null) o en una vía. */

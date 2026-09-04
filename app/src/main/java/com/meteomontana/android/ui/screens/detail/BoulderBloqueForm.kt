@@ -25,12 +25,7 @@ data class BoulderBloqueForm(
     // Beta/detalle opcional de la vía (se muestra en su ficha).
     val description: String? = null,
     // Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
-    val variant: String? = null,
-    // Id de la vía ORIGINAL de la que esta es variante (V71). Solo tiene
-    // sentido si la original YA existe (existingLineId != null): una vía sin
-    // guardar todavía no tiene id al que apuntar — "Crear variante" solo se
-    // ofrece sobre vías existentes por eso mismo.
-    val variantOfLineId: String? = null
+    val variant: String? = null
 )
 
 /**
@@ -124,6 +119,4 @@ private fun bloqueJson(idx: Int, b: BoulderBloqueForm, photoUrl: String?): JSONO
         if (!desc.isNullOrBlank()) put("description", desc) else put("description", JSONObject.NULL)
         val variant = b.variant?.trim()
         if (!variant.isNullOrBlank()) put("variant", variant) else put("variant", JSONObject.NULL)
-        if (b.variantOfLineId != null) put("variantOfLineId", b.variantOfLineId)
-        else put("variantOfLineId", JSONObject.NULL)
     }

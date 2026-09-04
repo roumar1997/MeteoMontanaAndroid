@@ -98,11 +98,6 @@ fun ContributionTopoDialog(
     // obliga a volver a trazar la via entera.
     var draggingVertex by remember { mutableStateOf<Int?>(null) }
 
-    // Copia local editable: "Crear variante" añade una fila nueva a mitad de
-    // edición, y `bloques` (parámetro) es inmutable — no se puede hacer
-    // crecer directamente.
-    val bloquesState = remember { mutableStateListOf(*bloques.toTypedArray()) }
-
     // Una lista de puntos por bloque. SnapshotStateList para que el Canvas se redibuje en tiempo real.
     val lines = remember {
         mutableStateMapOf<Int, SnapshotStateList<Offset>>().also { map ->
@@ -193,7 +188,7 @@ fun ContributionTopoDialog(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                     contentPadding = PaddingValues(end = Spacing.sm)
                 ) {
-                    itemsIndexed(bloquesState) { idx, b ->
+                    itemsIndexed(bloques) { idx, b ->
                         val sel = idx == selectedIdx
                         val gStyle = gradeStyle(b.grade)
                         val bgColor = if (sel) gStyle.stroke else MaterialTheme.colorScheme.surface
@@ -202,59 +197,21 @@ fun ContributionTopoDialog(
                             gStyle.dark -> Color.Black
                             else -> Color.White
                         }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(0.dp)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(bgColor)
+                                .border(1.dp, gStyle.stroke, RoundedCornerShape(2.dp))
+                                .clickable { selectedIdx = idx }
+                                .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(bgColor)
-                                    .border(1.dp, gStyle.stroke, RoundedCornerShape(2.dp))
-                                    .clickable { selectedIdx = idx }
-                                    .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                            ) {
-                                Text(
-                                    com.meteomontana.android.domain.util.TopoChipLabel.of(
-                                        idx, b.name, b.variant, b.grade),
-                                    maxLines = 1,
-                                    style = EyebrowTextStyle,
-                                    color = textColor
-                                )
-                            }
-                            // "Crear variante": solo tiene sentido sobre una vía que YA
-                            // existe (una recién dibujada aún no tiene id al que apuntar).
-                            // Copia el trazado actual como punto de partida — la idea es
-                            // redibujar solo el tramo que cambia, no desde cero.
-                            if (b.existingLineId != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(2.dp))
-                                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                                        .clickable {
-                                            val puntos = lines[idx]?.toList() ?: b.linePath
-                                            val nuevoIdx = bloquesState.size
-                                            bloquesState.add(
-                                                BoulderBloqueForm(
-                                                    name = b.name,
-                                                    grade = b.grade,
-                                                    startType = b.startType,
-                                                    linePath = puntos,
-                                                    facePhoto = b.facePhoto,
-                                                    variantOfLineId = b.existingLineId
-                                                )
-                                            )
-                                            lines[nuevoIdx] = androidx.compose.runtime.mutableStateListOf<Offset>().also {
-                                                it.addAll(puntos)
-                                            }
-                                            selectedIdx = nuevoIdx
-                                        }
-                                        .padding(horizontal = Spacing.xs, vertical = Spacing.xs)
-                                ) {
-                                    Text("+VARIANTE", style = EyebrowTextStyle,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
+                            Text(
+                                com.meteomontana.android.domain.util.TopoChipLabel.of(
+                                    idx, b.name, b.variant, b.grade),
+                                maxLines = 1,
+                                style = EyebrowTextStyle,
+                                color = textColor
+                            )
                         }
                     }
                     // Botón + NUEVO para añadir otro bloque en el futuro (deshabilitado aquí)
@@ -438,7 +395,7 @@ fun ContributionTopoDialog(
                     val editorLines = lines.entries.sortedBy { it.key }
                         .filter { (idx, _) -> !soloEsta || idx == selectedIdx }
                         .map { (idx, points) ->
-                        val bloque = bloquesState.getOrNull(idx)
+                        val bloque = bloques.getOrNull(idx)
                         val strokeW = if (idx == selectedIdx) 8f else 5f
                         TopoLineData(
                             name = bloque?.name,
@@ -641,7 +598,7 @@ fun ContributionTopoDialog(
                         .clip(RoundedCornerShape(2.dp))
                         .background(MaterialTheme.colorScheme.onBackground)
                         .clickable {
-                            val updated = bloquesState.mapIndexed { idx, b ->
+                            val updated = bloques.mapIndexed { idx, b ->
                                 b.copy(linePath = lines[idx]?.toList() ?: emptyList())
                             }
                             onSave(updated)
