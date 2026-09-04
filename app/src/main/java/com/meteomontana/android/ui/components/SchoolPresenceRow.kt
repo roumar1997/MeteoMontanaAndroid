@@ -73,7 +73,11 @@ class SchoolPresenceViewModel @Inject constructor(
                 people = list
                 iAmHere = myUid != null && list.any { it.uid == myUid }
             } catch (e: Exception) {
-                errorText = "No se pudo cargar quién hay aquí: ${e.message}"
+                // El mensaje técnico ("Socket timeout has expired...") no le
+                // dice nada al usuario — se registra para depurar y se
+                // muestra uno normal (Álvaro, 2026-09-04).
+                android.util.Log.w("SchoolPresence", "No se pudo cargar la presencia", e)
+                errorText = "No se pudo cargar quién hay aquí. Comprueba tu conexión."
             }
         }
     }
@@ -86,7 +90,8 @@ class SchoolPresenceViewModel @Inject constructor(
             try {
                 if (iAmHere) clearPresence.execute(schoolId) else markPresence.execute(schoolId)
             } catch (e: Exception) {
-                errorText = "${if (iAmHere) "No se pudo quitar" else "No se pudo marcar"} la presencia: ${e.message}"
+                android.util.Log.w("SchoolPresence", "No se pudo marcar/quitar la presencia", e)
+                errorText = "${if (iAmHere) "No se pudo quitar" else "No se pudo marcar"} la presencia. Comprueba tu conexión."
             }
             loading = false
             load(schoolId, myUid)

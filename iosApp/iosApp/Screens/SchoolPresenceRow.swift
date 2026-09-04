@@ -37,7 +37,11 @@ final class SchoolPresenceViewModel: ObservableObject {
             // Cancelada (p.ej. al salir de la pantalla a mitad) — no es un
             // fallo real, no hay nada que avisar.
         } catch {
-            errorText = "No se pudo cargar quién hay aquí: \(error.localizedDescription)"
+            // El mensaje técnico ("Socket timeout has expired...") no le dice
+            // nada al usuario — se registra para depurar y se muestra uno
+            // normal (Álvaro, 2026-09-04).
+            print("SchoolPresence: no se pudo cargar la presencia — \(error)")
+            errorText = "No se pudo cargar quién hay aquí. Comprueba tu conexión."
         }
     }
 
@@ -55,7 +59,8 @@ final class SchoolPresenceViewModel: ObservableObject {
                     _ = try await markPresence.execute(schoolId: schoolId)
                 }
             } catch {
-                errorText = "\(iAmHere ? "No se pudo quitar" : "No se pudo marcar") la presencia: \(error.localizedDescription)"
+                print("SchoolPresence: no se pudo marcar/quitar la presencia — \(error)")
+                errorText = "\(iAmHere ? "No se pudo quitar" : "No se pudo marcar") la presencia. Comprueba tu conexión."
             }
             await load()
         }
