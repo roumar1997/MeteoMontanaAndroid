@@ -216,8 +216,9 @@ struct SchoolDetailView: View {
     @State private var factorsExpanded = false
     @State private var selectedDay: DayForecast?
     @Environment(\.dismiss) private var dismiss
-    // Deslizar hacia abajo pide otra vez quién hay en "Estoy aquí" — mejor a
-    // demanda que sondear sola cada X segundos (Álvaro, 2026-09-04).
+    // Deslizar hacia abajo pide otra vez quién hay en "Estoy aquí" Y las
+    // piedras del mapa (nuevas o de otros) — mejor a demanda que sondear
+    // sola cada X segundos (Álvaro, 2026-09-04).
     @State private var presenceRefreshTrigger = 0
 
     var body: some View {
@@ -368,13 +369,13 @@ struct SchoolDetailView: View {
                     // Boletín de montaña ENCIMA del mapa (paridad con Android).
                     mapSlot: AnyView(VStack(spacing: 0) {
                         MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                        SchoolMapSection(school: school, openVia: openVia)
+                        SchoolMapSection(school: school, openVia: openVia, refreshTrigger: presenceRefreshTrigger)
                     })
                 )
             } else {
                 // Sin previsión: el mapa (y el boletín) van igualmente.
                 MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                SchoolMapSection(school: school, openVia: openVia)
+                SchoolMapSection(school: school, openVia: openVia, refreshTrigger: presenceRefreshTrigger)
             }
             // Notas comunitarias — ahora ENCIMA de "mejores meses".
             NotesSectionView(

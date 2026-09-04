@@ -14,6 +14,11 @@ import FirebaseAuth
 struct SchoolMapSection: View {
     let school: School
     var openVia: String? = nil
+    /// Sube al deslizar hacia abajo en la ficha (pull-to-refresh) para volver
+    /// a pedir las piedras — normalmente solo se cargan una vez al abrir el
+    /// mapa (Álvaro, 2026-09-04: piedras/usuarios nuevos no aparecían sin
+    /// salir y volver a entrar).
+    var refreshTrigger: Int = 0
 
     // Filtro por ORIENTACIÓN (consenso comunitario): filtra los marcadores
     // de piedra del mapa. Piedras sin votos → solo en TODAS. Espejo de
@@ -186,6 +191,12 @@ struct SchoolMapSection: View {
         // fallaba (abría la escuela a secas) y como el count no cambiaba al
         // llegar los datos reales, no se reintentaba (a la 2ª vez ya iba).
         .onChange(of: vm.blocks.reduce(0) { $0 + 1 + $1.lines.count }) { _ in maybeAutoOpen() }
+        // Pull-to-refresh de la ficha: vuelve a pedir las piedras (el `.task(id:
+        // expanded)` de arriba solo carga si `vm.blocks` está vacío).
+        .task(id: refreshTrigger) {
+            guard refreshTrigger > 0 else { return }
+            _ = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id)
+        }
         // ¿Admin? → puede eliminar bloques desde su ficha.
         .task {
             await vm.loadAdminFlag()
