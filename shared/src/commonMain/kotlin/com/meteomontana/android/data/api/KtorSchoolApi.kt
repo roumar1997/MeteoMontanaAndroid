@@ -92,6 +92,12 @@ class KtorSchoolApi(private val client: HttpClient) {
     suspend fun reportProcessionaryActiveNow(id: String) {
         client.post("schools/$id/processionary/active-now")
     }
+
+    /** Deshace solo el aviso puntual "antes de tiempo" (no toca "Las he visto"). */
+    @Throws(Exception::class)
+    suspend fun clearProcessionaryActiveNow(id: String) {
+        client.post("schools/$id/processionary/active-now/clear")
+    }
 }
 
 @kotlinx.serialization.Serializable

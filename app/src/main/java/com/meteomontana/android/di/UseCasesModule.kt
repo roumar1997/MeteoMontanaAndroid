@@ -108,6 +108,10 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.schools.ReportProcessionaryActiveNowUseCase(repo)
 
     @Provides @Singleton
+    fun provideClearProcessionaryActiveNowUseCase(repo: SchoolRepository) =
+        com.meteomontana.android.domain.usecase.schools.ClearProcessionaryActiveNowUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetTodayScoresUseCase(repo: ForecastRepository) = GetTodayScoresUseCase(repo)
 
     // Radar (frames + PNG) — antes RadarViewModel usaba KtorRadarApi directo.

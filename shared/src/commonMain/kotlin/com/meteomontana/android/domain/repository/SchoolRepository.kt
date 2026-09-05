@@ -36,4 +36,7 @@ interface SchoolRepository {
 
     /** "Hay ahora mismo, antes de tiempo": activa la alarma ya, con caducidad. */
     suspend fun reportProcessionaryActiveNow(schoolId: String)
+
+    /** Deshace solo el aviso puntual "antes de tiempo" (no toca "Las he visto"). */
+    suspend fun clearProcessionaryActiveNow(schoolId: String)
 }

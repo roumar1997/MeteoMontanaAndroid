@@ -221,9 +221,11 @@ fun SchoolDetailScreen(
         com.meteomontana.android.ui.components.ProcessionaryInfoSheet(
             hasKnownProcessionary = success.school.hasKnownProcessionary,
             alertActive = success.school.processionaryAlertActive,
+            activeNowSet = success.school.processionaryActiveNowSet,
             onConfirm = { viewModel.confirmProcessionary() },
             onRetract = { viewModel.retractProcessionary() },
             onActiveNow = { viewModel.reportProcessionaryActiveNow() },
+            onClearActiveNow = { viewModel.clearProcessionaryActiveNow() },
             onDismiss = { processionaryOpen = false }
         )
     }

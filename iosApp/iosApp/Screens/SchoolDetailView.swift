@@ -46,10 +46,13 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var hasKnownProcessionary = false
     /// ¿Toca avisar AHORA? (zona conocida + temporada dic-may).
     @Published var processionaryAlertActive = false
+    /// ¿Alguien ha marcado "las he visto antes de tiempo" (aviso puntual, con caducidad)?
+    @Published var processionaryActiveNowSet = false
 
     private let confirmProcessionaryUseCase = AppDependencies.shared.container.confirmProcessionary
     private let retractProcessionaryUseCase = AppDependencies.shared.container.retractProcessionary
     private let reportProcessionaryActiveNowUseCase = AppDependencies.shared.container.reportProcessionaryActiveNow
+    private let clearProcessionaryActiveNowUseCase = AppDependencies.shared.container.clearProcessionaryActiveNow
     private let savedSchools = AppDependencies.shared.container.savedSchools
     private let getBlocks = AppDependencies.shared.container.getBlocks
     private let getForecast: GetForecastUseCase
@@ -80,6 +83,7 @@ final class SchoolDetailViewModel: ObservableObject {
         loading = true; errorText = nil; offlineForecast = false; offlineSince = nil
         hasKnownProcessionary = school.hasKnownProcessionary
         processionaryAlertActive = school.processionaryAlertActive
+        processionaryActiveNowSet = school.processionaryActiveNowSet
         do {
             let f = try await getForecast.invoke(schoolId: schoolId)
             forecast = f
@@ -216,19 +220,20 @@ final class SchoolDetailViewModel: ObservableObject {
         }
     }
 
-    /// "Las he visto": marca la escuela para siempre. Idempotente.
+    /// "Sí que hay en este sector": marca la escuela para siempre. Toggleable.
     func confirmProcessionary(schoolId: String) {
         guard !hasKnownProcessionary else { return }
         Task {
             do {
                 try await confirmProcessionaryUseCase.invoke(schoolId: schoolId)
                 hasKnownProcessionary = true
-                processionaryAlertActive = ProcessionarySeason.shared.isInSeason()
+                processionaryAlertActive = ProcessionarySeason.shared.isInSeason() || processionaryActiveNowSet
+                ProcessionaryOverrideStore.shared.set(schoolId: schoolId, alertActive: processionaryAlertActive)
             } catch {}
         }
     }
 
-    /// "Me equivoqué al pulsar": deshace la confirmación. Idempotente.
+    /// Deshace "Sí que hay en este sector". Toggleable.
     func retractProcessionary(schoolId: String) {
         guard hasKnownProcessionary else { return }
         Task {
@@ -236,17 +241,34 @@ final class SchoolDetailViewModel: ObservableObject {
                 try await retractProcessionaryUseCase.invoke(schoolId: schoolId)
                 hasKnownProcessionary = false
                 processionaryAlertActive = false
+                processionaryActiveNowSet = false
+                ProcessionaryOverrideStore.shared.set(schoolId: schoolId, alertActive: false)
             } catch {}
         }
     }
 
-    /// "Hay ahora mismo, antes de tiempo": activa la alarma ya, con caducidad.
+    /// "Las he visto antes de tiempo": activa la alarma ya, con caducidad. Toggleable.
     func reportProcessionaryActiveNow(schoolId: String) {
         Task {
             do {
                 try await reportProcessionaryActiveNowUseCase.invoke(schoolId: schoolId)
                 hasKnownProcessionary = true
                 processionaryAlertActive = true
+                processionaryActiveNowSet = true
+                ProcessionaryOverrideStore.shared.set(schoolId: schoolId, alertActive: true)
+            } catch {}
+        }
+    }
+
+    /// Deshace solo "Las he visto antes de tiempo" (no toca la confirmación permanente). Toggleable.
+    func clearProcessionaryActiveNow(schoolId: String) {
+        guard processionaryActiveNowSet else { return }
+        Task {
+            do {
+                try await clearProcessionaryActiveNowUseCase.invoke(schoolId: schoolId)
+                processionaryActiveNowSet = false
+                processionaryAlertActive = hasKnownProcessionary && ProcessionarySeason.shared.isInSeason()
+                ProcessionaryOverrideStore.shared.set(schoolId: schoolId, alertActive: processionaryAlertActive)
             } catch {}
         }
     }
@@ -285,11 +307,11 @@ struct SchoolDetailView: View {
         }
         .sheet(isPresented: $showProcessionary) {
             ProcessionaryInfoSheet(
-                hasKnownProcessionary: vm.hasKnownProcessionary,
-                alertActive: vm.processionaryAlertActive,
+                vm: vm,
                 onConfirm: { vm.confirmProcessionary(schoolId: school.id) },
                 onRetract: { vm.retractProcessionary(schoolId: school.id) },
-                onActiveNow: { vm.reportProcessionaryActiveNow(schoolId: school.id) }
+                onActiveNow: { vm.reportProcessionaryActiveNow(schoolId: school.id) },
+                onClearActiveNow: { vm.clearProcessionaryActiveNow(schoolId: school.id) }
             )
         }
         .task { await vm.load(school: school) }
@@ -534,7 +556,7 @@ struct SchoolDetailLoaderView: View {
     NavigationStack {
         SchoolDetailView(school: School(id: "x", name: "Demo", location: "Demo", region: "Aragón",
                                         style: "Boulder", rockType: "Caliza", lat: 0, lon: 0, source: nil,
-                                        country: "ES", hasKnownProcessionary: false, processionaryAlertActive: false))
+                                        country: "ES", hasKnownProcessionary: false, processionaryAlertActive: false, processionaryActiveNowSet: false))
     }
 }
 

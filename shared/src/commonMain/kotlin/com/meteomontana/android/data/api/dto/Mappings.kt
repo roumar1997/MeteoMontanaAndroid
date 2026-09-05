@@ -40,7 +40,8 @@ fun SchoolDto.toDomain() = School(
     // Un servidor antiguo no manda pais: lo que existia era espanol.
     country = country?.uppercase()?.takeIf { it.isNotBlank() } ?: "ES",
     hasKnownProcessionary = hasKnownProcessionary,
-    processionaryAlertActive = processionaryAlertActive
+    processionaryAlertActive = processionaryAlertActive,
+    processionaryActiveNowSet = processionaryActiveNowSet
 )
 
 // Forecast

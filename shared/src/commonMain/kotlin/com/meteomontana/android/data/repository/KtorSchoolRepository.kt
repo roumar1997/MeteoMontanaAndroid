@@ -36,6 +36,8 @@ class KtorSchoolRepository(private val api: KtorSchoolApi) : SchoolRepository {
     override suspend fun retractProcessionary(schoolId: String) = api.retractProcessionary(schoolId)
 
     override suspend fun reportProcessionaryActiveNow(schoolId: String) = api.reportProcessionaryActiveNow(schoolId)
+
+    override suspend fun clearProcessionaryActiveNow(schoolId: String) = api.clearProcessionaryActiveNow(schoolId)
 }
 
 private fun LineSearchHitDto.toDomain() = LineSearchHit(

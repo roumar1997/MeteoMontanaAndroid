@@ -24,6 +24,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +91,13 @@ fun SchoolListItem(
         // En modo tramo (días elegidos) el badge muestra el score combinado.
         ScoreBadge(score = range?.combinedScore ?: todayScore)
 
+        // Lo que ACABAS de tocar en la ficha manda sobre lo que trajo el
+        // catálogo — sin esto, esta fila seguiría sin marcar hasta la
+        // próxima recarga completa (Álvaro, 2026-09-05).
+        val overrides by com.meteomontana.android.domain.util.ProcessionaryOverrideStore.observe()
+            .collectAsState(initial = com.meteomontana.android.domain.util.ProcessionaryOverrideStore.currentValue())
+        val processionaryAlertActive = overrides[school.id] ?: school.processionaryAlertActive
+
         Column(modifier = Modifier.weight(1f)) {
             // Rank + nombre + estrella favorito
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -117,7 +126,7 @@ fun SchoolListItem(
                 // alguna vez aquí) Y estamos en su temporada (dic-may) — no hay
                 // forma fiable de saber dónde hay pinos, así que solo avisa lo
                 // que de verdad se sabe (Álvaro, 2026-09-05).
-                if (school.processionaryAlertActive) {
+                if (processionaryAlertActive) {
                     Box(
                         modifier = Modifier
                             .padding(end = Spacing.xs)

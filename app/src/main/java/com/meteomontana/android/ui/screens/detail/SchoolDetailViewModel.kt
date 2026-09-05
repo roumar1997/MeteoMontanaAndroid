@@ -114,7 +114,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val deleteApproachUseCase: com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase,
     private val confirmProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase,
     private val retractProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.RetractProcessionaryUseCase,
-    private val reportProcessionaryActiveNowUseCase: com.meteomontana.android.domain.usecase.schools.ReportProcessionaryActiveNowUseCase
+    private val reportProcessionaryActiveNowUseCase: com.meteomontana.android.domain.usecase.schools.ReportProcessionaryActiveNowUseCase,
+    private val clearProcessionaryActiveNowUseCase: com.meteomontana.android.domain.usecase.schools.ClearProcessionaryActiveNowUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -393,24 +394,27 @@ class SchoolDetailViewModel @Inject constructor(
         }
     }
 
-    /** "Las he visto": marca la escuela para siempre. Idempotente. */
+    /** "Sí que hay en este sector": marca la escuela para siempre. Toggleable. */
     fun confirmProcessionary() {
         val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
         if (cur.school.hasKnownProcessionary) return
         viewModelScope.launch {
             try {
                 confirmProcessionaryUseCase(schoolId)
+                val alertActive = com.meteomontana.android.domain.util.ProcessionarySeason.isInSeason() ||
+                    cur.school.processionaryActiveNowSet
                 _uiState.value = cur.copy(
                     school = cur.school.copy(
                         hasKnownProcessionary = true,
-                        processionaryAlertActive = com.meteomontana.android.domain.util.ProcessionarySeason.isInSeason()
+                        processionaryAlertActive = alertActive
                     )
                 )
+                com.meteomontana.android.domain.util.ProcessionaryOverrideStore.set(schoolId, alertActive)
             } catch (_: Throwable) {}
         }
     }
 
-    /** "Me equivoqué al pulsar": deshace la confirmación. Idempotente. */
+    /** Deshace "Sí que hay en este sector". Toggleable. */
     fun retractProcessionary() {
         val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
         if (!cur.school.hasKnownProcessionary) return
@@ -418,21 +422,51 @@ class SchoolDetailViewModel @Inject constructor(
             try {
                 retractProcessionaryUseCase(schoolId)
                 _uiState.value = cur.copy(
-                    school = cur.school.copy(hasKnownProcessionary = false, processionaryAlertActive = false)
+                    school = cur.school.copy(
+                        hasKnownProcessionary = false,
+                        processionaryAlertActive = false,
+                        processionaryActiveNowSet = false
+                    )
                 )
+                com.meteomontana.android.domain.util.ProcessionaryOverrideStore.set(schoolId, false)
             } catch (_: Throwable) {}
         }
     }
 
-    /** "Hay ahora mismo, antes de tiempo": activa la alarma ya, con caducidad. */
+    /** "Las he visto antes de tiempo": activa la alarma ya, con caducidad. Toggleable. */
     fun reportProcessionaryActiveNow() {
         val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
         viewModelScope.launch {
             try {
                 reportProcessionaryActiveNowUseCase(schoolId)
                 _uiState.value = cur.copy(
-                    school = cur.school.copy(hasKnownProcessionary = true, processionaryAlertActive = true)
+                    school = cur.school.copy(
+                        hasKnownProcessionary = true,
+                        processionaryAlertActive = true,
+                        processionaryActiveNowSet = true
+                    )
                 )
+                com.meteomontana.android.domain.util.ProcessionaryOverrideStore.set(schoolId, true)
+            } catch (_: Throwable) {}
+        }
+    }
+
+    /** Deshace solo "Las he visto antes de tiempo" (no toca la confirmación permanente). Toggleable. */
+    fun clearProcessionaryActiveNow() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        if (!cur.school.processionaryActiveNowSet) return
+        viewModelScope.launch {
+            try {
+                clearProcessionaryActiveNowUseCase(schoolId)
+                val alertActive = cur.school.hasKnownProcessionary &&
+                    com.meteomontana.android.domain.util.ProcessionarySeason.isInSeason()
+                _uiState.value = cur.copy(
+                    school = cur.school.copy(
+                        processionaryActiveNowSet = false,
+                        processionaryAlertActive = alertActive
+                    )
+                )
+                com.meteomontana.android.domain.util.ProcessionaryOverrideStore.set(schoolId, alertActive)
             } catch (_: Throwable) {}
         }
     }

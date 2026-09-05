@@ -18,5 +18,7 @@ data class SchoolDto(
     /** ¿Alguna vez confirmó un usuario procesionaria aquí? Para siempre. */
     @SerialName("hasKnownProcessionary") val hasKnownProcessionary: Boolean = false,
     /** ¿Toca avisar ahora? (zona conocida + temporada dic-may). */
-    @SerialName("processionaryAlertActive") val processionaryAlertActive: Boolean = false
+    @SerialName("processionaryAlertActive") val processionaryAlertActive: Boolean = false,
+    /** ¿Hay un aviso "antes de tiempo" vigente ahora mismo (sin caducar)? */
+    @SerialName("processionaryActiveNowSet") val processionaryActiveNowSet: Boolean = false
 )

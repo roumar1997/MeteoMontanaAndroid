@@ -35,6 +35,25 @@ final class SchoolListViewModel: ObservableObject {
     @Published var unreadNotifications: Int = 0
     @Published var unreadChats: Int = 0          // badge en el icono de mensajes
     private var chatTask: Task<Void, Never>?
+    /// Lo que ACABAS de tocar en la ficha de una escuela manda sobre lo que
+    /// trajo el catálogo — sin esto la lista seguiría sin marcar hasta la
+    /// próxima recarga completa (Álvaro, 2026-09-05: "que no haga falta
+    /// estar recargando").
+    @Published var processionaryOverrides: [String: Bool] = [:]
+    private var processionaryTask: Task<Void, Never>?
+
+    func startObservingProcessionaryOverrides() {
+        guard processionaryTask == nil else { return }
+        processionaryTask = Task { [weak self] in
+            for await map in ProcessionaryOverrideStore.shared.observe() {
+                self?.processionaryOverrides = map
+            }
+        }
+    }
+
+    func processionaryAlertActive(for school: School) -> Bool {
+        processionaryOverrides[school.id] ?? school.processionaryAlertActive
+    }
 
     // ── Selector de días (tramo) ──
     // Fechas ISO (yyyy-MM-dd) elegidas, máx 5. Vacío = modo "hoy".
@@ -152,7 +171,7 @@ final class SchoolListViewModel: ObservableObject {
                 schools.first { $0.id == sv.id }
                     ?? School(id: sv.id, name: sv.name, location: nil, region: sv.region,
                               style: nil, rockType: sv.rockType, lat: sv.lat, lon: sv.lon, source: nil,
-                              country: "ES", hasKnownProcessionary: false, processionaryAlertActive: false)
+                              country: "ES", hasKnownProcessionary: false, processionaryAlertActive: false, processionaryActiveNowSet: false)
             }
         } else {
             base = schools
@@ -251,6 +270,7 @@ final class SchoolListViewModel: ObservableObject {
         errorText = nil
         startObservingSaved()
         startObservingChats()
+        startObservingProcessionaryOverrides()
         // 1. Pinta desde la caché local al instante (si la hay).
         if let cached = try? await cachedSchools?.load(), !cached.isEmpty {
             schools = cached
@@ -461,6 +481,7 @@ struct SchoolListView: View {
                                     distanceKm: vm.distanceKm(school),
                                     isFavorite: vm.favoriteIds.contains(school.id),
                                     isSelected: vm.compareSelection.contains(school.id),
+                                    processionaryAlertActive: vm.processionaryAlertActive(for: school),
                                     onToggleFavorite: { vm.toggleFavorite(school.id) }
                                 )
                                 .contentShape(Rectangle())

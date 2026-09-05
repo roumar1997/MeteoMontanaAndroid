@@ -138,6 +138,7 @@ struct SchoolListItemView: View {
     var distanceKm: Int? = nil
     var isFavorite: Bool = false
     var isSelected: Bool = false
+    var processionaryAlertActive: Bool = false
     var onToggleFavorite: () -> Void = {}
 
     var body: some View {
@@ -159,7 +160,7 @@ struct SchoolListItemView: View {
                     // estamos en su temporada — sin datos fiables de dónde hay
                     // pinos, solo avisa lo que de verdad se sabe (espejo de
                     // Android, Álvaro, 2026-09-05).
-                    if school.processionaryAlertActive {
+                    if processionaryAlertActive {
                         Text("🐛")
                             .font(.system(size: 12))
                             .frame(width: 22, height: 22)

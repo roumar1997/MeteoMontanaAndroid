@@ -24,5 +24,7 @@ data class School(
     /** ¿Alguna vez confirmó un usuario procesionaria aquí? Para siempre. */
     val hasKnownProcessionary: Boolean = false,
     /** ¿Toca avisar ahora? (zona conocida + temporada dic-may). */
-    val processionaryAlertActive: Boolean = false
+    val processionaryAlertActive: Boolean = false,
+    /** ¿Hay un aviso "antes de tiempo" vigente ahora mismo (sin caducar)? */
+    val processionaryActiveNowSet: Boolean = false
 )

@@ -5,11 +5,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,31 +57,93 @@ fun ProcessionaryButton(alertActive: Boolean, onClick: () -> Unit) {
     }
 }
 
+/**
+ * Botón-toggle: relleno cuando está pulsado, solo borde cuando no — para que
+ * se note a simple vista que algo quedó marcado, sin depender de leer texto
+ * (Álvaro, 2026-09-05: "que se note que lo has marcado").
+ */
+@Composable
+private fun ToggleButton(
+    label: String,
+    pressed: Boolean,
+    accent: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (pressed) accent else Color.Transparent)
+            .border(1.dp, accent, RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = Spacing.md),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (pressed) {
+                Text("✓ ", style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold), color = Color.White)
+            }
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
+                color = if (pressed) Color.White else accent
+            )
+        }
+    }
+}
+
 @Composable
 fun ProcessionaryInfoSheet(
     hasKnownProcessionary: Boolean,
     alertActive: Boolean,
+    activeNowSet: Boolean,
     onConfirm: () -> Unit,
     onRetract: () -> Unit,
     onActiveNow: () -> Unit,
+    onClearActiveNow: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight(0.9f)
                 .padding(Spacing.lg)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.background)
                 .padding(Spacing.lg)
         ) {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     "🐛 Procesionaria del pino",
                     style = MaterialTheme.typography.titleLarge.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.padding(top = Spacing.sm))
+
+                // Botones arriba del todo: son lo primero que hay que poder
+                // pulsar, sin tener que hacer scroll para llegar a ellos
+                // (Álvaro, 2026-09-05: "que esté arriba... no nada abajo").
+                ToggleButton(
+                    label = "Sí que hay en este sector",
+                    pressed = hasKnownProcessionary,
+                    accent = Terra,
+                    onClick = { if (hasKnownProcessionary) onRetract() else onConfirm() }
+                )
+                Spacer(Modifier.padding(top = Spacing.sm))
+                ToggleButton(
+                    label = "Las he visto antes de tiempo",
+                    pressed = activeNowSet,
+                    accent = MaterialTheme.colorScheme.error,
+                    onClick = { if (activeNowSet) onClearActiveNow() else onActiveNow() }
+                )
+                Spacer(Modifier.padding(top = Spacing.xs))
+                Text(
+                    "Ambos se pueden marcar y desmarcar — si te equivocas al pulsar, vuelve a pulsar para quitarlo.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.padding(top = Spacing.md))
 
                 if (alertActive) {
                     Box(
@@ -88,7 +154,7 @@ fun ProcessionaryInfoSheet(
                             .padding(Spacing.sm)
                     ) {
                         Text(
-                            "⚠ En esta escuela ya se han visto, y estamos en su época orientativa — extrema la precaución, sobre todo si vas con perro.",
+                            "⚠ En esta escuela ya se han visto, y estamos en su época orientativa (más o menos) — extrema la precaución, sobre todo si vas con perro.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold
@@ -111,64 +177,23 @@ fun ProcessionaryInfoSheet(
                 )
                 Spacer(Modifier.padding(top = Spacing.sm))
                 Text(
-                    "No hay ningún mapa fiable de dónde hay pinos con procesionaria — la única forma de saberlo es que alguien las haya visto. Si las ves aquí, dilo: la escuela quedará marcada para avisar cada temporada, sin que nadie tenga que repetirlo.",
+                    "No hay ningún mapa fiable de dónde hay pinos con procesionaria — la única forma de saberlo es que alguien las haya visto. Si las ves aquí, marca \"Sí que hay en este sector\": la escuela quedará avisando cada temporada, sin que nadie tenga que repetirlo.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.padding(top = Spacing.md))
 
                 if (hasKnownProcessionary) {
+                    Spacer(Modifier.padding(top = Spacing.md))
                     Text(
-                        "Ya está confirmado — gracias por avisar.",
+                        "Confirmado — gracias por avisar.",
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(Modifier.padding(top = Spacing.sm))
-                    Text(
-                        "¿Te has equivocado al pulsar? Quitar aviso",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.clickable(onClick = onRetract)
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Terra)
-                            .clickable(onClick = onConfirm)
-                            .padding(vertical = Spacing.md),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Las he visto",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
-                            color = Color.White
-                        )
-                    }
                 }
-
                 if (!alertActive) {
                     Spacer(Modifier.padding(top = Spacing.sm))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color.Transparent)
-                            .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(10.dp))
-                            .clickable(onClick = onActiveNow)
-                            .padding(vertical = Spacing.md),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Hay ahora mismo, antes de tiempo",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                    Spacer(Modifier.padding(top = Spacing.xs))
                     Text(
-                        "Actívala aunque no sea su época típica — se apaga sola en unas semanas si nadie más la confirma.",
+                        "\"Las he visto antes de tiempo\" activa el aviso aunque no sea su época típica — se apaga sola en unas semanas si nadie más la confirma.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
