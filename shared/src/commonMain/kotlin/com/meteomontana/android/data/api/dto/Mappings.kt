@@ -38,7 +38,9 @@ fun SchoolDto.toDomain() = School(
     id = id, name = name, location = location, region = region,
     style = style, rockType = rockType, lat = lat, lon = lon, source = source,
     // Un servidor antiguo no manda pais: lo que existia era espanol.
-    country = country?.uppercase()?.takeIf { it.isNotBlank() } ?: "ES"
+    country = country?.uppercase()?.takeIf { it.isNotBlank() } ?: "ES",
+    hasKnownProcessionary = hasKnownProcessionary,
+    processionaryAlertActive = processionaryAlertActive
 )
 
 // Forecast

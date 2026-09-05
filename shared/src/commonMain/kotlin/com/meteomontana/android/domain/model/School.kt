@@ -20,5 +20,9 @@ data class School(
      * catalogo son espanolas, y una respuesta vieja del servidor tampoco lo
      * trae. Decide si aplican radar y boletin de montana, que son de AEMET.
      */
-    val country: String = "ES"
+    val country: String = "ES",
+    /** ¿Alguna vez confirmó un usuario procesionaria aquí? Para siempre. */
+    val hasKnownProcessionary: Boolean = false,
+    /** ¿Toca avisar ahora? (zona conocida + temporada dic-may). */
+    val processionaryAlertActive: Boolean = false
 )

@@ -66,6 +66,7 @@ fun SchoolDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val success = state as? SchoolDetailUiState.Success
     var addBlockOpen by remember { mutableStateOf(false) }
+    var processionaryOpen by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     // Deslizar hacia abajo para pedir otra vez quién hay en "Estoy aquí" —
     // mejor a demanda que sondear sola cada X segundos (Álvaro, 2026-09-04).
@@ -121,7 +122,9 @@ fun SchoolDetailScreen(
                         shareSchool(context, success.school, success.forecast)
                     }
                 }
-            } else null
+            } else null,
+            processionaryAlertActive = success?.school?.processionaryAlertActive ?: false,
+            onOpenProcessionary = if (success != null) { { processionaryOpen = true } } else null
         )
         // Fijo, fuera del scroll: si no se ve nada más que el título hasta que
         // bajas, nadie sabe que hay alguien ahí (Álvaro, 2026-09-03, paridad
@@ -213,6 +216,15 @@ fun SchoolDetailScreen(
             }
         )
     }
+
+    if (processionaryOpen && success != null) {
+        com.meteomontana.android.ui.components.ProcessionaryInfoSheet(
+            hasKnownProcessionary = success.school.hasKnownProcessionary,
+            alertActive = success.school.processionaryAlertActive,
+            onConfirm = { viewModel.confirmProcessionary() },
+            onDismiss = { processionaryOpen = false }
+        )
+    }
 }
 
 @Composable
@@ -226,7 +238,9 @@ private fun TopBar(
     showSaveOffline: Boolean = false,
     onToggleSaveOffline: () -> Unit = {},
     onDirections: (() -> Unit)? = null,
-    onShare: (() -> Unit)? = null
+    onShare: (() -> Unit)? = null,
+    processionaryAlertActive: Boolean = false,
+    onOpenProcessionary: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm),
@@ -249,6 +263,12 @@ private fun TopBar(
             modifier = Modifier.padding(horizontal = Spacing.xs).weight(1f))
         com.meteomontana.android.ui.components.CumbrePillGroup {
             com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
+            if (onOpenProcessionary != null) {
+                com.meteomontana.android.ui.components.ProcessionaryButton(
+                    alertActive = processionaryAlertActive,
+                    onClick = onOpenProcessionary
+                )
+            }
             if (onDirections != null) {
                 IconButton(onClick = onDirections, modifier = Modifier.size(38.dp)) {
                     Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions),

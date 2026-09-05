@@ -113,6 +113,17 @@ fun SchoolListItem(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.weight(1f)
                 )
+                // Procesionaria: solo se marca si YA se sabe (alguien la confirmó
+                // alguna vez aquí) Y estamos en su temporada (dic-may) — no hay
+                // forma fiable de saber dónde hay pinos, así que solo avisa lo
+                // que de verdad se sabe (Álvaro, 2026-09-05).
+                if (school.processionaryAlertActive) {
+                    Text(
+                        text = "🐛",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(end = Spacing.xs)
+                    )
+                }
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",

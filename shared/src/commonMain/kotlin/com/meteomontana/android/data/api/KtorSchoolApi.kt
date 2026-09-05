@@ -8,6 +8,7 @@ import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -73,6 +74,12 @@ class KtorSchoolApi(private val client: HttpClient) {
     @Throws(Exception::class)
     suspend fun getMonthlyStats(id: String): MonthlyStatsDto =
         client.get("schools/$id/monthly-stats").body()
+
+    /** "Las he visto": marca la escuela como zona conocida de procesionaria (para siempre). */
+    @Throws(Exception::class)
+    suspend fun confirmProcessionary(id: String) {
+        client.post("schools/$id/processionary/confirm")
+    }
 }
 
 @kotlinx.serialization.Serializable

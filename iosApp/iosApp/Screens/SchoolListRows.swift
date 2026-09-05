@@ -155,6 +155,13 @@ struct SchoolListItemView: View {
                         .font(Cumbre.serif(19, .bold))
                         .foregroundStyle(Cumbre.ink)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    // Procesionaria: solo si ya se sabe (alguien la confirmó) Y
+                    // estamos en su temporada — sin datos fiables de dónde hay
+                    // pinos, solo avisa lo que de verdad se sabe (espejo de
+                    // Android, Álvaro, 2026-09-05).
+                    if school.processionaryAlertActive {
+                        Text("🐛").font(.system(size: 16))
+                    }
                     // Estrella tocable con update optimista. BorderlessButtonStyle
                     // para que reciba el tap sin disparar la navegación de la fila.
                     Button(action: onToggleFavorite) {

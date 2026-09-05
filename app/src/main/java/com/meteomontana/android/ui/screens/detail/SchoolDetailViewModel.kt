@@ -111,7 +111,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val getApproachesUseCase: com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase,
     private val createApproachUseCase: com.meteomontana.android.domain.usecase.approach.CreateApproachUseCase,
     private val addApproachPinUseCase: com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase,
-    private val deleteApproachUseCase: com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase
+    private val deleteApproachUseCase: com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase,
+    private val confirmProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -386,6 +387,23 @@ class SchoolDetailViewModel @Inject constructor(
                 if (cur.isFavorite) removeFavorite(schoolId)
                 else addFavorite(schoolId)
                 _uiState.value = cur.copy(isFavorite = !cur.isFavorite)
+            } catch (_: Throwable) {}
+        }
+    }
+
+    /** "Las he visto": marca la escuela para siempre. Idempotente. */
+    fun confirmProcessionary() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        if (cur.school.hasKnownProcessionary) return
+        viewModelScope.launch {
+            try {
+                confirmProcessionaryUseCase(schoolId)
+                _uiState.value = cur.copy(
+                    school = cur.school.copy(
+                        hasKnownProcessionary = true,
+                        processionaryAlertActive = com.meteomontana.android.domain.util.ProcessionarySeason.isInSeason()
+                    )
+                )
             } catch (_: Throwable) {}
         }
     }

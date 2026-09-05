@@ -14,5 +14,9 @@ data class SchoolDto(
     @SerialName("lat")      val lat: Double,
     @SerialName("lon")      val lon: Double,
     @SerialName("source")   val source: String? = null,
-    @SerialName("country")  val country: String? = null
+    @SerialName("country")  val country: String? = null,
+    /** ¿Alguna vez confirmó un usuario procesionaria aquí? Para siempre. */
+    @SerialName("hasKnownProcessionary") val hasKnownProcessionary: Boolean = false,
+    /** ¿Toca avisar ahora? (zona conocida + temporada dic-may). */
+    @SerialName("processionaryAlertActive") val processionaryAlertActive: Boolean = false
 )

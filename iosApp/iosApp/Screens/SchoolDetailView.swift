@@ -41,7 +41,13 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var descargandoFotos = false
     @Published var offlineForecast = false  // previsión mostrada desde caché (sin red)
     @Published var offlineSince: Int64?      // epoch ms de la última actualización cacheada
+    /// Procesionaria: ¿alguna vez confirmó alguien haberla visto aquí? Para
+    /// siempre. Sin datos fiables de dónde hay pinos, es la única señal real.
+    @Published var hasKnownProcessionary = false
+    /// ¿Toca avisar AHORA? (zona conocida + temporada dic-may).
+    @Published var processionaryAlertActive = false
 
+    private let confirmProcessionaryUseCase = AppDependencies.shared.container.confirmProcessionary
     private let savedSchools = AppDependencies.shared.container.savedSchools
     private let getBlocks = AppDependencies.shared.container.getBlocks
     private let getForecast: GetForecastUseCase
@@ -70,6 +76,8 @@ final class SchoolDetailViewModel: ObservableObject {
     func load(school: School) async {
         let schoolId = school.id
         loading = true; errorText = nil; offlineForecast = false; offlineSince = nil
+        hasKnownProcessionary = school.hasKnownProcessionary
+        processionaryAlertActive = school.processionaryAlertActive
         do {
             let f = try await getForecast.invoke(schoolId: schoolId)
             forecast = f
@@ -205,6 +213,18 @@ final class SchoolDetailViewModel: ObservableObject {
             } catch { isFavorite = was }
         }
     }
+
+    /// "Las he visto": marca la escuela para siempre. Idempotente.
+    func confirmProcessionary(schoolId: String) {
+        guard !hasKnownProcessionary else { return }
+        Task {
+            do {
+                try await confirmProcessionaryUseCase.invoke(schoolId: schoolId)
+                hasKnownProcessionary = true
+                processionaryAlertActive = ProcessionarySeason.shared.isInSeason()
+            } catch {}
+        }
+    }
 }
 
 struct SchoolDetailView: View {
@@ -220,6 +240,7 @@ struct SchoolDetailView: View {
     // piedras del mapa (nuevas o de otros) — mejor a demanda que sondear
     // sola cada X segundos (Álvaro, 2026-09-04).
     @State private var presenceRefreshTrigger = 0
+    @State private var showProcessionary = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -236,6 +257,13 @@ struct SchoolDetailView: View {
         .navigationBarHidden(true)
         .sheet(item: $selectedDay) { d in
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
+        }
+        .sheet(isPresented: $showProcessionary) {
+            ProcessionaryInfoSheet(
+                hasKnownProcessionary: vm.hasKnownProcessionary,
+                alertActive: vm.processionaryAlertActive,
+                onConfirm: { vm.confirmProcessionary(schoolId: school.id) }
+            )
         }
         .task { await vm.load(school: school) }
         .alert("¿Guardar también las fotos?",
@@ -288,6 +316,12 @@ struct SchoolDetailView: View {
 
             HStack(spacing: 0) {
                 HelpButton(topicKey: "detail")
+                Button { showProcessionary = true } label: {
+                    Text("🐛")
+                        .font(.system(size: 16))
+                        .foregroundStyle(vm.processionaryAlertActive ? Cumbre.bad : Cumbre.ink3)
+                        .frame(width: 34, height: 34)
+                }
                 Button {
                     let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!
                     let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(school.lat),\(school.lon)")!
