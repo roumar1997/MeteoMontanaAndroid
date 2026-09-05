@@ -161,8 +161,8 @@ struct SchoolListItemView: View {
                     // pinos, solo avisa lo que de verdad se sabe (espejo de
                     // Android, Álvaro, 2026-09-05).
                     if processionaryAlertActive {
-                        Text("🐛")
-                            .font(.system(size: 12))
+                        ProcessionaryIcon(tint: .white)
+                            .frame(width: 13, height: 13)
                             .frame(width: 22, height: 22)
                             .background(Cumbre.bad, in: Circle())
                     }

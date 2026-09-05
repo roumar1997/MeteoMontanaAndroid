@@ -1,5 +1,45 @@
 import SwiftUI
 
+/// Silueta de oruga en línea (sin emoji, para que combine con el resto de
+/// iconografía Cumbre) — espejo de ProcessionaryIcon en Android (Álvaro,
+/// 2026-09-05: "en vez de un emoji... que salga como en dibujo en blanco y negro").
+struct ProcessionaryIcon: View {
+    var tint: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let w = size.width, h = size.height
+            let strokeWidth = w * 0.09
+            var body = Path()
+            body.move(to: CGPoint(x: w * 0.12, y: h * 0.62))
+            body.addCurve(to: CGPoint(x: w * 0.80, y: h * 0.42),
+                          control1: CGPoint(x: w * 0.30, y: h * 0.30),
+                          control2: CGPoint(x: w * 0.55, y: h * 0.88))
+            context.stroke(body, with: .color(tint), style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+
+            // Puntos aproximados sobre la curva (sin PathMeasure en Canvas).
+            let points: [CGPoint] = [
+                CGPoint(x: w * 0.12, y: h * 0.62),
+                CGPoint(x: w * 0.30, y: h * 0.46),
+                CGPoint(x: w * 0.50, y: h * 0.60),
+                CGPoint(x: w * 0.66, y: h * 0.52),
+                CGPoint(x: w * 0.80, y: h * 0.42)
+            ]
+            let radius = w * 0.10
+            for p in points {
+                let dot = Path(ellipseIn: CGRect(x: p.x - radius, y: p.y - radius, width: radius * 2, height: radius * 2))
+                context.fill(dot, with: .color(tint))
+            }
+            let head = points.last!
+            let antennaWidth = strokeWidth * 0.6
+            var a1 = Path(); a1.move(to: head); a1.addLine(to: CGPoint(x: head.x + w * 0.10, y: head.y - h * 0.18))
+            context.stroke(a1, with: .color(tint), style: StrokeStyle(lineWidth: antennaWidth, lineCap: .round))
+            var a2 = Path(); a2.move(to: head); a2.addLine(to: CGPoint(x: head.x + w * 0.16, y: head.y - h * 0.04))
+            context.stroke(a2, with: .color(tint), style: StrokeStyle(lineWidth: antennaWidth, lineCap: .round))
+        }
+    }
+}
+
 /// Hoja de "🐛 Procesionaria del pino" — espejo exacto de
 /// ProcessionaryInfoSheet.kt de Android. Sin datos fiables de dónde hay
 /// pinos, la única señal real es que alguien la haya visto.
@@ -20,9 +60,15 @@ struct ProcessionaryInfoSheet: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("🐛 Procesionaria del pino")
-                    .font(.system(size: 22, weight: .bold, design: .serif))
-                    .foregroundStyle(Cumbre.ink)
+                HStack(spacing: 8) {
+                    ProcessionaryIcon(tint: Cumbre.ink).frame(width: 26, height: 26)
+                    Text("Procesionaria del pino")
+                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .foregroundStyle(Cumbre.ink)
+                }
+                Text("Época habitual: de diciembre a mayo (orientativo).")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Cumbre.ink2)
 
                 // Botones arriba del todo: lo primero que hay que poder
                 // pulsar, sin scroll de por medio.
@@ -38,7 +84,7 @@ struct ProcessionaryInfoSheet: View {
                     accent: Cumbre.bad,
                     action: { vm.processionaryActiveNowSet ? onClearActiveNow() : onActiveNow() }
                 )
-                Text("Ambos se pueden marcar y desmarcar — si te equivocas al pulsar, vuelve a pulsar para quitarlo.")
+                Text("\"Sí que hay en este sector\" marca la escuela para siempre: cada diciembre-mayo avisará sola, sin que nadie tenga que repetirlo. \"Las he visto antes de tiempo\" enciende el aviso YA, aunque estemos fuera de esos meses. Ambos se pueden marcar y desmarcar — si te equivocas al pulsar, vuelve a pulsar para quitarlo.")
                     .font(.system(size: 12))
                     .foregroundStyle(Cumbre.ink2)
 

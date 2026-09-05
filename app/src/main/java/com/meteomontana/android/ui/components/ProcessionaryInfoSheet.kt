@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +22,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -29,6 +35,41 @@ import androidx.compose.ui.window.DialogProperties
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+
+/**
+ * Silueta de oruga en línea (sin emoji, para que combine con el resto de
+ * iconografía Cumbre) — un cuerpo en curva con bultos por segmento y dos
+ * antenas en la cabeza (Álvaro, 2026-09-05: "en vez de un emoji... que salga
+ * como en dibujo en blanco y negro").
+ */
+@Composable
+fun ProcessionaryIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val strokeWidth = w * 0.09f
+        val body = Path().apply {
+            moveTo(w * 0.12f, h * 0.62f)
+            cubicTo(w * 0.30f, h * 0.30f, w * 0.55f, h * 0.88f, w * 0.80f, h * 0.42f)
+        }
+        drawPath(body, color = tint, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
+
+        val measure = PathMeasure().apply { setPath(body, false) }
+        val total = measure.length
+        val segments = 5
+        val radius = w * 0.10f
+        var headPos = Offset(w * 0.80f, h * 0.42f)
+        for (i in 0 until segments) {
+            val distance = total * i / (segments - 1)
+            val pos = measure.getPosition(distance)
+            drawCircle(color = tint, radius = radius, center = pos)
+            if (i == segments - 1) headPos = pos
+        }
+        val antennaWidth = strokeWidth * 0.6f
+        drawLine(tint, headPos, Offset(headPos.x + w * 0.10f, headPos.y - h * 0.18f), strokeWidth = antennaWidth, cap = StrokeCap.Round)
+        drawLine(tint, headPos, Offset(headPos.x + w * 0.16f, headPos.y - h * 0.04f), strokeWidth = antennaWidth, cap = StrokeCap.Round)
+    }
+}
 
 /**
  * Icono de "cómo llegar"/compartir para la procesionaria del pino: con un
@@ -48,11 +89,10 @@ fun ProcessionaryButton(alertActive: Boolean, onClick: () -> Unit) {
                     .background(MaterialTheme.colorScheme.error),
                 contentAlignment = Alignment.Center
             ) {
-                Text("🐛", style = MaterialTheme.typography.bodyMedium)
+                ProcessionaryIcon(tint = Color.White, modifier = Modifier.size(16.dp))
             }
         } else {
-            Text("🐛", style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground)
+            ProcessionaryIcon(tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(22.dp))
         }
     }
 }
@@ -114,10 +154,20 @@ fun ProcessionaryInfoSheet(
                 .padding(Spacing.lg)
         ) {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ProcessionaryIcon(tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(26.dp))
+                    Spacer(Modifier.padding(start = Spacing.xs))
+                    Text(
+                        "Procesionaria del pino",
+                        style = MaterialTheme.typography.titleLarge.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                Spacer(Modifier.padding(top = Spacing.xs))
                 Text(
-                    "🐛 Procesionaria del pino",
-                    style = MaterialTheme.typography.titleLarge.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
+                    "Época habitual: de diciembre a mayo (orientativo).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.padding(top = Spacing.sm))
 
@@ -139,7 +189,7 @@ fun ProcessionaryInfoSheet(
                 )
                 Spacer(Modifier.padding(top = Spacing.xs))
                 Text(
-                    "Ambos se pueden marcar y desmarcar — si te equivocas al pulsar, vuelve a pulsar para quitarlo.",
+                    "\"Sí que hay en este sector\" marca la escuela para siempre: cada diciembre-mayo avisará sola, sin que nadie tenga que repetirlo. \"Las he visto antes de tiempo\" enciende el aviso YA, aunque estemos fuera de esos meses. Ambos se pueden marcar y desmarcar — si te equivocas al pulsar, vuelve a pulsar para quitarlo.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

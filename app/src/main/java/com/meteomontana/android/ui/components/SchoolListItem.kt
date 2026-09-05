@@ -135,7 +135,10 @@ fun SchoolListItem(
                             .background(MaterialTheme.colorScheme.error),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "🐛", style = MaterialTheme.typography.bodySmall)
+                        com.meteomontana.android.ui.components.ProcessionaryIcon(
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
                 }
                 Icon(

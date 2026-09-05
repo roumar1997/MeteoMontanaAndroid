@@ -367,14 +367,13 @@ struct SchoolDetailView: View {
                 HelpButton(topicKey: "detail")
                 Button { showProcessionary = true } label: {
                     if vm.processionaryAlertActive {
-                        Text("🐛")
-                            .font(.system(size: 14))
+                        ProcessionaryIcon(tint: .white)
+                            .frame(width: 15, height: 15)
                             .frame(width: 26, height: 26)
                             .background(Cumbre.bad, in: Circle())
                     } else {
-                        Text("🐛")
-                            .font(.system(size: 16))
-                            .foregroundStyle(Cumbre.ink3)
+                        ProcessionaryIcon(tint: Cumbre.ink3)
+                            .frame(width: 20, height: 20)
                             .frame(width: 34, height: 34)
                     }
                 }
