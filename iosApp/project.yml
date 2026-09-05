@@ -100,7 +100,7 @@ targets:
         CFBundleShortVersionString: "2.24.4"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
-        CFBundleVersion: "206"
+        CFBundleVersion: "207"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
