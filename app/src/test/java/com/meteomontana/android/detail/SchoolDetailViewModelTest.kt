@@ -189,7 +189,8 @@ class SchoolDetailViewModelTest {
             mockk<com.meteomontana.android.domain.usecase.approach.CreateApproachUseCase>(relaxed = true),
             mockk<com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase>(relaxed = true),
             mockk<com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase>(relaxed = true),
-            mockk<com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase>(relaxed = true)
+            mockk<com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase>(relaxed = true),
+            mockk<com.meteomontana.android.domain.usecase.schools.RetractProcessionaryUseCase>(relaxed = true)
         )
     }
 

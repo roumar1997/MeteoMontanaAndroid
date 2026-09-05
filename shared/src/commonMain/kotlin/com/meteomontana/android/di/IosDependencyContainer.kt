@@ -221,6 +221,7 @@ class IosDependencyContainer(
     val searchSchools = SearchSchoolsUseCase(schoolRepository)
     val searchLines = com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase(schoolRepository)
     val confirmProcessionary = com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase(schoolRepository)
+    val retractProcessionary = com.meteomontana.android.domain.usecase.schools.RetractProcessionaryUseCase(schoolRepository)
     val getForecast = GetForecastUseCase(forecastRepository)
     val getForecastByLocation = GetForecastByLocationUseCase(forecastRepository)
     val getTodayScores = GetTodayScoresUseCase(forecastRepository)

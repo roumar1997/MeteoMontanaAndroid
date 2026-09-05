@@ -32,6 +32,8 @@ class KtorSchoolRepository(private val api: KtorSchoolApi) : SchoolRepository {
         api.searchLines(query).map { it.toDomain() }
 
     override suspend fun confirmProcessionary(schoolId: String) = api.confirmProcessionary(schoolId)
+
+    override suspend fun retractProcessionary(schoolId: String) = api.retractProcessionary(schoolId)
 }
 
 private fun LineSearchHitDto.toDomain() = LineSearchHit(

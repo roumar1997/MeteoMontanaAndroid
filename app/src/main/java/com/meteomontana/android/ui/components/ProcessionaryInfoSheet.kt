@@ -49,6 +49,7 @@ fun ProcessionaryInfoSheet(
     hasKnownProcessionary: Boolean,
     alertActive: Boolean,
     onConfirm: () -> Unit,
+    onRetract: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -77,7 +78,7 @@ fun ProcessionaryInfoSheet(
                             .padding(Spacing.sm)
                     ) {
                         Text(
-                            "⚠ En esta escuela ya se han visto, y estamos en su época — extrema la precaución, sobre todo si vas con perro.",
+                            "⚠ En esta escuela ya se han visto, y estamos en su época orientativa — extrema la precaución, sobre todo si vas con perro.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold
@@ -86,7 +87,7 @@ fun ProcessionaryInfoSheet(
                     Spacer(Modifier.padding(top = Spacing.md))
                 } else if (hasKnownProcessionary) {
                     Text(
-                        "Aquí se han visto otros años, pero ahora mismo estamos fuera de su época típica (diciembre-mayo).",
+                        "Aquí se han visto otros años, pero ahora mismo estamos fuera de su época orientativa (diciembre-mayo aprox.).",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -111,6 +112,13 @@ fun ProcessionaryInfoSheet(
                         "Ya está confirmado — gracias por avisar.",
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.padding(top = Spacing.sm))
+                    Text(
+                        "¿Te has equivocado al pulsar? Quitar aviso",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clickable(onClick = onRetract)
                     )
                 } else {
                     Box(

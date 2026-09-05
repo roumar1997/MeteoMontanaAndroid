@@ -222,6 +222,7 @@ fun SchoolDetailScreen(
             hasKnownProcessionary = success.school.hasKnownProcessionary,
             alertActive = success.school.processionaryAlertActive,
             onConfirm = { viewModel.confirmProcessionary() },
+            onRetract = { viewModel.retractProcessionary() },
             onDismiss = { processionaryOpen = false }
         )
     }

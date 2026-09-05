@@ -112,7 +112,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val createApproachUseCase: com.meteomontana.android.domain.usecase.approach.CreateApproachUseCase,
     private val addApproachPinUseCase: com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase,
     private val deleteApproachUseCase: com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase,
-    private val confirmProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase
+    private val confirmProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase,
+    private val retractProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.RetractProcessionaryUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -403,6 +404,20 @@ class SchoolDetailViewModel @Inject constructor(
                         hasKnownProcessionary = true,
                         processionaryAlertActive = com.meteomontana.android.domain.util.ProcessionarySeason.isInSeason()
                     )
+                )
+            } catch (_: Throwable) {}
+        }
+    }
+
+    /** "Me equivoqué al pulsar": deshace la confirmación. Idempotente. */
+    fun retractProcessionary() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        if (!cur.school.hasKnownProcessionary) return
+        viewModelScope.launch {
+            try {
+                retractProcessionaryUseCase(schoolId)
+                _uiState.value = cur.copy(
+                    school = cur.school.copy(hasKnownProcessionary = false, processionaryAlertActive = false)
                 )
             } catch (_: Throwable) {}
         }

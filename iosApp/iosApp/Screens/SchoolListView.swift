@@ -152,7 +152,7 @@ final class SchoolListViewModel: ObservableObject {
                 schools.first { $0.id == sv.id }
                     ?? School(id: sv.id, name: sv.name, location: nil, region: sv.region,
                               style: nil, rockType: sv.rockType, lat: sv.lat, lon: sv.lon, source: nil,
-                              country: "ES")
+                              country: "ES", hasKnownProcessionary: false, processionaryAlertActive: false)
             }
         } else {
             base = schools

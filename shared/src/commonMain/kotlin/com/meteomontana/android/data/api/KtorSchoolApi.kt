@@ -75,10 +75,16 @@ class KtorSchoolApi(private val client: HttpClient) {
     suspend fun getMonthlyStats(id: String): MonthlyStatsDto =
         client.get("schools/$id/monthly-stats").body()
 
-    /** "Las he visto": marca la escuela como zona conocida de procesionaria (para siempre). */
+    /** "Las he visto": marca la escuela como zona conocida de procesionaria. */
     @Throws(Exception::class)
     suspend fun confirmProcessionary(id: String) {
         client.post("schools/$id/processionary/confirm")
+    }
+
+    /** "Me equivoqué al pulsar": deshace la confirmación anterior. */
+    @Throws(Exception::class)
+    suspend fun retractProcessionary(id: String) {
+        client.post("schools/$id/processionary/retract")
     }
 }
 

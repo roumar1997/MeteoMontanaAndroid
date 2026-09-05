@@ -48,6 +48,7 @@ final class SchoolDetailViewModel: ObservableObject {
     @Published var processionaryAlertActive = false
 
     private let confirmProcessionaryUseCase = AppDependencies.shared.container.confirmProcessionary
+    private let retractProcessionaryUseCase = AppDependencies.shared.container.retractProcessionary
     private let savedSchools = AppDependencies.shared.container.savedSchools
     private let getBlocks = AppDependencies.shared.container.getBlocks
     private let getForecast: GetForecastUseCase
@@ -225,6 +226,18 @@ final class SchoolDetailViewModel: ObservableObject {
             } catch {}
         }
     }
+
+    /// "Me equivoqué al pulsar": deshace la confirmación. Idempotente.
+    func retractProcessionary(schoolId: String) {
+        guard hasKnownProcessionary else { return }
+        Task {
+            do {
+                try await retractProcessionaryUseCase.invoke(schoolId: schoolId)
+                hasKnownProcessionary = false
+                processionaryAlertActive = false
+            } catch {}
+        }
+    }
 }
 
 struct SchoolDetailView: View {
@@ -262,7 +275,8 @@ struct SchoolDetailView: View {
             ProcessionaryInfoSheet(
                 hasKnownProcessionary: vm.hasKnownProcessionary,
                 alertActive: vm.processionaryAlertActive,
-                onConfirm: { vm.confirmProcessionary(schoolId: school.id) }
+                onConfirm: { vm.confirmProcessionary(schoolId: school.id) },
+                onRetract: { vm.retractProcessionary(schoolId: school.id) }
             )
         }
         .task { await vm.load(school: school) }
@@ -500,7 +514,7 @@ struct SchoolDetailLoaderView: View {
     NavigationStack {
         SchoolDetailView(school: School(id: "x", name: "Demo", location: "Demo", region: "Aragón",
                                         style: "Boulder", rockType: "Caliza", lat: 0, lon: 0, source: nil,
-                                        country: "ES"))
+                                        country: "ES", hasKnownProcessionary: false, processionaryAlertActive: false))
     }
 }
 

@@ -28,6 +28,9 @@ interface SchoolRepository {
     /** Buscador GLOBAL de vías/bloques (autocompletado "vía/bloque"). */
     suspend fun searchLines(query: String): List<LineSearchHit>
 
-    /** "Las he visto": marca la escuela como zona conocida de procesionaria (para siempre). */
+    /** "Las he visto": marca la escuela como zona conocida de procesionaria. */
     suspend fun confirmProcessionary(schoolId: String)
+
+    /** "Me equivoqué al pulsar": deshace la confirmación anterior. */
+    suspend fun retractProcessionary(schoolId: String)
 }

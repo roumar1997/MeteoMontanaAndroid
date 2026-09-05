@@ -7,6 +7,7 @@ struct ProcessionaryInfoSheet: View {
     let hasKnownProcessionary: Bool
     let alertActive: Bool
     let onConfirm: () -> Void
+    let onRetract: () -> Void
 
     var body: some View {
         ScrollView {
@@ -16,14 +17,14 @@ struct ProcessionaryInfoSheet: View {
                     .foregroundStyle(Cumbre.ink)
 
                 if alertActive {
-                    Text("⚠ En esta escuela ya se han visto, y estamos en su época — extrema la precaución, sobre todo si vas con perro.")
+                    Text("⚠ En esta escuela ya se han visto, y estamos en su época orientativa — extrema la precaución, sobre todo si vas con perro.")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Cumbre.bad)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Cumbre.bad.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
                 } else if hasKnownProcessionary {
-                    Text("Aquí se han visto otros años, pero ahora mismo estamos fuera de su época típica (diciembre-mayo).")
+                    Text("Aquí se han visto otros años, pero ahora mismo estamos fuera de su época orientativa (diciembre-mayo aprox.).")
                         .font(.system(size: 14))
                         .foregroundStyle(Cumbre.ink2)
                 }
@@ -40,6 +41,11 @@ struct ProcessionaryInfoSheet: View {
                     Text("Ya está confirmado — gracias por avisar.")
                         .font(.system(size: 15, weight: .semibold, design: .serif))
                         .foregroundStyle(Cumbre.terra)
+                    Button(action: onRetract) {
+                        Text("¿Te has equivocado al pulsar? Quitar aviso")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Cumbre.ink2)
+                    }
                 } else {
                     Button(action: onConfirm) {
                         Text("Las he visto")
