@@ -46,7 +46,7 @@ final class SchoolListViewModel: ObservableObject {
         guard processionaryTask == nil else { return }
         processionaryTask = Task { [weak self] in
             for await map in ProcessionaryOverrideStore.shared.observe() {
-                self?.processionaryOverrides = map
+                self?.processionaryOverrides = map.mapValues { $0.boolValue }
             }
         }
     }
