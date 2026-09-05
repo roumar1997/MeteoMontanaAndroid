@@ -160,7 +160,10 @@ struct SchoolListItemView: View {
                     // pinos, solo avisa lo que de verdad se sabe (espejo de
                     // Android, Álvaro, 2026-09-05).
                     if school.processionaryAlertActive {
-                        Text("🐛").font(.system(size: 16))
+                        Text("🐛")
+                            .font(.system(size: 12))
+                            .frame(width: 22, height: 22)
+                            .background(Cumbre.bad, in: Circle())
                     }
                     // Estrella tocable con update optimista. BorderlessButtonStyle
                     // para que reciba el tap sin disparar la navegación de la fila.

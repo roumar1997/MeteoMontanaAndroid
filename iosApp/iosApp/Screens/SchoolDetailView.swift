@@ -49,6 +49,7 @@ final class SchoolDetailViewModel: ObservableObject {
 
     private let confirmProcessionaryUseCase = AppDependencies.shared.container.confirmProcessionary
     private let retractProcessionaryUseCase = AppDependencies.shared.container.retractProcessionary
+    private let reportProcessionaryActiveNowUseCase = AppDependencies.shared.container.reportProcessionaryActiveNow
     private let savedSchools = AppDependencies.shared.container.savedSchools
     private let getBlocks = AppDependencies.shared.container.getBlocks
     private let getForecast: GetForecastUseCase
@@ -238,6 +239,17 @@ final class SchoolDetailViewModel: ObservableObject {
             } catch {}
         }
     }
+
+    /// "Hay ahora mismo, antes de tiempo": activa la alarma ya, con caducidad.
+    func reportProcessionaryActiveNow(schoolId: String) {
+        Task {
+            do {
+                try await reportProcessionaryActiveNowUseCase.invoke(schoolId: schoolId)
+                hasKnownProcessionary = true
+                processionaryAlertActive = true
+            } catch {}
+        }
+    }
 }
 
 struct SchoolDetailView: View {
@@ -276,7 +288,8 @@ struct SchoolDetailView: View {
                 hasKnownProcessionary: vm.hasKnownProcessionary,
                 alertActive: vm.processionaryAlertActive,
                 onConfirm: { vm.confirmProcessionary(schoolId: school.id) },
-                onRetract: { vm.retractProcessionary(schoolId: school.id) }
+                onRetract: { vm.retractProcessionary(schoolId: school.id) },
+                onActiveNow: { vm.reportProcessionaryActiveNow(schoolId: school.id) }
             )
         }
         .task { await vm.load(school: school) }
@@ -331,10 +344,17 @@ struct SchoolDetailView: View {
             HStack(spacing: 0) {
                 HelpButton(topicKey: "detail")
                 Button { showProcessionary = true } label: {
-                    Text("🐛")
-                        .font(.system(size: 16))
-                        .foregroundStyle(vm.processionaryAlertActive ? Cumbre.bad : Cumbre.ink3)
-                        .frame(width: 34, height: 34)
+                    if vm.processionaryAlertActive {
+                        Text("🐛")
+                            .font(.system(size: 14))
+                            .frame(width: 26, height: 26)
+                            .background(Cumbre.bad, in: Circle())
+                    } else {
+                        Text("🐛")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Cumbre.ink3)
+                            .frame(width: 34, height: 34)
+                    }
                 }
                 Button {
                     let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!

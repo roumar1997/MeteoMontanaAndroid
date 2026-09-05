@@ -8,6 +8,7 @@ struct ProcessionaryInfoSheet: View {
     let alertActive: Bool
     let onConfirm: () -> Void
     let onRetract: () -> Void
+    let onActiveNow: () -> Void
 
     var body: some View {
         ScrollView {
@@ -55,6 +56,20 @@ struct ProcessionaryInfoSheet: View {
                             .padding(.vertical, 12)
                             .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: 10))
                     }
+                }
+
+                if !alertActive {
+                    Button(action: onActiveNow) {
+                        Text("Hay ahora mismo, antes de tiempo")
+                            .font(.system(size: 15, weight: .bold, design: .serif))
+                            .foregroundStyle(Cumbre.bad)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.bad, lineWidth: 1))
+                    }
+                    Text("Actívala aunque no sea su época típica — se apaga sola en unas semanas si nadie más la confirma.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Cumbre.ink2)
                 }
             }
             .padding(24)

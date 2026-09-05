@@ -113,7 +113,8 @@ class SchoolDetailViewModel @Inject constructor(
     private val addApproachPinUseCase: com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase,
     private val deleteApproachUseCase: com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase,
     private val confirmProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase,
-    private val retractProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.RetractProcessionaryUseCase
+    private val retractProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.RetractProcessionaryUseCase,
+    private val reportProcessionaryActiveNowUseCase: com.meteomontana.android.domain.usecase.schools.ReportProcessionaryActiveNowUseCase
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -418,6 +419,19 @@ class SchoolDetailViewModel @Inject constructor(
                 retractProcessionaryUseCase(schoolId)
                 _uiState.value = cur.copy(
                     school = cur.school.copy(hasKnownProcessionary = false, processionaryAlertActive = false)
+                )
+            } catch (_: Throwable) {}
+        }
+    }
+
+    /** "Hay ahora mismo, antes de tiempo": activa la alarma ya, con caducidad. */
+    fun reportProcessionaryActiveNow() {
+        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
+        viewModelScope.launch {
+            try {
+                reportProcessionaryActiveNowUseCase(schoolId)
+                _uiState.value = cur.copy(
+                    school = cur.school.copy(hasKnownProcessionary = true, processionaryAlertActive = true)
                 )
             } catch (_: Throwable) {}
         }

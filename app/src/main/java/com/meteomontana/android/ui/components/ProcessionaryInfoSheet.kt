@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,21 +27,29 @@ import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 
 /**
- * Icono de "cómo llegar"/compartir para la procesionaria del pino: en rojo
- * cuando toca avisar de verdad (zona conocida + temporada), gris el resto del
- * tiempo — pero SIEMPRE visible, para que se pueda reportar en cualquier
- * escuela (Álvaro, 2026-09-05: no hay datos de dónde hay pinos, solo lo que
- * la gente confirma).
+ * Icono de "cómo llegar"/compartir para la procesionaria del pino: con un
+ * círculo rojo detrás (como una insignia de aviso) cuando toca avisar de
+ * verdad, neutro el resto del tiempo — pero SIEMPRE visible, para que se
+ * pueda reportar en cualquier escuela (Álvaro, 2026-09-05: no hay datos de
+ * dónde hay pinos, solo lo que la gente confirma).
  */
 @Composable
 fun ProcessionaryButton(alertActive: Boolean, onClick: () -> Unit) {
     IconButton(onClick = onClick, modifier = Modifier.size(38.dp)) {
-        Text(
-            "🐛",
-            style = MaterialTheme.typography.titleMedium,
-            color = if (alertActive) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.onBackground
-        )
+        if (alertActive) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.error),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🐛", style = MaterialTheme.typography.bodyMedium)
+            }
+        } else {
+            Text("🐛", style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground)
+        }
     }
 }
 
@@ -50,6 +59,7 @@ fun ProcessionaryInfoSheet(
     alertActive: Boolean,
     onConfirm: () -> Unit,
     onRetract: () -> Unit,
+    onActiveNow: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -136,6 +146,32 @@ fun ProcessionaryInfoSheet(
                             color = Color.White
                         )
                     }
+                }
+
+                if (!alertActive) {
+                    Spacer(Modifier.padding(top = Spacing.sm))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Transparent)
+                            .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(10.dp))
+                            .clickable(onClick = onActiveNow)
+                            .padding(vertical = Spacing.md),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Hay ahora mismo, antes de tiempo",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    Spacer(Modifier.padding(top = Spacing.xs))
+                    Text(
+                        "Actívala aunque no sea su época típica — se apaga sola en unas semanas si nadie más la confirma.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

@@ -86,6 +86,12 @@ class KtorSchoolApi(private val client: HttpClient) {
     suspend fun retractProcessionary(id: String) {
         client.post("schools/$id/processionary/retract")
     }
+
+    /** "Hay ahora mismo, antes de tiempo": activa la alarma ya, con caducidad. */
+    @Throws(Exception::class)
+    suspend fun reportProcessionaryActiveNow(id: String) {
+        client.post("schools/$id/processionary/active-now")
+    }
 }
 
 @kotlinx.serialization.Serializable

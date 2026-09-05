@@ -33,4 +33,7 @@ interface SchoolRepository {
 
     /** "Me equivoqué al pulsar": deshace la confirmación anterior. */
     suspend fun retractProcessionary(schoolId: String)
+
+    /** "Hay ahora mismo, antes de tiempo": activa la alarma ya, con caducidad. */
+    suspend fun reportProcessionaryActiveNow(schoolId: String)
 }

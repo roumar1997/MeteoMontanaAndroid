@@ -118,11 +118,16 @@ fun SchoolListItem(
                 // forma fiable de saber dónde hay pinos, así que solo avisa lo
                 // que de verdad se sabe (Álvaro, 2026-09-05).
                 if (school.processionaryAlertActive) {
-                    Text(
-                        text = "🐛",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(end = Spacing.xs)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .padding(end = Spacing.xs)
+                            .size(22.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(MaterialTheme.colorScheme.error),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "🐛", style = MaterialTheme.typography.bodySmall)
+                    }
                 }
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
