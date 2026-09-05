@@ -24,10 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -37,37 +34,52 @@ import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 
 /**
- * Silueta de oruga en línea (sin emoji, para que combine con el resto de
- * iconografía Cumbre) — un cuerpo en curva con bultos por segmento y dos
- * antenas en la cabeza (Álvaro, 2026-09-05: "en vez de un emoji... que salga
- * como en dibujo en blanco y negro").
+ * Silueta de oruga peluda en diagonal (cabeza oscura abajo, cola arriba, con
+ * pelillos de punta en abanico) — dibujo elegido por Álvaro de una lámina de
+ * referencia de 16 poses (2026-09-05, "usa la 1"). Sin emoji, para que
+ * combine con el resto de iconografía Cumbre.
  */
 @Composable
 fun ProcessionaryIcon(tint: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val strokeWidth = w * 0.09f
-        val body = Path().apply {
-            moveTo(w * 0.12f, h * 0.62f)
-            cubicTo(w * 0.30f, h * 0.30f, w * 0.55f, h * 0.88f, w * 0.80f, h * 0.42f)
-        }
-        drawPath(body, color = tint, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
+        val s = size.width / 64f
+        // Segmentos del cuerpo (de la cabeza hacia la cola), en un espacio de 64x64.
+        val segs = listOf(
+            Offset(15.7f, 39.2f) to 7.4f,
+            Offset(21.5f, 33.2f) to 6.9f,
+            Offset(27.9f, 27.7f) to 6.4f,
+            Offset(34.1f, 23.5f) to 5.9f,
+            Offset(40.4f, 20.2f) to 5.4f,
+            Offset(47.4f, 17.6f) to 4.9f,
+            Offset(54.0f, 16.0f) to 4.4f
+        )
+        val headCenter = Offset(10f, 46f)
+        val headRadius = 8.4f
 
-        val measure = PathMeasure().apply { setPath(body, false) }
-        val total = measure.length
-        val segments = 5
-        val radius = w * 0.10f
-        var headPos = Offset(w * 0.80f, h * 0.42f)
-        for (i in 0 until segments) {
-            val distance = total * i / (segments - 1)
-            val pos = measure.getPosition(distance)
-            drawCircle(color = tint, radius = radius, center = pos)
-            if (i == segments - 1) headPos = pos
+        // Cuerpo: cápsulas superpuestas, más gruesas cerca de la cabeza.
+        segs.forEach { (pt, r) ->
+            drawCircle(color = tint, radius = r * s, center = Offset(pt.x * s, pt.y * s))
         }
-        val antennaWidth = strokeWidth * 0.6f
-        drawLine(tint, headPos, Offset(headPos.x + w * 0.10f, headPos.y - h * 0.18f), strokeWidth = antennaWidth, cap = StrokeCap.Round)
-        drawLine(tint, headPos, Offset(headPos.x + w * 0.16f, headPos.y - h * 0.04f), strokeWidth = antennaWidth, cap = StrokeCap.Round)
+
+        // Pelillos de punta: 3 por segmento, en abanico hacia arriba (el rasgo
+        // urticante que hace peligrosa a la procesionaria de verdad).
+        segs.forEach { (pt, r) ->
+            val cx = pt.x * s
+            val cy = (pt.y - r * 0.6f) * s
+            val len = r * 1.7f * s
+            listOf(-35.0, -8.0, 20.0).forEach { degFromUp ->
+                val angle = Math.toRadians(degFromUp - 90.0)
+                val dx = (len * kotlin.math.cos(angle)).toFloat()
+                val dy = (len * kotlin.math.sin(angle)).toFloat()
+                drawLine(tint, Offset(cx, cy), Offset(cx + dx, cy + dy), strokeWidth = 1.2f * s, cap = StrokeCap.Round)
+            }
+        }
+
+        // Cabeza oscura + un par de patitas.
+        val hc = Offset(headCenter.x * s, headCenter.y * s)
+        drawCircle(color = tint, radius = headRadius * s, center = hc)
+        drawLine(tint, hc + Offset(-1f * s, 7f * s), hc + Offset(-4f * s, 12f * s), strokeWidth = 1.3f * s, cap = StrokeCap.Round)
+        drawLine(tint, hc + Offset(3f * s, 7f * s), hc + Offset(2f * s, 13f * s), strokeWidth = 1.3f * s, cap = StrokeCap.Round)
     }
 }
 

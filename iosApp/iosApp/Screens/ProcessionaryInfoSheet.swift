@@ -1,41 +1,59 @@
 import SwiftUI
 
-/// Silueta de oruga en línea (sin emoji, para que combine con el resto de
-/// iconografía Cumbre) — espejo de ProcessionaryIcon en Android (Álvaro,
-/// 2026-09-05: "en vez de un emoji... que salga como en dibujo en blanco y negro").
+/// Silueta de oruga peluda en diagonal (cabeza oscura abajo, cola arriba, con
+/// pelillos de punta en abanico) — dibujo elegido por Álvaro de una lámina de
+/// referencia de 16 poses (2026-09-05, "usa la 1"). Espejo exacto de
+/// ProcessionaryIcon en Android.
 struct ProcessionaryIcon: View {
     var tint: Color
 
     var body: some View {
         Canvas { context, size in
-            let w = size.width, h = size.height
-            let strokeWidth = w * 0.09
-            var body = Path()
-            body.move(to: CGPoint(x: w * 0.12, y: h * 0.62))
-            body.addCurve(to: CGPoint(x: w * 0.80, y: h * 0.42),
-                          control1: CGPoint(x: w * 0.30, y: h * 0.30),
-                          control2: CGPoint(x: w * 0.55, y: h * 0.88))
-            context.stroke(body, with: .color(tint), style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-
-            // Puntos aproximados sobre la curva (sin PathMeasure en Canvas).
-            let points: [CGPoint] = [
-                CGPoint(x: w * 0.12, y: h * 0.62),
-                CGPoint(x: w * 0.30, y: h * 0.46),
-                CGPoint(x: w * 0.50, y: h * 0.60),
-                CGPoint(x: w * 0.66, y: h * 0.52),
-                CGPoint(x: w * 0.80, y: h * 0.42)
+            let s = size.width / 64
+            // Segmentos del cuerpo (de la cabeza hacia la cola), en un espacio de 64x64.
+            let segs: [(CGPoint, CGFloat)] = [
+                (CGPoint(x: 15.7, y: 39.2), 7.4),
+                (CGPoint(x: 21.5, y: 33.2), 6.9),
+                (CGPoint(x: 27.9, y: 27.7), 6.4),
+                (CGPoint(x: 34.1, y: 23.5), 5.9),
+                (CGPoint(x: 40.4, y: 20.2), 5.4),
+                (CGPoint(x: 47.4, y: 17.6), 4.9),
+                (CGPoint(x: 54.0, y: 16.0), 4.4)
             ]
-            let radius = w * 0.10
-            for p in points {
-                let dot = Path(ellipseIn: CGRect(x: p.x - radius, y: p.y - radius, width: radius * 2, height: radius * 2))
+            let headCenter = CGPoint(x: 10, y: 46)
+            let headRadius: CGFloat = 8.4
+
+            // Cuerpo: cápsulas superpuestas, más gruesas cerca de la cabeza.
+            for (pt, r) in segs {
+                let c = CGPoint(x: pt.x * s, y: pt.y * s)
+                let dot = Path(ellipseIn: CGRect(x: c.x - r * s, y: c.y - r * s, width: r * s * 2, height: r * s * 2))
                 context.fill(dot, with: .color(tint))
             }
-            let head = points.last!
-            let antennaWidth = strokeWidth * 0.6
-            var a1 = Path(); a1.move(to: head); a1.addLine(to: CGPoint(x: head.x + w * 0.10, y: head.y - h * 0.18))
-            context.stroke(a1, with: .color(tint), style: StrokeStyle(lineWidth: antennaWidth, lineCap: .round))
-            var a2 = Path(); a2.move(to: head); a2.addLine(to: CGPoint(x: head.x + w * 0.16, y: head.y - h * 0.04))
-            context.stroke(a2, with: .color(tint), style: StrokeStyle(lineWidth: antennaWidth, lineCap: .round))
+
+            // Pelillos de punta: 3 por segmento, en abanico hacia arriba.
+            for (pt, r) in segs {
+                let cx = pt.x * s
+                let cy = (pt.y - r * 0.6) * s
+                let len = r * 1.7 * s
+                for degFromUp: Double in [-35, -8, 20] {
+                    let angle = (degFromUp - 90) * .pi / 180
+                    let dx = len * cos(angle)
+                    let dy = len * sin(angle)
+                    var spike = Path()
+                    spike.move(to: CGPoint(x: cx, y: cy))
+                    spike.addLine(to: CGPoint(x: cx + dx, y: cy + dy))
+                    context.stroke(spike, with: .color(tint), style: StrokeStyle(lineWidth: 1.2 * s, lineCap: .round))
+                }
+            }
+
+            // Cabeza oscura + un par de patitas.
+            let hc = CGPoint(x: headCenter.x * s, y: headCenter.y * s)
+            let head = Path(ellipseIn: CGRect(x: hc.x - headRadius * s, y: hc.y - headRadius * s, width: headRadius * s * 2, height: headRadius * s * 2))
+            context.fill(head, with: .color(tint))
+            var leg1 = Path(); leg1.move(to: CGPoint(x: hc.x - 1 * s, y: hc.y + 7 * s)); leg1.addLine(to: CGPoint(x: hc.x - 4 * s, y: hc.y + 12 * s))
+            context.stroke(leg1, with: .color(tint), style: StrokeStyle(lineWidth: 1.3 * s, lineCap: .round))
+            var leg2 = Path(); leg2.move(to: CGPoint(x: hc.x + 3 * s, y: hc.y + 7 * s)); leg2.addLine(to: CGPoint(x: hc.x + 2 * s, y: hc.y + 13 * s))
+            context.stroke(leg2, with: .color(tint), style: StrokeStyle(lineWidth: 1.3 * s, lineCap: .round))
         }
     }
 }
