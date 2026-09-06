@@ -95,9 +95,11 @@ targets:
         #     en 2.24.2/vc108, no hace falta re-publicar Android para esto)
         #   - 2.24.3/186 se cerró al PUBLICARSE como parte de la 6.0 (2026-09-01)
         #     → 2.24.4 (2026-09-02, TestFlight de "Estoy aquí" / presencia)
+        #   - 2.24.4 se cerró al PUBLICARSE en App Store como 6.1 (2026-09-06)
+        #     → 2.24.5 (procesionaria + admin/variante + fix push iOS en frío)
         # Es decir: para subir a TestFlight algo posterior a una versión ya
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
-        CFBundleShortVersionString: "2.24.4"
+        CFBundleShortVersionString: "2.24.5"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
         CFBundleVersion: "210"
