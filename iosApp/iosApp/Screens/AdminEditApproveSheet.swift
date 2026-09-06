@@ -87,13 +87,7 @@ struct AdminEditApproveSheet: View {
                         .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
                     ForEach(blocks.indices, id: \.self) { i in
                         BoulderBlockRow(block: $blocks[i], index: i,
-                                        onDelete: blocks.count > 1 ? { blocks.remove(at: i) } : nil,
-                                        onAddVariant: {
-                                            var variante = BoulderBlockForm()
-                                            variante.name = blocks[i].name
-                                            variante.facePhoto = blocks[i].facePhoto
-                                            blocks.insert(variante, at: i + 1)
-                                        })
+                                        onDelete: blocks.count > 1 ? { blocks.remove(at: i) } : nil)
                     }
                     if !faces.isEmpty {
                         if faces.count > 1 {

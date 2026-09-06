@@ -18,6 +18,12 @@ final class AdminViewModel: ObservableObject {
     @Published var pushResult: String?
     @Published var pushBusy = false
     @Published var suggestions: [AdminSuggestionRow]?
+    /// Historial APROBADAS/RECHAZADAS (Álvaro, 2026-09-06: "poder ver las que
+    /// rechacé las que aprobé, con quien lo puso").
+    @Published var activityStatus: String = "APPROVED"
+    @Published var activitySubmissions: [Submission] = []
+    @Published var activityContributions: [Contribution] = []
+    @Published var activityLoading = false
 
     private let c = AppDependencies.shared.container
     private let getSubs = AppDependencies.shared.container.getPendingSubmissions
@@ -38,6 +44,16 @@ final class AdminViewModel: ObservableObject {
 
     func loadStats() async { stats = try? await c.getAdminStats.invoke() }
     func loadLogs() async { logs = (try? await c.getAdminLogs.invoke(limit: 100)) ?? [] }
+
+    func loadActivity(status: String? = nil) async {
+        if let status { activityStatus = status }
+        activityLoading = true
+        async let subs = getSubs.invoke(status: activityStatus)
+        async let contribs = getContribs.invoke(status: activityStatus)
+        activitySubmissions = (try? await subs) ?? []
+        activityContributions = (try? await contribs) ?? []
+        activityLoading = false
+    }
     func loadSchools() async {
         allSchools = (try? await c.getSchools.invoke(region: nil, style: nil, rockType: nil,
                                                       lat: nil, lon: nil, radioKm: nil)) ?? []
@@ -154,7 +170,7 @@ struct AdminView: View {
             case .denuncias: AdminReportsTab()
             case .gestionar: GestionarTab(vm: vm)
             case .stats: AdminStatsTab(stats: vm.stats, onGoToTab: { tab = $0 })
-            case .actividad: AdminLogsTab(logs: vm.logs)
+            case .actividad: AdminActivityTab(vm: vm)
             case .sugerencias: AdminSuggestionsTab(
                 rows: vm.suggestions,
                 onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) })
@@ -168,7 +184,9 @@ struct AdminView: View {
         .task { await vm.load() }
         .task(id: tab) {
             if tab == .stats, vm.stats == nil { await vm.loadStats() }
-            if tab == .actividad, vm.logs.isEmpty { await vm.loadLogs() }
+            if tab == .actividad, vm.activitySubmissions.isEmpty, vm.activityContributions.isEmpty {
+                await vm.loadActivity()
+            }
             if tab == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
             if tab == .sugerencias { await vm.loadSuggestions() }
         }

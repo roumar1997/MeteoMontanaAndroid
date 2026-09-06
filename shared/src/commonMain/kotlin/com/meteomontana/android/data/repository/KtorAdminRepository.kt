@@ -22,8 +22,8 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
 
     override suspend fun getStats(): AdminStats = api.stats().toDomain()
 
-    override suspend fun getPendingSubmissions(): List<Submission> =
-        api.pendingSubmissions().map { it.toDomain() }
+    override suspend fun getPendingSubmissions(status: String?): List<Submission> =
+        api.pendingSubmissions(status).map { it.toDomain() }
 
     override suspend fun getPendingContributions(status: String?): List<Contribution> = api.pendingContributions(status).map { it.toDomain() }
 

@@ -322,13 +322,6 @@ struct EditLinesSheet: View {
                                                     onDelete: {
                                                         faceBlocks[faceIdx].remove(at: idx)
                                                         expandedVia = nil
-                                                    },
-                                                    onAddVariant: {
-                                                        var variante = BoulderBlockForm()
-                                                        variante.name = via.name
-                                                        variante.facePhoto = via.facePhoto
-                                                        faceBlocks[faceIdx].insert(variante, at: idx + 1)
-                                                        expandedVia = variante.id
                                                     })
                                     HStack(spacing: 8) {
                                         Button { expandedVia = nil } label: {

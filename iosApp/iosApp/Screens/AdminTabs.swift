@@ -15,19 +15,44 @@ struct AdminStatsTab: View {
     var body: some View {
         ScrollView {
             if let s = stats {
-                Text("Toca una tarjeta para ver su lista")
-                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16).padding(.top, 10)
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    card("USUARIOS", s.totalUsers) { openList = "users"; loadUsers() }
-                    card("ADMINS", s.totalAdmins) { openList = "admins"; loadUsers() }
-                    card("ESCUELAS", s.totalSchools) { onGoToTab(.gestionar) }
-                    card("NOTAS", s.totalNotes) { openList = "notes"; loadNotes() }
-                    card("PENDIENTES", s.submissionsPending) { onGoToTab(.propuestas) }
-                    card("APROBADAS", s.submissionsApproved) { onGoToTab(.actividad) }
-                    card("RECHAZADAS", s.submissionsRejected) { onGoToTab(.actividad) }
-                }.padding(16)
+                VStack(alignment: .leading, spacing: 0) {
+                    if s.submissionsPending > 0 {
+                        Button { onGoToTab(.propuestas) } label: {
+                            HStack(spacing: 12) {
+                                Text("⏳").font(.system(size: 26))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("PENDIENTE DE REVISAR").font(Cumbre.mono(10, .bold)).tracking(0.8).opacity(0.85)
+                                    Text("\(s.submissionsPending) propuesta\(s.submissionsPending == 1 ? "" : "s")")
+                                        .font(Cumbre.serif(22, .bold))
+                                    Text("Toca para ir directo a revisarlas →").font(.system(size: 11.5)).opacity(0.9)
+                                }
+                                Spacer()
+                            }
+                            .foregroundStyle(.white)
+                            .padding(16)
+                            .background(Cumbre.terraFill)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }.buttonStyle(.plain)
+                        .padding(.horizontal, 16).padding(.top, 12)
+                    }
+
+                    sectionLabel("Comunidad")
+                    grid {
+                        card("USUARIOS", s.totalUsers, "👤", Cumbre.rain) { openList = "users"; loadUsers() }
+                        card("ADMINS", s.totalAdmins, "🛡️", Cumbre.terra) { openList = "admins"; loadUsers() }
+                    }
+                    sectionLabel("Contenido")
+                    grid {
+                        card("ESCUELAS", s.totalSchools, "🧗", Cumbre.rain) { onGoToTab(.gestionar) }
+                        card("NOTAS", s.totalNotes, "📓", Cumbre.rain) { openList = "notes"; loadNotes() }
+                    }
+                    sectionLabel("Moderación")
+                    grid {
+                        card("APROBADAS", s.submissionsApproved, "✔️", Cumbre.ok) { onGoToTab(.actividad) }
+                        card("RECHAZADAS", s.submissionsRejected, "✕", Cumbre.bad) { onGoToTab(.actividad) }
+                    }
+                }
+                .padding(.bottom, 16)
             } else {
                 ProgressView().padding(.top, 40)
             }
@@ -35,6 +60,17 @@ struct AdminStatsTab: View {
         .sheet(isPresented: Binding(get: { openList != nil }, set: { if !$0 { openList = nil } })) {
             listSheet
         }
+    }
+
+    private func sectionLabel(_ t: String) -> some View {
+        Text(t.uppercased()).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 6)
+    }
+
+    private func grid<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) { content() }
+            .padding(.horizontal, 16)
     }
 
     private func loadUsers() {
@@ -98,21 +134,82 @@ struct AdminStatsTab: View {
         }
     }
 
-    private func card(_ label: String, _ value: Int64, action: @escaping () -> Void = {}) -> some View {
+    /// Tarjeta con icono + color por tema (Comunidad/Contenido/Moderación),
+    /// para que de un vistazo se sepa a qué grupo pertenece cada cifra —
+    /// antes era una rejilla neutra, todo del mismo color (Álvaro, 2026-09-06).
+    private func card(_ label: String, _ value: Int64, _ icon: String, _ tint: Color,
+                       action: @escaping () -> Void = {}) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                Text("\(value)").font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
-                Text(label).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(icon).font(.system(size: 18))
+                Text("\(value)").font(Cumbre.serif(22, .bold)).foregroundStyle(tint)
+                Text(label).font(Cumbre.mono(9.5, .bold)).tracking(0.5).foregroundStyle(tint)
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 16)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(tint.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 }
 
-/// Tab ACTIVIDAD — registro de acciones admin (espejo de ActivityTab).
+/// Tab ACTIVIDAD — historial de propuestas ya resueltas (aprobadas/rechazadas),
+/// con quién las mandó — antes "aprobadas"/"rechazadas" eran solo un número en
+/// STATS, sin poder ver el detalle (Álvaro, 2026-09-06). Reutiliza las mismas
+/// tarjetas que PROPUESTAS, así que ya traen nombre/mensaje/historial del
+/// autor de serie.
+struct AdminActivityTab: View {
+    @ObservedObject var vm: AdminViewModel
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                statusChip("APROBADAS", "APPROVED")
+                statusChip("RECHAZADAS", "REJECTED")
+            }.padding(12)
+            Divider().overlay(Cumbre.rule)
+            if vm.activityLoading {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if vm.activitySubmissions.isEmpty && vm.activityContributions.isEmpty {
+                Text("Nada por aquí todavía.")
+                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(vm.activitySubmissions, id: \.id) { s in
+                            SubmissionAdminCard(submission: s, busy: false, onApprove: {}, onReject: {})
+                            Divider().overlay(Cumbre.rule)
+                        }
+                        ForEach(vm.activityContributions, id: \.id) { c in
+                            ContributionAdminCard(contribution: c, busy: false, onApprove: {}, onReject: {})
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func statusChip(_ label: String, _ value: String) -> some View {
+        let on = vm.activityStatus == value
+        return Button {
+            Task { await vm.loadActivity(status: value) }
+        } label: {
+            Text(label).font(Cumbre.mono(11, .bold)).tracking(0.6)
+                .foregroundStyle(on ? .white : Cumbre.ink2)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(on ? (value == "APPROVED" ? Cumbre.ok : Cumbre.bad) : Color.clear)
+                .overlay(Rectangle().stroke(on ? (value == "APPROVED" ? Cumbre.ok : Cumbre.bad) : Cumbre.rule, lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
+}
+
+/// Registro de acciones admin (espejo de ActivityTab de Android) — ya no está
+/// enganchado a ninguna pestaña (sustituido por AdminActivityTab), se deja
+/// por si hace falta retomarlo.
 struct AdminLogsTab: View {
     let logs: [AdminLog]
     var body: some View {
