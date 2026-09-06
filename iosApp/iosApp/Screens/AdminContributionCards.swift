@@ -10,18 +10,45 @@ struct SubmissionAdminCard: View {
     let busy: Bool
     let onApprove: () -> Void
     let onReject: () -> Void
+    @State private var showMap = false
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            AdminSubmitterActions(uid: submission.submittedByUid, name: submission.submittedByName)
             Text(submission.proposedName).font(Cumbre.serif(17, .bold)).foregroundStyle(Cumbre.ink)
             let sub = [submission.proposedRockType?.uppercased(), submission.proposedRegion, submission.proposedLocation]
                 .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  ·  ")
             if !sub.isEmpty { Text(sub).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3) }
-            Text(String(format: "%.5f, %.5f", submission.proposedLat, submission.proposedLon))
-                .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+            // Antes solo texto plano — tocarlo abre el mapa de verdad, para
+            // que el admin vea dónde está sin tener que copiar coordenadas
+            // (Álvaro, 2026-09-06: "no puedo ver bien dónde").
+            Button { showMap = true } label: {
+                Label(String(format: "%.5f, %.5f", submission.proposedLat, submission.proposedLon),
+                      systemImage: "map")
+                    .font(Cumbre.mono(11, .bold))
+                    .foregroundStyle(Cumbre.terra)
+            }
             if let n = submission.notes, !n.isEmpty { Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2) }
             ReviewButtons(busy: busy, onApprove: onApprove, onReject: onReject)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
+        .sheet(isPresented: $showMap) {
+            NavigationStack {
+                MapLibreView(
+                    center: CLLocationCoordinate2D(latitude: submission.proposedLat, longitude: submission.proposedLon),
+                    zoom: 14,
+                    markers: [CumbreMarker(id: submission.id,
+                                            coordinate: CLLocationCoordinate2D(latitude: submission.proposedLat, longitude: submission.proposedLon),
+                                            title: submission.proposedName)]
+                )
+                .navigationTitle(submission.proposedName)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cerrar") { showMap = false }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -54,10 +81,8 @@ struct ContributionAdminCard: View {
                     .foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 3)
                     .background(isCorrection ? Cumbre.bad : Cumbre.terra)
                 Spacer()
-                if let a = contribution.submittedByName, !a.isEmpty {
-                    Text(a).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                }
             }
+            AdminSubmitterActions(uid: contribution.submittedByUid, name: contribution.submittedByName)
             Text(contribution.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
 
             // QUÉ CAMBIA en una línea — se entiende la propuesta sin scrollear

@@ -6,7 +6,13 @@ import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Submission
+import com.meteomontana.android.domain.model.UserActivityItem
 import com.meteomontana.android.domain.repository.AdminRepository
+
+class GetUserActivityUseCase(private val repository: AdminRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(uid: String): List<UserActivityItem> = repository.getUserActivity(uid)
+}
 
 class GetAdminStatsUseCase(private val repository: AdminRepository) {
     @Throws(Exception::class)

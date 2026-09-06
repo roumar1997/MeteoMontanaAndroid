@@ -5,15 +5,20 @@ import com.meteomontana.android.data.api.dto.AdminPushRequest
 import com.meteomontana.android.data.api.dto.RejectReason
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.MeetupReportDto
+import com.meteomontana.android.data.api.UserActivityItemDto
 import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Submission
+import com.meteomontana.android.domain.model.UserActivityItem
 import com.meteomontana.android.domain.repository.AdminRepository
 
 class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
+
+    override suspend fun getUserActivity(uid: String): List<UserActivityItem> =
+        api.userActivity(uid).map { it.toDomain() }
 
     override suspend fun getStats(): AdminStats = api.stats().toDomain()
 
@@ -49,6 +54,10 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
     override suspend fun moveSchool(schoolId: String, lat: Double, lon: Double) =
         api.moveSchool(schoolId, lat, lon)
 }
+
+private fun UserActivityItemDto.toDomain() = UserActivityItem(
+    id = id, kind = kind, label = label, status = status, createdAt = createdAt
+)
 
 private fun MeetupReportDto.toDomain() = MeetupReport(
     id = id,

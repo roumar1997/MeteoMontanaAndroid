@@ -16,6 +16,7 @@ data class SubmissionDto(
     val notes: String? = null,
     val status: String,
     val submittedByUid: String,
+    val submittedByName: String? = null,
     val reviewedByUid: String? = null,
     val reviewReason: String? = null,
     val createdSchoolId: String? = null,

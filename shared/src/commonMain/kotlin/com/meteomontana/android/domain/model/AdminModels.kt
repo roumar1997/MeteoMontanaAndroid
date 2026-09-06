@@ -47,6 +47,7 @@ data class Submission(
     val notes: String?,
     val status: String,
     val submittedByUid: String,
+    val submittedByName: String?,
     val reviewedByUid: String?,
     val reviewReason: String?,
     val createdSchoolId: String?,

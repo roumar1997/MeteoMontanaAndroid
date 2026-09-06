@@ -40,6 +40,7 @@ data class ContributionDto(
     val lon: Double,
     val notes: String? = null,
     val description: String? = null,
+    val submittedByUid: String? = null,
     val submittedByName: String? = null,
     val reviewReason: String? = null,
     val createdAt: String? = null,

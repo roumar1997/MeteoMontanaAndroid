@@ -6,8 +6,11 @@ import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Submission
+import com.meteomontana.android.domain.model.UserActivityItem
 
 interface AdminRepository {
+    /** Historial de un usuario (escuelas + mejoras propuestas). */
+    suspend fun getUserActivity(uid: String): List<UserActivityItem>
     suspend fun getStats(): AdminStats
     suspend fun getPendingSubmissions(): List<Submission>
     suspend fun getPendingContributions(status: String? = null): List<Contribution>

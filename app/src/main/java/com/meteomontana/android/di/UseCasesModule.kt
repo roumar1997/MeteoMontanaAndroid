@@ -347,6 +347,10 @@ object UseCasesModule {
 
     // Admin
     @Provides @Singleton
+    fun provideGetUserActivityUseCase(repo: AdminRepository) =
+        com.meteomontana.android.domain.usecase.admin.GetUserActivityUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetAdminStatsUseCase(repo: AdminRepository) = GetAdminStatsUseCase(repo)
 
     @Provides @Singleton

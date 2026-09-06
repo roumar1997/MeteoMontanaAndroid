@@ -43,6 +43,20 @@ struct TopoEditorView: View {
     /// vías para pegarse a ellas aunque no se PINTEN.
     @State private var soloEsta = false
 
+    /// "Crear variante" de la vía seleccionada: copia el nombre y la cara,
+    /// pero deja en blanco lo que SÍ cambia de una variante a otra (sufijo,
+    /// grado, tipo de salida y el dibujo) — es un atajo de "duplicar y
+    /// editar", no la relación formal en BD que se probó y se revirtió.
+    private func crearVariante() {
+        guard blocks.indices.contains(selected) else { return }
+        let base = blocks[selected]
+        var variante = BoulderBlockForm()
+        variante.name = base.name
+        variante.facePhoto = base.facePhoto
+        blocks.append(variante)
+        selected = blocks.count - 1
+    }
+
     /// Devuelve la vía a como estaba antes del último cambio.
     private func deshacer() {
         guard let (idx, antes) = historial.popLast(),
@@ -90,6 +104,21 @@ struct TopoEditorView: View {
                                     .padding(.horizontal, 10).padding(.vertical, 6)
                                     .background(on ? GradeColor.color(b.grade) : Color.clear)
                                     .overlay(Rectangle().stroke(GradeColor.color(b.grade), lineWidth: 1))
+                            }.buttonStyle(.plain)
+                        }
+                        // "Variante": duplica la vía seleccionada ya con su
+                        // nombre puesto — solo falta el sufijo de variante, el
+                        // grado y volver a dibujarla (Álvaro, 2026-09-06: "pongo
+                        // la vía, y variante que haga que se escriba directamente
+                        // la vía y falte ponerle el nombre de variante, el grado
+                        // y dibujarla").
+                        if blocks.indices.contains(selected) {
+                            Button { crearVariante() } label: {
+                                Label("Variante", systemImage: "plus.circle")
+                                    .font(Cumbre.mono(11, .bold))
+                                    .foregroundStyle(Cumbre.terra)
+                                    .padding(.horizontal, 10).padding(.vertical, 6)
+                                    .overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
                             }.buttonStyle(.plain)
                         }
                     }.padding(.horizontal, 12)

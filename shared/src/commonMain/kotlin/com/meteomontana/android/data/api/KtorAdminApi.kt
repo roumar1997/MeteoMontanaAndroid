@@ -57,6 +57,11 @@ class KtorAdminApi(private val client: HttpClient) {
         }
     }
 
+    /** Historial de un usuario (escuelas + mejoras propuestas), para que el
+     *  admin vea de un vistazo si ya ha mandado cosas antes. */
+    suspend fun userActivity(uid: String): List<UserActivityItemDto> =
+        client.get("admin/users/$uid/activity").body()
+
     suspend fun getPendingReports(): List<MeetupReportDto> =
         client.get("admin/reports").body()
 
@@ -85,3 +90,12 @@ data class MeetupReportDto(
 
 @Serializable
 data class ResolveReportRequest(val action: String)  // "resolve" | "dismiss"
+
+@Serializable
+data class UserActivityItemDto(
+    val id: String,
+    val kind: String,    // "SCHOOL" | tipo de PendingContribution
+    val label: String?,
+    val status: String,
+    val createdAt: String
+)

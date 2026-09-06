@@ -340,6 +340,7 @@ class IosDependencyContainer(
         .GetApproachesUseCase(approachRepository)
 
     // Admin: cola de propuestas/contribuciones pendientes + aprobar/rechazar.
+    val getUserActivity = com.meteomontana.android.domain.usecase.admin.GetUserActivityUseCase(adminRepository)
     val getPendingSubmissions = GetPendingSubmissionsUseCase(adminRepository)
     val getPendingContributions = GetPendingContributionsUseCase(adminRepository)
     val approveSubmission = ApproveSubmissionUseCase(adminRepository)

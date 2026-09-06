@@ -11,6 +11,7 @@ data class Contribution(
     val lon: Double,
     val notes: String?,
     val description: String?,
+    val submittedByUid: String?,
     val submittedByName: String?,
     val reviewReason: String?,
     val createdAt: String?,

@@ -5,6 +5,14 @@ en Kotlin con la app iOS (SwiftUI) y se conecta al backend Spring Boot.
 **Paridad exigida**: iOS replica Android verbatim — mismas pantallas, textos,
 orden y colores.
 
+**Excepción — panel de ADMIN (2026-09-06):** Álvaro solo usa el panel de admin
+en iOS. Para cualquier función nueva del panel de admin (propuestas, historial,
+chat admin→usuario, gestión): implementar **primero en iOS**, dar un TestFlight
+para que lo valide él a fondo, y **solo después** portar a Android — pidiéndole
+capturas concretas (decir explícitamente cuál hace falta y de qué pantalla)
+en vez de asumir cómo debe verse. El resto de la app sigue con paridad
+simultánea de siempre.
+
 ## 📚 Documentos del repo
 
 Este fichero es **memoria de trabajo**: lo que hay que tener presente SIEMPRE.
