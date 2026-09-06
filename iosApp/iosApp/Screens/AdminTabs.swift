@@ -73,6 +73,12 @@ struct AdminStatsTab: View {
             .padding(.horizontal, 16)
     }
 
+    private func initials(_ u: AdminUserRow) -> String {
+        let name = u.displayName ?? u.username ?? u.uid
+        let letters = name.split(separator: " ").prefix(2).compactMap { $0.first }
+        return letters.isEmpty ? "?" : String(letters).uppercased()
+    }
+
     private func loadUsers() {
         guard users == nil else { return }
         Task { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? [] }
@@ -107,17 +113,47 @@ struct AdminStatsTab: View {
                             ForEach(shown, id: \.uid) { u in
                                 // P6: la fila abre el PERFIL del usuario.
                                 NavigationLink(destination: PublicProfileView(uid: u.uid)) {
-                                HStack {
+                                HStack(spacing: 10) {
+                                    // Foto (o iniciales si no tiene) + aviso rojo
+                                    // pegado si tiene denuncias — antes la lista
+                                    // solo traía el nombre en una fila (Álvaro,
+                                    // 2026-09-06: "poder ver mejor... su foto de
+                                    // perfil y número de aportaciones o si
+                                    // tienen denuncias").
+                                    ZStack(alignment: .topTrailing) {
+                                        Group {
+                                            if let path = u.photoPath, !path.isEmpty, let url = URL(string: path) {
+                                                AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: {
+                                                    Cumbre.rule
+                                                }
+                                            } else {
+                                                Cumbre.rain.opacity(0.15)
+                                                    .overlay(Text(initials(u)).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.rain))
+                                            }
+                                        }
+                                        .frame(width: 38, height: 38)
+                                        .clipShape(Circle())
+                                        if u.reportCount > 0 {
+                                            Text("!").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
+                                                .frame(width: 15, height: 15).background(Circle().fill(Cumbre.bad))
+                                                .overlay(Circle().stroke(Cumbre.paper, lineWidth: 2))
+                                        }
+                                    }
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
                                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                                         if u.isAdmin {
                                             Text("ADMIN").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+                                        } else if u.reportCount > 0 {
+                                            Text("\(u.reportCount) denuncia\(u.reportCount == 1 ? "" : "s")")
+                                                .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.bad)
                                         }
                                     }
                                     Spacer()
-                                    Text(String((u.createdAt ?? "").prefix(10)))
-                                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                                    VStack(alignment: .trailing, spacing: 1) {
+                                        Text("\(u.contributionCount)").font(Cumbre.serif(15, .bold)).foregroundStyle(Cumbre.ink)
+                                        Text("APORTES").font(Cumbre.mono(8, .bold)).foregroundStyle(Cumbre.ink3)
+                                    }
                                 }
                                 }.buttonStyle(.plain)
                                 .padding(.vertical, 8)

@@ -57,7 +57,8 @@ private fun ContentReportDto.toDomain() = ContentReport(
 )
 
 private fun AdminUserRowDto.toDomain() = AdminUserRow(
-    uid = uid, username = username, displayName = displayName, isAdmin = isAdmin, createdAt = createdAt
+    uid = uid, username = username, displayName = displayName, isAdmin = isAdmin, createdAt = createdAt,
+    photoPath = photoPath, contributionCount = contributionCount, reportCount = reportCount
 )
 
 private fun AdminNoteRowDto.toDomain() = AdminNoteRow(

@@ -181,7 +181,10 @@ data class AdminUserRowDto(
     val username: String? = null,
     val displayName: String? = null,
     val isAdmin: Boolean = false,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val photoPath: String? = null,
+    val contributionCount: Long = 0,
+    val reportCount: Long = 0
 )
 
 /** Fila de nota para el panel de admin. */

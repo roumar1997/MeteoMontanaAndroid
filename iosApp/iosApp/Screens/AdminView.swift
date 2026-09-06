@@ -145,7 +145,11 @@ struct AdminView: View {
         return groups.keys.sorted().map { (school: $0, items: groups[$0] ?? []) }
     }
 
-    @State private var openSection: String? = "propuestas"
+    /// Álvaro: "pensé que había hablado lo de todo directamente" — en la
+    /// maqueta se veía todo abierto de golpe, no plegado a base de toques.
+    /// Todas las secciones empiezan abiertas; se pueden plegar si molestan,
+    /// pero el estado de entrada es "todo visible" (2026-09-06).
+    @State private var openSections: Set<String> = ["propuestas", "stats", "actividad", "sugerencias", "push"]
     @State private var openDenunciasScreen = false
     @State private var openGestionarScreen = false
 
@@ -157,7 +161,7 @@ struct AdminView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 section("PROPUESTAS", key: "propuestas", badge: vm.stats?.submissionsPending) { propuestasContent }
-                section("STATS", key: "stats") { AdminStatsTab(stats: vm.stats, onGoToTab: { _ in openSection = "propuestas" }) }
+                section("STATS", key: "stats") { AdminStatsTab(stats: vm.stats, onGoToTab: { _ in openSections.insert("propuestas") }) }
                 section("ACTIVIDAD", key: "actividad") { AdminActivityTab(vm: vm) }
                 section("SUGERENCIAS", key: "sugerencias") {
                     AdminSuggestionsTab(rows: vm.suggestions,
@@ -196,14 +200,14 @@ struct AdminView: View {
     @ViewBuilder
     private func section<Content: View>(_ title: String, key: String, badge: Int64? = nil,
                                          @ViewBuilder content: () -> Content) -> some View {
-        let isOpen = openSection == key
+        let isOpen = openSections.contains(key)
         // Cuando hay algo pendiente, la cabecera se ilumina en terracota con
         // el número — antes solo lo decía el aviso de arriba y, si lo
         // cerrabas, la sección volvía a verse gris como cualquier otra
         // (Álvaro, 2026-09-06: "que se ilumine cuando salgan propuestas").
         let lit = (badge ?? 0) > 0
         Button {
-            openSection = isOpen ? nil : key
+            if isOpen { openSections.remove(key) } else { openSections.insert(key) }
         } label: {
             HStack(spacing: 8) {
                 Text(title).font(Cumbre.mono(11, .bold)).tracking(1.2)
