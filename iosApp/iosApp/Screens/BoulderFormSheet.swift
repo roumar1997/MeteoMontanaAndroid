@@ -455,7 +455,14 @@ struct BoulderFormSheet: View {
                                 BoulderBlockRow(block: $faces[faceIdx].blocks[idx], index: idx,
                                                 onDelete: faces[faceIdx].blocks.count > 1 ? {
                                                     faces[faceIdx].blocks.remove(at: idx); expandedVia = nil
-                                                } : nil)
+                                                } : nil,
+                                                onAddVariant: {
+                                                    var variante = BoulderBlockForm()
+                                                    variante.name = via.name
+                                                    variante.facePhoto = via.facePhoto
+                                                    faces[faceIdx].blocks.insert(variante, at: idx + 1)
+                                                    expandedVia = variante.id
+                                                })
                                 HStack(spacing: 8) {
                                     Button { expandedVia = nil } label: {
                                         Text("LISTO").font(Cumbre.mono(12, .bold)).tracking(0.6)
@@ -710,6 +717,13 @@ struct BoulderBlockRow: View {
     /// Número a mostrar (numeración global del muro). nil = index+1 local.
     var number: Int? = nil
     var onDelete: (() -> Void)? = nil
+    /// "+" junto al campo Variante: añade una vía nueva con el mismo nombre
+    /// ya puesto, para que solo falte escribir el sufijo de variante (directa,
+    /// extensión, desde el pie...) y ajustar el grado si cambia — sin tener
+    /// que volver a teclear el nombre entero (Álvaro, 2026-09-06: "que la vía
+    /// se llame directamente igual pero con un nombre de variante... y que
+    /// puedas cambiarle el grado").
+    var onAddVariant: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -774,14 +788,23 @@ struct BoulderBlockRow: View {
             }
             // Descripción opcional (beta, salida, detalle a especificar).
             // Caja visible (borde) para que se vea que es un campo editable.
-            TextField("Variante (opcional)", text: $block.variant)
-                .onChange(of: block.variant) { _, new in
-                    if new.count > 60 { block.variant = String(new.prefix(60)) }
+            HStack(spacing: 8) {
+                TextField("Variante (opcional)", text: $block.variant)
+                    .onChange(of: block.variant) { _, new in
+                        if new.count > 60 { block.variant = String(new.prefix(60)) }
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 8)
+                    .background(Cumbre.paper)
+                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                if let onAddVariant {
+                    Button(action: onAddVariant) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Cumbre.terra)
+                    }
                 }
-                .padding(.horizontal, 10).padding(.vertical, 8)
-                .background(Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
-            Text("Si esta vía es una variante de otra con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)».")
+            }
+            Text("Si esta vía es una variante de otra con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)». El botón + añade otra vía debajo con el mismo nombre, lista para ponerle el sufijo y el grado.")
                 .font(.system(size: 12))
                 .foregroundStyle(Cumbre.ink3)
             TextField("Descripción (opcional)", text: $block.descriptionText, axis: .vertical)
