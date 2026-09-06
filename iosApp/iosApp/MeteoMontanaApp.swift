@@ -24,6 +24,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Diagnóstico real de cuelgues del hilo principal (MetricKit →
         // Crashlytics) — caza de los watchdog 0x8BADF00D con stacks de verdad.
         HangReporter.shared.start()
+        // El delegate de notificaciones va AQUÍ, no en el .onAppear de
+        // SwiftUI: si no, se pierde el toque a una notificación cuando la app
+        // estaba cerrada del todo (ver PushManager.setDelegate).
+        PushManager.shared.setDelegate()
         return true
     }
 

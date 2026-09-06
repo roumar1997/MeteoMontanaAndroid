@@ -13,10 +13,23 @@ final class PushManager: NSObject, MessagingDelegate, UNUserNotificationCenterDe
     /// Interruptor maestro. Mientras sea false no se pide permiso ni se registra.
     static let enabled = true
 
-    func registerIfEnabled() {
+    /// Debe llamarse desde `application(_:didFinishLaunchingWithOptions:)`, NO
+    /// desde el `.onAppear` de SwiftUI: si el usuario abre la app tocando una
+    /// notificación con la app cerrada del todo, iOS entrega el toque al
+    /// delegate de `UNUserNotificationCenter` casi en el instante del arranque
+    /// — puesto más tarde (en onAppear, que llega después de construir la
+    /// primera vista), el aviso se pierde y la app abre en Escuelas en vez de
+    /// en el chat/perfil. Con la app en segundo plano sí funcionaba porque el
+    /// delegate ya llevaba puesto desde antes (bug cazado 2026-09-06, solo en
+    /// iOS: Android no tiene esta separación registro/permiso).
+    func setDelegate() {
         guard Self.enabled else { return }
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
+    }
+
+    func registerIfEnabled() {
+        guard Self.enabled else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
             guard granted else { return }
             DispatchQueue.main.async { UIApplication.shared.registerForRemoteNotifications() }
