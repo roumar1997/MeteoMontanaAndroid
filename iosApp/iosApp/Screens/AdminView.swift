@@ -156,25 +156,7 @@ struct AdminView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                if let s = vm.stats, s.submissionsPending > 0 {
-                    Button { openSection = "propuestas" } label: {
-                        HStack(spacing: 12) {
-                            Text("⏳").font(.system(size: 26))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("PENDIENTE DE REVISAR").font(Cumbre.mono(10, .bold)).tracking(0.8).opacity(0.85)
-                                Text("\(s.submissionsPending) propuesta\(s.submissionsPending == 1 ? "" : "s")")
-                                    .font(Cumbre.serif(22, .bold))
-                                Text("Toca para ir directo a revisarlas →").font(.system(size: 11.5)).opacity(0.9)
-                            }
-                            Spacer()
-                        }
-                        .foregroundStyle(.white).padding(16).background(Cumbre.terraFill)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }.buttonStyle(.plain)
-                    .padding(.horizontal, 16).padding(.top, 12)
-                }
-
-                section("PROPUESTAS", key: "propuestas") { propuestasContent }
+                section("PROPUESTAS", key: "propuestas", badge: vm.stats?.submissionsPending) { propuestasContent }
                 section("STATS", key: "stats") { AdminStatsTab(stats: vm.stats, onGoToTab: { _ in openSection = "propuestas" }) }
                 section("ACTIVIDAD", key: "actividad") { AdminActivityTab(vm: vm) }
                 section("SUGERENCIAS", key: "sugerencias") {
@@ -212,17 +194,32 @@ struct AdminView: View {
     /// de despliegue simple — nada de pestañas que hay que recordar dónde
     /// están.
     @ViewBuilder
-    private func section<Content: View>(_ title: String, key: String, @ViewBuilder content: () -> Content) -> some View {
+    private func section<Content: View>(_ title: String, key: String, badge: Int64? = nil,
+                                         @ViewBuilder content: () -> Content) -> some View {
         let isOpen = openSection == key
+        // Cuando hay algo pendiente, la cabecera se ilumina en terracota con
+        // el número — antes solo lo decía el aviso de arriba y, si lo
+        // cerrabas, la sección volvía a verse gris como cualquier otra
+        // (Álvaro, 2026-09-06: "que se ilumine cuando salgan propuestas").
+        let lit = (badge ?? 0) > 0
         Button {
             openSection = isOpen ? nil : key
         } label: {
-            HStack {
-                Text(title).font(Cumbre.mono(11, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink2)
+            HStack(spacing: 8) {
+                Text(title).font(Cumbre.mono(11, .bold)).tracking(1.2)
+                    .foregroundStyle(lit ? .white : Cumbre.ink2)
+                if let badge, badge > 0 {
+                    Text("\(badge)").font(Cumbre.mono(11, .bold))
+                        .foregroundStyle(lit ? Cumbre.terra : Cumbre.ink2)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Circle().fill(lit ? Color.white : Cumbre.rule))
+                }
                 Spacer()
-                Image(systemName: isOpen ? "chevron.up" : "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                Image(systemName: isOpen ? "chevron.up" : "chevron.down").font(.system(size: 12))
+                    .foregroundStyle(lit ? .white.opacity(0.85) : Cumbre.ink3)
             }
             .padding(.horizontal, 16).padding(.vertical, 14)
+            .background(lit ? Cumbre.terraFill : Color.clear)
             .contentShape(Rectangle())
         }.buttonStyle(.plain)
         Divider().overlay(Cumbre.rule)
