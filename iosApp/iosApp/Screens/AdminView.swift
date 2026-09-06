@@ -145,50 +145,60 @@ struct AdminView: View {
         return groups.keys.sorted().map { (school: $0, items: groups[$0] ?? []) }
     }
 
-    @State private var tab: AdminTab = .propuestas
+    @State private var openSection: String? = "propuestas"
+    @State private var openDenunciasScreen = false
+    @State private var openGestionarScreen = false
 
+    /// Una sola pantalla larga, sin barra de pestañas — Álvaro, 2026-09-06:
+    /// "quiero que todo el admin sea una sola pantalla". Denuncias y
+    /// Gestionar (llevan mapa) se abren aparte al tocarlas: un mapa dentro de
+    /// un scroll dentro de otro scroll da problemas de gestos reales.
     var body: some View {
-        VStack(spacing: 0) {
-            // Selector de tabs (espejo de AdminScreen.kt).
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(AdminTab.allCases, id: \.self) { t in
-                        let on = tab == t
-                        Button { tab = t } label: {
-                            Text(t.rawValue).font(Cumbre.mono(11, .bold)).tracking(0.8)
-                                .foregroundStyle(on ? .white : Cumbre.ink2)
-                                .padding(.horizontal, 12).padding(.vertical, 7)
-                                .background(on ? Cumbre.terra : Color.clear)
-                                .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
-                }.padding(.horizontal, 16).padding(.vertical, 8)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if let s = vm.stats, s.submissionsPending > 0 {
+                    Button { openSection = "propuestas" } label: {
+                        HStack(spacing: 12) {
+                            Text("⏳").font(.system(size: 26))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("PENDIENTE DE REVISAR").font(Cumbre.mono(10, .bold)).tracking(0.8).opacity(0.85)
+                                Text("\(s.submissionsPending) propuesta\(s.submissionsPending == 1 ? "" : "s")")
+                                    .font(Cumbre.serif(22, .bold))
+                                Text("Toca para ir directo a revisarlas →").font(.system(size: 11.5)).opacity(0.9)
+                            }
+                            Spacer()
+                        }
+                        .foregroundStyle(.white).padding(16).background(Cumbre.terraFill)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }.buttonStyle(.plain)
+                    .padding(.horizontal, 16).padding(.top, 12)
+                }
+
+                section("PROPUESTAS", key: "propuestas") { propuestasContent }
+                section("STATS", key: "stats") { AdminStatsTab(stats: vm.stats, onGoToTab: { _ in openSection = "propuestas" }) }
+                section("ACTIVIDAD", key: "actividad") { AdminActivityTab(vm: vm) }
+                section("SUGERENCIAS", key: "sugerencias") {
+                    AdminSuggestionsTab(rows: vm.suggestions,
+                        onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) })
+                }
+                section("PUSH", key: "push") { AdminPushTab(vm: vm) }
+
+                Button { openDenunciasScreen = true } label: { openRow("DENUNCIAS") }.buttonStyle(.plain)
+                Button { openGestionarScreen = true } label: { openRow("GESTIONAR") }.buttonStyle(.plain)
             }
-            Divider().overlay(Cumbre.rule)
-            switch tab {
-            case .propuestas: propuestasContent
-            case .denuncias: AdminReportsTab()
-            case .gestionar: GestionarTab(vm: vm)
-            case .stats: AdminStatsTab(stats: vm.stats, onGoToTab: { tab = $0 })
-            case .actividad: AdminActivityTab(vm: vm)
-            case .sugerencias: AdminSuggestionsTab(
-                rows: vm.suggestions,
-                onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) })
-            case .push: AdminPushTab(vm: vm)
-            }
+            .padding(.bottom, 24)
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .onAppear { if openDenuncias { tab = .denuncias } }
+        .onAppear { if openDenuncias { openDenunciasScreen = true } }
         .navigationTitle("Admin")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await vm.load() }
-        .task(id: tab) {
-            if tab == .stats, vm.stats == nil { await vm.loadStats() }
-            if tab == .actividad, vm.activitySubmissions.isEmpty, vm.activityContributions.isEmpty {
-                await vm.loadActivity()
-            }
-            if tab == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
-            if tab == .sugerencias { await vm.loadSuggestions() }
+        .navigationDestination(isPresented: $openDenunciasScreen) { AdminReportsTab() }
+        .navigationDestination(isPresented: $openGestionarScreen) { GestionarTab(vm: vm) }
+        .task {
+            await vm.load()
+            await vm.loadStats()
+            await vm.loadActivity()
+            await vm.loadSuggestions()
         }
         .sheet(item: $rejecting) { target in
             RejectReasonSheet { reason in
@@ -198,66 +208,96 @@ struct AdminView: View {
         }
     }
 
+    /// Sección plegable: toca la cabecera para abrir/cerrar. Solo una lógica
+    /// de despliegue simple — nada de pestañas que hay que recordar dónde
+    /// están.
+    @ViewBuilder
+    private func section<Content: View>(_ title: String, key: String, @ViewBuilder content: () -> Content) -> some View {
+        let isOpen = openSection == key
+        Button {
+            openSection = isOpen ? nil : key
+        } label: {
+            HStack {
+                Text(title).font(Cumbre.mono(11, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink2)
+                Spacer()
+                Image(systemName: isOpen ? "chevron.up" : "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }.buttonStyle(.plain)
+        Divider().overlay(Cumbre.rule)
+        if isOpen {
+            content()
+            Divider().overlay(Cumbre.rule)
+        }
+    }
+
+    private func openRow(_ title: String) -> some View {
+        HStack {
+            Text(title).font(Cumbre.mono(11, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink2)
+            Spacer()
+            Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .contentShape(Rectangle())
+        .overlay(Divider().overlay(Cumbre.rule), alignment: .bottom)
+    }
+
     private var propuestasContent: some View {
         Group {
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView().frame(maxWidth: .infinity).padding(24)
             } else if vm.submissions.isEmpty && vm.contributions.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "checkmark.seal").font(.system(size: 36)).foregroundStyle(Cumbre.ok)
                     Text("Nada pendiente de revisar.").font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
+                .frame(maxWidth: .infinity).padding(32)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        if !vm.submissions.isEmpty {
-                            Section {
-                                ForEach(vm.submissions, id: \.id) { s in
-                                    SubmissionAdminCard(
-                                        submission: s,
-                                        busy: vm.working.contains(s.id),
-                                        onApprove: { vm.reviewSubmission(s.id, approve: true, reason: nil) },
-                                        onReject: { rejecting = RejectTarget(id: s.id, isSubmission: true) }
-                                    )
-                                    Divider().overlay(Cumbre.rule)
-                                }
-                            } header: { sectionHeader("ESCUELAS NUEVAS · \(vm.submissions.count)") }
+                VStack(alignment: .leading, spacing: 0) {
+                    if !vm.submissions.isEmpty {
+                        sectionHeader("ESCUELAS NUEVAS · \(vm.submissions.count)")
+                        ForEach(vm.submissions, id: \.id) { s in
+                            SubmissionAdminCard(
+                                submission: s,
+                                busy: vm.working.contains(s.id),
+                                onApprove: { vm.reviewSubmission(s.id, approve: true, reason: nil) },
+                                onReject: { rejecting = RejectTarget(id: s.id, isSubmission: true) }
+                            )
+                            Divider().overlay(Cumbre.rule)
                         }
-                        if !vm.contributions.isEmpty {
-                            Section {
-                                // Chips de filtro por tipo.
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 6) {
-                                        ForEach(ContribFilter.allCases, id: \.self) { f in
-                                            let on = filter == f
-                                            Button { filter = f } label: {
-                                                Text(f.rawValue).font(Cumbre.mono(10, .bold)).tracking(0.6)
-                                                    .foregroundStyle(on ? .white : Cumbre.ink2)
-                                                    .padding(.horizontal, 10).padding(.vertical, 6)
-                                                    .background(on ? Cumbre.ink : Color.clear)
-                                                    .overlay(Rectangle().stroke(on ? Cumbre.ink : Cumbre.rule, lineWidth: 1))
-                                            }.buttonStyle(.plain)
-                                        }
-                                    }.padding(.horizontal, 16).padding(.vertical, 8)
+                    }
+                    if !vm.contributions.isEmpty {
+                        sectionHeader("MEJORAS · \(filteredContributions.count)")
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(ContribFilter.allCases, id: \.self) { f in
+                                    let on = filter == f
+                                    Button { filter = f } label: {
+                                        Text(f.rawValue).font(Cumbre.mono(10, .bold)).tracking(0.6)
+                                            .foregroundStyle(on ? .white : Cumbre.ink2)
+                                            .padding(.horizontal, 10).padding(.vertical, 6)
+                                            .background(on ? Cumbre.ink : Color.clear)
+                                            .overlay(Rectangle().stroke(on ? Cumbre.ink : Cumbre.rule, lineWidth: 1))
+                                    }.buttonStyle(.plain)
                                 }
-                                ForEach(groupedBySchool, id: \.school) { group in
-                                    Text("\(group.school.uppercased()) · \(group.items.count)")
-                                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.horizontal, 16).padding(.top, 8)
-                                    ForEach(group.items, id: \.id) { c in
-                                        ContributionAdminCard(
-                                            contribution: c,
-                                            busy: vm.working.contains(c.id),
-                                            onApprove: { vm.reviewContribution(c.id, approve: true, reason: nil) },
-                                            onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) },
-                                            onApproveEdited: { edited in vm.approveContributionEdited(c.id, editedBloquesJson: edited) }
-                                        )
-                                        Divider().overlay(Cumbre.rule)
-                                    }
-                                }
-                            } header: { sectionHeader("MEJORAS · \(filteredContributions.count)") }
+                            }.padding(.horizontal, 16).padding(.vertical, 8)
+                        }
+                        ForEach(groupedBySchool, id: \.school) { group in
+                            Text("\(group.school.uppercased()) · \(group.items.count)")
+                                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 16).padding(.top, 8)
+                            ForEach(group.items, id: \.id) { c in
+                                ContributionAdminCard(
+                                    contribution: c,
+                                    busy: vm.working.contains(c.id),
+                                    onApprove: { vm.reviewContribution(c.id, approve: true, reason: nil) },
+                                    onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) },
+                                    onApproveEdited: { edited in vm.approveContributionEdited(c.id, editedBloquesJson: edited) }
+                                )
+                                Divider().overlay(Cumbre.rule)
+                            }
                         }
                     }
                 }
