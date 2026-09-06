@@ -145,46 +145,55 @@ struct AdminView: View {
         return groups.keys.sorted().map { (school: $0, items: groups[$0] ?? []) }
     }
 
-    /// Álvaro: "pensé que había hablado lo de todo directamente" — en la
-    /// maqueta se veía todo abierto de golpe, no plegado a base de toques.
-    /// Todas las secciones empiezan abiertas; se pueden plegar si molestan,
-    /// pero el estado de entrada es "todo visible" (2026-09-06).
-    @State private var openSections: Set<String> = ["propuestas", "stats", "actividad", "sugerencias", "push"]
-    @State private var openDenunciasScreen = false
-    @State private var openGestionarScreen = false
+    @State private var tab: AdminTab = .propuestas
 
-    /// Una sola pantalla larga, sin barra de pestañas — Álvaro, 2026-09-06:
-    /// "quiero que todo el admin sea una sola pantalla". Denuncias y
-    /// Gestionar (llevan mapa) se abren aparte al tocarlas: un mapa dentro de
-    /// un scroll dentro de otro scroll da problemas de gestos reales.
+    /// Vuelta a pestañas (Álvaro, 2026-09-06: "se pilla y se cierra... vamos
+    /// a dejarlo como antes"): la pantalla única con todo fusionado en un
+    /// solo ScrollView se colgaba de verdad en dispositivo. Se mantienen las
+    /// mejoras que sí funcionaban (identidad+chat+historial del que propone,
+    /// Stats rediseñado, Actividad con historial, usuarios con foto/aportes/
+    /// denuncias) — cada una en su pestaña de siempre, no todas a la vez.
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                section("PROPUESTAS", key: "propuestas", badge: vm.stats?.submissionsPending) { propuestasContent }
-                section("STATS", key: "stats") { AdminStatsTab(stats: vm.stats, onGoToTab: { _ in openSections.insert("propuestas") }) }
-                section("ACTIVIDAD", key: "actividad") { AdminActivityTab(vm: vm) }
-                section("SUGERENCIAS", key: "sugerencias") {
-                    AdminSuggestionsTab(rows: vm.suggestions,
-                        onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) })
-                }
-                section("PUSH", key: "push") { AdminPushTab(vm: vm) }
-
-                Button { openDenunciasScreen = true } label: { openRow("DENUNCIAS") }.buttonStyle(.plain)
-                Button { openGestionarScreen = true } label: { openRow("GESTIONAR") }.buttonStyle(.plain)
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(AdminTab.allCases, id: \.self) { t in
+                        let on = tab == t
+                        Button { tab = t } label: {
+                            Text(t.rawValue).font(Cumbre.mono(11, .bold)).tracking(0.8)
+                                .foregroundStyle(on ? .white : Cumbre.ink2)
+                                .padding(.horizontal, 12).padding(.vertical, 7)
+                                .background(on ? Cumbre.terra : Color.clear)
+                                .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
+                }.padding(.horizontal, 16).padding(.vertical, 8)
             }
-            .padding(.bottom, 24)
+            Divider().overlay(Cumbre.rule)
+            switch tab {
+            case .propuestas: propuestasContent
+            case .denuncias: AdminReportsTab()
+            case .gestionar: GestionarTab(vm: vm)
+            case .stats: AdminStatsTab(stats: vm.stats, onGoToTab: { tab = $0 })
+            case .actividad: AdminActivityTab(vm: vm)
+            case .sugerencias: AdminSuggestionsTab(
+                rows: vm.suggestions,
+                onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) })
+            case .push: AdminPushTab(vm: vm)
+            }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .onAppear { if openDenuncias { openDenunciasScreen = true } }
+        .onAppear { if openDenuncias { tab = .denuncias } }
         .navigationTitle("Admin")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(isPresented: $openDenunciasScreen) { AdminReportsTab() }
-        .navigationDestination(isPresented: $openGestionarScreen) { GestionarTab(vm: vm) }
-        .task {
-            await vm.load()
-            await vm.loadStats()
-            await vm.loadActivity()
-            await vm.loadSuggestions()
+        .task { await vm.load() }
+        .task(id: tab) {
+            if tab == .stats, vm.stats == nil { await vm.loadStats() }
+            if tab == .actividad, vm.activitySubmissions.isEmpty, vm.activityContributions.isEmpty {
+                await vm.loadActivity()
+            }
+            if tab == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
+            if tab == .sugerencias { await vm.loadSuggestions() }
         }
         .sheet(item: $rejecting) { target in
             RejectReasonSheet { reason in
@@ -194,68 +203,19 @@ struct AdminView: View {
         }
     }
 
-    /// Sección plegable: toca la cabecera para abrir/cerrar. Solo una lógica
-    /// de despliegue simple — nada de pestañas que hay que recordar dónde
-    /// están.
-    @ViewBuilder
-    private func section<Content: View>(_ title: String, key: String, badge: Int64? = nil,
-                                         @ViewBuilder content: () -> Content) -> some View {
-        let isOpen = openSections.contains(key)
-        // Cuando hay algo pendiente, la cabecera se ilumina en terracota con
-        // el número — antes solo lo decía el aviso de arriba y, si lo
-        // cerrabas, la sección volvía a verse gris como cualquier otra
-        // (Álvaro, 2026-09-06: "que se ilumine cuando salgan propuestas").
-        let lit = (badge ?? 0) > 0
-        Button {
-            if isOpen { openSections.remove(key) } else { openSections.insert(key) }
-        } label: {
-            HStack(spacing: 8) {
-                Text(title).font(Cumbre.mono(11, .bold)).tracking(1.2)
-                    .foregroundStyle(lit ? .white : Cumbre.ink2)
-                if let badge, badge > 0 {
-                    Text("\(badge)").font(Cumbre.mono(11, .bold))
-                        .foregroundStyle(lit ? Cumbre.terra : Cumbre.ink2)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Circle().fill(lit ? Color.white : Cumbre.rule))
-                }
-                Spacer()
-                Image(systemName: isOpen ? "chevron.up" : "chevron.down").font(.system(size: 12))
-                    .foregroundStyle(lit ? .white.opacity(0.85) : Cumbre.ink3)
-            }
-            .padding(.horizontal, 16).padding(.vertical, 14)
-            .background(lit ? Cumbre.terraFill : Color.clear)
-            .contentShape(Rectangle())
-        }.buttonStyle(.plain)
-        Divider().overlay(Cumbre.rule)
-        if isOpen {
-            content()
-            Divider().overlay(Cumbre.rule)
-        }
-    }
-
-    private func openRow(_ title: String) -> some View {
-        HStack {
-            Text(title).font(Cumbre.mono(11, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink2)
-            Spacer()
-            Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-        }
-        .padding(.horizontal, 16).padding(.vertical, 14)
-        .contentShape(Rectangle())
-        .overlay(Divider().overlay(Cumbre.rule), alignment: .bottom)
-    }
-
     private var propuestasContent: some View {
         Group {
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity).padding(24)
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if vm.submissions.isEmpty && vm.contributions.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "checkmark.seal").font(.system(size: 36)).foregroundStyle(Cumbre.ok)
                     Text("Nada pendiente de revisar.").font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                 }
-                .frame(maxWidth: .infinity).padding(32)
+                .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
             } else {
-                VStack(alignment: .leading, spacing: 0) {
+                ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     if !vm.submissions.isEmpty {
                         sectionHeader("ESCUELAS NUEVAS · \(vm.submissions.count)")
                         ForEach(vm.submissions, id: \.id) { s in
@@ -301,6 +261,7 @@ struct AdminView: View {
                             }
                         }
                     }
+                }
                 }
             }
         }
