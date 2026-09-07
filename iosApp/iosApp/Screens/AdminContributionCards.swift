@@ -767,12 +767,3 @@ struct RejectReasonSheet: View {
     }
 }
 
-enum AdminTab: String, CaseIterable {
-    case propuestas = "PROPUESTAS"
-    case denuncias = "DENUNCIAS"
-    case gestionar = "GESTIONAR"
-    case stats = "STATS"
-    case actividad = "ACTIVIDAD"
-    case sugerencias = "SUGERENCIAS"
-    case push = "PUSH"
-}

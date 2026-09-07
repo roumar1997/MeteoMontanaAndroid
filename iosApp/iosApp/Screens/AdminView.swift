@@ -149,6 +149,20 @@ struct AdminView: View {
     @State private var openDenunciasScreen = false
 
     @State private var showAllUsers = false
+    /// Tarjetas de Stats pulsables (Álvaro, 2026-09-07: "debería ser pulsable
+    /// y metiéndome en lo de arriba"): saltan a la sección correspondiente
+    /// (Usuarios/Actividad, ya inline en esta misma página) o abren su propia
+    /// hoja cuando no hay sección inline (Admins/Notas) o pantalla empujada
+    /// (Escuelas → GESTIONAR, que ya lleva mapa y vive aparte).
+    @State private var pushGestionar = false
+    @State private var adminsSheet = false
+    @State private var notesSheet = false
+    @State private var notes: [AdminNoteRow]? = nil
+
+    private func loadNotesIfNeeded() {
+        guard notes == nil else { return }
+        Task { notes = (try? await AppDependencies.shared.container.getAdminNotes.invoke()) ?? [] }
+    }
 
     /// Portada única del admin — v3 (2026-09-07). La v1 fusionaba TODO en un
     /// único ScrollView con MÁS ScrollViews del mismo eje dentro, y eso
@@ -162,6 +176,7 @@ struct AdminView: View {
     /// propio ScrollView — todas son contenido plano (VStack/LazyVGrid), así
     /// que solo hay UN ScrollView de verdad en toda la pantalla.
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if let s = vm.stats, s.submissionsPending > 0 {
@@ -245,14 +260,32 @@ struct AdminView: View {
                 }
 
                 // ── STATS: rejilla agrupada por tema y color (la maqueta "A").
+                // Cada tarjeta es pulsable — lleva a lo que cuenta, no es solo
+                // un número (Álvaro, 2026-09-07).
                 sectionLabel("Stats")
-                AdminStatsGrid(stats: vm.stats)
+                AdminStatsGrid(
+                    stats: vm.stats,
+                    onUsuarios: {
+                        showAllUsers = true
+                        withAnimation { proxy.scrollTo("usuarios-anchor", anchor: .top) }
+                    },
+                    onAdmins: { adminsSheet = true },
+                    onEscuelas: { pushGestionar = true },
+                    onNotas: { loadNotesIfNeeded(); notesSheet = true },
+                    onAprobadas: {
+                        Task { await vm.loadActivity(status: "APPROVED") }
+                        withAnimation { proxy.scrollTo("actividad-anchor", anchor: .top) }
+                    },
+                    onRechazadas: {
+                        Task { await vm.loadActivity(status: "REJECTED") }
+                        withAnimation { proxy.scrollTo("actividad-anchor", anchor: .top) }
+                    })
 
                 // ── USUARIOS: foto/aportes/denuncias. Empieza mostrando 8 y
                 // "ver todos" despliega el resto — con 200 usuarios, cargarlos
                 // TODOS de golpe en pantalla es más peso del que hace falta
                 // para lo que se mira a diario.
-                sectionLabel("Usuarios")
+                sectionLabel("Usuarios").id("usuarios-anchor")
                 if let list = previewUsers {
                     ForEach(list.prefix(showAllUsers ? list.count : 8), id: \.uid) { u in
                         AdminUserRowView(u: u).padding(.horizontal, 16)
@@ -270,7 +303,7 @@ struct AdminView: View {
                 }
 
                 // ── ACTIVIDAD: aprobadas/rechazadas con quién.
-                sectionLabel("Actividad")
+                sectionLabel("Actividad").id("actividad-anchor")
                 AdminActivityTab(vm: vm)
 
                 // ── SUGERENCIAS
@@ -295,6 +328,7 @@ struct AdminView: View {
         .navigationTitle("Admin")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $openDenunciasScreen) { AdminReportsTab() }
+        .navigationDestination(isPresented: $pushGestionar) { GestionarTab(vm: vm) }
         .task {
             await vm.load()
             await vm.loadStats()
@@ -308,6 +342,53 @@ struct AdminView: View {
                 if target.isSubmission { vm.reviewSubmission(target.id, approve: false, reason: reason) }
                 else { vm.reviewContribution(target.id, approve: false, reason: reason) }
             }
+        }
+        .sheet(isPresented: $adminsSheet) {
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        let admins = (previewUsers ?? []).filter { $0.isAdmin }
+                        if admins.isEmpty {
+                            Text("Sin otros admins.").foregroundStyle(Cumbre.ink3).padding(16)
+                        } else {
+                            ForEach(admins, id: \.uid) { u in
+                                AdminUserRowView(u: u).padding(.horizontal, 16)
+                                Divider().overlay(Cumbre.rule)
+                            }
+                        }
+                    }
+                }
+                .background(Cumbre.bg.ignoresSafeArea())
+                .navigationTitle("Admins")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+        .sheet(isPresented: $notesSheet) {
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if let list = notes {
+                            if list.isEmpty {
+                                Text("Sin notas todavía.").foregroundStyle(Cumbre.ink3).padding(16)
+                            } else {
+                                ForEach(list, id: \.id) { n in
+                                    NavigationLink(destination: AdminNoteDetailView(note: n)) {
+                                        adminNoteRow(n)
+                                    }.buttonStyle(.plain)
+                                    Divider().overlay(Cumbre.rule)
+                                }
+                            }
+                        } else {
+                            ProgressView().padding(.top, 30).frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .background(Cumbre.bg.ignoresSafeArea())
+                .navigationTitle("Notas")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        }
         }
     }
 
@@ -335,27 +416,37 @@ struct AdminView: View {
 
 /// Rejilla de Stats sin ScrollView propio, para vivir dentro de la portada
 /// (que ya tiene el suyo) sin anidar — el anidado fue justo lo que colgaba
-/// la app la vez pasada.
+/// la app la vez pasada. Cada tarjeta es pulsable: no es solo un número, lleva
+/// a lo que cuenta (Álvaro, 2026-09-07: "debería ser pulsable y metiéndome
+/// en lo de arriba"). USUARIOS/APROBADAS/RECHAZADAS saltan a su sección ya
+/// inline en esta misma página; ADMINS/NOTAS abren su propia hoja (no tienen
+/// sección propia); ESCUELAS empuja a GESTIONAR (lleva mapa, vive aparte).
 struct AdminStatsGrid: View {
     let stats: AdminStats?
+    var onUsuarios: () -> Void = {}
+    var onAdmins: () -> Void = {}
+    var onEscuelas: () -> Void = {}
+    var onNotas: () -> Void = {}
+    var onAprobadas: () -> Void = {}
+    var onRechazadas: () -> Void = {}
 
     var body: some View {
         if let s = stats {
             VStack(alignment: .leading, spacing: 4) {
                 subLabel("Comunidad")
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    card("USUARIOS", s.totalUsers, "👤", Cumbre.rain)
-                    card("ADMINS", s.totalAdmins, "🛡️", Cumbre.terra)
+                    card("USUARIOS", s.totalUsers, "👤", Cumbre.rain, action: onUsuarios)
+                    card("ADMINS", s.totalAdmins, "🛡️", Cumbre.terra, action: onAdmins)
                 }
                 subLabel("Contenido")
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    card("ESCUELAS", s.totalSchools, "🧗", Cumbre.rain)
-                    card("NOTAS", s.totalNotes, "📓", Cumbre.rain)
+                    card("ESCUELAS", s.totalSchools, "🧗", Cumbre.rain, action: onEscuelas)
+                    card("NOTAS", s.totalNotes, "📓", Cumbre.rain, action: onNotas)
                 }
                 subLabel("Moderación")
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    card("APROBADAS", s.submissionsApproved, "✔️", Cumbre.ok)
-                    card("RECHAZADAS", s.submissionsRejected, "✕", Cumbre.bad)
+                    card("APROBADAS", s.submissionsApproved, "✔️", Cumbre.ok, action: onAprobadas)
+                    card("RECHAZADAS", s.submissionsRejected, "✕", Cumbre.bad, action: onRechazadas)
                 }
             }
             .padding(.horizontal, 16)
@@ -369,16 +460,21 @@ struct AdminStatsGrid: View {
             .padding(.top, 10).padding(.bottom, 2)
     }
 
-    private func card(_ label: String, _ value: Int64, _ icon: String, _ tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(icon).font(.system(size: 18))
-            Text("\(value)").font(Cumbre.serif(22, .bold)).foregroundStyle(tint)
-            Text(label).font(Cumbre.mono(9.5, .bold)).tracking(0.5).foregroundStyle(tint)
+    private func card(_ label: String, _ value: Int64, _ icon: String, _ tint: Color,
+                       action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(icon).font(.system(size: 18))
+                Text("\(value)").font(Cumbre.serif(22, .bold)).foregroundStyle(tint)
+                Text(label).font(Cumbre.mono(9.5, .bold)).tracking(0.5).foregroundStyle(tint)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(tint.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(tint.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .buttonStyle(.plain)
     }
 }
 
