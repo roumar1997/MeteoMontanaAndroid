@@ -149,14 +149,17 @@ struct AdminView: View {
     @State private var openDenunciasScreen = false
 
     @State private var showAllUsers = false
-    /// Tarjetas de Stats pulsables (Álvaro, 2026-09-07: "debería ser pulsable
-    /// y metiéndome en lo de arriba"): saltan a la sección correspondiente
-    /// (Usuarios/Actividad, ya inline en esta misma página) o abren su propia
-    /// hoja cuando no hay sección inline (Admins/Notas) o pantalla empujada
-    /// (Escuelas → GESTIONAR, que ya lleva mapa y vive aparte).
+    /// Tarjetas de Stats pulsables (Álvaro, 2026-09-07: "si pulsas usuarios
+    /// ves usuarios... ahí ves todo, no scrolleando ver de una en una"):
+    /// cada una abre su PROPIA hoja con el contenido completo — no basta con
+    /// saltar a la vista previa que ya vive en esta página, porque esa sigue
+    /// recortada (8 usuarios, un solo estado de actividad). Solo ESCUELAS
+    /// empuja a una pantalla ya existente (GESTIONAR, con mapa).
     @State private var pushGestionar = false
+    @State private var usersSheet = false
     @State private var adminsSheet = false
     @State private var notesSheet = false
+    @State private var activitySheet: String? = nil   // "APPROVED" | "REJECTED"
     @State private var notes: [AdminNoteRow]? = nil
 
     private func loadNotesIfNeeded() {
@@ -176,7 +179,6 @@ struct AdminView: View {
     /// propio ScrollView — todas son contenido plano (VStack/LazyVGrid), así
     /// que solo hay UN ScrollView de verdad en toda la pantalla.
     var body: some View {
-        ScrollViewReader { proxy in
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if let s = vm.stats, s.submissionsPending > 0 {
@@ -265,27 +267,18 @@ struct AdminView: View {
                 sectionLabel("Stats")
                 AdminStatsGrid(
                     stats: vm.stats,
-                    onUsuarios: {
-                        showAllUsers = true
-                        withAnimation { proxy.scrollTo("usuarios-anchor", anchor: .top) }
-                    },
+                    onUsuarios: { usersSheet = true },
                     onAdmins: { adminsSheet = true },
                     onEscuelas: { pushGestionar = true },
                     onNotas: { loadNotesIfNeeded(); notesSheet = true },
-                    onAprobadas: {
-                        Task { await vm.loadActivity(status: "APPROVED") }
-                        withAnimation { proxy.scrollTo("actividad-anchor", anchor: .top) }
-                    },
-                    onRechazadas: {
-                        Task { await vm.loadActivity(status: "REJECTED") }
-                        withAnimation { proxy.scrollTo("actividad-anchor", anchor: .top) }
-                    })
+                    onAprobadas: { activitySheet = "APPROVED" },
+                    onRechazadas: { activitySheet = "REJECTED" })
 
                 // ── USUARIOS: foto/aportes/denuncias. Empieza mostrando 8 y
                 // "ver todos" despliega el resto — con 200 usuarios, cargarlos
                 // TODOS de golpe en pantalla es más peso del que hace falta
                 // para lo que se mira a diario.
-                sectionLabel("Usuarios").id("usuarios-anchor")
+                sectionLabel("Usuarios")
                 if let list = previewUsers {
                     ForEach(list.prefix(showAllUsers ? list.count : 8), id: \.uid) { u in
                         AdminUserRowView(u: u).padding(.horizontal, 16)
@@ -303,7 +296,7 @@ struct AdminView: View {
                 }
 
                 // ── ACTIVIDAD: aprobadas/rechazadas con quién.
-                sectionLabel("Actividad").id("actividad-anchor")
+                sectionLabel("Actividad")
                 AdminActivityTab(vm: vm)
 
                 // ── SUGERENCIAS
@@ -389,7 +382,48 @@ struct AdminView: View {
                 .navigationBarTitleDisplayMode(.inline)
             }
         }
+        .sheet(isPresented: $usersSheet) {
+            NavigationStack { AdminUsersScreen() }
         }
+        .sheet(item: activityStatusBinding) { status in
+            NavigationStack {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        let subs = vm.activityStatus == status.id ? vm.activitySubmissions : []
+                        let contribs = vm.activityStatus == status.id ? vm.activityContributions : []
+                        if vm.activityLoading {
+                            ProgressView().padding(24).frame(maxWidth: .infinity)
+                        } else if subs.isEmpty && contribs.isEmpty {
+                            Text("Nada por aquí todavía.").font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                                .padding(16)
+                        } else {
+                            ForEach(subs, id: \.id) { s in
+                                SubmissionAdminCard(submission: s, busy: false, onApprove: {}, onReject: {})
+                                Divider().overlay(Cumbre.rule)
+                            }
+                            ForEach(contribs, id: \.id) { c in
+                                ContributionAdminCard(contribution: c, busy: false, onApprove: {}, onReject: {})
+                                Divider().overlay(Cumbre.rule)
+                            }
+                        }
+                    }
+                }
+                .background(Cumbre.bg.ignoresSafeArea())
+                .navigationTitle(status.id == "APPROVED" ? "Aprobadas" : "Rechazadas")
+                .navigationBarTitleDisplayMode(.inline)
+                .task { await vm.loadActivity(status: status.id) }
+            }
+        }
+    }
+
+    /// Adapta `activitySheet` (String?) a `Identifiable` para `.sheet(item:)`
+    /// — necesario porque un simple `Bool` no distinguiría "abrir en
+    /// APROBADAS" de "abrir en RECHAZADAS" si se pulsa una tras otra.
+    private var activityStatusBinding: Binding<IdentifiableStatus?> {
+        Binding(
+            get: { activitySheet.map(IdentifiableStatus.init) },
+            set: { activitySheet = $0?.id }
+        )
     }
 
     private func sectionLabel(_ t: String) -> some View {
@@ -479,3 +513,7 @@ struct AdminStatsGrid: View {
 }
 
 struct RejectTarget: Identifiable { let id: String; let isSubmission: Bool }
+
+/// Envoltorio para poder usar `.sheet(item:)` con un simple estado String?
+/// ("APPROVED"/"REJECTED") — ver uso en `AdminView.activityStatusBinding`.
+struct IdentifiableStatus: Identifiable { let id: String }
