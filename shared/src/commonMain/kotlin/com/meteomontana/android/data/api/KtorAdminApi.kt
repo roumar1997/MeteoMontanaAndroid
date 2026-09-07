@@ -33,6 +33,12 @@ class KtorAdminApi(private val client: HttpClient) {
     suspend fun reject(id: String, req: RejectReason): SubmissionDto =
         client.post("admin/submissions/$id/reject") { setBody(req) }.body()
 
+    /** "Esperando respuesta": saca (o mete) la propuesta de escuela de la cola
+     *  normal mientras el admin espera contestación del proponente. */
+    suspend fun setSubmissionAwaitingReply(id: String, waiting: Boolean) {
+        client.post("admin/submissions/$id/awaiting-reply") { setBody(AwaitingReplyRequest(waiting)) }
+    }
+
     suspend fun logs(limit: Int = 100): List<AdminLogDto> =
         client.get("admin/logs") { parameter("limit", limit) }.body()
 
@@ -53,6 +59,12 @@ class KtorAdminApi(private val client: HttpClient) {
 
     suspend fun rejectContribution(id: String, req: RejectReason): ContributionDto =
         client.post("admin/contributions/$id/reject") { setBody(req) }.body()
+
+    /** "Esperando respuesta" — espejo del de escuelas nuevas, para propuestas
+     *  de mejora (piedras, sectores, parkings, correcciones...). */
+    suspend fun setContributionAwaitingReply(id: String, waiting: Boolean) {
+        client.post("admin/contributions/$id/awaiting-reply") { setBody(AwaitingReplyRequest(waiting)) }
+    }
 
     suspend fun moveSchool(schoolId: String, lat: Double, lon: Double) {
         client.put("admin/schools/$schoolId/position") {
@@ -77,6 +89,9 @@ class KtorAdminApi(private val client: HttpClient) {
 
 @Serializable
 data class MoveSchoolRequest(val lat: Double, val lon: Double)
+
+@Serializable
+data class AwaitingReplyRequest(val waiting: Boolean)
 
 @Serializable
 data class MeetupReportDto(

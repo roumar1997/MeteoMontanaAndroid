@@ -42,6 +42,12 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
     override suspend fun rejectContribution(id: String, reason: String?): Contribution =
         api.rejectContribution(id, RejectReason(reason)).toDomain()
 
+    override suspend fun setSubmissionAwaitingReply(id: String, waiting: Boolean) =
+        api.setSubmissionAwaitingReply(id, waiting)
+
+    override suspend fun setContributionAwaitingReply(id: String, waiting: Boolean) =
+        api.setContributionAwaitingReply(id, waiting)
+
     override suspend fun sendPush(targetUid: String?, title: String, body: String): AdminPushResult =
         api.sendPush(AdminPushRequest(targetUid, title, body)).toDomain()
 

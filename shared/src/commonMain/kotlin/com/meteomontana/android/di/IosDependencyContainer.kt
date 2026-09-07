@@ -82,6 +82,8 @@ import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
 import com.meteomontana.android.domain.usecase.admin.GetPendingReportsUseCase
 import com.meteomontana.android.domain.usecase.admin.ResolveReportUseCase
 import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
+import com.meteomontana.android.domain.usecase.admin.SetSubmissionAwaitingReplyUseCase
+import com.meteomontana.android.domain.usecase.admin.SetContributionAwaitingReplyUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
@@ -347,6 +349,8 @@ class IosDependencyContainer(
     val rejectSubmission = RejectSubmissionUseCase(adminRepository)
     val approveContribution = ApproveContributionUseCase(adminRepository)
     val rejectContribution = RejectContributionUseCase(adminRepository)
+    val setSubmissionAwaitingReply = SetSubmissionAwaitingReplyUseCase(adminRepository)
+    val setContributionAwaitingReply = SetContributionAwaitingReplyUseCase(adminRepository)
     // Admin avanzado (iOS): stats, logs de auditoría, push manual y edición de
     // bloques desde GESTIONAR (mover/editar/borrar reutilizando los use cases).
     val getAdminStats = GetAdminStatsUseCase(adminRepository)

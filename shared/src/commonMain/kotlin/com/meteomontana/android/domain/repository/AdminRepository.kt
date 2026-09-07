@@ -19,6 +19,10 @@ interface AdminRepository {
     suspend fun rejectSubmission(id: String, reason: String?): Submission
     suspend fun approveContribution(id: String, editedBloquesJson: String? = null): Contribution
     suspend fun rejectContribution(id: String, reason: String?): Contribution
+    /** "Esperando respuesta": saca (o mete) la propuesta de la cola normal
+     *  mientras el admin espera contestación del proponente. No cambia status. */
+    suspend fun setSubmissionAwaitingReply(id: String, waiting: Boolean)
+    suspend fun setContributionAwaitingReply(id: String, waiting: Boolean)
     suspend fun sendPush(targetUid: String?, title: String, body: String): AdminPushResult
     suspend fun getPendingReports(): List<MeetupReport>
     suspend fun resolveReport(id: String, action: String): MeetupReport

@@ -234,30 +234,25 @@ struct AdminActivityTab: View {
     @ObservedObject var vm: AdminViewModel
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 statusChip("APROBADAS", "APPROVED")
                 statusChip("RECHAZADAS", "REJECTED")
-            }.padding(12)
-            Divider().overlay(Cumbre.rule)
+            }.padding(.horizontal, 16).padding(.vertical, 8)
             if vm.activityLoading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView().padding(24).frame(maxWidth: .infinity)
             } else if vm.activitySubmissions.isEmpty && vm.activityContributions.isEmpty {
                 Text("Nada por aquí todavía.")
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 16).padding(.bottom, 16)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(vm.activitySubmissions, id: \.id) { s in
-                            SubmissionAdminCard(submission: s, busy: false, onApprove: {}, onReject: {})
-                            Divider().overlay(Cumbre.rule)
-                        }
-                        ForEach(vm.activityContributions, id: \.id) { c in
-                            ContributionAdminCard(contribution: c, busy: false, onApprove: {}, onReject: {})
-                            Divider().overlay(Cumbre.rule)
-                        }
-                    }
+                ForEach(vm.activitySubmissions, id: \.id) { s in
+                    SubmissionAdminCard(submission: s, busy: false, onApprove: {}, onReject: {})
+                    Divider().overlay(Cumbre.rule)
+                }
+                ForEach(vm.activityContributions, id: \.id) { c in
+                    ContributionAdminCard(contribution: c, busy: false, onApprove: {}, onReject: {})
+                    Divider().overlay(Cumbre.rule)
                 }
             }
         }
@@ -319,7 +314,6 @@ struct AdminPushTab: View {
     @State private var body_ = ""
     @State private var confirmAll = false
     var body: some View {
-        ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 if let uid = targetUid {
                     HStack(spacing: 8) {
@@ -392,7 +386,6 @@ struct AdminPushTab: View {
                     Text(r).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
                 }
             }.padding(16)
-        }
     }
     private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {

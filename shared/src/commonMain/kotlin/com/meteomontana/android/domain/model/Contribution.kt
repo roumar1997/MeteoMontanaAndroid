@@ -28,5 +28,8 @@ data class Contribution(
     // Muro: geometría POINT/LINE, polilínea JSON, sentido de numeración LTR/RTL.
     val geometry: String? = null,
     val path: String? = null,
-    val direction: String? = null
+    val direction: String? = null,
+    val submittedByPhotoPath: String? = null,
+    /** Desde cuándo el admin espera respuesta del proponente (null = no espera nada). */
+    val awaitingReplySince: String? = null
 )

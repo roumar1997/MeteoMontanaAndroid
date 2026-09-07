@@ -9,26 +9,53 @@ import Shared
 struct AdminSubmitterActions: View {
     let uid: String?
     let name: String?
+    /// Foto de perfil del proponente, para reconocer de un vistazo quién
+    /// mandó la propuesta (Álvaro, 2026-09-07: "que salga, para facilitar
+    /// que se vea quien lo hizo").
+    var photoUrl: String? = nil
+    /// Presente == el admin está esperando respuesta suya antes de revisar.
+    /// nil (sin botón) cuando la propuesta ya está resuelta — no tiene
+    /// sentido "esperar respuesta" de algo ya aprobado o rechazado.
+    var awaitingReply: Bool? = nil
+    var onToggleAwaitingReply: (() -> Void)? = nil
+    var busy: Bool = false
     @State private var showChat = false
     @State private var showHistory = false
 
     var body: some View {
         if let uid, !uid.isEmpty {
-            HStack(spacing: 12) {
-                if let name, !name.isEmpty {
-                    Text(name).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 10) {
+                    AvatarCircle(url: photoUrl, size: 28)
+                    if let name, !name.isEmpty {
+                        Text(name).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
+                    }
+                    Spacer()
+                    Button { showChat = true } label: {
+                        Label("Mensaje", systemImage: "bubble.left")
+                            .font(Cumbre.mono(11, .bold))
+                    }
+                    Button { showHistory = true } label: {
+                        Label("Historial", systemImage: "clock.arrow.circlepath")
+                            .font(Cumbre.mono(11, .bold))
+                    }
                 }
-                Spacer()
-                Button { showChat = true } label: {
-                    Label("Mensaje", systemImage: "bubble.left")
-                        .font(Cumbre.mono(11, .bold))
-                }
-                Button { showHistory = true } label: {
-                    Label("Historial", systemImage: "clock.arrow.circlepath")
-                        .font(Cumbre.mono(11, .bold))
+                .foregroundStyle(Cumbre.terra)
+                if let awaitingReply, let onToggleAwaitingReply {
+                    Button(action: onToggleAwaitingReply) {
+                        Label(awaitingReply ? "DEJAR DE ESPERAR RESPUESTA" : "ESPERAR RESPUESTA SUYA",
+                              systemImage: awaitingReply ? "hourglass.circle.fill" : "hourglass.circle")
+                            .font(Cumbre.mono(10, .bold)).tracking(0.4)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(awaitingReply ? .white : Cumbre.ink2)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(awaitingReply ? Cumbre.ink3 : Color.clear)
+                    .overlay(awaitingReply ? nil : RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .disabled(busy)
                 }
             }
-            .foregroundStyle(Cumbre.terra)
             .sheet(isPresented: $showChat) {
                 NavigationStack { ChatView(otherUid: uid, otherName: name ?? "") }
             }

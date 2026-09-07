@@ -42,9 +42,12 @@ data class ContributionDto(
     val description: String? = null,
     val submittedByUid: String? = null,
     val submittedByName: String? = null,
+    val submittedByPhotoPath: String? = null,
     val reviewReason: String? = null,
     val createdAt: String? = null,
     val reviewedAt: String? = null,
+    /** Desde cuándo el admin espera respuesta del proponente (null = no espera nada). */
+    val awaitingReplySince: String? = null,
     val photoUrl: String? = null,
     val bloquesJson: String? = null,
     val topoLinesJson: String? = null,

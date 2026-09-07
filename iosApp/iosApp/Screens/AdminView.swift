@@ -32,6 +32,8 @@ final class AdminViewModel: ObservableObject {
     private let rejectSub = AppDependencies.shared.container.rejectSubmission
     private let approveContrib = AppDependencies.shared.container.approveContribution
     private let rejectContrib = AppDependencies.shared.container.rejectContribution
+    private let setSubAwaiting = AppDependencies.shared.container.setSubmissionAwaitingReply
+    private let setContribAwaiting = AppDependencies.shared.container.setContributionAwaitingReply
 
     func load() async {
         loading = true
@@ -102,6 +104,28 @@ final class AdminViewModel: ObservableObject {
         }
     }
 
+    /// "Esperando respuesta": marca/desmarca sin tocar aprobar/rechazar — el
+    /// admin le ha preguntado algo al proponente y quiere sacarla de la cola
+    /// normal mientras espera contestación (Álvaro, 2026-09-07). Recarga la
+    /// cola para reflejar el cambio de grupo (Pendientes ↔ Esperando).
+    func toggleSubmissionAwaitingReply(_ id: String, waiting: Bool) {
+        working.insert(id)
+        Task {
+            _ = try? await setSubAwaiting.invoke(id: id, waiting: waiting)
+            submissions = (try? await getSubs.invoke(status: nil)) ?? submissions
+            working.remove(id)
+        }
+    }
+
+    func toggleContributionAwaitingReply(_ id: String, waiting: Bool) {
+        working.insert(id)
+        Task {
+            _ = try? await setContribAwaiting.invoke(id: id, waiting: waiting)
+            contributions = (try? await getContribs.invoke(status: nil)) ?? contributions
+            working.remove(id)
+        }
+    }
+
     func reviewContribution(_ id: String, approve: Bool, reason: String?) {
         working.insert(id)
         Task {
@@ -116,109 +140,156 @@ final class AdminViewModel: ObservableObject {
     }
 }
 
-private enum ContribFilter: String, CaseIterable {
-    case todas = "TODAS", piedras = "PIEDRAS", sectores = "SECTORES"
-    case parkings = "PARKINGS", mover = "MOVER"
-    func matches(_ t: String) -> Bool {
-        switch self {
-        case .todas: return true
-        case .piedras: return t.uppercased() == "BOULDER"
-        case .sectores: return t.uppercased() == "SECTOR"
-        case .parkings: return t.uppercased() == "PARKING"
-        case .mover: return t.uppercased() == "POSITION_CORRECTION"
-        }
-    }
-}
-
 struct AdminView: View {
     /// Si viene true (desde el push de una denuncia) abre en la pestaña DENUNCIAS.
     var openDenuncias: Bool = false
     @StateObject private var vm = AdminViewModel()
-    /// Reject de las tarjetas en VISTA PREVIA de la portada — la pantalla
-    /// completa (AdminPropuestasScreen) tiene la suya propia, independiente.
     @State private var rejecting: RejectTarget?
     @State private var previewUsers: [AdminUserRow]? = nil
     @State private var openDenunciasScreen = false
 
-    /// Portada única del admin — v2 (2026-09-07). La v1 fusionaba TODO el
-    /// contenido de cada sección en un único ScrollView con más ScrollViews
-    /// anidados dentro, y eso colgaba la app de verdad en dispositivo (bien
-    /// documentado: ScrollView-en-ScrollView da problemas reales de gestos en
-    /// iOS, algo que Xcode/CI no detectan porque no llegan a correr la UI).
-    /// Esta vez: UN solo ScrollView de verdad, cada sección muestra solo una
-    /// VISTA PREVIA (2-3 elementos, sin scroll propio) con un "Ver todo" que
-    /// EMPUJA (NavigationLink) a la pantalla completa — esa sí con su propio
-    /// ScrollView, pero nunca anidado dentro de otro.
+    @State private var showAllUsers = false
+
+    /// Portada única del admin — v3 (2026-09-07). La v1 fusionaba TODO en un
+    /// único ScrollView con MÁS ScrollViews del mismo eje dentro, y eso
+    /// colgaba la app de verdad en dispositivo (ScrollView-en-ScrollView del
+    /// mismo eje es un problema real de gestos en iOS que Xcode/CI no
+    /// detectan porque no llegan a correr la UI). La v2 lo evitó a base de
+    /// "vista previa + ver todo", pero a Álvaro no le convenció — quería
+    /// verlo TODO de una vez, como en la primera maqueta que le gustó.
+    /// Esta v3 hace justo eso, sin el problema técnico: TODO vive aquí,
+    /// agrupado por color como la maqueta "A", pero ninguna sección mete su
+    /// propio ScrollView — todas son contenido plano (VStack/LazyVGrid), así
+    /// que solo hay UN ScrollView de verdad en toda la pantalla.
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if let s = vm.stats, s.submissionsPending > 0 {
-                    NavigationLink(destination: AdminPropuestasScreen(vm: vm)) {
-                        HStack(spacing: 12) {
-                            Text("⏳").font(.system(size: 26))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("PENDIENTE DE REVISAR").font(Cumbre.mono(10, .bold)).tracking(0.8).opacity(0.85)
-                                Text("\(s.submissionsPending) propuesta\(s.submissionsPending == 1 ? "" : "s")")
-                                    .font(Cumbre.serif(22, .bold))
-                                Text("Toca para ir directo a revisarlas →").font(.system(size: 11.5)).opacity(0.9)
-                            }
-                            Spacer()
+                    HStack(spacing: 12) {
+                        Text("⏳").font(.system(size: 26))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("PENDIENTE DE REVISAR").font(Cumbre.mono(10, .bold)).tracking(0.8).opacity(0.85)
+                            Text("\(s.submissionsPending) propuesta\(s.submissionsPending == 1 ? "" : "s")")
+                                .font(Cumbre.serif(22, .bold))
+                            Text("Justo debajo, para revisarlas ya.").font(.system(size: 11.5)).opacity(0.9)
                         }
-                        .foregroundStyle(.white).padding(16).background(Cumbre.terraFill)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }.buttonStyle(.plain)
+                        Spacer()
+                    }
+                    .foregroundStyle(.white).padding(16).background(Cumbre.terraFill)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                     .padding(.horizontal, 16).padding(.top, 12)
                 }
 
-                homeSection("PROPUESTAS", count: vm.submissions.count + vm.contributions.count,
-                            destination: AdminPropuestasScreen(vm: vm)) {
-                    if vm.loading {
-                        ProgressView().padding(16).frame(maxWidth: .infinity)
-                    } else if vm.submissions.isEmpty && vm.contributions.isEmpty {
-                        Text("Nada pendiente de revisar.").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                // ── PROPUESTAS: todo, sin recortar — nombre+mensaje+historial
+                // del que propone ya vienen de serie en estas tarjetas.
+                // Separadas en dos grupos: Pendientes (a revisar ya) y
+                // Esperando Respuesta (el admin le preguntó algo al proponente
+                // y las sacó de en medio hasta que conteste — Álvaro, 2026-09-07).
+                sectionLabel("Propuestas")
+                if vm.loading {
+                    ProgressView().padding(16).frame(maxWidth: .infinity)
+                } else if vm.submissions.isEmpty && vm.contributions.isEmpty {
+                    Text("Nada pendiente de revisar.").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                        .padding(.horizontal, 16).padding(.bottom, 12)
+                } else {
+                    let pendingSubs = vm.submissions.filter { $0.awaitingReplySince == nil }
+                    let waitingSubs = vm.submissions.filter { $0.awaitingReplySince != nil }
+                    let pendingContribs = vm.contributions.filter { $0.awaitingReplySince == nil }
+                    let waitingContribs = vm.contributions.filter { $0.awaitingReplySince != nil }
+
+                    if pendingSubs.isEmpty && pendingContribs.isEmpty {
+                        Text("Nada pendiente de revisar por ahora.").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
                             .padding(.horizontal, 16).padding(.bottom, 12)
                     } else {
-                        ForEach(vm.submissions.prefix(2), id: \.id) { s in
+                        ForEach(pendingSubs, id: \.id) { s in
                             SubmissionAdminCard(
                                 submission: s, busy: vm.working.contains(s.id),
                                 onApprove: { vm.reviewSubmission(s.id, approve: true, reason: nil) },
-                                onReject: { rejecting = RejectTarget(id: s.id, isSubmission: true) })
+                                onReject: { rejecting = RejectTarget(id: s.id, isSubmission: true) },
+                                onToggleAwaitingReply: { vm.toggleSubmissionAwaitingReply(s.id, waiting: true) })
                             Divider().overlay(Cumbre.rule)
                         }
-                        ForEach(vm.contributions.prefix(max(0, 2 - vm.submissions.count)), id: \.id) { c in
+                        ForEach(pendingContribs, id: \.id) { c in
                             ContributionAdminCard(
                                 contribution: c, busy: vm.working.contains(c.id),
                                 onApprove: { vm.reviewContribution(c.id, approve: true, reason: nil) },
                                 onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) },
-                                onApproveEdited: { edited in vm.approveContributionEdited(c.id, editedBloquesJson: edited) })
+                                onApproveEdited: { edited in vm.approveContributionEdited(c.id, editedBloquesJson: edited) },
+                                onToggleAwaitingReply: { vm.toggleContributionAwaitingReply(c.id, waiting: true) })
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+
+                    if !waitingSubs.isEmpty || !waitingContribs.isEmpty {
+                        Text("ESPERANDO RESPUESTA").font(Cumbre.mono(10, .bold)).tracking(0.8)
+                            .foregroundStyle(Cumbre.ink3)
+                            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 6)
+                        ForEach(waitingSubs, id: \.id) { s in
+                            SubmissionAdminCard(
+                                submission: s, busy: vm.working.contains(s.id),
+                                onApprove: { vm.reviewSubmission(s.id, approve: true, reason: nil) },
+                                onReject: { rejecting = RejectTarget(id: s.id, isSubmission: true) },
+                                onToggleAwaitingReply: { vm.toggleSubmissionAwaitingReply(s.id, waiting: false) })
+                            Divider().overlay(Cumbre.rule)
+                        }
+                        ForEach(waitingContribs, id: \.id) { c in
+                            ContributionAdminCard(
+                                contribution: c, busy: vm.working.contains(c.id),
+                                onApprove: { vm.reviewContribution(c.id, approve: true, reason: nil) },
+                                onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) },
+                                onApproveEdited: { edited in vm.approveContributionEdited(c.id, editedBloquesJson: edited) },
+                                onToggleAwaitingReply: { vm.toggleContributionAwaitingReply(c.id, waiting: false) })
                             Divider().overlay(Cumbre.rule)
                         }
                     }
                 }
 
-                sectionLabel("STATS")
+                // ── STATS: rejilla agrupada por tema y color (la maqueta "A").
+                sectionLabel("Stats")
                 AdminStatsGrid(stats: vm.stats)
 
-                homeSection("USUARIOS", count: previewUsers?.count, destination: AdminUsersScreen()) {
-                    if let list = previewUsers {
-                        ForEach(list.prefix(3), id: \.uid) { u in
-                            AdminUserRowView(u: u).padding(.horizontal, 16)
-                            Divider().overlay(Cumbre.rule)
-                        }
-                    } else {
-                        ProgressView().padding(16).frame(maxWidth: .infinity)
+                // ── USUARIOS: foto/aportes/denuncias. Empieza mostrando 8 y
+                // "ver todos" despliega el resto — con 200 usuarios, cargarlos
+                // TODOS de golpe en pantalla es más peso del que hace falta
+                // para lo que se mira a diario.
+                sectionLabel("Usuarios")
+                if let list = previewUsers {
+                    ForEach(list.prefix(showAllUsers ? list.count : 8), id: \.uid) { u in
+                        AdminUserRowView(u: u).padding(.horizontal, 16)
+                        Divider().overlay(Cumbre.rule)
                     }
+                    if list.count > 8 {
+                        Button { showAllUsers.toggle() } label: {
+                            Text(showAllUsers ? "VER MENOS" : "VER TODOS (\(list.count))")
+                                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                    }
+                } else {
+                    ProgressView().padding(16).frame(maxWidth: .infinity)
                 }
 
-                homeRow("ACTIVIDAD", destination: AdminActivityTab(vm: vm))
+                // ── ACTIVIDAD: aprobadas/rechazadas con quién.
+                sectionLabel("Actividad")
+                AdminActivityTab(vm: vm)
+
+                // ── SUGERENCIAS
+                sectionLabel("Sugerencias")
+                AdminSuggestionsTab(
+                    rows: vm.suggestions,
+                    onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) })
+
+                // ── PUSH
+                sectionLabel("Enviar aviso")
+                AdminPushTab(vm: vm)
+
+                // Denuncias y Gestionar llevan mapa — se abren aparte: un mapa
+                // dentro de un ScrollView sin alto fijo da problemas de verdad.
+                sectionLabel("Más")
                 homeRow("DENUNCIAS", destination: AdminReportsTab())
                 homeRow("GESTIONAR", destination: GestionarTab(vm: vm))
-                homeRow("SUGERENCIAS", destination: AdminSuggestionsTab(
-                    rows: vm.suggestions,
-                    onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) }))
-                homeRow("PUSH", destination: AdminPushTab(vm: vm))
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 40)
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle("Admin")
@@ -227,6 +298,8 @@ struct AdminView: View {
         .task {
             await vm.load()
             await vm.loadStats()
+            await vm.loadActivity()
+            await vm.loadSuggestions()
             previewUsers = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? []
         }
         .onAppear { if openDenuncias { openDenunciasScreen = true } }
@@ -242,25 +315,6 @@ struct AdminView: View {
         Text(t).font(Cumbre.mono(11, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink2)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 8)
-    }
-
-    /// Sección de la portada con vista previa (contenido pasado, SIN scroll
-    /// propio) + "Ver todo" que empuja a la pantalla completa. El recuento se
-    /// pone junto al título para que se sepa cuánto hay sin tener que entrar.
-    @ViewBuilder
-    private func homeSection<Destination: View, Content: View>(
-        _ title: String, count: Int?, destination: Destination, @ViewBuilder content: () -> Content
-    ) -> some View {
-        HStack {
-            Text(title).font(Cumbre.mono(11, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink2)
-            if let count { Text("· \(count)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3) }
-            Spacer()
-            NavigationLink(destination: destination) {
-                Text("VER TODO").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
-            }
-        }
-        .padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 8)
-        content()
     }
 
     /// Fila simple que solo empuja a su pantalla — para secciones que no
@@ -287,12 +341,19 @@ struct AdminStatsGrid: View {
 
     var body: some View {
         if let s = stats {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                subLabel("Comunidad")
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     card("USUARIOS", s.totalUsers, "👤", Cumbre.rain)
                     card("ADMINS", s.totalAdmins, "🛡️", Cumbre.terra)
+                }
+                subLabel("Contenido")
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     card("ESCUELAS", s.totalSchools, "🧗", Cumbre.rain)
                     card("NOTAS", s.totalNotes, "📓", Cumbre.rain)
+                }
+                subLabel("Moderación")
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     card("APROBADAS", s.submissionsApproved, "✔️", Cumbre.ok)
                     card("RECHAZADAS", s.submissionsRejected, "✕", Cumbre.bad)
                 }
@@ -301,6 +362,11 @@ struct AdminStatsGrid: View {
         } else {
             ProgressView().padding(16).frame(maxWidth: .infinity)
         }
+    }
+
+    private func subLabel(_ t: String) -> some View {
+        Text(t.uppercased()).font(Cumbre.mono(9.5, .bold)).tracking(1).foregroundStyle(Cumbre.ink3)
+            .padding(.top, 10).padding(.bottom, 2)
     }
 
     private func card(_ label: String, _ value: Int64, _ icon: String, _ tint: Color) -> some View {
@@ -313,103 +379,6 @@ struct AdminStatsGrid: View {
         .padding(12)
         .background(tint.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-}
-
-/// Pantalla completa de Propuestas ("Ver todo" desde la portada) — su propio
-/// ScrollView, independiente. Autosuficiente: no comparte estado con la
-/// portada, para que anidar/empujar entre pantallas no dependa de bindings.
-struct AdminPropuestasScreen: View {
-    @ObservedObject var vm: AdminViewModel
-    @State private var rejecting: RejectTarget?
-    @State private var filter: ContribFilter = .todas
-
-    private var filteredContributions: [Contribution] {
-        vm.contributions.filter { filter.matches($0.type) }
-    }
-    private var groupedBySchool: [(school: String, items: [Contribution])] {
-        let groups = Dictionary(grouping: filteredContributions, by: { $0.schoolName })
-        return groups.keys.sorted().map { (school: $0, items: groups[$0] ?? []) }
-    }
-
-    var body: some View {
-        Group {
-            if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if vm.submissions.isEmpty && vm.contributions.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.seal").font(.system(size: 36)).foregroundStyle(Cumbre.ok)
-                    Text("Nada pendiente de revisar.").font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
-            } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        if !vm.submissions.isEmpty {
-                            sectionHeader("ESCUELAS NUEVAS · \(vm.submissions.count)")
-                            ForEach(vm.submissions, id: \.id) { s in
-                                SubmissionAdminCard(
-                                    submission: s,
-                                    busy: vm.working.contains(s.id),
-                                    onApprove: { vm.reviewSubmission(s.id, approve: true, reason: nil) },
-                                    onReject: { rejecting = RejectTarget(id: s.id, isSubmission: true) }
-                                )
-                                Divider().overlay(Cumbre.rule)
-                            }
-                        }
-                        if !vm.contributions.isEmpty {
-                            sectionHeader("MEJORAS · \(filteredContributions.count)")
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 6) {
-                                    ForEach(ContribFilter.allCases, id: \.self) { f in
-                                        let on = filter == f
-                                        Button { filter = f } label: {
-                                            Text(f.rawValue).font(Cumbre.mono(10, .bold)).tracking(0.6)
-                                                .foregroundStyle(on ? .white : Cumbre.ink2)
-                                                .padding(.horizontal, 10).padding(.vertical, 6)
-                                                .background(on ? Cumbre.ink : Color.clear)
-                                                .overlay(Rectangle().stroke(on ? Cumbre.ink : Cumbre.rule, lineWidth: 1))
-                                        }.buttonStyle(.plain)
-                                    }
-                                }.padding(.horizontal, 16).padding(.vertical, 8)
-                            }
-                            ForEach(groupedBySchool, id: \.school) { group in
-                                Text("\(group.school.uppercased()) · \(group.items.count)")
-                                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 16).padding(.top, 8)
-                                ForEach(group.items, id: \.id) { c in
-                                    ContributionAdminCard(
-                                        contribution: c,
-                                        busy: vm.working.contains(c.id),
-                                        onApprove: { vm.reviewContribution(c.id, approve: true, reason: nil) },
-                                        onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) },
-                                        onApproveEdited: { edited in vm.approveContributionEdited(c.id, editedBloquesJson: edited) }
-                                    )
-                                    Divider().overlay(Cumbre.rule)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle("Propuestas")
-        .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $rejecting) { target in
-            RejectReasonSheet { reason in
-                if target.isSubmission { vm.reviewSubmission(target.id, approve: false, reason: reason) }
-                else { vm.reviewContribution(target.id, approve: false, reason: reason) }
-            }
-        }
-    }
-
-    private func sectionHeader(_ t: String) -> some View {
-        Text(t).font(Cumbre.mono(11, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16).padding(.vertical, 8)
-            .background(Cumbre.bg)
     }
 }
 

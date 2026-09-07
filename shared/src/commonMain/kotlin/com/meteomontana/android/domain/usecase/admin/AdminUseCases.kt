@@ -81,3 +81,20 @@ class MoveSchoolUseCase(private val repository: AdminRepository) {
     suspend operator fun invoke(schoolId: String, lat: Double, lon: Double) =
         repository.moveSchool(schoolId, lat, lon)
 }
+
+/** "Esperando respuesta" para propuestas de escuela nueva: el admin ha
+ *  preguntado algo al proponente y quiere sacarla de la cola normal mientras
+ *  espera contestación (no cambia el status, sigue PENDING). */
+class SetSubmissionAwaitingReplyUseCase(private val repository: AdminRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(id: String, waiting: Boolean) =
+        repository.setSubmissionAwaitingReply(id, waiting)
+}
+
+/** Espejo de [SetSubmissionAwaitingReplyUseCase] para propuestas de mejora
+ *  (piedras, sectores, parkings, correcciones...). */
+class SetContributionAwaitingReplyUseCase(private val repository: AdminRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(id: String, waiting: Boolean) =
+        repository.setContributionAwaitingReply(id, waiting)
+}

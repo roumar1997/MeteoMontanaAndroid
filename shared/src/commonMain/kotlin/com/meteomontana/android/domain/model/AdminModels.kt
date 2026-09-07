@@ -52,5 +52,8 @@ data class Submission(
     val reviewReason: String?,
     val createdSchoolId: String?,
     val createdAt: String,
-    val reviewedAt: String?
+    val reviewedAt: String?,
+    val submittedByPhotoPath: String? = null,
+    /** Desde cuándo el admin espera respuesta del proponente (null = no espera nada). */
+    val awaitingReplySince: String? = null
 )

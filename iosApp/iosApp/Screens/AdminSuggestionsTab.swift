@@ -15,19 +15,15 @@ struct AdminSuggestionsTab: View {
 
     var body: some View {
         if rows == nil {
-            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            ProgressView().padding(24).frame(maxWidth: .infinity)
         } else if sorted.isEmpty {
             Text("Sin sugerencias todavía")
                 .foregroundStyle(Cumbre.ink3)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 16).padding(.bottom, 16)
         } else {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(sorted, id: \.id) { row in
-                        SuggestionCard(row: row, onRespond: onRespond)
-                        Divider().overlay(Cumbre.rule)
-                    }
-                }
+            ForEach(sorted, id: \.id) { row in
+                SuggestionCard(row: row, onRespond: onRespond)
+                Divider().overlay(Cumbre.rule)
             }
         }
     }
