@@ -39,6 +39,12 @@ struct EditLinesSheet: View {
     // Geometría/sentido del muro (editables). El bloque ya creado los trae.
     @State private var geometry = "POINT"
     @State private var direction = "LTR"
+    // Modalidad (Bloque/Vía): antes solo se elegía al proponer la piedra
+    // NUEVA y no se podía corregir después — un despiste al proponerla se
+    // quedaba mal para siempre (Álvaro, 2026-09-08: caso real en La Pedriza,
+    // "La Raja", 3 vías subidas como bloque). Precargada con la modalidad
+    // actual del bloque, así que si no se toca se manda igual que ya estaba.
+    @State private var discipline = "BOULDER"
     @State private var showReorder = false
     @State private var showTrace = false
     @State private var tracedPath: [CLLocationCoordinate2D] = []
@@ -161,6 +167,12 @@ struct EditLinesSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Edita «\(block.name)»: corrige o añade vías, añade más fotos, reordénalas y ajusta el muro. Un admin lo revisará.")
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+
+                    // ── Modalidad (Bloque/Vía) ────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("MODALIDAD").eyebrow()
+                        DisciplineSelector(selected: $discipline)
+                    }
 
                     // ── Geometría / sentido ───────────────────────────────────────
                     VStack(alignment: .leading, spacing: 6) {
@@ -432,6 +444,7 @@ struct EditLinesSheet: View {
             loaded = true
             geometry = block.geometry.isEmpty ? "POINT" : block.geometry
             direction = block.direction.isEmpty ? "LTR" : block.direction
+            discipline = block.discipline.isEmpty ? "BOULDER" : block.discipline
             let faces = block.facesOrDerived()
             if faces.isEmpty {
                 // Piedra sin caras/vías → una cara con la portada y una vía nueva.
@@ -606,7 +619,7 @@ struct EditLinesSheet: View {
             type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
             notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
             targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
-            photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: nil,
+            photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: discipline,
             geometry: geometry,
             path: isWall ? (tracedPath.isEmpty ? block.path : buildPathJson(tracedPath)) : nil,
             direction: direction, orientationsJson: nil)
@@ -662,6 +675,7 @@ struct EditLinesSheet: View {
             "schoolId": schoolId,
             "targetBlockId": block.id,
             "lat": block.lat, "lon": block.lon,
+            "discipline": discipline,
             "geometry": geometry,
             "pathJson": isWall ? (tracedPath.isEmpty ? (block.path ?? NSNull()) : buildPathJson(tracedPath)) : NSNull(),
             "direction": direction,

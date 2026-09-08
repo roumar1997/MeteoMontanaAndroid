@@ -95,7 +95,7 @@ enum ContributionOutboxFlusher {
             sectorBlockId: nil,
             photoUrl: nil,
             bloquesJson: bloquesJson, topoLinesJson: nil,
-            discipline: nil,
+            discipline: q["discipline"] as? String,
             geometry: q["geometry"] as? String,
             path: q["pathJson"] as? String,
             direction: q["direction"] as? String,
