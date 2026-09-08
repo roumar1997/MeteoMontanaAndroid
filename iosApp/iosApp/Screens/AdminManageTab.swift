@@ -8,6 +8,12 @@ struct GestionarTab: View {
     @ObservedObject var vm: AdminViewModel
     @State private var query = ""
     @State private var selected: School?
+    /// `SchoolBlocksManageSheet` (mapa con pines → editar bloque, con MODALIDAD
+    /// bloque/vía) existía en el código pero no estaba enganchada a ningún
+    /// botón — el admin no tenía forma de llegar a ella (Álvaro, 2026-09-08:
+    /// "no aparece lo de modalidad desde admin"). Se abre desde un botón nuevo
+    /// en la ficha de la escuela, sin tocar el flujo normal que ya usabas.
+    @State private var manageBlocksSchool: School?
 
     private var filtered: [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -56,8 +62,17 @@ struct GestionarTab: View {
                             Button("CERRAR") { selected = nil }
                                 .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
                         }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { manageBlocksSchool = s } label: {
+                                Label("GESTIONAR BLOQUES", systemImage: "wrench.and.screwdriver")
+                                    .font(Cumbre.mono(11, .bold))
+                            }
+                        }
                     }
             }
+        }
+        .fullScreenCover(item: $manageBlocksSchool) { s in
+            SchoolBlocksManageSheet(school: s)
         }
     }
 }
