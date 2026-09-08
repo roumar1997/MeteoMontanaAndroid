@@ -6,13 +6,7 @@ import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Submission
-import com.meteomontana.android.domain.model.UserActivityItem
 import com.meteomontana.android.domain.repository.AdminRepository
-
-class GetUserActivityUseCase(private val repository: AdminRepository) {
-    @Throws(Exception::class)
-    suspend operator fun invoke(uid: String): List<UserActivityItem> = repository.getUserActivity(uid)
-}
 
 class GetAdminStatsUseCase(private val repository: AdminRepository) {
     @Throws(Exception::class)
@@ -20,9 +14,8 @@ class GetAdminStatsUseCase(private val repository: AdminRepository) {
 }
 
 class GetPendingSubmissionsUseCase(private val repository: AdminRepository) {
-    /** status null = PENDING (cola de siempre); APPROVED/REJECTED = historial. */
     @Throws(Exception::class)
-    suspend operator fun invoke(status: String? = null): List<Submission> = repository.getPendingSubmissions(status)
+    suspend operator fun invoke(): List<Submission> = repository.getPendingSubmissions()
 }
 
 class GetPendingContributionsUseCase(private val repository: AdminRepository) {
@@ -80,21 +73,4 @@ class MoveSchoolUseCase(private val repository: AdminRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(schoolId: String, lat: Double, lon: Double) =
         repository.moveSchool(schoolId, lat, lon)
-}
-
-/** "Esperando respuesta" para propuestas de escuela nueva: el admin ha
- *  preguntado algo al proponente y quiere sacarla de la cola normal mientras
- *  espera contestación (no cambia el status, sigue PENDING). */
-class SetSubmissionAwaitingReplyUseCase(private val repository: AdminRepository) {
-    @Throws(Exception::class)
-    suspend operator fun invoke(id: String, waiting: Boolean) =
-        repository.setSubmissionAwaitingReply(id, waiting)
-}
-
-/** Espejo de [SetSubmissionAwaitingReplyUseCase] para propuestas de mejora
- *  (piedras, sectores, parkings, correcciones...). */
-class SetContributionAwaitingReplyUseCase(private val repository: AdminRepository) {
-    @Throws(Exception::class)
-    suspend operator fun invoke(id: String, waiting: Boolean) =
-        repository.setContributionAwaitingReply(id, waiting)
 }

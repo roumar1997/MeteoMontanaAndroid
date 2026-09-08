@@ -143,8 +143,8 @@ fun InboxDto.toDomain() = Inbox(unreadCount, items.map { it.toDomain() })
 fun AdminStatsDto.toDomain() = AdminStats(totalUsers, totalAdmins, totalSchools, totalNotes, submissionsPending, submissionsApproved, submissionsRejected)
 fun AdminLogDto.toDomain() = AdminLog(id, actorUid, action, targetType, targetId, details, createdAt)
 fun AdminPushResponse.toDomain() = AdminPushResult(sent, recipients)
-fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, proposedStyle, proposedRockType, proposedLat, proposedLon, proposedLocation, proposedSource, notes, status, submittedByUid, submittedByName, reviewedByUid, reviewReason, createdSchoolId, createdAt, reviewedAt, submittedByPhotoPath, awaitingReplySince)
-fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByUid, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, sectorBlockId, proposedLat, proposedLon, correctionReason, geometry, path, direction, submittedByPhotoPath, awaitingReplySince)
+fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, proposedStyle, proposedRockType, proposedLat, proposedLon, proposedLocation, proposedSource, notes, status, submittedByUid, reviewedByUid, reviewReason, createdSchoolId, createdAt, reviewedAt)
+fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, sectorBlockId, proposedLat, proposedLon, correctionReason, geometry, path, direction)
 
 // Journal
 fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status, aVista, alFlash)

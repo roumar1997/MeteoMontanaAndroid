@@ -21,8 +21,6 @@ import com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCas
 import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
 import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
-import com.meteomontana.android.domain.usecase.admin.SetSubmissionAwaitingReplyUseCase
-import com.meteomontana.android.domain.usecase.admin.SetContributionAwaitingReplyUseCase
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlockUseCase
@@ -349,10 +347,6 @@ object UseCasesModule {
 
     // Admin
     @Provides @Singleton
-    fun provideGetUserActivityUseCase(repo: AdminRepository) =
-        com.meteomontana.android.domain.usecase.admin.GetUserActivityUseCase(repo)
-
-    @Provides @Singleton
     fun provideGetAdminStatsUseCase(repo: AdminRepository) = GetAdminStatsUseCase(repo)
 
     @Provides @Singleton
@@ -382,14 +376,6 @@ object UseCasesModule {
 
     @Provides @Singleton
     fun provideSendPushUseCase(repo: AdminRepository) = SendPushUseCase(repo)
-
-    @Provides @Singleton
-    fun provideSetSubmissionAwaitingReplyUseCase(repo: AdminRepository) =
-        SetSubmissionAwaitingReplyUseCase(repo)
-
-    @Provides @Singleton
-    fun provideSetContributionAwaitingReplyUseCase(repo: AdminRepository) =
-        SetContributionAwaitingReplyUseCase(repo)
 
     @Provides @Singleton
     fun provideGetPendingReportsUseCase(repo: AdminRepository) =

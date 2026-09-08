@@ -5,76 +5,23 @@ import CoreLocation
 // Cards de revision de propuestas (escuelas nuevas + mejoras) con su diff,
 // mini-mapa, topo ampliable y botones. Reparto del antiguo AdminView.swift de 1.789 lineas.
 
-/// Ya resuelta (vista en Actividad): en vez de los botones de aprobar/
-/// rechazar, solo el resultado — no tiene sentido seguir ofreciéndolos
-/// cuando la decisión ya está tomada (Álvaro, 2026-09-07).
-@ViewBuilder
-private func resolvedBadge(_ status: String) -> some View {
-    let ok = status == "APPROVED"
-    Text(ok ? "✔ APROBADA" : "✕ RECHAZADA")
-        .font(Cumbre.mono(11, .bold)).tracking(0.6)
-        .foregroundStyle(ok ? Cumbre.ok : Cumbre.bad)
-        .padding(.top, 4)
-}
-
 struct SubmissionAdminCard: View {
     let submission: Submission
     let busy: Bool
     let onApprove: () -> Void
     let onReject: () -> Void
-    /// nil = no ofrecer el botón (no aplica, p. ej. tab de Actividad si se
-    /// reutilizara sin este dato).
-    var onToggleAwaitingReply: (() -> Void)? = nil
-    @State private var showMap = false
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            AdminSubmitterActions(
-                uid: submission.submittedByUid, name: submission.submittedByName,
-                photoUrl: submission.submittedByPhotoPath,
-                awaitingReply: submission.status == "PENDING" ? (submission.awaitingReplySince != nil) : nil,
-                onToggleAwaitingReply: onToggleAwaitingReply, busy: busy)
             Text(submission.proposedName).font(Cumbre.serif(17, .bold)).foregroundStyle(Cumbre.ink)
             let sub = [submission.proposedRockType?.uppercased(), submission.proposedRegion, submission.proposedLocation]
                 .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  ·  ")
             if !sub.isEmpty { Text(sub).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3) }
-            // Antes solo texto plano — tocarlo abre el mapa de verdad, para
-            // que el admin vea dónde está sin tener que copiar coordenadas
-            // (Álvaro, 2026-09-06: "no puedo ver bien dónde").
-            Button { showMap = true } label: {
-                Label(String(format: "%.5f, %.5f", submission.proposedLat, submission.proposedLon),
-                      systemImage: "map")
-                    .font(Cumbre.mono(11, .bold))
-                    .foregroundStyle(Cumbre.terra)
-            }
+            Text(String(format: "%.5f, %.5f", submission.proposedLat, submission.proposedLon))
+                .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
             if let n = submission.notes, !n.isEmpty { Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2) }
-            // Solo se puede aprobar/rechazar mientras está PENDING — al verla
-            // en Actividad (ya resuelta) no tiene sentido seguir ofreciendo
-            // los botones (Álvaro, 2026-09-07).
-            if submission.status == "PENDING" {
-                ReviewButtons(busy: busy, onApprove: onApprove, onReject: onReject)
-            } else {
-                resolvedBadge(submission.status)
-            }
+            ReviewButtons(busy: busy, onApprove: onApprove, onReject: onReject)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
-        .sheet(isPresented: $showMap) {
-            NavigationStack {
-                MapLibreView(
-                    center: CLLocationCoordinate2D(latitude: submission.proposedLat, longitude: submission.proposedLon),
-                    zoom: 14,
-                    markers: [CumbreMarker(id: submission.id,
-                                            coordinate: CLLocationCoordinate2D(latitude: submission.proposedLat, longitude: submission.proposedLon),
-                                            title: submission.proposedName)]
-                )
-                .navigationTitle(submission.proposedName)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Cerrar") { showMap = false }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -85,22 +32,13 @@ struct ContributionAdminCard: View {
     let onReject: () -> Void
     /// "EDITAR Y APROBAR": (bloquesJson retocado) → aprueba con los cambios.
     var onApproveEdited: ((String) -> Void)? = nil
-    var onToggleAwaitingReply: (() -> Void)? = nil
     @State private var showMap = false
     @State private var showEditApprove = false
     // Bloques de la escuela (para resolver la piedra/sector destino al revisar
     // corregir/añadir vías o asignar sector — el admin debe ver QUÉ se cambia).
     @State private var schoolBlocks: [Block] = []
     @State private var blocksLoaded = false
-    // Escuela actual, SOLO para el "ANTES" de corregir nombre/estilo — antes
-    // esas dos propuestas caían en el genérico "Propuesta de tipo X" sin
-    // enseñar qué cambia de verdad (Álvaro, 2026-09-07).
-    @State private var school: School? = nil
     private var targetBlock: Block? { schoolBlocks.first { $0.id == contribution.targetBlockId } }
-    private var isSchoolCorrection: Bool {
-        let t = contribution.type.uppercased()
-        return t == "SCHOOL_NAME_CORRECTION" || t == "SCHOOL_STYLE_CORRECTION"
-    }
 
     private var isCorrection: Bool { contribution.type.uppercased() == "POSITION_CORRECTION" }
     private var newCoord: CLLocationCoordinate2D? {
@@ -116,12 +54,10 @@ struct ContributionAdminCard: View {
                     .foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 3)
                     .background(isCorrection ? Cumbre.bad : Cumbre.terra)
                 Spacer()
+                if let a = contribution.submittedByName, !a.isEmpty {
+                    Text(a).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                }
             }
-            AdminSubmitterActions(
-                uid: contribution.submittedByUid, name: contribution.submittedByName,
-                photoUrl: contribution.submittedByPhotoPath,
-                awaitingReply: contribution.status == "PENDING" ? (contribution.awaitingReplySince != nil) : nil,
-                onToggleAwaitingReply: onToggleAwaitingReply, busy: busy)
             Text(contribution.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
 
             // QUÉ CAMBIA en una línea — se entiende la propuesta sin scrollear
@@ -165,10 +101,6 @@ struct ContributionAdminCard: View {
                     Text("→ SECTOR · \((sector?.name ?? "?").uppercased())")
                         .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                 }
-            case "SCHOOL_NAME_CORRECTION":
-                beforeAfterRow(label: "NOMBRE", before: contribution.schoolName, after: contribution.name)
-            case "SCHOOL_STYLE_CORRECTION":
-                beforeAfterRow(label: "ESTILO", before: school?.style, after: contribution.name)
             default:
                 EmptyView()
             }
@@ -188,15 +120,11 @@ struct ContributionAdminCard: View {
                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
             }.buttonStyle(.plain)
 
-            if contribution.status == "PENDING" {
-                ReviewButtons(busy: busy, onApprove: onApprove, onReject: onReject)
-            } else {
-                resolvedBadge(contribution.status)
-            }
+            ReviewButtons(busy: busy, onApprove: onApprove, onReject: onReject)
 
             // EDITAR Y APROBAR: el admin retoca la propuesta en el editor
             // normal (imán, toques, franjas) y se aprueba con SUS cambios.
-            if contribution.status == "PENDING", onApproveEdited != nil, !AdminEditApprove.editableFaces(of: contribution).isEmpty {
+            if onApproveEdited != nil, !AdminEditApprove.editableFaces(of: contribution).isEmpty {
                 Button { showEditApprove = true } label: {
                     Text("✎ EDITAR Y APROBAR").font(Cumbre.mono(11, .bold)).tracking(0.8)
                         .foregroundStyle(Cumbre.terra)
@@ -221,26 +149,10 @@ struct ContributionAdminCard: View {
                 .invoke(schoolId: contribution.schoolId)) ?? []
             blocksLoaded = true
         }
-        .task(id: contribution.id) {
-            guard isSchoolCorrection else { return }
-            school = try? await AppDependencies.shared.container.getSchoolById
-                .invoke(id: contribution.schoolId)
-        }
     }
 
     private func coordStr(_ lat: Double, _ lon: Double) -> String {
         String(format: "%.5f, %.5f", lat, lon)
-    }
-
-    @ViewBuilder
-    private func beforeAfterRow(label: String, before: String?, after: String?) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("CORREGIR \(label)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
-            Text("✕ actual: \(before?.isEmpty == false ? before! : "—")")
-                .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-            Text("★ propuesto: \(after?.isEmpty == false ? after! : "—")")
-                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-        }
     }
 }
 
@@ -487,8 +399,6 @@ func adminTypeLabel(_ t: String) -> String {
     case "SECTOR": return "SECTOR"
     case "POSITION_CORRECTION": return "CORREGIR POSICIÓN"
     case "ASSIGN_SECTOR": return "ASIGNAR SECTOR"
-    case "SCHOOL_NAME_CORRECTION": return "CORREGIR NOMBRE"
-    case "SCHOOL_STYLE_CORRECTION": return "CORREGIR ESTILO"
     default: return t.uppercased()
     }
 }
@@ -528,10 +438,6 @@ func contributionSummary(_ c: Contribution, blocks: [Block]) -> String {
         if corrige > 0 { parts.append("corrige \(corrige)") }
         if parts.isEmpty { parts.append("cambios en el trazado/orden") }
         return (esMuro ? "Muro" : "Piedra") + " «\(target!.name)»: " + parts.joined(separator: " y ")
-    case "SCHOOL_NAME_CORRECTION":
-        return "Corrige el nombre de «\(c.schoolName)» a «\(c.name ?? "?")»"
-    case "SCHOOL_STYLE_CORRECTION":
-        return "Corrige el estilo de «\(c.schoolName)» a «\(c.name ?? "?")»"
     default:
         return "Propuesta de tipo \(c.type)"
     }
@@ -767,3 +673,12 @@ struct RejectReasonSheet: View {
     }
 }
 
+enum AdminTab: String, CaseIterable {
+    case propuestas = "PROPUESTAS"
+    case denuncias = "DENUNCIAS"
+    case gestionar = "GESTIONAR"
+    case stats = "STATS"
+    case actividad = "ACTIVIDAD"
+    case sugerencias = "SUGERENCIAS"
+    case push = "PUSH"
+}

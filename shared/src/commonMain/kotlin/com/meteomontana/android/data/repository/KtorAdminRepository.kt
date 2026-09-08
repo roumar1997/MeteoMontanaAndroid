@@ -5,25 +5,20 @@ import com.meteomontana.android.data.api.dto.AdminPushRequest
 import com.meteomontana.android.data.api.dto.RejectReason
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.MeetupReportDto
-import com.meteomontana.android.data.api.UserActivityItemDto
 import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Submission
-import com.meteomontana.android.domain.model.UserActivityItem
 import com.meteomontana.android.domain.repository.AdminRepository
 
 class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
 
-    override suspend fun getUserActivity(uid: String): List<UserActivityItem> =
-        api.userActivity(uid).map { it.toDomain() }
-
     override suspend fun getStats(): AdminStats = api.stats().toDomain()
 
-    override suspend fun getPendingSubmissions(status: String?): List<Submission> =
-        api.pendingSubmissions(status).map { it.toDomain() }
+    override suspend fun getPendingSubmissions(): List<Submission> =
+        api.pendingSubmissions().map { it.toDomain() }
 
     override suspend fun getPendingContributions(status: String?): List<Contribution> = api.pendingContributions(status).map { it.toDomain() }
 
@@ -42,12 +37,6 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
     override suspend fun rejectContribution(id: String, reason: String?): Contribution =
         api.rejectContribution(id, RejectReason(reason)).toDomain()
 
-    override suspend fun setSubmissionAwaitingReply(id: String, waiting: Boolean) =
-        api.setSubmissionAwaitingReply(id, waiting)
-
-    override suspend fun setContributionAwaitingReply(id: String, waiting: Boolean) =
-        api.setContributionAwaitingReply(id, waiting)
-
     override suspend fun sendPush(targetUid: String?, title: String, body: String): AdminPushResult =
         api.sendPush(AdminPushRequest(targetUid, title, body)).toDomain()
 
@@ -60,10 +49,6 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
     override suspend fun moveSchool(schoolId: String, lat: Double, lon: Double) =
         api.moveSchool(schoolId, lat, lon)
 }
-
-private fun UserActivityItemDto.toDomain() = UserActivityItem(
-    id = id, kind = kind, label = label, status = status, createdAt = createdAt
-)
 
 private fun MeetupReportDto.toDomain() = MeetupReport(
     id = id,

@@ -11,7 +11,6 @@ data class Contribution(
     val lon: Double,
     val notes: String?,
     val description: String?,
-    val submittedByUid: String?,
     val submittedByName: String?,
     val reviewReason: String?,
     val createdAt: String?,
@@ -28,8 +27,5 @@ data class Contribution(
     // Muro: geometría POINT/LINE, polilínea JSON, sentido de numeración LTR/RTL.
     val geometry: String? = null,
     val path: String? = null,
-    val direction: String? = null,
-    val submittedByPhotoPath: String? = null,
-    /** Desde cuándo el admin espera respuesta del proponente (null = no espera nada). */
-    val awaitingReplySince: String? = null
+    val direction: String? = null
 )

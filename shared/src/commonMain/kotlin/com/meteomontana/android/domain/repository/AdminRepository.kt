@@ -6,23 +6,16 @@ import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.Submission
-import com.meteomontana.android.domain.model.UserActivityItem
 
 interface AdminRepository {
-    /** Historial de un usuario (escuelas + mejoras propuestas). */
-    suspend fun getUserActivity(uid: String): List<UserActivityItem>
     suspend fun getStats(): AdminStats
-    suspend fun getPendingSubmissions(status: String? = null): List<Submission>
+    suspend fun getPendingSubmissions(): List<Submission>
     suspend fun getPendingContributions(status: String? = null): List<Contribution>
     suspend fun getLogs(limit: Int = 100): List<AdminLog>
     suspend fun approveSubmission(id: String): Submission
     suspend fun rejectSubmission(id: String, reason: String?): Submission
     suspend fun approveContribution(id: String, editedBloquesJson: String? = null): Contribution
     suspend fun rejectContribution(id: String, reason: String?): Contribution
-    /** "Esperando respuesta": saca (o mete) la propuesta de la cola normal
-     *  mientras el admin espera contestación del proponente. No cambia status. */
-    suspend fun setSubmissionAwaitingReply(id: String, waiting: Boolean)
-    suspend fun setContributionAwaitingReply(id: String, waiting: Boolean)
     suspend fun sendPush(targetUid: String?, title: String, body: String): AdminPushResult
     suspend fun getPendingReports(): List<MeetupReport>
     suspend fun resolveReport(id: String, action: String): MeetupReport

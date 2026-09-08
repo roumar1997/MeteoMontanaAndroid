@@ -4,141 +4,115 @@ import CoreLocation
 
 // Pestanas STATS / LOGS / PUSH del panel admin. Reparto de AdminView.swift.
 
-private func adminUserInitials(_ u: AdminUserRow) -> String {
-    let name = u.displayName ?? u.username ?? u.uid
-    let letters = name.split(separator: " ").prefix(2).compactMap { $0.first }
-    return letters.isEmpty ? "?" : String(letters).uppercased()
-}
-
-/// Fila de usuario reutilizable: foto (o iniciales), aviso rojo si tiene
-/// denuncias, y nº de aportaciones aprobadas — usada tanto en la lista
-/// completa como en la vista previa de la portada del admin (Álvaro,
-/// 2026-09-06/07: "que se vea mejor... su foto de perfil y número de
-/// aportaciones o si tienen denuncias").
-struct AdminUserRowView: View {
-    let u: AdminUserRow
-
-    var body: some View {
-        NavigationLink(destination: PublicProfileView(uid: u.uid)) {
-            HStack(spacing: 10) {
-                ZStack(alignment: .topTrailing) {
-                    Group {
-                        if let path = u.photoPath, !path.isEmpty, let url = URL(string: path) {
-                            AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: {
-                                Cumbre.rule
-                            }
-                        } else {
-                            Cumbre.rain.opacity(0.15)
-                                .overlay(Text(adminUserInitials(u)).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.rain))
-                        }
-                    }
-                    .frame(width: 38, height: 38)
-                    .clipShape(Circle())
-                    if u.reportCount > 0 {
-                        Text("!").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
-                            .frame(width: 15, height: 15).background(Circle().fill(Cumbre.bad))
-                            .overlay(Circle().stroke(Cumbre.paper, lineWidth: 2))
-                    }
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
-                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                    if u.isAdmin {
-                        Text("ADMIN").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
-                    } else if u.reportCount > 0 {
-                        Text("\(u.reportCount) denuncia\(u.reportCount == 1 ? "" : "s")")
-                            .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.bad)
-                    }
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("\(u.contributionCount)").font(Cumbre.serif(15, .bold)).foregroundStyle(Cumbre.ink)
-                    Text("APORTES").font(Cumbre.mono(8, .bold)).foregroundStyle(Cumbre.ink3)
-                }
-            }
-        }.buttonStyle(.plain)
-        .padding(.vertical, 8)
-    }
-}
-
-/// Pantalla completa de usuarios ("Ver todos" desde la portada del admin) —
-/// su propio ScrollView, independiente: nunca se embebe dentro de otro.
-struct AdminUsersScreen: View {
+struct AdminStatsTab: View {
+    let stats: AdminStats?
+    /// Cambia de pestaña (ESCUELAS → gestionar, PENDIENTES → propuestas).
+    var onGoToTab: (AdminTab) -> Void = { _ in }
+    @State private var openList: String? = nil
     @State private var users: [AdminUserRow]? = nil
+    @State private var notes: [AdminNoteRow]? = nil
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                if let list = users {
-                    ForEach(list, id: \.uid) { u in
-                        AdminUserRowView(u: u)
-                        Divider().overlay(Cumbre.rule)
-                    }
-                } else {
-                    ProgressView().padding(.top, 40).frame(maxWidth: .infinity)
-                }
-            }
-            .padding(.horizontal, 16)
-        }
-        .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle("Usuarios")
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? []
-        }
-    }
-}
-
-/// Tab ACTIVIDAD — historial de propuestas ya resueltas (aprobadas/rechazadas),
-/// con quién las mandó — antes "aprobadas"/"rechazadas" eran solo un número en
-/// STATS, sin poder ver el detalle (Álvaro, 2026-09-06). Reutiliza las mismas
-/// tarjetas que PROPUESTAS, así que ya traen nombre/mensaje/historial del
-/// autor de serie.
-struct AdminActivityTab: View {
-    @ObservedObject var vm: AdminViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                statusChip("APROBADAS", "APPROVED")
-                statusChip("RECHAZADAS", "REJECTED")
-            }.padding(.horizontal, 16).padding(.vertical, 8)
-            if vm.activityLoading {
-                ProgressView().padding(24).frame(maxWidth: .infinity)
-            } else if vm.activitySubmissions.isEmpty && vm.activityContributions.isEmpty {
-                Text("Nada por aquí todavía.")
-                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                    .padding(.horizontal, 16).padding(.bottom, 16)
+            if let s = stats {
+                Text("Toca una tarjeta para ver su lista")
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16).padding(.top, 10)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    card("USUARIOS", s.totalUsers) { openList = "users"; loadUsers() }
+                    card("ADMINS", s.totalAdmins) { openList = "admins"; loadUsers() }
+                    card("ESCUELAS", s.totalSchools) { onGoToTab(.gestionar) }
+                    card("NOTAS", s.totalNotes) { openList = "notes"; loadNotes() }
+                    card("PENDIENTES", s.submissionsPending) { onGoToTab(.propuestas) }
+                    card("APROBADAS", s.submissionsApproved) { onGoToTab(.actividad) }
+                    card("RECHAZADAS", s.submissionsRejected) { onGoToTab(.actividad) }
+                }.padding(16)
             } else {
-                ForEach(vm.activitySubmissions, id: \.id) { s in
-                    SubmissionAdminCard(submission: s, busy: false, onApprove: {}, onReject: {})
-                    Divider().overlay(Cumbre.rule)
-                }
-                ForEach(vm.activityContributions, id: \.id) { c in
-                    ContributionAdminCard(contribution: c, busy: false, onApprove: {}, onReject: {})
-                    Divider().overlay(Cumbre.rule)
-                }
+                ProgressView().padding(.top, 40)
             }
+        }
+        .sheet(isPresented: Binding(get: { openList != nil }, set: { if !$0 { openList = nil } })) {
+            listSheet
         }
     }
 
-    private func statusChip(_ label: String, _ value: String) -> some View {
-        let on = vm.activityStatus == value
-        return Button {
-            Task { await vm.loadActivity(status: value) }
-        } label: {
-            Text(label).font(Cumbre.mono(11, .bold)).tracking(0.6)
-                .foregroundStyle(on ? .white : Cumbre.ink2)
-                .padding(.horizontal, 12).padding(.vertical, 7)
-                .background(on ? (value == "APPROVED" ? Cumbre.ok : Cumbre.bad) : Color.clear)
-                .overlay(Rectangle().stroke(on ? (value == "APPROVED" ? Cumbre.ok : Cumbre.bad) : Cumbre.rule, lineWidth: 1))
-        }.buttonStyle(.plain)
+    private func loadUsers() {
+        guard users == nil else { return }
+        Task { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? [] }
+    }
+    private func loadNotes() {
+        guard notes == nil else { return }
+        Task { notes = (try? await AppDependencies.shared.container.getAdminNotes.invoke()) ?? [] }
+    }
+
+    @ViewBuilder private var listSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if openList == "notes" {
+                        if let list = notes {
+                            ForEach(list, id: \.id) { n in
+                                // P6: la nota abre su ESCUELA.
+                                Group {
+                                    // R12: la nota abre su DETALLE (texto
+                                    // entero + VER ESCUELA), no la escuela a
+                                    // secas donde no se veía la nota.
+                                    NavigationLink(destination: AdminNoteDetailView(note: n)) {
+                                        adminNoteRow(n)
+                                    }.buttonStyle(.plain)
+                                }
+                                Divider().overlay(Cumbre.rule)
+                            }
+                        } else { ProgressView().padding(.top, 30) }
+                    } else {
+                        if let list = users {
+                            let shown = openList == "admins" ? list.filter { $0.isAdmin } : list
+                            ForEach(shown, id: \.uid) { u in
+                                // P6: la fila abre el PERFIL del usuario.
+                                NavigationLink(destination: PublicProfileView(uid: u.uid)) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
+                                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                        if u.isAdmin {
+                                            Text("ADMIN").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+                                        }
+                                    }
+                                    Spacer()
+                                    Text(String((u.createdAt ?? "").prefix(10)))
+                                        .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                                }
+                                }.buttonStyle(.plain)
+                                .padding(.vertical, 8)
+                                Divider().overlay(Cumbre.rule)
+                            }
+                        } else { ProgressView().padding(.top, 30) }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle(openList == "notes" ? "Notas" : (openList == "admins" ? "Admins" : "Usuarios"))
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func card(_ label: String, _ value: Int64, action: @escaping () -> Void = {}) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text("\(value)").font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
+                Text(label).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 16)
+            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
-/// Registro de acciones admin (espejo de ActivityTab de Android) — ya no está
-/// enganchado a ninguna pestaña (sustituido por AdminActivityTab), se deja
-/// por si hace falta retomarlo.
+/// Tab ACTIVIDAD — registro de acciones admin (espejo de ActivityTab).
 struct AdminLogsTab: View {
     let logs: [AdminLog]
     var body: some View {
@@ -178,6 +152,7 @@ struct AdminPushTab: View {
     @State private var body_ = ""
     @State private var confirmAll = false
     var body: some View {
+        ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 if let uid = targetUid {
                     HStack(spacing: 8) {
@@ -250,6 +225,7 @@ struct AdminPushTab: View {
                     Text(r).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
                 }
             }.padding(16)
+        }
     }
     private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -263,7 +239,7 @@ struct AdminPushTab: View {
 
 /// Fila de nota del panel admin (P6: pulsable → su escuela).
 @ViewBuilder
-func adminNoteRow(_ n: AdminNoteRow) -> some View {
+fileprivate func adminNoteRow(_ n: AdminNoteRow) -> some View {
     VStack(alignment: .leading, spacing: 2) {
         Text(n.text).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
         Text([n.author, n.schoolId, (n.createdAt ?? "").isEmpty ? nil : String((n.createdAt ?? "").prefix(10))]

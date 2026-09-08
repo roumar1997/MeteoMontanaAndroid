@@ -16,15 +16,11 @@ data class SubmissionDto(
     val notes: String? = null,
     val status: String,
     val submittedByUid: String,
-    val submittedByName: String? = null,
-    val submittedByPhotoPath: String? = null,
     val reviewedByUid: String? = null,
     val reviewReason: String? = null,
     val createdSchoolId: String? = null,
     val createdAt: String,
-    val reviewedAt: String? = null,
-    /** Desde cuándo el admin espera respuesta del proponente (null = no espera nada). */
-    val awaitingReplySince: String? = null
+    val reviewedAt: String? = null
 )
 
 @Serializable

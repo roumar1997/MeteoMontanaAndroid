@@ -391,7 +391,7 @@ class SchoolDetailViewModelTest {
     private fun dummyContribution() = Contribution(
         id = "c1", type = "BOULDER", status = "PENDING", schoolId = schoolId,
         schoolName = "Pedriza", name = null, lat = 0.0, lon = 0.0, notes = null,
-        description = null, submittedByUid = null, submittedByName = null, reviewReason = null,
+        description = null, submittedByName = null, reviewReason = null,
         createdAt = null, reviewedAt = null, photoUrl = null, bloquesJson = null,
         topoLinesJson = null, targetBlockId = null
     )
