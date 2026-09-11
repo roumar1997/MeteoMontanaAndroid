@@ -280,21 +280,24 @@ struct JournalRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Si hay escuela, la parte izquierda navega a su detalle y abre la
-            // piedra que contiene esta vía (deep-link del diario).
+        ZStack {
+            // BUG cazado (Álvaro, 2026-09-11): el NavigationLink solo envolvía
+            // `leading` (icono+título), así que el hueco hasta la fecha/flecha
+            // de la derecha no pertenecía a ningún control y no respondía al
+            // toque — solo funcionaba tocando el grado, el título o la escuela.
+            // Fix: un NavigationLink invisible de fondo cubre TODA la fila;
+            // los controles propios (fecha, borrar, A VISTA/AL FLASH) se
+            // dibujan encima y siguen capturando su toque antes que el fondo.
             if let sid = schoolId, !sid.isEmpty {
-                // lineId (único) antes que blockName (texto — puede coincidir con
-                // una vía de OTRA piedra con el mismo nombre autonumerado; mismo
-                // fallo que el del feed, 2026-08-18). null en entradas antiguas o
-                // creadas sin conexión, donde solo hay nombre.
-                NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: entry.lineId ?? entry.blockName)) { leading }
-                    .buttonStyle(.plain)
-            } else {
-                leading
+                NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: entry.lineId ?? entry.blockName)) {
+                    EmptyView()
+                }
+                .opacity(0)
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 12) {
+                leading
+                Spacer()
+                VStack(alignment: .trailing, spacing: 4) {
                 if onChangeDate != nil {
                     Button { showDatePicker = true } label: {
                         Text(String(entry.date.prefix(10))).font(Cumbre.mono(10, .bold))
@@ -329,8 +332,10 @@ struct JournalRow: View {
                 if schoolId != nil, !(schoolId ?? "").isEmpty {
                     Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                 }
+                }
             }
         }
+        .contentShape(Rectangle())
         .padding(.horizontal, 16).padding(.vertical, 12)
     }
 }
