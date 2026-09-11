@@ -289,10 +289,16 @@ struct JournalRow: View {
             // los controles propios (fecha, borrar, A VISTA/AL FLASH) se
             // dibujan encima y siguen capturando su toque antes que el fondo.
             if let sid = schoolId, !sid.isEmpty {
+                // BUG del propio fix (Álvaro, 2026-09-11): EmptyView() sin frame
+                // mide 0x0 — el link "de fondo" no cubría nada y dejó de
+                // navegar TOTALMENTE. Necesita frame explícito a pantalla
+                // completa + contentShape para que el toque se registre en
+                // todo ese rectángulo, no solo donde hay contenido dibujado.
                 NavigationLink(destination: SchoolLoaderView(schoolId: sid, openVia: entry.lineId ?? entry.blockName)) {
-                    EmptyView()
+                    Color.clear
                 }
-                .opacity(0)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
             }
             HStack(spacing: 12) {
                 leading
