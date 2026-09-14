@@ -98,6 +98,18 @@ data class CreateLineCommentRequest(
     val text: String
 )
 
+/** sectorBlockId null = piedras sin sector asignado. */
+@Serializable
+data class ReorderBlocksRequest(
+    val sectorBlockId: String? = null,
+    val orderedBlockIds: List<String>
+)
+
+@Serializable
+data class AutoReorderRequest(
+    val sectorBlockId: String? = null
+)
+
 @Serializable
 data class CreateBlockRequest(
     val type: String,

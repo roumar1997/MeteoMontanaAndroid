@@ -1,7 +1,9 @@
 package com.meteomontana.android.data.api
 
+import com.meteomontana.android.data.api.dto.AutoReorderRequest
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
+import com.meteomontana.android.data.api.dto.ReorderBlocksRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -35,6 +37,18 @@ class KtorBlockApi(private val client: HttpClient) {
     suspend fun deleteBlock(blockId: String) {
         client.delete("blocks/$blockId")
     }
+
+    /** Renumera las piedras de un sector (o las sin sector) según el orden
+     *  exacto que se le pase. Solo admin. */
+    @Throws(Exception::class)
+    suspend fun reorderBlocks(schoolId: String, req: ReorderBlocksRequest): List<BlockDto> =
+        client.put("schools/$schoolId/blocks/reorder") { setBody(req) }.body()
+
+    /** Sugiere y aplica un primer orden por distancia al parking más
+     *  cercano. Solo admin. */
+    @Throws(Exception::class)
+    suspend fun autoReorderBlocks(schoolId: String, req: AutoReorderRequest): List<BlockDto> =
+        client.post("schools/$schoolId/blocks/auto-reorder") { setBody(req) }.body()
 
     @Serializable
     data class RatingResult(val avgStars: Float, val ratingCount: Long, val myStars: Int)

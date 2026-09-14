@@ -15,6 +15,12 @@ interface BlockRepository {
     suspend fun updateBlock(blockId: String, req: CreateBlockRequest): Block
     suspend fun deleteBlock(blockId: String)
 
+    /** Renumera las piedras de un sector (o las sin sector) según el orden
+     *  exacto que se le pase. Solo admin. */
+    suspend fun reorderBlocks(schoolId: String, sectorBlockId: String?, orderedBlockIds: List<String>): List<Block>
+    /** Sugiere y aplica un primer orden por distancia al parking más cercano. Solo admin. */
+    suspend fun autoReorderBlocks(schoolId: String, sectorBlockId: String?): List<Block>
+
     // ── Valoración de vías (estrellas) ──
     /** Vota la vía con [stars] (1-5). Devuelve la media y mi voto resultantes. */
     suspend fun rateLine(blockId: String, lineId: String, stars: Int): LineRating

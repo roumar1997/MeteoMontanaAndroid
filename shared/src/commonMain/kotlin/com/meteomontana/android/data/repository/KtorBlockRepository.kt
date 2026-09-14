@@ -69,6 +69,14 @@ class KtorBlockRepository(
         api.deleteBlock(blockId)
     }
 
+    override suspend fun reorderBlocks(schoolId: String, sectorBlockId: String?, orderedBlockIds: List<String>): List<Block> =
+        api.reorderBlocks(schoolId, com.meteomontana.android.data.api.dto.ReorderBlocksRequest(sectorBlockId, orderedBlockIds))
+            .map { it.toDomain() }
+
+    override suspend fun autoReorderBlocks(schoolId: String, sectorBlockId: String?): List<Block> =
+        api.autoReorderBlocks(schoolId, com.meteomontana.android.data.api.dto.AutoReorderRequest(sectorBlockId))
+            .map { it.toDomain() }
+
     override suspend fun rateLine(blockId: String, lineId: String, stars: Int) =
         api.rateLine(blockId, lineId, stars).let {
             com.meteomontana.android.domain.repository.LineRating(

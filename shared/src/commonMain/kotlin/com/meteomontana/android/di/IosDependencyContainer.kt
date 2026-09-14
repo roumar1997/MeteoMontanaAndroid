@@ -85,6 +85,8 @@ import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.ReorderBlocksUseCase
+import com.meteomontana.android.domain.usecase.blocks.AutoReorderBlocksUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastByLocationUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
@@ -355,6 +357,9 @@ class IosDependencyContainer(
     val resolveReport = ResolveReportUseCase(adminRepository)
     val updateBlock = UpdateBlockUseCase(blockRepository)
     val deleteBlock = DeleteBlockUseCase(blockRepository)
+    // Numerar piedras por sector + arreglar el orden a mano o por GPS (Álvaro, 2026-09-14).
+    val reorderBlocks = ReorderBlocksUseCase(blockRepository)
+    val autoReorderBlocks = AutoReorderBlocksUseCase(blockRepository)
     val rateLine = com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(blockRepository)
     // Comentarios de piedras/vías por use case (regla DI: nada de blockApi directo).
     val getLineComments = com.meteomontana.android.domain.usecase.blocks.GetLineCommentsUseCase(blockRepository)

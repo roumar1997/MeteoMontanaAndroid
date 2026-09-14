@@ -14,6 +14,10 @@ struct GestionarTab: View {
     /// "no aparece lo de modalidad desde admin"). Se abre desde un botón nuevo
     /// en la ficha de la escuela, sin tocar el flujo normal que ya usabas.
     @State private var manageBlocksSchool: School?
+    /// Numerar piedras por sector + arreglar el orden a mano o por GPS
+    /// (Álvaro, 2026-09-14). Mismo patrón que GESTIONAR BLOQUES: botón junto
+    /// al de siempre, sin tocar el flujo normal.
+    @State private var reorderSchool: School?
 
     private var filtered: [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -68,11 +72,20 @@ struct GestionarTab: View {
                                     .font(Cumbre.mono(11, .bold))
                             }
                         }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { reorderSchool = s } label: {
+                                Label("ORDENAR PIEDRAS", systemImage: "arrow.up.arrow.down")
+                                    .font(Cumbre.mono(11, .bold))
+                            }
+                        }
                     }
             }
         }
         .fullScreenCover(item: $manageBlocksSchool) { s in
             SchoolBlocksManageSheet(school: s)
+        }
+        .fullScreenCover(item: $reorderSchool) { s in
+            SchoolSectorReorderSheet(school: s)
         }
     }
 }
