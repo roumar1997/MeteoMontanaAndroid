@@ -19,6 +19,8 @@ import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.ReorderBlocksUseCase
+import com.meteomontana.android.domain.usecase.blocks.AutoReorderBlocksUseCase
 import com.meteomontana.android.ui.screens.admin.AdminViewModel
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -56,6 +58,8 @@ class AdminViewModelTest {
     private lateinit var getBlocks: GetBlocksUseCase
     private lateinit var updateBlockUC: UpdateBlockUseCase
     private lateinit var deleteBlockUC: DeleteBlockUseCase
+    private lateinit var reorderBlocksUC: ReorderBlocksUseCase
+    private lateinit var autoReorderBlocksUC: AutoReorderBlocksUseCase
     private lateinit var getSchoolsUseCase: GetSchoolsUseCase
 
     private val stats = AdminStats(
@@ -77,6 +81,8 @@ class AdminViewModelTest {
         getBlocks = mockk()
         updateBlockUC = mockk()
         deleteBlockUC = mockk()
+        reorderBlocksUC = mockk()
+        autoReorderBlocksUC = mockk()
         getSchoolsUseCase = mockk()
 
         coEvery { getStats() } returns stats
@@ -105,7 +111,7 @@ class AdminViewModelTest {
         mockk(relaxed = true),  // banUserUseCase
         mockk(relaxed = true),  // unbanUserUseCase
         mockk(relaxed = true),  // searchUsers
-        getBlocks, updateBlockUC, deleteBlockUC, getSchoolsUseCase
+        getBlocks, updateBlockUC, deleteBlockUC, reorderBlocksUC, autoReorderBlocksUC, getSchoolsUseCase
     )
 
     @Test fun `load llena stats y baja loading a false`() = runTest {
@@ -186,6 +192,45 @@ class AdminViewModelTest {
         assertEquals(true, ok)
         coVerify { updateBlockUC("b1", req) }
         assertEquals("P2", vm.state.value.schoolBlocks["s1"]?.firstOrNull()?.name)
+    }
+
+    @Test fun `reorderBlocks llama al use case y refresca el cache`() = runTest {
+        val reordered = listOf(
+            Block("b1", "s1", "BLOCK", "1", 0.0, 0.0, null, null, "u", "t", emptyList()),
+            Block("b2", "s1", "BLOCK", "2", 0.0, 0.0, null, null, "u", "t", emptyList())
+        )
+        coEvery { reorderBlocksUC("s1", "zona-a", listOf("b2", "b1")) } returns reordered
+        coEvery { getBlocks("s1") } returns reordered
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        var ok: Boolean? = null
+        vm.reorderBlocks("s1", "zona-a", listOf("b2", "b1")) { ok = it }
+        advanceUntilIdle()
+
+        assertEquals(true, ok)
+        coVerify { reorderBlocksUC("s1", "zona-a", listOf("b2", "b1")) }
+        assertEquals(reordered, vm.state.value.schoolBlocks["s1"])
+    }
+
+    @Test fun `autoReorderBlocks llama al use case y refresca el cache`() = runTest {
+        val reordered = listOf(
+            Block("b1", "s1", "BLOCK", "1", 0.0, 0.0, null, null, "u", "t", emptyList())
+        )
+        coEvery { autoReorderBlocksUC("s1", null) } returns reordered
+        coEvery { getBlocks("s1") } returns reordered
+
+        val vm = newVm()
+        advanceUntilIdle()
+
+        var ok: Boolean? = null
+        vm.autoReorderBlocks("s1", null) { ok = it }
+        advanceUntilIdle()
+
+        assertEquals(true, ok)
+        coVerify { autoReorderBlocksUC("s1", null) }
+        assertEquals(reordered, vm.state.value.schoolBlocks["s1"])
     }
 
     @Test fun `loadAllSchools carga solo una vez`() = runTest {

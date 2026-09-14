@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -101,6 +102,10 @@ internal fun GestionarTab(
     onFetchSchoolBlocks: (String) -> Unit,
     onDeleteBlock: (String, String) -> Unit,
     onUpdateBlock: (String, String, com.meteomontana.android.data.api.dto.CreateBlockRequest, (Boolean) -> Unit) -> Unit,
+    /** Numerar piedras por sector + arreglar el orden a mano o por GPS
+     *  (Álvaro, 2026-09-14) — mismo patrón que updateBlock/deleteBlock. */
+    onReorderBlocks: (String, String?, List<String>, (Boolean) -> Unit) -> Unit = { _, _, _, done -> done(false) },
+    onAutoReorderBlocks: (String, String?, (Boolean) -> Unit) -> Unit = { _, _, done -> done(false) },
     /** Abre el DETALLE real de la escuela (mapa nuevo; como admin puedes
      *  editar/mover/borrar todo desde ahí). */
     onOpenSchool: (String) -> Unit = {}
@@ -109,6 +114,7 @@ internal fun GestionarTab(
     var selectedSchool by remember {
         mutableStateOf<School?>(null)
     }
+    var reorderSchool by remember { mutableStateOf<School?>(null) }
 
     LaunchedEffect(Unit) { onLoadSchools() }
 
@@ -152,7 +158,14 @@ internal fun GestionarTab(
 
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(filtered) { school ->
-                    SchoolListRow(school) { onOpenSchool(school.id) }
+                    SchoolListRow(
+                        school = school,
+                        onClick = { onOpenSchool(school.id) },
+                        onOrderBlocks = {
+                            onFetchSchoolBlocks(school.id)
+                            reorderSchool = school
+                        }
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 }
             }
@@ -171,12 +184,25 @@ internal fun GestionarTab(
             onDismiss = { selectedSchool = null }
         )
     }
+
+    // Numerar piedras por sector (Álvaro, 2026-09-14).
+    reorderSchool?.let { school ->
+        com.meteomontana.android.ui.components.SectorReorderDialog(
+            schoolId = school.id,
+            blocks = schoolBlocks[school.id] ?: emptyList(),
+            busy = false,
+            onReorder = { sectorId, ids, onDone -> onReorderBlocks(school.id, sectorId, ids, onDone) },
+            onAutoReorder = { sectorId, onDone -> onAutoReorderBlocks(school.id, sectorId, onDone) },
+            onDismiss = { reorderSchool = null }
+        )
+    }
 }
 
 @Composable
 private fun SchoolListRow(
     school: School,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onOrderBlocks: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -198,6 +224,11 @@ private fun SchoolListRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        Text("⇅ ORDENAR", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .clickable(onClick = onOrderBlocks)
+                .padding(horizontal = Spacing.xs, vertical = Spacing.xs))
+        Spacer(Modifier.width(Spacing.xs))
         Text("▸", style = MaterialTheme.typography.titleMedium,
             color = Terra)
     }

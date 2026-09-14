@@ -26,6 +26,8 @@ import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.ReorderBlocksUseCase
+import com.meteomontana.android.domain.usecase.blocks.AutoReorderBlocksUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -83,6 +85,8 @@ class AdminViewModel @Inject constructor(
     private val getBlocks: GetBlocksUseCase,
     private val updateBlockUseCase: UpdateBlockUseCase,
     private val deleteBlockUseCase: DeleteBlockUseCase,
+    private val reorderBlocksUseCase: ReorderBlocksUseCase,
+    private val autoReorderBlocksUseCase: AutoReorderBlocksUseCase,
     private val getSchoolsUseCase: GetSchoolsUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow(AdminUiState())
@@ -191,6 +195,31 @@ class AdminViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             val ok = runCatching { updateBlockUseCase(blockId, req) }.isSuccess
+            try {
+                val blocks = getBlocks(schoolId)
+                _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }
+            } catch (_: Throwable) {}
+            onDone(ok)
+        }
+    }
+
+    /** Renumera las piedras de un sector (o "sin sector" si sectorBlockId es
+     *  null) según el orden exacto que se le pase. */
+    fun reorderBlocks(schoolId: String, sectorBlockId: String?, orderedBlockIds: List<String>, onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val ok = runCatching { reorderBlocksUseCase(schoolId, sectorBlockId, orderedBlockIds) }.isSuccess
+            try {
+                val blocks = getBlocks(schoolId)
+                _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }
+            } catch (_: Throwable) {}
+            onDone(ok)
+        }
+    }
+
+    /** Sugiere y aplica un primer orden por distancia al parking más cercano. */
+    fun autoReorderBlocks(schoolId: String, sectorBlockId: String?, onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val ok = runCatching { autoReorderBlocksUseCase(schoolId, sectorBlockId) }.isSuccess
             try {
                 val blocks = getBlocks(schoolId)
                 _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }

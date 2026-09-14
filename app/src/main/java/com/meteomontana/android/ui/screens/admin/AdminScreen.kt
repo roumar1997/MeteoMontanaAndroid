@@ -195,7 +195,9 @@ fun AdminScreen(
                 onLoadSchools = viewModel::loadAllSchools,
                 onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
                 onDeleteBlock = viewModel::deleteBlock,
-                onUpdateBlock = viewModel::updateBlock
+                onUpdateBlock = viewModel::updateBlock,
+                onReorderBlocks = viewModel::reorderBlocks,
+                onAutoReorderBlocks = viewModel::autoReorderBlocks
             )
             AdminTab.Denuncias -> DenunciasTab(
                 reports = state.reports,
