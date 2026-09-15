@@ -651,6 +651,16 @@ fun BlockDetailDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 28.dp, bottom = 2.dp))
                             }
+                            // Enlaces de beta de ESTA vía (desplegable) — Álvaro, 2026-09-15.
+                            if (!isProposal) {
+                                Box(Modifier.padding(start = 28.dp)) {
+                                    BetaLinksThread(
+                                        blockId = block.id,
+                                        lineId = line.id,
+                                        myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                    )
+                                }
+                            }
                             // Comentarios de ESTA vía (desplegable).
                             if (!isProposal) {
                                 Box(Modifier.padding(start = 28.dp)) {
@@ -672,6 +682,16 @@ fun BlockDetailDialog(
                 Spacer(Modifier.height(Spacing.sm))
                 Text(it, style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
+            }
+
+            // Enlaces de beta de la PIEDRA en sí (bloques sin vías nombradas)
+            // — Álvaro, 2026-09-15.
+            if (!isProposal) {
+                Spacer(Modifier.height(Spacing.sm))
+                BetaLinksThread(
+                    blockId = block.id, lineId = null,
+                    myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                )
             }
 
             // (Los comentarios viven en cada vía, no en la piedra entera —

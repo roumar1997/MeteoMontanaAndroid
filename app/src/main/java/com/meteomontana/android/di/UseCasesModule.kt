@@ -229,6 +229,17 @@ object UseCasesModule {
     fun provideDeleteLineCommentUseCase(repo: BlockRepository) =
         com.meteomontana.android.domain.usecase.blocks.DeleteLineCommentUseCase(repo)
 
+    // Enlaces de beta directos, varios por vía con categoría de altura (Álvaro, 2026-09-15).
+    @Provides @Singleton
+    fun provideGetBetaLinksUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.GetBetaLinksUseCase(repo)
+    @Provides @Singleton
+    fun provideAddBetaLinkUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.AddBetaLinkUseCase(repo)
+    @Provides @Singleton
+    fun provideDeleteBetaLinkUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.DeleteBetaLinkUseCase(repo)
+
     // Alerta de tiempo — antes WeekendAlertViewModel usaba KtorProfileApi.
     @Provides @Singleton
     fun provideGetWeekendAlertUseCase(repo: ProfileRepository) =
