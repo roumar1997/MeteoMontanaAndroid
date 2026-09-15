@@ -30,6 +30,14 @@ struct GradeVoteTarget: Identifiable {
     let canVote: Bool
 }
 
+/// Qué se está editando al pulsar "+ enlace de beta": una vía (lineId) o la
+/// piedra en sí (lineId nil) — Álvaro, 2026-09-15.
+struct BetaUrlEditTarget: Identifiable {
+    var id: String { lineId ?? "__block__" }
+    let lineId: String?
+    let current: String
+}
+
 struct BlockInfoSheet: View {
     // Votacion comunitaria (C2/C5): orientacion + sol/sombra + grado.
     @StateObject private var community = CommunityVoteStore()
@@ -46,6 +54,12 @@ struct BlockInfoSheet: View {
     var onDelete: (() -> Void)? = nil
     /// Valorar una vía. nil = no mostrar estrellas.
     var onRateLine: ((String, Int) -> Void)? = nil
+    /// Poner/cambiar/quitar el enlace de beta de una vía — DIRECTO, sin editar
+    /// (Álvaro, 2026-09-15: "que se pueda poner igual que se vota"). url nil
+    /// = quitarlo. nil aquí = no mostrar el botón de añadir.
+    var onSetLineBetaUrl: ((String, String?) -> Void)? = nil
+    /// Mismo trato pero para la piedra en sí (bloques sin vías nombradas).
+    var onSetBlockBetaUrl: ((String?) -> Void)? = nil
     /// Filtro de grado activo en la escuela (BLOCK_SEARCH_DESIGN.md §7.3): las
     /// vías FUERA de rango se atenúan, nunca se ocultan — dentro de una piedra
     /// que sí se muestra, esconder vías haría perder el contexto de la pared.
@@ -87,6 +101,9 @@ struct BlockInfoSheet: View {
     @StateObject private var commentsStore = LineCommentsStore()
     /// Cara marcada en las pestañas de salto (piedras con varias fotos).
     @State private var caraVisible = 0
+    /// Enlace de beta en edición (lineId, o nil = la piedra en sí).
+    @State private var editingBetaUrlFor: BetaUrlEditTarget? = nil
+    @State private var betaUrlDraft: String = ""
 
     private var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
@@ -347,9 +364,37 @@ struct BlockInfoSheet: View {
                                     // Enlace a vídeo de beta (Instagram/YouTube) — se
                                     // abre fuera de la app, sin embeber nada (Álvaro,
                                     // 2026-09-15: "un apartado de enlaces para ver
-                                    // cómo se hace cada línea").
+                                    // cómo se hace cada línea"). Se pone/cambia DIRECTO,
+                                    // como votar con estrellas — sin entrar a editar.
                                     if let url = l.betaUrl, let link = URL(string: url) {
-                                        BetaLinkRow(url: link)
+                                        HStack(spacing: 6) {
+                                            BetaLinkRow(url: link)
+                                            if onSetLineBetaUrl != nil {
+                                                Button {
+                                                    betaUrlDraft = url
+                                                    editingBetaUrlFor = BetaUrlEditTarget(lineId: l.id, current: url)
+                                                } label: {
+                                                    Image(systemName: "pencil")
+                                                        .font(.system(size: 12))
+                                                        .foregroundStyle(Cumbre.ink3)
+                                                        .padding(6)
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                        }
+                                    } else if onSetLineBetaUrl != nil {
+                                        Button {
+                                            betaUrlDraft = ""
+                                            editingBetaUrlFor = BetaUrlEditTarget(lineId: l.id, current: "")
+                                        } label: {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "plus.circle")
+                                                Text("Añadir enlace de beta")
+                                            }
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(Cumbre.terra)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                     // Comentarios de ESTA vía (desplegable).
                                     LineCommentsThreadView(store: commentsStore,
@@ -374,7 +419,34 @@ struct BlockInfoSheet: View {
 
                     // Enlace de beta de la PIEDRA en sí (bloques sin vías nombradas).
                     if let url = block.betaUrl, let link = URL(string: url) {
-                        BetaLinkRow(url: link)
+                        HStack(spacing: 6) {
+                            BetaLinkRow(url: link)
+                            if onSetBlockBetaUrl != nil {
+                                Button {
+                                    betaUrlDraft = url
+                                    editingBetaUrlFor = BetaUrlEditTarget(lineId: nil, current: url)
+                                } label: {
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Cumbre.ink3)
+                                        .padding(6)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    } else if onSetBlockBetaUrl != nil {
+                        Button {
+                            betaUrlDraft = ""
+                            editingBetaUrlFor = BetaUrlEditTarget(lineId: nil, current: "")
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus.circle")
+                                Text("Añadir enlace de beta")
+                            }
+                            .font(.system(size: 12))
+                            .foregroundStyle(Cumbre.terra)
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     // Coordenadas (espejo de BlockDetailDialog).
@@ -455,6 +527,40 @@ struct BlockInfoSheet: View {
                 Button("Eliminar", role: .destructive) { if let onDelete { dismiss(); onDelete() } }
             } message: {
                 Text("Se borrará del mapa para todos. No se puede deshacer.")
+            }
+            // Poner/cambiar/quitar el enlace de beta — directo, como votar
+            // (Álvaro, 2026-09-15: "sin tener que editarlo").
+            .alert("Enlace de beta", isPresented: Binding(
+                get: { editingBetaUrlFor != nil },
+                set: { if !$0 { editingBetaUrlFor = nil } }
+            )) {
+                TextField("Enlace de Instagram/YouTube", text: $betaUrlDraft)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Cancelar", role: .cancel) { editingBetaUrlFor = nil }
+                if let target = editingBetaUrlFor, !target.current.isEmpty {
+                    Button("Quitar enlace", role: .destructive) {
+                        if let lineId = target.lineId {
+                            onSetLineBetaUrl?(lineId, nil)
+                        } else {
+                            onSetBlockBetaUrl?(nil)
+                        }
+                        editingBetaUrlFor = nil
+                    }
+                }
+                Button("Guardar") {
+                    guard let target = editingBetaUrlFor else { return }
+                    let url = betaUrlDraft.trimmingCharacters(in: .whitespaces)
+                    if let lineId = target.lineId {
+                        onSetLineBetaUrl?(lineId, url.isEmpty ? nil : url)
+                    } else {
+                        onSetBlockBetaUrl?(url.isEmpty ? nil : url)
+                    }
+                    editingBetaUrlFor = nil
+                }
+            } message: {
+                Text("Pega el enlace de Instagram o YouTube donde se ve cómo se hace. Se abrirá fuera de la app.")
             }
             .task { await loadDone() }
             // Hoja de publicar el tick en el feed Comunidad (estilo Cumbre).

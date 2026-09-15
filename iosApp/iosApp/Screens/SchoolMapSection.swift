@@ -563,6 +563,19 @@ struct SchoolMapSection: View {
                                 if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
                             }
                         },
+                        // Enlace de beta directo, como votar (Álvaro, 2026-09-15).
+                        onSetLineBetaUrl: { lineId, url in
+                            Task {
+                                _ = try? await AppDependencies.shared.container.setBetaUrl.forLine(blockId: b.id, lineId: lineId, url: url)
+                                if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
+                            }
+                        },
+                        onSetBlockBetaUrl: { url in
+                            Task {
+                                _ = try? await AppDependencies.shared.container.setBetaUrl.forBlock(blockId: b.id, url: url)
+                                if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
+                            }
+                        },
                         // Filtro de grado activo → sus vías fuera de rango se
                         // atenúan dentro de la ficha (nil = sin filtro).
                         gradeMatchingLineIds: gradeFilterActive ? gradeFilter.matchingLineIds : nil)

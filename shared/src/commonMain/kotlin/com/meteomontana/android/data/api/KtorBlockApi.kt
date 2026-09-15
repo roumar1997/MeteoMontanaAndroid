@@ -67,6 +67,27 @@ class KtorBlockApi(private val client: HttpClient) {
     suspend fun unrateLine(blockId: String, lineId: String): RatingResult =
         client.delete("blocks/$blockId/lines/$lineId/rate").body()
 
+    // ── Enlace de beta (Instagram/YouTube) — directo, como votar ─────────
+
+    @Serializable
+    private data class BetaUrlRequest(val url: String?)
+
+    /** Pone/cambia/quita el enlace de beta de una vía. url vacía = lo quita. */
+    @Throws(Exception::class)
+    suspend fun setLineBetaUrl(blockId: String, lineId: String, url: String?): BlockDto =
+        client.put("blocks/$blockId/lines/$lineId/beta-url") {
+            contentType(ContentType.Application.Json)
+            setBody(BetaUrlRequest(url))
+        }.body()
+
+    /** Mismo endpoint pero para la piedra en sí (bloques sin vías nombradas). */
+    @Throws(Exception::class)
+    suspend fun setBlockBetaUrl(blockId: String, url: String?): BlockDto =
+        client.put("blocks/$blockId/beta-url") {
+            contentType(ContentType.Application.Json)
+            setBody(BetaUrlRequest(url))
+        }.body()
+
     // ── Comentarios de piedras/vías (con votos de utilidad) ──────────────
 
     /** TODOS los comentarios del bloque (los de vía llevan lineId). */

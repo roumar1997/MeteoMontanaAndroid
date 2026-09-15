@@ -89,6 +89,12 @@ class KtorBlockRepository(
                 it.avgStars, it.ratingCount, it.myStars)
         }
 
+    override suspend fun setLineBetaUrl(blockId: String, lineId: String, url: String?): Block =
+        api.setLineBetaUrl(blockId, lineId, url).toDomain()
+
+    override suspend fun setBlockBetaUrl(blockId: String, url: String?): Block =
+        api.setBlockBetaUrl(blockId, url).toDomain()
+
     override suspend fun getComments(blockId: String) =
         api.getComments(blockId).map { it.toDomainComment() }
 

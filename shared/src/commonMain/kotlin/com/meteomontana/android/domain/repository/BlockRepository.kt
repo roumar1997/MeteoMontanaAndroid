@@ -27,6 +27,12 @@ interface BlockRepository {
     /** Retira mi voto de la vía. Devuelve la media resultante. */
     suspend fun unrateLine(blockId: String, lineId: String): LineRating
 
+    // ── Enlace de beta (Instagram/YouTube) — directo, como votar ──
+    /** Pone/cambia/quita el enlace de beta de una vía. url vacía = lo quita. */
+    suspend fun setLineBetaUrl(blockId: String, lineId: String, url: String?): Block
+    /** Mismo endpoint pero para la piedra en sí (bloques sin vías nombradas). */
+    suspend fun setBlockBetaUrl(blockId: String, url: String?): Block
+
     // ── Comentarios de piedras/vías (con votos de utilidad) ──
     suspend fun getComments(blockId: String): List<LineComment>
     suspend fun addComment(blockId: String, lineId: String?, text: String): LineComment
