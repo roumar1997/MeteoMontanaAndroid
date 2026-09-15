@@ -147,14 +147,15 @@ struct SchoolBlocksManageSheet: View {
         let lines = b.lines.map {
             // Se manda el id de la via existente: sin el, el servidor tiene que
             // adivinar cual era cual y puede mover el ✓ del diario de alguien.
-            CreateBlockLineRequest(id: $0.id, name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant)
+            CreateBlockLineRequest(id: $0.id, name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant, betaUrl: $0.betaUrl)
         }
         let req = CreateBlockRequest(type: b.type, name: b.name,
                                      lat: coord.latitude, lon: coord.longitude,
                                      photoPath: b.photoPath, description: b.descriptionText,
                                      lines: lines, sectorBlockId: b.sectorBlockId,
                                      discipline: b.discipline,
-                                     geometry: b.geometry, path: b.path, direction: b.direction)
+                                     geometry: b.geometry, path: b.path, direction: b.direction,
+                                     betaUrl: b.betaUrl)
         _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: b.id, req: req)
         moving = nil
         await reload()
@@ -273,7 +274,7 @@ struct BlockManageSheet: View {
         let lines = block.lines.map {
             // Se manda el id de la via existente: sin el, el servidor tiene que
             // adivinar cual era cual y puede mover el ✓ del diario de alguien.
-            CreateBlockLineRequest(id: $0.id, name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant)
+            CreateBlockLineRequest(id: $0.id, name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant, betaUrl: $0.betaUrl)
         }
         let trimmed = desc.trimmingCharacters(in: .whitespacesAndNewlines)
         let req = CreateBlockRequest(type: block.type, name: name, lat: lat, lon: lon,
@@ -281,7 +282,8 @@ struct BlockManageSheet: View {
                                      description: trimmed.isEmpty ? nil : trimmed,
                                      lines: lines, sectorBlockId: block.sectorBlockId,
                                      discipline: block.type == "BLOCK" ? discipline : nil,
-                                     geometry: block.geometry, path: block.path, direction: block.direction)
+                                     geometry: block.geometry, path: block.path, direction: block.direction,
+                                     betaUrl: block.betaUrl)
         _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: block.id, req: req)
         busy = false; dismiss(); onDone()
     }

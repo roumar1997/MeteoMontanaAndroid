@@ -70,6 +70,7 @@ enum BoulderDraftStore {
                 if let s = b.startType { v["startType"] = s }
                 if !b.descriptionText.isEmpty { v["descriptionText"] = b.descriptionText }
                 if !b.variant.isEmpty { v["variant"] = b.variant }
+                if !b.betaUrl.isEmpty { v["betaUrl"] = b.betaUrl }
                 v["line"] = b.line.map { [Double($0.x), Double($0.y)] }
                 return v
             }
@@ -109,6 +110,7 @@ enum BoulderDraftStore {
                 v.startType = b["startType"] as? String
                 v.descriptionText = b["descriptionText"] as? String ?? ""
                 v.variant = b["variant"] as? String ?? ""
+                v.betaUrl = b["betaUrl"] as? String ?? ""
                 v.line = (b["line"] as? [[Double]] ?? []).map {
                     CGPoint(x: $0.first ?? 0, y: $0.count > 1 ? $0[1] : 0)
                 }

@@ -344,6 +344,13 @@ struct BlockInfoSheet: View {
                                         Text(d).font(.system(size: 12))
                                             .foregroundStyle(Cumbre.ink3)
                                     }
+                                    // Enlace a vídeo de beta (Instagram/YouTube) — se
+                                    // abre fuera de la app, sin embeber nada (Álvaro,
+                                    // 2026-09-15: "un apartado de enlaces para ver
+                                    // cómo se hace cada línea").
+                                    if let url = l.betaUrl, let link = URL(string: url) {
+                                        BetaLinkRow(url: link)
+                                    }
                                     // Comentarios de ESTA vía (desplegable).
                                     LineCommentsThreadView(store: commentsStore,
                                                            blockId: block.id, lineId: l.id)
@@ -364,6 +371,11 @@ struct BlockInfoSheet: View {
                     }
 
                     // (Comentarios solo en cada vía, no en la piedra entera.)
+
+                    // Enlace de beta de la PIEDRA en sí (bloques sin vías nombradas).
+                    if let url = block.betaUrl, let link = URL(string: url) {
+                        BetaLinkRow(url: link)
+                    }
 
                     // Coordenadas (espejo de BlockDetailDialog).
                     Text(String(format: "%.5f, %.5f", block.lat, block.lon))
@@ -796,6 +808,43 @@ struct LineStarsRow: View {
         .padding(.leading, 34)
         .onChange(of: avgStars) { _, _ in pending = nil }
         .onChange(of: myStars) { _, _ in pending = nil }
+    }
+}
+
+/// Fila pulsable para un enlace de beta (Instagram/YouTube/otro). Detecta la
+/// plataforma por el dominio para el icono y el texto; al pulsar abre la URL
+/// FUERA de la app (Safari/la app instalada) — no se embebe nada, así no
+/// depende de tokens ni de APIs de esas plataformas (Álvaro, 2026-09-15).
+struct BetaLinkRow: View {
+    let url: URL
+
+    private var platform: (icon: String, label: String) {
+        let host = url.host?.lowercased() ?? ""
+        if host.contains("instagram.com") { return ("camera.fill", "Ver beta en Instagram") }
+        if host.contains("youtube.com") || host.contains("youtu.be") { return ("play.rectangle.fill", "Ver beta en YouTube") }
+        return ("link", "Ver enlace de beta")
+    }
+
+    var body: some View {
+        Link(destination: url) {
+            HStack(spacing: 8) {
+                Image(systemName: platform.icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Cumbre.terra)
+                Text(platform.label)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Cumbre.ink)
+                Spacer()
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 8)
+            .background(Cumbre.paper2)
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+        .buttonStyle(.plain)
     }
 }
 

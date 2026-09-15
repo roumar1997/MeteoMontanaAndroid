@@ -39,6 +39,7 @@ enum AdminEditApprove {
             f.facePhoto = (o["photoUrl"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             f.descriptionText = (o["description"] as? String) ?? ""
             f.variant = (o["variant"] as? String) ?? ""
+            f.betaUrl = (o["betaUrl"] as? String) ?? ""
             return f
         }
     }
