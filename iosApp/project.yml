@@ -103,7 +103,7 @@ targets:
         #     piedras por sector)
         # Es decir: para subir a TestFlight algo posterior a una versión ya
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
-        CFBundleShortVersionString: "2.24.6"
+        CFBundleShortVersionString: "2.24.7"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
         CFBundleVersion: "222"
