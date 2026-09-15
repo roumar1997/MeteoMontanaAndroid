@@ -28,11 +28,7 @@ data class Block(
     // Solo en type="ZONE" (sector): disciplinas de las piedras que contiene,
     // calculadas por el backend ("BOULDER"/"ROUTE", ambas si es mixto, vacía
     // si aún no tiene piedras). null en BLOCK/PARKING — no aplica.
-    val sectorDisciplines: List<String>? = null,
-    // Enlace opcional a un vídeo de beta (Instagram/YouTube) de la piedra en
-    // sí — para bloques sin vías nombradas (Álvaro, 2026-09-15). Se abre
-    // fuera de la app; no se embebe nada.
-    val betaUrl: String? = null
+    val sectorDisciplines: List<String>? = null
 ) {
     /**
      * Caras de la piedra para pintar. Si `faces` viene (online) se usa tal cual;
@@ -74,8 +70,7 @@ data class BlockLine(
     val avgStars: Float? = null,    // media de valoraciones (null = sin votos)
     val myStars: Int? = null,       // valoración del usuario actual (null = no ha votado)
     val lineDescription: String? = null, // beta/detalle opcional (nombre no-"description" por NSObject en Swift)
-    val variant: String? = null,         // variante opcional ("directa", "extensión"...) — distingue homónimas
-    val betaUrl: String? = null          // enlace opcional a vídeo de beta (Instagram/YouTube)
+    val variant: String? = null          // variante opcional ("directa", "extensión"...) — distingue homónimas
 ) {
     /** Nombre + variante para mostrar: "La ola (extensión)" si tiene variante. */
     val displayName: String get() = if (variant.isNullOrBlank()) name else "$name ($variant)"

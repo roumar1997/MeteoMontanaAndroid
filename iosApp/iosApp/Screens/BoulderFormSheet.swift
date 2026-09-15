@@ -788,15 +788,6 @@ struct BoulderBlockRow: View {
                 .font(.system(size: 13))
                 .lineLimit(1...3)
                 .padding(8).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-            // Enlace de beta (Instagram/YouTube) — se abre fuera de la app,
-            // sin embeber nada (Álvaro, 2026-09-15).
-            TextField("Enlace de beta (Instagram/YouTube, opcional)", text: $block.betaUrl)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .padding(.horizontal, 10).padding(.vertical, 8)
-                .background(Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
             if !block.line.isEmpty {
                 Text("✓ línea dibujada").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ok)
             }

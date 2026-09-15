@@ -30,14 +30,6 @@ struct GradeVoteTarget: Identifiable {
     let canVote: Bool
 }
 
-/// Qué se está editando al pulsar "+ enlace de beta": una vía (lineId) o la
-/// piedra en sí (lineId nil) — Álvaro, 2026-09-15.
-struct BetaUrlEditTarget: Identifiable {
-    var id: String { lineId ?? "__block__" }
-    let lineId: String?
-    let current: String
-}
-
 struct BlockInfoSheet: View {
     // Votacion comunitaria (C2/C5): orientacion + sol/sombra + grado.
     @StateObject private var community = CommunityVoteStore()
@@ -54,12 +46,6 @@ struct BlockInfoSheet: View {
     var onDelete: (() -> Void)? = nil
     /// Valorar una vía. nil = no mostrar estrellas.
     var onRateLine: ((String, Int) -> Void)? = nil
-    /// Poner/cambiar/quitar el enlace de beta de una vía — DIRECTO, sin editar
-    /// (Álvaro, 2026-09-15: "que se pueda poner igual que se vota"). url nil
-    /// = quitarlo. nil aquí = no mostrar el botón de añadir.
-    var onSetLineBetaUrl: ((String, String?) -> Void)? = nil
-    /// Mismo trato pero para la piedra en sí (bloques sin vías nombradas).
-    var onSetBlockBetaUrl: ((String?) -> Void)? = nil
     /// Filtro de grado activo en la escuela (BLOCK_SEARCH_DESIGN.md §7.3): las
     /// vías FUERA de rango se atenúan, nunca se ocultan — dentro de una piedra
     /// que sí se muestra, esconder vías haría perder el contexto de la pared.
@@ -99,11 +85,10 @@ struct BlockInfoSheet: View {
     @State private var pendingTick: PendingFeedTick? = nil
     // Comentarios de la piedra/vías (un fetch por piedra; los hilos filtran).
     @StateObject private var commentsStore = LineCommentsStore()
+    // Enlaces de beta (un fetch por piedra; los hilos filtran) — Álvaro, 2026-09-15.
+    @StateObject private var betaLinksStore = BetaLinksStore()
     /// Cara marcada en las pestañas de salto (piedras con varias fotos).
     @State private var caraVisible = 0
-    /// Enlace de beta en edición (lineId, o nil = la piedra en sí).
-    @State private var editingBetaUrlFor: BetaUrlEditTarget? = nil
-    @State private var betaUrlDraft: String = ""
 
     private var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
@@ -361,41 +346,13 @@ struct BlockInfoSheet: View {
                                         Text(d).font(.system(size: 12))
                                             .foregroundStyle(Cumbre.ink3)
                                     }
-                                    // Enlace a vídeo de beta (Instagram/YouTube) — se
-                                    // abre fuera de la app, sin embeber nada (Álvaro,
-                                    // 2026-09-15: "un apartado de enlaces para ver
-                                    // cómo se hace cada línea"). Se pone/cambia DIRECTO,
-                                    // como votar con estrellas — sin entrar a editar.
-                                    if let url = l.betaUrl, let link = URL(string: url) {
-                                        HStack(spacing: 6) {
-                                            BetaLinkRow(url: link)
-                                            if onSetLineBetaUrl != nil {
-                                                Button {
-                                                    betaUrlDraft = url
-                                                    editingBetaUrlFor = BetaUrlEditTarget(lineId: l.id, current: url)
-                                                } label: {
-                                                    Image(systemName: "pencil")
-                                                        .font(.system(size: 12))
-                                                        .foregroundStyle(Cumbre.ink3)
-                                                        .padding(6)
-                                                }
-                                                .buttonStyle(.plain)
-                                            }
-                                        }
-                                    } else if onSetLineBetaUrl != nil {
-                                        Button {
-                                            betaUrlDraft = ""
-                                            editingBetaUrlFor = BetaUrlEditTarget(lineId: l.id, current: "")
-                                        } label: {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "plus.circle")
-                                                Text("Añadir enlace de beta")
-                                            }
-                                            .font(.system(size: 12))
-                                            .foregroundStyle(Cumbre.terra)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
+                                    // Enlaces a vídeos de beta (Instagram/YouTube) — se
+                                    // abren fuera de la app, sin embeber nada. Puede haber
+                                    // VARIOS, cada uno con categoría de altura opcional
+                                    // (Álvaro, 2026-09-15: "beta personas +1.70 y personas
+                                    // -1.70"). Directo, como comentar — sin entrar a editar.
+                                    BetaLinksThreadView(store: betaLinksStore,
+                                                        blockId: block.id, lineId: l.id)
                                     // Comentarios de ESTA vía (desplegable).
                                     LineCommentsThreadView(store: commentsStore,
                                                            blockId: block.id, lineId: l.id)
@@ -417,37 +374,8 @@ struct BlockInfoSheet: View {
 
                     // (Comentarios solo en cada vía, no en la piedra entera.)
 
-                    // Enlace de beta de la PIEDRA en sí (bloques sin vías nombradas).
-                    if let url = block.betaUrl, let link = URL(string: url) {
-                        HStack(spacing: 6) {
-                            BetaLinkRow(url: link)
-                            if onSetBlockBetaUrl != nil {
-                                Button {
-                                    betaUrlDraft = url
-                                    editingBetaUrlFor = BetaUrlEditTarget(lineId: nil, current: url)
-                                } label: {
-                                    Image(systemName: "pencil")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(Cumbre.ink3)
-                                        .padding(6)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    } else if onSetBlockBetaUrl != nil {
-                        Button {
-                            betaUrlDraft = ""
-                            editingBetaUrlFor = BetaUrlEditTarget(lineId: nil, current: "")
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "plus.circle")
-                                Text("Añadir enlace de beta")
-                            }
-                            .font(.system(size: 12))
-                            .foregroundStyle(Cumbre.terra)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    // Enlaces de beta de la PIEDRA en sí (bloques sin vías nombradas).
+                    BetaLinksThreadView(store: betaLinksStore, blockId: block.id, lineId: nil)
 
                     // Coordenadas (espejo de BlockDetailDialog).
                     Text(String(format: "%.5f, %.5f", block.lat, block.lon))
@@ -461,6 +389,7 @@ struct BlockInfoSheet: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .task { await commentsStore.load(blockId: block.id) }
+            .task { await betaLinksStore.load(blockId: block.id) }
             .task(id: block.id) {
                 await community.loadOrientation(blockId: block.id)
                 await community.loadSun(blockId: block.id, photoIndex: nil)
@@ -527,40 +456,6 @@ struct BlockInfoSheet: View {
                 Button("Eliminar", role: .destructive) { if let onDelete { dismiss(); onDelete() } }
             } message: {
                 Text("Se borrará del mapa para todos. No se puede deshacer.")
-            }
-            // Poner/cambiar/quitar el enlace de beta — directo, como votar
-            // (Álvaro, 2026-09-15: "sin tener que editarlo").
-            .alert("Enlace de beta", isPresented: Binding(
-                get: { editingBetaUrlFor != nil },
-                set: { if !$0 { editingBetaUrlFor = nil } }
-            )) {
-                TextField("Enlace de Instagram/YouTube", text: $betaUrlDraft)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                Button("Cancelar", role: .cancel) { editingBetaUrlFor = nil }
-                if let target = editingBetaUrlFor, !target.current.isEmpty {
-                    Button("Quitar enlace", role: .destructive) {
-                        if let lineId = target.lineId {
-                            onSetLineBetaUrl?(lineId, nil)
-                        } else {
-                            onSetBlockBetaUrl?(nil)
-                        }
-                        editingBetaUrlFor = nil
-                    }
-                }
-                Button("Guardar") {
-                    guard let target = editingBetaUrlFor else { return }
-                    let url = betaUrlDraft.trimmingCharacters(in: .whitespaces)
-                    if let lineId = target.lineId {
-                        onSetLineBetaUrl?(lineId, url.isEmpty ? nil : url)
-                    } else {
-                        onSetBlockBetaUrl?(url.isEmpty ? nil : url)
-                    }
-                    editingBetaUrlFor = nil
-                }
-            } message: {
-                Text("Pega el enlace de Instagram o YouTube donde se ve cómo se hace. Se abrirá fuera de la app.")
             }
             .task { await loadDone() }
             // Hoja de publicar el tick en el feed Comunidad (estilo Cumbre).
@@ -914,43 +809,6 @@ struct LineStarsRow: View {
         .padding(.leading, 34)
         .onChange(of: avgStars) { _, _ in pending = nil }
         .onChange(of: myStars) { _, _ in pending = nil }
-    }
-}
-
-/// Fila pulsable para un enlace de beta (Instagram/YouTube/otro). Detecta la
-/// plataforma por el dominio para el icono y el texto; al pulsar abre la URL
-/// FUERA de la app (Safari/la app instalada) — no se embebe nada, así no
-/// depende de tokens ni de APIs de esas plataformas (Álvaro, 2026-09-15).
-struct BetaLinkRow: View {
-    let url: URL
-
-    private var platform: (icon: String, label: String) {
-        let host = url.host?.lowercased() ?? ""
-        if host.contains("instagram.com") { return ("camera.fill", "Ver beta en Instagram") }
-        if host.contains("youtube.com") || host.contains("youtu.be") { return ("play.rectangle.fill", "Ver beta en YouTube") }
-        return ("link", "Ver enlace de beta")
-    }
-
-    var body: some View {
-        Link(destination: url) {
-            HStack(spacing: 8) {
-                Image(systemName: platform.icon)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Cumbre.terra)
-                Text(platform.label)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Cumbre.ink)
-                Spacer()
-                Image(systemName: "arrow.up.right.square")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Cumbre.ink3)
-            }
-            .padding(.horizontal, 10).padding(.vertical, 8)
-            .background(Cumbre.paper2)
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-        }
-        .buttonStyle(.plain)
     }
 }
 

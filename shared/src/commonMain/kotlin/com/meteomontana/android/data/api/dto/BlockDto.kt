@@ -25,9 +25,7 @@ data class BlockDto(
     // Solo en type=ZONE (sector): disciplinas de las piedras que contiene,
     // calculadas por el backend al vuelo (["BOULDER"], ["ROUTE"], ambas si es
     // mixto, [] si aún no tiene piedras). null en BLOCK/PARKING.
-    val sectorDisciplines: List<String>? = null,
-    // Enlace opcional a vídeo de beta (Instagram/YouTube) de la piedra en sí.
-    val betaUrl: String? = null
+    val sectorDisciplines: List<String>? = null
 )
 
 @Serializable
@@ -44,9 +42,7 @@ data class BlockLineDto(
     val myStars: Int? = null,
     val description: String? = null,
     // Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
-    val variant: String? = null,
-    // Enlace opcional a vídeo de beta (Instagram/YouTube).
-    val betaUrl: String? = null
+    val variant: String? = null
 )
 
 @Serializable
@@ -78,8 +74,7 @@ data class CreateBlockLineRequest(
     val photoPath: String? = null,
     val faceOrder: Int = 0,
     val description: String? = null,
-    val variant: String? = null,
-    val betaUrl: String? = null
+    val variant: String? = null
 )
 
 /** Comentario de la comunidad en una piedra (lineId=null) o en una vía. */
@@ -128,6 +123,27 @@ data class CreateBlockRequest(
     val discipline: String? = null,  // BLOCK: BOULDER (bloque) / ROUTE (vía)
     val geometry: String? = null,    // BLOCK: POINT / LINE (muro)
     val path: String? = null,        // BLOCK+LINE: polilínea JSON
-    val direction: String? = null,   // BLOCK+LINE: "LTR"/"RTL"
-    val betaUrl: String? = null      // BLOCK: enlace opcional a vídeo de beta (Instagram/YouTube)
+    val direction: String? = null    // BLOCK+LINE: "LTR"/"RTL"
+)
+
+/** Enlace de la comunidad a un vídeo de beta (Instagram/YouTube) de una
+ *  piedra/muro (lineId=null) o de una vía concreta. Puede haber varios por
+ *  piedra/vía, cada uno con categoría de altura opcional. */
+@Serializable
+data class BetaLinkDto(
+    val id: String,
+    val blockId: String,
+    val lineId: String? = null,
+    val url: String,
+    // "TALL" (+1,70) / "SHORT" (-1,70) / null = sin especificar.
+    val heightCategory: String? = null,
+    val uid: String,
+    val createdAt: String? = null
+)
+
+@Serializable
+data class CreateBetaLinkRequest(
+    val lineId: String? = null,
+    val url: String,
+    val heightCategory: String? = null
 )

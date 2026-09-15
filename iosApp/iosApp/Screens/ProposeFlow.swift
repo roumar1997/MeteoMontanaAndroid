@@ -55,9 +55,6 @@ struct BoulderBlockForm: Identifiable {
     var descriptionText: String = ""
     /// Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
     var variant: String = ""
-    /// Enlace opcional a un vídeo de beta (Instagram/YouTube). Se abre fuera
-    /// de la app; no se embebe nada (Álvaro, 2026-09-15).
-    var betaUrl: String = ""
 }
 
 /// Serializa los bloques al formato que espera el backend (espejo de
@@ -78,8 +75,7 @@ func buildBloquesJson(_ blocks: [BoulderBlockForm]) -> String {
                 // Cara (foto) a la que pertenece → el backend la mantiene en su cara.
                 "photoUrl": b.facePhoto as Any? ?? NSNull(),
                 "description": b.descriptionText.isEmpty ? NSNull() : b.descriptionText,
-                "variant": b.variant.isEmpty ? NSNull() : b.variant,
-                "betaUrl": b.betaUrl.isEmpty ? NSNull() : b.betaUrl]
+                "variant": b.variant.isEmpty ? NSNull() : b.variant]
     }
     return (try? JSONSerialization.data(withJSONObject: arr))
         .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"

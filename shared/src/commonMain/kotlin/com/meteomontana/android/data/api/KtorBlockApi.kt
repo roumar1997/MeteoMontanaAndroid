@@ -8,6 +8,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -67,26 +68,29 @@ class KtorBlockApi(private val client: HttpClient) {
     suspend fun unrateLine(blockId: String, lineId: String): RatingResult =
         client.delete("blocks/$blockId/lines/$lineId/rate").body()
 
-    // ── Enlace de beta (Instagram/YouTube) — directo, como votar ─────────
+    // ── Enlaces de beta (Instagram/YouTube) — directo, como comentar ─────
 
-    @Serializable
-    private data class BetaUrlRequest(val url: String?)
-
-    /** Pone/cambia/quita el enlace de beta de una vía. url vacía = lo quita. */
+    /** Enlaces de la piedra, o de una vía concreta con [lineId]. */
     @Throws(Exception::class)
-    suspend fun setLineBetaUrl(blockId: String, lineId: String, url: String?): BlockDto =
-        client.put("blocks/$blockId/lines/$lineId/beta-url") {
-            contentType(ContentType.Application.Json)
-            setBody(BetaUrlRequest(url))
+    suspend fun getBetaLinks(blockId: String, lineId: String? = null): List<com.meteomontana.android.data.api.dto.BetaLinkDto> =
+        client.get("blocks/$blockId/beta-links") {
+            if (lineId != null) parameter("lineId", lineId)
         }.body()
 
-    /** Mismo endpoint pero para la piedra en sí (bloques sin vías nombradas). */
     @Throws(Exception::class)
-    suspend fun setBlockBetaUrl(blockId: String, url: String?): BlockDto =
-        client.put("blocks/$blockId/beta-url") {
+    suspend fun addBetaLink(
+        blockId: String,
+        req: com.meteomontana.android.data.api.dto.CreateBetaLinkRequest
+    ): com.meteomontana.android.data.api.dto.BetaLinkDto =
+        client.post("blocks/$blockId/beta-links") {
             contentType(ContentType.Application.Json)
-            setBody(BetaUrlRequest(url))
+            setBody(req)
         }.body()
+
+    @Throws(Exception::class)
+    suspend fun deleteBetaLink(linkId: String) {
+        client.delete("beta-links/$linkId")
+    }
 
     // ── Comentarios de piedras/vías (con votos de utilidad) ──────────────
 

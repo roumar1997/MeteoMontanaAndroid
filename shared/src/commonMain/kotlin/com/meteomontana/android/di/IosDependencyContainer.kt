@@ -361,13 +361,15 @@ class IosDependencyContainer(
     val reorderBlocks = ReorderBlocksUseCase(blockRepository)
     val autoReorderBlocks = AutoReorderBlocksUseCase(blockRepository)
     val rateLine = com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(blockRepository)
-    // Enlace de beta directo, como votar (Álvaro, 2026-09-15).
-    val setBetaUrl = com.meteomontana.android.domain.usecase.blocks.SetBetaUrlUseCase(blockRepository)
     // Comentarios de piedras/vías por use case (regla DI: nada de blockApi directo).
     val getLineComments = com.meteomontana.android.domain.usecase.blocks.GetLineCommentsUseCase(blockRepository)
     val addLineComment = com.meteomontana.android.domain.usecase.blocks.AddLineCommentUseCase(blockRepository)
     val voteLineComment = com.meteomontana.android.domain.usecase.blocks.VoteLineCommentUseCase(blockRepository)
     val deleteLineComment = com.meteomontana.android.domain.usecase.blocks.DeleteLineCommentUseCase(blockRepository)
+    // Enlaces de beta directos, varios por vía con categoría de altura (Álvaro, 2026-09-15).
+    val getBetaLinks = com.meteomontana.android.domain.usecase.blocks.GetBetaLinksUseCase(blockRepository)
+    val addBetaLink = com.meteomontana.android.domain.usecase.blocks.AddBetaLinkUseCase(blockRepository)
+    val deleteBetaLink = com.meteomontana.android.domain.usecase.blocks.DeleteBetaLinkUseCase(blockRepository)
 
     val getMyJournal = GetMyJournalUseCase(journalRepository)
     val getMyJournalStats = GetMyJournalStatsUseCase(journalRepository)

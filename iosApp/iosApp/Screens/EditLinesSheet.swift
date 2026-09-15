@@ -460,8 +460,7 @@ struct EditLinesSheet: View {
                                          existingLineId: l.id,
                                          facePhoto: f.photoPath ?? block.photoPath,
                                          descriptionText: l.lineDescription ?? "",
-                                         variant: l.variant ?? "",
-                                         betaUrl: l.betaUrl ?? "")
+                                         variant: l.variant ?? "")
                     }
                 }
                 // Abre la cara que contiene la vía del deep-link, si la hay.
