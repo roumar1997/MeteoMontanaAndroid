@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.PhotoCamera
@@ -135,6 +136,7 @@ fun BetaLinksThread(
     var urlDraft by remember { mutableStateOf("") }
     var authorNameDraft by remember { mutableStateOf("") }
     var justAdded by remember { mutableStateOf(false) }
+    var emptyUrlError by remember { mutableStateOf(false) }
     var reportTarget by remember { mutableStateOf<BetaLink?>(null) }
 
     val shown = remember(mine, viewFilter) {
@@ -233,6 +235,16 @@ fun BetaLinksThread(
                         color = com.meteomontana.android.ui.theme.Moss)
                 }
             }
+            if (emptyUrlError) {
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(top = 2.dp)) {
+                    Icon(Icons.Outlined.ErrorOutline, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
+                    Text("Falta el enlace, no se ha guardado", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error)
+                }
+            }
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(2.dp))
@@ -316,6 +328,7 @@ fun BetaLinksThread(
                         }
                     } else {
                         pastingUrlFor = null
+                        emptyUrlError = true
                     }
                 }) { Text("Guardar") }
             },
@@ -335,6 +348,12 @@ fun BetaLinksThread(
         )
     }
 
+    LaunchedEffect(emptyUrlError) {
+        if (emptyUrlError) {
+            delay(2000)
+            emptyUrlError = false
+        }
+    }
     LaunchedEffect(justAdded) {
         if (justAdded) {
             delay(2000)

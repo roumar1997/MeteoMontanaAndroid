@@ -83,6 +83,7 @@ struct BetaLinksThreadView: View {
     @State private var urlDraft = ""
     @State private var authorNameDraft = ""
     @State private var justAdded = false
+    @State private var emptyUrlError = false
     // Denuncia (requisito App Store para UGC) — mismo patrón que comentarios:
     // se oculta al instante para quien denuncia; si denuncia un admin se
     // borra ya en el servidor (Álvaro, 2026-09-16: "la gente puede subir lo
@@ -166,6 +167,11 @@ struct BetaLinksThreadView: View {
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ok)
                         .padding(.top, 2)
                 }
+                if emptyUrlError {
+                    Label("Falta el enlace, no se ha guardado", systemImage: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12)).foregroundStyle(.red)
+                        .padding(.top, 2)
+                }
                 Button { choosingCategory = true } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.circle")
@@ -202,7 +208,15 @@ struct BetaLinksThreadView: View {
             Button("Cancelar", role: .cancel) { pastingUrlFor = nil }
             Button("Guardar") {
                 let u = urlDraft.trimmingCharacters(in: .whitespaces)
-                guard !u.isEmpty, let category = pastingUrlFor else { pastingUrlFor = nil; return }
+                guard !u.isEmpty, let category = pastingUrlFor else {
+                    pastingUrlFor = nil
+                    emptyUrlError = true
+                    Task {
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        emptyUrlError = false
+                    }
+                    return
+                }
                 let name = authorNameDraft.trimmingCharacters(in: .whitespaces)
                 pastingUrlFor = nil
                 Task {
