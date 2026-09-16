@@ -16,5 +16,8 @@ data class BetaLink(
     // "TALL" (+1,70) / "SHORT" (-1,70) / null = sin especificar.
     val heightCategory: String? = null,
     val uid: String,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    // Nombre libre y opcional de quién hace la beta (Álvaro, 2026-09-16:
+    // "¿de quién es esta beta?") — texto suelto, no un usuario real de Cumbre.
+    val authorName: String? = null
 )

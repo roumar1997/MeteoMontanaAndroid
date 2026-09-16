@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,8 +15,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -75,9 +80,9 @@ class BetaLinksViewModel @Inject constructor(
         }
     }
 
-    fun add(blockId: String, lineId: String?, url: String, heightCategory: String?, onDone: (Boolean) -> Unit = {}) {
+    fun add(blockId: String, lineId: String?, url: String, heightCategory: String?, authorName: String?, onDone: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
-            val result = runCatching { addBetaLink(blockId, lineId, url, heightCategory) }
+            val result = runCatching { addBetaLink(blockId, lineId, url, heightCategory, authorName) }
             result.onSuccess { created -> _links.value = _links.value + created }
             onDone(result.isSuccess)
         }
@@ -112,8 +117,14 @@ fun BetaLinksThread(
 ) {
     LaunchedEffect(blockId) { viewModel.load(blockId) }
     val allLinks by viewModel.links.collectAsStateWithLifecycle()
-    val mine = remember(allLinks, blockId, lineId) {
-        allLinks.filter { it.blockId == blockId && it.lineId == lineId }
+    // Denuncia (requisito App Store para UGC) — mismo patrón que comentarios:
+    // se oculta al instante para quien denuncia; si denuncia un admin se
+    // borra ya en el servidor (Álvaro, 2026-09-16: "la gente puede subir lo
+    // que quiera, debe poder denunciar... y yo como admin eliminar cualquiera").
+    val moderation: ModerationViewModel = hiltViewModel()
+    val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
+    val mine = remember(allLinks, blockId, lineId, hiddenIds) {
+        allLinks.filter { it.blockId == blockId && it.lineId == lineId && "BETA_LINK:${it.id}" !in hiddenIds }
             .sortedByDescending { it.createdAt ?: "" }
     }
 
@@ -122,7 +133,9 @@ fun BetaLinksThread(
     var choosingCategory by remember { mutableStateOf(false) }
     var pastingUrlFor by remember { mutableStateOf<HeightFilter?>(null) }
     var urlDraft by remember { mutableStateOf("") }
+    var authorNameDraft by remember { mutableStateOf("") }
     var justAdded by remember { mutableStateOf(false) }
+    var reportTarget by remember { mutableStateOf<BetaLink?>(null) }
 
     val shown = remember(mine, viewFilter) {
         if (viewFilter == HeightFilter.ANY) mine else mine.filter { it.heightCategory == viewFilter.raw }
@@ -138,12 +151,28 @@ fun BetaLinksThread(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(Icons.Outlined.PlayCircleOutline, contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+            // Círculo relleno en terracota cuando HAY vídeos, contorno gris
+            // cuando no — para que se note de un vistazo si esta vía tiene
+            // beta en vídeo (Álvaro, 2026-09-16).
+            Box(
+                modifier = Modifier
+                    .size(15.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .then(
+                        if (mine.isEmpty())
+                            Modifier.border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, androidx.compose.foundation.shape.CircleShape)
+                        else Modifier.background(Terra)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = null,
+                    tint = if (mine.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.size(9.dp))
+            }
             Text(
                 "BETA" + if (mine.isNotEmpty()) " · ${mine.size}" else "",
                 style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (mine.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else Terra,
                 modifier = Modifier.weight(1f)
             )
             Text(if (expanded) "▴" else "▾",
@@ -191,7 +220,8 @@ fun BetaLinksThread(
                 if (idx > 0) androidx.compose.material3.HorizontalDivider(
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
                 BetaLinkRow(link = l, isMine = myUid != null && myUid == l.uid,
-                    onDelete = { viewModel.delete(l.id) })
+                    onDelete = { viewModel.delete(l.id) },
+                    onReport = { reportTarget = l })
             }
             if (justAdded) {
                 Row(verticalAlignment = Alignment.CenterVertically,
@@ -232,6 +262,7 @@ fun BetaLinksThread(
                                 .clickable {
                                     choosingCategory = false
                                     urlDraft = ""
+                                    authorNameDraft = ""
                                     pastingUrlFor = f
                                 }
                                 .padding(vertical = 12.dp))
@@ -264,6 +295,13 @@ fun BetaLinksThread(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    OutlinedTextField(
+                        value = authorNameDraft,
+                        onValueChange = { authorNameDraft = it },
+                        placeholder = { Text("¿De quién es la beta? (opcional)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)
+                    )
                 }
             },
             confirmButton = {
@@ -271,8 +309,9 @@ fun BetaLinksThread(
                     val u = urlDraft.trim()
                     if (u.isNotEmpty()) {
                         val target = pastingUrlFor
+                        val name = authorNameDraft.trim().ifEmpty { null }
                         pastingUrlFor = null
-                        viewModel.add(blockId, lineId, u, target?.raw) { ok ->
+                        viewModel.add(blockId, lineId, u, target?.raw, name) { ok ->
                             if (ok) justAdded = true
                         }
                     } else {
@@ -281,6 +320,18 @@ fun BetaLinksThread(
                 }) { Text("Guardar") }
             },
             dismissButton = { TextButton({ pastingUrlFor = null }) { Text("Cancelar") } }
+        )
+    }
+
+    reportTarget?.let { l ->
+        ReportDialog(
+            title = "DENUNCIAR ENLACE DE BETA",
+            authorLabel = null,
+            onReport = { reason, _ ->
+                moderation.report("BETA_LINK", l.id, reason)
+                reportTarget = null
+            },
+            onDismiss = { reportTarget = null }
         )
     }
 
@@ -293,13 +344,13 @@ fun BetaLinksThread(
 }
 
 @Composable
-private fun BetaLinkRow(link: BetaLink, isMine: Boolean, onDelete: () -> Unit) {
+private fun BetaLinkRow(link: BetaLink, isMine: Boolean, onDelete: () -> Unit, onReport: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val host = remember(link.url) { runCatching { java.net.URI(link.url).host?.lowercase() }.getOrNull() ?: "" }
-    val label = when {
-        host.contains("instagram.com") -> "Ver en Instagram"
-        host.contains("youtube.com") || host.contains("youtu.be") -> "Ver en YouTube"
-        else -> "Ver enlace"
+    val (platformIcon, label) = when {
+        host.contains("instagram.com") -> Icons.Outlined.PhotoCamera to "Ver en Instagram"
+        host.contains("youtube.com") || host.contains("youtu.be") -> Icons.Outlined.PlayCircleOutline to "Ver en YouTube"
+        else -> Icons.Outlined.Link to "Ver enlace"
     }
     val categoryLabel = when (link.heightCategory) {
         "TALL" -> "+1,70"
@@ -307,40 +358,59 @@ private fun BetaLinkRow(link: BetaLink, isMine: Boolean, onDelete: () -> Unit) {
         else -> null
     }
 
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .clickable {
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link.url))
-                    context.startActivity(intent)
-                },
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-            categoryLabel?.let {
-                Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Terra,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(3.dp))
-                        .border(1.dp, Terra, RoundedCornerShape(3.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp))
-            }
-            Icon(Icons.Outlined.OpenInNew, contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
-        }
-        if (isMine) {
-            Icon(Icons.Outlined.DeleteOutline, contentDescription = "Borrar",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(2.dp))
-                    .clickable(onClick = onDelete)
-                    .padding(6.dp)
-                    .size(16.dp))
+                    .weight(1f)
+                    .clickable {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link.url))
+                        context.startActivity(intent)
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(platformIcon, contentDescription = null, tint = Terra, modifier = Modifier.size(15.dp))
+                Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                categoryLabel?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Terra,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .border(1.dp, Terra, RoundedCornerShape(3.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp))
+                }
+                Icon(Icons.Outlined.OpenInNew, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
+            }
+            if (isMine) {
+                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Borrar",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .clickable(onClick = onDelete)
+                        .padding(6.dp)
+                        .size(16.dp))
+            } else {
+                Icon(Icons.Outlined.Flag, contentDescription = "Denunciar",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .clickable(onClick = onReport)
+                        .padding(6.dp)
+                        .size(16.dp))
+            }
+        }
+        if (!link.authorName.isNullOrBlank()) {
+            Text(
+                "de ${link.authorName}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 21.dp)
+            )
         }
     }
 }

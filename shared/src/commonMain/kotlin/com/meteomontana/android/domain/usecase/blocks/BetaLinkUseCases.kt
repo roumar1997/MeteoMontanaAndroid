@@ -17,8 +17,8 @@ class GetBetaLinksUseCase(private val repo: BlockRepository) {
 
 class AddBetaLinkUseCase(private val repo: BlockRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(blockId: String, lineId: String?, url: String, heightCategory: String?): BetaLink =
-        repo.addBetaLink(blockId, lineId, url, heightCategory)
+    suspend operator fun invoke(blockId: String, lineId: String?, url: String, heightCategory: String?, authorName: String? = null): BetaLink =
+        repo.addBetaLink(blockId, lineId, url, heightCategory, authorName)
 }
 
 class DeleteBetaLinkUseCase(private val repo: BlockRepository) {

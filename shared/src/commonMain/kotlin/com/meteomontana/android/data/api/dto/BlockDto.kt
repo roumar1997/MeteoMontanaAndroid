@@ -138,12 +138,14 @@ data class BetaLinkDto(
     // "TALL" (+1,70) / "SHORT" (-1,70) / null = sin especificar.
     val heightCategory: String? = null,
     val uid: String,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val authorName: String? = null
 )
 
 @Serializable
 data class CreateBetaLinkRequest(
     val lineId: String? = null,
     val url: String,
-    val heightCategory: String? = null
+    val heightCategory: String? = null,
+    val authorName: String? = null
 )

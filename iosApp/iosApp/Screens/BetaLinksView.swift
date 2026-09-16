@@ -28,9 +28,9 @@ final class BetaLinksStore: ObservableObject {
         }
     }
 
-    func add(blockId: String, lineId: String?, url: String, heightCategory: String?) async {
+    func add(blockId: String, lineId: String?, url: String, heightCategory: String?, authorName: String?) async {
         if let created = await reporting("No se pudo añadir el enlace", {
-            try await container.addBetaLink.invoke(blockId: blockId, lineId: lineId, url: url, heightCategory: heightCategory)
+            try await container.addBetaLink.invoke(blockId: blockId, lineId: lineId, url: url, heightCategory: heightCategory, authorName: authorName)
         }) {
             links.append(created)
         }
@@ -81,11 +81,19 @@ struct BetaLinksThreadView: View {
     @State private var choosingCategory = false
     @State private var pastingUrlFor: HeightFilter? = nil
     @State private var urlDraft = ""
+    @State private var authorNameDraft = ""
     @State private var justAdded = false
+    // Denuncia (requisito App Store para UGC) — mismo patrón que comentarios:
+    // se oculta al instante para quien denuncia; si denuncia un admin se
+    // borra ya en el servidor (Álvaro, 2026-09-16: "la gente puede subir lo
+    // que quiera, debe poder denunciar... y yo como admin eliminar cualquiera").
+    @ObservedObject private var moderation = ModerationStore.shared
+    @State private var reportTarget: BetaLink? = nil
 
     private var all: [BetaLink] {
         store.links
-            .filter { $0.blockId == blockId && $0.lineId == lineId }
+            .filter { $0.blockId == blockId && $0.lineId == lineId
+                      && !moderation.hiddenIds.contains("BETA_LINK:\($0.id)") }
             .sorted { ($0.createdAt ?? "") > ($1.createdAt ?? "") }
     }
 
@@ -97,11 +105,22 @@ struct BetaLinksThreadView: View {
         VStack(alignment: .leading, spacing: 4) {
             Button { withAnimation { expanded.toggle() } } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "play.rectangle")
-                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                    // Círculo relleno en terracota cuando HAY vídeos, contorno
+                    // gris cuando no — para que se note de un vistazo si esta
+                    // vía tiene beta en vídeo (Álvaro, 2026-09-16).
+                    ZStack {
+                        Circle()
+                            .fill(all.isEmpty ? Color.clear : Cumbre.terra)
+                            .overlay(Circle().stroke(all.isEmpty ? Cumbre.ink3 : Color.clear, lineWidth: 1))
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 7))
+                            .foregroundStyle(all.isEmpty ? Cumbre.ink3 : Cumbre.bg)
+                            .offset(x: 0.5)
+                    }
+                    .frame(width: 15, height: 15)
                     Text("BETA" + (all.isEmpty ? "" : " · \(all.count)"))
                         .font(Cumbre.mono(10, .bold)).tracking(1.0)
-                        .foregroundStyle(Cumbre.ink3)
+                        .foregroundStyle(all.isEmpty ? Cumbre.ink3 : Cumbre.terra)
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
@@ -137,9 +156,9 @@ struct BetaLinksThreadView: View {
                 }
                 ForEach(Array(shown.enumerated()), id: \.element.id) { idx, l in
                     if idx > 0 { Divider().overlay(Cumbre.rule) }
-                    BetaLinkRow(link: l) {
-                        Task { await store.delete(linkId: l.id) }
-                    }
+                    BetaLinkRow(link: l,
+                                onDelete: { Task { await store.delete(linkId: l.id) } },
+                                onReport: { reportTarget = l })
                     .padding(.vertical, 4)
                 }
                 if justAdded {
@@ -164,12 +183,13 @@ struct BetaLinksThreadView: View {
             ForEach(HeightFilter.allCases) { f in
                 Button(f.label) {
                     urlDraft = ""
+                    authorNameDraft = ""
                     pastingUrlFor = f
                 }
             }
             Button("Cancelar", role: .cancel) {}
         }
-        // Paso 2: pegar el enlace.
+        // Paso 2: pegar el enlace (+ de quién es, opcional).
         .alert("Enlace de beta", isPresented: Binding(
             get: { pastingUrlFor != nil },
             set: { if !$0 { pastingUrlFor = nil } }
@@ -178,14 +198,17 @@ struct BetaLinksThreadView: View {
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+            TextField("¿De quién es la beta? (opcional)", text: $authorNameDraft)
             Button("Cancelar", role: .cancel) { pastingUrlFor = nil }
             Button("Guardar") {
                 let u = urlDraft.trimmingCharacters(in: .whitespaces)
                 guard !u.isEmpty, let category = pastingUrlFor else { pastingUrlFor = nil; return }
+                let name = authorNameDraft.trimmingCharacters(in: .whitespaces)
                 pastingUrlFor = nil
                 Task {
                     await store.add(blockId: blockId, lineId: lineId, url: u,
-                                     heightCategory: category == .any ? nil : category.rawValue)
+                                     heightCategory: category == .any ? nil : category.rawValue,
+                                     authorName: name.isEmpty ? nil : name)
                     justAdded = true
                     try? await Task.sleep(nanoseconds: 2_000_000_000)
                     justAdded = false
@@ -196,6 +219,11 @@ struct BetaLinksThreadView: View {
                 Text(category == .any ? "Se abrirá fuera de la app." : "Para \(category.label.lowercased()). Se abrirá fuera de la app.")
             }
         }
+        .sheet(item: $reportTarget) { l in
+            ReportSheet(title: "DENUNCIAR ENLACE DE BETA") { reason, _ in
+                moderation.report(targetType: "BETA_LINK", targetId: l.id, reason: reason)
+            }
+        }
     }
 }
 
@@ -204,6 +232,7 @@ struct BetaLinksThreadView: View {
 private struct BetaLinkRow: View {
     let link: BetaLink
     let onDelete: () -> Void
+    let onReport: () -> Void
 
     private var platform: (icon: String, label: String) {
         let host = URL(string: link.url)?.host?.lowercased() ?? ""
@@ -221,38 +250,54 @@ private struct BetaLinkRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            if let url = URL(string: link.url) {
-                Link(destination: url) {
-                    HStack(spacing: 6) {
-                        Image(systemName: platform.icon)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Cumbre.terra)
-                        Text(platform.label)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Cumbre.ink)
-                        if let categoryLabel {
-                            Text(categoryLabel)
-                                .font(Cumbre.mono(10, .bold))
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 8) {
+                if let url = URL(string: link.url) {
+                    Link(destination: url) {
+                        HStack(spacing: 6) {
+                            Image(systemName: platform.icon)
+                                .font(.system(size: 13))
                                 .foregroundStyle(Cumbre.terra)
-                                .padding(.horizontal, 6).padding(.vertical, 2)
-                                .overlay(RoundedRectangle(cornerRadius: 3).stroke(Cumbre.terra, lineWidth: 1))
+                            Text(platform.label)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Cumbre.ink)
+                            if let categoryLabel {
+                                Text(categoryLabel)
+                                    .font(Cumbre.mono(10, .bold))
+                                    .foregroundStyle(Cumbre.terra)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .overlay(RoundedRectangle(cornerRadius: 3).stroke(Cumbre.terra, lineWidth: 1))
+                            }
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Cumbre.ink3)
                         }
-                        Image(systemName: "arrow.up.right.square")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Cumbre.ink3)
                     }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                Spacer()
+                // Propio → borrar directo. Ajeno → denunciar (si eres admin,
+                // denunciar lo borra ya en el servidor — mismo patrón que
+                // comentarios, no hace falta un botón de borrar aparte).
+                if Auth.auth().currentUser?.uid == link.uid {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            .padding(6).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button(action: onReport) {
+                        Image(systemName: "flag")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3.opacity(0.7))
+                            .padding(6).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            Spacer()
-            if Auth.auth().currentUser?.uid == link.uid {
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                        .padding(6).contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+            if let author = link.authorName, !author.isEmpty {
+                Text("de \(author)")
+                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
             }
         }
     }

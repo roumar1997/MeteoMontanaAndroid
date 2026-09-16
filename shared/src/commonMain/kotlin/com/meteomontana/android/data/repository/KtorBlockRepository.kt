@@ -92,9 +92,9 @@ class KtorBlockRepository(
     override suspend fun getBetaLinks(blockId: String, lineId: String?) =
         api.getBetaLinks(blockId, lineId).map { it.toDomain() }
 
-    override suspend fun addBetaLink(blockId: String, lineId: String?, url: String, heightCategory: String?) =
+    override suspend fun addBetaLink(blockId: String, lineId: String?, url: String, heightCategory: String?, authorName: String?) =
         api.addBetaLink(blockId,
-            com.meteomontana.android.data.api.dto.CreateBetaLinkRequest(lineId, url, heightCategory)
+            com.meteomontana.android.data.api.dto.CreateBetaLinkRequest(lineId, url, heightCategory, authorName)
         ).toDomain()
 
     override suspend fun deleteBetaLink(linkId: String) = api.deleteBetaLink(linkId)

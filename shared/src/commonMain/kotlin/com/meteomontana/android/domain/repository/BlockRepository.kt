@@ -32,7 +32,7 @@ interface BlockRepository {
     /** Enlaces de la piedra, o de una vía concreta con [lineId]. */
     suspend fun getBetaLinks(blockId: String, lineId: String?): List<BetaLink>
     /** Añade un enlace nuevo (puede haber varios), con categoría de altura opcional. */
-    suspend fun addBetaLink(blockId: String, lineId: String?, url: String, heightCategory: String?): BetaLink
+    suspend fun addBetaLink(blockId: String, lineId: String?, url: String, heightCategory: String?, authorName: String?): BetaLink
     suspend fun deleteBetaLink(linkId: String)
 
     // ── Comentarios de piedras/vías (con votos de utilidad) ──

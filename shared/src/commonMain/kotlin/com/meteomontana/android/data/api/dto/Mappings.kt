@@ -119,7 +119,8 @@ fun BlockLineDto.toDomain(coverPhoto: String? = null) =
 
 fun BetaLinkDto.toDomain() = com.meteomontana.android.domain.model.BetaLink(
     id = id, blockId = blockId, lineId = lineId, url = url,
-    heightCategory = heightCategory, uid = uid, createdAt = createdAt
+    heightCategory = heightCategory, uid = uid, createdAt = createdAt,
+    authorName = authorName
 )
 
 fun BlockFaceDto.toDomain(coverPhoto: String? = null): BlockFace {
