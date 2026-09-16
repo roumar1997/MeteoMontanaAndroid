@@ -103,6 +103,12 @@ private enum class HeightFilter(val raw: String?, val label: String, val shortLa
     SHORT("SHORT", "Personas -1,70", "-1,70")
 }
 
+/** Mismo criterio que BetaLinkService.validUrl() en el backend: solo http(s). */
+private fun isValidBetaUrl(url: String): Boolean {
+    val t = url.trim()
+    return t.startsWith("http://", ignoreCase = true) || t.startsWith("https://", ignoreCase = true)
+}
+
 /**
  * Hilo desplegable de enlaces de beta: la CABECERA ENTERA es pulsable.
  * lineId=null → enlaces de la piedra entera. Añadir es un flujo de DOS
@@ -290,15 +296,20 @@ fun BetaLinksThread(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = Spacing.sm)
                     )
+                    val urlValid = isValidBetaUrl(urlDraft)
                     OutlinedTextField(
                         value = urlDraft,
                         onValueChange = { urlDraft = it; urlTouched = true },
                         placeholder = { Text("Enlace de Instagram/YouTube") },
                         singleLine = true,
-                        isError = urlTouched && urlDraft.isBlank(),
+                        isError = urlTouched && !urlValid,
                         supportingText = {
-                            if (urlTouched && urlDraft.isBlank()) {
-                                Text("Falta el enlace de Instagram/YouTube.", color = MaterialTheme.colorScheme.error)
+                            if (urlTouched && !urlValid) {
+                                Text(
+                                    if (urlDraft.isBlank()) "Falta el enlace de Instagram/YouTube."
+                                    else "El enlace debe empezar por http:// o https://",
+                                    color = MaterialTheme.colorScheme.error
+                                )
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -314,7 +325,7 @@ fun BetaLinksThread(
             },
             confirmButton = {
                 TextButton(
-                    enabled = urlDraft.isNotBlank(),
+                    enabled = isValidBetaUrl(urlDraft),
                     onClick = {
                         val u = urlDraft.trim()
                         val target = pastingUrlFor

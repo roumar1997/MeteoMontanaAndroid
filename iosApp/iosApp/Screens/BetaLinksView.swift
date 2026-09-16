@@ -221,7 +221,11 @@ private struct BetaLinkUrlSheet: View {
     @State private var touched = false
 
     private var trimmedUrl: String { urlDraft.trimmingCharacters(in: .whitespaces) }
-    private var showError: Bool { touched && trimmedUrl.isEmpty }
+    // Mismo criterio que BetaLinkService.validUrl() en el backend: solo http(s).
+    private var isValidUrl: Bool {
+        trimmedUrl.lowercased().hasPrefix("http://") || trimmedUrl.lowercased().hasPrefix("https://")
+    }
+    private var showError: Bool { touched && !isValidUrl }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -238,7 +242,8 @@ private struct BetaLinkUrlSheet: View {
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(showError ? Color.red : Cumbre.rule, lineWidth: 1))
                 .onChange(of: urlDraft) { _ in touched = true }
             if showError {
-                Text("Falta el enlace de Instagram/YouTube.")
+                Text(trimmedUrl.isEmpty ? "Falta el enlace de Instagram/YouTube."
+                                         : "El enlace debe empezar por http:// o https://")
                     .font(.system(size: 12)).foregroundStyle(.red)
             }
             TextField("¿De quién es la beta? (opcional)", text: $authorNameDraft)
@@ -251,13 +256,13 @@ private struct BetaLinkUrlSheet: View {
                 Spacer()
                 Button("GUARDAR") {
                     touched = true
-                    guard !trimmedUrl.isEmpty else { return }
+                    guard isValidUrl else { return }
                     let name = authorNameDraft.trimmingCharacters(in: .whitespaces)
                     onSave(trimmedUrl, name.isEmpty ? nil : name)
                 }
                 .font(Cumbre.mono(12, .bold))
-                .foregroundStyle(trimmedUrl.isEmpty ? Cumbre.ink3 : Cumbre.terra)
-                .disabled(trimmedUrl.isEmpty)
+                .foregroundStyle(isValidUrl ? Cumbre.terra : Cumbre.ink3)
+                .disabled(!isValidUrl)
             }
             .padding(.top, 4)
             Spacer()
