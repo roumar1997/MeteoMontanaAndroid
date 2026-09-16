@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.PhotoCamera
@@ -134,9 +133,9 @@ fun BetaLinksThread(
     var choosingCategory by remember { mutableStateOf(false) }
     var pastingUrlFor by remember { mutableStateOf<HeightFilter?>(null) }
     var urlDraft by remember { mutableStateOf("") }
+    var urlTouched by remember { mutableStateOf(false) }
     var authorNameDraft by remember { mutableStateOf("") }
     var justAdded by remember { mutableStateOf(false) }
-    var emptyUrlError by remember { mutableStateOf(false) }
     var reportTarget by remember { mutableStateOf<BetaLink?>(null) }
 
     val shown = remember(mine, viewFilter) {
@@ -235,16 +234,6 @@ fun BetaLinksThread(
                         color = com.meteomontana.android.ui.theme.Moss)
                 }
             }
-            if (emptyUrlError) {
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(top = 2.dp)) {
-                    Icon(Icons.Outlined.ErrorOutline, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
-                    Text("Falta el enlace, no se ha guardado", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error)
-                }
-            }
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(2.dp))
@@ -274,6 +263,7 @@ fun BetaLinksThread(
                                 .clickable {
                                     choosingCategory = false
                                     urlDraft = ""
+                                    urlTouched = false
                                     authorNameDraft = ""
                                     pastingUrlFor = f
                                 }
@@ -302,9 +292,15 @@ fun BetaLinksThread(
                     )
                     OutlinedTextField(
                         value = urlDraft,
-                        onValueChange = { urlDraft = it },
+                        onValueChange = { urlDraft = it; urlTouched = true },
                         placeholder = { Text("Enlace de Instagram/YouTube") },
                         singleLine = true,
+                        isError = urlTouched && urlDraft.isBlank(),
+                        supportingText = {
+                            if (urlTouched && urlDraft.isBlank()) {
+                                Text("Falta el enlace de Instagram/YouTube.", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
@@ -317,20 +313,18 @@ fun BetaLinksThread(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    val u = urlDraft.trim()
-                    if (u.isNotEmpty()) {
+                TextButton(
+                    enabled = urlDraft.isNotBlank(),
+                    onClick = {
+                        val u = urlDraft.trim()
                         val target = pastingUrlFor
                         val name = authorNameDraft.trim().ifEmpty { null }
                         pastingUrlFor = null
                         viewModel.add(blockId, lineId, u, target?.raw, name) { ok ->
                             if (ok) justAdded = true
                         }
-                    } else {
-                        pastingUrlFor = null
-                        emptyUrlError = true
                     }
-                }) { Text("Guardar") }
+                ) { Text("Guardar") }
             },
             dismissButton = { TextButton({ pastingUrlFor = null }) { Text("Cancelar") } }
         )
@@ -348,12 +342,6 @@ fun BetaLinksThread(
         )
     }
 
-    LaunchedEffect(emptyUrlError) {
-        if (emptyUrlError) {
-            delay(2000)
-            emptyUrlError = false
-        }
-    }
     LaunchedEffect(justAdded) {
         if (justAdded) {
             delay(2000)

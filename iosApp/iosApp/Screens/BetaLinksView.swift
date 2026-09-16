@@ -80,10 +80,7 @@ struct BetaLinksThreadView: View {
     @State private var viewFilter: HeightFilter = .any
     @State private var choosingCategory = false
     @State private var pastingUrlFor: HeightFilter? = nil
-    @State private var urlDraft = ""
-    @State private var authorNameDraft = ""
     @State private var justAdded = false
-    @State private var emptyUrlError = false
     // Denuncia (requisito App Store para UGC) — mismo patrón que comentarios:
     // se oculta al instante para quien denuncia; si denuncia un admin se
     // borra ya en el servidor (Álvaro, 2026-09-16: "la gente puede subir lo
@@ -167,11 +164,6 @@ struct BetaLinksThreadView: View {
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ok)
                         .padding(.top, 2)
                 }
-                if emptyUrlError {
-                    Label("Falta el enlace, no se ha guardado", systemImage: "exclamationmark.triangle.fill")
-                        .font(.system(size: 12)).foregroundStyle(.red)
-                        .padding(.top, 2)
-                }
                 Button { choosingCategory = true } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.circle")
@@ -187,50 +179,25 @@ struct BetaLinksThreadView: View {
         // Paso 1: ¿para quién es esta beta?
         .confirmationDialog("¿Para quién es esta beta?", isPresented: $choosingCategory, titleVisibility: .visible) {
             ForEach(HeightFilter.allCases) { f in
-                Button(f.label) {
-                    urlDraft = ""
-                    authorNameDraft = ""
-                    pastingUrlFor = f
-                }
+                Button(f.label) { pastingUrlFor = f }
             }
             Button("Cancelar", role: .cancel) {}
         }
-        // Paso 2: pegar el enlace (+ de quién es, opcional).
-        .alert("Enlace de beta", isPresented: Binding(
-            get: { pastingUrlFor != nil },
-            set: { if !$0 { pastingUrlFor = nil } }
-        )) {
-            TextField("Enlace de Instagram/YouTube", text: $urlDraft)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            TextField("¿De quién es la beta? (opcional)", text: $authorNameDraft)
-            Button("Cancelar", role: .cancel) { pastingUrlFor = nil }
-            Button("Guardar") {
-                let u = urlDraft.trimmingCharacters(in: .whitespaces)
-                guard !u.isEmpty, let category = pastingUrlFor else {
-                    pastingUrlFor = nil
-                    emptyUrlError = true
-                    Task {
-                        try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        emptyUrlError = false
-                    }
-                    return
-                }
-                let name = authorNameDraft.trimmingCharacters(in: .whitespaces)
+        // Paso 2: pegar el enlace (+ de quién es, opcional) — hoja propia, no
+        // alert nativo, para poder bloquear "Guardar" sin enlace y avisar en
+        // el sitio (Álvaro, 2026-09-16: "no debería dejarte darle a guardar
+        // si no tiene el enlace, y que salga ahí el error").
+        .sheet(item: $pastingUrlFor) { category in
+            BetaLinkUrlSheet(category: category, onCancel: { pastingUrlFor = nil }) { url, authorName in
                 pastingUrlFor = nil
                 Task {
-                    await store.add(blockId: blockId, lineId: lineId, url: u,
+                    await store.add(blockId: blockId, lineId: lineId, url: url,
                                      heightCategory: category == .any ? nil : category.rawValue,
-                                     authorName: name.isEmpty ? nil : name)
+                                     authorName: authorName)
                     justAdded = true
                     try? await Task.sleep(nanoseconds: 2_000_000_000)
                     justAdded = false
                 }
-            }
-        } message: {
-            if let category = pastingUrlFor {
-                Text(category == .any ? "Se abrirá fuera de la app." : "Para \(category.label.lowercased()). Se abrirá fuera de la app.")
             }
         }
         .sheet(item: $reportTarget) { l in
@@ -238,6 +205,66 @@ struct BetaLinksThreadView: View {
                 moderation.report(targetType: "BETA_LINK", targetId: l.id, reason: reason)
             }
         }
+    }
+}
+
+/// Paso 2 del alta: pegar el enlace + nombre opcional. Hoja propia (no alert
+/// nativo) porque el sistema no permite deshabilitar botones ni mostrar
+/// errores dentro de un `.alert` — aquí "Guardar" queda bloqueado sin enlace
+/// y el aviso sale junto al campo (Álvaro, 2026-09-16).
+private struct BetaLinkUrlSheet: View {
+    let category: HeightFilter
+    let onCancel: () -> Void
+    let onSave: (_ url: String, _ authorName: String?) -> Void
+    @State private var urlDraft = ""
+    @State private var authorNameDraft = ""
+    @State private var touched = false
+
+    private var trimmedUrl: String { urlDraft.trimmingCharacters(in: .whitespaces) }
+    private var showError: Bool { touched && trimmedUrl.isEmpty }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("ENLACE DE BETA").font(Cumbre.mono(11, .bold)).tracking(1.4)
+                .foregroundStyle(Cumbre.ink3)
+                .padding(.top, 18)
+            Text(category == .any ? "Se abrirá fuera de la app." : "Para \(category.label.lowercased()). Se abrirá fuera de la app.")
+                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            TextField("Enlace de Instagram/YouTube", text: $urlDraft)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .padding(10)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(showError ? Color.red : Cumbre.rule, lineWidth: 1))
+                .onChange(of: urlDraft) { _ in touched = true }
+            if showError {
+                Text("Falta el enlace de Instagram/YouTube.")
+                    .font(.system(size: 12)).foregroundStyle(.red)
+            }
+            TextField("¿De quién es la beta? (opcional)", text: $authorNameDraft)
+                .padding(10)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
+            HStack {
+                Button("CANCELAR") { onCancel() }
+                    .font(Cumbre.mono(12, .bold))
+                    .foregroundStyle(Cumbre.ink3)
+                Spacer()
+                Button("GUARDAR") {
+                    touched = true
+                    guard !trimmedUrl.isEmpty else { return }
+                    let name = authorNameDraft.trimmingCharacters(in: .whitespaces)
+                    onSave(trimmedUrl, name.isEmpty ? nil : name)
+                }
+                .font(Cumbre.mono(12, .bold))
+                .foregroundStyle(trimmedUrl.isEmpty ? Cumbre.ink3 : Cumbre.terra)
+                .disabled(trimmedUrl.isEmpty)
+            }
+            .padding(.top, 4)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .presentationDetents([.medium])
+        .background(Cumbre.bg)
     }
 }
 
