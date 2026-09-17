@@ -463,7 +463,7 @@ internal fun SchoolMapView(
                         .clickable { bridge.photoMove?.invoke() }
                         .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
-                    ) { Text("MOVERLA", style = EyebrowTextStyle, color = Color.White) }
+                    ) { Text(stringResource(R.string.school_map_view_v2_moverla), style = EyebrowTextStyle, color = Color.White) }
                 }
             }
         }
@@ -480,7 +480,7 @@ internal fun SchoolMapView(
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("✎ TRAZA EL MURO · ${pv.size} PUNTOS · TOCA LA BASE DEL MURO",
+                    Text(stringResource(R.string.school_map_view_v2_traza_el_muro_1_s, pv.size),
                         style = EyebrowTextStyle, color = Color.White,
                         modifier = Modifier.weight(1f))
                     Text(" ✕", color = Color.White, style = MaterialTheme.typography.titleMedium,
@@ -494,7 +494,7 @@ internal fun SchoolMapView(
                         .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("↶ DESHACER", style = EyebrowTextStyle, color = Terra)
+                        Text(stringResource(R.string.school_map_view_v2_deshacer), style = EyebrowTextStyle, color = Terra)
                     }
                     Box(modifier = Modifier.weight(1f)
                         .background(Color.White.copy(alpha = if (pv.size >= 2) 1f else 0.4f))
@@ -658,7 +658,7 @@ internal fun SchoolMapView(
                     }) {
                         androidx.compose.material3.Icon(
                             androidx.compose.material.icons.Icons.Outlined.GpsFixed,
-                            contentDescription = "Centrar en la escuela",
+                            contentDescription = stringResource(R.string.school_map_view_v2_centrar_en_la_escuela),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp))
                     }
@@ -768,7 +768,7 @@ internal fun SchoolMapView(
         if (parkings.isNotEmpty()) {
             Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
                 Text(
-                    "PARKINGS",
+                    stringResource(R.string.school_map_view_v2_parkings),
                     style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
@@ -848,7 +848,7 @@ internal fun SchoolMapView(
         if (sectores.isNotEmpty()) {
             Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
                 Text(
-                    "SECTORES",
+                    stringResource(R.string.school_map_view_v2_sectores),
                     style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
@@ -916,14 +916,14 @@ internal fun SchoolMapView(
     confirmDeleteMini?.let { mb ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmDeleteMini = null },
-            title = { Text("¿Eliminar «${mb.name.ifBlank { if (mb.type == "PARKING") "parking" else "sector" }}»?") },
+            title = { Text(stringResource(R.string.school_map_view_v2_eliminar_1_s, mb.name.ifBlank { if (mb.type == "PARKING") "parking" else "sector" })) },
             text = { Text(stringResource(R.string.school_map_view_esta_accion_no_se)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     viewModel.deleteBlock(mb.id) {}
                     confirmDeleteMini = null
                     miniBlock = null
-                }) { Text("ELIMINAR", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.school_map_view_v2_eliminar), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { confirmDeleteMini = null }) {

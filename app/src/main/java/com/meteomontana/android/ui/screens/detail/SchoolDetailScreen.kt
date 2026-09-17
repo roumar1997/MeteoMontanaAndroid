@@ -156,7 +156,7 @@ fun SchoolDetailScreen(
                 is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
                 is SchoolDetailUiState.Error -> Center {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.school_detail_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
                         Spacer(Modifier.height(Spacing.md))
                         androidx.compose.material3.OutlinedButton(onClick = viewModel::load) {
                             Text(stringResource(R.string.common_retry))
@@ -438,7 +438,7 @@ private fun Content(
                     .padding(Spacing.lg)
                 ) {
                     Column {
-                        Text("Tiempo no disponible",
+                        Text(stringResource(R.string.school_detail_screen_v2_tiempo_no_disponible),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground)
                         Spacer(Modifier.height(Spacing.xs))
@@ -459,7 +459,7 @@ private fun Content(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.padding(start = Spacing.sm))
-                    Text("Cargando el tiempo…",
+                    Text(stringResource(R.string.school_detail_screen_v2_cargando_el_tiempo),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -520,7 +520,7 @@ private fun OfflineBanner(timestamp: Long) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.error)
         Spacer(Modifier.padding(start = Spacing.sm))
-        Text("Datos del $label",
+        Text(stringResource(R.string.school_detail_screen_v2_datos_del_1_s, label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -594,7 +594,7 @@ private fun shareSchool(
         putExtra(android.content.Intent.EXTRA_TEXT, sb.toString())
         putExtra(android.content.Intent.EXTRA_SUBJECT, school.name)
     }
-    context.startActivity(android.content.Intent.createChooser(intent, "Compartir escuela"))
+    context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_escuela)))
 }
 
 private val CONTADOR_DETALLES = java.util.concurrent.atomic.AtomicInteger(0)

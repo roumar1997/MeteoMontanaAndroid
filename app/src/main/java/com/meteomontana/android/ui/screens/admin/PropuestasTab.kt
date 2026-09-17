@@ -92,6 +92,8 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 
 @Composable
@@ -159,7 +161,7 @@ internal fun PropuestasTab(
         }
         item {
             Text(
-                "$total propuestas pendientes",
+                stringResource(R.string.propuestas_tab_v2_1_s_propuestas_pendientes, total),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = Spacing.xs)
@@ -231,7 +233,7 @@ internal fun PropuestasTab(
         if (filtered.isEmpty() && (filter != ContribFilter.TODAS || submissions.isEmpty())) {
             item {
                 Box(Modifier.fillMaxWidth().padding(Spacing.xxl), Alignment.Center) {
-                    Text("No hay propuestas pendientes",
+                    Text(stringResource(R.string.propuestas_tab_v2_no_hay_propuestas_pendientes),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

@@ -128,7 +128,7 @@ internal fun SchoolViaSearchBar(
                 }
             }.take(8)
             if (hits.isEmpty()) {
-                Text("Sin resultados en esta escuela",
+                Text(stringResource(R.string.map_mini_cards_v2_sin_resultados_en_esta_escuela),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 6.dp))
@@ -331,7 +331,7 @@ internal fun MiniBlockCard(
         // así que no hay dos comportamientos distintos que mantener.
         if (isParking && sectores.isNotEmpty()) {
             Text(
-                "SECTORES DESDE AQUÍ",
+                stringResource(R.string.map_mini_cards_v2_sectores_desde_aqui),
                 style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs, bottom = 2.dp)
@@ -361,7 +361,7 @@ internal fun MiniBlockCard(
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(if (collapsed) "VER PIEDRAS" else "OCULTAR PIEDRAS",
+                Text(if (collapsed) stringResource(R.string.map_mini_cards_v3_ver_piedras) else stringResource(R.string.map_mini_cards_v3_ocultar_piedras),
                     style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onBackground)
             }
         }

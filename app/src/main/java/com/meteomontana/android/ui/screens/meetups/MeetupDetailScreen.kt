@@ -190,7 +190,7 @@ fun MeetupDetailScreen(
                     TextButton(onClick = {
                         showDeleteConfirm = false
                         viewModel.deleteMeetup(meetupId) { onBack() }
-                    }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
+                    }) { Text(stringResource(R.string.meetup_detail_screen_v2_eliminar), color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.common_cancel)) } }
             )
@@ -198,11 +198,11 @@ fun MeetupDetailScreen(
         if (showLeaveConfirm) {
             AlertDialog(
                 onDismissRequest = { showLeaveConfirm = false },
-                title = { Text("Salir de la quedada") },
+                title = { Text(stringResource(R.string.meetup_detail_screen_v2_salir_de_la_quedada)) },
                 text = { Text(stringResource(R.string.meetup_detail_screen_seguro_que_quieres_salir)) },
                 confirmButton = {
                     TextButton(onClick = { showLeaveConfirm = false; viewModel.leave(meetupId) }) {
-                        Text("SALIR", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.meetup_detail_screen_v2_salir), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = { TextButton(onClick = { showLeaveConfirm = false }) { Text(stringResource(R.string.common_cancel).uppercase()) } }
@@ -224,7 +224,7 @@ fun MeetupDetailScreen(
             state.meetup == null -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No se pudo cargar la quedada")
+                        Text(stringResource(R.string.meetup_detail_screen_v2_no_se_pudo_cargar_la))
                         Spacer(Modifier.height(Spacing.sm))
                         TextButton(onClick = { viewModel.loadMeetup(meetupId) }) { Text(stringResource(R.string.common_retry)) }
                     }
@@ -404,7 +404,7 @@ fun MeetupDetailScreen(
                         HorizontalDivider()
                         Box(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
                             if (isCreator) Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                Text("Eres el organizador",
+                                Text(stringResource(R.string.meetup_detail_screen_v2_eres_el_organizador),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 OutlinedButton(
@@ -457,7 +457,7 @@ fun MeetupDetailScreen(
                             meetup.isFull -> Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant).padding(Spacing.sm),
                                 contentAlignment = Alignment.Center) {
-                                Text("AFORO COMPLETO", style = EyebrowTextStyle,
+                                Text(stringResource(R.string.meetup_detail_screen_v2_aforo_completo), style = EyebrowTextStyle,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             meetup.privacy == "WOMEN" && viewModel.myGender.collectAsStateWithLifecycle().value != "WOMAN" -> {
@@ -525,10 +525,10 @@ private fun MemberRow(member: MeetupMember, canKick: Boolean,
     }
     if (showConfirm) {
         AlertDialog(onDismissRequest = { showConfirm = false },
-            title = { Text("Expulsar participante") },
-            text = { Text("¿Expulsar a ${member.displayName ?: member.username}?") },
+            title = { Text(stringResource(R.string.meetup_detail_screen_v2_expulsar_participante)) },
+            text = { Text(stringResource(R.string.meetup_detail_screen_v2_expulsar_a_1_s, member.displayName ?: member.username ?: "")) },
             confirmButton = { TextButton(onClick = { showConfirm = false; onKick() }) {
-                Text("EXPULSAR", color = MaterialTheme.colorScheme.error) } },
+                Text(stringResource(R.string.meetup_detail_screen_v2_expulsar), color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.common_cancel).uppercase()) } })
     }
 }
@@ -552,10 +552,10 @@ private fun EditDescriptionDialog(initial: String, saving: Boolean,
                                   onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var text by remember { mutableStateOf(initial) }
     AlertDialog(onDismissRequest = onDismiss,
-        title = { Text("Detalles de la quedada") },
+        title = { Text(stringResource(R.string.meetup_detail_screen_v2_detalles_de_la_quedada)) },
         text = { OutlinedTextField(value = text, onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Material, nivel, punto de encuentro, hora…") },
+            placeholder = { Text(stringResource(R.string.meetup_detail_screen_v2_material_nivel_punto_de_encuentro)) },
             minLines = 3, maxLines = 8) },
         confirmButton = { TextButton(onClick = { onSave(text) }, enabled = !saving) {
             if (saving) CircularProgressIndicator(Modifier.size(16.dp)) else Text(stringResource(R.string.common_save).uppercase()) } },
@@ -566,9 +566,9 @@ private fun EditDescriptionDialog(initial: String, saving: Boolean,
 private fun ReportMeetupDialog(onDismiss: () -> Unit, onReport: (String) -> Unit) {
     val reasons = listOf("SPAM" to "Spam o publicidad", "INAPPROPRIATE" to "Contenido inapropiado",
         "HARASSMENT" to "Acoso", "OTHER" to "Otro motivo")
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Denunciar quedada") },
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.meetup_detail_screen_v2_denunciar_quedada)) },
         text = { Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text("Selecciona el motivo:", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.meetup_detail_screen_v2_selecciona_el_motivo), style = MaterialTheme.typography.bodyMedium)
             reasons.forEach { (code, label) -> TextButton(onClick = { onReport(code) },
                 modifier = Modifier.fillMaxWidth()) { Text(label, Modifier.fillMaxWidth()) } }
         } }, confirmButton = {},
@@ -755,7 +755,7 @@ internal fun EditGearDialog(
         title = { Text(stringResource(R.string.meetup_detail_my_gear)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Text("Indica el material que llevas a la quedada",
+                Text(stringResource(R.string.meetup_detail_screen_v2_indica_el_material_que_llevas),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 // Trigger recomposition on version change

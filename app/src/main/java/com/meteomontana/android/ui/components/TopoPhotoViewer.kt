@@ -20,6 +20,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.meteomontana.android.domain.util.renderTopo
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Foto de topo para MIRAR una piedra: se puede ampliar y, al tocar una vía,
@@ -61,7 +63,7 @@ fun TopoPhotoViewer(
         ) { camera ->
             AsyncImage(
                 model = photoUrl,
-                contentDescription = "Foto de la piedra",
+                contentDescription = stringResource(R.string.topo_photo_viewer_v2_foto_de_la_piedra),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 onSuccess = { state ->

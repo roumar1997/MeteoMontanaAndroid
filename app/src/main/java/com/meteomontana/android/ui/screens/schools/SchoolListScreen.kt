@@ -283,12 +283,12 @@ fun SchoolListScreen(
                                 .border(1.dp, MaterialTheme.colorScheme.outline,
                                     MaterialTheme.shapes.small)
                         ) {
-                            Text("ESCUELAS",
+                            Text(stringResource(R.string.school_list_screen_v2_escuelas),
                                 style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                             if (schoolMatches.isEmpty()) {
-                                Text("Sin resultados",
+                                Text(stringResource(R.string.school_list_screen_v2_sin_resultados_2),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 12.dp)
@@ -323,7 +323,7 @@ fun SchoolListScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                             if (viaHits.isEmpty()) {
-                                Text("Sin resultados",
+                                Text(stringResource(R.string.school_list_screen_v2_sin_resultados),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 12.dp)
@@ -537,7 +537,7 @@ fun SchoolListScreen(
                     )
                 }
                 Text(
-                    "${compareSelection.size} seleccionada${if (compareSelection.size > 1) "s" else ""}",
+                    stringResource(R.string.school_list_screen_v2_1_s_seleccionada_2_s, compareSelection.size, if (compareSelection.size > 1) "s" else ""),
                     style = MaterialTheme.typography.bodyMedium,
                     color = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.weight(1f)
@@ -560,7 +560,7 @@ fun SchoolListScreen(
                     }
                 } else {
                     Text(
-                        "Elige otra para comparar",
+                        stringResource(R.string.school_list_screen_v2_elige_otra_para_comparar),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
                         modifier = Modifier.padding(end = Spacing.sm)
@@ -857,12 +857,12 @@ private fun CoffeeBanner(onDonate: () -> Unit) {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "¿Te ayuda la app?",
+                stringResource(R.string.school_list_screen_v2_te_ayuda_la_app),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Text(
-                "Mantenida con amor por la comunidad escaladora",
+                stringResource(R.string.school_list_screen_v2_mantenida_con_amor_por_la),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
@@ -901,7 +901,7 @@ private fun DonateDialog(onDismiss: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(Spacing.md))
             Text(
-                "ClimbingTeams es una app gratuita hecha con amor para la " +
+                stringResource(R.string.school_list_screen_v2_climbingteams_es_una_app_gratuita) +
                 "comunidad escaladora. Si te ayuda a elegir el mejor día en la roca, " +
                 "considera invitarme a un café para seguir mejorándola.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -1009,7 +1009,7 @@ private fun ErrorRow(message: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Error: $message",
+            stringResource(R.string.school_list_screen_v2_error_1_s, message),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.error
         )

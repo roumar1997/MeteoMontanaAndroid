@@ -43,6 +43,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 sealed interface CommunityUiState {
     data object Loading : CommunityUiState
@@ -127,7 +129,7 @@ fun CommunityScreen(
             com.meteomontana.android.ui.components.SheetHeader("Comunidad", onClose = onBack)
         }
         Text(
-            "MAYORES CONTRIBUIDORES",
+            stringResource(R.string.community_screen_v2_mayores_contribuidores),
             style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
@@ -157,7 +159,7 @@ fun CommunityScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(s.message, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        "REINTENTAR", style = EyebrowTextStyle,
+                        stringResource(R.string.community_screen_v2_reintentar), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 12.dp)
                             .clickable { viewModel.load() }.padding(8.dp)
@@ -168,7 +170,7 @@ fun CommunityScreen(
                 if (s.contributors.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
                         Text(
-                            "Aún no hay contribuciones aprobadas.\n¡Sé el primero en proponer algo!",
+                            stringResource(R.string.community_screen_v2_aun_no_hay_contribuciones_aprobadas),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -239,7 +241,7 @@ private fun ContributorRow(rank: Int, c: TopContributor, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                "APORTES", style = EyebrowTextStyle,
+                stringResource(R.string.community_screen_v2_aportes), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

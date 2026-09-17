@@ -39,8 +39,8 @@ internal fun ParkingFormDialog(
     onSubmit: suspend (name: String, notes: String) -> Boolean,
     onSaveOffline: ((name: String, notes: String) -> Unit)? = null
 ) = PlaceFormDialog(
-    title = "Nuevo parking",
-    subtitle = "Añade un punto de aparcamiento para que otros escaladores sepan dónde aparcar y cómo llegar.",
+    title = stringResource(R.string.place_form_dialog_v2_nuevo_parking),
+    subtitle = stringResource(R.string.place_form_dialog_v2_anade_un_punto_de_aparcamiento),
     nameLabel = "NOMBRE (OPCIONAL)",
     namePlaceholder = "Ej: Parking principal, Área forestal…",
     nameRequired = false,
@@ -59,8 +59,8 @@ internal fun SectorFormDialog(
     onSubmit: suspend (name: String, notes: String) -> Boolean,
     onSaveOffline: ((name: String, notes: String) -> Unit)? = null
 ) = PlaceFormDialog(
-    title = "Nuevo sector",
-    subtitle = "Un sector agrupa varias piedras bajo un nombre (ej: \"La Isla\"). Después podrás asignar piedras a este sector.",
+    title = stringResource(R.string.place_form_dialog_v2_nuevo_sector),
+    subtitle = stringResource(R.string.place_form_dialog_v2_un_sector_agrupa_varias_piedras),
     nameLabel = "NOMBRE",
     namePlaceholder = "Ej: La Isla, Vertedero, Cuevas…",
     nameRequired = true,
@@ -119,7 +119,7 @@ private fun PlaceFormDialog(
         )
         Spacer(Modifier.height(Spacing.md))
 
-        Text("COORDENADAS (LAT, LON)", style = EyebrowTextStyle,
+        Text(stringResource(R.string.place_form_dialog_v2_coordenadas_lat_lon), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text("%.5f, %.5f".format(java.util.Locale.US, lat, lon),
@@ -131,7 +131,7 @@ private fun PlaceFormDialog(
         }
         Spacer(Modifier.height(Spacing.md))
 
-        Text("NOTAS (OPCIONAL)", style = EyebrowTextStyle,
+        Text(stringResource(R.string.place_form_dialog_v2_notas_opcional), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         OutlinedTextField(

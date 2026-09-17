@@ -430,7 +430,7 @@ private fun MapBody(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())
                 ) {
-                    Text("DIST.", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.schools_map_panel_v2_dist), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     DISTANCE_OPTIONS.forEach { km ->
                         MapFilterPill(
                             label = km?.let { "${it.toInt()} km" } ?: stringResource(R.string.schools_filter_all),
@@ -443,7 +443,7 @@ private fun MapBody(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("ESTILO", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.schools_map_panel_v2_estilo), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     StyleFilter.entries.forEach { s ->
                         MapFilterPill(
                             label = s.label,

@@ -68,18 +68,18 @@ fun ChatListScreen(
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)) {
         com.meteomontana.android.ui.components.SheetHeader(
-            title = "Chats",
+            title = stringResource(R.string.chat_list_screen_v2_chats),
             onClose = onBack,
             leading = {
                 com.meteomontana.android.ui.components.HelpButton(topicKey = "chat")
             },
             actions = {
                 IconButton(onClick = onNewGroup) {
-                    Icon(Icons.Outlined.GroupAdd, contentDescription = "Nuevo grupo",
+                    Icon(Icons.Outlined.GroupAdd, contentDescription = stringResource(R.string.chat_list_screen_v2_nuevo_grupo),
                         tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = { viewModel.loadContacts(); showPicker = true }) {
-                    Icon(Icons.Outlined.Edit, contentDescription = "Nuevo mensaje",
+                    Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.chat_list_screen_v2_nuevo_mensaje_2),
                         tint = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -96,7 +96,7 @@ fun ChatListScreen(
         if (items.isEmpty()) {
             com.meteomontana.android.ui.components.EmptyState(
                 icon = Icons.Outlined.ChatBubbleOutline,
-                title = "Aún no tienes conversaciones",
+                title = stringResource(R.string.chat_list_screen_v2_aun_no_tienes_conversaciones),
                 message = "Toca el lápiz para escribir a alguien a quien sigues o que te sigue, o crea un grupo con el icono de personas."
             )
         } else {
@@ -160,19 +160,19 @@ private fun NewChatDialog(
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(16.dp)
         ) {
-            Text("Nuevo mensaje", style = MaterialTheme.typography.titleMedium,
+            Text(stringResource(R.string.chat_list_screen_v2_nuevo_mensaje), style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.size(8.dp))
             val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar entre seguidores/seguidos…") },
+                placeholder = { Text(stringResource(R.string.chat_list_screen_v2_buscar_entre_seguidores_seguidos)) },
                 singleLine = true
             )
             Spacer(Modifier.size(8.dp))
             if (contacts.isEmpty()) {
-                Text("Sigue a alguien (o que te sigan) para poder escribirle.",
+                Text(stringResource(R.string.chat_list_screen_v2_sigue_a_alguien_o_que),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 12.dp))
@@ -235,7 +235,7 @@ private fun SwipeableConvRow(
             when (state.dismissDirection) {
                 SwipeToDismissBoxValue.EndToStart -> SwipeBg(
                     color = MaterialTheme.colorScheme.errorContainer,
-                    icon = Icons.Outlined.Delete, label = "Borrar",
+                    icon = Icons.Outlined.Delete, label = stringResource(R.string.chat_list_screen_v2_borrar),
                     alignment = Alignment.CenterEnd,
                     tint = MaterialTheme.colorScheme.onErrorContainer)
                 SwipeToDismissBoxValue.StartToEnd -> SwipeBg(

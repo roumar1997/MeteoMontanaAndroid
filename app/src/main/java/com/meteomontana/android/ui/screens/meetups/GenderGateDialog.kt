@@ -26,17 +26,17 @@ fun GenderGateDialog(onEditProfile: () -> Unit, onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.gender_gate_dialog_quedadas_no_mixto)) },
         text = {
             Text(
-                "Las quedadas «No Mixto» son solo para perfiles con género Mujer. " +
+                stringResource(R.string.gender_gate_dialog_v2_las_quedadas_no_mixto_son) +
                     "Si eres mujer y aún no lo has indicado, ponlo en tu perfil y podrás " +
                     "crearlas y unirte.",
                 style = MaterialTheme.typography.bodyMedium
             )
         },
         confirmButton = {
-            TextButton(onClick = { onDismiss(); onEditProfile() }) { Text("Editar perfil") }
+            TextButton(onClick = { onDismiss(); onEditProfile() }) { Text(stringResource(R.string.gender_gate_dialog_v2_editar_perfil)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Entendido") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.gender_gate_dialog_v2_entendido)) }
         }
     )
 }

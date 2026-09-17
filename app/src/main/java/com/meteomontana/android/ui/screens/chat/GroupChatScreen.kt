@@ -228,7 +228,7 @@ class GroupChatViewModel @Inject constructor(
                 putExtra(android.content.Intent.EXTRA_TEXT, text)
             }
             runCatching {
-                context.startActivity(android.content.Intent.createChooser(intent, "Invitar al grupo"))
+                context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_invitar_al_grupo)))
             }
         }
     }
@@ -392,7 +392,7 @@ fun GroupChatScreen(
                             color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
                             modifier = Modifier.weight(1f))
                     } else {
-                        Text("Sin material indicado", style = MaterialTheme.typography.labelSmall.copy(
+                        Text(stringResource(R.string.group_chat_screen_v2_sin_material_indicado), style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp)),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier.weight(1f))
@@ -403,7 +403,7 @@ fun GroupChatScreen(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             modifier = Modifier.height(26.dp)
                         ) {
-                            Text("+ Anadir", style = MaterialTheme.typography.labelSmall.copy(
+                            Text(stringResource(R.string.group_chat_screen_v2_anadir), style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold, fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp)),
                                 color = MaterialTheme.colorScheme.primary)
                         }
@@ -435,7 +435,7 @@ fun GroupChatScreen(
                                         fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 } else {
-                                    Text("sin material", style = MaterialTheme.typography.bodySmall.copy(
+                                    Text(stringResource(R.string.group_chat_screen_v2_sin_material), style = MaterialTheme.typography.bodySmall.copy(
                                         fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp),
                                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
@@ -451,7 +451,7 @@ fun GroupChatScreen(
                         ) {
                             Icon(Icons.Outlined.Edit, null, Modifier.height(14.dp).width(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Editar mi material", style = MaterialTheme.typography.labelSmall.copy(
+                            Text(stringResource(R.string.group_chat_screen_v2_editar_mi_material), style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold, fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)))
                         }
                     }
@@ -499,7 +499,7 @@ fun GroupChatScreen(
 
         if (!state.canWrite) {
             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                Text("Ya no eres miembro de este grupo",
+                Text(stringResource(R.string.group_chat_screen_v2_ya_no_eres_miembro_de),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -514,14 +514,14 @@ fun GroupChatScreen(
                 ) {
                     Box(Modifier.width(3.dp).height(34.dp).background(MaterialTheme.colorScheme.primary))
                     Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                        Text(if (who.isNotBlank()) "Respondiendo a $who" else "Respondiendo",
+                        Text(if (who.isNotBlank()) stringResource(R.string.chat_screen_v3_respondiendo_a, who) else stringResource(R.string.chat_screen_v3_respondiendo),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
                         Text(reply.text, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                     IconButton(onClick = { viewModel.cancelReply() }) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Cancelar respuesta",
+                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.group_chat_screen_v2_cancelar_respuesta),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

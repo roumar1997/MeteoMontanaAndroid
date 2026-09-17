@@ -231,7 +231,7 @@ fun NotificationsScreen(
                                         .background(MaterialTheme.colorScheme.errorContainer)
                                         .padding(horizontal = 20.dp),
                                         contentAlignment = Alignment.CenterEnd) {
-                                        Text("Borrar", color = MaterialTheme.colorScheme.error,
+                                        Text(stringResource(R.string.notifications_screen_v2_borrar), color = MaterialTheme.colorScheme.error,
                                             style = MaterialTheme.typography.labelLarge)
                                     }
                                 }

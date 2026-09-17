@@ -173,14 +173,14 @@ fun ProcessionaryInfoSheet(
                     ProcessionaryIcon(tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(26.dp))
                     Spacer(Modifier.padding(start = Spacing.xs))
                     Text(
-                        "Procesionaria del pino",
+                        stringResource(R.string.processionary_info_sheet_v2_procesionaria_del_pino),
                         style = MaterialTheme.typography.titleLarge.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 Spacer(Modifier.padding(top = Spacing.xs))
                 Text(
-                    "Época habitual: de diciembre a mayo (orientativo).",
+                    stringResource(R.string.processionary_info_sheet_v2_epoca_habitual_de_diciembre_a),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -197,14 +197,14 @@ fun ProcessionaryInfoSheet(
                 )
                 Spacer(Modifier.padding(top = Spacing.sm))
                 ToggleButton(
-                    label = "Las he visto antes de tiempo",
+                    label = stringResource(R.string.processionary_info_sheet_v2_las_he_visto_antes_de_2),
                     pressed = activeNowSet,
                     accent = MaterialTheme.colorScheme.error,
                     onClick = { if (activeNowSet) onClearActiveNow() else onActiveNow() }
                 )
                 Spacer(Modifier.padding(top = Spacing.xs))
                 Text(
-                    "\"Sí que hay en este sector\" marca la escuela para siempre: cada diciembre-mayo avisará sola, sin que nadie tenga que repetirlo. \"Las he visto antes de tiempo\" enciende el aviso YA, aunque estemos fuera de esos meses. Ambos se pueden marcar y desmarcar — si te equivocas al pulsar, vuelve a pulsar para quitarlo.",
+                    stringResource(R.string.processionary_info_sheet_v2_si_que_hay_en_este),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -219,7 +219,7 @@ fun ProcessionaryInfoSheet(
                             .padding(Spacing.sm)
                     ) {
                         Text(
-                            "⚠ En esta escuela ya se han visto, y estamos en su época orientativa (más o menos) — extrema la precaución, sobre todo si vas con perro.",
+                            stringResource(R.string.processionary_info_sheet_v2_en_esta_escuela_ya_se),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold
@@ -228,7 +228,7 @@ fun ProcessionaryInfoSheet(
                     Spacer(Modifier.padding(top = Spacing.md))
                 } else if (hasKnownProcessionary) {
                     Text(
-                        "Aquí se han visto otros años, pero ahora mismo estamos fuera de su época orientativa (diciembre-mayo aprox.).",
+                        stringResource(R.string.processionary_info_sheet_v2_aqui_se_han_visto_otros),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -236,13 +236,13 @@ fun ProcessionaryInfoSheet(
                 }
 
                 Text(
-                    "Son las orugas del pino, activas sobre todo en invierno y primavera. Sus pelillos son urticantes: para personas dan picor y alergia, pero para los perros pueden ser muy graves — si un perro las toca o las lame se le puede hinchar e incluso necrosar la lengua, y a veces hace falta amputarla para salvarlo. Mantén a tu perro alejado de los procesionarios (bolsas blancas en las ramas) y de las orugas en el suelo.",
+                    stringResource(R.string.processionary_info_sheet_v2_son_las_orugas_del_pino),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.padding(top = Spacing.sm))
                 Text(
-                    "No hay ningún mapa fiable de dónde hay pinos con procesionaria — la única forma de saberlo es que alguien las haya visto. Si las ves aquí, marca \"Sí que hay en este sector\": la escuela quedará avisando cada temporada, sin que nadie tenga que repetirlo.",
+                    stringResource(R.string.processionary_info_sheet_v2_no_hay_ningun_mapa_fiable),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -250,7 +250,7 @@ fun ProcessionaryInfoSheet(
                 if (hasKnownProcessionary) {
                     Spacer(Modifier.padding(top = Spacing.md))
                     Text(
-                        "Confirmado — gracias por avisar.",
+                        stringResource(R.string.processionary_info_sheet_v2_confirmado_gracias_por_avisar),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -258,7 +258,7 @@ fun ProcessionaryInfoSheet(
                 if (!alertActive) {
                     Spacer(Modifier.padding(top = Spacing.sm))
                     Text(
-                        "\"Las he visto antes de tiempo\" activa el aviso aunque no sea su época típica — se apaga sola en unas semanas si nadie más la confirma.",
+                        stringResource(R.string.processionary_info_sheet_v2_las_he_visto_antes_de),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

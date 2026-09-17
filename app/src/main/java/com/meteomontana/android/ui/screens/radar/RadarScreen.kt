@@ -285,14 +285,14 @@ fun RadarScreen(
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            Text("RADAR", style = EyebrowTextStyle, color = Terra)
-            Text("Lluvia en directo",
+            Text(stringResource(R.string.radar_screen_v2_radar), style = EyebrowTextStyle, color = Terra)
+            Text(stringResource(R.string.radar_screen_v2_lluvia_en_directo),
                 style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif))
         }
 
         // Crédito AEMET (licencia)
         Text(
-            "AEMET",
+            stringResource(R.string.radar_screen_v2_aemet),
             style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.TopEnd)
@@ -310,11 +310,11 @@ fun RadarScreen(
                 tint = if (isSatellite) Terra else MaterialTheme.colorScheme.onSurfaceVariant) {
                 isSatellite = !isSatellite
             }
-            SideButton(Icons.Outlined.Place, "Ver u ocultar escuelas",
+            SideButton(Icons.Outlined.Place, stringResource(R.string.radar_screen_v3_ver_u_ocultar_escuelas),
                 tint = if (showSchools) Terra else MaterialTheme.colorScheme.onSurfaceVariant) {
                 showSchools = !showSchools
             }
-            SideButton(Icons.Outlined.WaterDrop, "Intensidad de la lluvia",
+            SideButton(Icons.Outlined.WaterDrop, stringResource(R.string.radar_screen_v3_intensidad_de_la_lluvia),
                 tint = Color(0xFF2B6DE3)) { layersPanel = !layersPanel }
             if (userLoc != null) {
                 SideButton(Icons.Outlined.MyLocation, stringResource(R.string.radar_screen_mi_ubicacion),
@@ -340,7 +340,7 @@ fun RadarScreen(
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Text("LLUVIA ${(opacity * 100).toInt()}%", style = EyebrowTextStyle,
+                Text(stringResource(R.string.radar_screen_v2_lluvia_1_s, (opacity * 100).toInt()), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Slider(
                     value = opacity, onValueChange = { opacity = it },
@@ -365,9 +365,9 @@ fun RadarScreen(
         ) {
             LegendDot(Color(0xFF5C8FD6)); Text(stringResource(R.string.radar_screen_debil), style = EyebrowTextStyle)
             Spacer(Modifier.width(3.dp))
-            LegendDot(Color(0xFF3D6FBF)); Text("MEDIA", style = EyebrowTextStyle)
+            LegendDot(Color(0xFF3D6FBF)); Text(stringResource(R.string.radar_screen_v2_media), style = EyebrowTextStyle)
             Spacer(Modifier.width(3.dp))
-            LegendDot(Color(0xFF274F98)); Text("FUERTE", style = EyebrowTextStyle)
+            LegendDot(Color(0xFF274F98)); Text(stringResource(R.string.radar_screen_v2_fuerte), style = EyebrowTextStyle)
         }
 
         // Mini-ficha de escuela (tap en pin) — sube por encima del player.
@@ -427,7 +427,7 @@ fun RadarScreen(
                         fontFamily = Serif, fontWeight = FontWeight.Bold))
                 if (isNow) {
                     Spacer(Modifier.width(6.dp))
-                    Text("AHORA", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.radar_screen_v2_ahora), style = EyebrowTextStyle, color = Terra)
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically,
@@ -546,7 +546,7 @@ private fun RadarSchoolCard(
                 .clickable(onClick = onDetail)
                 .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
-            Text("VER DETALLE", style = EyebrowTextStyle, color = Color.White)
+            Text(stringResource(R.string.radar_screen_v2_ver_detalle), style = EyebrowTextStyle, color = Color.White)
         }
         Text("✕", color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 16.sp,

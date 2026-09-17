@@ -59,7 +59,7 @@ suspend fun shareStatsAsImage(
         )
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir estadísticas"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.stats_screen_compartir_estadisticas)))
 }
 
 private fun renderStatsCard(

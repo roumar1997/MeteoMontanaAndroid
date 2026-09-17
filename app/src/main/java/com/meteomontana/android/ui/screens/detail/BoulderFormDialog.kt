@@ -174,7 +174,7 @@ internal fun BoulderFormDialog(
         onDismiss = onCancel, scrollable = true, fullHeight = true,
         header = {
             SubmitHeader(
-                title = "Nueva piedra", sending = sending, error = error,
+                title = stringResource(R.string.boulder_form_dialog_v2_nueva_piedra), sending = sending, error = error,
                 onCancel = onCancel, onSubmit = { enviar() }
             )
         }
@@ -227,10 +227,10 @@ internal fun BoulderFormDialog(
                     Text(stringResource(R.string.boulder_form_dialog_muro_sector_y_numeracion),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface)
-                    Text(if (geometry == "LINE") "Muro de ${path.size} puntos" +
-                            (sectorBlockId?.let { " · con sector" } ?: "")
-                         else if (sectorBlockId != null) "Con sector asignado"
-                         else "Solo si es una pared larga o va en un sector",
+                    Text(if (geometry == "LINE") stringResource(R.string.boulder_form_dialog_v3_muro_de_puntos, path.size) +
+                            (sectorBlockId?.let { stringResource(R.string.boulder_form_dialog_v3_con_sector_suffix) } ?: "")
+                         else if (sectorBlockId != null) stringResource(R.string.boulder_form_dialog_v3_con_sector_asignado)
+                         else stringResource(R.string.boulder_form_dialog_v3_solo_si_pared_larga),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -245,7 +245,7 @@ internal fun BoulderFormDialog(
             Text(stringResource(R.string.propose_geometry), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
-            Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.",
+            Text(stringResource(R.string.boulder_form_dialog_v2_punto_una_piedra_suelta_muro),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
@@ -277,7 +277,7 @@ internal fun BoulderFormDialog(
                 }
                 if (!traced) {
                     Spacer(Modifier.height(2.dp))
-                    Text("Toca al menos 2 puntos siguiendo la base del muro.",
+                    Text(stringResource(R.string.boulder_form_dialog_v2_toca_al_menos_2_puntos),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -290,7 +290,7 @@ internal fun BoulderFormDialog(
             Spacer(Modifier.height(Spacing.md))
             // ── Sector (opcional) ────────────────────────────────────────────────────
             if (sectorBlocks.isNotEmpty()) {
-                Text("SECTOR (OPCIONAL)", style = EyebrowTextStyle,
+                Text(stringResource(R.string.boulder_form_dialog_v2_sector_opcional), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 val selectedSectorName = sectorBlocks.firstOrNull { it.id == sectorBlockId }?.name
@@ -312,7 +312,7 @@ internal fun BoulderFormDialog(
                         onDismissRequest = { sectorExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Sin sector",
+                            text = { Text(stringResource(R.string.boulder_form_dialog_v2_sin_sector),
                                 style = MaterialTheme.typography.bodyMedium) },
                             onClick = { onSectorChange(null); sectorExpanded = false }
                         )
@@ -342,7 +342,7 @@ internal fun BoulderFormDialog(
             )
             Spacer(Modifier.height(Spacing.sm))
         }
-        Text("FOTOS DE LA PIEDRA", style = EyebrowTextStyle,
+        Text(stringResource(R.string.boulder_form_dialog_v2_fotos_de_la_piedra), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -356,7 +356,7 @@ internal fun BoulderFormDialog(
                         .clickable { selectedFaceIdx = idx }
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
-                    Text("FOTO ${idx + 1}", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.boulder_form_dialog_v2_foto_1_s, idx + 1), style = EyebrowTextStyle,
                         color = if (sel) Color.White else MaterialTheme.colorScheme.onSurface)
                 }
             }
@@ -382,7 +382,7 @@ internal fun BoulderFormDialog(
                 // Reordenar la foto dentro del muro (cambia el orden global de vías).
                 val canLeft = faceIdx > 0
                 val canRight = faceIdx < faces.size - 1
-                Text("◀ MOVER", style = EyebrowTextStyle,
+                Text(stringResource(R.string.boulder_form_dialog_v2_mover_2), style = EyebrowTextStyle,
                     color = if (canLeft) Terra else MaterialTheme.colorScheme.outline,
                     modifier = if (canLeft) Modifier.clickable {
                         onFacesChange(faces.toMutableList().also {
@@ -390,7 +390,7 @@ internal fun BoulderFormDialog(
                         })
                         selectedFaceIdx = faceIdx - 1
                     } else Modifier)
-                Text("MOVER ▶", style = EyebrowTextStyle,
+                Text(stringResource(R.string.boulder_form_dialog_v2_mover), style = EyebrowTextStyle,
                     color = if (canRight) Terra else MaterialTheme.colorScheme.outline,
                     modifier = if (canRight) Modifier.clickable {
                         onFacesChange(faces.toMutableList().also {
@@ -399,7 +399,7 @@ internal fun BoulderFormDialog(
                         selectedFaceIdx = faceIdx + 1
                     } else Modifier)
                 Spacer(Modifier.weight(1f))
-                Text("✕ QUITAR ESTA FOTO", style = EyebrowTextStyle,
+                Text(stringResource(R.string.boulder_form_dialog_v2_quitar_esta_foto), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.clickable {
                         val newFaces = faces.toMutableList().also { it.removeAt(faceIdx) }
@@ -416,7 +416,7 @@ internal fun BoulderFormDialog(
             Box {
                 AsyncImage(
                     model = photoUri,
-                    contentDescription = "Foto ${faceIdx + 1} de la piedra",
+                    contentDescription = stringResource(R.string.boulder_form_dialog_v2_foto_1_s_de_la, faceIdx + 1),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
@@ -446,7 +446,7 @@ internal fun BoulderFormDialog(
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
-                Text("CAMBIAR FOTO", style = EyebrowTextStyle,
+                Text(stringResource(R.string.boulder_form_dialog_v2_cambiar_foto), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
@@ -460,11 +460,11 @@ internal fun BoulderFormDialog(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Sin foto seleccionada",
+                    Text(stringResource(R.string.boulder_form_dialog_v2_sin_foto_seleccionada),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
-                    Text("SELECCIONAR FOTO", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.boulder_form_dialog_v2_seleccionar_foto), style = EyebrowTextStyle, color = Terra)
                 }
             }
         }
@@ -480,7 +480,7 @@ internal fun BoulderFormDialog(
                         androidx.compose.material3.TextButton(
                             onClick = { eligiendoOrigenFoto = false; launchCamera() },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("HACER FOTO AHORA", modifier = Modifier.fillMaxWidth()) }
+                        ) { Text(stringResource(R.string.boulder_form_dialog_v2_hacer_foto_ahora), modifier = Modifier.fillMaxWidth()) }
                         androidx.compose.material3.TextButton(
                             onClick = { eligiendoOrigenFoto = false; elegirFoto() },
                             modifier = Modifier.fillMaxWidth()
@@ -489,7 +489,7 @@ internal fun BoulderFormDialog(
                 },
                 confirmButton = {},
                 dismissButton = {
-                    androidx.compose.material3.TextButton(onClick = { eligiendoOrigenFoto = false }) { Text("CANCELAR") }
+                    androidx.compose.material3.TextButton(onClick = { eligiendoOrigenFoto = false }) { Text(stringResource(R.string.boulder_form_dialog_v2_cancelar)) }
                 }
             )
         }
@@ -636,7 +636,7 @@ internal fun BoulderFormDialog(
         Spacer(Modifier.height(Spacing.lg))
 
         // ── Coordenadas ──────────────────────────────────────────────────────────
-        Text("COORDENADAS (LAT, LON)", style = EyebrowTextStyle,
+        Text(stringResource(R.string.boulder_form_dialog_v2_coordenadas_lat_lon), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text("%.5f, %.5f".format(java.util.Locale.US, lat, lon),
@@ -716,7 +716,7 @@ private fun BloqueRow(
                 value = bloque.name,
                 onValueChange = { onUpdate(bloque.copy(name = it)) },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Nombre (opcional)",
+                placeholder = { Text(stringResource(R.string.boulder_form_dialog_v2_nombre_opcional),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
@@ -740,13 +740,13 @@ private fun BloqueRow(
         }
 
         // Grado: grid de chips de un toque (colores por dificultad).
-        Text("Grado", style = MaterialTheme.typography.labelMedium,
+        Text(stringResource(R.string.boulder_form_dialog_v2_grado), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         GradeChipsGrid(selected = bloque.grade,
             onSelect = { onUpdate(bloque.copy(grade = it)) })
 
         // Tipo de inicio con nombre completo.
-        Text("Tipo de inicio", style = MaterialTheme.typography.labelMedium,
+        Text(stringResource(R.string.boulder_form_dialog_v2_tipo_de_inicio), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         StartTypeChips(selected = bloque.startType,
             onSelect = { onUpdate(bloque.copy(startType = it)) })
@@ -785,7 +785,7 @@ private fun BloqueRow(
         // Resumen de línea dibujada si existe
         if (bloque.linePath.isNotEmpty()) {
             Text(
-                "✓ Línea dibujada (${bloque.linePath.size} puntos)",
+                stringResource(R.string.boulder_form_dialog_v2_linea_dibujada_1_s_puntos, bloque.linePath.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -812,14 +812,14 @@ private fun OrientationPickRow(label: String, selected: String?, onPick: (String
                     rumbo, modifier = Modifier.size(64.dp))
                 Column {
                     Text(
-                        "Estás mirando al " +
+                        stringResource(R.string.boulder_form_dialog_v2_estas_mirando_al) +
                             com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo) +
                             " · " + com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Si estás mirando la pared, ella mira al contrario.",
+                        stringResource(R.string.boulder_form_dialog_v2_si_estas_mirando_la_pared),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

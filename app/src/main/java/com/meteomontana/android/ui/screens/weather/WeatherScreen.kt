@@ -90,7 +90,7 @@ fun WeatherScreen(
             is WeatherUiState.Error -> {
                 TopBar(title = stringResource(R.string.weather_title), subtitle = "")
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.weather_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
                 }
             }
             is WeatherUiState.Success -> {
@@ -182,6 +182,6 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
             onClick = onRequest,
             colors = ButtonDefaults.buttonColors(containerColor = inkButtonColor(), contentColor = Color.White),
             shape = MaterialTheme.shapes.small
-        ) { Text("DAR PERMISO") }
+        ) { Text(stringResource(R.string.weather_screen_v2_dar_permiso)) }
     }
 }

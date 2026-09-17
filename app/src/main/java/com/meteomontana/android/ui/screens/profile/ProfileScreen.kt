@@ -182,7 +182,7 @@ fun ProfileScreen(
             )
             when (val s = state) {
                 ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-                is ProfileUiState.Error -> CenterBox { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
+                is ProfileUiState.Error -> CenterBox { Text(stringResource(R.string.profile_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error) }
                 is ProfileUiState.Success -> Content(
                     profile = s.profile,
                     stats = s.stats,
@@ -256,7 +256,7 @@ private fun ProfileTopBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(Icons.Outlined.AdminPanelSettings, contentDescription = "Panel de admin",
+                    Icon(Icons.Outlined.AdminPanelSettings, contentDescription = stringResource(R.string.profile_screen_v2_panel_de_admin),
                         tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                     if (pendingReview > 0) {
                         Box(
@@ -280,12 +280,12 @@ private fun ProfileTopBar(
             if (onGear != null) IconButton(onClick = onGear) {
                 Icon(
                     Icons.Outlined.Backpack,
-                    contentDescription = "Mi material",
+                    contentDescription = stringResource(R.string.profile_screen_v2_mi_material),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             if (onShare != null) IconButton(onClick = onShare) {
-                Icon(Icons.Outlined.Share, contentDescription = "Compartir perfil",
+                Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.profile_screen_v2_compartir_perfil),
                     tint = MaterialTheme.colorScheme.primary)
             }
             if (onSettings != null) IconButton(onClick = onSettings) {
@@ -514,7 +514,7 @@ private fun ProfileSettingsScreen(
             val ctx = LocalContext.current
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
                 com.meteomontana.android.ui.components.resetAllHints(ctx)
-                android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(ctx, ctx.getString(R.string.profile_screen_v3_pistas_reactivadas), android.widget.Toast.LENGTH_SHORT).show()
             }
 
 
@@ -550,7 +550,7 @@ private fun ProfileSettingsScreen(
             // Que version es esta. Sin esto, "no me ha llegado el arreglo" y
             // "no lo has arreglado" son indistinguibles.
             Text(
-                "Cumbre " + com.meteomontana.android.BuildConfig.VERSION_NAME +
+                stringResource(R.string.profile_screen_v2_cumbre) + com.meteomontana.android.BuildConfig.VERSION_NAME +
                     " (vc" + com.meteomontana.android.BuildConfig.VERSION_CODE + ") · " +
                     com.meteomontana.android.BuildConfig.BUILD_TIME +
                     if (com.meteomontana.android.BuildConfig.DEBUG) " · staging" else "",
@@ -566,7 +566,7 @@ private fun ProfileSettingsScreen(
                     text = { Text(stringResource(R.string.profile_screen_se_borraran_tu_perfil)) },
                     confirmButton = {
                         TextButton(onClick = { showDelete = false; onDeleteAccount() }) {
-                            Text("ELIMINAR", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.profile_screen_v2_eliminar), color = MaterialTheme.colorScheme.error)
                         }
                     },
                     dismissButton = {

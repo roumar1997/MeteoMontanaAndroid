@@ -51,13 +51,13 @@ internal fun TypePickerDialog(
 ) {
     CumbreDialog(onDismiss = onDismiss) {
         Text(
-            "Proponer mejora",
+            stringResource(R.string.propose_picker_dialogs_v2_proponer_mejora),
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            "¿Falta algo en esta escuela? Propón una mejora y un admin la revisará (24-48 h).",
+            stringResource(R.string.propose_picker_dialogs_v2_falta_algo_en_esta_escuela),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -73,7 +73,7 @@ internal fun TypePickerDialog(
                 .padding(Spacing.md)
         ) {
             Text(
-                "Cómo funciona: elige qué añadir → toca el mapa para fijar la posición → rellena los datos → enviar. ¡Así de fácil!",
+                stringResource(R.string.propose_picker_dialogs_v2_como_funciona_elige_que_anadir),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -85,7 +85,7 @@ internal fun TypePickerDialog(
         if (onContinuarBorrador != null) {
             TypeOption(
                 icon = "↺",
-                label = "CONTINUAR PIEDRA A MEDIAS",
+                label = stringResource(R.string.propose_picker_dialogs_v2_continuar_piedra_a_medias),
                 description = "Tienes una piedra sin terminar en esta escuela. Sigue donde lo dejaste.",
                 enabled = true,
                 onClick = onContinuarBorrador
@@ -94,7 +94,7 @@ internal fun TypePickerDialog(
         }
         TypeOption(
             icon = "▲",
-            label = "PIEDRA",
+            label = stringResource(R.string.propose_picker_dialogs_v2_piedra),
             description = "Una roca con sus vías de escalada. Podrás añadir fotos y dibujar las líneas de cada vía.",
             enabled = true,
             onClick = onBoulder
@@ -108,7 +108,7 @@ internal fun TypePickerDialog(
         if (onBoulderFromPhoto != null) {
             TypeOption(
                 icon = "\u25A3",
-                label = "PIEDRA DESDE UNA FOTO",
+                label = stringResource(R.string.propose_picker_dialogs_v2_piedra_desde_una_foto),
                 description = "Elige una foto tuya de la piedra: se coloca sola en el punto donde la hiciste.",
                 enabled = true,
                 onClick = onBoulderFromPhoto
@@ -117,7 +117,7 @@ internal fun TypePickerDialog(
         }
         TypeOption(
             icon = "+",
-            label = "SECTOR",
+            label = stringResource(R.string.propose_picker_dialogs_v2_sector),
             description = "Una zona que agrupa varias piedras (ej: \"La Isla\", \"Vertedero\"). Luego podrás asignar piedras al sector.",
             enabled = true,
             onClick = onSector
@@ -125,7 +125,7 @@ internal fun TypePickerDialog(
         Spacer(Modifier.height(Spacing.sm))
         TypeOption(
             icon = "▬",
-            label = "PARKING",
+            label = stringResource(R.string.propose_picker_dialogs_v2_parking),
             description = "El punto donde se aparca para llegar a la escuela. Otros escaladores verán \"Cómo llegar\" con indicaciones.",
             enabled = true,
             onClick = onParking
@@ -133,7 +133,7 @@ internal fun TypePickerDialog(
         Spacer(Modifier.height(Spacing.sm))
         TypeOption(
             icon = "↔",
-            label = "CORREGIR",
+            label = stringResource(R.string.propose_picker_dialogs_v2_corregir),
             description = "¿Algo está mal colocado en el mapa? Toca el elemento y muévelo al sitio correcto.",
             enabled = true,
             onClick = onCorrection
@@ -141,7 +141,7 @@ internal fun TypePickerDialog(
         Spacer(Modifier.height(Spacing.sm))
         TypeOption(
             icon = "T",
-            label = "CORREGIR NOMBRE",
+            label = stringResource(R.string.propose_picker_dialogs_v2_corregir_nombre),
             description = "¿El nombre de la escuela está mal escrito? Propón el correcto.",
             enabled = true,
             onClick = onCorrectSchoolName
@@ -149,7 +149,7 @@ internal fun TypePickerDialog(
         Spacer(Modifier.height(Spacing.sm))
         TypeOption(
             icon = "☑",
-            label = "CORREGIR ESTILO",
+            label = stringResource(R.string.propose_picker_dialogs_v2_corregir_estilo),
             description = "¿Esta escuela tiene vía Y bloque pero solo aparece uno? Corrígelo.",
             enabled = true,
             onClick = onCorrectSchoolStyle
@@ -232,7 +232,7 @@ internal fun SuccessDialog(
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
                 Text(
-                    "Se enviará automáticamente en cuanto\nhaya cobertura. No tienes que hacer nada.",
+                    stringResource(R.string.propose_picker_dialogs_v2_se_enviara_automaticamente_en_cuanto),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -240,7 +240,7 @@ internal fun SuccessDialog(
                 Text(stringResource(R.string.propose_success_admin), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
-                Text("Se ha publicado directamente en el mapa.",
+                Text(stringResource(R.string.propose_picker_dialogs_v2_se_ha_publicado_directamente_en),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -253,7 +253,7 @@ internal fun SuccessDialog(
                 Text("24-48h.", style = MaterialTheme.typography.bodyMedium, color = Terra)
                 Spacer(Modifier.height(Spacing.xs))
                 Text(
-                    "Te avisaremos por email y notificación\npush cuando haya respuesta.",
+                    stringResource(R.string.propose_picker_dialogs_v2_te_avisaremos_por_email_y),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

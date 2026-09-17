@@ -129,7 +129,7 @@ internal fun CumbreSuccessDialog(
                         color = Color.White)
                 }
                 Spacer(Modifier.height(Spacing.lg))
-                Text("PROPUESTA ENVIADA",
+                Text(stringResource(R.string.feed_publish_sheet_v2_propuesta_enviada),
                     style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
@@ -141,7 +141,7 @@ internal fun CumbreSuccessDialog(
                     color = Terra)
                 Spacer(Modifier.height(Spacing.xs))
                 Text(
-                    "Te avisaremos por email y notificación\npush cuando haya respuesta.",
+                    stringResource(R.string.feed_publish_sheet_v2_te_avisaremos_por_email_y),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -163,7 +163,7 @@ internal fun CumbreSuccessDialog(
                         .clickable(onClick = onMyProposals)
                         .padding(vertical = Spacing.md),
                         contentAlignment = Alignment.Center) {
-                        Text("VER MIS PROPUESTAS", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.feed_publish_sheet_v2_ver_mis_propuestas), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.background)
                     }
                 }
@@ -324,7 +324,7 @@ internal fun FeedPublishSheet(
             // Autocompletado de @menciones al escribir la descripción.
             // ── C3: ¿CUANDO LA ENCADENASTE? (Hoy / Ayer / Otra fecha) ────────
             Text(
-                "CUANDO LA ENCADENASTE",
+                stringResource(R.string.feed_publish_sheet_v2_cuando_la_encadenaste),
                 style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

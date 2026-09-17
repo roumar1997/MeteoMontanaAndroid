@@ -130,7 +130,7 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
 
                 if (bulletin.spots.isNotEmpty()) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                    Text("TEMPERATURAS POR COTAS", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.mountain_bulletin_section_v2_temperaturas_por_cotas), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     bulletin.spots.forEach { spot ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -148,7 +148,7 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
                     }
                 }
 
-                Text("Fuente: AEMET",
+                Text(stringResource(R.string.mountain_bulletin_section_v2_fuente_aemet),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

@@ -115,7 +115,7 @@ internal fun SubmissionCard(
             Box(modifier = Modifier
                 .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
                 .padding(horizontal = Spacing.sm, vertical = 2.dp)) {
-                Text("ESCUELA", style = EyebrowTextStyle, color = Color.White)
+                Text(stringResource(R.string.submission_card_v2_escuela), style = EyebrowTextStyle, color = Color.White)
             }
             Text(s.proposedName, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
@@ -171,7 +171,7 @@ internal fun BloquesSummary(bloquesJson: String) {
 
     if (bloques.isEmpty()) return
 
-    Text("BLOQUES", style = EyebrowTextStyle,
+    Text(stringResource(R.string.submission_card_v2_bloques), style = EyebrowTextStyle,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(4.dp))
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

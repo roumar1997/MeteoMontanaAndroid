@@ -165,7 +165,7 @@ fun ReportDialog(
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
-                Text("CANCELAR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.report_dialog_v2_cancelar), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

@@ -48,6 +48,8 @@ import com.meteomontana.android.ui.theme.Terra
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @HiltViewModel
 class SchoolPresenceViewModel @Inject constructor(
@@ -153,7 +155,7 @@ fun SchoolPresenceRow(
                     }
                     Spacer(Modifier.padding(start = (viewModel.people.take(4).size * 12 + 6).dp))
                     Text(
-                        "${viewModel.people.size} aquí ahora",
+                        stringResource(R.string.school_presence_row_v2_1_s_aqui_ahora_2, viewModel.people.size),
                         style = MaterialTheme.typography.labelMedium.copy(fontFamily = Serif, fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -232,7 +234,7 @@ private fun PresenceChatButton(onClick: () -> Unit) {
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Icon(Icons.Outlined.Chat, contentDescription = "Chat de la escuela",
+        Icon(Icons.Outlined.Chat, contentDescription = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela),
             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(13.dp))
     }
 }
@@ -271,13 +273,13 @@ private fun PresencePrivacySheet(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         ) {
             Column {
                 Text(
-                    "Al marcar \"Estoy aquí\"",
+                    stringResource(R.string.school_presence_row_v2_al_marcar_estoy_aqui),
                     style = MaterialTheme.typography.titleLarge.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.padding(top = Spacing.sm))
                 Text(
-                    "Cualquiera que abra esta escuela verá que estás aquí y podrá escribirte por chat — aunque tu perfil sea privado. Nadie podrá ver tu perfil completo si no te sigue. Se desactiva sola pasadas 10 horas, o puedes quitarla tú antes.",
+                    stringResource(R.string.school_presence_row_v2_cualquiera_que_abra_esta_escuela),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -292,7 +294,7 @@ private fun PresencePrivacySheet(onConfirm: () -> Unit, onDismiss: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Entendido, estoy aquí",
+                        stringResource(R.string.school_presence_row_v2_entendido_estoy_aqui),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
@@ -322,13 +324,13 @@ private fun PresenceAllSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "${people.size} aquí ahora",
+                        stringResource(R.string.school_presence_row_v2_1_s_aqui_ahora, people.size),
                         style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        "Cerrar",
+                        stringResource(R.string.school_presence_row_v2_cerrar),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Terra,
                         modifier = Modifier.clickable(onClick = onDismiss)

@@ -488,7 +488,7 @@ fun SchoolMap(
     borradorEncontrado?.let { borrador ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { borradorEncontrado = null },
-            title = { Text("Tienes cambios sin enviar") },
+            title = { Text(stringResource(R.string.school_map_v2_tienes_cambios_sin_enviar)) },
             text = { Text(stringResource(R.string.school_map_dejaste_esta_piedra_a)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
@@ -509,13 +509,13 @@ fun SchoolMap(
                         cara.copy(existingPhotoPath = actuales.getOrNull(i)?.existingPhotoPath)
                     }
                     borradorEncontrado = null
-                }) { Text("CONTINUAR EDITANDO") }
+                }) { Text(stringResource(R.string.school_map_v2_continuar_editando)) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, borrador.blockId)
                     borradorEncontrado = null
-                }) { Text("DESCARTAR") }
+                }) { Text(stringResource(R.string.school_map_v2_descartar_2)) }
             }
         )
     }
@@ -572,14 +572,14 @@ fun SchoolMap(
                         com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.save(fichaCtx, block.id, wallEdit.faces)
                         preguntandoGuardarEdicion = false
                         wallEdit.target = null; selectedBlock = null
-                    }) { Text("GUARDAR") }
+                    }) { Text(stringResource(R.string.school_map_v2_guardar)) }
                 },
                 dismissButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, block.id)
                         preguntandoGuardarEdicion = false
                         wallEdit.target = null; selectedBlock = null
-                    }) { Text("DESCARTAR") }
+                    }) { Text(stringResource(R.string.school_map_v2_descartar)) }
                 }
             )
         }

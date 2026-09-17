@@ -218,9 +218,9 @@ private fun EditForm(
         }
 
         Field("USERNAME", username, { username = it.lowercase().replace(" ", "_") },
-            placeholder = "ej: ana_escaladora")
+            placeholder = stringResource(R.string.edit_profile_screen_v2_ej_ana_escaladora))
         Field("NOMBRE PARA MOSTRAR", displayName, { displayName = it },
-            placeholder = "Alvaro Jara")
+            placeholder = stringResource(R.string.edit_profile_screen_v2_alvaro_jara))
         Field("BIO (max 150)", bio, { if (it.length <= 150) bio = it },
             placeholder = stringResource(R.string.edit_profile_screen_cuentate_en_una_linea), height = 80.dp)
         // GRADO MÁXIMO: automático desde el diario (tope de bloque y de vía por
@@ -229,7 +229,7 @@ private fun EditForm(
             Text(stringResource(R.string.edit_profile_screen_grado_maximo),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Se calcula solo desde tu diario",
+            Text(stringResource(R.string.edit_profile_screen_v2_se_calcula_solo_desde_tu),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary)
         }
@@ -274,7 +274,7 @@ private fun EditForm(
                 contentColor = Color.White
             ),
             shape = MaterialTheme.shapes.small
-        ) { Text("GUARDAR") }
+        ) { Text(stringResource(R.string.edit_profile_screen_v2_guardar)) }
     }
 }
 
@@ -289,7 +289,7 @@ private fun EditForm(
 private fun GearSelector(gearState: MutableMap<String, Int>, version: Int, onChange: () -> Unit) {
     @Suppress("UNUSED_VARIABLE") val v = version // fuerza recomposición al cambiar
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text("MI MATERIAL",
+        Text(stringResource(R.string.edit_profile_screen_v2_mi_material),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(6.dp))

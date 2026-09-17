@@ -227,7 +227,7 @@ fun JournalEntriesScreen(
     val estiloCtx = androidx.compose.ui.platform.LocalContext.current
     androidx.compose.runtime.LaunchedEffect(styleError) {
         styleError?.let {
-            android.widget.Toast.makeText(estiloCtx, "No se pudo cambiar el estilo: $it", android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(estiloCtx, estiloCtx.getString(R.string.journal_entries_screen_v3_no_se_pudo_cambiar_estilo, it), android.widget.Toast.LENGTH_LONG).show()
             viewModel.clearStyleError()
         }
     }
@@ -264,7 +264,7 @@ fun JournalEntriesScreen(
                 if (s.entries.isEmpty()) {
                     com.meteomontana.android.ui.components.EmptyState(
                         icon = Icons.AutoMirrored.Outlined.MenuBook,
-                        title = "Tu diario está vacío",
+                        title = stringResource(R.string.journal_entries_screen_v2_tu_diario_esta_vacio),
                         message = "Marca el ✓ de una vía dentro de su piedra (en el detalle de una escuela) y aparecerá aquí, con su grado y sector."
                     )
                 } else {
@@ -507,14 +507,14 @@ internal fun EntryRow(
         if (e.schoolId != null) {
             Icon(
                 Icons.Outlined.ChevronRight,
-                contentDescription = "Ver piedra",
+                contentDescription = stringResource(R.string.journal_entries_screen_v2_ver_piedra),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
         if (canDelete) {
             IconButton(onClick = onDelete) {
-                Icon(Icons.Outlined.Delete, contentDescription = "Borrar",
+                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.journal_entries_screen_v2_borrar),
                     tint = MaterialTheme.colorScheme.error)
             }
         }

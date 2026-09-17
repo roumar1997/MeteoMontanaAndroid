@@ -160,7 +160,7 @@ fun CreateMeetupScreen(
                 if (photoUrl != null) {
                     AsyncImage(
                         model = photoUrl,
-                        contentDescription = "Foto de la quedada",
+                        contentDescription = stringResource(R.string.create_meetup_screen_v2_foto_de_la_quedada),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -185,7 +185,7 @@ fun CreateMeetupScreen(
             FieldLabel("NOMBRE")
             OutlinedTextField(
                 value = name, onValueChange = { name = it },
-                placeholder = { Text("Ej. Quedar en Pedriza") },
+                placeholder = { Text(stringResource(R.string.create_meetup_screen_v2_ej_quedar_en_pedriza)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(4.dp),
@@ -231,7 +231,7 @@ fun CreateMeetupScreen(
             PrivacySelector(selected = privacy, onSelected = { privacy = it })
             if (privacy == "WOMEN") {
                 Text(
-                    "Quedada No Mixto: solo pueden participar personas con género " +
+                    stringResource(R.string.create_meetup_screen_v2_quedada_no_mixto_solo_pueden) +
                     "Mujer en su perfil. Si no lo tienes configurado, ve a " +
                     "Perfil → Editar perfil → Género.",
                     style = MaterialTheme.typography.bodySmall,
@@ -466,13 +466,13 @@ private fun SchoolPickerDialog(
     var query by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Buscar escuela", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(stringResource(R.string.create_meetup_screen_v2_buscar_escuela), style = MaterialTheme.typography.titleMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it; onQueryChange(it) },
-                    placeholder = { Text("Ej. Zarzalejo, Pedriza…") },
+                    placeholder = { Text(stringResource(R.string.create_meetup_screen_v2_ej_zarzalejo_pedriza)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(4.dp),
@@ -497,7 +497,7 @@ private fun SchoolPickerDialog(
                         }
                     }
                 } else if (query.length >= 2) {
-                    Text("Sin resultados", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.create_meetup_screen_v2_sin_resultados), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

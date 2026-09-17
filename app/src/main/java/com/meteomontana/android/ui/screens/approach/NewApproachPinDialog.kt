@@ -111,10 +111,10 @@ fun NewApproachPinDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva chincheta", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(stringResource(R.string.new_approach_pin_dialog_v2_nueva_chincheta), style = MaterialTheme.typography.titleMedium) },
         text = {
             Column {
-                Text("TIPO", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.new_approach_pin_dialog_v2_tipo), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(6.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(KINDS) { (k, label) ->
@@ -146,7 +146,7 @@ fun NewApproachPinDialog(
                             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                             .clickable { launchCamera() }.padding(vertical = 10.dp),
                         contentAlignment = androidx.compose.ui.Alignment.Center
-                    ) { Text("HACER FOTO", style = EyebrowTextStyle) }
+                    ) { Text(stringResource(R.string.new_approach_pin_dialog_v2_hacer_foto), style = EyebrowTextStyle) }
                     Box(
                         modifier = Modifier.weight(1f)
                             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
@@ -155,7 +155,7 @@ fun NewApproachPinDialog(
                     ) { Text(stringResource(R.string.new_approach_pin_dialog_galeria), style = EyebrowTextStyle) }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("NOTA (opcional si hay foto)", style = EyebrowTextStyle,
+                Text(stringResource(R.string.new_approach_pin_dialog_v2_nota_opcional_si_hay_foto), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(4.dp))
                 OutlinedTextField(
@@ -188,9 +188,9 @@ fun NewApproachPinDialog(
                             )
                         )
                     }
-                }) { Text("GUARDAR") }
+                }) { Text(stringResource(R.string.new_approach_pin_dialog_v2_guardar)) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.new_approach_pin_dialog_v2_cancelar)) } }
     )
 }

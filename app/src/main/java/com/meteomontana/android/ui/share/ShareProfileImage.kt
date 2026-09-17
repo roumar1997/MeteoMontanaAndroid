@@ -72,7 +72,7 @@ suspend fun shareProfileAsImage(
         putExtra(Intent.EXTRA_TEXT, text)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir perfil"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_perfil)))
 }
 
 private fun renderProfileCard(
@@ -97,7 +97,7 @@ private fun renderProfileCard(
     })
 
     // Eyebrow superior.
-    c.drawText("ESCALA CONMIGO EN CUMBRE", cx, 180f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText(context.getString(R.string.share_profile_image_v2_escala_conmigo_en_cumbre), cx, 180f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = TERRA; textSize = 34f; typeface = Typeface.MONOSPACE
         letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
     })
@@ -213,10 +213,10 @@ private fun renderProfileCard(
     }
 
     // Pie: CTA + marca.
-    c.drawText("Descarga Cumbre", cx, h - 200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText(context.getString(R.string.share_profile_image_v2_descarga_cumbre), cx, h - 200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = INK; textSize = 44f; textAlign = Paint.Align.CENTER
     })
-    c.drawText("⛰ CUMBRE", cx, h - 110f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText(context.getString(R.string.share_profile_image_v2_cumbre), cx, h - 110f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = TERRA; textSize = 40f; typeface = Typeface.MONOSPACE
         letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
     })

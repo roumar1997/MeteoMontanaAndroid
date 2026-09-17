@@ -87,6 +87,7 @@ import com.meteomontana.android.ui.components.cumbreChromeSurface
 import com.meteomontana.android.ui.theme.ChromeTreatment
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import com.meteomontana.android.R
 
 /** Ruta raíz (vacía) del NavHost interno del sheet: el sheet se abre vacío y se
  *  navega al destino real; al volver a ella se cierra la tarjeta. */

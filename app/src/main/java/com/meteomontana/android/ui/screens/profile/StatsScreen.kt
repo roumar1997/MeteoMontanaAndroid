@@ -118,7 +118,7 @@ fun StatsScreen(
                 Box {
                     VotableChip(text = state.grade?.uppercase() ?: "GRADO") { gradeMenuOpen = true }
                     DropdownMenu(expanded = gradeMenuOpen, onDismissRequest = { gradeMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text("Todos") },
+                        DropdownMenuItem(text = { Text(stringResource(R.string.stats_screen_v2_todos)) },
                             onClick = { viewModel.setGrade(null); gradeMenuOpen = false })
                         state.availableGrades.forEach { g ->
                             DropdownMenuItem(text = { Text(g, color = gradeAccent(g),
@@ -130,7 +130,7 @@ fun StatsScreen(
                 Box {
                     VotableChip(text = state.year ?: "TODO") { yearMenuOpen = true }
                     DropdownMenu(expanded = yearMenuOpen, onDismissRequest = { yearMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text("Todo") },
+                        DropdownMenuItem(text = { Text(stringResource(R.string.stats_screen_v2_todo)) },
                             onClick = { viewModel.setYear(null); yearMenuOpen = false })
                         state.availableYears.forEach { y ->
                             DropdownMenuItem(text = { Text(y) },
@@ -194,7 +194,7 @@ fun StatsScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween) {
                                         Text(day, style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurface)
-                                        Text("$count ascensos" + (if (isOpen) " ▴" else " ▾"),
+                                        Text(stringResource(R.string.stats_screen_v2_1_s_ascensos, count) + (if (isOpen) " ▴" else " ▾"),
                                             style = EyebrowTextStyle.copy(fontSize = 10.sp),
                                             color = Terra)
                                     }
@@ -281,7 +281,7 @@ fun StatsScreen(
                         Column(Modifier.fillMaxWidth()
                             .cumbreSheetSurface(MaterialTheme.colorScheme.background)
                             .padding(horizontal = Spacing.md)) {
-                            Text("TUS ${grade.uppercase()}", style = EyebrowTextStyle, color = Terra)
+                            Text(stringResource(R.string.stats_screen_v2_tus_1_s, grade.uppercase()), style = EyebrowTextStyle, color = Terra)
                             Spacer(Modifier.height(Spacing.sm))
                             LazyColumn(Modifier.height(420.dp)) {
                                 items(gradeEntries.size) { i ->
@@ -367,7 +367,7 @@ fun StatsScreen(
                     modifier = Modifier.padding(top = 3.dp))
                 Spacer(Modifier.height(Spacing.lg))
 
-                Text("TUS ESCUELAS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.stats_screen_v2_tus_escuelas), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 p.perSchool.take(8).forEach { (school, count, maxGrade) ->
@@ -404,7 +404,7 @@ fun StatsScreen(
                                         color = gradeAccent(e.grade))
                                 }
                             }
-                            Text("VER EN EL DIARIO ▸", style = EyebrowTextStyle.copy(fontSize = 9.sp),
+                            Text(stringResource(R.string.stats_screen_v2_ver_en_el_diario), style = EyebrowTextStyle.copy(fontSize = 9.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .clickable { onOpenSchool(school) }

@@ -105,7 +105,7 @@ fun OrientationVoteContent(
     Column(Modifier.padding(horizontal = 4.dp)) {
         Text(stringResource(R.string.community_vote_ui_hacia_donde_mira_esta), style = EyebrowTextStyle, color = Terra)
         Text(
-            "Vota la comunidad; se muestra la más votada. Un voto por persona — puedes cambiarlo.",
+            stringResource(R.string.community_vote_ui_v2_vota_la_comunidad_se_muestra),
             fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
         )
@@ -125,7 +125,7 @@ fun OrientationVoteContent(
                    modifier = Modifier.fillMaxWidth()) {
                 CompassDial(rumbo)
                 Text(
-                    "Estás mirando al " +
+                    stringResource(R.string.community_vote_ui_v2_estas_mirando_al) +
                         com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo) +
                         " · " + com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo),
                     style = MaterialTheme.typography.bodySmall,
@@ -191,7 +191,7 @@ fun GradeVoteContent(
                 .padding(horizontal = 10.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Mostrado", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(stringResource(R.string.community_vote_ui_v2_mostrado), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
             Text(
                 (s.displayedGrade ?: "—") +
                     (s.setterGrade?.takeIf { it != s.displayedGrade }
@@ -211,7 +211,7 @@ fun GradeVoteContent(
 private fun GradePicker(current: String?, onPick: (String) -> Unit) {
     val suffixes = listOf("a", "a+", "b", "b+", "c", "c+")
     Column {
-        Text("TU VOTO", style = EyebrowTextStyle.copy(fontSize = 10.sp),
+        Text(stringResource(R.string.community_vote_ui_v2_tu_voto), style = EyebrowTextStyle.copy(fontSize = 10.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
         listOf("4", "5", "6", "7", "8").forEach { n ->

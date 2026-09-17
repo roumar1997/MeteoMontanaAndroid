@@ -80,7 +80,7 @@ fun MyGearSheet(
                     enabled = !guardando
                 ) {
                     Text(
-                        if (guardando) "GUARDANDO…" else "GUARDAR",
+                        if (guardando) stringResource(R.string.common_saving_caps) else stringResource(R.string.edit_profile_screen_v2_guardar),
                         style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -94,7 +94,7 @@ fun MyGearSheet(
                 .padding(bottom = 100.dp)
         ) {
             Text(
-                "Lo que sueles llevar. Se usa para repartir el material en las quedadas.",
+                stringResource(R.string.my_gear_sheet_v2_lo_que_sueles_llevar_se),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -134,7 +134,7 @@ fun MyGearSheet(
                                 ) {
                                     Icon(
                                         Icons.Outlined.RemoveCircleOutline,
-                                        contentDescription = "Quitar un $label"
+                                        contentDescription = stringResource(R.string.my_gear_sheet_v2_quitar_un_1_s, label)
                                     )
                                 }
                                 Text(

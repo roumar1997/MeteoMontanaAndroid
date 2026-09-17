@@ -116,7 +116,7 @@ fun HeroSection(forecast: Forecast) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (window != null) {
-                Text("Óptimo entre ${window.start}–${window.end}",
+                Text(stringResource(R.string.forecast_body_v2_optimo_entre_1_s_2, window.start, window.end),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface)
             }
@@ -162,7 +162,7 @@ fun RockStatusBand(cur: Current) {
     ) {
         Column {
             Text(
-                if (dry) "● ROCA SECA" else "● ROCA HÚMEDA",
+                if (dry) stringResource(R.string.forecast_body_v3_roca_seca) else stringResource(R.string.forecast_body_v3_roca_humeda),
                 style = MaterialTheme.typography.labelLarge,
                 color = accent
             )
@@ -214,7 +214,7 @@ fun CurrentWeather(cur: Current) {
             Text(cloudCoverLabel(cur.cloudCover),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
-            Text("VIENTO ${cur.windSpeed.toInt()} km/h  ·  HUM ${cur.humidity.toInt()}%",
+            Text(stringResource(R.string.forecast_body_v2_viento_1_s_km_h, cur.windSpeed.toInt(), cur.humidity.toInt()),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -275,7 +275,7 @@ fun BestDayBar(forecast: Forecast) {
             Text(stringResource(R.string.detail_best_day),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("En ${best.daysFromToday}d (${best.score})",
+            Text(stringResource(R.string.forecast_body_v2_en_1_sd_2_s, best.daysFromToday, best.score),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground)
         }

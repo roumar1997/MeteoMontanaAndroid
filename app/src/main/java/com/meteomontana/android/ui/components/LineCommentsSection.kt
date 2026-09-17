@@ -189,7 +189,7 @@ fun LineCommentsThread(
                         if (myUid != null && myUid == c.uid) {
                             androidx.compose.material3.Icon(
                                 Icons.Outlined.DeleteOutline,
-                                contentDescription = "Borrar",
+                                contentDescription = stringResource(R.string.line_comments_section_v2_borrar),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(2.dp))
@@ -200,7 +200,7 @@ fun LineCommentsThread(
                             // Comentario ajeno → bandera de denuncia (discreta).
                             androidx.compose.material3.Icon(
                                 Icons.Outlined.Flag,
-                                contentDescription = "Denunciar",
+                                contentDescription = stringResource(R.string.line_comments_section_v2_denunciar),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(2.dp))
@@ -229,7 +229,7 @@ fun LineCommentsThread(
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Escribe un comentario…",
+                    placeholder = { Text(stringResource(R.string.line_comments_section_v2_escribe_un_comentario),
                         style = MaterialTheme.typography.bodySmall) },
                     maxLines = 3,
                     shape = MaterialTheme.shapes.small,
@@ -240,7 +240,7 @@ fun LineCommentsThread(
                 )
                 androidx.compose.material3.Icon(
                     Icons.AutoMirrored.Outlined.Send,
-                    contentDescription = "Enviar",
+                    contentDescription = stringResource(R.string.line_comments_section_v2_enviar),
                     tint = if (draft.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Terra,
                     modifier = Modifier
                         .clip(androidx.compose.foundation.shape.CircleShape)
@@ -256,7 +256,7 @@ fun LineCommentsThread(
 
     reportTarget?.let { c ->
         ReportDialog(
-            title = "DENUNCIAR COMENTARIO",
+            title = stringResource(R.string.line_comments_section_v2_denunciar_comentario),
             authorLabel = c.author,
             onReport = { reason, alsoBlock ->
                 moderation.report("COMMENT", c.id, reason,

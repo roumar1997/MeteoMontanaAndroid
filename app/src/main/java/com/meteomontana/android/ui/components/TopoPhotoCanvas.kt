@@ -29,6 +29,8 @@ import com.meteomontana.android.domain.util.TopoLineData
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import org.json.JSONArray
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /** Modelo UI de una línea/vía. Usa Offset de Compose (solo para la capa Android). */
 data class TopoLine(
@@ -103,7 +105,7 @@ fun TopoPhotoCanvas(
     ) {
         AsyncImage(
             model = photoUrl,
-            contentDescription = "Foto",
+            contentDescription = stringResource(R.string.topo_photo_canvas_v2_foto),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             onSuccess = { state ->

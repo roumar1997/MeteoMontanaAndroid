@@ -32,7 +32,7 @@ import com.meteomontana.android.R
 fun MonthlyStatsSection(stats: MonthlyStats?, isLoading: Boolean) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
         Text(
-            "ÍNDICE POR MES (ÚLT. 3 AÑOS)",
+            stringResource(R.string.monthly_stats_section_v2_indice_por_mes_ult_3),
             style = MaterialTheme.typography.labelMedium.copy(
                 fontFamily = Mono, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp
             ),

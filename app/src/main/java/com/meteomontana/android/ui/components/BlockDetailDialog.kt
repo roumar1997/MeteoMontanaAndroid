@@ -248,7 +248,7 @@ fun BlockDetailDialog(
                             androidx.compose.material3.IconButton(onClick = { optionsOpen = true }) {
                                 androidx.compose.material3.Icon(
                                     Icons.Outlined.Settings,
-                                    contentDescription = "Opciones",
+                                    contentDescription = stringResource(R.string.block_detail_dialog_v2_opciones),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
@@ -284,13 +284,13 @@ fun BlockDetailDialog(
                                 }
                                 if (onEdit != null) {
                                     androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("EDITAR") },
+                                        text = { Text(stringResource(R.string.block_detail_dialog_v2_editar)) },
                                         onClick = { optionsOpen = false; onEdit() }
                                     )
                                 }
                                 if (onDelete != null) {
                                     androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("ELIMINAR", color = MaterialTheme.colorScheme.error) },
+                                        text = { Text(stringResource(R.string.block_detail_dialog_v2_eliminar), color = MaterialTheme.colorScheme.error) },
                                         onClick = { optionsOpen = false; showDeleteConfirm = true }
                                     )
                                 }
@@ -335,7 +335,7 @@ fun BlockDetailDialog(
                 ) {
                     carasOrdenadas.forEachIndexed { idx, cara ->
                         if (!cara.photoPath.isNullOrBlank()) {
-                            MochilaCard(label = "FOTO ${idx + 1}", selected = idx == caraActual) {
+                            MochilaCard(label = stringResource(R.string.block_detail_dialog_v2_foto_1_s_2, idx + 1), selected = idx == caraActual) {
                                 posicionDeCara[idx]?.let { y ->
                                     shareScope.launch { contenidoScroll.animateScrollTo(y) }
                                 }
@@ -405,7 +405,7 @@ fun BlockDetailDialog(
                         // llevaba solo la palabra y el nombre iba suelto al
                         // lado, y se leían como dos cosas distintas.
                         Text(
-                            "SECTOR · " + (sectorName ?: "SIN NOMBRE").uppercase(),
+                            stringResource(R.string.block_detail_dialog_v2_sector) + (sectorName ?: "SIN NOMBRE").uppercase(),
                             style = EyebrowTextStyle, color = Color.White
                         )
                     }
@@ -450,7 +450,7 @@ fun BlockDetailDialog(
                             Row(verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 Text(
-                                    "FOTO ${faceIdx + 1}",
+                                    stringResource(R.string.block_detail_dialog_v2_foto_1_s, faceIdx + 1),
                                     style = EyebrowTextStyle,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -538,7 +538,7 @@ fun BlockDetailDialog(
                                 if (!isProposal) {
                                     androidx.compose.material3.Icon(
                                         Icons.Outlined.Share,
-                                        contentDescription = "Compartir",
+                                        contentDescription = stringResource(R.string.block_detail_dialog_v2_compartir),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier
                                             .clip(CircleShape)
@@ -725,7 +725,7 @@ fun BlockDetailDialog(
             onDismissRequest = { orientationOpen = false },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { orientationOpen = false }) {
-                    Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.block_detail_dialog_v2_cerrar_2), style = EyebrowTextStyle, color = Terra)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -746,7 +746,7 @@ fun BlockDetailDialog(
             onDismissRequest = { gradeVoteLine = null },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { gradeVoteLine = null }) {
-                    Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.block_detail_dialog_v2_cerrar), style = EyebrowTextStyle, color = Terra)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,

@@ -121,11 +121,11 @@ internal fun BlockSectorPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Elegir sector") },
+        title = { Text(stringResource(R.string.block_detail_pickers_v2_elegir_sector)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "El admin revisará la propuesta. Si se aprueba, esta piedra quedará asignada al sector elegido.",
+                    stringResource(R.string.block_detail_pickers_v2_el_admin_revisara_la_propuesta),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -134,7 +134,7 @@ internal fun BlockSectorPickerDialog(
                 val otherSectors = availableSectors.filter { it.id != block.sectorBlockId }
                 if (otherSectors.isEmpty()) {
                     Text(
-                        "Esta escuela solo tiene este sector. Crea otro con \"+ PROPONER → SECTOR\" para poder cambiarlo.",
+                        stringResource(R.string.block_detail_pickers_v2_esta_escuela_solo_tiene_este),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -152,7 +152,7 @@ internal fun BlockSectorPickerDialog(
                                 .background(Color(0xFF1FA84E))
                                 .padding(horizontal = Spacing.sm, vertical = 2.dp)
                         ) {
-                            Text("ZONA", style = EyebrowTextStyle, color = Color.White)
+                            Text(stringResource(R.string.block_detail_pickers_v2_zona), style = EyebrowTextStyle, color = Color.White)
                         }
                         Spacer(Modifier.padding(horizontal = Spacing.xs))
                         Text(sect.name, style = MaterialTheme.typography.bodyLarge)

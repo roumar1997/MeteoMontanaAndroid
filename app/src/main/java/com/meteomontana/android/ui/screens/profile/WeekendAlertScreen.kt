@@ -218,10 +218,10 @@ fun WeekendAlertScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.weekend_alert_screen_v2_volver),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Alerta de tiempo", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.weekend_alert_screen_v2_alerta_de_tiempo), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -240,7 +240,7 @@ fun WeekendAlertScreen(
                 .padding(Spacing.lg)
         ) {
             Text(
-                "Te enviamos una notificación comparando hasta 3 escuelas para los " +
+                stringResource(R.string.weekend_alert_screen_v2_te_enviamos_una_notificacion_comparando) +
                 "días que elijas de la próxima semana: nota global, desglose por día " +
                 "y aviso de lluvia.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -250,7 +250,7 @@ fun WeekendAlertScreen(
             Spacer(Modifier.height(Spacing.lg))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("ACTIVADA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.weekend_alert_screen_v2_activada_2), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f))
                 Switch(checked = s.enabled, onCheckedChange = viewModel::setEnabled)
@@ -264,7 +264,7 @@ fun WeekendAlertScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
             Text(
-                "Te avisamos por la mañana (7-11h) si alguna de tus escuelas " +
+                stringResource(R.string.weekend_alert_screen_v2_te_avisamos_por_la_manana) +
                 "favoritas supera hoy el umbral en su mejor franja de horas. " +
                 "Máximo un aviso al día.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -272,7 +272,7 @@ fun WeekendAlertScreen(
             )
             Spacer(Modifier.height(Spacing.sm))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("ACTIVADA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.weekend_alert_screen_v2_activada), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f))
                 Switch(checked = s.optimalEnabled, onCheckedChange = viewModel::setOptimalEnabled)
@@ -311,7 +311,7 @@ fun WeekendAlertScreen(
             }
             Spacer(Modifier.height(Spacing.sm))
             Text(
-                "Marca los días que te interesan (hoy es ${DAY_LABELS[today.dayOfWeek.value - 1]} " +
+                stringResource(R.string.weekend_alert_screen_v2_marca_los_dias_que_te, DAY_LABELS[today.dayOfWeek.value - 1]) +
                 "${today.dayOfMonth}). El aviso comparará esos días cada semana.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -328,7 +328,7 @@ fun WeekendAlertScreen(
             }
 
             Spacer(Modifier.height(Spacing.lg))
-            Text("HORA", style = EyebrowTextStyle,
+            Text(stringResource(R.string.weekend_alert_screen_v2_hora), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -358,7 +358,7 @@ fun WeekendAlertScreen(
                 }
                 Spacer(Modifier.height(Spacing.sm))
                 Text(
-                    "Compararemos las 3 mejores escuelas dentro del radio, " +
+                    stringResource(R.string.weekend_alert_screen_v2_compararemos_las_3_mejores_escuelas) +
                     "desde tu posición al guardar.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -393,7 +393,7 @@ fun WeekendAlertScreen(
                     value = s.query,
                     onValueChange = viewModel::setQuery,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar escuela…") },
+                    placeholder = { Text(stringResource(R.string.weekend_alert_screen_v2_buscar_escuela)) },
                     singleLine = true,
                     shape = MaterialTheme.shapes.small,
                     colors = TextFieldDefaults.colors(
@@ -444,7 +444,7 @@ fun WeekendAlertScreen(
                     .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text(if (s.saving) "GUARDANDO…" else "GUARDAR",
+                Text(if (s.saving) stringResource(R.string.common_saving_caps) else stringResource(R.string.edit_profile_screen_v2_guardar),
                     style = MaterialTheme.typography.labelLarge, color = Color.White)
             }
             Spacer(Modifier.height(Spacing.xl))

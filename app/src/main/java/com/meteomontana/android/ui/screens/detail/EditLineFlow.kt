@@ -113,7 +113,7 @@ fun EditLineFlow(
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                "Estás proponiendo una corrección de \"${line.name}\" en \"${block.name}\". " +
+                stringResource(R.string.edit_line_flow_v2_estas_proponiendo_una_correccion_de, line.name, block.name) +
                 "Un admin revisará la propuesta antes de aplicar.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -152,7 +152,7 @@ fun EditLineFlow(
                 }
             } else {
                 Spacer(Modifier.height(Spacing.xs))
-                Text("Esta piedra no tiene foto, no puedes redibujar.",
+                Text(stringResource(R.string.edit_line_flow_v2_esta_piedra_no_tiene_foto),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -178,7 +178,7 @@ fun EditLineFlow(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("CANCELAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.edit_line_flow_v2_cancelar), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
                 Box(
@@ -209,7 +209,7 @@ fun EditLineFlow(
                 ) {
                     if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
                         color = Color.White, strokeWidth = 2.dp)
-                    else Text("ENVIAR PROPUESTA", style = EyebrowTextStyle, color = Color.White)
+                    else Text(stringResource(R.string.edit_line_flow_v2_enviar_propuesta), style = EyebrowTextStyle, color = Color.White)
                 }
             }
         }

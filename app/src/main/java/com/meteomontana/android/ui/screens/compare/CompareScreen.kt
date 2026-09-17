@@ -52,6 +52,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /** Datos de una escuela ya listos para la tabla de comparación. */
 data class CompareItem(
@@ -151,7 +153,7 @@ fun CompareScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
             is CompareUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.compare_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
             }
             is CompareUiState.Success -> CompareTable(
                 items = s.items,
@@ -183,7 +185,7 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("HOY MEJOR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.compare_screen_v2_hoy_mejor), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(winner.name, style = MaterialTheme.typography.titleLarge,

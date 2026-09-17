@@ -70,7 +70,7 @@ fun NotesSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "NOTAS COMUNITARIAS",
+                stringResource(R.string.notes_section_v2_notas_comunitarias),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -97,7 +97,7 @@ fun NotesSection(
             Spacer(Modifier.height(8.dp))
             if (notes.isEmpty()) {
                 Text(
-                    "Sin notas aún. ¡Sé el primero!",
+                    stringResource(R.string.notes_section_v2_sin_notas_aun_se_el),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -123,7 +123,7 @@ fun NotesSection(
 
     reportTarget?.let { n ->
         ReportDialog(
-            title = "DENUNCIAR NOTA",
+            title = stringResource(R.string.notes_section_v2_denunciar_nota),
             authorLabel = n.author ?: "este usuario",
             onReport = { reason, alsoBlock ->
                 moderation.report("NOTE", n.id, reason,
@@ -145,7 +145,7 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
             Spacer(Modifier.height(6.dp))
             AsyncImage(
                 model = url,
-                contentDescription = "Foto de la nota — tocar para ampliar",
+                contentDescription = stringResource(R.string.notes_section_v2_foto_de_la_nota_tocar),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
@@ -170,7 +170,7 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
                 if (canReport) {
                     androidx.compose.material3.Icon(
                         Icons.Outlined.Flag,
-                        contentDescription = "Denunciar",
+                        contentDescription = stringResource(R.string.notes_section_v2_denunciar),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                         // Zona de toque amplia (~40dp): con 15dp costaba acertar.
                         modifier = Modifier
@@ -220,14 +220,14 @@ private fun NotePhotoDialog(note: Note, onDismiss: () -> Unit) {
         ) {
             AsyncImage(
                 model = note.photoUrl,
-                contentDescription = "Foto de la nota",
+                contentDescription = stringResource(R.string.notes_section_v2_foto_de_la_nota),
                 modifier = Modifier.fillMaxWidth(),
                 contentScale = ContentScale.FillWidth
             )
             Column(Modifier.padding(16.dp)) {
                 Text(note.text, style = MaterialTheme.typography.bodyLarge, color = Color.White)
                 Spacer(Modifier.height(8.dp))
-                Text(note.author ?: "Anónimo",
+                Text(note.author ?: stringResource(R.string.notes_section_anonimo),
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White.copy(alpha = 0.7f))
                 Spacer(Modifier.height(16.dp))
@@ -260,7 +260,7 @@ private fun ComposerRow(onPublish: (String, FileRef?) -> Unit) {
             Box {
                 AsyncImage(
                     model = uri,
-                    contentDescription = "Foto adjunta",
+                    contentDescription = stringResource(R.string.notes_section_v2_foto_adjunta),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
@@ -316,7 +316,7 @@ private fun ComposerRow(onPublish: (String, FileRef?) -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "Publicar",
+                    stringResource(R.string.notes_section_v2_publicar),
                     color = if (text.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Color.White,
                     style = MaterialTheme.typography.labelLarge
                 )

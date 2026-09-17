@@ -152,7 +152,7 @@ internal fun GestionarTab(
             }
         } else {
             Text(
-                "${filtered.size} escuela${if (filtered.size == 1) "" else "s"}",
+                stringResource(R.string.gestionar_tab_v2_1_s_escuela_2_s, filtered.size, if (filtered.size == 1) "" else "s"),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -226,7 +226,7 @@ private fun SchoolListRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Text("⇅ ORDENAR", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Text(stringResource(R.string.gestionar_tab_v2_ordenar), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .clickable(onClick = onOrderBlocks)
                 .padding(horizontal = Spacing.xs, vertical = Spacing.xs))

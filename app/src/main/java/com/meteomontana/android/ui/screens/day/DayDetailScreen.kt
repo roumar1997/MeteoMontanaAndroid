@@ -95,7 +95,7 @@ private fun Header(title: String, onBack: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            "‹ Volver",
+            stringResource(R.string.day_detail_screen_v2_volver),
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
@@ -144,7 +144,7 @@ private fun DayScoreHero(day: DayForecast) {
         }
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            "● ${day.scoreLabel.uppercase()} PARA ESCALAR",
+            stringResource(R.string.day_detail_screen_v2_1_s_para_escalar, day.scoreLabel.uppercase()),
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
             ),
@@ -259,7 +259,7 @@ private fun HourRow(h: HourForecast) {
                 modifier = Modifier.size(64.dp, 20.dp)
             )
             Spacer(Modifier.weight(1f))
-            Text("${h.windSpeed.toInt()} km/h",
+            Text(stringResource(R.string.day_detail_screen_v2_1_s_km_h, h.windSpeed.toInt()),
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

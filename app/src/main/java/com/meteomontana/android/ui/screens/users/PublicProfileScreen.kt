@@ -176,7 +176,7 @@ fun PublicProfileScreen(
                 Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Perfil", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.public_profile_screen_v2_perfil), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f))
             // Compartir perfil (también el propio): enlace /s/u/ que abre la app.
@@ -201,7 +201,7 @@ fun PublicProfileScreen(
                     }
                 }) {
                     Icon(androidx.compose.material.icons.Icons.Outlined.Share,
-                        contentDescription = "Compartir perfil",
+                        contentDescription = stringResource(R.string.public_profile_screen_v2_compartir_perfil),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
             }
@@ -210,13 +210,13 @@ fun PublicProfileScreen(
                 androidx.compose.foundation.layout.Box {
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Outlined.MoreVert,
-                            contentDescription = "Opciones",
+                            contentDescription = stringResource(R.string.public_profile_screen_v2_opciones),
                             tint = MaterialTheme.colorScheme.onBackground)
                     }
                     androidx.compose.material3.DropdownMenu(
                         expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         androidx.compose.material3.DropdownMenuItem(
-                            text = { Text("Denunciar usuario") },
+                            text = { Text(stringResource(R.string.public_profile_screen_v2_denunciar_usuario_2)) },
                             onClick = { menuOpen = false; showReport = true })
                         val isBlocked = profileUid in blocked
                         androidx.compose.material3.DropdownMenuItem(
@@ -240,7 +240,7 @@ fun PublicProfileScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
             is PublicProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.public_profile_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
             }
             is PublicProfileUiState.Success -> Body(
                 s, viewModel::toggleFollow,
@@ -263,7 +263,7 @@ fun PublicProfileScreen(
 
     if (showReport && profileUid != null) {
         com.meteomontana.android.ui.components.ReportDialog(
-            title = "DENUNCIAR USUARIO",
+            title = stringResource(R.string.public_profile_screen_v2_denunciar_usuario),
             authorLabel = profileName,
             onReport = { reason, alsoBlock ->
                 moderation.report("USER", profileUid, reason,
@@ -368,7 +368,7 @@ private fun Body(
         }
         if (s.status.theyFollowMe && !locked) {
             Spacer(Modifier.height(8.dp))
-            Text("Te sigue", style = MaterialTheme.typography.labelMedium,
+            Text(stringResource(R.string.public_profile_screen_v2_te_sigue), style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp))
         }
@@ -393,10 +393,10 @@ private fun Body(
             Spacer(Modifier.height(32.dp))
             Column(modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Perfil privado", style = MaterialTheme.typography.titleMedium,
+                Text(stringResource(R.string.public_profile_screen_v2_perfil_privado), style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground)
                 Spacer(Modifier.height(4.dp))
-                Text("Sigue a este usuario para ver su perfil.",
+                Text(stringResource(R.string.public_profile_screen_v2_sigue_a_este_usuario_para),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -492,7 +492,7 @@ private fun SchoolStatRow(school: SchoolStats, onClick: () -> Unit) {
             Text(school.schoolName,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onBackground)
-            Text("${school.blockCount} bloque${if (school.blockCount == 1) "" else "s"}",
+            Text(stringResource(R.string.public_profile_screen_v2_1_s_bloque_2_s, school.blockCount, if (school.blockCount == 1) "" else "s"),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

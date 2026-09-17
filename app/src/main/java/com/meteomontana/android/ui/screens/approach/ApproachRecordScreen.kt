@@ -135,19 +135,19 @@ fun ApproachRecordScreen(
             ) {
                 Text(if (savingStep) stringResource(R.string.approach_record_screen_guardar_camino) else stringResource(R.string.approach_record_screen_grabar_aproximacion),
                     style = MaterialTheme.typography.titleMedium)
-                Text("CERRAR", style = EyebrowTextStyle, color = Terra,
+                Text(stringResource(R.string.approach_record_screen_v2_cerrar), style = EyebrowTextStyle, color = Terra,
                     modifier = Modifier.clickable(onClick = onDismiss))
             }
 
             if (!savingStep) {
                 if (!recording) {
                     Column(Modifier.padding(horizontal = Spacing.md)) {
-                        Text("ORIGEN (parking)", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.approach_record_screen_v2_origen_parking), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
                         BlockPicker(parkings, fromBlockId, "Elige un parking") { fromBlockId = it }
                         Spacer(Modifier.height(Spacing.sm))
-                        Text("DESTINO (sector/piedra)", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.approach_record_screen_v2_destino_sector_piedra), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
                         BlockPicker(sectors, toBlockId, "Elige un sector") { toBlockId = it }
@@ -186,7 +186,7 @@ fun ApproachRecordScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (pendingPins.value.isNotEmpty()) {
-                        Text("${pendingPins.value.size} chincheta${if (pendingPins.value.size == 1) "" else "s"} en este camino",
+                        Text(stringResource(R.string.approach_record_screen_v2_1_s_chincheta_2_s, pendingPins.value.size, if (pendingPins.value.size == 1) "" else "s"),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
@@ -214,7 +214,7 @@ fun ApproachRecordScreen(
                                     }
                                     .padding(vertical = Spacing.md),
                                 contentAlignment = Alignment.Center
-                            ) { Text("TERMINAR", style = EyebrowTextStyle, color = Color.White) }
+                            ) { Text(stringResource(R.string.approach_record_screen_v2_terminar), style = EyebrowTextStyle, color = Color.White) }
                         } else {
                             val canStart = fromBlockId != null && toBlockId != null
                             Box(
@@ -226,23 +226,23 @@ fun ApproachRecordScreen(
                                     }
                                     .padding(vertical = Spacing.lg),
                                 contentAlignment = Alignment.Center
-                            ) { Text("INICIAR", style = EyebrowTextStyle, color = Color.White) }
+                            ) { Text(stringResource(R.string.approach_record_screen_v2_iniciar), style = EyebrowTextStyle, color = Color.White) }
                         }
                     }
                 }
             } else {
                 Column(Modifier.weight(1f).fillMaxWidth().padding(Spacing.md)) {
-                    Text("Nombre del camino", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.approach_record_screen_v2_nombre_del_camino), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = name, onValueChange = { name = it },
-                        placeholder = { Text("p. ej. Parking alto → Sector Techos") },
+                        placeholder = { Text(stringResource(R.string.approach_record_screen_v2_p_ej_parking_alto_sector)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(Spacing.sm))
                     Text(
-                        "${formatDistance(distanceM)} · ${formatElapsed(elapsedSeconds)} · ${points.size} puntos" +
+                        stringResource(R.string.approach_record_screen_v2_1_s_2_s_3, formatDistance(distanceM), formatElapsed(elapsedSeconds), points.size) +
                             if (pendingPins.value.isEmpty()) "" else " · ${pendingPins.value.size} chinchetas",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -287,7 +287,7 @@ fun ApproachRecordScreen(
                     ) {
                         if (saving) CircularProgressIndicator(
                             modifier = Modifier.height(20.dp), color = Color.White)
-                        else Text("GUARDAR", style = EyebrowTextStyle, color = Color.White)
+                        else Text(stringResource(R.string.approach_record_screen_v2_guardar), style = EyebrowTextStyle, color = Color.White)
                     }
                 }
             }

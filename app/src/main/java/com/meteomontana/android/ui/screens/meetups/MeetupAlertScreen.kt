@@ -131,7 +131,7 @@ fun MeetupAlertScreen(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Activar alertas", style = MaterialTheme.typography.bodyLarge,
+                    Text(stringResource(R.string.meetup_alert_screen_v2_activar_alertas), style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium)
                     Text(stringResource(R.string.meetup_alert_screen_recibe_una_notificacion_cuando),
                         style = MaterialTheme.typography.bodySmall,
@@ -166,7 +166,7 @@ fun MeetupAlertScreen(
                 ) {
                     Icon(Icons.Outlined.Search, null, Modifier.size(16.dp))
                     Spacer(Modifier.size(6.dp))
-                    Text(selectedSchoolName ?: "Cualquier escuela", maxLines = 1)
+                    Text(selectedSchoolName ?: stringResource(R.string.meetup_alert_screen_v3_cualquier_escuela), maxLines = 1)
                 }
                 if (selectedSchoolId != null) {
                     IconButton(onClick = { selectedSchoolId = null; selectedSchoolName = null }) {
@@ -259,7 +259,7 @@ fun MeetupAlertScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text(if (enabled) "GUARDAR ALERTA" else "DESACTIVAR ALERTA")
+                Text(if (enabled) stringResource(R.string.meetup_alert_screen_v3_guardar_alerta) else stringResource(R.string.meetup_alert_screen_v3_desactivar_alerta))
             }
         }
     }
@@ -326,13 +326,13 @@ private fun AlertSchoolPickerDialog(
     var query by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Buscar escuela", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(stringResource(R.string.meetup_alert_screen_v2_buscar_escuela), style = MaterialTheme.typography.titleMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it; onQueryChange(it) },
-                    placeholder = { Text("Ej. Zarzalejo, Pedriza…") },
+                    placeholder = { Text(stringResource(R.string.meetup_alert_screen_v2_ej_zarzalejo_pedriza)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(4.dp)
@@ -356,7 +356,7 @@ private fun AlertSchoolPickerDialog(
                         }
                     }
                 } else if (query.length >= 2) {
-                    Text("Sin resultados", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.meetup_alert_screen_v2_sin_resultados), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

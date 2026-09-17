@@ -85,11 +85,11 @@ fun BlocksSection(
     avisoFoto?.let { texto ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { avisoFoto = null },
-            title = { androidx.compose.material3.Text("No se puede usar esa foto") },
+            title = { androidx.compose.material3.Text(stringResource(R.string.blocks_section_v2_no_se_puede_usar_esa)) },
             text = { androidx.compose.material3.Text(texto) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { avisoFoto = null }) {
-                    androidx.compose.material3.Text("ENTENDIDO")
+                    androidx.compose.material3.Text(stringResource(R.string.blocks_section_v2_entendido))
                 }
             }
         )

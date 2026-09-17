@@ -286,7 +286,7 @@ fun FullScreenMapDialog(
                                 }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                             ) {
-                                Text("CANCELAR", style = EyebrowTextStyle, color = Color.White)
+                                Text(stringResource(R.string.full_screen_map_dialog_v2_cancelar), style = EyebrowTextStyle, color = Color.White)
                             }
                             Box(modifier = Modifier
                                 .clip(MaterialTheme.shapes.small)
@@ -327,7 +327,7 @@ fun FullScreenMapDialog(
                     .clickable(onClick = onDismiss)
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
-                Text("✕ CERRAR", style = EyebrowTextStyle, color = Color.White)
+                Text(stringResource(R.string.full_screen_map_dialog_v2_cerrar), style = EyebrowTextStyle, color = Color.White)
             }
 
             // Chips Topo / Satélite arriba a la izquierda

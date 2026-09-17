@@ -20,6 +20,7 @@ import com.meteomontana.android.domain.util.TopoLineData
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import java.io.File
+import com.meteomontana.android.R
 
 /* ── Paleta Cumbre (ARGB para Canvas, = ShareLineImage) ────────────────────── */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -59,7 +60,7 @@ suspend fun shareFeedPostAsImage(context: Context, post: FeedPost) {
         putExtra(Intent.EXTRA_TEXT, plainText(post))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.common_share)))
 }
 
 /**
@@ -116,7 +117,7 @@ private suspend fun renderPostToUri(context: Context, post: FeedPost): Uri? {
     // Etiqueta traducida del tipo de inicio (mismo mapeo que el editor de topos).
     val startLabel = com.meteomontana.android.ui.components.startTypeLabelRes(post.startType)
         ?.let(context::getString)
-    val bmp = renderPostCard(post, photo, startLabel, drawLine = topoPhoto != null, corner = corner)
+    val bmp = renderPostCard(context, post, photo, startLabel, drawLine = topoPhoto != null, corner = corner)
     return runCatching {
         val dir = File(context.cacheDir, "share").apply { mkdirs() }
         // Nombre ÚNICO por post: con nombre fijo, el receptor (WhatsApp) cachea
@@ -140,6 +141,7 @@ private fun kindEyebrow(post: FeedPost): String = when (post.kind) {
 }
 
 private fun renderPostCard(
+    context: Context,
     post: FeedPost,
     photo: Bitmap?,
     startLabel: String? = null,
@@ -197,7 +199,7 @@ private fun renderPostCard(
     val authorLabel = post.author.username?.let { "@$it" }
         ?: post.author.displayName ?: ""
     if (authorLabel.isNotBlank()) {
-        c.drawText("por $authorLabel", pad, y,
+        c.drawText(context.getString(R.string.share_feed_post_image_v2_por_1_s, authorLabel), pad, y,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = TERRA; textSize = 36f; isFakeBoldText = true
             })
@@ -304,7 +306,7 @@ private fun renderPostCard(
 
     // ── Pie de marca ──
     c.drawText(
-        "⛰ CUMBRE", w - pad, h - 56f,
+        context.getString(R.string.share_feed_post_image_v2_cumbre), w - pad, h - 56f,
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = TERRA; textSize = 34f; typeface = Typeface.MONOSPACE
             letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.RIGHT

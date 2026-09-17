@@ -102,7 +102,7 @@ fun SubmitSchoolScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Field("NOMBRE", name, { name = it }, placeholder = "ej: La Pedriza")
+            Field("NOMBRE", name, { name = it }, placeholder = stringResource(R.string.submit_school_screen_v2_ej_la_pedriza))
             // Desplegables con valores del catálogo (+ "Otro…") para evitar erratas.
             // PAIS antes que REGION: las regiones dependen del país elegido, y
             // salen del catálogo del servidor — si se dedujeran de las escuelas
@@ -127,7 +127,7 @@ fun SubmitSchoolScreen(
                     location = "" // resetea la localidad al cambiar de región
                 })
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("ESTILO", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.submit_school_screen_v2_estilo), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 androidx.compose.foundation.lazy.LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -266,7 +266,7 @@ private fun DropdownField(
                 value = if (value.isBlank()) "" else value,
                 onValueChange = {},
                 readOnly = true,
-                placeholder = { Text("Seleccionar…") },
+                placeholder = { Text(stringResource(R.string.submit_school_screen_v2_seleccionar)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth()
             )
@@ -281,7 +281,7 @@ private fun DropdownField(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Otro…") },
+                    text = { Text(stringResource(R.string.submit_school_screen_v2_otro)) },
                     onClick = { onChange(" "); expanded = false }
                 )
             }
@@ -290,7 +290,7 @@ private fun DropdownField(
             OutlinedTextField(
                 value = value.trimStart(),
                 onValueChange = { onChange(it) },
-                placeholder = { Text("Escribe el valor") },
+                placeholder = { Text(stringResource(R.string.submit_school_screen_v2_escribe_el_valor)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )

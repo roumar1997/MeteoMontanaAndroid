@@ -43,6 +43,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Pantalla intermedia entre "Escuelas" y el listado plano del diario: al pulsar
@@ -127,7 +129,7 @@ fun JournalSectorsScreen(
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.journal_sectors_screen_v2_volver),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(viewModel.schoolName, style = MaterialTheme.typography.headlineMedium,
@@ -145,7 +147,7 @@ fun JournalSectorsScreen(
             is JournalSectorsUiState.Success -> {
                 if (s.sectors.isEmpty() && s.loose.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("Sin entradas en esta escuela", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.journal_sectors_screen_v2_sin_entradas_en_esta_escuela), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {

@@ -176,20 +176,20 @@ fun MeetupsScreen(
             com.meteomontana.android.ui.components.CumbrePillGroup {
                 com.meteomontana.android.ui.components.HelpButton(topicKey = "meetups")
                 IconButton(onClick = { viewModel.loadMeetups() }) {
-                    Icon(Icons.Outlined.Refresh, contentDescription = "Recargar")
+                    Icon(Icons.Outlined.Refresh, contentDescription = stringResource(R.string.meetups_screen_v2_recargar))
                 }
                 val alertEnabled = alertState?.enabled == true
                 IconButton(onClick = onOpenAlert) {
                     Icon(
                         if (alertEnabled) Icons.Outlined.NotificationsActive
                         else Icons.Outlined.NotificationsOff,
-                        contentDescription = "Configurar alertas",
+                        contentDescription = stringResource(R.string.meetups_screen_v2_configurar_alertas),
                         tint = if (alertEnabled) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(onClick = onCreateMeetup) {
-                    Icon(Icons.Outlined.Add, contentDescription = "Crear quedada",
+                    Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.meetups_screen_v2_crear_quedada),
                         tint = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -205,7 +205,7 @@ fun MeetupsScreen(
             state.error != null && displayedMeetups.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No se pudo cargar", style = MaterialTheme.typography.bodyMedium,
+                        Text(stringResource(R.string.meetups_screen_v2_no_se_pudo_cargar), style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(Spacing.sm))
                         TextButton(onClick = { viewModel.loadMeetups() }) { Text(stringResource(R.string.common_retry)) }
@@ -392,7 +392,7 @@ fun MeetupsScreen(
                                 Text(stringResource(R.string.meetups_empty), style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(Spacing.sm))
-                                Text("Crea una para quedar a escalar", style = MaterialTheme.typography.bodyMedium,
+                                Text(stringResource(R.string.meetups_screen_v2_crea_una_para_quedar_a), style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -418,13 +418,13 @@ fun MeetupsScreen(
     if (showWomenGateDialog) {
         AlertDialog(
             onDismissRequest = { showWomenGateDialog = false },
-            title = { Text("Quedadas No Mixto") },
+            title = { Text(stringResource(R.string.meetups_screen_v2_quedadas_no_mixto)) },
             text = {
-                Text("Para ver y participar en quedadas No Mixto necesitas indicar " +
+                Text(stringResource(R.string.meetups_screen_v2_para_ver_y_participar_en) +
                      "tu género como Mujer en tu perfil.\n\nVe a Perfil → Editar perfil → Género.")
             },
             confirmButton = {
-                TextButton(onClick = { showWomenGateDialog = false }) { Text("ENTENDIDO") }
+                TextButton(onClick = { showWomenGateDialog = false }) { Text(stringResource(R.string.meetups_screen_v2_entendido)) }
             }
         )
     }
@@ -597,13 +597,13 @@ private fun MeetupSchoolFilterDialog(
     var query by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Buscar escuela", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(stringResource(R.string.meetups_screen_v2_buscar_escuela), style = MaterialTheme.typography.titleMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it; onQueryChange(it) },
-                    placeholder = { Text("Ej. Zarzalejo, Pedriza…") },
+                    placeholder = { Text(stringResource(R.string.meetups_screen_v2_ej_zarzalejo_pedriza)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(4.dp)
@@ -627,7 +627,7 @@ private fun MeetupSchoolFilterDialog(
                         }
                     }
                 } else if (query.length >= 2) {
-                    Text("Sin resultados", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.meetups_screen_v2_sin_resultados), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

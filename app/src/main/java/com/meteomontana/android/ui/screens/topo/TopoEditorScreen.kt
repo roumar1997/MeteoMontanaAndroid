@@ -261,7 +261,7 @@ private fun LineChip(
     ) {
         Box(modifier = Modifier.width(12.dp).height(12.dp).clip(CircleShape).background(color))
         // Vía sin nombre → placeholder para que el chip sea visible y borrable.
-        Text(line.name.ifBlank { "(sin datos)" },
+        Text(line.name.ifBlank { stringResource(R.string.topo_editor_screen_v3_sin_datos) },
             color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge)
         if (!line.grade.isNullOrBlank()) {

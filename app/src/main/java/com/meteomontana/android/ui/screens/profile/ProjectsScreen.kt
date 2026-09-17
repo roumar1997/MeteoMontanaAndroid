@@ -93,7 +93,7 @@ fun ProjectsScreen(
                 Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Proyectos", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.projects_screen_v2_proyectos), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)

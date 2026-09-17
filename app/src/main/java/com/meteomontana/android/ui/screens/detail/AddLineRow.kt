@@ -268,13 +268,13 @@ internal fun AddLineRow(
         }
 
         // Grado: grid de chips de un toque (colores por dificultad).
-        Text("Grado", style = MaterialTheme.typography.labelMedium,
+        Text(stringResource(R.string.add_line_row_v2_grado), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         GradeChipsGrid(selected = bloque.grade,
             onSelect = { onUpdate(bloque.copy(grade = it)) })
 
         // Tipo de inicio con nombre completo.
-        Text("Tipo de inicio", style = MaterialTheme.typography.labelMedium,
+        Text(stringResource(R.string.add_line_row_v2_tipo_de_inicio), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         StartTypeChips(selected = bloque.startType,
             onSelect = { onUpdate(bloque.copy(startType = it)) })

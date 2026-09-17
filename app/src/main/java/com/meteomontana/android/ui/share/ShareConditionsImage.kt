@@ -34,7 +34,7 @@ fun shareSchoolAsImage(context: Context, school: School, forecast: Forecast?) {
         putExtra(Intent.EXTRA_TEXT, "${school.name} — condiciones en Cumbre\n\nDescarga Cumbre:\nAndroid: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000")
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir condiciones"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_condiciones)))
 }
 
 /* ── Paleta Cumbre (valores de Color.kt, en ARGB para Canvas) ──────────────── */
@@ -69,7 +69,7 @@ private fun renderConditionsCard(context: Context, school: School, forecast: For
         color = TERRA; textSize = 28f; typeface = Typeface.MONOSPACE
         letterSpacing = 0.18f; isFakeBoldText = true
     }
-    c.drawText("CONDICIONES DE ESCALADA", pad, pad + 28f, eyebrow)
+    c.drawText(context.getString(R.string.share_conditions_image_v2_condiciones_de_escalada), pad, pad + 28f, eyebrow)
 
     // Nombre de la escuela (serif grande)
     val title = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -106,17 +106,17 @@ private fun renderConditionsCard(context: Context, school: School, forecast: For
         }
         c.drawText(cur.scoreLabel.uppercase(), dataX, 348f, label)
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 34f }
-        c.drawText("${cur.temperature.toInt()}°C · ${cur.humidity.toInt()}% hum · ${cur.windSpeed.toInt()} km/h", dataX, 404f, line)
+        c.drawText(context.getString(R.string.share_conditions_image_v2_1_s_c_2_s, cur.temperature.toInt(), cur.humidity.toInt(), cur.windSpeed.toInt()), dataX, 404f, line)
         val rockLine = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = if (cur.dryRock) 0xFF4A7C59.toInt() else 0xFFB94040.toInt()
             textSize = 34f; isFakeBoldText = true
         }
-        c.drawText(if (cur.dryRock) "● ROCA SECA" else "● ROCA MOJADA", dataX, 456f, rockLine)
+        c.drawText(if (cur.dryRock) context.getString(R.string.forecast_body_v3_roca_seca_dot) else context.getString(R.string.forecast_body_v3_roca_mojada_dot), dataX, 456f, rockLine)
 
         // Mejor ventana
         forecast.bestWindow?.let { wnd ->
             val wndPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 32f }
-            c.drawText("Mejor ventana: ${wnd.start}–${wnd.end} (${wnd.avgScore}/100)", pad, 552f, wndPaint)
+            c.drawText(context.getString(R.string.share_conditions_image_v2_mejor_ventana_1_s_2, wnd.start, wnd.end, wnd.avgScore), pad, 552f, wndPaint)
         }
 
         // Heatmap próximas 16h
@@ -140,7 +140,7 @@ private fun renderConditionsCard(context: Context, school: School, forecast: For
         color = TERRA; textSize = 28f; typeface = Typeface.MONOSPACE
         letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.RIGHT
     }
-    c.drawText("⛰ CUMBRE", w - pad, h - 48f, brand)
+    c.drawText(context.getString(R.string.share_conditions_image_v2_cumbre), w - pad, h - 48f, brand)
 
     return bmp
 }

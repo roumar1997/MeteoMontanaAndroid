@@ -24,6 +24,8 @@ import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 // Corregir NOMBRE / ESTILO de la escuela — tipos SCHOOL_NAME_CORRECTION y
 // SCHOOL_STYLE_CORRECTION, sin tocar el mapa (a diferencia de CORRECTION, que
@@ -42,25 +44,25 @@ internal fun SchoolNameCorrectionDialog(
     val scope = rememberCoroutineScope()
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
-        Text("Corregir nombre",
+        Text(stringResource(R.string.school_correction_dialogs_v2_corregir_nombre),
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(Spacing.lg))
 
-        Text("NOMBRE ACTUAL", style = EyebrowTextStyle,
+        Text(stringResource(R.string.school_correction_dialogs_v2_nombre_actual), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text(currentName, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.md))
 
-        Text("NOMBRE PROPUESTO", style = EyebrowTextStyle,
+        Text(stringResource(R.string.school_correction_dialogs_v2_nombre_propuesto), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         OutlinedTextField(
             value = name, onValueChange = { name = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Nombre correcto", style = MaterialTheme.typography.bodyMedium,
+            placeholder = { Text(stringResource(R.string.school_correction_dialogs_v2_nombre_correcto), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             singleLine = true,
             shape = MaterialTheme.shapes.small,
@@ -105,12 +107,12 @@ internal fun SchoolStyleCorrectionDialog(
     val scope = rememberCoroutineScope()
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
-        Text("Corregir estilo",
+        Text(stringResource(R.string.school_correction_dialogs_v2_corregir_estilo),
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(Spacing.lg))
 
-        Text("ESTILO ACTUAL", style = EyebrowTextStyle,
+        Text(stringResource(R.string.school_correction_dialogs_v2_estilo_actual), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text(
@@ -120,7 +122,7 @@ internal fun SchoolStyleCorrectionDialog(
         )
         Spacer(Modifier.height(Spacing.md))
 
-        Text("ESTILO PROPUESTO", style = EyebrowTextStyle,
+        Text(stringResource(R.string.school_correction_dialogs_v2_estilo_propuesto), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

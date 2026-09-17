@@ -2,6 +2,7 @@ package com.meteomontana.android.ui.share
 
 import android.content.Context
 import android.content.Intent
+import com.meteomontana.android.R
 
 private const val PLAY_URL = "https://play.google.com/store/apps/details?id=com.meteomontana.android"
 private const val APPSTORE_URL = "https://apps.apple.com/app/id6785776686"
@@ -41,7 +42,7 @@ fun shareMeetup(
             append("iOS: $APPSTORE_URL")
         }
     }
-    shareText(context, text, "Compartir quedada")
+    shareText(context, text, context.getString(R.string.share_utils_v3_compartir_quedada))
 }
 
 fun shareSchool(
@@ -64,7 +65,7 @@ fun shareSchool(
         append("Android: $PLAY_URL\n")
         append("iOS: $APPSTORE_URL")
     }
-    shareText(context, text, "Compartir escuela")
+    shareText(context, text, context.getString(R.string.share_utils_v3_compartir_escuela))
 }
 
 /** Comparte un perfil con su enlace /s/u/ (lo abre la app o lleva a la store). */
@@ -73,7 +74,7 @@ fun shareProfile(context: Context, handle: String, displayLabel: String) {
         append("Perfil de $displayLabel en Cumbre:\n")
         append((com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/u/$handle")
     }
-    shareText(context, text, "Compartir perfil")
+    shareText(context, text, context.getString(R.string.share_utils_v3_compartir_perfil))
 }
 
 private fun shareText(context: Context, text: String, title: String) {

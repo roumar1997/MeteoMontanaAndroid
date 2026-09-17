@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -208,8 +209,9 @@ private fun WidgetContent(state: WidgetState) {
             }
             if (truncated && hidden > 0) {
                 Spacer(GlanceModifier.height(6.dp))
+                val ctx = LocalContext.current
                 Text(
-                    "+ $hidden MÁS EN LA APP",
+                    ctx.getString(R.string.favorites_widget_v2_1_s_mas_en_la, hidden),
                     style = TextStyle(color = TerraText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 )
             }
@@ -221,7 +223,7 @@ private fun WidgetContent(state: WidgetState) {
 private fun Header(updatedAt: Long) {
     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            "FAVORITAS HOY",
+            LocalContext.current.getString(R.string.favorites_widget_v2_favoritas_hoy),
             style = TextStyle(color = TerraText, fontSize = 11.sp, fontWeight = FontWeight.Bold),
             modifier = GlanceModifier.defaultWeight()
         )
@@ -331,13 +333,13 @@ private fun EmptyState(signedOut: Boolean) {
             Text("⛰", style = TextStyle(fontSize = 24.sp))
             Spacer(GlanceModifier.height(4.dp))
             Text(
-                if (signedOut) "Inicia sesión para ver tus escuelas"
-                else "Marca escuelas favoritas en la app",
+                if (signedOut) LocalContext.current.getString(R.string.favorites_widget_v2_inicia_sesion)
+                else LocalContext.current.getString(R.string.favorites_widget_v2_marca_favoritas),
                 style = TextStyle(color = Ink2Text, fontSize = 12.sp)
             )
             Spacer(GlanceModifier.height(2.dp))
             Text(
-                "TOCA PARA ABRIR",
+                LocalContext.current.getString(R.string.favorites_widget_v2_toca_para_abrir),
                 style = TextStyle(color = TerraText, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             )
         }

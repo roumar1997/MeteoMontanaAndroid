@@ -39,15 +39,15 @@ fun FotosOfflineDialogs(
             title = { Text(stringResource(R.string.fotos_offline_dialogs_guardar_tambien_las_fotos)) },
             text = {
                 Text(
-                    "La escuela ya está guardada. Bajar sus ${o.cuantas} fotos " +
+                    stringResource(R.string.fotos_offline_dialogs_v2_la_escuela_ya_esta_guardada, o.cuantas) +
                         "(${enMegas(o.bytesEstimados)}) te deja ver los topos en la roca " +
                         "aunque no haya cobertura.\n\n" +
                         "Si dices que no, tendrás los nombres, los grados y las líneas, " +
                         "pero no las fotos sobre las que van dibujadas."
                 )
             },
-            confirmButton = { TextButton(onClick = onDescargar) { Text("DESCARGAR") } },
-            dismissButton = { TextButton(onClick = onRechazar) { Text("AHORA NO") } }
+            confirmButton = { TextButton(onClick = onDescargar) { Text(stringResource(R.string.fotos_offline_dialogs_v2_descargar)) } },
+            dismissButton = { TextButton(onClick = onRechazar) { Text(stringResource(R.string.fotos_offline_dialogs_v2_ahora_no)) } }
         )
     }
 
@@ -56,10 +56,10 @@ fun FotosOfflineDialogs(
     progreso?.let { p ->
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Guardando las fotos…") },
+            title = { Text(stringResource(R.string.fotos_offline_dialogs_v2_guardando_las_fotos)) },
             text = {
                 Column(Modifier.fillMaxWidth()) {
-                    Text("Puedes seguir usando la app.")
+                    Text(stringResource(R.string.fotos_offline_dialogs_v2_puedes_seguir_usando_la_app))
                     Spacer(Modifier.height(12.dp))
                     LinearProgressIndicator(
                         progress = { p.coerceIn(0f, 1f) },
@@ -81,14 +81,14 @@ fun FotosOfflineDialogs(
     fallidas?.let { n ->
         AlertDialog(
             onDismissRequest = onCerrarAviso,
-            title = { Text("Faltaron algunas fotos") },
+            title = { Text(stringResource(R.string.fotos_offline_dialogs_v2_faltaron_algunas_fotos)) },
             text = {
                 Text(
                     if (n == 1) "Una foto no se pudo guardar. Vuelve a guardar la escuela con mejor cobertura y se reintentará solo esa."
                     else "$n fotos no se pudieron guardar. Vuelve a guardar la escuela con mejor cobertura y se reintentarán solo esas."
                 )
             },
-            confirmButton = { TextButton(onClick = onCerrarAviso) { Text("ENTENDIDO") } }
+            confirmButton = { TextButton(onClick = onCerrarAviso) { Text(stringResource(R.string.fotos_offline_dialogs_v2_entendido)) } }
         )
     }
 }

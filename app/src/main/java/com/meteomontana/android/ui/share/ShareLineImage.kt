@@ -24,6 +24,7 @@ import com.meteomontana.android.domain.util.gradeArgb
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import java.io.File
+import com.meteomontana.android.R
 
 /* ── Paleta Cumbre (ARGB para Canvas, = ShareConditionsImage) ──────────────── */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -82,7 +83,7 @@ suspend fun shareLineAsImage(
     val photoBmp = (result as? SuccessResult)?.drawable?.toBitmap() ?: return false
 
     // 3. Compón la imagen y compártela.
-    val bmp = renderLineCard(block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds, orientationBadge, setterGradeRef)
+    val bmp = renderLineCard(context, block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds, orientationBadge, setterGradeRef)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
     dir.listFiles()?.filter { it.name.startsWith("via") }?.forEach { it.delete() }
@@ -102,7 +103,7 @@ suspend fun shareLineAsImage(
         putExtra(Intent.EXTRA_TEXT, shareText(block, line, schoolName, sectorName, link))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir $kind"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_1_s, kind)))
     return true
 }
 
@@ -136,6 +137,7 @@ private fun topoAspectRatio(w: Int, h: Int): Float =
     if (w <= 0 || h <= 0) 4f / 3f else (w.toFloat() / h).coerceIn(0.55f, 2.2f)
 
 private fun renderLineCard(
+    context: Context,
     block: Block,
     line: BlockLine,
     schoolName: String,
@@ -164,7 +166,7 @@ private fun renderLineCard(
     // ── Cabecera ───────────────────────────────────────────────────────────
     val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "VÍA" else "BLOQUE"
     c.drawText(
-        "$kind EN CUMBRE", pad, pad + 40f,
+        context.getString(R.string.share_line_image_v2_1_s_en_cumbre, kind), pad, pad + 40f,
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = TERRA; textSize = 34f; typeface = Typeface.MONOSPACE
             letterSpacing = 0.18f; isFakeBoldText = true
@@ -253,7 +255,7 @@ private fun renderLineCard(
     }
     if (lines.size > maxRows) {
         c.drawText(
-            "+${lines.size - maxRows} vías más", pad + 56f, y + 20f,
+            context.getString(R.string.share_line_image_v2_1_s_vias_mas, lines.size - maxRows), pad + 56f, y + 20f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 34f }
         )
         y += rowH

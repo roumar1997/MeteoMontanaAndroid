@@ -191,7 +191,7 @@ fun BetaLinksThread(
                     modifier = Modifier.size(9.dp))
             }
             Text(
-                "BETA" + if (mine.isNotEmpty()) " · ${mine.size}" else "",
+                stringResource(R.string.beta_links_section_v2_beta) + if (mine.isNotEmpty()) " · ${mine.size}" else "",
                 style = EyebrowTextStyle,
                 color = if (mine.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else Terra,
                 modifier = Modifier.weight(1f)

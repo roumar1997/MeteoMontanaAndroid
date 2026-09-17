@@ -44,6 +44,8 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Numerar piedras por sector: elegir sector (o "sin sector"), ver sus
@@ -94,9 +96,9 @@ fun SectorReorderDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("ORDENAR PIEDRAS", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.sector_reorder_dialog_v2_ordenar_piedras), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "✕ CERRAR", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    stringResource(R.string.sector_reorder_dialog_v2_cerrar), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.clickable(onClick = onDismiss)
                 )
             }
@@ -121,7 +123,7 @@ fun SectorReorderDialog(
             if (ordered.isEmpty()) {
                 Box(Modifier.fillMaxWidth().padding(Spacing.lg), Alignment.Center) {
                     Text(
-                        "Este sector todavía no tiene piedras.",
+                        stringResource(R.string.sector_reorder_dialog_v2_este_sector_todavia_no_tiene),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -153,7 +155,7 @@ fun SectorReorderDialog(
                                     dirty = true
                                 }
                             }, enabled = idx > 0) {
-                                Icon(Icons.Outlined.KeyboardArrowUp, contentDescription = "Subir")
+                                Icon(Icons.Outlined.KeyboardArrowUp, contentDescription = stringResource(R.string.sector_reorder_dialog_v2_subir))
                             }
                             IconButton(onClick = {
                                 if (idx < ordered.size - 1) {
@@ -163,7 +165,7 @@ fun SectorReorderDialog(
                                     dirty = true
                                 }
                             }, enabled = idx < ordered.size - 1) {
-                                Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = "Bajar")
+                                Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = stringResource(R.string.sector_reorder_dialog_v2_bajar))
                             }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -190,7 +192,7 @@ fun SectorReorderDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (localBusy) CircularProgressIndicator(modifier = Modifier.height(16.dp))
-                    Text("AUTO-ORDENAR POR GPS")
+                    Text(stringResource(R.string.sector_reorder_dialog_v2_auto_ordenar_por_gps))
                 }
                 Spacer(Modifier.height(Spacing.xs))
                 Button(
@@ -204,7 +206,7 @@ fun SectorReorderDialog(
                     enabled = !busy && !localBusy && dirty,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("GUARDAR ORDEN")
+                    Text(stringResource(R.string.sector_reorder_dialog_v2_guardar_orden))
                 }
             }
         }

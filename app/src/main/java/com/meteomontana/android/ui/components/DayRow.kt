@@ -17,6 +17,8 @@ import com.meteomontana.android.domain.model.DayForecast
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.scoreColor
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 private val DAY_NAMES = mapOf(
     "MON" to "Lun", "TUE" to "Mar", "WED" to "Mié", "THU" to "Jue",
@@ -59,7 +61,7 @@ fun DayRow(day: DayForecast, dayIndex: Int, onClick: (() -> Unit)? = null) {
             Text(title, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
             Text(
-                "MÁX ${day.tempMax.toInt()}°  ·  MÍN ${day.tempMin.toInt()}°  ·  $mm",
+                stringResource(R.string.day_row_v2_max_1_s_min_2, day.tempMax.toInt(), day.tempMin.toInt(), mm),
                 style = MaterialTheme.typography.labelMedium.copy(fontFamily = Mono),
                 color = if (day.precipitationTotal >= 1.0) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurfaceVariant

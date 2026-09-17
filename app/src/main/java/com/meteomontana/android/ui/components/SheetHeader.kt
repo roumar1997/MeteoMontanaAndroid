@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Cabecera estándar de los sheets (paridad con los .sheet de iOS): título o
@@ -45,7 +47,7 @@ fun SheetHeader(
         ) {
             actions()
             TextButton(onClick = onClose) {
-                Text("Cerrar", color = MaterialTheme.colorScheme.primary,
+                Text(stringResource(R.string.sheet_header_v2_cerrar), color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelLarge)
             }
         }

@@ -574,7 +574,7 @@ internal fun AddLinesFlow(
                     androidx.compose.material3.TextButton(
                         onClick = { eligiendoOrigenFoto = false; launchCamera() },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("HACER FOTO AHORA", modifier = Modifier.fillMaxWidth()) }
+                    ) { Text(stringResource(R.string.add_lines_flow_v2_hacer_foto_ahora), modifier = Modifier.fillMaxWidth()) }
                     androidx.compose.material3.TextButton(
                         onClick = {
                             eligiendoOrigenFoto = false
@@ -590,7 +590,7 @@ internal fun AddLinesFlow(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { eligiendoOrigenFoto = false }) { Text("CANCELAR") }
+                TextButton(onClick = { eligiendoOrigenFoto = false }) { Text(stringResource(R.string.add_lines_flow_v2_cancelar)) }
             }
         )
     }

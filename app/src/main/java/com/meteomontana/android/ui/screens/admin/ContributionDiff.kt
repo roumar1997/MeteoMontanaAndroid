@@ -262,7 +262,7 @@ internal fun ViaChangeRows(
             v.name?.takeIf { it.isNotBlank() }, v.grade,
             v.variant?.let { "($it)" }, v.startType, v.description
         ).joinToString(" · ")
-        Text("• NUEVA: $txt", style = MaterialTheme.typography.bodyMedium, color = Terra)
+        Text(stringResource(R.string.contribution_diff_v2_nueva_1_s, txt), style = MaterialTheme.typography.bodyMedium, color = Terra)
         return
     }
     Text("• ${diff.displayName ?: "(sin nombre)"}" + if (!diff.hasAnyChange) "  (sin cambios)" else "",
@@ -271,7 +271,7 @@ internal fun ViaChangeRows(
                 else MaterialTheme.colorScheme.onSurfaceVariant)
     diff.changes.forEach { ch -> FieldChangeRow(lineFieldLabel(ch.field), ch.old, ch.new) }
     if (diff.drawingChanged) {
-        Text("    Trazado: redibujado (ver foto)",
+        Text(stringResource(R.string.contribution_diff_v2_trazado_redibujado_ver_foto),
             modifier = Modifier.padding(start = Spacing.md),
             style = MaterialTheme.typography.bodyMedium, color = Terra)
     }
@@ -319,14 +319,14 @@ internal fun BoulderReviewSection(
                     Text(stringResource(R.string.contribution_diff_cara_nueva_foto_anadida), style = EyebrowTextStyle, color = Moss)
                     Spacer(Modifier.height(Spacing.xs))
                 } else if (!oldPhoto.isNullOrBlank()) {
-                    Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
+                    Text(if (photoChanged) stringResource(R.string.contribution_diff_v3_foto_actual) else stringResource(R.string.contribution_diff_v3_actual),
                         style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(Spacing.xs))
                     ZoomableTopo(photoUrl = oldPhoto, lines = (oldFace?.lines ?: emptyList()).toTopoLines())
                 }
 
                 Spacer(Modifier.height(Spacing.sm))
-                Text(if (isNewFace) "FOTO NUEVA" else if (photoChanged) "FOTO PROPUESTA (NUEVA)" else "PROPUESTA",
+                Text(if (isNewFace) stringResource(R.string.contribution_diff_v3_foto_nueva) else if (photoChanged) stringResource(R.string.contribution_diff_v3_foto_propuesta_nueva) else stringResource(R.string.contribution_diff_v3_propuesta),
                     style = EyebrowTextStyle, color = Terra)
                 Spacer(Modifier.height(Spacing.xs))
                 val proposedLines: List<TopoLine> = if (photoChanged) {
@@ -360,7 +360,7 @@ internal fun BoulderReviewSection(
                 Spacer(Modifier.height(Spacing.md))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 Spacer(Modifier.height(Spacing.sm))
-                Text("FOTO", style = EyebrowTextStyle, color = Terra)
+                Text(stringResource(R.string.contribution_diff_v2_foto), style = EyebrowTextStyle, color = Terra)
                 Spacer(Modifier.height(Spacing.xs))
                 if (!facePhoto.isNullOrBlank()) {
                     ZoomableTopo(photoUrl = facePhoto, lines = vias.map { it.toTopoLine() })
@@ -445,7 +445,7 @@ internal fun WallDiffSection(
     Spacer(Modifier.height(Spacing.xs))
 
     if (targetBlock == null) {
-        Text("Muro NUEVO · numeración ${dirLabel(c.direction)}",
+        Text(stringResource(R.string.contribution_diff_v2_muro_nuevo_numeracion_1_s, dirLabel(c.direction)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface)
     } else {

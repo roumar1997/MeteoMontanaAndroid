@@ -257,7 +257,7 @@ fun AddBlockSheet(
             OutlinedTextField(
                 value = selectedSchool?.name ?: schoolQuery,
                 onValueChange = { schoolQuery = it; selectedSchool = null },
-                placeholder = { Text("Buscar escuela...") },
+                placeholder = { Text(stringResource(R.string.add_block_sheet_v2_buscar_escuela)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -283,13 +283,13 @@ fun AddBlockSheet(
             OutlinedTextField(
                 value = sector,
                 onValueChange = { sector = it; selectedSectorBlockId = null },
-                placeholder = { Text("ej: Sector Bajo") },
+                placeholder = { Text(stringResource(R.string.add_block_sheet_v2_ej_sector_bajo)) },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
             if (sectorSuggestions.isNotEmpty()) {
                 SuggestionsBox {
                     sectorSuggestions.forEach { sug ->
-                        val label = if (sug.blockId != null) "${sug.name} · catalogado" else sug.name
+                        val label = if (sug.blockId != null) stringResource(R.string.add_block_sheet_v3_catalogado, sug.name) else sug.name
                         SuggestionRow(
                             text = label,
                             onClick = {
@@ -309,7 +309,7 @@ fun AddBlockSheet(
             Label(if (discipline == "ROUTE") "VÍA" else "BLOQUE")
             OutlinedTextField(
                 value = blockName, onValueChange = { blockName = it },
-                placeholder = { Text("ej: El Pollito") },
+                placeholder = { Text(stringResource(R.string.add_block_sheet_v2_ej_el_pollito)) },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
             if (lineSuggestions.isNotEmpty()) {
@@ -385,7 +385,7 @@ fun AddBlockSheet(
                     containerColor = inkButtonColor(), contentColor = Color.White
                 ),
                 shape = MaterialTheme.shapes.small
-            ) { Text("GUARDAR") }
+            ) { Text(stringResource(R.string.add_block_sheet_v2_guardar)) }
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.common_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

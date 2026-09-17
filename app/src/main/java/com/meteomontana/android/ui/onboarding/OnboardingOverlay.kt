@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 private const val PREFS = "onboarding"
 // v2: tour ampliado (6 pasos). Subir la versión re-muestra el tour una vez a
@@ -106,7 +108,7 @@ fun OnboardingOverlay(onFinish: () -> Unit) {
     ) {
         // Saltar (esquina superior derecha) — salvo en el último paso.
         if (step < last) {
-            Text("Saltar",
+            Text(stringResource(R.string.onboarding_overlay_v2_saltar),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier

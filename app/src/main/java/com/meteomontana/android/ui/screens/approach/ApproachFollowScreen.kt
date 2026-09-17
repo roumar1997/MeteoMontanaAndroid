@@ -220,7 +220,7 @@ fun ApproachFollowScreen(
                             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(if (placingPin) "TOCA EL MAPA" else "+ CHINCHETA",
+                        Text(if (placingPin) stringResource(R.string.approach_follow_screen_v3_toca_el_mapa) else stringResource(R.string.approach_follow_screen_v3_chincheta),
                             style = EyebrowTextStyle, color = Color.White)
                     }
                 }
@@ -268,7 +268,7 @@ fun ApproachFollowScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(pin.kind, style = EyebrowTextStyle, color = Terra)
                     if (pin.status != "VERIFIED") {
-                        Text("SIN VERIFICAR", style = EyebrowTextStyle, color = Warn)
+                        Text(stringResource(R.string.approach_follow_screen_v2_sin_verificar), style = EyebrowTextStyle, color = Warn)
                     }
                 }
             },
@@ -289,7 +289,7 @@ fun ApproachFollowScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { selectedPin = null }) { Text("CERRAR") }
+                TextButton(onClick = { selectedPin = null }) { Text(stringResource(R.string.approach_follow_screen_v2_cerrar)) }
             }
         )
     }
@@ -313,16 +313,16 @@ fun ApproachFollowScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("¿Borrar «${approach.name ?: "esta aproximación"}»?") },
-            text = { Text("Se borra el camino y todas sus chinchetas. No se puede deshacer.") },
+            title = { Text(stringResource(R.string.approach_follow_screen_v2_borrar_1_s, approach.name ?: stringResource(R.string.approaches_default_name))) },
+            text = { Text(stringResource(R.string.approach_follow_screen_v2_se_borra_el_camino_y)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     onDeleteApproach(approach)
                     onDismiss()
-                }) { Text("BORRAR", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.approach_follow_screen_v2_borrar), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("CANCELAR") } }
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.approach_follow_screen_v2_cancelar)) } }
         )
     }
 }

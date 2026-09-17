@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.ui.theme.Spacing
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /** Reinicia TODAS las pistas (coach-marks) → volverán a salir una vez. Lo usa
  *  el "Volver a ver las pistas" del perfil. */
@@ -66,7 +68,7 @@ fun FirstTimeHint(hintKey: String, text: String, modifier: Modifier = Modifier) 
             visible = false
         }) {
             Icon(
-                Icons.Outlined.Close, contentDescription = "Entendido",
+                Icons.Outlined.Close, contentDescription = stringResource(R.string.first_time_hint_v2_entendido),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )

@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Barra de filtros estilo PWA: 5 secciones apiladas (distancia, estilo, roca,
@@ -59,7 +61,7 @@ fun SchoolFiltersBar(
             ) {
                 item {
                     CumbreChip(
-                        label = "Todas",
+                        label = stringResource(R.string.school_filters_bar_v2_todas),
                         selected = filters.rockTypes.isEmpty(),
                         onClick = onClearRocks
                     )

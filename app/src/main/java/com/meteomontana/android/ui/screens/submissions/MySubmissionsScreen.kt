@@ -166,8 +166,8 @@ private fun SubmissionRow(s: Submission) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (s.reviewReason != null) {
-                Text("Motivo: ${s.reviewReason}",
+            s.reviewReason?.let { reason ->
+                Text(stringResource(R.string.my_submissions_screen_v2_motivo_1_s_2, reason),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error)
             }
@@ -206,8 +206,8 @@ private fun ContributionRow(c: Contribution) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
             }
-            if (c.reviewReason != null) {
-                Text("Motivo: ${c.reviewReason}",
+            c.reviewReason?.let { reason ->
+                Text(stringResource(R.string.my_submissions_screen_v2_motivo_1_s, reason),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error)
             }

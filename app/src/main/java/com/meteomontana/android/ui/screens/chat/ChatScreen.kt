@@ -150,7 +150,7 @@ fun ChatScreen(
         if (!state.canWrite) {
             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    "No puedes escribir: este perfil es privado y no te sigue",
+                    stringResource(R.string.chat_screen_v2_no_puedes_escribir_este_perfil),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -172,7 +172,7 @@ fun ChatScreen(
                     )
                     Column(Modifier.weight(1f).padding(start = 8.dp)) {
                         Text(
-                            if (who.isNotBlank()) "Respondiendo a $who" else "Respondiendo",
+                            if (who.isNotBlank()) stringResource(R.string.chat_screen_v3_respondiendo_a, who) else stringResource(R.string.chat_screen_v3_respondiendo),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -184,7 +184,7 @@ fun ChatScreen(
                         )
                     }
                     IconButton(onClick = { viewModel.cancelReply() }) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Cancelar respuesta",
+                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.chat_screen_v2_cancelar_respuesta),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

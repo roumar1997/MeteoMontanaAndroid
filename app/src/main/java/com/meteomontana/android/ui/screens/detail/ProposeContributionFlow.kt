@@ -292,7 +292,7 @@ fun ProposeContributionFlow(
             text = { androidx.compose.material3.Text(mensaje) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { offlineError = null }) {
-                    androidx.compose.material3.Text("ENTENDIDO")
+                    androidx.compose.material3.Text(stringResource(R.string.propose_contribution_flow_v2_entendido))
                 }
             }
         )
@@ -325,14 +325,14 @@ fun ProposeContributionFlow(
                         onGuardarBorrador?.invoke(enCurso)
                         preguntandoGuardar = null
                         onDismiss()
-                    }) { androidx.compose.material3.Text("GUARDAR") }
+                    }) { androidx.compose.material3.Text(stringResource(R.string.propose_contribution_flow_v2_guardar)) }
                 },
                 dismissButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         onBorrarBorrador?.invoke()
                         preguntandoGuardar = null
                         onDismiss()
-                    }) { androidx.compose.material3.Text("DESCARTAR") }
+                    }) { androidx.compose.material3.Text(stringResource(R.string.propose_contribution_flow_v2_descartar)) }
                 }
             )
         }

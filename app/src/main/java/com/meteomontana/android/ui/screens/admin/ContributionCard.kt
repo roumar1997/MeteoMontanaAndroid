@@ -148,7 +148,7 @@ internal fun ContributionCard(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f))
-            Text("ahora",
+            Text(stringResource(R.string.contribution_card_v2_ahora),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -195,7 +195,7 @@ internal fun ContributionCard(
         // Autor
         c.submittedByName?.let {
             Spacer(Modifier.height(Spacing.xs))
-            Text("por $it",
+            Text(stringResource(R.string.contribution_card_v2_por_1_s, it),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -220,18 +220,18 @@ internal fun ContributionCard(
             Column(modifier = Modifier.fillMaxWidth()
                 .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f))
                 .padding(Spacing.sm)) {
-                Text("ASIGNAR SECTOR A PIEDRA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.contribution_card_v2_asignar_sector_a_piedra), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.secondary)
                 Spacer(Modifier.height(Spacing.xs))
-                Text("PIEDRA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.contribution_card_v2_piedra), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(targetBlock?.name ?: "(no encontrada · ${c.targetBlockId})",
+                Text(targetBlock?.name ?: stringResource(R.string.contribution_card_v3_no_encontrada, c.targetBlockId ?: ""),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.xs))
-                Text("→ SECTOR PROPUESTO", style = EyebrowTextStyle,
+                Text(stringResource(R.string.contribution_card_v2_sector_propuesto), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(targetSector?.name ?: "(no encontrado · ${c.sectorBlockId})",
+                Text(targetSector?.name ?: stringResource(R.string.contribution_card_v3_no_encontrado, c.sectorBlockId ?: ""),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Terra)
             }
@@ -250,7 +250,7 @@ internal fun ContributionCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (c.proposedLat != null && c.proposedLon != null) {
                     Spacer(Modifier.height(Spacing.xs))
-                    Text("PROPONE MOVER A", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.contribution_card_v2_propone_mover_a), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("%.5f, %.5f".format(java.util.Locale.US, c.proposedLat, c.proposedLon),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),

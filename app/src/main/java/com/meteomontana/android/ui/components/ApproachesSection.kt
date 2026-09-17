@@ -165,7 +165,7 @@ private fun ApproachCard(
                     .clickable(onClick = onFollow)
                     .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             ) {
-                Text("SEGUIR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.approaches_section_v2_seguir), style = EyebrowTextStyle,
                     color = androidx.compose.ui.graphics.Color.White)
             }
         }

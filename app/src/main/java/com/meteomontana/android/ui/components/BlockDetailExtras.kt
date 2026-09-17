@@ -66,7 +66,7 @@ internal fun BlockOptionsSection(
                 .padding(horizontal = Spacing.md, vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("OPCIONES", style = EyebrowTextStyle,
+            Text(stringResource(R.string.block_detail_extras_v2_opciones), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f))
             Text(if (optionsOpen) "▴" else "▾",
@@ -93,7 +93,7 @@ internal fun BlockOptionsSection(
                 .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center
         ) {
-            Text("COMPARTIR PIEDRA", style = EyebrowTextStyle,
+            Text(stringResource(R.string.block_detail_extras_v2_compartir_piedra), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurface)
         }
     }
@@ -152,7 +152,7 @@ internal fun BlockOptionsSection(
                 .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center
         ) {
-            Text("✎ EDITAR", style = EyebrowTextStyle,
+            Text(stringResource(R.string.block_detail_extras_v2_editar), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onBackground)
         }
     }
@@ -226,7 +226,7 @@ internal fun LineStarsRow(
         }
         if (myStars > 0) {
             Text(
-                "· tu voto ${myStars}★",
+                stringResource(R.string.block_detail_extras_v2_tu_voto_1_s, myStars),
                 style = MaterialTheme.typography.labelSmall,
                 color = amber,
                 modifier = Modifier.padding(start = 4.dp)
@@ -291,6 +291,6 @@ private fun shareLine(
         putExtra(android.content.Intent.EXTRA_TEXT, text)
     }
     runCatching {
-        context.startActivity(android.content.Intent.createChooser(intent, "Compartir $kind"))
+        context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_1_s, kind)))
     }
 }

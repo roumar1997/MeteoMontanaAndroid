@@ -59,6 +59,8 @@ import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.gradeStyle
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Todas las vias con las que el trazo puede compartir tramo: las que ya existen
@@ -154,7 +156,7 @@ fun ContributionTopoDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Dibujar líneas",
+                    stringResource(R.string.contribution_topo_dialog_v2_dibujar_lineas),
                     style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif),
                     color = Terra,
                     modifier = Modifier.weight(1f)
@@ -180,7 +182,7 @@ fun ContributionTopoDialog(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Text(
-                    "Dibujando para:",
+                    stringResource(R.string.contribution_topo_dialog_v2_dibujando_para),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -487,7 +489,7 @@ fun ContributionTopoDialog(
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
                     Text(
-                        "DESHACER",
+                        stringResource(R.string.contribution_topo_dialog_v2_deshacer),
                         style = EyebrowTextStyle,
                         color = if (hayQueDeshacer) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.onSurfaceVariant
@@ -534,7 +536,7 @@ fun ContributionTopoDialog(
                     )
                 }
                 Text(
-                    "Un dedo dibuja · dos amplían y mueven · doble toque acerca",
+                    stringResource(R.string.contribution_topo_dialog_v2_un_dedo_dibuja_dos_amplian),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -573,7 +575,7 @@ fun ContributionTopoDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✕ BORRAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.contribution_topo_dialog_v2_borrar), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.error)
                 }
 
@@ -587,7 +589,7 @@ fun ContributionTopoDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("CANCELAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.contribution_topo_dialog_v2_cancelar), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
 

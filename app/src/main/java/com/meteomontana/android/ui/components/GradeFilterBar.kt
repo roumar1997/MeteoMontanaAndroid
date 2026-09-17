@@ -76,11 +76,11 @@ fun GradeFilterBar(
             Icon(Icons.Outlined.Tune, contentDescription = null,
                 tint = if (isActive) Terra else Ink3, modifier = Modifier.width(16.dp))
             Spacer(Modifier.width(6.dp))
-            Text("FILTRAR POR GRADO", style = EyebrowTextStyle.copy(fontSize = 10.sp),
+            Text(stringResource(R.string.grade_filter_bar_v2_filtrar_por_grado), style = EyebrowTextStyle.copy(fontSize = 10.sp),
                 color = if (isActive) Terra else Ink3)
             Spacer(Modifier.weight(1f))
             if (isActive) {
-                Text("QUITAR TODO", style = EyebrowTextStyle.copy(fontSize = 9.sp), color = Ink3,
+                Text(stringResource(R.string.grade_filter_bar_v2_quitar_todo), style = EyebrowTextStyle.copy(fontSize = 9.sp), color = Ink3,
                     modifier = Modifier.clickable { onSelectedGradesChange(emptySet()) })
                 Spacer(Modifier.width(10.dp))
             }
@@ -115,7 +115,7 @@ fun GradeFilterBar(
 
                 if (isActive) {
                     Text(
-                        "Mostrando ${result.matchingLines} vías de ${result.totalLines}",
+                        stringResource(R.string.grade_filter_bar_v2_mostrando_1_s_vias_de, result.matchingLines, result.totalLines),
                         fontSize = 12.sp, color = Ink2,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
