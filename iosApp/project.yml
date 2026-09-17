@@ -78,6 +78,7 @@ targets:
         CFBundleDisplayName: Cumbre
         CFBundleLocalizations:
           - es
+          - en
         CFBundleDevelopmentRegion: es
         # Push con la app cerrada (FCM data messages).
         UIBackgroundModes:
