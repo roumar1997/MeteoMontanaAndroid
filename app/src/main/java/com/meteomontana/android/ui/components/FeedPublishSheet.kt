@@ -133,7 +133,7 @@ internal fun CumbreSuccessDialog(
                     style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
-                Text("Un admin la revisará en ",
+                Text(stringResource(R.string.feed_publish_sheet_un_admin_la_revisara),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("24-48h.",

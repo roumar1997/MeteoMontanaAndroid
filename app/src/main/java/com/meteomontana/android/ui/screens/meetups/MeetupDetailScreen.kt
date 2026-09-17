@@ -199,7 +199,7 @@ fun MeetupDetailScreen(
             AlertDialog(
                 onDismissRequest = { showLeaveConfirm = false },
                 title = { Text("Salir de la quedada") },
-                text = { Text("¿Seguro que quieres salir? Puede que no puedas volver a unirte.") },
+                text = { Text(stringResource(R.string.meetup_detail_screen_seguro_que_quieres_salir)) },
                 confirmButton = {
                     TextButton(onClick = { showLeaveConfirm = false; viewModel.leave(meetupId) }) {
                         Text("SALIR", color = MaterialTheme.colorScheme.error)
@@ -461,7 +461,7 @@ fun MeetupDetailScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             meetup.privacy == "WOMEN" && viewModel.myGender.collectAsStateWithLifecycle().value != "WOMAN" -> {
-                                Text("Solo pueden unirse personas con género Mujer en su perfil.\nVe a Perfil → Editar perfil → Género.",
+                                Text(stringResource(R.string.meetup_detail_screen_solo_pueden_unirse_personas),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }

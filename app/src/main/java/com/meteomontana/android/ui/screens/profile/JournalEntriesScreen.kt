@@ -471,7 +471,7 @@ internal fun EntryRow(
                 color = if (deleted) MaterialTheme.colorScheme.onSurfaceVariant
                         else MaterialTheme.colorScheme.onBackground)
             if (deleted) {
-                Text("VÍA ELIMINADA",
+                Text(stringResource(R.string.journal_entries_screen_via_eliminada),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

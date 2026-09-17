@@ -58,6 +58,8 @@ import com.meteomontana.android.ui.theme.Terra
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @HiltViewModel
 class SchoolChatViewModel @Inject constructor(
@@ -173,7 +175,7 @@ fun SchoolChatScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Atrás",
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.school_chat_screen_atras),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Text(
@@ -381,7 +383,7 @@ private fun MessageBubble(
                                 .background(Terra)
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text("AQUÍ AHORA", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            Text(stringResource(R.string.school_chat_screen_aqui_ahora), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White)
                         }
                     }

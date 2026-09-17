@@ -363,7 +363,7 @@ internal fun PushTab(
                     }
                 }
             }
-            Text("Sin destinatario elegido → se enviará a TODOS los usuarios.",
+            Text(stringResource(R.string.admin_tabs_misc_sin_destinatario_elegido_se),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
@@ -381,7 +381,7 @@ internal fun PushTab(
             }
         }
         OutlinedTextField(value = title, onValueChange = { title = it },
-            placeholder = { Text("Título") },
+            placeholder = { Text(stringResource(R.string.admin_tabs_misc_titulo)) },
             singleLine = true, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = body, onValueChange = { body = it },
             placeholder = { Text("Mensaje") },
@@ -406,13 +406,13 @@ internal fun PushTab(
         if (confirmAll) {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { confirmAll = false },
-                title = { Text("¿Enviar a TODOS?") },
-                text = { Text("El push llegará a todos los usuarios de Cumbre. Esta acción no se puede deshacer.") },
+                title = { Text(stringResource(R.string.admin_tabs_misc_enviar_a_todos)) },
+                text = { Text(stringResource(R.string.admin_tabs_misc_el_push_llegara_a)) },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         confirmAll = false
                         onSend(null, title, body)
-                    }) { Text("SÍ, A TODOS", color = MaterialTheme.colorScheme.error) }
+                    }) { Text(stringResource(R.string.admin_tabs_misc_si_a_todos), color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = {
                     androidx.compose.material3.TextButton(onClick = { confirmAll = false }) {
@@ -682,8 +682,8 @@ private fun ReportCard(
     if (confirmDelete) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("¿Eliminar la quedada?") },
-            text = { Text("Se borrará para todos los participantes. La denuncia quedará resuelta.") },
+            title = { Text(stringResource(R.string.admin_tabs_misc_eliminar_la_quedada)) },
+            text = { Text(stringResource(R.string.admin_tabs_misc_se_borrara_para_todos)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { confirmDelete = false; onDelete() }) {
                     Text("ELIMINAR", color = MaterialTheme.colorScheme.error)

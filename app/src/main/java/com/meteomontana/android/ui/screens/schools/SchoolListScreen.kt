@@ -229,7 +229,7 @@ fun SchoolListScreen(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Busca escuelas, vías y bloques…") },
+                        placeholder = { Text(stringResource(R.string.school_list_screen_busca_escuelas_vias_y)) },
                         // Lupa dentro del campo, como en iOS: sin ella el
                         // buscador parece una caja de texto cualquiera.
                         leadingIcon = {
@@ -318,7 +318,7 @@ fun SchoolListScreen(
                                 }
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                            Text("VÍAS Y BLOQUES",
+                            Text(stringResource(R.string.school_list_screen_vias_y_bloques),
                                 style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
@@ -867,7 +867,7 @@ private fun CoffeeBanner(onDonate: () -> Unit) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
         }
-        OutlinedCumbreButton(text = "Apóyanos", onClick = { showDialog = true; onDonate() })
+        OutlinedCumbreButton(text = stringResource(R.string.school_list_screen_apoyanos), onClick = { showDialog = true; onDonate() })
     }
     if (showDialog) DonateDialog(onDismiss = { showDialog = false })
 }
@@ -894,7 +894,7 @@ private fun DonateDialog(onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.sm),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 style = MaterialTheme.typography.displayMedium)
-            Text("¿Te es útil la app?",
+            Text(stringResource(R.string.school_list_screen_te_es_util_la),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 style = MaterialTheme.typography.headlineSmall,
@@ -934,12 +934,12 @@ private fun DonateDialog(onDismiss: () -> Unit) {
                 .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("☕ INVÍTAME A UN CAFÉ",
+                Text(stringResource(R.string.school_list_screen_invitame_a_un_cafe),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary)
             }
             Spacer(Modifier.height(Spacing.sm))
-            Text("Cada café nos acerca a nuevas funciones. ¡Gracias de corazón!",
+            Text(stringResource(R.string.school_list_screen_cada_cafe_nos_acerca),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium,

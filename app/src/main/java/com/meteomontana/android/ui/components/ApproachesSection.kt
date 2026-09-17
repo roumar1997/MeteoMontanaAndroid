@@ -25,7 +25,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Approach
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Ok
@@ -55,7 +57,7 @@ fun ApproachesSection(
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
         Text(
-            "APROXIMACIONES",
+            stringResource(R.string.approaches_title),
             style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = Spacing.md)
@@ -86,7 +88,7 @@ fun ApproachesSection(
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
-                Text("+ GRABAR APROXIMACIÓN", style = EyebrowTextStyle, color = Terra)
+                Text(stringResource(R.string.approaches_record), style = EyebrowTextStyle, color = Terra)
             }
         }
     }
@@ -94,16 +96,16 @@ fun ApproachesSection(
     deleting?.let { a ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("¿Borrar «${a.name ?: "esta aproximación"}»?") },
-            text = { Text("Se borra el camino y todas sus chinchetas. No se puede deshacer.") },
+            title = { Text(stringResource(R.string.approaches_delete_confirm_title, a.name ?: stringResource(R.string.approaches_default_name))) },
+            text = { Text(stringResource(R.string.approaches_delete_confirm_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     onDelete(a)
                     deleting = null
-                }) { Text("BORRAR", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.common_delete_caps), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { deleting = null }) { Text("CANCELAR") }
+                TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.common_cancel_caps)) }
             }
         )
     }
@@ -127,7 +129,7 @@ private fun ApproachCard(
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()) {
             Text(
-                approach.name ?: "Aproximación",
+                approach.name ?: stringResource(R.string.approaches_default_name),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)

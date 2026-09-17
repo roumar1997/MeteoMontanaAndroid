@@ -169,7 +169,7 @@ fun CreateMeetupScreen(
                         Icon(Icons.Outlined.AddAPhoto, contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
                         Spacer(Modifier.height(4.dp))
-                        Text("AÑADIR FOTO", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.create_meetup_screen_anadir_foto), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

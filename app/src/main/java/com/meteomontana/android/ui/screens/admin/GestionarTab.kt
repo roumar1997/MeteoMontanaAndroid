@@ -91,6 +91,8 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 
 @Composable
@@ -128,7 +130,7 @@ internal fun GestionarTab(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(Spacing.md)) {
-        Text("Buscar escuela por nombre, lugar o región",
+        Text(stringResource(R.string.gestionar_tab_buscar_escuela_por_nombre),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
@@ -136,7 +138,7 @@ internal fun GestionarTab(
             value = query,
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Ej: Albarracín, Madrid…",
+            placeholder = { Text(stringResource(R.string.gestionar_tab_ej_albarracin_madrid),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             singleLine = true,

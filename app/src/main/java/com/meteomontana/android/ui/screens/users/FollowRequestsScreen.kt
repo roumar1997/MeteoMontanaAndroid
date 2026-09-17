@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.users
 
+
 import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
@@ -49,6 +50,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 sealed interface FollowRequestsUiState {
     data object Loading : FollowRequestsUiState
@@ -187,7 +190,7 @@ private fun RequestRow(
                 Text("@${profile.username ?: profile.displayName ?: "usuario"}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground)
-                Text("quiere seguirte · toca para ver su perfil",
+                Text(stringResource(R.string.follow_requests_screen_quiere_seguirte_toca_para),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

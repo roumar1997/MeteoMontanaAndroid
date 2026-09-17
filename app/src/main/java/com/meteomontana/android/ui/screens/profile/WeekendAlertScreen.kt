@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.meteomontana.android.R
 
 data class WeekendAlertUiState(
     val loading: Boolean = true,
@@ -259,7 +260,7 @@ fun WeekendAlertScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Spacer(Modifier.height(Spacing.lg))
 
-            Text("VENTANA ÓPTIMA HOY", style = EyebrowTextStyle,
+            Text(stringResource(R.string.weekend_alert_screen_ventana_optima_hoy), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
             Text(
@@ -278,7 +279,7 @@ fun WeekendAlertScreen(
             }
             if (s.optimalEnabled) {
                 Spacer(Modifier.height(Spacing.sm))
-                Text("UMBRAL DE ÍNDICE", style = EyebrowTextStyle,
+                Text(stringResource(R.string.weekend_alert_screen_umbral_de_indice), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -293,7 +294,7 @@ fun WeekendAlertScreen(
             Spacer(Modifier.height(Spacing.lg))
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             Spacer(Modifier.height(Spacing.lg))
-            Text("QUÉ DÍAS COMPARAR", style = EyebrowTextStyle,
+            Text(stringResource(R.string.weekend_alert_screen_que_dias_comparar), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
             // Próximos 7 días empezando hoy, con su fecha. Se guarda el día de la
@@ -317,7 +318,7 @@ fun WeekendAlertScreen(
             )
 
             Spacer(Modifier.height(Spacing.lg))
-            Text("DÍA DEL AVISO", style = EyebrowTextStyle,
+            Text(stringResource(R.string.weekend_alert_screen_dia_del_aviso), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -337,7 +338,7 @@ fun WeekendAlertScreen(
             }
 
             Spacer(Modifier.height(Spacing.lg))
-            Text("QUÉ COMPARAR", style = EyebrowTextStyle,
+            Text(stringResource(R.string.weekend_alert_screen_que_comparar), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -347,7 +348,7 @@ fun WeekendAlertScreen(
 
             Spacer(Modifier.height(Spacing.lg))
             if (s.nearbyMode) {
-                Text("RADIO DESDE TU UBICACIÓN", style = EyebrowTextStyle,
+                Text(stringResource(R.string.weekend_alert_screen_radio_desde_tu_ubicacion), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -365,7 +366,7 @@ fun WeekendAlertScreen(
             }
 
             if (!s.nearbyMode) {
-            Text("ESCUELAS A COMPARAR (MÁX 3)", style = EyebrowTextStyle,
+            Text(stringResource(R.string.weekend_alert_screen_escuelas_a_comparar_max), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
 
@@ -429,7 +430,7 @@ fun WeekendAlertScreen(
                 Spacer(Modifier.height(Spacing.sm))
             }
             if (s.savedOk) {
-                Text("✓ Guardado", style = MaterialTheme.typography.bodyMedium,
+                Text(stringResource(R.string.weekend_alert_screen_guardado), style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary)
                 Spacer(Modifier.height(Spacing.sm))
             }

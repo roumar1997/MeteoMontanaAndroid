@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,6 +38,8 @@ import com.meteomontana.android.domain.model.MountainBulletin
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Boletín de montaña oficial de AEMET — solo aparece si la escuela cae en
@@ -81,7 +84,7 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
                     tint = Terra, modifier = Modifier.size(20.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text("BOLETÍN DE MONTAÑA · AEMET", style = EyebrowTextStyle,
+                Text(stringResource(R.string.mountain_bulletin_section_boletin_de_montana_aemet), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(bulletin.areaName,
                     style = MaterialTheme.typography.titleMedium,

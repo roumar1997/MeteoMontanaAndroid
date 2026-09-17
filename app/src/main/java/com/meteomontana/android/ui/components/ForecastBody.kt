@@ -112,7 +112,7 @@ fun HeroSection(forecast: Forecast) {
         )
         Spacer(Modifier.padding(start = 12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("¿PUEDO ESCALAR HOY?",
+            Text(stringResource(R.string.forecast_body_puedo_escalar_hoy),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (window != null) {

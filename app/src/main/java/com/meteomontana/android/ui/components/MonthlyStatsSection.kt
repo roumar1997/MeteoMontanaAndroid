@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,8 @@ import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.scoreColor
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @Composable
 fun MonthlyStatsSection(stats: MonthlyStats?, isLoading: Boolean) {
@@ -47,7 +50,7 @@ fun MonthlyStatsSection(stats: MonthlyStats?, isLoading: Boolean) {
         stats.bestRange?.let { range ->
             Row(verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
-                Text("✓ MEJOR TEMPORADA",
+                Text(stringResource(R.string.monthly_stats_section_mejor_temporada),
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontFamily = Mono, letterSpacing = 1.2.sp, fontWeight = FontWeight.Bold
                     ),

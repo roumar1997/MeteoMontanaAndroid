@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.radar
 
+
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -72,6 +73,8 @@ import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.RasterLayer
 import org.maplibre.android.style.sources.ImageSource
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Pestaña Radar v2 — "el mapa es la pantalla":
@@ -303,7 +306,7 @@ fun RadarScreen(
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SideButton(Icons.Outlined.Layers, "Topo o satélite",
+            SideButton(Icons.Outlined.Layers, stringResource(R.string.radar_screen_topo_o_satelite),
                 tint = if (isSatellite) Terra else MaterialTheme.colorScheme.onSurfaceVariant) {
                 isSatellite = !isSatellite
             }
@@ -314,7 +317,7 @@ fun RadarScreen(
             SideButton(Icons.Outlined.WaterDrop, "Intensidad de la lluvia",
                 tint = Color(0xFF2B6DE3)) { layersPanel = !layersPanel }
             if (userLoc != null) {
-                SideButton(Icons.Outlined.MyLocation, "Mi ubicación",
+                SideButton(Icons.Outlined.MyLocation, stringResource(R.string.radar_screen_mi_ubicacion),
                     tint = Color(0xFF1A56DB)) {
                     mapRef.value?.let { m ->
                         runCatching {
@@ -360,7 +363,7 @@ fun RadarScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            LegendDot(Color(0xFF5C8FD6)); Text("DÉBIL", style = EyebrowTextStyle)
+            LegendDot(Color(0xFF5C8FD6)); Text(stringResource(R.string.radar_screen_debil), style = EyebrowTextStyle)
             Spacer(Modifier.width(3.dp))
             LegendDot(Color(0xFF3D6FBF)); Text("MEDIA", style = EyebrowTextStyle)
             Spacer(Modifier.width(3.dp))

@@ -291,7 +291,7 @@ private fun SuggestionDialog(onDismiss: () -> Unit) {
         title = { Text("Sugerir algo o reportar un fallo") },
         text = {
             when (state) {
-                SuggestionSendState.SENT -> Text("¡Gracias! Lo hemos recibido.")
+                SuggestionSendState.SENT -> Text(stringResource(R.string.help_sheet_gracias_lo_hemos_recibido))
                 else -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(
                         "Cuéntanos qué te gustaría que hiciera la app o qué no funciona bien.",
@@ -302,7 +302,7 @@ private fun SuggestionDialog(onDismiss: () -> Unit) {
                         value = texto,
                         onValueChange = { texto = it },
                         modifier = Modifier.fillMaxWidth().height(120.dp),
-                        placeholder = { Text("Escribe aquí…") },
+                        placeholder = { Text(stringResource(R.string.help_sheet_escribe_aqui)) },
                         enabled = state != SuggestionSendState.SENDING
                     )
                     if (state == SuggestionSendState.ERROR) {

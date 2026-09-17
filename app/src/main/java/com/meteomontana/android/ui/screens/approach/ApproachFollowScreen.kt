@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.approach
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,6 +59,8 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Pantalla "SEGUIR" de una aproximación a pantalla completa — Fase 1/2 de
@@ -232,11 +235,11 @@ fun ApproachFollowScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Text(approach.name ?: "$schoolName: aproximación",
+                Text(approach.name ?: stringResource(R.string.approach_follow_screen_default_name, schoolName),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f))
-                Text(if (approach.isVerified) "✓ VERIFICADA" else "⚠ SIN VERIFICAR",
+                Text(if (approach.isVerified) stringResource(R.string.approach_follow_screen_verificada) else stringResource(R.string.approach_follow_screen_sin_verificar),
                     style = EyebrowTextStyle,
                     color = if (approach.isVerified) Ok else Warn)
             }

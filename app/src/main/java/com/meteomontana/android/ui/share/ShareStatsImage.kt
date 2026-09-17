@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.share
 
+
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -10,6 +11,7 @@ import android.graphics.Typeface
 import androidx.core.content.FileProvider
 import com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator
 import java.io.File
+import com.meteomontana.android.R
 
 /* Paleta Cumbre (= ShareProfileImage/ShareLineImage). */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -41,7 +43,7 @@ suspend fun shareStatsAsImage(
         android.graphics.BitmapFactory.decodeResource(
             context.resources, com.meteomontana.android.R.drawable.logo_cumbre)
     }.getOrNull()
-    val bmp = renderStatsCard(periodLabel, disciplineLabel, summary, maxGrade, progression, logo)
+    val bmp = renderStatsCard(context, periodLabel, disciplineLabel, summary, maxGrade, progression, logo)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     dir.listFiles()?.filter { it.name.startsWith("stats") }?.forEach { it.delete() }
     val file = File(dir, "stats-${System.currentTimeMillis()}.png")
@@ -61,6 +63,7 @@ suspend fun shareStatsAsImage(
 }
 
 private fun renderStatsCard(
+    context: Context,
     periodLabel: String,
     disciplineLabel: String,
     s: JournalStatsCalculator.Summary,
@@ -96,7 +99,7 @@ private fun renderStatsCard(
             style = Paint.Style.STROKE; strokeWidth = 4f; color = TERRA
         })
     }
-    c.drawText("CUMBRE · $disciplineLabel", cx, 350f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText(context.getString(R.string.share_stats_image_cumbre_format, disciplineLabel), cx, 350f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = TERRA; textSize = 32f; typeface = mono
         letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
     })
@@ -106,10 +109,10 @@ private fun renderStatsCard(
 
     // ── 4 métricas en rejilla 2×2 ────────────────────────────────────────────
     val metrics = listOf(
-        s.daysOut.toString() to "DÍAS DE ROCA",
-        "${s.currentStreakWeeks} sem" to "RACHA",
-        s.projectsFallen.toString() to "PROYECTOS CAÍDOS",
-        (maxGrade ?: "—") to "GRADO MÁXIMO"
+        s.daysOut.toString() to context.getString(R.string.share_stats_image_dias_de_roca),
+        "${s.currentStreakWeeks} sem" to context.getString(R.string.share_stats_image_racha),
+        s.projectsFallen.toString() to context.getString(R.string.share_stats_image_proyectos_caidos),
+        (maxGrade ?: "—") to context.getString(R.string.share_stats_image_grado_maximo)
     )
     val boxW = (w - 200f) / 2f
     val boxH = 220f
@@ -123,7 +126,7 @@ private fun renderStatsCard(
             style = Paint.Style.STROKE; strokeWidth = 3f; color = RULE
         })
         c.drawText(value, box.centerX(), top + 118f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (label == "RACHA" || label == "GRADO MÁXIMO") TERRA else INK
+            color = if (i == 1 || i == 3) TERRA else INK
             textSize = 86f; typeface = serifBold; textAlign = Paint.Align.CENTER
         })
         c.drawText(label, box.centerX(), top + 180f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -134,7 +137,7 @@ private fun renderStatsCard(
 
     // ── Pirámide de grados ──────────────────────────────────────────────────
     var y = 1070f
-    c.drawText("PIRÁMIDE DE GRADOS", 80f, y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText(context.getString(R.string.share_stats_image_piramide_de_grados), 80f, y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = INK_SOFT; textSize = 30f; typeface = mono
         letterSpacing = 0.18f; isFakeBoldText = true
     })
@@ -182,7 +185,7 @@ private fun renderStatsCard(
     progression?.let { p ->
         var py = y + 76f
         if (py + 64f < footerTop) {
-            c.drawText("ÚLT. 12 SEMANAS", 80f, py, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            c.drawText(context.getString(R.string.share_stats_image_ult_12_semanas), 80f, py, Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = INK_SOFT; textSize = 28f; typeface = Typeface.MONOSPACE
                 letterSpacing = 0.16f; isFakeBoldText = true
             })

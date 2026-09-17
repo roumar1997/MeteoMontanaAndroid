@@ -160,8 +160,8 @@ fun NotificationsScreen(
     if (showDeleteAll) {
         AlertDialog(
             onDismissRequest = { showDeleteAll = false },
-            title = { Text("¿Borrar todas?") },
-            text = { Text("Se eliminarán todas tus notificaciones. No se puede deshacer.") },
+            title = { Text(stringResource(R.string.notifications_screen_borrar_todas)) },
+            text = { Text(stringResource(R.string.notifications_screen_se_eliminaran_todas_tus)) },
             confirmButton = {
                 TextButton(onClick = { showDeleteAll = false; viewModel.deleteAll() }) {
                     Text(stringResource(R.string.notifications_delete_all), color = MaterialTheme.colorScheme.error)

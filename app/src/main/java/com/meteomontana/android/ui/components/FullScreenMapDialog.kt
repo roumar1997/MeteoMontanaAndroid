@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import com.meteomontana.android.data.map.MapStyles
@@ -46,6 +47,8 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Mapa interactivo a pantalla completa.
@@ -307,7 +310,7 @@ fun FullScreenMapDialog(
                                 }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                             ) {
-                                Text("✓ ACEPTAR Y MOVER", style = EyebrowTextStyle, color = Terra)
+                                Text(stringResource(R.string.full_screen_map_dialog_aceptar_y_mover), style = EyebrowTextStyle, color = Terra)
                             }
                         }
                     }

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+
 import com.meteomontana.android.data.map.MapStyles
 
 import android.graphics.Bitmap
@@ -71,6 +72,7 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import androidx.compose.ui.res.stringResource
 
 data class SchoolMeetupGroup(
     val schoolId: String,
@@ -380,7 +382,7 @@ private fun MeetupsMapView(
         )
         RoundMapIconButton(
             icon = Icons.Outlined.Layers,
-            contentDescription = "Topográfico/Satélite",
+            contentDescription = stringResource(R.string.meetups_map_panel_topografico_satelite),
             modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
             onClick = { isSatellite = !isSatellite }
         )
@@ -620,7 +622,7 @@ private fun FullScreenMeetupsMap(
                 )
                 RoundMapIconButton(
                     icon = Icons.Outlined.Layers,
-                    contentDescription = "Topográfico/Satélite",
+                    contentDescription = stringResource(R.string.meetups_map_panel_topografico_satelite),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 50.dp, end = Spacing.sm),

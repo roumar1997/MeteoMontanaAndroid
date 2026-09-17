@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.share
 
+
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -12,6 +13,7 @@ import androidx.core.content.FileProvider
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.School
 import java.io.File
+import com.meteomontana.android.R
 
 /**
  * Genera una card de condiciones estilo Cumbre (papel/tinta/terracota) como
@@ -19,7 +21,7 @@ import java.io.File
  * nombre, score grande, etiqueta, datos clave y heatmap de las próximas 16h.
  */
 fun shareSchoolAsImage(context: Context, school: School, forecast: Forecast?) {
-    val bmp = renderConditionsCard(school, forecast)
+    val bmp = renderConditionsCard(context, school, forecast)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
     dir.listFiles()?.filter { it.name.startsWith("condiciones") }?.forEach { it.delete() }
@@ -48,7 +50,7 @@ private fun scoreColor(score: Int): Int = when {
     else        -> 0xFFB94040.toInt()
 }
 
-private fun renderConditionsCard(school: School, forecast: Forecast?): Bitmap {
+private fun renderConditionsCard(context: Context, school: School, forecast: Forecast?): Bitmap {
     val w = 1080
     val h = 720
     val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
@@ -129,7 +131,7 @@ private fun renderConditionsCard(school: School, forecast: Forecast?): Bitmap {
             val hint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = INK_SOFT; textSize = 24f; typeface = Typeface.MONOSPACE; letterSpacing = 0.12f
             }
-            c.drawText("PRÓXIMAS 16 HORAS", pad, top + 72f, hint)
+            c.drawText(context.getString(R.string.share_conditions_image_proximas_16_horas), pad, top + 72f, hint)
         }
     }
 

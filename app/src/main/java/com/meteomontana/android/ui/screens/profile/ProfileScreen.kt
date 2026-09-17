@@ -486,7 +486,7 @@ private fun ProfileSettingsScreen(
         // Cabecera: flecha atrás + "Ajustes".
         Box(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Atrás",
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.profile_screen_atras),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(stringResource(R.string.profile_settings),
@@ -562,8 +562,8 @@ private fun ProfileSettingsScreen(
             if (showDelete) {
                 AlertDialog(
                     onDismissRequest = { showDelete = false },
-                    title = { Text("¿Eliminar tu cuenta?") },
-                    text = { Text("Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.") },
+                    title = { Text(stringResource(R.string.profile_screen_eliminar_tu_cuenta)) },
+                    text = { Text(stringResource(R.string.profile_screen_se_borraran_tu_perfil)) },
                     confirmButton = {
                         TextButton(onClick = { showDelete = false; onDeleteAccount() }) {
                             Text("ELIMINAR", color = MaterialTheme.colorScheme.error)

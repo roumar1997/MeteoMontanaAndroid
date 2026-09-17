@@ -435,7 +435,7 @@ internal fun SchoolMapView(
                         .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✓ ACEPTAR", style = EyebrowTextStyle, color = Terra)
+                        Text(stringResource(R.string.school_map_view_aceptar), style = EyebrowTextStyle, color = Terra)
                     }
                 }
             }
@@ -448,7 +448,7 @@ internal fun SchoolMapView(
                 modifier = Modifier.fillMaxWidth().background(terraFillColor())
                     .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             ) {
-                Text("ℹ LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
+                Text(stringResource(R.string.school_map_view_la_foto_se_hizo),
                     style = EyebrowTextStyle, color = Color.White)
                 Spacer(Modifier.size(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -457,7 +457,7 @@ internal fun SchoolMapView(
                         .clickable { bridge.photoAccept?.invoke() }
                         .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
-                    ) { Text("✓ SÍ, SIGUE", style = EyebrowTextStyle, color = Terra) }
+                    ) { Text(stringResource(R.string.school_map_view_si_sigue), style = EyebrowTextStyle, color = Terra) }
                     Box(modifier = Modifier.weight(1f)
                         .border(1.dp, Color.White)
                         .clickable { bridge.photoMove?.invoke() }
@@ -502,7 +502,7 @@ internal fun SchoolMapView(
                         .padding(vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("✓ LISTO", style = EyebrowTextStyle, color = Terra)
+                        Text(stringResource(R.string.school_map_view_listo), style = EyebrowTextStyle, color = Terra)
                     }
                 }
             }
@@ -668,7 +668,7 @@ internal fun SchoolMapView(
                     }) {
                         androidx.compose.material3.Icon(
                             androidx.compose.material.icons.Icons.Outlined.Layers,
-                            contentDescription = "Topográfico/Satélite",
+                            contentDescription = stringResource(R.string.school_map_view_topografico_satelite),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp))
                     }
@@ -917,7 +917,7 @@ internal fun SchoolMapView(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmDeleteMini = null },
             title = { Text("¿Eliminar «${mb.name.ifBlank { if (mb.type == "PARKING") "parking" else "sector" }}»?") },
-            text = { Text("Esta acción no se puede deshacer.") },
+            text = { Text(stringResource(R.string.school_map_view_esta_accion_no_se)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     viewModel.deleteBlock(mb.id) {}

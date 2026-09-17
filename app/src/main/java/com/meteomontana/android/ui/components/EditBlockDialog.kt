@@ -160,7 +160,7 @@ fun EditBlockDialog(
                         pasted = ""
                     }
                 },
-                placeholder = { Text("Pega aquí ej: 40.4168, -3.7038",
+                placeholder = { Text(stringResource(R.string.edit_block_dialog_pega_aqui_ej_40),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
@@ -213,14 +213,14 @@ fun EditBlockDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("📍 MOVER PULSANDO EN EL MAPA", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.edit_block_dialog_mover_pulsando_en_el), style = EyebrowTextStyle, color = Terra)
                 }
             }
 
             Spacer(Modifier.height(Spacing.md))
 
             // Descripción
-            Text("DESCRIPCIÓN", style = EyebrowTextStyle,
+            Text(stringResource(R.string.edit_block_dialog_descripcion), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
             OutlinedTextField(
@@ -245,7 +245,7 @@ fun EditBlockDialog(
             // Para BLOCK: editor de líneas
             if (block.type == "BLOCK" && !block.photoPath.isNullOrBlank()) {
                 Spacer(Modifier.height(Spacing.md))
-                Text("VÍAS DIBUJADAS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.edit_block_dialog_vias_dibujadas), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 Text("${bloques.count { it.linePath.isNotEmpty() || it.name.isNotBlank() }} vías",
@@ -261,7 +261,7 @@ fun EditBlockDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✎ EDITAR LÍNEAS Y VÍAS", style = EyebrowTextStyle, color = Color.White)
+                    Text(stringResource(R.string.edit_block_dialog_editar_lineas_y_vias), style = EyebrowTextStyle, color = Color.White)
                 }
             }
 

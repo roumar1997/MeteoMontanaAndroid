@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.schools
 
+
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +33,7 @@ import com.meteomontana.android.domain.util.PhotoPlacement
 import com.meteomontana.android.ui.components.readPhotoLocation
 import com.meteomontana.android.ui.theme.Spacing
 import kotlinx.coroutines.tasks.await
+import androidx.compose.ui.res.stringResource
 
 /**
  * "Enviar piedra": eliges una foto y la app deduce en que escuela se hizo.
@@ -203,7 +205,7 @@ fun SubmitBlockPhotoFlow(
         // pulsable, que es lo que de verdad importa.
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { eligiendoOrigen = false; onDismiss() },
-            title = { Text("¿Cómo quieres la foto?") },
+            title = { Text(stringResource(R.string.submit_block_photo_flow_como_quieres_la_foto)) },
             text = {
                 Column {
                     androidx.compose.material3.TextButton(
@@ -213,7 +215,7 @@ fun SubmitBlockPhotoFlow(
                     androidx.compose.material3.TextButton(
                         onClick = { eligiendoOrigen = false; elegirFoto() },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("ELEGIR DE GALERÍA", modifier = Modifier.fillMaxWidth()) }
+                    ) { Text(stringResource(R.string.submit_block_photo_flow_elegir_de_galeria), modifier = Modifier.fillMaxWidth()) }
                 }
             },
             confirmButton = {},
@@ -235,7 +237,7 @@ fun SubmitBlockPhotoFlow(
                     .background(MaterialTheme.colorScheme.surface)
                     .padding(Spacing.md)
             ) {
-                Text("¿En qué escuela es esta piedra?",
+                Text(stringResource(R.string.submit_block_photo_flow_en_que_escuela_es),
                     style = MaterialTheme.typography.titleMedium)
                 Text(
                     "Esta foto no trae ubicación (frecuente si llegó por WhatsApp — " +

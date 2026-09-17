@@ -243,7 +243,7 @@ internal fun ContributionCard(
             Column(modifier = Modifier.fillMaxWidth()
                 .background(MaterialTheme.colorScheme.error.copy(alpha = 0.06f))
                 .padding(Spacing.sm)) {
-                Text("POSICIÓN ACTUAL", style = EyebrowTextStyle,
+                Text(stringResource(R.string.contribution_card_posicion_actual), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("%.5f, %.5f".format(java.util.Locale.US, c.lat, c.lon),
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),

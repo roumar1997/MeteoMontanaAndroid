@@ -36,12 +36,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.BetaLink
 import com.meteomontana.android.domain.usecase.blocks.AddBetaLinkUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBetaLinkUseCase
@@ -97,10 +99,22 @@ class BetaLinksViewModel @Inject constructor(
 }
 
 /** Categoría de altura para etiquetar la beta — Álvaro, 2026-09-15. */
-private enum class HeightFilter(val raw: String?, val label: String, val shortLabel: String) {
-    ANY(null, "Cualquier altura", "Todas"),
-    TALL("TALL", "Personas +1,70", "+1,70"),
-    SHORT("SHORT", "Personas -1,70", "-1,70")
+private enum class HeightFilter(val raw: String?) {
+    ANY(null), TALL("TALL"), SHORT("SHORT")
+}
+
+@Composable
+private fun HeightFilter.label(): String = when (this) {
+    HeightFilter.ANY -> stringResource(R.string.beta_height_any)
+    HeightFilter.TALL -> stringResource(R.string.beta_height_tall)
+    HeightFilter.SHORT -> stringResource(R.string.beta_height_short)
+}
+
+@Composable
+private fun HeightFilter.shortLabel(): String = when (this) {
+    HeightFilter.ANY -> stringResource(R.string.beta_height_any_short)
+    HeightFilter.TALL -> stringResource(R.string.beta_height_tall_short)
+    HeightFilter.SHORT -> stringResource(R.string.beta_height_short_short)
 }
 
 /** Mismo criterio que BetaLinkService.validUrl() en el backend: solo http(s). */
@@ -197,7 +211,7 @@ fun BetaLinksThread(
                     HeightFilter.entries.forEach { f ->
                         val active = viewFilter == f
                         Text(
-                            f.shortLabel,
+                            f.shortLabel(),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (active) FontWeight.Bold else null,
                             color = if (active) MaterialTheme.colorScheme.surface
@@ -217,8 +231,8 @@ fun BetaLinksThread(
             }
             if (shown.isEmpty()) {
                 Text(
-                    if (mine.isEmpty()) "Sé el primero en dejar un enlace de beta."
-                    else "No hay enlaces de beta para ${viewFilter.label.lowercase()}.",
+                    if (mine.isEmpty()) stringResource(R.string.beta_empty_generic)
+                    else stringResource(R.string.beta_empty_filtered, viewFilter.label().lowercase()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -236,7 +250,7 @@ fun BetaLinksThread(
                     modifier = Modifier.padding(top = 2.dp)) {
                     Icon(Icons.Outlined.CheckCircle, contentDescription = null,
                         tint = com.meteomontana.android.ui.theme.Moss, modifier = Modifier.size(14.dp))
-                    Text("Enlace añadido", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.beta_added_toast), style = MaterialTheme.typography.bodySmall,
                         color = com.meteomontana.android.ui.theme.Moss)
                 }
             }
@@ -249,7 +263,7 @@ fun BetaLinksThread(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(Icons.Outlined.Add, contentDescription = null, tint = Terra, modifier = Modifier.size(14.dp))
-                Text("Añadir enlace de beta", style = MaterialTheme.typography.bodySmall, color = Terra)
+                Text(stringResource(R.string.beta_add_cta), style = MaterialTheme.typography.bodySmall, color = Terra)
             }
         }
     }
@@ -258,11 +272,11 @@ fun BetaLinksThread(
     if (choosingCategory) {
         AlertDialog(
             onDismissRequest = { choosingCategory = false },
-            title = { Text("¿Para quién es esta beta?") },
+            title = { Text(stringResource(R.string.beta_choose_category_title)) },
             text = {
                 Column {
                     HeightFilter.entries.forEach { f ->
-                        Text(f.label,
+                        Text(f.label(),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -278,7 +292,7 @@ fun BetaLinksThread(
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton({ choosingCategory = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton({ choosingCategory = false }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 
@@ -286,12 +300,12 @@ fun BetaLinksThread(
     pastingUrlFor?.let { category ->
         AlertDialog(
             onDismissRequest = { pastingUrlFor = null },
-            title = { Text("Enlace de beta") },
+            title = { Text(stringResource(R.string.beta_dialog_title)) },
             text = {
                 Column {
                     Text(
-                        if (category == HeightFilter.ANY) "Se abrirá fuera de la app."
-                        else "Para ${category.label.lowercase()}. Se abrirá fuera de la app.",
+                        if (category == HeightFilter.ANY) stringResource(R.string.beta_open_hint_any)
+                        else stringResource(R.string.beta_open_hint_for, category.label().lowercase()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = Spacing.sm)
@@ -300,14 +314,14 @@ fun BetaLinksThread(
                     OutlinedTextField(
                         value = urlDraft,
                         onValueChange = { urlDraft = it; urlTouched = true },
-                        placeholder = { Text("Enlace de Instagram/YouTube") },
+                        placeholder = { Text(stringResource(R.string.beta_url_placeholder)) },
                         singleLine = true,
                         isError = urlTouched && !urlValid,
                         supportingText = {
                             if (urlTouched && !urlValid) {
                                 Text(
-                                    if (urlDraft.isBlank()) "Falta el enlace de Instagram/YouTube."
-                                    else "El enlace debe empezar por http:// o https://",
+                                    if (urlDraft.isBlank()) stringResource(R.string.beta_url_error_empty)
+                                    else stringResource(R.string.beta_url_error_format),
                                     color = MaterialTheme.colorScheme.error
                                 )
                             }
@@ -317,7 +331,7 @@ fun BetaLinksThread(
                     OutlinedTextField(
                         value = authorNameDraft,
                         onValueChange = { authorNameDraft = it },
-                        placeholder = { Text("¿De quién es la beta? (opcional)") },
+                        placeholder = { Text(stringResource(R.string.beta_author_placeholder)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)
                     )
@@ -335,15 +349,15 @@ fun BetaLinksThread(
                             if (ok) justAdded = true
                         }
                     }
-                ) { Text("Guardar") }
+                ) { Text(stringResource(R.string.common_save)) }
             },
-            dismissButton = { TextButton({ pastingUrlFor = null }) { Text("Cancelar") } }
+            dismissButton = { TextButton({ pastingUrlFor = null }) { Text(stringResource(R.string.common_cancel)) } }
         )
     }
 
     reportTarget?.let { l ->
         ReportDialog(
-            title = "DENUNCIAR ENLACE DE BETA",
+            title = stringResource(R.string.beta_report_title),
             authorLabel = null,
             onReport = { reason, _ ->
                 moderation.report("BETA_LINK", l.id, reason)
@@ -366,13 +380,13 @@ private fun BetaLinkRow(link: BetaLink, isMine: Boolean, onDelete: () -> Unit, o
     val context = androidx.compose.ui.platform.LocalContext.current
     val host = remember(link.url) { runCatching { java.net.URI(link.url).host?.lowercase() }.getOrNull() ?: "" }
     val (platformIcon, label) = when {
-        host.contains("instagram.com") -> Icons.Outlined.PhotoCamera to "Ver en Instagram"
-        host.contains("youtube.com") || host.contains("youtu.be") -> Icons.Outlined.PlayCircleOutline to "Ver en YouTube"
-        else -> Icons.Outlined.Link to "Ver enlace"
+        host.contains("instagram.com") -> Icons.Outlined.PhotoCamera to stringResource(R.string.beta_platform_instagram)
+        host.contains("youtube.com") || host.contains("youtu.be") -> Icons.Outlined.PlayCircleOutline to stringResource(R.string.beta_platform_youtube)
+        else -> Icons.Outlined.Link to stringResource(R.string.beta_platform_generic)
     }
     val categoryLabel = when (link.heightCategory) {
-        "TALL" -> "+1,70"
-        "SHORT" -> "-1,70"
+        "TALL" -> stringResource(R.string.beta_height_tall_short)
+        "SHORT" -> stringResource(R.string.beta_height_short_short)
         else -> null
     }
 
@@ -405,7 +419,7 @@ private fun BetaLinkRow(link: BetaLink, isMine: Boolean, onDelete: () -> Unit, o
                     tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
             }
             if (isMine) {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Borrar",
+                Icon(Icons.Outlined.DeleteOutline, contentDescription = stringResource(R.string.common_delete),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .clip(RoundedCornerShape(2.dp))
@@ -413,7 +427,7 @@ private fun BetaLinkRow(link: BetaLink, isMine: Boolean, onDelete: () -> Unit, o
                         .padding(6.dp)
                         .size(16.dp))
             } else {
-                Icon(Icons.Outlined.Flag, contentDescription = "Denunciar",
+                Icon(Icons.Outlined.Flag, contentDescription = stringResource(R.string.common_report),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .clip(RoundedCornerShape(2.dp))
@@ -424,7 +438,7 @@ private fun BetaLinkRow(link: BetaLink, isMine: Boolean, onDelete: () -> Unit, o
         }
         if (!link.authorName.isNullOrBlank()) {
             Text(
-                "de ${link.authorName}",
+                stringResource(R.string.beta_author_prefix, link.authorName ?: ""),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 21.dp)

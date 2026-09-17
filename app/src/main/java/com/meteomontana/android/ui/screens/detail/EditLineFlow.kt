@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -45,6 +46,8 @@ import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Flujo "✎ CORREGIR VÍA": modifica nombre/grado/tipo/posición de una vía
@@ -105,7 +108,7 @@ fun EditLineFlow(
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.md)
         ) {
-            Text("Corregir vía",
+            Text(stringResource(R.string.edit_line_flow_corregir_via),
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.xs))
@@ -117,7 +120,7 @@ fun EditLineFlow(
             )
             Spacer(Modifier.height(Spacing.lg))
 
-            Text("DATOS DE LA VÍA", style = EyebrowTextStyle,
+            Text(stringResource(R.string.edit_line_flow_datos_de_la_via), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
 

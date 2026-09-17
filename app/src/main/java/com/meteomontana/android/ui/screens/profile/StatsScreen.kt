@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -45,6 +46,8 @@ import com.meteomontana.android.ui.components.VotableChip
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * MIS ESTADÍSTICAS (C4): pirámide, racha, progresión — todo calculado en
@@ -80,13 +83,13 @@ fun StatsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("‹", fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.clickable(onClick = onBack).padding(end = Spacing.sm))
-                Text("MIS ESTADÍSTICAS", style = EyebrowTextStyle, color = Terra)
+                Text(stringResource(R.string.stats_screen_mis_estadisticas), style = EyebrowTextStyle, color = Terra)
                 Spacer(Modifier.weight(1f))
                 // C6: compartir como imagen (formato historia, estilo Wrapped).
                 state.summary?.takeIf { state.isOwn }?.let { sum ->
                     androidx.compose.material3.Icon(
                         Icons.Outlined.Share,
-                        contentDescription = "Compartir estadísticas",
+                        contentDescription = stringResource(R.string.stats_screen_compartir_estadisticas),
                         tint = Terra,
                         modifier = Modifier.clickable {
                             shareScope.launch {
@@ -179,7 +182,7 @@ fun StatsScreen(
                         Column(Modifier.fillMaxWidth()
                             .cumbreSheetSurface(MaterialTheme.colorScheme.background)
                             .padding(horizontal = Spacing.md)) {
-                            Text("TUS DÍAS DE ROCA", style = EyebrowTextStyle, color = Terra)
+                            Text(stringResource(R.string.stats_screen_tus_dias_de_roca), style = EyebrowTextStyle, color = Terra)
                             Spacer(Modifier.height(Spacing.sm))
                             LazyColumn(Modifier.height(420.dp)) {
                                 items(days.size) { i ->
@@ -197,7 +200,7 @@ fun StatsScreen(
                                     }
                                     if (isOpen) {
                                         // S4: cargar TODA la pantalla con ese día.
-                                        Text("VER ESTADÍSTICAS DE ESTE DÍA ▸",
+                                        Text(stringResource(R.string.stats_screen_ver_estadisticas_de_este),
                                             style = EyebrowTextStyle.copy(fontSize = 9.sp),
                                             color = Terra,
                                             modifier = Modifier
@@ -241,7 +244,7 @@ fun StatsScreen(
                 Spacer(Modifier.height(Spacing.lg))
 
                 // ── Pirámide ────────────────────────────────────────────────
-                Text("PIRÁMIDE DE GRADOS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.stats_screen_piramide_de_grados), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 val maxCount = s.pyramid.maxOfOrNull { it.second } ?: 1
@@ -321,14 +324,14 @@ fun StatsScreen(
             // ── Progresión ──────────────────────────────────────────────────
             val p = state.progression
             if (p != null) {
-                Text("ASCENSOS POR MES · ÚLT. 12", style = EyebrowTextStyle,
+                Text(stringResource(R.string.stats_screen_ascensos_por_mes_ult), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 MonthBars(p.monthlyCounts)
                 Spacer(Modifier.height(Spacing.lg))
 
                 if (p.maxGradePerQuarter.isNotEmpty()) {
-                    Text("GRADO MÁXIMO POR TRIMESTRE", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.stats_screen_grado_maximo_por_trimestre), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(Spacing.xs))
                     Row(horizontalArrangement = Arrangement.SpaceBetween,
@@ -348,7 +351,7 @@ fun StatsScreen(
                     Spacer(Modifier.height(Spacing.lg))
                 }
 
-                Text("ÚLTIMAS 12 SEMANAS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.stats_screen_ultimas_12_semanas), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -359,7 +362,7 @@ fun StatsScreen(
                                 RoundedCornerShape(4.dp)))
                     }
                 }
-                Text("Cada casilla = 1 semana · terra = saliste", fontSize = 10.sp,
+                Text(stringResource(R.string.stats_screen_cada_casilla_1_semana), fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 3.dp))
                 Spacer(Modifier.height(Spacing.lg))
@@ -375,7 +378,7 @@ fun StatsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(school, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface)
-                        Text("$count" + (maxGrade?.let { " · máx $it" } ?: "") +
+                        Text("$count" + (maxGrade?.let { stringResource(R.string.stats_screen_max_grade_suffix, it) } ?: "") +
                             (if (isOpen) " ▴" else " ▾"),
                             style = EyebrowTextStyle.copy(fontSize = 11.sp), color = Terra)
                     }

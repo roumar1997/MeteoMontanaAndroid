@@ -163,7 +163,7 @@ private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text(
-                    n.author ?: "Anónimo",
+                    n.author ?: stringResource(R.string.notes_section_anonimo),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -251,7 +251,7 @@ private fun ComposerRow(onPublish: (String, FileRef?) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = text, onValueChange = { text = it },
-            placeholder = { Text("Comparte algo útil: orientación, secado, acceso...") },
+            placeholder = { Text(stringResource(R.string.notes_section_comparte_algo_util_orientacion)) },
             modifier = Modifier.fillMaxWidth().height(80.dp)
         )
         Spacer(Modifier.height(8.dp))

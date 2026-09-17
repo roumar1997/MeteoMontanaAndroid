@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.share
 
+
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -17,6 +18,7 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import java.io.File
+import com.meteomontana.android.R
 
 /* Paleta Cumbre (= ShareLineImage) */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -54,7 +56,7 @@ suspend fun shareProfileAsImage(
         (result as? SuccessResult)?.drawable?.toBitmap()
     }
 
-    val bmp = renderProfileCard(displayLabel, username, avatar, topGrade, bio, boulders, routes, schools)
+    val bmp = renderProfileCard(context, displayLabel, username, avatar, topGrade, bio, boulders, routes, schools)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
     dir.listFiles()?.filter { it.name.startsWith("perfil") }?.forEach { it.delete() }
@@ -74,6 +76,7 @@ suspend fun shareProfileAsImage(
 }
 
 private fun renderProfileCard(
+    context: Context,
     displayLabel: String,
     username: String?,
     avatar: Bitmap?,
@@ -153,7 +156,7 @@ private fun renderProfileCard(
     // Grado máximo en caja regla (si lo hay).
     if (!topGrade.isNullOrBlank()) {
         y += 30f
-        val label = "GRADO MÁXIMO"
+        val label = context.getString(R.string.share_profile_image_grado_maximo)
         val gradePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = INK; textSize = 84f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
             typeface = Typeface.MONOSPACE

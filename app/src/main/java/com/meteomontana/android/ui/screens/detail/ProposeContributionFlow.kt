@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -11,6 +12,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.outbox.toQueued
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 // ORQUESTADOR del flujo "Proponer mejora" (reparto del antiguo fichero de
 // 1.595 líneas). Las piezas visuales viven en:
@@ -285,7 +288,7 @@ fun ProposeContributionFlow(
     offlineError?.let { mensaje ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { offlineError = null },
-            title = { androidx.compose.material3.Text("No se pudo guardar sin conexión") },
+            title = { androidx.compose.material3.Text(stringResource(R.string.propose_contribution_flow_no_se_pudo_guardar)) },
             text = { androidx.compose.material3.Text(mensaje) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { offlineError = null }) {
@@ -313,9 +316,9 @@ fun ProposeContributionFlow(
         } else {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { preguntandoGuardar = null },
-                title = { androidx.compose.material3.Text("¿Guardar para terminar luego?") },
+                title = { androidx.compose.material3.Text(stringResource(R.string.propose_contribution_flow_guardar_para_terminar_luego)) },
                 text = {
-                    androidx.compose.material3.Text("Se queda guardada en este móvil. No se envía a nadie hasta que la termines.")
+                    androidx.compose.material3.Text(stringResource(R.string.propose_contribution_flow_se_queda_guardada_en))
                 },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,8 @@ import com.meteomontana.android.ui.screens.meetups.isBooleanGearKey
 import com.meteomontana.android.ui.screens.meetups.parseGear
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * "Mi material" como hoja propia, colgada del icono de mochila del perfil.
@@ -143,7 +146,7 @@ fun MyGearSheet(
                                 IconButton(onClick = { gear[key] = (gear[key] ?: 0) + 1 }) {
                                     Icon(
                                         Icons.Outlined.AddCircleOutline,
-                                        contentDescription = "Añadir un $label",
+                                        contentDescription = stringResource(R.string.my_gear_sheet_add_gear_cd, label),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }

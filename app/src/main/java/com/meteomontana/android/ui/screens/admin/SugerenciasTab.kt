@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.admin
 
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import com.meteomontana.android.domain.model.AdminSuggestionRow
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Pestaña "SUGERENCIAS" del panel admin: buzón del botón "?" de ayuda
@@ -46,7 +49,7 @@ internal fun SugerenciasTab(
     }
     if (rows.isEmpty()) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
-            Text("Sin sugerencias todavía", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.sugerencias_tab_sin_sugerencias_todavia), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }

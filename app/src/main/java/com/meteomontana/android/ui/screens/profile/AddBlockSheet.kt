@@ -248,7 +248,7 @@ fun AddBlockSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Añadir bloque", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.add_block_sheet_anadir_bloque), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
 
             // ─── ESCUELA con autocomplete ───
@@ -360,7 +360,7 @@ fun AddBlockSheet(
             Label("NOTAS (opcional)")
             OutlinedTextField(
                 value = notes, onValueChange = { notes = it },
-                placeholder = { Text("¿Qué tal fue?") },
+                placeholder = { Text(stringResource(R.string.add_block_sheet_que_tal_fue)) },
                 modifier = Modifier.fillMaxWidth().height(80.dp)
             )
 

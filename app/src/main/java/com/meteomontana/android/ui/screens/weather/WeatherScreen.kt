@@ -170,11 +170,11 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Necesitamos tu ubicación",
+        Text(stringResource(R.string.weather_screen_necesitamos_tu_ubicacion),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground)
         Spacer(Modifier.height(8.dp))
-        Text("Para mostrarte el tiempo donde estás.",
+        Text(stringResource(R.string.weather_screen_para_mostrarte_el_tiempo),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(24.dp))

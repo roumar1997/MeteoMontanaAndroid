@@ -299,7 +299,7 @@ private fun TopBar(
                 IconButton(onClick = onToggleFavorite, modifier = Modifier.size(38.dp)) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                        contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                        contentDescription = if (isFavorite) stringResource(R.string.school_detail_screen_quitar_de_favoritos) else stringResource(R.string.school_detail_screen_anadir_a_favoritos),
                         tint = if (isFavorite) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onBackground
                     )
@@ -516,7 +516,7 @@ private fun OfflineBanner(timestamp: Long) {
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("● SIN CONEXIÓN",
+        Text(stringResource(R.string.school_detail_screen_sin_conexion),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.error)
         Spacer(Modifier.padding(start = Spacing.sm))
@@ -544,7 +544,7 @@ private fun StaleForecastBanner(timestamp: Long, onRetry: () -> Unit) {
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("⚠ PREVISIÓN DE $ageLabel".uppercase(),
+        Text(stringResource(R.string.school_detail_screen_stale_forecast, ageLabel).uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f))

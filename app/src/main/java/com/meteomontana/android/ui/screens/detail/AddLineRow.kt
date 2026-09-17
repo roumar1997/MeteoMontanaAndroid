@@ -302,7 +302,7 @@ internal fun AddLineRow(
             value = bloque.description ?: "",
             onValueChange = { onUpdate(bloque.copy(description = it.takeIf { t -> t.isNotBlank() })) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Descripción (opcional)",
+            placeholder = { Text(stringResource(R.string.add_line_row_descripcion_opcional),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             maxLines = 3,

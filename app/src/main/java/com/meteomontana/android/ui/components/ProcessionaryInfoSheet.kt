@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +33,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Silueta de oruga peluda en diagonal (cabeza oscura abajo, cola arriba, con
@@ -187,7 +190,7 @@ fun ProcessionaryInfoSheet(
                 // pulsar, sin tener que hacer scroll para llegar a ellos
                 // (Álvaro, 2026-09-05: "que esté arriba... no nada abajo").
                 ToggleButton(
-                    label = "Sí que hay en este sector",
+                    label = stringResource(R.string.processionary_info_sheet_si_que_hay_en),
                     pressed = hasKnownProcessionary,
                     accent = Terra,
                     onClick = { if (hasKnownProcessionary) onRetract() else onConfirm() }

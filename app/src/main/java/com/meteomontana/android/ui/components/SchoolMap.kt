@@ -489,7 +489,7 @@ fun SchoolMap(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { borradorEncontrado = null },
             title = { Text("Tienes cambios sin enviar") },
-            text = { Text("Dejaste esta piedra a medias de editar. ¿Sigues donde lo dejaste o empiezas de cero?") },
+            text = { Text(stringResource(R.string.school_map_dejaste_esta_piedra_a)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     // Del borrador se recuperan SOLO las VÍAS y las fotos
@@ -565,8 +565,8 @@ fun SchoolMap(
         wallEdit.target?.let { block ->
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { preguntandoGuardarEdicion = false },
-                title = { Text("¿Guardar para terminar luego?") },
-                text = { Text("Se queda guardado en este móvil. No se envía a nadie hasta que lo termines.") },
+                title = { Text(stringResource(R.string.school_map_guardar_para_terminar_luego)) },
+                text = { Text(stringResource(R.string.school_map_se_queda_guardado_en)) },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.save(fichaCtx, block.id, wallEdit.faces)

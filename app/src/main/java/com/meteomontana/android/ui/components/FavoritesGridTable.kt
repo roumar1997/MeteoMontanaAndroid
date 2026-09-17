@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,8 @@ import com.meteomontana.android.domain.model.FavoritesGrid
 import com.meteomontana.android.ui.theme.scoreColor
 import com.meteomontana.android.ui.theme.scoreTextColor
 import java.time.LocalDate
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 private val DAY_LABELS = mapOf(
     "MONDAY" to "LUN", "TUESDAY" to "MAR", "WEDNESDAY" to "MIÉ",
@@ -36,7 +39,7 @@ fun FavoritesGridTable(grid: FavoritesGrid, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("FAVORITOS · 7 DÍAS",
+            Text(stringResource(R.string.favorites_grid_table_favoritos_7_dias),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

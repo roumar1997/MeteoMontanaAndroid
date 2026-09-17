@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.chat
 
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -50,6 +51,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @HiltViewModel
 class NewGroupViewModel @Inject constructor(
@@ -146,7 +149,7 @@ fun NewGroupScreen(
 
         if (contacts.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) {
-                Text("Sigue a alguien (o que te sigan) para añadir miembros.",
+                Text(stringResource(R.string.new_group_screen_sigue_a_alguien_o),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(24.dp))
             }

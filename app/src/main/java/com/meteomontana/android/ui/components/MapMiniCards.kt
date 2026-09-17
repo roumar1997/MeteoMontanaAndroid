@@ -105,7 +105,7 @@ internal fun SchoolViaSearchBar(
             value = query,
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Buscar vías/bloques…") },
+            placeholder = { Text(stringResource(R.string.map_mini_cards_buscar_vias_bloques)) },
             singleLine = true,
             shape = MaterialTheme.shapes.small,
             colors = androidx.compose.material3.TextFieldDefaults.colors(
@@ -318,7 +318,7 @@ internal fun MiniBlockCard(
                     }
                     .padding(horizontal = Spacing.sm, vertical = 7.dp)
             ) {
-                Text("CÓMO LLEGAR", style = EyebrowTextStyle, color = Color.White)
+                Text(stringResource(R.string.map_mini_cards_como_llegar), style = EyebrowTextStyle, color = Color.White)
             }
             Text("✕", style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

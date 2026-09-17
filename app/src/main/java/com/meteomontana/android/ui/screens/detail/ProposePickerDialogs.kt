@@ -228,7 +228,7 @@ internal fun SuccessDialog(
             }
             Spacer(Modifier.height(Spacing.lg))
             if (queued) {
-                Text("GUARDADA EN TU MÓVIL", style = EyebrowTextStyle,
+                Text(stringResource(R.string.propose_picker_dialogs_guardada_en_tu_movil), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
                 Text(
@@ -247,7 +247,7 @@ internal fun SuccessDialog(
                 Text(stringResource(R.string.propose_success), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
-                Text("Un admin la revisará en ",
+                Text(stringResource(R.string.propose_picker_dialogs_un_admin_la_revisara),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("24-48h.", style = MaterialTheme.typography.bodyMedium, color = Terra)

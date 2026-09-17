@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.chat
 
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -48,6 +49,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @Composable
 fun ChatListScreen(
@@ -237,7 +240,7 @@ private fun SwipeableConvRow(
                     tint = MaterialTheme.colorScheme.onErrorContainer)
                 SwipeToDismissBoxValue.StartToEnd -> SwipeBg(
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    icon = Icons.Outlined.Email, label = "No leído",
+                    icon = Icons.Outlined.Email, label = stringResource(R.string.chat_list_screen_no_leido),
                     alignment = Alignment.CenterStart,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 else -> {}

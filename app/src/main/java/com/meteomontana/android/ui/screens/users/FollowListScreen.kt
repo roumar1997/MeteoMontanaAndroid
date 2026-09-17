@@ -232,7 +232,7 @@ fun FollowListScreen(
                 }
                 if (visible.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text(if (q.isEmpty()) "Vacío" else stringResource(R.string.follow_search_empty),
+                        Text(if (q.isEmpty()) stringResource(R.string.follow_list_screen_vacio) else stringResource(R.string.follow_search_empty),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {

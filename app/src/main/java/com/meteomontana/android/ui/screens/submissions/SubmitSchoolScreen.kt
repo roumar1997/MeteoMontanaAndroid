@@ -162,7 +162,7 @@ fun SubmitSchoolScreen(
                         pasted = "" // limpia para uso repetido
                     }
                 },
-                placeholder = "Pega aquí ej: 40.4168, -3.7038"
+                placeholder = stringResource(R.string.submit_school_screen_pega_aqui_ej_40)
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -176,7 +176,7 @@ fun SubmitSchoolScreen(
             // Localidad filtrada por la región elegida (igual que iOS).
             DropdownField("UBICACIÓN", location, viewModel.locationOptions(region),
                 onChange = { location = it })
-            Field("NOTAS", notes, { notes = it }, placeholder = "Cualquier info útil", height = 80.dp)
+            Field(stringResource(R.string.submit_school_screen_notas), notes, { notes = it }, placeholder = stringResource(R.string.submit_school_screen_cualquier_info_util), height = 80.dp)
 
             if (state is SubmitState.Error) {
                 Text((state as SubmitState.Error).message,

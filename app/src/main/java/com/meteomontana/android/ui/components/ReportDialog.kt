@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,6 +36,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Moderación desde la UI: denunciar contenido (con snapshot en el backend) y
@@ -145,13 +148,13 @@ fun ReportDialog(
                 ) {
                     Text(if (alsoBlock) "☑" else "☐",
                         color = if (alsoBlock) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("También bloquear a $authorLabel",
+                    Text(stringResource(R.string.report_dialog_also_block, authorLabel),
                         style = EyebrowTextStyle,
                         color = if (alsoBlock) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(Spacing.sm))
-            Text("Un admin lo revisará. El contenido denunciado deja de mostrarse para ti al instante.",
+            Text(stringResource(R.string.report_dialog_un_admin_lo_revisara),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))

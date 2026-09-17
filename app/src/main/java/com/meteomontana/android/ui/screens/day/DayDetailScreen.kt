@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.day
 
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -38,6 +39,8 @@ import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.scoreColor
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @Composable
 fun DayDetailScreen(
@@ -72,7 +75,7 @@ private fun LoadedBody(s: DayDetailUiState.Loaded, onBack: () -> Unit) {
         if (s.hoursOfDay.isEmpty()) {
             item {
                 Box(Modifier.fillMaxWidth().padding(Spacing.lg), contentAlignment = Alignment.Center) {
-                    Text("Sin datos horarios para este día.",
+                    Text(stringResource(R.string.day_detail_screen_sin_datos_horarios_para),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -113,7 +116,7 @@ private fun Header(title: String, onBack: () -> Unit) {
 @Composable
 private fun DayScoreHero(day: DayForecast) {
     Column(Modifier.padding(horizontal = Spacing.lg)) {
-        Text("ÍNDICE DEL DÍA",
+        Text(stringResource(R.string.day_detail_screen_indice_del_dia),
             style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.5.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.sm))

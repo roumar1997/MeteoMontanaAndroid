@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.approach
 
+
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,6 +49,8 @@ import com.meteomontana.android.ui.theme.Terra
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Alta de una chincheta (foto y/o texto, NUNCA vacía — APPROACH_DESIGN.md
@@ -149,7 +152,7 @@ fun NewApproachPinDialog(
                             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                             .clickable { pickGallery() }.padding(vertical = 10.dp),
                         contentAlignment = androidx.compose.ui.Alignment.Center
-                    ) { Text("GALERÍA", style = EyebrowTextStyle) }
+                    ) { Text(stringResource(R.string.new_approach_pin_dialog_galeria), style = EyebrowTextStyle) }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text("NOTA (opcional si hay foto)", style = EyebrowTextStyle,
@@ -157,12 +160,12 @@ fun NewApproachPinDialog(
                 Spacer(Modifier.height(4.dp))
                 OutlinedTextField(
                     value = message, onValueChange = { message = it },
-                    placeholder = { Text("p. ej. En la bifurcación, a la derecha") },
+                    placeholder = { Text(stringResource(R.string.new_approach_pin_dialog_p_ej_en_la)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (!canSave) {
                     Spacer(Modifier.height(6.dp))
-                    Text("Añade una foto o una nota.", style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(R.string.new_approach_pin_dialog_anade_una_foto_o), style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

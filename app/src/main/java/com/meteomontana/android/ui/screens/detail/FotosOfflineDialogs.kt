@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Los tres avisos de las fotos para ver una escuela sin cobertura: la oferta,
@@ -33,7 +36,7 @@ fun FotosOfflineDialogs(
     oferta?.let { o ->
         AlertDialog(
             onDismissRequest = onRechazar,
-            title = { Text("¿Guardar también las fotos?") },
+            title = { Text(stringResource(R.string.fotos_offline_dialogs_guardar_tambien_las_fotos)) },
             text = {
                 Text(
                     "La escuela ya está guardada. Bajar sus ${o.cuantas} fotos " +

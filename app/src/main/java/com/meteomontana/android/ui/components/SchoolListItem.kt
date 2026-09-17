@@ -143,7 +143,7 @@ fun SchoolListItem(
                 }
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                    contentDescription = if (isFavorite) stringResource(R.string.school_list_item_quitar_de_favoritos) else stringResource(R.string.school_list_item_anadir_a_favoritos),
                     tint = if (isFavorite) MaterialTheme.colorScheme.primary
                            else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier

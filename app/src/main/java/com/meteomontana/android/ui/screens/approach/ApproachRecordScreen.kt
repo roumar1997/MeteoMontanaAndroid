@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.approach
 
+
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -58,6 +59,8 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * "GRABAR APROXIMACIÓN" — APPROACH_DESIGN.md §6.2/§6.4. SOLO ADMIN por ahora
@@ -130,7 +133,7 @@ fun ApproachRecordScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(if (savingStep) "Guardar camino" else "Grabar aproximación",
+                Text(if (savingStep) stringResource(R.string.approach_record_screen_guardar_camino) else stringResource(R.string.approach_record_screen_grabar_aproximacion),
                     style = MaterialTheme.typography.titleMedium)
                 Text("CERRAR", style = EyebrowTextStyle, color = Terra,
                     modifier = Modifier.clickable(onClick = onDismiss))
@@ -170,7 +173,7 @@ fun ApproachRecordScreen(
                                 .clickable { addingPin = true }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                         ) {
-                            Text("+ CHINCHETA AQUÍ",
+                            Text(stringResource(R.string.approach_record_screen_chincheta_aqui),
                                 style = EyebrowTextStyle, color = Color.White)
                         }
                     }

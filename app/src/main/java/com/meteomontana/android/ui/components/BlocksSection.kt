@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @Composable
 fun BlocksSection(
@@ -173,7 +176,7 @@ private fun BlockCard(b: Block, onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1)
         if (b.lines.isNotEmpty()) {
-            Text("${b.lines.size} ${if (b.lines.size == 1) "línea" else "líneas"}",
+            Text("${b.lines.size} " + if (b.lines.size == 1) stringResource(R.string.block_card_line_one) else stringResource(R.string.block_card_line_other),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

@@ -179,7 +179,7 @@ internal fun BoulderFormDialog(
             )
         }
     ) {
-        Text("Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada vía sobre ellas.",
+        Text(stringResource(R.string.boulder_form_dialog_rellena_los_datos_de),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.sm))
@@ -193,7 +193,7 @@ internal fun BoulderFormDialog(
         Text(stringResource(R.string.propose_discipline), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
-        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?",
+        Text(stringResource(R.string.boulder_form_dialog_es_una_piedra_de),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
@@ -203,7 +203,7 @@ internal fun BoulderFormDialog(
         // voto del autor; la comunidad puede seguir votando después.
         Spacer(Modifier.height(Spacing.sm))
         OrientationPickRow(
-            label = "ORIENTACIÓN DE LA PIEDRA (opcional)",
+            label = stringResource(R.string.boulder_form_dialog_orientacion_de_la_piedra),
             selected = blockOrientation,
             onPick = { a -> onBlockOrientationChange(if (blockOrientation == a) null else a) }
         )
@@ -224,7 +224,7 @@ internal fun BoulderFormDialog(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Muro, sector y numeración",
+                    Text(stringResource(R.string.boulder_form_dialog_muro_sector_y_numeracion),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface)
                     Text(if (geometry == "LINE") "Muro de ${path.size} puntos" +
@@ -336,7 +336,7 @@ internal fun BoulderFormDialog(
         // F: orientación por CARA (solo con varias fotos; con una vale la general).
         if (faces.size > 1) {
             OrientationPickRow(
-                label = "ORIENTACIÓN DE ESTA CARA (opcional)",
+                label = stringResource(R.string.boulder_form_dialog_orientacion_de_esta_cara),
                 selected = face.orientation,
                 onPick = { a -> updateFace { it.copy(orientation = if (it.orientation == a) null else a) } }
             )
@@ -474,7 +474,7 @@ internal fun BoulderFormDialog(
             // pulsable en cualquier móvil.
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { eligiendoOrigenFoto = false },
-                title = { Text("¿Cómo quieres la foto?") },
+                title = { Text(stringResource(R.string.boulder_form_dialog_como_quieres_la_foto)) },
                 text = {
                     Column {
                         androidx.compose.material3.TextButton(
@@ -484,7 +484,7 @@ internal fun BoulderFormDialog(
                         androidx.compose.material3.TextButton(
                             onClick = { eligiendoOrigenFoto = false; elegirFoto() },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("ELEGIR DE GALERÍA", modifier = Modifier.fillMaxWidth()) }
+                        ) { Text(stringResource(R.string.boulder_form_dialog_elegir_de_galeria), modifier = Modifier.fillMaxWidth()) }
                     }
                 },
                 confirmButton = {},
@@ -497,11 +497,12 @@ internal fun BoulderFormDialog(
         Spacer(Modifier.height(Spacing.md))
 
         // ── Vías de esta foto ──────────────────────────────────────────────────────
-        Text("VÍAS EN ESTA FOTO", style = EyebrowTextStyle,
+        Text(stringResource(R.string.boulder_form_dialog_vias_en_esta_foto), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (geometry == "LINE") {
             Spacer(Modifier.height(2.dp))
-            Text("Nº = posición en el muro (${if (direction == "LTR") "izq→der" else "der→izq"}). Reordena con ▲▼.",
+            Text(stringResource(R.string.boulder_form_dialog_numbering_note,
+                if (direction == "LTR") stringResource(R.string.add_lines_direction_ltr_short) else stringResource(R.string.add_lines_direction_rtl_short)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -598,7 +599,7 @@ internal fun BoulderFormDialog(
                     .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("+ AÑADIR VÍA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.boulder_form_dialog_anadir_via), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -627,7 +628,7 @@ internal fun BoulderFormDialog(
         }
         if (photoUri == null) {
             Spacer(Modifier.height(2.dp))
-            Text("Añade una foto para poder dibujar las líneas",
+            Text(stringResource(R.string.boulder_form_dialog_anade_una_foto_para),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -641,7 +642,7 @@ internal fun BoulderFormDialog(
         Text("%.5f, %.5f".format(java.util.Locale.US, lat, lon),
             style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Mono),
             color = Terra)
-        Text("✓ POSICIÓN DESDE EL MAPA", style = EyebrowTextStyle,
+        Text(stringResource(R.string.boulder_form_dialog_posicion_desde_el_mapa), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.secondary)
         Spacer(Modifier.height(Spacing.md))
 
@@ -773,7 +774,7 @@ private fun BloqueRow(
             value = bloque.description ?: "",
             onValueChange = { onUpdate(bloque.copy(description = it.takeIf { t -> t.isNotBlank() })) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Descripción (opcional)",
+            placeholder = { Text(stringResource(R.string.boulder_form_dialog_descripcion_opcional),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             maxLines = 3,

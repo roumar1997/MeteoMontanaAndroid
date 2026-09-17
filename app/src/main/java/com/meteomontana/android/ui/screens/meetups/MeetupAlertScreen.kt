@@ -133,7 +133,7 @@ fun MeetupAlertScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Activar alertas", style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium)
-                    Text("Recibe una notificación cuando se cree una quedada que te interese",
+                    Text(stringResource(R.string.meetup_alert_screen_recibe_una_notificacion_cuando),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -153,7 +153,7 @@ fun MeetupAlertScreen(
 
             // Escuela concreta (opcional)
             SectionLabel("ESCUELA")
-            Text("Avísame solo de una escuela en concreto, o de cualquiera",
+            Text(stringResource(R.string.meetup_alert_screen_avisame_solo_de_una),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(verticalAlignment = Alignment.CenterVertically,
@@ -201,7 +201,7 @@ fun MeetupAlertScreen(
                 }
             }
             if (privacy == "WOMEN" && !isWoman) {
-                Text("Necesitas indicar tu género como Mujer en tu perfil para usar este filtro.",
+                Text(stringResource(R.string.meetup_alert_screen_necesitas_indicar_tu_genero),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
 
@@ -209,7 +209,7 @@ fun MeetupAlertScreen(
 
             // Distancia
             SectionLabel("DISTANCIA")
-            Text("Avísame solo de quedadas a menos de X km de mi ubicación",
+            Text(stringResource(R.string.meetup_alert_screen_avisame_solo_de_quedadas),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -223,7 +223,7 @@ fun MeetupAlertScreen(
 
             // Días concretos (próximos 14, mismo rango que crear)
             SectionLabel("DÍAS")
-            Text("Avísame si la quedada incluye alguno de estos días (vacío = cualquier día)",
+            Text(stringResource(R.string.meetup_alert_screen_avisame_si_la_quedada),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             val nextDays = remember { nextNDaysAlert(14) }

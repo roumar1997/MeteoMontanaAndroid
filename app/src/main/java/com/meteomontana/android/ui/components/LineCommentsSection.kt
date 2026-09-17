@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -49,6 +50,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Comentarios de la comunidad (con votos ▲/▼) de una piedra o de una vía.
@@ -167,7 +170,7 @@ fun LineCommentsThread(
 
         if (expanded) {
             if (mine.isEmpty()) {
-                Text("Sé el primero en comentar.",
+                Text(stringResource(R.string.line_comments_section_se_el_primero_en),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 6.dp))

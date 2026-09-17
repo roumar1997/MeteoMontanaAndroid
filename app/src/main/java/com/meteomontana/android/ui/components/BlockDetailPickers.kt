@@ -39,7 +39,7 @@ internal fun BlockLinePickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Elige la vía a corregir") },
+        title = { Text(stringResource(R.string.block_detail_pickers_elige_la_via_a)) },
         text = {
             Column {
                 block.lines.forEachIndexed { idx, line ->
@@ -89,7 +89,7 @@ internal fun BlockDeleteConfirmDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("¿Borrar este $typeLabel?") },
+        title = { Text(stringResource(R.string.block_detail_pickers_delete_confirm_title, typeLabel)) },
         text = {
             Text(
                 if (block.type == "BLOCK")
@@ -100,7 +100,7 @@ internal fun BlockDeleteConfirmDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("SÍ, BORRAR", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.block_detail_pickers_si_borrar), color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = {

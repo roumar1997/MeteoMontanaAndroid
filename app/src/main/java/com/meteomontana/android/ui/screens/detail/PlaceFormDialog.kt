@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,8 @@ import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 // Formularios simples de "sitio con nombre y notas". Parking y sector eran DOS
 // diálogos casi idénticos copiados (solo cambiaban los textos y si el nombre es
@@ -123,7 +126,7 @@ private fun PlaceFormDialog(
             style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Mono),
             color = Terra)
         if (showPositionBadge) {
-            Text("✓ POSICIÓN DESDE EL MAPA", style = EyebrowTextStyle,
+            Text(stringResource(R.string.place_form_dialog_posicion_desde_el_mapa), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.secondary)
         }
         Spacer(Modifier.height(Spacing.md))

@@ -222,11 +222,11 @@ private fun EditForm(
         Field("NOMBRE PARA MOSTRAR", displayName, { displayName = it },
             placeholder = "Alvaro Jara")
         Field("BIO (max 150)", bio, { if (it.length <= 150) bio = it },
-            placeholder = "Cuéntate en una línea", height = 80.dp)
+            placeholder = stringResource(R.string.edit_profile_screen_cuentate_en_una_linea), height = 80.dp)
         // GRADO MÁXIMO: automático desde el diario (tope de bloque y de vía por
         // separado). Ya no es manual → no hay campo, solo el aviso.
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text("GRADO MÁXIMO",
+            Text(stringResource(R.string.edit_profile_screen_grado_maximo),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Se calcula solo desde tu diario",
@@ -240,10 +240,10 @@ private fun EditForm(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Perfil público",
+                Text(stringResource(R.string.edit_profile_screen_perfil_publico),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground)
-                Text("Otros podrán verte por @username",
+                Text(stringResource(R.string.edit_profile_screen_otros_podran_verte_por),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -322,7 +322,7 @@ private fun GearSelector(gearState: MutableMap<String, Int>, version: Int, onCha
 private fun GenderSelector(selected: String, onSelect: (String) -> Unit) {
     val options = listOf("WOMAN" to "Mujer", "MAN" to "Hombre", "OTHER" to "Otro", "" to "No indicar")
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text("GÉNERO (privado — solo para quedadas no mixtas)",
+        Text(stringResource(R.string.edit_profile_screen_genero_privado_solo_para),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(6.dp))

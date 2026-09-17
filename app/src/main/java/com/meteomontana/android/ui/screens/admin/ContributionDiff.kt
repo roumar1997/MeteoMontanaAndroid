@@ -316,7 +316,7 @@ internal fun BoulderReviewSection(
 
             if (faceDrawingChanged) {
                 if (isNewFace) {
-                    Text("CARA NUEVA (FOTO AÑADIDA)", style = EyebrowTextStyle, color = Moss)
+                    Text(stringResource(R.string.contribution_diff_cara_nueva_foto_anadida), style = EyebrowTextStyle, color = Moss)
                     Spacer(Modifier.height(Spacing.xs))
                 } else if (!oldPhoto.isNullOrBlank()) {
                     Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
@@ -340,7 +340,7 @@ internal fun BoulderReviewSection(
                     ZoomableTopo(photoUrl = propostaPhoto, lines = proposedLines)
                 }
             } else {
-                Text("SOLO TEXTO · el dibujo y la foto no cambian",
+                Text(stringResource(R.string.contribution_diff_solo_texto_el_dibujo),
                     style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
@@ -377,7 +377,7 @@ internal fun BoulderReviewSection(
             }
         } else if (proposed.isNotEmpty()) {
             Spacer(Modifier.height(Spacing.xs))
-            Text("SIN FOTO — el proponente no adjuntó imagen",
+            Text(stringResource(R.string.contribution_diff_sin_foto_el_proponente),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             c.bloquesJson?.takeIf { it.isNotBlank() }?.let { BloquesSummary(it) }
@@ -441,7 +441,7 @@ internal fun WallDiffSection(
     Spacer(Modifier.height(Spacing.md))
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
     Spacer(Modifier.height(Spacing.sm))
-    Text("MURO · CAMBIOS", style = EyebrowTextStyle, color = Terra)
+    Text(stringResource(R.string.contribution_diff_muro_cambios), style = EyebrowTextStyle, color = Terra)
     Spacer(Modifier.height(Spacing.xs))
 
     if (targetBlock == null) {
@@ -457,7 +457,7 @@ internal fun WallDiffSection(
             color = if (dirChanged) Terra else MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (diff.pathChanged) {
-            Text("⚠ El trazado/longitud del muro cambia (ver mapa: gris=actual, terra=propuesto)",
+            Text(stringResource(R.string.contribution_diff_el_trazado_longitud_del),
                 style = MaterialTheme.typography.bodyMedium, color = Terra)
         }
     }

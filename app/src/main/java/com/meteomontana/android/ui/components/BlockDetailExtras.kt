@@ -169,7 +169,7 @@ internal fun BlockOptionsSection(
                 .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center
         ) {
-            Text("🗑 BORRAR", style = EyebrowTextStyle,
+            Text(stringResource(R.string.block_detail_extras_borrar), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.error)
         }
     }

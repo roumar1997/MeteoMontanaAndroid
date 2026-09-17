@@ -568,7 +568,7 @@ internal fun AddLinesFlow(
         // pulsable en cualquier móvil.
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { eligiendoOrigenFoto = false },
-            title = { Text("¿Cómo quieres la foto?") },
+            title = { Text(stringResource(R.string.add_lines_flow_como_quieres_la_foto)) },
             text = {
                 Column {
                     androidx.compose.material3.TextButton(
@@ -585,7 +585,7 @@ internal fun AddLinesFlow(
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("ELEGIR DE GALERÍA", modifier = Modifier.fillMaxWidth()) }
+                    ) { Text(stringResource(R.string.add_lines_flow_elegir_de_galeria), modifier = Modifier.fillMaxWidth()) }
                 }
             },
             confirmButton = {},

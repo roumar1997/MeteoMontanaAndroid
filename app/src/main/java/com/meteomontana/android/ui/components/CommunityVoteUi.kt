@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,6 +32,8 @@ import com.meteomontana.android.domain.model.OrientationSummary
 import com.meteomontana.android.domain.model.SunHours
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Terra
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * UI de la votación comunitaria (C2/C5). Regla de diseño (DESIGN.md): todo lo
@@ -100,7 +103,7 @@ fun OrientationVoteContent(
     onVote: (String) -> Unit
 ) {
     Column(Modifier.padding(horizontal = 4.dp)) {
-        Text("¿HACIA DÓNDE MIRA ESTA PARED?", style = EyebrowTextStyle, color = Terra)
+        Text(stringResource(R.string.community_vote_ui_hacia_donde_mira_esta), style = EyebrowTextStyle, color = Terra)
         Text(
             "Vota la comunidad; se muestra la más votada. Un voto por persona — puedes cambiarlo.",
             fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -109,7 +112,7 @@ fun OrientationVoteContent(
         if (summary != null && summary.votes.isNotEmpty()) {
             VoteBars(summary.votes, summary.consensus, summary.myVote)
         } else {
-            Text("Sin votos todavía. ¡Sé el primero!",
+            Text(stringResource(R.string.community_vote_ui_sin_votos_todavia_se),
                 fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(10.dp))
@@ -170,7 +173,7 @@ fun GradeVoteContent(
     onVote: (String) -> Unit
 ) {
     Column(Modifier.padding(horizontal = 4.dp)) {
-        Text("¿QUÉ GRADO LE DAS?", style = EyebrowTextStyle, color = Terra)
+        Text(stringResource(R.string.community_vote_ui_que_grado_le_das), style = EyebrowTextStyle, color = Terra)
         Text(
             if (canVote)
                 "El grado que se muestra es el consenso (con 3+ votos). El del equipador queda como referencia."
@@ -234,7 +237,7 @@ fun SunStrip(sun: SunHours, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()) {
-            Text("SOL EN ESTA PARED · HOY", style = EyebrowTextStyle.copy(fontSize = 10.sp),
+            Text(stringResource(R.string.community_vote_ui_sol_en_esta_pared), style = EyebrowTextStyle.copy(fontSize = 10.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 LegendDot(Color(0xFFE8B84B), "Sol"); LegendDot(Color(0xFF3D4A5C), "Sombra")
